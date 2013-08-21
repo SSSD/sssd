@@ -1597,8 +1597,8 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
     }
 
     /* check if enumeration is enabled in any domain */
-    for (dom = client->rctx->domains; dom; dom = get_next_domain(dom, false)) {
-        if (dom->enumerate != 0) break;
+    for (dom = client->rctx->domains; dom; dom = get_next_domain(dom, true)) {
+        if (dom->enumerate == true) break;
     }
     state->dctx->domain = dom;
 
@@ -1710,7 +1710,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
 
     while (dom) {
         while (dom && dom->enumerate == 0) {
-            dom = get_next_domain(dom, false);
+            dom = get_next_domain(dom, true);
         }
 
         if (!dom) break;
@@ -1768,13 +1768,13 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
         if (ret != EOK) {
             DEBUG(1, ("Enum from cache failed, skipping domain [%s]\n",
                       dom->name));
-            dom = get_next_domain(dom, false);
+            dom = get_next_domain(dom, true);
             continue;
         }
 
         if (res->count == 0) {
             DEBUG(4, ("Domain [%s] has no users, skipping.\n", dom->name));
-            dom = get_next_domain(dom, false);
+            dom = get_next_domain(dom, true);
             continue;
         }
 
@@ -1792,7 +1792,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
         nctx->pctx->num++;
 
         /* do not reply until all domain searches are done */
-        dom = get_next_domain(dom, false);
+        dom = get_next_domain(dom, true);
     }
 
     /* We've finished all our lookups
@@ -2818,8 +2818,8 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
     }
 
     /* check if enumeration is enabled in any domain */
-    for (dom = client->rctx->domains; dom; dom = get_next_domain(dom, false)) {
-        if (dom->enumerate != 0) break;
+    for (dom = client->rctx->domains; dom; dom = get_next_domain(dom, true)) {
+        if (dom->enumerate == true) break;
     }
     state->dctx->domain = dom;
 
@@ -2931,7 +2931,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
 
     while (dom) {
         while (dom && dom->enumerate == 0) {
-            dom = get_next_domain(dom, false);
+            dom = get_next_domain(dom, true);
         }
 
         if (!dom) break;
@@ -2989,13 +2989,13 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
         if (ret != EOK) {
             DEBUG(1, ("Enum from cache failed, skipping domain [%s]\n",
                       dom->name));
-            dom = get_next_domain(dom, false);
+            dom = get_next_domain(dom, true);
             continue;
         }
 
         if (res->count == 0) {
             DEBUG(4, ("Domain [%s] has no groups, skipping.\n", dom->name));
-            dom = get_next_domain(dom, false);
+            dom = get_next_domain(dom, true);
             continue;
         }
 
@@ -3013,7 +3013,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
         nctx->gctx->num++;
 
         /* do not reply until all domain searches are done */
-        dom = get_next_domain(dom, false);
+        dom = get_next_domain(dom, true);
     }
 
     /* We've finished all our lookups
