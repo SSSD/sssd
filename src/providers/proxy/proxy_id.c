@@ -933,6 +933,12 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
         ret = handle_getgr_result(status, grp, dom, &delete_group);
     } while (ret == EAGAIN);
 
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("getgrgid failed [%d]: %s\n", ret, strerror(ret)));
+        goto done;
+    }
+
     if (delete_group) {
         DEBUG(SSSDBG_TRACE_FUNC,
               ("Group %d does not exist (or is invalid) on remote server,"
@@ -1279,6 +1285,11 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
         return ENOMEM;
     }
 
+    /* nss modules may skip the primary group when we pass it in so always add
+     * it in advance */
+    gids[0] = pwd->pw_gid;
+    num_gids++;
+
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
     do {
@@ -1304,6 +1315,11 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
     } while(status == NSS_STATUS_TRYAGAIN);
 
     switch (status) {
+    case NSS_STATUS_NOTFOUND:
+        DEBUG(SSSDBG_FUNC_DATA, ("The initgroups call returned 'NOTFOUND'. "
+                                 "Assume the user is only member of its "
+                                 "primary group (%d)\n", pwd->pw_gid));
+        /* fall through */
     case NSS_STATUS_SUCCESS:
         DEBUG(SSSDBG_CONF_SETTINGS, ("User [%s] appears to be member of %lu"
                     "groups\n", pwd->pw_name, num_gids));
