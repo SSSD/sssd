@@ -267,11 +267,11 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     case SSS_KRB5_TYPE_FILE:
         kr->krb5_ctx->cc_be = &file_cc;
         break;
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
     case SSS_KRB5_TYPE_DIR:
         kr->krb5_ctx->cc_be = &dir_cc;
         break;
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
     default:
         if (tmpl[0] != '/') {
             DEBUG(SSSDBG_OP_FAILURE, ("Unkown ccname database\n"));

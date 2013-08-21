@@ -436,7 +436,7 @@ done:
     return kerr;
 }
 
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
 static bool need_switch_to_principal(krb5_context ctx, krb5_principal princ)
 {
     krb5_error_code kerr;
@@ -497,7 +497,7 @@ done:
 
     return ret;
 }
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
 
 static krb5_error_code
 store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
@@ -528,7 +528,7 @@ store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
         goto done;
     }
 
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
     if (need_switch_to_principal(ctx, princ)) {
         kerr = krb5_cc_switch(ctx, cc);
         if (kerr != 0) {
@@ -536,7 +536,7 @@ store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
             goto done;
         }
     }
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
 
     kerr = krb5_cc_close(ctx, cc);
     if (kerr != 0) {
@@ -654,7 +654,7 @@ done:
     return kerr;
 }
 
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
 
 static errno_t
 create_ccdir(const char *dirname, uid_t uid, gid_t gid)
@@ -781,7 +781,7 @@ done:
     return kerr;
 }
 
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
 
 static krb5_error_code
 create_ccache(uid_t uid, gid_t gid, krb5_context ctx,
@@ -793,10 +793,10 @@ create_ccache(uid_t uid, gid_t gid, krb5_context ctx,
     switch (cctype) {
         case SSS_KRB5_TYPE_FILE:
             return create_ccache_file(ctx, princ, ccname, creds);
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
         case SSS_KRB5_TYPE_DIR:
             return create_ccache_in_dir(uid, gid, ctx, princ, ccname, creds);
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown cache type\n"));
             return EINVAL;

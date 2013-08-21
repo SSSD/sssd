@@ -715,11 +715,11 @@ get_cc_be_ops(enum sss_krb5_cc_type type)
             be = &file_cc;
             break;
 
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
         case SSS_KRB5_TYPE_DIR:
             be = &dir_cc;
             break;
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
 
         case SSS_KRB5_TYPE_UNKNOWN:
             be = NULL;
@@ -792,11 +792,11 @@ cc_residual_is_used(uid_t uid, const char *ccname,
     }
 
     switch (type) {
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
         case SSS_KRB5_TYPE_DIR:
             ret = S_ISDIR(stat_buf.st_mode);
             break;
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
         case SSS_KRB5_TYPE_FILE:
             ret = S_ISREG(stat_buf.st_mode);
             break;
@@ -952,7 +952,7 @@ struct sss_krb5_cc_be file_cc = {
     .remove             = cc_file_remove,
 };
 
-#ifdef HAVE_KRB5_DIRCACHE
+#ifdef HAVE_KRB5_CC_COLLECTION
 /*======== Operations on the DIR: back end ========*/
 errno_t
 cc_dir_create(const char *location, pcre *illegal_re,
@@ -1190,7 +1190,7 @@ struct sss_krb5_cc_be dir_cc = {
     .remove             = cc_dir_remove
 };
 
-#endif /* HAVE_KRB5_DIRCACHE */
+#endif /* HAVE_KRB5_CC_COLLECTION */
 
 errno_t get_domain_or_subdomain(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
                                 char *domain_name,
