@@ -168,6 +168,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
 errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
                                struct sdap_id_conn_ctx *conn,
                                struct sdap_domain *sdom);
+errno_t ldap_id_cleanup(struct sdap_id_ctx *ctx);
 int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
 
 void sdap_mark_offline(struct sdap_id_ctx *ctx);

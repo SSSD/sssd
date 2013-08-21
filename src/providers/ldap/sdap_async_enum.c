@@ -31,10 +31,6 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_idmap.h"
 
-extern struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
-                                               struct tevent_context *ev,
-                                               struct sdap_id_ctx *ctx);
-
 static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
@@ -67,7 +63,6 @@ static void sdap_dom_enum_conn_done(struct tevent_req *subreq);
 static void sdap_dom_enum_users_done(struct tevent_req *subreq);
 static void sdap_dom_enum_groups_done(struct tevent_req *subreq);
 static void sdap_dom_enum_services_done(struct tevent_req *subreq);
-static void sdap_dom_enum_cleanup_done(struct tevent_req *subreq);
 
 struct tevent_req *
 sdap_dom_enum_send(TALLOC_CTX *memctx,
@@ -316,24 +311,15 @@ static void sdap_dom_enum_services_done(struct tevent_req *subreq)
     }
 
     if (state->purge) {
-        subreq = ldap_id_cleanup_send(state, state->ev, state->ctx);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
+        ret = ldap_id_cleanup(state->ctx);
+        if (ret != EOK) {
+            /* Not fatal, worst case we'll have stale entries that would be
+             * removed on a subsequent online lookup
+             */
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Cleanup failed: %d\n", ret));
         }
-
-        tevent_req_set_callback(subreq, sdap_dom_enum_cleanup_done, req);
-        return;
     }
 
-    tevent_req_done(req);
-}
-
-static void sdap_dom_enum_cleanup_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    talloc_zfree(subreq);
     tevent_req_done(req);
 }
 

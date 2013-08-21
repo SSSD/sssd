@@ -33,23 +33,11 @@
 #include "providers/ldap/sdap_async.h"
 
 /* ==Cleanup-Task========================================================= */
-
-struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
-                                        struct tevent_context *ev,
-                                        struct sdap_id_ctx *ctx);
-static void ldap_id_cleanup_reschedule(struct tevent_req *req);
-
-static void ldap_id_cleanup_timeout(struct tevent_context *ev,
-                                      struct tevent_timer *te,
-                                      struct timeval tv, void *pvt);
-
 static void ldap_id_cleanup_timer(struct tevent_context *ev,
                                   struct tevent_timer *tt,
                                   struct timeval tv, void *pvt)
 {
     struct sdap_id_ctx *ctx = talloc_get_type(pvt, struct sdap_id_ctx);
-    struct tevent_timer *timeout;
-    struct tevent_req *req;
     int delay;
     errno_t ret;
 
@@ -62,88 +50,19 @@ static void ldap_id_cleanup_timer(struct tevent_context *ev,
         return;
     }
 
-    req = ldap_id_cleanup_send(ctx, ev, ctx);
-    if (!req) {
-        DEBUG(1, ("Failed to schedule cleanup, retrying later!\n"));
-        /* schedule starting from now, not the last run */
-        delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
-        tv = tevent_timeval_current_ofs(delay, 0);
-        ret = ldap_id_cleanup_set_timer(ctx, tv);
-        if (ret != EOK) {
-            DEBUG(1, ("Error setting up cleanup timer\n"));
-        }
-        return;
-    }
-    tevent_req_set_callback(req, ldap_id_cleanup_reschedule, ctx);
-
-    /* if cleanup takes so long, either we try to cleanup too
-     * frequently, or something went seriously wrong */
-    delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
-    tv = tevent_timeval_current_ofs(delay, 0);
-    timeout = tevent_add_timer(ctx->be->ev, req, tv,
-                               ldap_id_cleanup_timeout, req);
-    if (timeout == NULL) {
-        /* If we can't guarantee a timeout, we
-         * need to cancel the request, to avoid
-         * the possibility of starting another
-         * concurrently
-         */
-        talloc_zfree(req);
-
-        DEBUG(1, ("Failed to schedule cleanup, retrying later!\n"));
-        /* schedule starting from now, not the last run */
-        delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
-        tv = tevent_timeval_current_ofs(delay, 0);
-        ret = ldap_id_cleanup_set_timer(ctx, tv);
-        if (ret != EOK) {
-            DEBUG(1, ("Error setting up cleanup timer\n"));
-        }
-        return;
-    }
-    return;
-}
-
-static void ldap_id_cleanup_timeout(struct tevent_context *ev,
-                                      struct tevent_timer *te,
-                                      struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct sdap_id_ctx *ctx = tevent_req_callback_data(req,
-                                                       struct sdap_id_ctx);
-    int delay;
-
-    delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
-    DEBUG(1, ("Cleanup timed out! Timeout too small? (%ds)!\n", delay));
-
-    tv = tevent_timeval_current_ofs(delay, 0);
-    ldap_id_cleanup_set_timer(ctx, tv);
-
-    talloc_zfree(req);
-}
-
-static void ldap_id_cleanup_reschedule(struct tevent_req *req)
-{
-    struct sdap_id_ctx *ctx = tevent_req_callback_data(req,
-                                                       struct sdap_id_ctx);
-    enum tevent_req_state tstate;
-    uint64_t err;
-    struct timeval tv;
-    int delay;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
+    ret = ldap_id_cleanup(ctx);
+    if (ret != EOK) {
         /* On error schedule starting from now, not the last run */
         tv = tevent_timeval_current();
     } else {
         tv = ctx->last_purge;
     }
-    talloc_zfree(req);
 
     delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
     tv = tevent_timeval_add(&tv, delay, 0);
     ldap_id_cleanup_set_timer(ctx, tv);
+    ctx->last_purge = tevent_timeval_current();
 }
-
-
 
 int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv)
 {
@@ -162,80 +81,58 @@ int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv)
     return EOK;
 }
 
-
-
-struct global_cleanup_state {
-    struct tevent_context *ev;
-    struct sdap_id_ctx *ctx;
-};
-
 static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx);
 static int cleanup_groups(TALLOC_CTX *memctx,
                           struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain);
 
-struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
-                                        struct tevent_context *ev,
-                                        struct sdap_id_ctx *ctx)
+errno_t ldap_id_cleanup(struct sdap_id_ctx *ctx)
 {
-    struct global_cleanup_state *state;
-    struct tevent_req *req;
-    int ret;
+    int ret, tret;
     bool in_transaction = false;
+    TALLOC_CTX *tmp_ctx;
 
-    req = tevent_req_create(memctx, &state, struct global_cleanup_state);
-    if (!req) return NULL;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
-    state->ev = ev;
-    state->ctx = ctx;
-
-    ctx->last_purge = tevent_timeval_current();
-
-    ret = sysdb_transaction_start(state->ctx->be->domain->sysdb);
+    ret = sysdb_transaction_start(ctx->be->domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
-        goto fail;
+        goto done;
     }
     in_transaction = true;
 
-    ret = cleanup_users(state, state->ctx);
+    ret = cleanup_users(tmp_ctx, ctx);
     if (ret && ret != ENOENT) {
-        goto fail;
+        goto done;
     }
 
-    ret = cleanup_groups(state,
-                         state->ctx->be->domain->sysdb,
-                         state->ctx->be->domain);
+    ret = cleanup_groups(tmp_ctx,
+                         ctx->be->domain->sysdb,
+                         ctx->be->domain);
     if (ret) {
-        goto fail;
+        goto done;
     }
 
-    ret = sysdb_transaction_commit(state->ctx->be->domain->sysdb);
+    ret = sysdb_transaction_commit(ctx->be->domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
-        goto fail;
+        goto done;
     }
     in_transaction = false;
 
-    tevent_req_done(req);
-    tevent_req_post(req, ev);
-    return req;
-
-fail:
-    DEBUG(1, ("Failed to cleanup caches (%d [%s]), retrying later!\n",
-              (int)ret, strerror(ret)));
+    ret = EOK;
+done:
     if (in_transaction) {
-        ret = sysdb_transaction_cancel(state->ctx->be->domain->sysdb);
-        if (ret != EOK) {
-            DEBUG(1, ("Could not cancel transaction\n"));
-            tevent_req_error(req, ret);
-            tevent_req_post(req, ev);
-            return req;
+        tret = sysdb_transaction_cancel(ctx->be->domain->sysdb);
+        if (tret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
         }
     }
-    tevent_req_done(req);
-    tevent_req_post(req, ev);
-    return req;
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 
