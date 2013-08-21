@@ -76,7 +76,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *realm,
                                       const char *flat_name,
                                       const char *id,
-                                      bool mpg)
+                                      bool mpg,
+                                      bool enumerate)
 {
     struct sss_domain_info *dom;
 
@@ -132,7 +133,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
         }
     }
 
-    dom->enumerate = false;
+    dom->enumerate = enumerate;
     dom->fqnames = true;
     dom->mpg = mpg;
     /* FIXME: get ranges from the server */

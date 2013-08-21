@@ -34,6 +34,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_MPG,
+                           SYSDB_SUBDOMAIN_ENUM,
                            NULL};
     struct sss_domain_info *dom;
     struct ldb_dn *basedn;
@@ -42,6 +43,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
     const char *flat;
     const char *id;
     bool mpg;
+    bool enumerate;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -96,6 +98,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
         mpg = ldb_msg_find_attr_as_bool(res->msgs[i],
                                         SYSDB_SUBDOMAIN_MPG, false);
 
+        enumerate = ldb_msg_find_attr_as_bool(res->msgs[i],
+                                              SYSDB_SUBDOMAIN_ENUM, false);
+
         /* explicitly use dom->next as we need to check 'disabled' domains */
         for (dom = domain->subdomains; dom; dom = dom->next) {
             if (strcasecmp(dom->name, name) == 0) {
@@ -143,12 +148,21 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                     dom->mpg = mpg;
                 }
 
+                if (dom->enumerate != enumerate) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          ("MPG state change from [%s] to [%s]!\n",
+                           dom->enumerate ? "true" : "false",
+                           enumerate ? "true" : "false"));
+                    dom->enumerate = enumerate;
+                }
+
                 break;
             }
         }
         /* If not found in loop it is a new subdomain */
         if (dom == NULL) {
-            dom = new_subdomain(domain, domain, name, realm, flat, id, mpg);
+            dom = new_subdomain(domain, domain, name, realm,
+                                flat, id, mpg, enumerate);
             if (dom == NULL) {
                 ret = ENOMEM;
                 goto done;
