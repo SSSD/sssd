@@ -553,22 +553,22 @@ void child_sig_handler(struct tevent_context *ev,
     } else if (ret == 0) {
         DEBUG(1, ("waitpid did not found a child with changed status.\n"));
     } else {
-        if WIFEXITED(child_ctx->child_status) {
+        if (WIFEXITED(child_ctx->child_status)) {
             if (WEXITSTATUS(child_ctx->child_status) != 0) {
                 DEBUG(1, ("child [%d] failed with status [%d].\n", ret,
                           WEXITSTATUS(child_ctx->child_status)));
             } else {
                 DEBUG(4, ("child [%d] finished successfully.\n", ret));
             }
-        } else if WIFSIGNALED(child_ctx->child_status) {
+        } else if (WIFSIGNALED(child_ctx->child_status)) {
             DEBUG(1, ("child [%d] was terminated by signal [%d].\n", ret,
                       WTERMSIG(child_ctx->child_status)));
         } else {
-            if WIFSTOPPED(child_ctx->child_status) {
+            if (WIFSTOPPED(child_ctx->child_status)) {
                 DEBUG(7, ("child [%d] was stopped by signal [%d].\n", ret,
                           WSTOPSIG(child_ctx->child_status)));
             }
-            if WIFCONTINUED(child_ctx->child_status) {
+            if (WIFCONTINUED(child_ctx->child_status)) {
                 DEBUG(7, ("child [%d] was resumed by delivery of SIGCONT.\n",
                           ret));
             }

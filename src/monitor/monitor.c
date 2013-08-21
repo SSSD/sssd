@@ -1420,9 +1420,9 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
                     }
                 } else if (pid != 0) {
                     error = 0;
-                    if WIFEXITED(status) {
+                    if (WIFEXITED(status)) {
                         DEBUG(1, ("Child [%s] exited gracefully\n", svc->name));
-                    } else if WIFSIGNALED(status) {
+                    } else if (WIFSIGNALED(status)) {
                         DEBUG(1, ("Child [%s] terminated with a signal\n", svc->name));
                     } else {
                         DEBUG(0, ("Child [%s] did not exit cleanly\n", svc->name));
@@ -2573,11 +2573,11 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
     struct timeval tv;
     int restart_delay;
 
-    if WIFEXITED(wait_status) {
+    if (WIFEXITED(wait_status)) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Child [%s] exited with code [%d]\n",
                svc->name, WEXITSTATUS(wait_status)));
-    } else if WIFSIGNALED(wait_status) {
+    } else if (WIFSIGNALED(wait_status)) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Child [%s] terminated with signal [%d]\n",
                svc->name, WTERMSIG(wait_status)));
