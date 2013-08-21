@@ -64,6 +64,7 @@ _sss_setautomntent(const char *mapname, void **context)
     struct sss_cli_req_data rd;
     uint8_t *repbuf = NULL;
     size_t replen;
+    uint32_t num_results = 0;
 
     if (!mapname) return EINVAL;
 
@@ -96,8 +97,11 @@ _sss_setautomntent(const char *mapname, void **context)
         goto out;
     }
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if (((uint32_t *)repbuf)[0] == 0) {
+    if (num_results == 0) {
         free(name);
         free(repbuf);
         ret = ENOENT;

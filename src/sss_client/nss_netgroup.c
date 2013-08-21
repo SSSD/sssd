@@ -160,6 +160,7 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
 {
     uint8_t *repbuf = NULL;
     size_t replen;
+    uint32_t num_results;
     enum nss_status nret;
     struct sss_cli_req_data rd;
     int errnop;
@@ -198,8 +199,11 @@ enum nss_status _nss_sss_setnetgrent(const char *netgroup,
         goto out;
     }
 
+    /* Get number of results from repbuf */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if ((((uint32_t *)repbuf)[0] == 0) || (replen < NETGR_METADATA_COUNT)) {
+    if ((num_results == 0) || (replen < NETGR_METADATA_COUNT)) {
         free(repbuf);
         nret = NSS_STATUS_NOTFOUND;
         goto out;
@@ -221,6 +225,7 @@ static enum nss_status internal_getnetgrent_r(struct __netgrent *result,
     struct sss_nss_netgr_rep netgrrep;
     uint8_t *repbuf;
     size_t replen;
+    uint32_t num_results;
     enum nss_status nret;
     uint32_t num_entries;
     int ret;
@@ -266,8 +271,11 @@ static enum nss_status internal_getnetgrent_r(struct __netgrent *result,
         return nret;
     }
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if ((((uint32_t *)repbuf)[0] == 0) || (replen <= NETGR_METADATA_COUNT)) {
+    if ((num_results == 0) || (replen <= NETGR_METADATA_COUNT)) {
         free(repbuf);
         return NSS_STATUS_RETURN;
     }

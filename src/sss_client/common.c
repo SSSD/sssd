@@ -424,7 +424,7 @@ static bool sss_cli_check_version(const char *socket_name)
         return false;
     }
 
-    obtained_version = ((uint32_t *)repbuf)[0];
+    SAFEALIGN_COPY_UINT32(&obtained_version, repbuf, NULL);
     free(repbuf);
 
     return (obtained_version == expected_version);

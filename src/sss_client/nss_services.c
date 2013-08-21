@@ -175,6 +175,7 @@ _nss_sss_getservbyname_r(const char *name,
     uint8_t *repbuf;
     uint8_t *data;
     size_t replen, len;
+    uint32_t num_results;
     enum nss_status nret;
     int ret;
 
@@ -225,15 +226,18 @@ _nss_sss_getservbyname_r(const char *name,
     svcrep.buffer = buffer;
     svcrep.buflen = buflen;
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if (((uint32_t *)repbuf)[0] == 0) {
+    if (num_results == 0) {
         free(repbuf);
         nret = NSS_STATUS_NOTFOUND;
         goto out;
     }
 
     /* only 1 result is accepted for this function */
-    if (((uint32_t *)repbuf)[0] != 1) {
+    if (num_results != 1) {
         *errnop = EBADMSG;
         free(repbuf);
         nret = NSS_STATUS_TRYAGAIN;
@@ -272,6 +276,7 @@ _nss_sss_getservbyport_r(int port, const char *protocol,
     uint8_t *data;
     size_t p = 0;
     size_t replen, len;
+    uint32_t num_results;
     enum nss_status nret;
     int ret;
 
@@ -320,15 +325,18 @@ _nss_sss_getservbyport_r(int port, const char *protocol,
     svcrep.buffer = buffer;
     svcrep.buflen = buflen;
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if (((uint32_t *)repbuf)[0] == 0) {
+    if (num_results == 0) {
         free(repbuf);
         nret = NSS_STATUS_NOTFOUND;
         goto out;
     }
 
     /* only 1 result is accepted for this function */
-    if (((uint32_t *)repbuf)[0] != 1) {
+    if (num_results != 1) {
         *errnop = EBADMSG;
         free(repbuf);
         nret = NSS_STATUS_TRYAGAIN;
@@ -400,6 +408,7 @@ static enum nss_status internal_getservent_r(struct servent *result,
     struct sss_nss_svc_rep pwrep;
     uint8_t *repbuf;
     size_t replen;
+    uint32_t num_results;
     enum nss_status nret;
     uint32_t num_entries;
     int ret;
@@ -444,9 +453,11 @@ static enum nss_status internal_getservent_r(struct servent *result,
         return nret;
     }
 
+    /* Get number of results from repbuf */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if ((((uint32_t *)repbuf)[0] == 0)
-            || (replen - SVC_METADATA_COUNT == 0)) {
+    if ((num_results == 0) || (replen - SVC_METADATA_COUNT == 0)) {
         free(repbuf);
         return NSS_STATUS_NOTFOUND;
     }

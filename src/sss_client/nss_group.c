@@ -282,7 +282,7 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
     uint8_t *repbuf;
     size_t replen;
     enum nss_status nret;
-    uint32_t *rbuf;
+    size_t buf_index = 0;
     uint32_t num_ret;
     long int l, max_ret;
 
@@ -298,7 +298,7 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
     }
 
     /* no results if not found */
-    num_ret = ((uint32_t *)repbuf)[0];
+    SAFEALIGN_COPY_UINT32(&num_ret, repbuf, NULL);
     if (num_ret == 0) {
         free(repbuf);
         nret = NSS_STATUS_NOTFOUND;
@@ -328,9 +328,13 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
         *size = newsize;
     }
 
-    rbuf = &((uint32_t *)repbuf)[2];
+    /* Skip first two 32 bit values (number of results and
+     * reserved padding) */
+    buf_index = 2 * sizeof(uint32_t);
+
     for (l = 0; l < max_ret; l++) {
-        (*groups)[*start] = rbuf[l];
+        SAFEALIGN_COPY_UINT32(&(*groups)[*start], repbuf + buf_index,
+                                 &buf_index);
         *start += 1;
     }
 
@@ -350,6 +354,7 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
     struct sss_nss_gr_rep grrep;
     uint8_t *repbuf;
     size_t replen, len, name_len;
+    uint32_t num_results;
     enum nss_status nret;
     int ret;
 
@@ -402,15 +407,18 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
     grrep.buffer = buffer;
     grrep.buflen = buflen;
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if (((uint32_t *)repbuf)[0] == 0) {
+    if (num_results == 0) {
         free(repbuf);
         nret = NSS_STATUS_NOTFOUND;
         goto out;
     }
 
     /* only 1 result is accepted for this function */
-    if (((uint32_t *)repbuf)[0] != 1) {
+    if (num_results != 1) {
         *errnop = EBADMSG;
         free(repbuf);
         nret = NSS_STATUS_TRYAGAIN;
@@ -444,6 +452,7 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     struct sss_nss_gr_rep grrep;
     uint8_t *repbuf;
     size_t replen, len;
+    uint32_t num_results;
     enum nss_status nret;
     uint32_t group_gid;
     int ret;
@@ -489,15 +498,18 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     grrep.buffer = buffer;
     grrep.buflen = buflen;
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if (((uint32_t *)repbuf)[0] == 0) {
+    if (num_results == 0) {
         free(repbuf);
         nret = NSS_STATUS_NOTFOUND;
         goto out;
     }
 
     /* only 1 result is accepted for this function */
-    if (((uint32_t *)repbuf)[0] != 1) {
+    if (num_results != 1) {
         *errnop = EBADMSG;
         free(repbuf);
         nret = NSS_STATUS_TRYAGAIN;
@@ -552,6 +564,7 @@ static enum nss_status internal_getgrent_r(struct group *result,
     struct sss_nss_gr_rep grrep;
     uint8_t *repbuf;
     size_t replen;
+    uint32_t num_results;
     enum nss_status nret;
     uint32_t num_entries;
     int ret;
@@ -598,8 +611,11 @@ static enum nss_status internal_getgrent_r(struct group *result,
         return nret;
     }
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if ((((uint32_t *)repbuf)[0] == 0) || (replen - 8 == 0)) {
+    if ((num_results == 0) || (replen - 8 == 0)) {
         free(repbuf);
         return NSS_STATUS_NOTFOUND;
     }

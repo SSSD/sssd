@@ -108,7 +108,7 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd ,
         goto done;
     }
 
-    num_results = ((uint32_t *)repbuf)[0];
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
     if (num_results == 0) {
         ret = ENOENT;
         goto done;
@@ -117,7 +117,9 @@ static int sss_nss_getyyybyxxx(union input inp, enum sss_cli_command cmd ,
         goto done;
     }
 
-    out->type = ((uint32_t *)repbuf)[2];
+    /* Skip first two 32 bit values (number of results and
+     * reserved padding) */
+    SAFEALIGN_COPY_UINT32(&out->type, repbuf + 2 * sizeof(uint32_t), NULL);
 
     data_len = replen - DATA_START;
 

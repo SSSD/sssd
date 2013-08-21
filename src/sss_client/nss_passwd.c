@@ -139,6 +139,7 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
     struct sss_nss_pw_rep pwrep;
     uint8_t *repbuf;
     size_t replen, len, name_len;
+    uint32_t num_results;
     enum nss_status nret;
     int ret;
 
@@ -187,15 +188,18 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
     pwrep.buffer = buffer;
     pwrep.buflen = buflen;
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if (((uint32_t *)repbuf)[0] == 0) {
+    if (num_results == 0) {
         free(repbuf);
         nret = NSS_STATUS_NOTFOUND;
         goto out;
     }
 
     /* only 1 result is accepted for this function */
-    if (((uint32_t *)repbuf)[0] != 1) {
+    if (num_results != 1) {
         *errnop = EBADMSG;
         free(repbuf);
         nret = NSS_STATUS_TRYAGAIN;
@@ -225,6 +229,7 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
     struct sss_nss_pw_rep pwrep;
     uint8_t *repbuf;
     size_t replen, len;
+    uint32_t num_results;
     enum nss_status nret;
     uint32_t user_uid;
     int ret;
@@ -266,15 +271,18 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
     pwrep.buffer = buffer;
     pwrep.buflen = buflen;
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if (((uint32_t *)repbuf)[0] == 0) {
+    if (num_results == 0) {
         free(repbuf);
         nret = NSS_STATUS_NOTFOUND;
         goto out;
     }
 
     /* only 1 result is accepted for this function */
-    if (((uint32_t *)repbuf)[0] != 1) {
+    if (num_results != 1) {
         *errnop = EBADMSG;
         free(repbuf);
         nret = NSS_STATUS_TRYAGAIN;
@@ -325,6 +333,7 @@ static enum nss_status internal_getpwent_r(struct passwd *result,
     struct sss_nss_pw_rep pwrep;
     uint8_t *repbuf;
     size_t replen;
+    uint32_t num_results;
     enum nss_status nret;
     uint32_t num_entries;
     int ret;
@@ -369,8 +378,11 @@ static enum nss_status internal_getpwent_r(struct passwd *result,
         return nret;
     }
 
+    /* Get number of results from repbuf. */
+    SAFEALIGN_COPY_UINT32(&num_results, repbuf, NULL);
+
     /* no results if not found */
-    if ((((uint32_t *)repbuf)[0] == 0) || (replen - 8 == 0)) {
+    if ((num_results == 0) || (replen - 8 == 0)) {
         free(repbuf);
         return NSS_STATUS_NOTFOUND;
     }

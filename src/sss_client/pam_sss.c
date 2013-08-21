@@ -1108,7 +1108,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
         goto done;
     }
 
-    pam_status = ((int32_t *)repbuf)[0];
+    SAFEALIGN_COPY_UINT32(&pam_status, repbuf, NULL);
     ret = eval_response(pamh, replen, repbuf, pi);
     if (ret != PAM_SUCCESS) {
         D(("eval_response failed."));
