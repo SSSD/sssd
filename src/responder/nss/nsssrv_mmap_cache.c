@@ -99,7 +99,7 @@ static void  sss_mc_save_corrupted(struct sss_mc_ctx *mc_ctx)
 {
     int err;
     int fd = -1;
-    ssize_t written;
+    ssize_t written = -1;
     char *file = NULL;
     TALLOC_CTX *tmp_ctx;
 
@@ -132,7 +132,7 @@ static void  sss_mc_save_corrupted(struct sss_mc_ctx *mc_ctx)
         goto done;
     }
 
-    written = write(fd, mc_ctx->mmap_base, mc_ctx->mmap_size);
+    written = sss_atomic_write_s(fd, mc_ctx->mmap_base, mc_ctx->mmap_size);
     if (written != mc_ctx->mmap_size) {
         if (written == -1) {
             err = errno;
@@ -151,6 +151,15 @@ static void  sss_mc_save_corrupted(struct sss_mc_ctx *mc_ctx)
 done:
     if (fd != -1) {
         close(fd);
+        if (written == -1) {
+            err = unlink(file);
+            if (err != 0) {
+                err = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to remove file '%s': %s.\n", file,
+                       strerror(err)));
+            }
+        }
     }
     talloc_free(tmp_ctx);
 }
