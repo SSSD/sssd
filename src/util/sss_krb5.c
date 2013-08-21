@@ -485,6 +485,7 @@ const char *KRB5_CALLCONV sss_krb5_get_error_message(krb5_context ctx,
     ret = snprintf(s, size, "Kerberos error [%12d]", ec);
 
     if (ret < 0 || ret >= size) {
+        free(s);
         return NULL;
     }
 
