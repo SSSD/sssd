@@ -4475,15 +4475,12 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
 }
 END_TEST
 
-START_TEST(test_sysdb_group_sid_str)
+START_TEST(test_sysdb_search_sid_str)
 {
     errno_t ret;
     struct sysdb_test_ctx *test_ctx;
-    const char *filter;
-    struct ldb_dn *base_dn;
-    const char *no_attrs[] = { NULL };
-    struct ldb_message **msgs;
-    size_t num_msgs;
+    struct ldb_message *msg;
+    struct sysdb_attrs *attrs = NULL;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -4496,19 +4493,35 @@ START_TEST(test_sysdb_group_sid_str)
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
-    filter = talloc_asprintf(test_ctx, "%s=%s", SYSDB_SID_STR, "S-1-2-3-4");
-    fail_if(filter == NULL, "Cannot construct filter\n");
+    ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->sysdb,
+                                        test_ctx->domain, "S-1-2-3-4",
+                                        NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_group_by_sid_str failed with [%d][%s].",
+                ret, strerror(ret));
 
-    base_dn = sysdb_domain_dn(test_ctx->sysdb, test_ctx, test_ctx->domain);
-    fail_if(base_dn == NULL, "Cannot construct basedn\n");
+    talloc_free(msg);
+    msg = NULL;
 
-    ret = sysdb_search_entry(test_ctx, test_ctx->sysdb,
-                             base_dn, LDB_SCOPE_SUBTREE, filter, no_attrs,
-                             &num_msgs, &msgs);
-    fail_unless(ret == EOK, "cache search error [%d][%s]",
-                            ret, strerror(ret));
-    fail_unless(num_msgs == 1, "Did not find the expected number of entries using "
-                               "SID string search");
+    attrs = sysdb_new_attrs(test_ctx);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4-5");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_add_user(test_ctx->sysdb, test_ctx->domain, "SIDuser",
+                         12345, 0, "SID user", "/home/siduser", "/bin/bash",
+                         NULL, attrs, 0, 0);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_user_by_sid_str(test_ctx, test_ctx->sysdb,
+                                       test_ctx->domain, "S-1-2-3-4-5",
+                                       NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_user_by_sid_str failed with [%d][%s].",
+                ret, strerror(ret));
+
+    talloc_free(test_ctx);
 }
 END_TEST
 
@@ -5103,8 +5116,8 @@ Suite *create_sysdb_suite(void)
     /* Test originalDN searches */
     tcase_add_test(tc_sysdb, test_sysdb_original_dn_case_insensitive);
 
-    /* Test SID string group searches */
-    tcase_add_test(tc_sysdb, test_sysdb_group_sid_str);
+    /* Test SID string searches */
+    tcase_add_test(tc_sysdb, test_sysdb_search_sid_str);
 
     /* Test user and group renames */
     tcase_add_test(tc_sysdb, test_group_rename);

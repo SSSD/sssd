@@ -233,8 +233,64 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+/* =Search-Entry-by-SID-string============================================ */
 
-/* =Search-User-by-[UID/NAME]============================================= */
+int sysdb_search_entry_by_sid_str(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
+                                  const char *search_base,
+                                  const char *filter_str,
+                                  const char *sid_str,
+                                  const char **attrs,
+                                  struct ldb_message **msg)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *def_attrs[] = { SYSDB_NAME, SYSDB_SID_STR, NULL };
+    struct ldb_message **msgs = NULL;
+    struct ldb_dn *basedn;
+    size_t msgs_count = 0;
+    char *filter;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                            search_base, domain->name);
+    if (!basedn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, filter_str, sid_str);
+    if (!filter) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, sysdb, basedn, LDB_SCOPE_SUBTREE, filter,
+                             attrs?attrs:def_attrs, &msgs_count, &msgs);
+    if (ret) {
+        goto done;
+    }
+
+    *msg = talloc_steal(mem_ctx, msgs[0]);
+
+done:
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
+    }
+    else if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+/* =Search-User-by-[UID/SID/NAME]============================================= */
 
 int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
@@ -352,8 +408,21 @@ done:
     return ret;
 }
 
+int sysdb_search_user_by_sid_str(TALLOC_CTX *mem_ctx,
+                                 struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
+                                 const char *sid_str,
+                                 const char **attrs,
+                                 struct ldb_message **msg)
+{
 
-/* =Search-Group-by-[GID/NAME]============================================ */
+   return sysdb_search_entry_by_sid_str(mem_ctx, sysdb, domain,
+                                        SYSDB_TMPL_USER_BASE,
+                                        SYSDB_PWSID_FILTER,
+                                        sid_str, attrs, msg);
+}
+
+/* =Search-Group-by-[GID/SID/NAME]============================================ */
 
 int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
                                struct sysdb_ctx *sysdb,
@@ -456,6 +525,19 @@ done:
     return ret;
 }
 
+int sysdb_search_group_by_sid_str(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
+                                  const char *sid_str,
+                                  const char **attrs,
+                                  struct ldb_message **msg)
+{
+
+   return sysdb_search_entry_by_sid_str(mem_ctx, sysdb, domain,
+                                        SYSDB_TMPL_GROUP_BASE,
+                                        SYSDB_GRSID_FILTER,
+                                        sid_str, attrs, msg);
+}
 
 /* =Search-Group-by-Name============================================ */
 

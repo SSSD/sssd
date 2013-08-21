@@ -144,10 +144,12 @@
 
 #define SYSDB_PWNAM_FILTER "(&("SYSDB_UC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_PWUID_FILTER "(&("SYSDB_UC")("SYSDB_UIDNUM"=%lu))"
+#define SYSDB_PWSID_FILTER "(&("SYSDB_UC")("SYSDB_SID_STR"=%s))"
 #define SYSDB_PWENT_FILTER "("SYSDB_UC")"
 
 #define SYSDB_GRNAM_FILTER "(&("SYSDB_GC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_GRGID_FILTER "(&("SYSDB_GC")("SYSDB_GIDNUM"=%lu))"
+#define SYSDB_GRSID_FILTER "(&("SYSDB_GC")("SYSDB_SID_STR"=%s))"
 #define SYSDB_GRENT_FILTER "("SYSDB_GC")"
 #define SYSDB_GRNAM_MPG_FILTER "(&("SYSDB_MPGC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_GRGID_MPG_FILTER "(&("SYSDB_MPGC")("SYSDB_GIDNUM"=%lu))"
@@ -506,7 +508,7 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
                        size_t *msgs_count,
                        struct ldb_message ***msgs);
 
-/* Search User (by uid or name) */
+/* Search User (by uid, sid or name) */
 int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
                               struct sss_domain_info *domain,
@@ -521,7 +523,14 @@ int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
                              const char **attrs,
                              struct ldb_message **msg);
 
-/* Search Group (by gid or name) */
+int sysdb_search_user_by_sid_str(TALLOC_CTX *mem_ctx,
+                                 struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
+                                 const char *sid_str,
+                                 const char **attrs,
+                                 struct ldb_message **msg);
+
+/* Search Group (by gid, sid or name) */
 int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
                                struct sysdb_ctx *sysdb,
                                struct sss_domain_info *domain,
@@ -535,6 +544,13 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
                               gid_t gid,
                               const char **attrs,
                               struct ldb_message **msg);
+
+int sysdb_search_group_by_sid_str(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
+                                  const char *sid_str,
+                                  const char **attrs,
+                                  struct ldb_message **msg);
 
 /* Search Netgroup (by name) */
 int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
