@@ -62,11 +62,11 @@ alias reconfig='autoreconf -if \
 
 # Set the list of warnings that you want to detect (and in the case of remake
 # and chmake want to treat as errors)
-WARNINGS='-Wall \
-          -Wextra \
-          -Wno-unused-parameter \
-          -Wno-sign-compare \
-          -Wformat-security'
+SSS_WARNINGS='-Wall \
+              -Wextra \
+              -Wno-unused-parameter \
+              -Wno-sign-compare \
+              -Wformat-security'
 
 # Build (or finish building) all objects and then run the build-tests against
 # them. This builds with optimizations turned off and GDB debugging symbols.
@@ -81,7 +81,7 @@ alias remake='make clean > /dev/null && chmake'
 # Clean the build directory and rebuild all objects, hiding most of the build
 # output except for warnings and errors. This builds with standard CFLAGS.
 alias warn='make clean >/dev/null \
-              && make CFLAGS+="$WARNINGS" -j$PROCESSORS tests > /dev/null'
+              && make CFLAGS+="$SSS_WARNINGS" -j$PROCESSORS tests > /dev/null'
 
 # Install the built sources to the current system, cleaning up the LDB modules
 # and making sure that the NSS and PAM modules have the right SELinux context.
