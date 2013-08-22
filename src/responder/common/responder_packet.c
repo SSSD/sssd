@@ -105,7 +105,7 @@ int sss_packet_grow(struct sss_packet *packet, size_t size)
 
     /* make sure we do not overflow */
     if (totlen < len) {
-        int n = len % SSSSRV_PACKET_MEM_SIZE + 1;
+        int n = len / SSSSRV_PACKET_MEM_SIZE + 1;
         totlen += n * SSSSRV_PACKET_MEM_SIZE;
         if (totlen < len) {
             return EINVAL;
