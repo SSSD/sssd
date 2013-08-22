@@ -39,7 +39,7 @@ static errno_t sdap_sudo_get_usn(TALLOC_CTX *mem_ctx,
     }
 
     ret = sysdb_attrs_get_string(attrs, map[SDAP_AT_SUDO_USN].sys_name, &usn);
-    if (ret != EOK && ret != ENOENT) {
+    if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Failed to retrieve USN value: [%s]\n", strerror(ret)));
 
