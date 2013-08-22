@@ -384,9 +384,12 @@ struct sdap_domain {
     /* Need to modify the list from a talloc destructor */
     struct sdap_domain **head;
 
+    /* Enumeration and cleanup periodic task */
     struct be_ptask *enum_task;
     /* enumeration loop timer */
     struct timeval last_enum;
+    /* cleanup loop timer */
+    struct timeval last_purge;
 };
 
 struct sdap_options {

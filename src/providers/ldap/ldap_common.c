@@ -960,7 +960,7 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
         /* run the first one in a couple of seconds so that we have time to
          * finish initializations first*/
         tv = tevent_timeval_current_ofs(10, 0);
-        ret = ldap_id_cleanup_set_timer(ctx, tv);
+        ret = ldap_id_cleanup_create_timer(ctx, ctx->opts->sdom, tv);
     }
 
     return ret;

@@ -33,60 +33,90 @@
 #include "providers/ldap/sdap_async.h"
 
 /* ==Cleanup-Task========================================================= */
+struct ldap_id_cleanup_ctx {
+    struct sdap_id_ctx *ctx;
+    struct sdap_domain *sdom;
+};
+
+static errno_t ldap_id_cleanup_set_timer(struct ldap_id_cleanup_ctx *cctx,
+                                         struct timeval tv);
+
 static void ldap_id_cleanup_timer(struct tevent_context *ev,
                                   struct tevent_timer *tt,
                                   struct timeval tv, void *pvt)
 {
-    struct sdap_id_ctx *ctx = talloc_get_type(pvt, struct sdap_id_ctx);
+    struct ldap_id_cleanup_ctx *cctx = talloc_get_type(pvt,
+                                                struct ldap_id_cleanup_ctx);
     int delay;
     errno_t ret;
 
-    if (be_is_offline(ctx->be)) {
-        DEBUG(4, ("Backend is marked offline, retry later!\n"));
+    if (be_is_offline(cctx->ctx->be)) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Backend is marked offline, retry later!\n"));
         /* schedule starting from now, not the last run */
-        delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
+        delay = dp_opt_get_int(cctx->ctx->opts->basic,
+                               SDAP_CACHE_PURGE_TIMEOUT);
         tv = tevent_timeval_current_ofs(delay, 0);
-        ldap_id_cleanup_set_timer(ctx, tv);
+        ldap_id_cleanup_set_timer(cctx, tv);
         return;
     }
 
-    ret = ldap_id_cleanup(ctx);
+    ret = ldap_id_cleanup(cctx->ctx->opts, cctx->sdom->dom);
     if (ret != EOK) {
         /* On error schedule starting from now, not the last run */
         tv = tevent_timeval_current();
     } else {
-        tv = ctx->last_purge;
+        tv = cctx->sdom->last_purge;
     }
 
-    delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
+    delay = dp_opt_get_int(cctx->ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
     tv = tevent_timeval_add(&tv, delay, 0);
-    ldap_id_cleanup_set_timer(ctx, tv);
-    ctx->last_purge = tevent_timeval_current();
+    ldap_id_cleanup_set_timer(cctx, tv);
+    cctx->sdom->last_purge = tevent_timeval_current();
 }
 
-int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv)
+static errno_t ldap_id_cleanup_set_timer(struct ldap_id_cleanup_ctx *cctx,
+                                         struct timeval tv)
 {
     struct tevent_timer *cleanup_task;
 
-    DEBUG(6, ("Scheduling next cleanup at %ld.%ld\n",
-              (long)tv.tv_sec, (long)tv.tv_usec));
-
-    cleanup_task = tevent_add_timer(ctx->be->ev, ctx,
-                                    tv, ldap_id_cleanup_timer, ctx);
-    if (!cleanup_task) {
-        DEBUG(0, ("FATAL: failed to setup cleanup task!\n"));
+    cleanup_task = tevent_add_timer(cctx->ctx->be->ev, cctx->ctx,
+                                    tv, ldap_id_cleanup_timer, cctx);
+    if (cleanup_task == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("FATAL: failed to setup cleanup task!\n"));
         return EFAULT;
     }
 
     return EOK;
 }
 
-static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx);
+int ldap_id_cleanup_create_timer(struct sdap_id_ctx *ctx,
+                                 struct sdap_domain *sdom,
+                                 struct timeval tv)
+{
+    struct ldap_id_cleanup_ctx *cctx;
+
+    DEBUG(SSSDBG_FUNC_DATA,
+          ("Scheduling next cleanup at %ld.%ld\n",
+          (long)tv.tv_sec, (long)tv.tv_usec));
+
+    cctx = talloc(ctx, struct ldap_id_cleanup_ctx);
+    if (cctx == NULL) {
+        return ENOMEM;
+    }
+    cctx->ctx = ctx;
+    cctx->sdom = sdom;
+
+    return ldap_id_cleanup_set_timer(cctx, tv);
+}
+
+static int cleanup_users(struct sdap_options *opts,
+                         struct sss_domain_info *dom);
 static int cleanup_groups(TALLOC_CTX *memctx,
                           struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain);
 
-errno_t ldap_id_cleanup(struct sdap_id_ctx *ctx)
+errno_t ldap_id_cleanup(struct sdap_options *opts,
+                        struct sss_domain_info *dom)
 {
     int ret, tret;
     bool in_transaction = false;
@@ -97,26 +127,24 @@ errno_t ldap_id_cleanup(struct sdap_id_ctx *ctx)
         return ENOMEM;
     }
 
-    ret = sysdb_transaction_start(ctx->be->domain->sysdb);
+    ret = sysdb_transaction_start(dom->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
     in_transaction = true;
 
-    ret = cleanup_users(tmp_ctx, ctx);
+    ret = cleanup_users(opts, dom);
     if (ret && ret != ENOENT) {
         goto done;
     }
 
-    ret = cleanup_groups(tmp_ctx,
-                         ctx->be->domain->sysdb,
-                         ctx->be->domain);
+    ret = cleanup_groups(tmp_ctx, dom->sysdb, dom);
     if (ret) {
         goto done;
     }
 
-    ret = sysdb_transaction_commit(ctx->be->domain->sysdb);
+    ret = sysdb_transaction_commit(dom->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto done;
@@ -126,7 +154,7 @@ errno_t ldap_id_cleanup(struct sdap_id_ctx *ctx)
     ret = EOK;
 done:
     if (in_transaction) {
-        tret = sysdb_transaction_cancel(ctx->be->domain->sysdb);
+        tret = sysdb_transaction_cancel(dom->sysdb);
         if (tret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
         }
@@ -141,10 +169,11 @@ done:
 static int cleanup_users_logged_in(hash_table_t *table,
                                    const struct ldb_message *msg);
 
-static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
+static int cleanup_users(struct sdap_options *opts,
+                         struct sss_domain_info *dom)
 {
     TALLOC_CTX *tmpctx;
-    struct sysdb_ctx *sysdb = ctx->be->domain->sysdb;
+    struct sysdb_ctx *sysdb = dom->sysdb;
     const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter = NULL;
@@ -156,13 +185,12 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
     int ret;
     int i;
 
-    tmpctx = talloc_new(memctx);
+    tmpctx = talloc_new(NULL);
     if (!tmpctx) {
         return ENOMEM;
     }
 
-    account_cache_expiration = dp_opt_get_int(ctx->opts->basic,
-                                           SDAP_ACCOUNT_CACHE_EXPIRATION);
+    account_cache_expiration = dp_opt_get_int(opts->basic, SDAP_ACCOUNT_CACHE_EXPIRATION);
     DEBUG(9, ("Cache expiration is set to %d days\n",
               account_cache_expiration));
 
@@ -189,7 +217,7 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
         goto done;
     }
 
-    ret = sysdb_search_users(tmpctx, sysdb, ctx->be->domain,
+    ret = sysdb_search_users(tmpctx, sysdb, dom,
                              subfilter, attrs, &count, &msgs);
     if (ret) {
         if (ret == ENOENT) {
@@ -236,7 +264,7 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
 
         /* If not logged in or cannot check the table, delete him */
         DEBUG(9, ("About to delete user %s\n", name));
-        ret = sysdb_delete_user(sysdb, ctx->be->domain, name, 0);
+        ret = sysdb_delete_user(sysdb, dom, name, 0);
         if (ret) {
             goto done;
         }

@@ -63,9 +63,6 @@ struct sdap_id_ctx {
     /* connection to a server */
     struct sdap_id_conn_ctx *conn;
 
-    /* cleanup loop timer */
-    struct timeval last_purge;
-
     struct sdap_server_opts *srv_opts;
 };
 
@@ -168,8 +165,11 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
 errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
                                struct sdap_id_conn_ctx *conn,
                                struct sdap_domain *sdom);
-errno_t ldap_id_cleanup(struct sdap_id_ctx *ctx);
-int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
+errno_t ldap_id_cleanup(struct sdap_options *opts,
+                        struct sss_domain_info *dom);
+int ldap_id_cleanup_create_timer(struct sdap_id_ctx *ctx,
+                                 struct sdap_domain *sdom,
+                                 struct timeval tv);
 
 void sdap_mark_offline(struct sdap_id_ctx *ctx);
 
