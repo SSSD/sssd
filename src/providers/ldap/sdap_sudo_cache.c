@@ -88,9 +88,10 @@ sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
     }
 
     ret = sdap_sudo_get_usn(mem_ctx, attrs, map, rule_name, _usn);
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not read USN from %s\n", rule_name));
-        return ret;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not read USN from %s\n", rule_name));
+        *_usn = NULL;
+        /* but we will store the rule anyway */
     }
 
     ret = sysdb_save_sudorule(sysdb_ctx, domain, rule_name, attrs);
