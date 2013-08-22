@@ -936,16 +936,23 @@ void sdap_mark_offline(struct sdap_id_ctx *ctx)
     be_mark_offline(ctx->be);
 }
 
-int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
+int ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
+{
+    return sdap_id_setup_tasks(ctx, ctx->conn, ctx->opts->sdom);
+}
+
+int sdap_id_setup_tasks(struct sdap_id_ctx *ctx,
+                        struct sdap_id_conn_ctx *conn,
+                        struct sdap_domain *sdom)
 {
     struct timeval tv;
     int ret = EOK;
     int delay;
 
     /* set up enumeration task */
-    if (ctx->be->domain->enumerate) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Setting up enumeration for %s\n", ctx->be->domain->name));
-        ret = ldap_setup_enumeration(ctx, ctx->conn, ctx->opts->sdom);
+    if (sdom->dom->enumerate) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Setting up enumeration for %s\n", sdom->dom->name));
+        ret = ldap_setup_enumeration(ctx, conn, sdom);
     } else {
         /* the enumeration task, runs the cleanup process by itself,
          * but if enumeration is not running we need to schedule it */
@@ -960,7 +967,7 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
         /* run the first one in a couple of seconds so that we have time to
          * finish initializations first*/
         tv = tevent_timeval_current_ofs(10, 0);
-        ret = ldap_id_cleanup_create_timer(ctx, ctx->opts->sdom, tv);
+        ret = ldap_id_cleanup_create_timer(ctx, sdom, tv);
     }
 
     return ret;

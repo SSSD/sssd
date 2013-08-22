@@ -204,7 +204,7 @@ sssm_ad_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = sdap_id_setup_tasks(ad_ctx->sdap_id_ctx);
+    ret = ldap_id_setup_tasks(ad_ctx->sdap_id_ctx);
     if (ret != EOK) {
         goto done;
     }

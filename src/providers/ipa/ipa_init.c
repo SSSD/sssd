@@ -226,7 +226,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     ret = ipa_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
     if (ret != EOK) goto done;
 
-    ret = sdap_id_setup_tasks(sdap_ctx);
+    ret = ldap_id_setup_tasks(sdap_ctx);
     if (ret != EOK) {
         goto done;
     }

@@ -90,7 +90,12 @@ errno_t sdap_reinit_cleanup_recv(struct tevent_req *req);
 void sdap_account_info_handler(struct be_req *breq);
 void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
                               struct sdap_id_conn_ctx *conn);
-int sdap_id_setup_tasks(struct sdap_id_ctx *ctx);
+
+/* Set up enumeration and/or cleanup */
+int ldap_id_setup_tasks(struct sdap_id_ctx *ctx);
+int sdap_id_setup_tasks(struct sdap_id_ctx *ctx,
+                        struct sdap_id_conn_ctx *conn,
+                        struct sdap_domain *sdom);
 
 struct tevent_req *
 sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,

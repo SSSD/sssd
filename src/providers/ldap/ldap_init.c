@@ -160,7 +160,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     ret = sdap_idmap_init(ctx, ctx, &ctx->opts->idmap_ctx);
     if (ret != EOK) goto done;
 
-    ret = sdap_id_setup_tasks(ctx);
+    ret = ldap_id_setup_tasks(ctx);
     if (ret != EOK) {
         goto done;
     }
