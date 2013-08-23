@@ -1192,6 +1192,9 @@ char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
     char *tmp_ccname = NULL;
     char *ret_ccname = NULL;
 
+    DEBUG(SSSDBG_TRACE_ALL,
+          ("Location: [%s]\n", location));
+
     kerr = krb5_cc_set_default_name(ctx, location);
     if (kerr != 0) {
         KRB5_DEBUG(SSSDBG_MINOR_FAILURE, ctx, kerr);
@@ -1212,6 +1215,9 @@ char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
         KRB5_DEBUG(SSSDBG_MINOR_FAILURE, ctx, kerr);
         goto done;
     }
+
+    DEBUG(SSSDBG_TRACE_ALL,
+          ("tmp_ccname: [%s]\n", tmp_ccname));
 
     ret_ccname = talloc_strdup(mem_ctx, tmp_ccname);
     if (ret_ccname == NULL) {
