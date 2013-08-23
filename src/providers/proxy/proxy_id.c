@@ -219,6 +219,7 @@ static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                      const char *alias, uint64_t cache_timeout)
 {
     const char *shell;
+    const char *gecos;
     char *lower;
     struct sysdb_attrs *attrs = NULL;
     errno_t ret;
@@ -228,6 +229,12 @@ static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
         shell = pwd->pw_shell;
     } else {
         shell = NULL;
+    }
+
+    if (pwd->pw_gecos && pwd->pw_gecos[0] != '\0') {
+        gecos = pwd->pw_gecos;
+    } else {
+        gecos = NULL;
     }
 
     if (lowercase || alias) {
@@ -274,7 +281,7 @@ static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                            pwd->pw_passwd,
                            pwd->pw_uid,
                            pwd->pw_gid,
-                           pwd->pw_gecos,
+                           gecos,
                            pwd->pw_dir,
                            shell,
                            NULL,
