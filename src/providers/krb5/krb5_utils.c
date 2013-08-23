@@ -750,12 +750,14 @@ check_cc_validity(const char *location,
     }
 
     ret = EOK;
-    *_valid = valid;
 
- done:
-     if (ccache) krb5_cc_close(context, ccache);
-     krb5_free_context(context);
-     return ret;
+done:
+    if (ret == EOK) {
+        *_valid = valid;
+    }
+    if (ccache) krb5_cc_close(context, ccache);
+    krb5_free_context(context);
+    return ret;
 }
 
 /*======== ccache back end utilities ========*/
