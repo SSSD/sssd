@@ -722,12 +722,6 @@ create_ccache_in_dir(uid_t uid, gid_t gid,
         return EIO;
     }
 
-    kerr = become_user(uid, gid);
-    if (kerr != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("become_user failed.\n"));
-        goto done;
-    }
-
     if (dirname[0] == ':') {
         /* Cache name in the form of DIR::filepath represents a single
          * ccache in a collection that we are trying to reuse.
