@@ -22,6 +22,8 @@
 #include "util/util.h"
 #include "providers/ad/ad_common.h"
 #include "providers/ad/ad_id.h"
+#include "providers/ad/ad_domain_info.h"
+#include "providers/ldap/sdap_async_enum.h"
 
 struct ad_handle_acct_info_state {
     struct be_req *breq;
@@ -308,4 +310,187 @@ ad_check_online(struct be_req *be_req)
                              struct ad_id_ctx);
 
     return sdap_do_online_check(be_req, ad_ctx->sdap_id_ctx);
+}
+
+struct ad_enumeration_state {
+    struct ldap_enum_ctx *ectx;
+    struct sdap_id_op *sdap_op;
+    struct tevent_context *ev;
+
+    struct sdap_domain *sdom;
+};
+
+static void ad_enumeration_conn_done(struct tevent_req *subreq);
+static void ad_enumeration_master_done(struct tevent_req *subreq);
+static void ad_enumeration_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ad_enumeration_send(TALLOC_CTX *mem_ctx,
+                    struct tevent_context *ev,
+                    struct be_ctx *be_ctx,
+                    struct be_ptask *be_ptask,
+                    void *pvt)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct ad_enumeration_state *state;
+    struct ldap_enum_ctx *ectx;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ad_enumeration_state);
+    if (req == NULL) return NULL;
+
+    ectx = talloc_get_type(pvt, struct ldap_enum_ctx);
+    if (ectx == NULL) {
+        ret = EFAULT;
+        goto fail;
+    }
+
+    state->ectx = ectx;
+    state->ev = ev;
+    state->sdom = ectx->sdom;
+
+    state->sdap_op = sdap_id_op_create(state, ectx->conn->conn_cache);
+    if (state->sdap_op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_connect_send failed: %d(%s).\n",
+                                  ret, strerror(ret)));
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ad_enumeration_conn_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void
+ad_enumeration_conn_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ad_enumeration_state *state = tevent_req_data(req,
+                                                 struct ad_enumeration_state);
+    int ret, dp_error;
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  ("Backend is marked offline, retry later!\n"));
+            tevent_req_done(req);
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Domain enumeration failed to connect to " \
+                   "LDAP server: (%d)[%s]\n", ret, strerror(ret)));
+            tevent_req_error(req, ret);
+        }
+        return;
+    }
+
+    subreq = ad_master_domain_send(state, state->ev,
+                                   state->ectx->conn,
+                                   state->sdap_op,
+                                   state->sdom->dom->name);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ad_master_domain_send failed.\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+    tevent_req_set_callback(subreq, ad_enumeration_master_done, req);
+}
+
+static void
+ad_enumeration_master_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ad_enumeration_state *state = tevent_req_data(req,
+                                                struct ad_enumeration_state);
+    char *flat_name;
+    char *master_sid;
+
+    ret = ad_master_domain_recv(subreq, state,
+                                &flat_name, &master_sid);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot retrieve master domain info\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Found flat name [%s].\n", flat_name));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Found master SID [%s].\n", master_sid));
+
+    ret = sysdb_master_domain_add_info(state->sdom->dom,
+                                       flat_name, master_sid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot save master domain info\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sdap_dom_enum_send(state, state->ev, state->ectx->ctx,
+                                state->sdom, state->ectx->conn);
+    if (subreq == NULL) {
+        /* The ptask API will reschedule the enumeration on its own on
+         * failure */
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Failed to schedule enumeration, retrying later!\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, ad_enumeration_done, req);
+}
+
+static void
+ad_enumeration_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ad_enumeration_state *state = tevent_req_data(req,
+                                                struct ad_enumeration_state);
+
+    ret = sdap_dom_enum_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not enumerate domain %s\n", state->sdom->dom->name));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Ok, we've completed an enumeration. Save this to the
+     * sysdb so we can postpone starting up the enumeration
+     * process on the next SSSD service restart (to avoid
+     * slowing down system boot-up
+     */
+    ret = sysdb_set_enumerated(state->sdom->dom->sysdb,
+                               state->sdom->dom, true);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not mark domain as having enumerated.\n"));
+        /* This error is non-fatal, so continue */
+    }
+
+    tevent_req_done(req);
+}
+
+errno_t
+ad_enumeration_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
 }

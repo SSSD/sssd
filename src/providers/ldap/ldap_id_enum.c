@@ -27,12 +27,6 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_enum.h"
 
-struct ldap_enum_ctx {
-    struct sdap_id_ctx *ctx;
-    struct sdap_domain *sdom;
-    struct sdap_id_conn_ctx *conn;
-};
-
 errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
                                struct sdap_id_conn_ctx *conn,
                                struct sdap_domain *sdom,
