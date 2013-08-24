@@ -938,12 +938,16 @@ void sdap_mark_offline(struct sdap_id_ctx *ctx)
 
 int ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
-    return sdap_id_setup_tasks(ctx, ctx->conn, ctx->opts->sdom);
+    return sdap_id_setup_tasks(ctx, ctx->conn, ctx->opts->sdom,
+                               ldap_enumeration_send,
+                               ldap_enumeration_recv);
 }
 
 int sdap_id_setup_tasks(struct sdap_id_ctx *ctx,
                         struct sdap_id_conn_ctx *conn,
-                        struct sdap_domain *sdom)
+                        struct sdap_domain *sdom,
+                        be_ptask_send_t send_fn,
+                        be_ptask_recv_t recv_fn)
 {
     struct timeval tv;
     int ret = EOK;
@@ -952,7 +956,7 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx,
     /* set up enumeration task */
     if (sdom->dom->enumerate) {
         DEBUG(SSSDBG_TRACE_FUNC, ("Setting up enumeration for %s\n", sdom->dom->name));
-        ret = ldap_setup_enumeration(ctx, conn, sdom);
+        ret = ldap_setup_enumeration(ctx, conn, sdom, send_fn, recv_fn);
     } else {
         /* the enumeration task, runs the cleanup process by itself,
          * but if enumeration is not running we need to schedule it */

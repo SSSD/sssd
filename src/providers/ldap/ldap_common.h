@@ -95,7 +95,9 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
 int ldap_id_setup_tasks(struct sdap_id_ctx *ctx);
 int sdap_id_setup_tasks(struct sdap_id_ctx *ctx,
                         struct sdap_id_conn_ctx *conn,
-                        struct sdap_domain *sdom);
+                        struct sdap_domain *sdom,
+                        be_ptask_send_t send_fn,
+                        be_ptask_recv_t recv_fn);
 
 struct tevent_req *
 sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
@@ -169,7 +171,17 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
 
 errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
                                struct sdap_id_conn_ctx *conn,
-                               struct sdap_domain *sdom);
+                               struct sdap_domain *sdom,
+                               be_ptask_send_t send_fn,
+                               be_ptask_recv_t recv_fn);
+struct tevent_req *
+ldap_enumeration_send(TALLOC_CTX *mem_ctx,
+                      struct tevent_context *ev,
+                      struct be_ctx *be_ctx,
+                      struct be_ptask *be_ptask,
+                      void *pvt);
+errno_t ldap_enumeration_recv(struct tevent_req *req);
+
 errno_t ldap_id_cleanup(struct sdap_options *opts,
                         struct sdap_domain *sdom);
 int ldap_id_cleanup_create_timer(struct sdap_id_ctx *ctx,

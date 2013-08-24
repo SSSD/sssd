@@ -186,7 +186,9 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     }
 
     ret = sdap_id_setup_tasks(ad_id_ctx->sdap_id_ctx,
-                              ad_id_ctx->ldap_ctx, sdom);
+                              ad_id_ctx->ldap_ctx, sdom,
+                              ldap_enumeration_send,
+                              ldap_enumeration_recv);
     if (ret != EOK) {
         talloc_free(ad_options);
         return ret;
