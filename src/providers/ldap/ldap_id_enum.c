@@ -27,14 +27,6 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_enum.h"
 
-static struct tevent_req *
-ldap_enumeration_send(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
-                      struct be_ctx *be_ctx,
-                      struct be_ptask *be_ptask,
-                      void *pvt);
-errno_t ldap_enumeration_recv(struct tevent_req *req);
-
 struct ldap_enum_ctx {
     struct sdap_id_ctx *ctx;
     struct sdap_domain *sdom;
@@ -43,7 +35,9 @@ struct ldap_enum_ctx {
 
 errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
                                struct sdap_id_conn_ctx *conn,
-                               struct sdap_domain *sdom)
+                               struct sdap_domain *sdom,
+                               be_ptask_send_t send_fn,
+                               be_ptask_recv_t recv_fn)
 {
     errno_t ret;
     time_t first_delay;
@@ -88,7 +82,7 @@ errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
                           5,                        /* enabled delay */
                           period,                   /* timeout */
                           BE_PTASK_OFFLINE_SKIP,
-                          ldap_enumeration_send, ldap_enumeration_recv,
+                          send_fn, recv_fn,
                           ectx, "enumeration", &sdom->enum_task);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -101,7 +95,6 @@ errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
     return EOK;
 }
 
-
 struct ldap_enumeration_state {
     struct ldap_enum_ctx *ectx;
     struct sss_domain_info *dom;
@@ -109,7 +102,7 @@ struct ldap_enumeration_state {
 
 static void ldap_enumeration_done(struct tevent_req *subreq);
 
-static struct tevent_req *
+struct tevent_req *
 ldap_enumeration_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct be_ctx *be_ctx,
