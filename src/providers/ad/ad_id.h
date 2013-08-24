@@ -37,6 +37,16 @@ errno_t
 ad_handle_acct_info_recv(struct tevent_req *req,
                          int *_dp_error, const char **_err);
 
+struct tevent_req *
+ad_enumeration_send(TALLOC_CTX *mem_ctx,
+                    struct tevent_context *ev,
+                    struct be_ctx *be_ctx,
+                    struct be_ptask *be_ptask,
+                    void *pvt);
+
+errno_t
+ad_enumeration_recv(struct tevent_req *req);
+
 void
 ad_check_online(struct be_req *be_req);
 #endif /* AD_ID_H_ */
