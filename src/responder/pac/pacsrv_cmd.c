@@ -796,8 +796,10 @@ static errno_t pac_save_memberships_next(struct tevent_req *req)
         sid = pr_ctx->add_sids[state->sid_iter];
         ret = responder_get_domain_by_id(pr_ctx->pac_ctx->rctx, sid, &grp_dom);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("responder_get_domain_by_id failed.\n"));
-            return ret;
+            DEBUG(SSSDBG_MINOR_FAILURE, ("responder_get_domain_by_id failed, " \
+                                         "will try next group\n"));
+            state->sid_iter++;
+            continue;
         }
 
         ret = pac_store_membership(state->pr_ctx, state->user_dn, sid, grp_dom);
