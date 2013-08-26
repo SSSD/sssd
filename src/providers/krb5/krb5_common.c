@@ -91,19 +91,27 @@ errno_t check_and_export_options(struct dp_option *opts,
                                  struct sss_domain_info *dom,
                                  struct krb5_ctx *krb5_ctx)
 {
+    TALLOC_CTX *tmp_ctx = NULL;
     int ret;
     const char *realm;
     const char *dummy;
     char *use_fast_str;
     char *fast_principal;
     enum sss_krb5_cc_type cc_be;
+    char *ccname;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
     if (realm == NULL) {
         ret = dp_opt_set_string(opts, KRB5_REALM, dom->name);
         if (ret != EOK) {
             DEBUG(1, ("dp_opt_set_string failed.\n"));
-            return ret;
+            goto done;
         }
         realm = dom->name;
     }
@@ -119,7 +127,7 @@ errno_t check_and_export_options(struct dp_option *opts,
     if (ret != EOK) {
         DEBUG(1, ("Failed to check value of krb5_renewable_lifetime. [%d][%s]\n",
                   ret, strerror(ret)));
-        return ret;
+        goto done;
     }
 
     ret = check_and_export_lifetime(opts, KRB5_LIFETIME,
@@ -127,7 +135,7 @@ errno_t check_and_export_options(struct dp_option *opts,
     if (ret != EOK) {
         DEBUG(1, ("Failed to check value of krb5_lifetime. [%d][%s]\n",
                   ret, strerror(ret)));
-        return ret;
+        goto done;
     }
 
 
@@ -136,7 +144,7 @@ errno_t check_and_export_options(struct dp_option *opts,
         ret = check_fast(use_fast_str, &krb5_ctx->use_fast);
         if (ret != EOK) {
             DEBUG(1, ("check_fast failed.\n"));
-            return ret;
+            goto done;
         }
 
         if (krb5_ctx->use_fast) {
@@ -183,7 +191,8 @@ errno_t check_and_export_options(struct dp_option *opts,
     dummy = dp_opt_get_cstring(opts, KRB5_CCNAME_TMPL);
     if (dummy == NULL) {
         DEBUG(1, ("Missing credential cache name template.\n"));
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     cc_be = sss_krb5_get_type(dummy);
@@ -200,13 +209,16 @@ errno_t check_and_export_options(struct dp_option *opts,
               "missing an explicit type, but is an absolute "
               "path specifier. Assuming FILE:\n"));
 
-        dummy = talloc_asprintf(opts, "FILE:%s", dummy);
-        if (!dummy) return ENOMEM;
+        ccname = talloc_asprintf(tmp_ctx, "FILE:%s", dummy);
+        if (!ccname) {
+            ret = ENOMEM;
+            goto done;
+        }
 
-        ret = dp_opt_set_string(opts, KRB5_CCNAME_TMPL, dummy);
+        ret = dp_opt_set_string(opts, KRB5_CCNAME_TMPL, ccname);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("dp_opt_set_string failed.\n"));
-            return ret;
+            goto done;
         }
         break;
 
@@ -224,11 +236,15 @@ errno_t check_and_export_options(struct dp_option *opts,
 
     default:
         DEBUG(SSSDBG_OP_FAILURE, ("Unknown ccname database\n"));
-        return EINVAL;
-        break;
+        ret = EINVAL;
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 errno_t krb5_try_kdcip(struct confdb_ctx *cdb, const char *conf_path,
