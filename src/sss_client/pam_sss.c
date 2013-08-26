@@ -228,8 +228,7 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
                            uint8_t **buffer) {
     int len;
     uint8_t *buf;
-    int rp;
-    uint32_t terminator = SSS_END_OF_PAM_REQUEST;
+    size_t rp;
 
     len = sizeof(uint32_t) +
           2*sizeof(uint32_t) + pi->pam_user_size +
@@ -255,8 +254,7 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
     }
 
     rp = 0;
-    ((uint32_t *)(&buf[rp]))[0] = SSS_START_OF_PAM_REQUEST;
-    rp += sizeof(uint32_t);
+    SAFEALIGN_SETMEM_UINT32(buf, SSS_START_OF_PAM_REQUEST, &rp);
 
     rp += add_string_item(SSS_PAM_ITEM_USER, pi->pam_user, pi->pam_user_size,
                           &buf[rp]);
@@ -283,8 +281,7 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
                            pi->pam_newauthtok, pi->pam_newauthtok_size,
                            &buf[rp]);
 
-    memcpy(&buf[rp], &terminator, sizeof(uint32_t));
-    rp += sizeof(uint32_t);
+    SAFEALIGN_SETMEM_UINT32(buf + rp, SSS_END_OF_PAM_REQUEST, &rp);
 
     if (rp != len) {
         D(("error during packet creation."));
