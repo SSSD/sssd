@@ -124,6 +124,7 @@ static void fo_discover_srv_done(struct tevent_req *subreq)
          record = record->next, i++) {
         state->servers[i].host = talloc_steal(state->servers, record->host);
         state->servers[i].port = record->port;
+        state->servers[i].priority = record->priority;
     }
 
     talloc_zfree(reply_list);

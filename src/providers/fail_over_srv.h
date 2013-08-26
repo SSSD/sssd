@@ -31,6 +31,7 @@
 struct fo_server_info {
     char *host;
     int port;
+    unsigned short priority;
 };
 
 /*
