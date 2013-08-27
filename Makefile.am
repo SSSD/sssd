@@ -1971,7 +1971,6 @@ RPMBUILD ?= $(PWD)/rpmbuild
 dist_noinst_DATA += \
     m4 \
     contrib/sssd.spec.in \
-    contrib/sssd-1.9-man-change-default-ccache.patch \
     BUILD.txt \
     COPYING
 
@@ -1991,7 +1990,6 @@ if GIT_CHECKOUT
 endif
 	cp $(builddir)/contrib/sssd.spec $(RPMBUILD)/SPECS
 	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
-	cp $(srcdir)/contrib/*.patch $(RPMBUILD)/SOURCES
 
 rpms: rpmbrprep
 	cd $(RPMBUILD); \

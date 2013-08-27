@@ -18,10 +18,6 @@
 %define __provides_exclude_from %{python_sitearch}/.*\.so$
 %endif
 
-%if (0%{?fedora} >= 17)
-    %global with_ccache --with-default-ccache-dir='/run/user/%U' --with-default-ccname-template="DIR:%d/krb5cc"
-%endif
-
 %if (0%{?fedora} >= 16)
     %global use_systemd 1
 %endif
@@ -56,7 +52,6 @@ Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 ### Patches ###
-Patch0001:  sssd-1.9-man-change-default-ccache.patch
 
 ### Dependencies ###
 
@@ -365,9 +360,6 @@ be used by Python applications.
 
 %prep
 %setup -q -n %{name}-%{version}
-%if (0%{?fedora} >= 17)
-%patch0001 -p1
-%endif
 
 %build
 
