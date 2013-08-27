@@ -135,7 +135,7 @@ void teardown_simple(void)
     fail_unless(test_ctx != NULL, "Simple context already freed.");
     ret = talloc_free(test_ctx);
     test_ctx = NULL;
-    fail_unless(ret == 0, "Connot free simple context.");
+    fail_unless(ret == 0, "Cannot free simple context.");
 }
 
 void setup_simple_group(void)
@@ -568,22 +568,22 @@ START_TEST(test_provider_init)
     /* allow users */
     ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
                            "simple_allow_users", val);
-    fail_if(ret != EOK, "Could setup allow users list");
+    fail_if(ret != EOK, "Could not setup allow users list");
 
     /* deny users */
     ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
                            "simple_deny_users", val);
-    fail_if(ret != EOK, "Could setup deny users list");
+    fail_if(ret != EOK, "Could not setup deny users list");
 
     /* allow groups */
     ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
                            "simple_allow_groups", val);
-    fail_if(ret != EOK, "Could setup allow groups list");
+    fail_if(ret != EOK, "Could not setup allow groups list");
 
     /* deny groups */
     ret = confdb_add_param(test_ctx->confdb, true, "config/domain/LOCAL",
                            "simple_deny_groups", val);
-    fail_if(ret != EOK, "Could setup deny groups list");
+    fail_if(ret != EOK, "Could not setup deny groups list");
 
     ret = sssm_simple_access_init(test_ctx->be_ctx, &bet_ops, (void**)&ctx);
     fail_if(ret != EOK);
