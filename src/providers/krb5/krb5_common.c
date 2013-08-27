@@ -33,6 +33,11 @@
 #include "providers/krb5/krb5_opts.h"
 #include "providers/krb5/krb5_utils.h"
 
+#ifdef HAVE_KRB5_CC_COLLECTION
+/* krb5 profile functions */
+#include <profile.h>
+#endif
+
 errno_t check_and_export_lifetime(struct dp_option *opts, const int opt_id,
                                   const char *env_name)
 {
@@ -86,6 +91,58 @@ done:
     return ret;
 }
 
+#ifdef HAVE_KRB5_CC_COLLECTION
+/* source default_ccache_name from krb5.conf */
+static errno_t sss_get_system_ccname_template(TALLOC_CTX *mem_ctx,
+                                              char **ccname)
+{
+    krb5_context ctx;
+    profile_t p;
+    char *value = NULL;
+    long ret;
+
+    *ccname = NULL;
+
+    ret = krb5_init_context(&ctx);
+    if (ret) return ret;
+
+    ret = krb5_get_profile(ctx, &p);
+    if (ret) goto done;
+
+    ret = profile_get_string(p, "libdefaults", "default_ccache_name",
+                             NULL, NULL, &value);
+    if (ret) goto done;
+
+    if (!value) {
+        ret = ERR_NOT_FOUND;
+        goto done;
+    }
+
+    *ccname = talloc_strdup(mem_ctx, value);
+    if (*ccname == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    krb5_free_context(ctx);
+    free(value);
+    return ret;
+}
+#else
+static errno_t sss_get_system_ccname_template(TALLOC_CTX *mem_ctx,
+                                              char **ccname)
+{
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          ("Your kerberos library does not support the default_ccache_name "
+           "option or the profile library. Please use krb5_ccname_template "
+           "in sssd.conf if you want to change the default\n"));
+    *ccname = NULL;
+    return ERR_NOT_FOUND;
+}
+#endif
 
 errno_t check_and_export_options(struct dp_option *opts,
                                  struct sss_domain_info *dom,
@@ -188,19 +245,45 @@ errno_t check_and_export_options(struct dp_option *opts,
                                      "using the KDC or defaults.\n"));
     }
 
-    dummy = dp_opt_get_cstring(opts, KRB5_CCNAME_TMPL);
-    if (dummy == NULL) {
-        DEBUG(1, ("Missing credential cache name template.\n"));
-        ret = EINVAL;
-        goto done;
+    ccname = dp_opt_get_string(opts, KRB5_CCNAME_TMPL);
+    if (ccname != NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("The credential ccache name template has been explicitly set "
+               "in sssd.conf, it is recommended to set default_ccache_name "
+               "in krb5.conf instead so that a system default is used\n"));
+        ccname = talloc_strdup(tmp_ctx, ccname);
+        if (!ccname) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        ret = sss_get_system_ccname_template(tmp_ctx, &ccname);
+        if (ret && ret != ERR_NOT_FOUND) {
+            goto done;
+        }
+        if (ret == ERR_NOT_FOUND) {
+            /* Use fallback default */
+            ccname = talloc_strdup(tmp_ctx, DEFAULT_CCNAME_TEMPLATE);
+            if (!ccname) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        /* set back in opts */
+        ret = dp_opt_set_string(opts, KRB5_CCNAME_TMPL, ccname);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("dp_opt_set_string failed.\n"));
+            goto done;
+        }
     }
 
-    cc_be = sss_krb5_get_type(dummy);
+    cc_be = sss_krb5_get_type(ccname);
     switch (cc_be) {
     case SSS_KRB5_TYPE_FILE:
         DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type FILE\n"));
         krb5_ctx->cc_be = &file_cc;
-        if (dummy[0] != '/') {
+        if (ccname[0] != '/') {
             /* FILE:/path/to/cc */
             break;
         }
@@ -209,7 +292,7 @@ errno_t check_and_export_options(struct dp_option *opts,
               "missing an explicit type, but is an absolute "
               "path specifier. Assuming FILE:\n"));
 
-        ccname = talloc_asprintf(tmp_ctx, "FILE:%s", dummy);
+        ccname = talloc_asprintf(tmp_ctx, "FILE:%s", ccname);
         if (!ccname) {
             ret = ENOMEM;
             goto done;

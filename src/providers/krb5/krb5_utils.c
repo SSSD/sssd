@@ -157,6 +157,25 @@ done:
     return ret;
 }
 
+#define S_EXP_TEMP "{TEMP}"
+#define L_EXP_TEMP (sizeof(S_EXP_TEMP) - 1)
+#define S_EXP_UID "{uid}"
+#define L_EXP_UID (sizeof(S_EXP_UID) - 1)
+#define S_EXP_USERID "{USERID}"
+#define L_EXP_USERID (sizeof(S_EXP_USERID) - 1)
+#define S_EXP_EUID "{euid}"
+#define L_EXP_EUID (sizeof(S_EXP_EUID) - 1)
+#define S_EXP_NULL "{null}"
+#define L_EXP_NULL (sizeof(S_EXP_NULL) - 1)
+#define S_EXP_USERNAME "{username}"
+#define L_EXP_USERNAME (sizeof(S_EXP_USERNAME) - 1)
+#define S_EXP_LIBDIR "{LIBDIR}"
+#define L_EXP_LIBDIR (sizeof(S_EXP_LIBDIR) - 1)
+#define S_EXP_BINDIR "{BINDIR}"
+#define L_EXP_BINDIR (sizeof(S_EXP_BINDIR) - 1)
+#define S_EXP_SBINDIR "{SBINDIR}"
+#define L_EXP_SBINDIR (sizeof(S_EXP_SBINDIR) - 1)
+
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              const char *template, bool file_mode,
                              bool case_sensitive, bool *private_path)
@@ -170,6 +189,8 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
     char *res = NULL;
     const char *cache_dir_tmpl;
     TALLOC_CTX *tmp_ctx = NULL;
+    char action;
+    bool rewind;
 
     *private_path = false;
 
@@ -202,7 +223,11 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
             goto done;
         }
 
-        switch( *n ) {
+        rewind = true;
+        action = *n;
+        while (rewind) {
+            rewind = false;
+            switch (action) {
             case 'u':
                 if (kr->pd->user == NULL) {
                     DEBUG(1, ("Cannot expand user name template "
@@ -297,9 +322,56 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 result = talloc_asprintf_append(result, "%s%d", p,
                                                 kr->pd->cli_pid);
                 break;
+
+            /* Additional syntax from krb5.conf default_ccache_name */
+            case '{':
+                if (strncmp(n, S_EXP_TEMP, L_EXP_TEMP) == 0) {
+                    /* let the libkrb5 library resolve this */
+                    result = talloc_asprintf_append(result, "%%"S_EXP_TEMP);
+                    n += L_EXP_TEMP - 1;
+                } else if (strncmp(n , S_EXP_UID, L_EXP_UID) == 0) {
+                    action = 'U';
+                    n += L_EXP_UID - 1;
+                    rewind = true;
+                    continue;
+                } else if (strncmp(n , S_EXP_USERID, L_EXP_USERID) == 0) {
+                    action = 'U';
+                    n += L_EXP_USERID - 1;
+                    rewind = true;
+                    continue;
+                } else if (strncmp(n , S_EXP_EUID, L_EXP_EUID) == 0) {
+                    /* SSSD does not distinguish betwen uid and euid,
+                     * so we treat both the same way */
+                    action = 'U';
+                    n += L_EXP_EUID - 1;
+                    rewind = true;
+                    continue;
+                } else if (strncmp(n , S_EXP_NULL, L_EXP_NULL) == 0) {
+                    /* skip immediately */
+                    n += L_EXP_NULL - 1;
+                } else if (strncmp(n , S_EXP_USERNAME, L_EXP_USERNAME) == 0) {
+                    action = 'u';
+                    n += L_EXP_USERNAME - 1;
+                    rewind = true;
+                    continue;
+                } else if (strncmp(n , S_EXP_LIBDIR, L_EXP_LIBDIR) == 0) {
+                    /* skip, only the libkrb5 library can resolve this */
+                    result = talloc_asprintf_append(result, "%%"S_EXP_LIBDIR);
+                    n += L_EXP_LIBDIR - 1;
+                } else if (strncmp(n , S_EXP_BINDIR, L_EXP_BINDIR) == 0) {
+                    /* skip, only the libkrb5 library can resolve this */
+                    result = talloc_asprintf_append(result, "%%"S_EXP_BINDIR);
+                    n += L_EXP_BINDIR - 1;
+                } else if (strncmp(n , S_EXP_SBINDIR, L_EXP_SBINDIR) == 0) {
+                    /* skip, only the libkrb5 library can resolve this */
+                    result = talloc_asprintf_append(result, "%%"S_EXP_SBINDIR);
+                    n += L_EXP_SBINDIR - 1;
+                }
+                break;
             default:
                 DEBUG(1, ("format error, unknown template [%%%c].\n", *n));
                 goto done;
+            }
         }
 
         if (result == NULL) {
