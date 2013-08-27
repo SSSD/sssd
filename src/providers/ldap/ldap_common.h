@@ -63,8 +63,6 @@ struct sdap_id_ctx {
     /* connection to a server */
     struct sdap_id_conn_ctx *conn;
 
-    /* enumeration loop timer */
-    struct timeval last_enum;
     /* cleanup loop timer */
     struct timeval last_purge;
 
@@ -169,9 +167,6 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
 
 int ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
 int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
-
-struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
-                                          struct sdap_id_ctx *ctx);
 
 void sdap_mark_offline(struct sdap_id_ctx *ctx);
 

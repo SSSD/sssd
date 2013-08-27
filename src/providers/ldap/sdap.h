@@ -383,6 +383,9 @@ struct sdap_domain {
     struct sdap_domain *next, *prev;
     /* Need to modify the list from a talloc destructor */
     struct sdap_domain **head;
+
+    /* enumeration loop timer */
+    struct timeval last_enum;
 };
 
 struct sdap_options {

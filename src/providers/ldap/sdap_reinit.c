@@ -25,6 +25,7 @@
 
 #include "util/util.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_async_enum.h"
 #include "db/sysdb.h"
 #include "db/sysdb_services.h"
 
@@ -79,7 +80,8 @@ struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    subreq = ldap_id_enumerate_send(be_ctx->ev, id_ctx);
+    subreq = sdap_dom_enum_send(id_ctx, be_ctx->ev, id_ctx,
+                                id_ctx->opts->sdom, id_ctx->conn);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to issue enumeration request\n"));
         ret = ENOMEM;
@@ -199,17 +201,16 @@ static void sdap_reinit_cleanup_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
     struct sdap_reinit_cleanup_state *state = NULL;
-    enum tevent_req_state tstate;
-    uint64_t err;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_reinit_cleanup_state);
 
-    if (tevent_req_is_error(subreq, &tstate, &err)) {
-        ret = err;
+    ret = sdap_dom_enum_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Domain enumeration failed [%d]: %s\n",
-                                    err, strerror(err)));
+                                    ret, strerror(ret)));
         goto fail;
     }
 
