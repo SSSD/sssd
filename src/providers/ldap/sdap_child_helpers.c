@@ -121,7 +121,7 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
         fd_nonblocking(child->read_from_child_fd);
         fd_nonblocking(child->write_to_child_fd);
 
-        ret = child_handler_setup(ev, pid, NULL, NULL);
+        ret = child_handler_setup(ev, pid, NULL, NULL, NULL);
         if (ret != EOK) {
             return ret;
         }
