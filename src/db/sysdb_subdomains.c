@@ -251,8 +251,7 @@ done:
 }
 
 errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
-                                     const char *realm, const char *flat,
-                                     const char *id)
+                                     const char *flat, const char *id)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -275,24 +274,6 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
     if (msg->dn == NULL) {
         ret = EIO;
         goto done;
-    }
-
-    if (realm != NULL && (domain->realm == NULL ||
-                          strcmp(domain->realm, realm) != 0)) {
-        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_REALM,
-                                LDB_FLAG_MOD_REPLACE, NULL);
-        if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);
-            goto done;
-        }
-
-        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_REALM, realm);
-        if (ret != LDB_SUCCESS) {
-            ret = sysdb_error_to_errno(ret);
-            goto done;
-        }
-
-        do_update = true;
     }
 
     if (flat != NULL && (domain->flat_name == NULL ||

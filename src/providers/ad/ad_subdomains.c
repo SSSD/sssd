@@ -569,7 +569,7 @@ static void ad_subdomains_get_netlogon_done(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, ("Found flat name [%s].\n", ctx->flat_name));
 
     ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
-                                       NULL, ctx->flat_name, ctx->master_sid);
+                                       ctx->flat_name, ctx->master_sid);
 
     ret = ad_subdomains_get_slave(ctx);
     if (ret == EAGAIN) {
