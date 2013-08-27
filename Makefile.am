@@ -1983,6 +1983,12 @@ rpmroot:
 	mkdir -p $(RPMBUILD)/SRPMS
 
 rpmbrprep: dist-gzip rpmroot
+if GIT_CHECKOUT
+# When we're building RPMs from a git checkout,
+# we don't want to be bothered with translation
+# updates
+	git checkout $(srcdir)/po $(srcdir)/src/man/po
+endif
 	cp $(builddir)/contrib/sssd.spec $(RPMBUILD)/SPECS
 	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
 	cp $(srcdir)/contrib/*.patch $(RPMBUILD)/SOURCES
