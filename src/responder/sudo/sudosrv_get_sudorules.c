@@ -329,7 +329,6 @@ sudosrv_dp_req_done(struct tevent_req *req);
 
 static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  struct sysdb_ctx *sysdb,
-                                                 enum sss_dp_sudo_type type,
                                                  const char **attrs,
                                                  unsigned int flags,
                                                  const char *username,
@@ -410,7 +409,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
             | SYSDB_SUDO_FILTER_INCLUDE_DFL
             | SYSDB_SUDO_FILTER_ONLY_EXPIRED
             | SYSDB_SUDO_FILTER_USERINFO;
-    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, rules_sysdb, cmd_ctx->type,
+    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, rules_sysdb,
                                             attrs, flags, cmd_ctx->orig_username,
                                             cmd_ctx->uid, groupnames,
                                             &expired_rules, &expired_rules_num);
@@ -634,7 +633,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
         break;
     }
 
-    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, rules_sysdb, cmd_ctx->type,
+    ret = sudosrv_get_sudorules_query_cache(tmp_ctx, rules_sysdb,
                                             attrs, flags, cmd_ctx->orig_username,
                                             cmd_ctx->uid, groupnames,
                                             &rules, &num_rules);
@@ -666,7 +665,6 @@ sort_sudo_rules(struct sysdb_attrs **rules, size_t count);
 
 static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  struct sysdb_ctx *sysdb,
-                                                 enum sss_dp_sudo_type type,
                                                  const char **attrs,
                                                  unsigned int flags,
                                                  const char *username,
