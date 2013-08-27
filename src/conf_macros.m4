@@ -278,7 +278,7 @@ AC_DEFUN([WITH_DEFAULT_CCACHE_DIR],
 AC_DEFUN([WITH_DEFAULT_CCNAME_TEMPLATE],
   [ AC_ARG_WITH([default-ccname-template],
                 [AC_HELP_STRING([--with-default-ccname-template=CCACHE],
-                                [The default value of krb5_ccname_template [FILE:%d/krb5cc_%U_XXXXXX]]
+                                [The default fallback value of krb5_ccname_template [FILE:%d/krb5cc_%U_XXXXXX]]
                                )
                 ]
                )

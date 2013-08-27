@@ -70,6 +70,7 @@ enum sssd_errors {
     ERR_DYNDNS_FAILED,
     ERR_DYNDNS_TIMEOUT,
     ERR_DYNDNS_OFFLINE,
+    ERR_NOT_FOUND,
     ERR_LAST            /* ALWAYS LAST */
 };
 

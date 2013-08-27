@@ -220,7 +220,16 @@
                             predictable method.
                         </para>
                         <para>
-                            Default: FILE:%d/krb5cc_%U_XXXXXX
+                            The default value for the credential cache name is
+                            sourced from the profile stored in the system wide
+                            krb5.conf configuration file in the [libdefaults]
+                            section. The option name is default_ccache_name.
+                            See krb5.conf(5)'s PARAMETER EXPANSION paragraph
+                            for additional information on the expansion format
+                            defined by krb5.conf.
+                        </para>
+                        <para>
+                            Default: (from libkrb5)
                         </para>
                     </listitem>
                 </varlistentry>

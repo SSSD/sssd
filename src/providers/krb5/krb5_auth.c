@@ -315,7 +315,7 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
     *dp_err = DP_ERR_OFFLINE;
 }
 
-static errno_t krb5_auth_prepare_ccache_file(struct krb5child_req *kr,
+static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
                                              struct be_ctx *be_ctx,
                                              int *pam_status, int *dp_err)
 {
@@ -783,7 +783,7 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
         }
     }
 
-    ret = krb5_auth_prepare_ccache_file(kr, state->be_ctx,
+    ret = krb5_auth_prepare_ccache_name(kr, state->be_ctx,
                                         &state->pam_status, &state->dp_err);
     if (ret) {
         goto done;
