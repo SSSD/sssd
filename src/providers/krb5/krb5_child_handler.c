@@ -498,8 +498,8 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
     int32_t msg_len;
     int64_t time_data;
     struct tgt_times tgtt;
-    uint32_t *expiration;
-    uint32_t *msg_subtype;
+    uint32_t expiration;
+    uint32_t msg_subtype;
     struct krb5_child_response *res;
     const char *upn = NULL;
     size_t upn_len = 0;
@@ -574,12 +574,12 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
         }
 
         if (msg_type == SSS_PAM_USER_INFO) {
-            msg_subtype = (uint32_t *)&buf[p];
-            if (*msg_subtype == SSS_PAM_USER_INFO_EXPIRE_WARN)
-            {
-                expiration = (uint32_t *)&buf[p+sizeof(uint32_t)];
+            SAFEALIGN_COPY_UINT32(&msg_subtype, buf + p, NULL);
+            if (msg_subtype == SSS_PAM_USER_INFO_EXPIRE_WARN) {
+                SAFEALIGN_COPY_UINT32(&expiration,
+                                      buf + p + sizeof(uint32_t), NULL);
                 if (pwd_exp_warning > 0 &&
-                    difftime(pwd_exp_warning, *expiration) < 0.0) {
+                    difftime(pwd_exp_warning, expiration) < 0.0) {
                     skip = true;
                 }
             }
