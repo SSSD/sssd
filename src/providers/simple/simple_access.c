@@ -141,13 +141,18 @@ static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
         }
 
         if (domain == NULL || strcasecmp(domain, be_ctx->domain->name) == 0) {
-            /* main domain, remember the name without domain part */
+            /* This object belongs to main SSSD domain. Those users and groups
+             * are stored without domain part, so we will strip it off.
+             * */
             out[i] = talloc_move(out, &name);
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown domain in %s. "
-                  "Check you configuration.\n", list[i]));
-            ret = EINVAL;
-            goto done;
+            /* Subdomain users and groups are stored as fully qualified names,
+             * thus we will remember the domain part.
+             *
+             * Since subdomains may come and go, we will look for their
+             * existence later, during each access check.
+             */
+            out[i] = talloc_move(out, &list[i]);
         }
     }
 
