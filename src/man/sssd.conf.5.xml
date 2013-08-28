@@ -972,6 +972,33 @@ override_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>subdomain_enumerate (string)</term>
+                    <listitem>
+                        <para>
+                            Whether any of autodetected trusted domains should
+                            be enumerated. The supported values are:
+                            <variablelist>
+                                <varlistentry>
+                                    <term>all</term>
+                                    <listitem><para>All discovered trusted domains will be enumerated</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>none</term>
+                                    <listitem><para>No discovered trusted domains will be enumerated</para></listitem>
+                                </varlistentry>
+                            </variablelist>
+                            Optionally, a list of one or more domain
+                            names can enable enumeration just for these
+                            trusted domains.
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>force_timeout (integer)</term>
                     <listitem>

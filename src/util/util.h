@@ -531,12 +531,14 @@ struct sized_string {
 
 void to_sized_string(struct sized_string *out, const char *in);
 
-/* form domain_info.c */
+/* from domain_info.c */
 struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
                                         bool descend);
 struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
                                                const char *name,
                                                bool match_any);
+bool subdomain_enumerates(struct sss_domain_info *parent,
+                          const char *sd_name);
 
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *parent,

@@ -49,6 +49,31 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
     return dom;
 }
 
+bool subdomain_enumerates(struct sss_domain_info *parent,
+                          const char *sd_name)
+{
+    if (parent->sd_enumerate == NULL
+            || parent->sd_enumerate[0] == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Subdomain_enumerate not set\n"));
+        return false;
+    }
+
+    if (strcasecmp(parent->sd_enumerate[0], "all") == 0) {
+        return true;
+    } else if (strcasecmp(parent->sd_enumerate[0], "none") == 0) {
+        return false;
+    } else {
+        for (int i=0; parent->sd_enumerate[i]; i++) {
+            if (strcasecmp(parent->sd_enumerate[i], sd_name) == 0) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
                                                const char *name,
                                                bool match_any)

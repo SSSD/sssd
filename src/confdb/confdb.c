@@ -1129,6 +1129,19 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_SUBDOMAIN_ENUMERATE,
+                                      CONFDB_DEFAULT_SUBDOMAIN_ENUMERATE);
+    if (tmp != NULL) {
+        ret = split_on_separator(domain, tmp, ',', true, true,
+                                 &domain->sd_enumerate, NULL);
+        if (ret != 0) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Cannot parse %s\n", CONFDB_SUBDOMAIN_ENUMERATE));
+            goto done;
+        }
+    }
+
     *_domain = domain;
     ret = EOK;
 done:
