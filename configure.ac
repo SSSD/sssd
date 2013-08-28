@@ -29,7 +29,7 @@ AC_SUBST([PRERELEASE_VERSION],
 AC_DEFINE([PRERELEASE_VERSION], "PRERELEASE_VERSION_NUMBER",
           [Prerelease version number of package])
 
-AM_CONDITIONAL([GIT_CHECKOUT], [git log -1 &>/dev/null])
+AM_CONDITIONAL([GIT_CHECKOUT], [git log -1 >/dev/null 2>&1])
 
 m4_pattern_allow([AM_SILENT_RULES])
 AM_SILENT_RULES
