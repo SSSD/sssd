@@ -386,6 +386,7 @@ dist_noinst_HEADERS = \
     src/util/io.h \
     src/util/util_errors.h \
     src/util/strtonum.h \
+    src/util/sss_endian.h \
     src/util/sss_nss.h \
     src/util/sss_ldap.h \
     src/util/sss_python.h \

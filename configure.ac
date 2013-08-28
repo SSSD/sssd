@@ -73,6 +73,9 @@ AC_CHECK_HEADERS([security/pam_appl.h security/pam_misc.h security/pam_modules.h
     [AC_MSG_ERROR([PAM development libraries not installed])]
 )
 
+#Check for endian headers
+AC_CHECK_HEADERS([endian.h sys/endian.h byteswap.h])
+
 #Set the NSS library install path
 AC_ARG_ENABLE([nsslibdir], [AS_HELP_STRING([--enable-nsslibdir],
                                         [Where to install nss libraries ($libdir)])],
