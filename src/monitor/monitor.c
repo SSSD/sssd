@@ -1638,6 +1638,12 @@ done:
     return ret;
 }
 
+errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
+                                     struct mt_ctx *ctx,
+                                     const char *file,
+                                     monitor_reconf_fn fn,
+                                     bool ignore_missing);
+
 #ifdef HAVE_SYS_INOTIFY_H
 static void process_config_file(struct tevent_context *ev,
                                 struct tevent_timer *te,
@@ -1793,11 +1799,6 @@ done:
     talloc_free(tmp_ctx);
 }
 
-errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
-                                     struct mt_ctx *ctx,
-                                     const char *file,
-                                     monitor_reconf_fn fn,
-                                     bool ignore_missing);
 static void rewatch_config_file(struct tevent_context *ev,
                                 struct tevent_timer *te,
                                 struct timeval t, void *ptr)
