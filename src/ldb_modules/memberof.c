@@ -17,11 +17,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/* Temporary workaround, will be fixed in ldb upstream soon */
-#ifndef LDB_VERSION
-#define LDB_VERSION "0.9.22"
-#endif
-
 #include <string.h>
 #include "ldb_module.h"
 #include "util/util.h"
