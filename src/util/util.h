@@ -560,25 +560,6 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                          int num_tries, useconds_t wait);
 #include "io.h"
 
-/* Endianness-compatibility for systems running older versions of glibc */
-
-#ifndef le32toh
-#include <byteswap.h>
-
-/* Copied from endian.h on glibc 2.15 */
-#ifdef __USE_BSD
-/* Conversion interfaces.  */
-# if __BYTE_ORDER == __LITTLE_ENDIAN
-#  define le32toh(x) (x)
-#  define htole32(x) (x)
-# else
-#  define le32toh(x) __bswap_32 (x)
-#  define htole32(x) __bswap_32 (x)
-# endif
-#endif /* __USE_BSD */
-
-#endif /* le32toh */
-
 #ifdef HAVE_PAC_RESPONDER
 #define BUILD_WITH_PAC_RESPONDER true
 #else

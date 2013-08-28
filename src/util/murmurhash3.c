@@ -8,19 +8,10 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <endian.h>
 #include <string.h>
-#include <byteswap.h>
 
-/* support RHEL5 lack of definitions */
-#ifndef le32toh
-# if __BYTE_ORDER == __LITTLE_ENDIAN
-#  define le32toh(x) (x)
-# else
-#  define le32toh(x) bswap_32 (x)
-# endif
-#endif
-
+#include "config.h"
+#include "util/sss_endian.h"
 
 static uint32_t rotl(uint32_t x, int8_t r)
 {

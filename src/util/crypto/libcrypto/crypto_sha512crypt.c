@@ -12,7 +12,6 @@
 
 #include "config.h"
 
-#include <endian.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -24,6 +23,7 @@
 #include <sys/types.h>
 
 #include "util/util.h"
+#include "util/sss_endian.h"
 
 #include <openssl/evp.h>
 #include <openssl/rand.h>
