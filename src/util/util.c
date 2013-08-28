@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <netdb.h>
 #include <poll.h>
+#include <sys/socket.h>
 
 #include "talloc.h"
 #include "util/util.h"
