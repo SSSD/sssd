@@ -326,8 +326,12 @@ static void sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
             }
 
             sss_packet_get_body(packet, &body, &blen);
-            ((uint32_t *)body)[0] = 1; /* Got some results */
-            ((uint32_t *)body)[1] = 0; /* reserved */
+
+            /* Got some results */
+            SAFEALIGN_SETMEM_UINT32(body, 1, NULL);
+
+            /* Reserved padding */
+            SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL);
         }
 
         sss_cmd_done(cmdctx->cctx, NULL);

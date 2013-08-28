@@ -539,7 +539,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
             return NULL;
         }
 
-        name_ptr = *((rel_ptr_t *)rec->data);
+        safealign_memcpy(&name_ptr, rec->data, sizeof(rel_ptr_t), NULL);
         if (key->len > strs_len
             || (name_ptr + key->len) > (strs_offset + strs_len)
             || (uint8_t *)rec->data + strs_offset + strs_len > max_addr) {

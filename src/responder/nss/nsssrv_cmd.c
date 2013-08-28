@@ -454,8 +454,8 @@ done:
     if (!packet_initialized) return ENOENT;
 
     sss_packet_get_body(packet, &body, &blen);
-    ((uint32_t *)body)[0] = num; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
+    SAFEALIGN_COPY_UINT32(body, &num, NULL); /* num results */
+    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
 
     return EOK;
 }
@@ -983,6 +983,7 @@ static int nss_check_name_of_well_known_sid(struct nss_cmd_ctx *cmdctx,
     size_t blen;
     struct cli_ctx *cctx;
     struct nss_ctx *nss_ctx;
+    size_t pctr = 0;
 
     nss_ctx = talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct nss_ctx);
     ret = sss_parse_name(cmdctx, nss_ctx->global_names, full_name,
@@ -1012,10 +1013,10 @@ static int nss_check_name_of_well_known_sid(struct nss_cmd_ctx *cmdctx,
     }
 
     sss_packet_get_body(cctx->creq->out, &body, &blen);
-    ((uint32_t *)body)[0] = 1; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
-    ((uint32_t *)body)[2] = (uint32_t) SSS_ID_TYPE_GID;
-    memcpy(&body[3*sizeof(uint32_t)], sid.str, sid.len);
+    SAFEALIGN_SETMEM_UINT32(body, 1, &pctr);  /* num results */
+    SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
+    SAFEALIGN_SETMEM_UINT32(body + pctr, SSS_ID_TYPE_GID, &pctr);
+    memcpy(&body[pctr], sid.str, sid.len);
 
     sss_packet_set_error(cctx->creq->out, EOK);
     sss_cmd_done(cctx, cmdctx);
@@ -1448,7 +1449,7 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         ret = EINVAL;
         goto done;
     }
-    cmdctx->id = *((uint32_t *)body);
+    SAFEALIGN_COPY_UINT32(&cmdctx->id, body, NULL);
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Running command [%d] with id [%d].\n",
                               dctx->cmdctx->cmd, cmdctx->id));
@@ -2027,7 +2028,7 @@ static int nss_cmd_getpwent_immediate(struct nss_cmd_ctx *cmdctx)
     if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
-    num = *((uint32_t *)body);
+    SAFEALIGN_COPY_UINT32(&num, body, NULL);
 
     /* create response packet */
     ret = sss_packet_new(cctx->creq, 0,
@@ -2573,8 +2574,8 @@ done:
         return ENOENT;
     }
 
-    ((uint32_t *)body)[0] = num; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
+    SAFEALIGN_COPY_UINT32(body, &num, NULL); /* num results */
+    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
 
     return EOK;
 }
@@ -3291,7 +3292,7 @@ static int nss_cmd_getgrent_immediate(struct nss_cmd_ctx *cmdctx)
     if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
-    num = *((uint32_t *)body);
+    SAFEALIGN_COPY_UINT32(&num, body, NULL);
 
     /* create response packet */
     ret = sss_packet_new(cctx->creq, 0,
@@ -3517,7 +3518,8 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
     uint8_t *body;
     size_t blen;
     gid_t gid;
-    int ret, i, num, bindex;
+    int ret, i, num;
+    size_t bindex;
     int skipped = 0;
     const char *posix;
     gid_t orig_primary_gid;
@@ -3549,8 +3551,11 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
         }
     }
 
+    /* 0-3: 32bit unsigned number of results
+     * 4-7: 32bit unsigned (reserved/padding) */
+    bindex = 2 * sizeof(uint32_t);
+
     /* skip first entry, it's the user entry */
-    bindex = 0;
     for (i = 0; i < num; i++) {
         gid = ldb_msg_find_attr_as_uint64(res->msgs[i + 1], SYSDB_GIDNUM, 0);
         posix = ldb_msg_find_attr_as_string(res->msgs[i + 1], SYSDB_POSIX, NULL);
@@ -3563,8 +3568,7 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
                 return EFAULT;
             }
         }
-        ((uint32_t *)body)[2 + bindex] = gid;
-        bindex++;
+        SAFEALIGN_COPY_UINT32(body + bindex, &gid, &bindex);
 
         /* do not add the GID of the original primary group is the user is
          * already and explicit member of the group. */
@@ -3574,14 +3578,13 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
     }
 
     if (orig_primary_gid != 0) {
-        ((uint32_t *)body)[2 + bindex] = orig_primary_gid;
-        bindex++;
+        SAFEALIGN_COPY_UINT32(body + bindex, &orig_primary_gid, &bindex);
         num++;
     }
 
-    ((uint32_t *)body)[0] = num-skipped; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
-    blen = (2 + bindex) * sizeof(uint32_t);
+    SAFEALIGN_SETMEM_UINT32(body, num - skipped, NULL); /* num results */
+    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
+    blen = bindex;
     ret = sss_packet_set_size(packet, blen);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -4134,6 +4137,7 @@ static errno_t fill_sid(struct sss_packet *packet,
     struct sized_string sid;
     uint8_t *body;
     size_t blen;
+    size_t pctr = 0;
 
     sid_str = ldb_msg_find_attr_as_string(msg, SYSDB_SID_STR, NULL);
     if (sid_str == NULL) {
@@ -4150,10 +4154,10 @@ static errno_t fill_sid(struct sss_packet *packet,
     }
 
     sss_packet_get_body(packet, &body, &blen);
-    ((uint32_t *)body)[0] = 1; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
-    ((uint32_t *)body)[2] = id_type;
-    memcpy(&body[3*sizeof(uint32_t)], sid.str, sid.len);
+    SAFEALIGN_SETMEM_UINT32(body, 1, &pctr); /* Num results */
+    SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
+    SAFEALIGN_COPY_UINT32(body + pctr, &id_type, &pctr);
+    memcpy(&body[pctr], sid.str, sid.len);
 
     return EOK;
 }
@@ -4172,6 +4176,7 @@ static errno_t fill_name(struct sss_packet *packet,
     bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     uint8_t *body;
     size_t blen;
+    size_t pctr = 0;
 
     orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     if (orig_name == NULL) {
@@ -4211,10 +4216,11 @@ static errno_t fill_name(struct sss_packet *packet,
     }
 
     sss_packet_get_body(packet, &body, &blen);
-    ((uint32_t *)body)[0] = 1; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
-    ((uint32_t *)body)[2] = id_type;
-    memcpy(&body[3*sizeof(uint32_t)], name.str, name.len);
+    SAFEALIGN_SETMEM_UINT32(body, 1, &pctr); /* Num results */
+    SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
+    SAFEALIGN_COPY_UINT32(body + pctr, &id_type, &pctr);
+    memcpy(&body[pctr], name.str, name.len);
+
 
     ret = EOK;
 
@@ -4231,6 +4237,7 @@ static errno_t fill_id(struct sss_packet *packet,
     int ret;
     uint8_t *body;
     size_t blen;
+    size_t pctr = 0;
     uint64_t id;
 
     if (id_type == SSS_ID_TYPE_GID) {
@@ -4251,10 +4258,10 @@ static errno_t fill_id(struct sss_packet *packet,
     }
 
     sss_packet_get_body(packet, &body, &blen);
-    ((uint32_t *)body)[0] = 1; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
-    ((uint32_t *)body)[2] = (uint32_t) id_type;
-    ((uint32_t *)body)[3] = (uint32_t) id;
+    SAFEALIGN_SETMEM_UINT32(body, 1, &pctr); /* Num results */
+    SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
+    SAFEALIGN_COPY_UINT32(body + pctr, &id_type, &pctr);
+    SAFEALIGN_COPY_UINT32(body + pctr, &id, &pctr);
 
     return EOK;
 }
@@ -4323,6 +4330,7 @@ static int nss_check_well_known_sid(struct nss_cmd_ctx *cmdctx)
     size_t blen;
     struct cli_ctx *cctx;
     struct nss_ctx *nss_ctx;
+    size_t pctr = 0;
 
     ret = well_known_sid_to_name(cmdctx->secid, &wk_dom_name, &wk_name);
     if (ret != EOK) {
@@ -4360,10 +4368,10 @@ static int nss_check_well_known_sid(struct nss_cmd_ctx *cmdctx)
     }
 
     sss_packet_get_body(cctx->creq->out, &body, &blen);
-    ((uint32_t *)body)[0] = 1; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
-    ((uint32_t *)body)[2] = (uint32_t) SSS_ID_TYPE_GID;
-    memcpy(&body[3*sizeof(uint32_t)], name.str, name.len);
+    SAFEALIGN_SETMEM_UINT32(body, 1, &pctr); /* num results */
+    SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
+    SAFEALIGN_SETMEM_UINT32(body + pctr, SSS_ID_TYPE_GID, &pctr);
+    memcpy(&body[pctr], name.str, name.len);
 
     sss_packet_set_error(cctx->creq->out, EOK);
     sss_cmd_done(cctx, cmdctx);

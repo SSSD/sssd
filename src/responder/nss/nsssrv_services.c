@@ -769,8 +769,11 @@ done:
         return ENOENT;
     }
 
-    ((uint32_t *)body)[0] = num; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
+    /* num results */
+    SAFEALIGN_COPY_UINT32(body, &num, NULL);
+
+    /* reserved */
+    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL);
 
     return ret;
 }
@@ -1734,7 +1737,7 @@ nss_cmd_getservent_immediate(struct nss_cmd_ctx *cmdctx)
     if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
-    num = *((uint32_t *)body);
+    SAFEALIGN_COPY_UINT32(&num, body, NULL);
 
     /* create response packet */
     ret = sss_packet_new(cctx->creq, 0,

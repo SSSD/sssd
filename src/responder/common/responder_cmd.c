@@ -51,8 +51,12 @@ int sss_cmd_empty_packet(struct sss_packet *packet)
     if (ret != EOK) return ret;
 
     sss_packet_get_body(packet, &body, &blen);
-    ((uint32_t *)body)[0] = 0; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
+
+    /* num results */
+    SAFEALIGN_SETMEM_UINT32(body, 0, NULL);
+
+    /* reserved */
+    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL);
 
     return EOK;
 }
@@ -97,6 +101,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
     size_t blen;
     int ret;
     uint32_t client_version;
+    uint32_t protocol_version;
     int i;
     static struct cli_protocol_version *cli_protocol_version = NULL;
 
@@ -133,9 +138,12 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
         return ret;
     }
     sss_packet_get_body(cctx->creq->out, &body, &blen);
-    ((uint32_t *)body)[0] = cctx->cli_protocol_version!=NULL ?
-                                cctx->cli_protocol_version->version : 0;
-    DEBUG(5, ("Offered version [%d].\n", ((uint32_t *)body)[0]));
+
+    protocol_version = (cctx->cli_protocol_version != NULL)
+                       ? cctx->cli_protocol_version->version : 0;
+
+    SAFEALIGN_COPY_UINT32(body, &protocol_version, NULL);
+    DEBUG(SSSDBG_FUNC_DATA, ("Offered version [%d].\n", protocol_version));
 
     sss_cmd_done(cctx, NULL);
     return EOK;

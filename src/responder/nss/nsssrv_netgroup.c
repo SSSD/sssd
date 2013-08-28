@@ -680,8 +680,12 @@ static void nss_cmd_setnetgrent_done(struct tevent_req *req)
             }
 
             sss_packet_get_body(packet, &body, &blen);
-            ((uint32_t *)body)[0] = 1; /* Got some results */
-            ((uint32_t *)body)[1] = 0; /* reserved */
+
+            /* Got some results. */
+            SAFEALIGN_SETMEM_UINT32(body, 1, NULL);
+
+            /* reserved */
+            SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL);
         }
 
         sss_cmd_done(cmdctx->cctx, cmdctx);
@@ -842,7 +846,7 @@ static errno_t nss_cmd_getnetgrent_process(struct nss_cmd_ctx *cmdctx,
     if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
-    num = *((uint32_t *)body);
+    SAFEALIGN_COPY_UINT32(&num, body, NULL);
 
     /* create response packet */
     ret = sss_packet_new(client->creq, 0,
@@ -981,8 +985,12 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
     }
 
     sss_packet_get_body(packet, &body, &blen);
-    ((uint32_t *)body)[0] = num; /* num results */
-    ((uint32_t *)body)[1] = 0; /* reserved */
+
+    /* num results */
+    SAFEALIGN_COPY_UINT32(body, &num, NULL);
+
+    /* reserved */
+    SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL);
 
     return EOK;
 }
