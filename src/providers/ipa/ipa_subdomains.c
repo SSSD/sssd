@@ -104,6 +104,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     const char *gc_service_name;
     struct ad_srv_plugin_ctx *srv_ctx;
     char *ad_domain;
+    struct sdap_domain *sdom;
     errno_t ret;
 
     ad_options = ad_create_default_options(id_ctx, id_ctx->server_mode->realm,
