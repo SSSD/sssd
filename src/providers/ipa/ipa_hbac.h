@@ -39,6 +39,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 
 /** Result of HBAC evaluation */
 enum hbac_eval_result {
