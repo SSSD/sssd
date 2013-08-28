@@ -984,7 +984,7 @@ errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
     *len = 0;
     while (*len < maxlen) {
         if (str[*len] == '\0') break;
-        len++;
+        (*len)++;
     }
 #endif
 
