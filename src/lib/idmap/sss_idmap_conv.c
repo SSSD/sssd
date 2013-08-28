@@ -30,6 +30,7 @@
 #include "lib/idmap/sss_idmap.h"
 #include "lib/idmap/sss_idmap_private.h"
 #include "util/util.h"
+#include "util/sss_endian.h"
 
 #define SID_ID_AUTHS 6
 #define SID_SUB_AUTHS 15

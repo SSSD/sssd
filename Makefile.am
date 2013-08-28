@@ -360,6 +360,7 @@ dist_noinst_HEADERS = \
     src/util/dlinklist.h \
     src/util/util.h \
     src/util/strtonum.h \
+    src/util/sss_endian.h \
     src/util/sss_nss.h \
     src/util/sss_ldap.h \
     src/util/sss_python.h \
