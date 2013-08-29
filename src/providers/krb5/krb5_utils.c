@@ -818,6 +818,115 @@ done:
 }
 
 
+struct sss_krb5_ccache {
+    struct sss_creds *creds;
+    krb5_context context;
+    krb5_ccache ccache;
+};
+
+static int sss_free_krb5_ccache(void *mem)
+{
+    struct sss_krb5_ccache *cc = talloc_get_type(mem, struct sss_krb5_ccache);
+
+    if (cc->ccache) {
+        krb5_cc_close(cc->context, cc->ccache);
+    }
+    krb5_free_context(cc->context);
+    restore_creds(cc->creds);
+    return 0;
+}
+
+static errno_t sss_open_ccache_as_user(TALLOC_CTX *mem_ctx,
+                                       const char *ccname,
+                                       uid_t uid, gid_t gid,
+                                       struct sss_krb5_ccache **ccache)
+{
+    struct sss_krb5_ccache *cc;
+    krb5_error_code kerr;
+    errno_t ret;
+
+    cc = talloc_zero(mem_ctx, struct sss_krb5_ccache);
+    if (!cc) {
+        return ENOMEM;
+    }
+    talloc_set_destructor((TALLOC_CTX *)cc, sss_free_krb5_ccache);
+
+    ret = switch_creds(cc, uid, gid, 0, NULL, &cc->creds);
+    if (ret) {
+        goto done;
+    }
+
+    kerr = krb5_init_context(&cc->context);
+    if (kerr) {
+        ret = EIO;
+        goto done;
+    }
+
+    kerr = krb5_cc_resolve(cc->context, ccname, &cc->ccache);
+    if (kerr == KRB5_FCC_NOFILE || cc->ccache == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("ccache %s is missing or empty\n", ccname));
+        ret = ERR_NOT_FOUND;
+        goto done;
+    } else if (kerr != 0) {
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_resolve failed.\n"));
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret) {
+        talloc_free(cc);
+    } else {
+        *ccache = cc;
+    }
+    return ret;
+}
+
+static errno_t sss_destroy_ccache(struct sss_krb5_ccache *cc)
+{
+    krb5_error_code kerr;
+    errno_t ret;
+
+    kerr = krb5_cc_destroy(cc->context, cc->ccache);
+    if (kerr) {
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_destroy failed.\n"));
+        ret = EIO;
+    }
+
+    /* krb5_cc_destroy frees cc->ccache in all events */
+    cc->ccache = NULL;
+
+    return ret;
+}
+
+errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid)
+{
+    struct sss_krb5_ccache *cc = NULL;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = sss_open_ccache_as_user(tmp_ctx, ccname, uid, gid, &cc);
+    if (ret) {
+        goto done;
+    }
+
+    ret = sss_destroy_ccache(cc);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 
 /*======== ccache back end utilities ========*/
 struct sss_krb5_cc_be *

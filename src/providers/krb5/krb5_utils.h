@@ -87,6 +87,8 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
                      struct sss_creds **saved_creds);
 errno_t restore_creds(struct sss_creds *saved_creds);
 
+errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid);
+
 errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
                              struct tgt_times *tgtt);
 
