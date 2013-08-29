@@ -962,6 +962,7 @@ strtonum_tests_LDADD = \
 krb5_utils_tests_SOURCES = \
     src/tests/krb5_utils-tests.c \
     src/providers/krb5/krb5_utils.c \
+    src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_common.c \
     src/util/sss_krb5.c \
     src/util/find_uid.c \
@@ -1532,6 +1533,7 @@ libsss_ldap_la_SOURCES = \
     src/providers/ldap/ldap_access.c \
     src/providers/krb5/krb5_common.c \
     src/providers/krb5/krb5_utils.c \
+    src/providers/krb5/krb5_become_user.c \
     src/util/user_info_msg.c \
     src/util/sss_ldap.c \
     src/util/sss_krb5.c

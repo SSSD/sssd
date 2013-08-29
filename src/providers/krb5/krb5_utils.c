@@ -1120,42 +1120,11 @@ cc_file_cache_for_princ(TALLOC_CTX *mem_ctx, const char *location,
     return talloc_strdup(mem_ctx, location);
 }
 
-errno_t
-cc_file_remove(const char *location)
-{
-    errno_t ret;
-    const char *filename;
-
-    filename = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_FILE);
-    if (!filename) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("%s is not of type FILE:\n", location));
-        return EINVAL;
-    }
-
-    if (filename[0] != '/') {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Ccache file name [%s] is not an absolute path.\n", filename));
-        return EINVAL;
-    }
-
-    errno = 0;
-    ret = unlink(filename);
-    if (ret == -1 && errno != ENOENT) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("unlink [%s] failed [%d][%s].\n", filename, ret,
-                                                 strerror(ret)));
-        return ret;
-    }
-    return EOK;
-}
-
 struct sss_krb5_cc_be file_cc = {
     .type               = SSS_KRB5_TYPE_FILE,
     .create             = cc_file_create,
     .check_existing     = cc_file_check_existing,
     .ccache_for_princ   = cc_file_cache_for_princ,
-    .remove             = cc_file_remove,
 };
 
 #ifdef HAVE_KRB5_CC_COLLECTION
@@ -1333,32 +1302,11 @@ done:
     return name;
 }
 
-errno_t
-cc_dir_remove(const char *location)
-{
-    const char *subsidiary;
-
-    if (sss_krb5_get_type(location) != SSS_KRB5_TYPE_DIR) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("%s is not of type DIR\n", location));
-        return EINVAL;
-    }
-
-    subsidiary = sss_krb5_cc_file_path(location);
-    if (!subsidiary) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get subsidiary cache from %s\n",
-              location));
-        return EINVAL;
-    }
-
-    return cc_file_remove(subsidiary);
-}
-
 struct sss_krb5_cc_be dir_cc = {
     .type               = SSS_KRB5_TYPE_DIR,
     .create             = cc_dir_create,
     .check_existing     = cc_dir_check_existing,
     .ccache_for_princ   = cc_dir_cache_for_princ,
-    .remove             = cc_dir_remove
 };
 
 
@@ -1485,30 +1433,11 @@ done:
     return name;
 }
 
-errno_t
-cc_keyring_remove(const char *location)
-{
-    const char *residual;
-
-    residual = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_KEYRING);
-    if (!residual) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("%s is not of type KEYRING:\n", location));
-        return EINVAL;
-    }
-
-    /* No special steps are needed to create a kernel keyring.
-     * Everything is handled in libkrb5.
-     */
-    return EOK;
-}
-
 struct sss_krb5_cc_be keyring_cc = {
     .type               = SSS_KRB5_TYPE_KEYRING,
     .create             = cc_keyring_create,
     .check_existing     = cc_keyring_check_existing,
     .ccache_for_princ   = cc_keyring_cache_for_princ,
-    .remove             = cc_keyring_remove
 };
 
 #endif /* HAVE_KRB5_CC_COLLECTION */

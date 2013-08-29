@@ -561,7 +561,7 @@ done:
     if (rm_ccache && ctx->res
             && ctx->res->ccname
             && ctx->kr) {
-        ctx->kr->krb5_ctx->cc_be->remove(ctx->res->ccname);
+        sss_krb5_cc_destroy(ctx->res->ccname, ctx->kr->uid, ctx->kr->gid);
     }
     free(password);
     talloc_free(ctx);

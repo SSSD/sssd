@@ -40,48 +40,19 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 
-static errno_t safe_remove_old_ccache_file(struct sss_krb5_cc_be *cc_be,
-                                           const char *princ,
-                                           const char *old_ccache,
-                                           const char *new_ccache)
+static errno_t safe_remove_old_ccache_file(const char *old_ccache,
+                                           const char *new_ccache,
+                                           uid_t uid, gid_t gid)
 {
-    int ret;
-    enum sss_krb5_cc_type old_type;
-    struct sss_krb5_cc_be *old_cc_ops;
-
-    if (old_ccache == NULL) {
-        DEBUG(SSSDBG_FUNC_DATA, ("No old ccache, nothing to do\n"));
-        return EOK;
-    }
-
-    if (new_ccache == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("Missing new ccache file, old ccache file is not deleted.\n"));
-        return EINVAL;
-    }
-
-    old_type = sss_krb5_get_type(old_ccache);
-    old_cc_ops = get_cc_be_ops(old_type);
-    if (!old_cc_ops) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get ccache operations\n"));
-        return EINVAL;
-    }
-
-    if (cc_be->type == old_type &&
-        strcmp(old_ccache, new_ccache) == 0) {
+    if ((old_ccache == new_ccache)
+        || (old_ccache && new_ccache
+            && (strcmp(old_ccache, new_ccache) == 0))) {
         DEBUG(SSSDBG_TRACE_FUNC, ("New and old ccache file are the same, "
-                                  "no one will be deleted.\n"));
+                                  "none will be deleted.\n"));
         return EOK;
     }
 
-    ret = old_cc_ops->remove(old_ccache);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-                ("Cannot remove ccache [%s]\n", old_ccache));
-        return EIO;
-    }
-
-    return EOK;
+    return sss_krb5_cc_destroy(old_ccache, uid, gid);
 }
 
 static errno_t
@@ -1037,8 +1008,8 @@ static void krb5_auth_done(struct tevent_req *subreq)
          * used. */
         if (pd->cmd == SSS_PAM_AUTHENTICATE && !kr->active_ccache) {
             if (kr->old_ccname != NULL) {
-                ret = safe_remove_old_ccache_file(kr->cc_be, kr->upn,
-                                                  kr->old_ccname, "dummy");
+                ret = safe_remove_old_ccache_file(kr->old_ccname, NULL,
+                                                  kr->uid, kr->gid);
                 if (ret != EOK) {
                     DEBUG(1, ("Failed to remove old ccache file [%s], "
                               "please remove it manually.\n", kr->old_ccname));
@@ -1114,12 +1085,14 @@ static void krb5_auth_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = safe_remove_old_ccache_file(kr->cc_be, kr->upn,
-                                      kr->old_ccname, store_ccname);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to remove old ccache file [%s], "
-               "please remove it manually.\n", kr->old_ccname));
+    if (kr->old_ccname) {
+        ret = safe_remove_old_ccache_file(kr->old_ccname, store_ccname,
+                                          kr->uid, kr->gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Failed to remove old ccache file [%s], "
+                   "please remove it manually.\n", kr->old_ccname));
+        }
     }
 
     ret = krb5_save_ccname(state, state->sysdb, state->domain,
