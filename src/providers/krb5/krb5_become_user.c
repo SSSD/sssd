@@ -70,3 +70,128 @@ errno_t become_user(uid_t uid, gid_t gid)
     return EOK;
 }
 
+struct sss_creds {
+    uid_t uid;
+    gid_t gid;
+    int num_gids;
+    gid_t gids[];
+};
+
+errno_t restore_creds(struct sss_creds *saved_creds);
+
+/* This is a reversible version of become_user, and returns the saved
+ * credentials so that creds can be switched back calling restore_creds */
+errno_t switch_creds(TALLOC_CTX *mem_ctx,
+                     uid_t uid, gid_t gid,
+                     int num_gids, gid_t *gids,
+                     struct sss_creds **saved_creds)
+{
+    struct sss_creds *ssc = NULL;
+    int size;
+    int ret;
+
+    DEBUG(SSSDBG_FUNC_DATA, ("Switch user to [%d][%d].\n", uid, gid));
+
+    if (saved_creds) {
+        /* save current user credentials */
+        size = getgroups(0, NULL);
+        if (size == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Getgroups failed! (%d, %s)\n",
+                                        ret, strerror(ret)));
+            goto done;
+        }
+
+        ssc = talloc_size(mem_ctx,
+                          (sizeof(struct sss_creds) + size * sizeof(gid_t)));
+        if (!ssc) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation failed!\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+        ssc->num_gids = size;
+
+        size = getgroups(ssc->num_gids, ssc->gids);
+        if (size == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Getgroups failed! (%d, %s)\n",
+                                        ret, strerror(ret)));
+            /* free ssc immediately otherwise the code will try to restore
+             * wrong creds */
+            talloc_zfree(ssc);
+            goto done;
+        }
+
+        /* we care only about effective ids */
+        ssc->uid = geteuid();
+        ssc->gid = getegid();
+    }
+
+    /* if we are regaining root set euid first so that we have CAP_SETUID back,
+     * ane the other calls work too, otherwise call it last so that we can
+     * change groups before we loose CAP_SETUID */
+    if (uid == 0) {
+        ret = setresuid(0, 0, 0);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("setresuid failed [%d][%s].\n", ret, strerror(ret)));
+            goto done;
+        }
+    }
+
+    /* TODO: use prctl to get/set capabilities too ? */
+
+    /* try to setgroups first should always work if CAP_SETUID is set,
+     * otherwise it will always fail, failure is not critical though as
+     * generally we only really care about uid and at mot primary gid */
+    ret = setgroups(num_gids, gids);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("setgroups failed [%d][%s].\n", ret, strerror(ret)));
+    }
+
+    /* change gid now, (leaves saved gid to current, so we can restore) */
+    ret = setresgid(-1, gid, -1);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("setresgid failed [%d][%s].\n", ret, strerror(ret)));
+        goto done;
+    }
+
+    if (uid != 0) {
+        /* change uid, (leaves saved uid to current, so we can restore) */
+        ret = setresuid(-1, uid, -1);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("setresuid failed [%d][%s].\n", ret, strerror(ret)));
+            goto done;
+        }
+    }
+
+    ret = 0;
+
+done:
+    if (ret) {
+        if (ssc) {
+            /* attempt to restore creds first */
+            restore_creds(ssc);
+            talloc_free(ssc);
+        }
+    } else if (saved_creds) {
+        *saved_creds = ssc;
+    }
+    return ret;
+}
+
+errno_t restore_creds(struct sss_creds *saved_creds)
+{
+    return switch_creds(saved_creds,
+                        saved_creds->uid,
+                        saved_creds->gid,
+                        saved_creds->num_gids,
+                        saved_creds->gids, NULL);
+}

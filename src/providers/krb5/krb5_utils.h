@@ -80,6 +80,12 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              bool case_sensitive, bool *private_path);
 
 errno_t become_user(uid_t uid, gid_t gid);
+struct sss_creds;
+errno_t switch_creds(TALLOC_CTX *mem_ctx,
+                     uid_t uid, gid_t gid,
+                     int num_gids, gid_t *gids,
+                     struct sss_creds **saved_creds);
+errno_t restore_creds(struct sss_creds *saved_creds);
 
 errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
                              struct tgt_times *tgtt);
