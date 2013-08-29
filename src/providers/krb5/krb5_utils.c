@@ -1075,7 +1075,7 @@ done:
 }
 
 
-errno_t get_domain_or_subdomain(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
+errno_t get_domain_or_subdomain(struct be_ctx *be_ctx,
                                 char *domain_name,
                                 struct sss_domain_info **dom)
 {

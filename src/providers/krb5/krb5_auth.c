@@ -435,7 +435,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     state->pam_status = PAM_SYSTEM_ERR;
     state->dp_err = DP_ERR_FATAL;
 
-    ret = get_domain_or_subdomain(state, be_ctx, pd->domain, &state->domain);
+    ret = get_domain_or_subdomain(be_ctx, pd->domain, &state->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("get_domain_or_subdomain failed.\n"));
         goto done;
