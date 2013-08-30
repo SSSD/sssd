@@ -76,7 +76,7 @@ check_old_ccache(const char *old_ccache, struct krb5child_req *kr,
     cc_template = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_CCNAME_TMPL);
 
     ret = old_cc_ops->check_existing(old_ccache, kr->uid, realm, kr->upn,
-                                     cc_template, active, valid);
+                                     cc_template, valid);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC,
               ("Saved ccache %s doesn't exist.\n", old_ccache));
@@ -84,8 +84,14 @@ check_old_ccache(const char *old_ccache, struct krb5child_req *kr,
     }
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot check if saved ccache %s is active and valid\n",
+              ("Cannot check if saved ccache %s is valid\n",
                old_ccache));
+        return ret;
+    }
+
+    ret = check_if_uid_is_active(kr->uid, active);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("check_if_uid_is_active failed.\n"));
         return ret;
     }
 
