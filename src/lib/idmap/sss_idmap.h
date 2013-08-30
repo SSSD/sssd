@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/types.h>
 
 #define DOM_SID_PREFIX "S-1-5-21-"
 #define DOM_SID_PREFIX_LEN (sizeof(DOM_SID_PREFIX) - 1)
