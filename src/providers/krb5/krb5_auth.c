@@ -333,9 +333,9 @@ static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
                 return EINVAL;
             }
 
-            ret = kr->cc_be->create(kr->ccname,
-                                    kr->krb5_ctx->illegal_path_re,
-                                    kr->uid, kr->gid, private_path);
+            ret = sss_krb5_precreate_ccache(kr->ccname,
+                                            kr->krb5_ctx->illegal_path_re,
+                                            kr->uid, kr->gid, private_path);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("ccache creation failed.\n"));
                 return ret;

@@ -722,19 +722,31 @@ done:
     return EOK;
 }
 
-static errno_t
-create_ccache_dir_head(const char *parent, pcre *illegal_re,
-                       uid_t uid, gid_t gid, bool private_path)
+errno_t sss_krb5_precreate_ccache(const char *ccname, pcre *illegal_re,
+                                  uid_t uid, gid_t gid, bool private_path)
 {
-    char *ccdirname;
     TALLOC_CTX *tmp_ctx = NULL;
+    const char *filename;
+    char *ccdirname;
     char *end;
     errno_t ret;
+
+    if (ccname[0] == '/') {
+        filename = ccname;
+    } else if (strncmp(ccname, "FILE:", 5) == 0) {
+        filename = ccname + 5;
+    } else if (strncmp(ccname, "DIR:", 4) == 0) {
+        filename = ccname + 4;
+    } else {
+        /* only FILE and DIR types need precreation so far, we ignore any
+         * other type */
+        return EOK;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    ccdirname = talloc_strdup(tmp_ctx, parent);
+    ccdirname = talloc_strdup(tmp_ctx, filename);
     if (ccdirname == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
         ret = ENOMEM;
@@ -1066,72 +1078,23 @@ get_cc_be_ops_ccache(const char *ccache)
 }
 
 /*======== Operations on the FILE: back end ========*/
-errno_t
-cc_file_create(const char *location, pcre *illegal_re,
-               uid_t uid, gid_t gid, bool private_path)
-{
-    const char *filename;
-
-    filename = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_FILE);
-    if (filename == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Bad ccache type %s\n", location));
-        return EINVAL;
-    }
-
-    return create_ccache_dir_head(filename, illegal_re, uid, gid, private_path);
-}
 
 struct sss_krb5_cc_be file_cc = {
     .type               = SSS_KRB5_TYPE_FILE,
-    .create             = cc_file_create,
 };
 
 #ifdef HAVE_KRB5_CC_COLLECTION
 /*======== Operations on the DIR: back end ========*/
-errno_t
-cc_dir_create(const char *location, pcre *illegal_re,
-              uid_t uid, gid_t gid, bool private_path)
-{
-    const char *dir_name;
-
-    dir_name = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_DIR);
-    if (dir_name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Bad residual type\n"));
-        return EINVAL;
-    }
-
-    return create_ccache_dir_head(dir_name, illegal_re, uid, gid, private_path);
-}
 
 struct sss_krb5_cc_be dir_cc = {
     .type               = SSS_KRB5_TYPE_DIR,
-    .create             = cc_dir_create,
 };
 
 
 /*======== Operations on the KEYRING: back end ========*/
 
-errno_t
-cc_keyring_create(const char *location, pcre *illegal_re,
-                  uid_t uid, gid_t gid, bool private_path)
-{
-    const char *residual;
-
-    residual = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_KEYRING);
-    if (residual == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Bad ccache type %s\n", location));
-        return EINVAL;
-    }
-
-    /* No special steps are needed to create a kernel keyring.
-     * Everything is handled in libkrb5.
-     */
-    return EOK;
-}
-
 struct sss_krb5_cc_be keyring_cc = {
     .type               = SSS_KRB5_TYPE_KEYRING,
-    .create             = cc_keyring_create,
 };
 
 #endif /* HAVE_KRB5_CC_COLLECTION */
