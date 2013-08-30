@@ -59,27 +59,25 @@ static errno_t
 check_old_ccache(const char *old_ccache, struct krb5child_req *kr,
                  const char *realm, bool *active, bool *valid)
 {
-    struct sss_krb5_cc_be *old_cc_ops;
     errno_t ret;
 
-    /* ccache file might be of a different type if the user changed
-     * configuration
-     */
-    old_cc_ops = get_cc_be_ops_ccache(old_ccache);
-    if (old_cc_ops == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Cannot get operations on saved ccache %s\n", old_ccache));
-        return EINVAL;
-    }
+    *active = false;
+    *valid = false;
 
-    ret = old_cc_ops->check_existing(old_ccache, kr->uid, realm, kr->upn,
-                                     valid);
-    if (ret == ENOENT) {
+    ret = sss_krb5_cc_verify_ccache(old_ccache,
+                                    kr->uid, kr->gid,
+                                    realm, kr->upn);
+    switch (ret) {
+    case ERR_NOT_FOUND:
         DEBUG(SSSDBG_TRACE_FUNC,
               ("Saved ccache %s doesn't exist.\n", old_ccache));
-        return ret;
-    }
-    if (ret != EOK) {
+        return ENOENT;
+    case EINVAL:
+        /* cache found but no tgt or expired */
+    case EOK:
+        *valid = true;
+        break;
+    default:
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannot check if saved ccache %s is valid\n",
                old_ccache));

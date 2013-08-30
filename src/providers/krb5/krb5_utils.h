@@ -45,16 +45,12 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
 /* Operations on a credential cache */
 typedef errno_t (*cc_be_create_fn)(const char *location, pcre *illegal_re,
                                    uid_t uid, gid_t gid, bool private_path);
-typedef errno_t (*cc_be_check_existing)(const char *location, uid_t uid,
-                                        const char *realm, const char *princ,
-                                        bool *valid);
 
 /* A ccache back end */
 struct sss_krb5_cc_be {
     enum sss_krb5_cc_type type;
 
     cc_be_create_fn create;
-    cc_be_check_existing check_existing;
 };
 
 extern struct sss_krb5_cc_be file_cc;
@@ -83,6 +79,8 @@ errno_t restore_creds(struct sss_creds *saved_creds);
 errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid);
 errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
                                     const char *ccname, const char *principal);
+errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
+                                  const char *realm, const char *principal);
 
 errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
                              struct tgt_times *tgtt);
