@@ -18,6 +18,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <sys/types.h>
 #include <stdbool.h>
 #include <util/data_blob.h>
 #include <gen_ndr/security.h>
