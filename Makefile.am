@@ -1595,7 +1595,7 @@ libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS) \
     $(DHASH_CFLAGS) \
-    $(NDR_NBT_CFLAGS)
+    $(NDR_NBT_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ipa_la_LIBADD = \
     $(OPENLDAP_LIBS) \
