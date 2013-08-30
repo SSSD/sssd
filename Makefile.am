@@ -628,6 +628,7 @@ sssd_SOURCES = \
     src/util/nscd.c
 sssd_LDADD = \
     $(SSSD_LIBS) \
+    $(INOTIFY_LIBS) \
     $(LIBNL_LIBS) \
     $(KEYUTILS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)

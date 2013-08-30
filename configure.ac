@@ -155,6 +155,7 @@ m4_include([src/external/libnl.m4])
 m4_include([src/external/systemd.m4])
 m4_include([src/external/pac_responder.m4])
 m4_include([src/external/signal.m4])
+m4_include([src/external/inotify.m4])
 m4_include([src/external/libndr_nbt.m4])
 
 WITH_UNICODE_LIB
@@ -253,7 +254,7 @@ if test x$cryptolib = xlibcrypto; then
     AM_CHECK_LIBCRYPTO
 fi
 
-AC_CHECK_HEADERS([sys/inotify.h])
+AM_CHECK_INOTIFY
 
 AC_CHECK_HEADERS([sasl/sasl.h],,AC_MSG_ERROR([Could not find SASL headers]))
 
