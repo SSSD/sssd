@@ -32,19 +32,32 @@
 
 struct sss_packet {
     size_t memsize;
+
+    /* Structure of the buffer:
+    * Bytes    Content
+    * ---------------------------------
+    * 0-15     packet header
+    * 0-3      packet length (uint32_t)
+    * 4-7      command type (uint32_t)
+    * 8-11     status (uint32_t)
+    * 12-15    reserved
+    * 16+      packet body */
     uint8_t *buffer;
-
-    /* header */
-    uint32_t *len;
-    uint32_t *cmd;
-    uint32_t *status;
-    uint32_t *reserved;
-
-    uint8_t *body;
 
     /* io pointer */
     size_t iop;
 };
+
+/* Offsets to data in sss_packet's buffer */
+#define SSS_PACKET_LEN_OFFSET 0
+#define SSS_PACKET_CMD_OFFSET sizeof(uint32_t)
+#define SSS_PACKET_ERR_OFFSET (2*(sizeof(uint32_t)))
+#define SSS_PACKET_BODY_OFFSET (4*(sizeof(uint32_t)))
+
+static void sss_packet_set_len(struct sss_packet *packet, uint32_t len);
+static void sss_packet_set_cmd(struct sss_packet *packet,
+                               enum sss_cli_command cmd);
+static uint32_t sss_packet_get_len(struct sss_packet *packet);
 
 /*
  * Allocate a new packet structure
@@ -75,14 +88,8 @@ int sss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
     }
     memset(packet->buffer, 0, SSS_NSS_HEADER_SIZE);
 
-    packet->len = &((uint32_t *)packet->buffer)[0];
-    packet->cmd = &((uint32_t *)packet->buffer)[1];
-    packet->status = &((uint32_t *)packet->buffer)[2];
-    packet->reserved = &((uint32_t *)packet->buffer)[3];
-    packet->body = (uint8_t *)&((uint32_t *)packet->buffer)[4];
-
-    *(packet->len) = size + SSS_NSS_HEADER_SIZE;
-    *(packet->cmd) = cmd;
+    sss_packet_set_len(packet, size + SSS_NSS_HEADER_SIZE);
+    sss_packet_set_cmd(packet, cmd);
 
     packet->iop = 0;
 
@@ -96,13 +103,16 @@ int sss_packet_grow(struct sss_packet *packet, size_t size)
 {
     size_t totlen, len;
     uint8_t *newmem;
+    uint32_t packet_len;
 
     if (size == 0) {
         return EOK;
     }
 
     totlen = packet->memsize;
-    len = *packet->len + size;
+    packet_len = sss_packet_get_len(packet);
+
+    len = packet_len + size;
 
     /* make sure we do not overflow */
     if (totlen < len) {
@@ -124,15 +134,12 @@ int sss_packet_grow(struct sss_packet *packet, size_t size)
         /* re-set pointers if realloc had to move memory */
         if (newmem != packet->buffer) {
             packet->buffer = newmem;
-            packet->len = &((uint32_t *)packet->buffer)[0];
-            packet->cmd = &((uint32_t *)packet->buffer)[1];
-            packet->status = &((uint32_t *)packet->buffer)[2];
-            packet->reserved = &((uint32_t *)packet->buffer)[3];
-            packet->body = (uint8_t *)&((uint32_t *)packet->buffer)[4];
         }
     }
 
-    *(packet->len) += size;
+    packet_len += size;
+    sss_packet_set_len(packet, packet_len);
+
 
     return 0;
 }
@@ -142,13 +149,14 @@ int sss_packet_grow(struct sss_packet *packet, size_t size)
 int sss_packet_shrink(struct sss_packet *packet, size_t size)
 {
     size_t newlen;
+    size_t oldlen = sss_packet_get_len(packet);
 
-    if (size > *(packet->len)) return EINVAL;
+    if (size > oldlen) return EINVAL;
 
-    newlen = *(packet->len) - size;
+    newlen = oldlen - size;
     if (newlen < SSS_NSS_HEADER_SIZE) return EINVAL;
 
-    *(packet->len) = newlen;
+    sss_packet_set_len(packet, newlen);
     return 0;
 }
 
@@ -161,7 +169,7 @@ int sss_packet_set_size(struct sss_packet *packet, size_t size)
     /* make sure we do not overflow */
     if (packet->memsize < newlen) return EINVAL;
 
-    *(packet->len) = newlen;
+    sss_packet_set_len(packet, newlen);
 
     return 0;
 }
@@ -172,8 +180,8 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
     size_t len;
     void *buf;
 
-    buf = packet->buffer + packet->iop;
-    if (packet->iop > 4) len = *packet->len - packet->iop;
+    buf = (uint8_t *)packet->buffer + packet->iop;
+    if (packet->iop > 4) len = sss_packet_get_len(packet) - packet->iop;
     else len = packet->memsize - packet->iop;
 
     /* check for wrapping */
@@ -196,7 +204,7 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
         return ENODATA;
     }
 
-    if (*packet->len > packet->memsize) {
+    if (sss_packet_get_len(packet) > packet->memsize) {
         return EINVAL;
     }
 
@@ -205,7 +213,7 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
         return EAGAIN;
     }
 
-    if (packet->iop < *packet->len) {
+    if (packet->iop < sss_packet_get_len(packet)) {
         return EAGAIN;
     }
 
@@ -224,7 +232,7 @@ int sss_packet_send(struct sss_packet *packet, int fd)
     }
 
     buf = packet->buffer + packet->iop;
-    len = *packet->len - packet->iop;
+    len = sss_packet_get_len(packet) - packet->iop;
 
     errno = 0;
     rb = send(fd, buf, len, 0);
@@ -243,7 +251,7 @@ int sss_packet_send(struct sss_packet *packet, int fd)
 
     packet->iop += rb;
 
-    if (packet->iop < *packet->len) {
+    if (packet->iop < sss_packet_get_len(packet)) {
         return EAGAIN;
     }
 
@@ -252,16 +260,39 @@ int sss_packet_send(struct sss_packet *packet, int fd)
 
 enum sss_cli_command sss_packet_get_cmd(struct sss_packet *packet)
 {
-    return (enum sss_cli_command)(*packet->cmd);
+    uint32_t cmd;
+
+    SAFEALIGN_COPY_UINT32(&cmd, packet->buffer + SSS_PACKET_CMD_OFFSET, NULL);
+    return (enum sss_cli_command)cmd;
 }
 
 void sss_packet_get_body(struct sss_packet *packet, uint8_t **body, size_t *blen)
 {
-    *body = packet->body;
-    *blen = *packet->len - SSS_NSS_HEADER_SIZE;
+    *body = packet->buffer + SSS_PACKET_BODY_OFFSET;
+    *blen = sss_packet_get_len(packet) - SSS_NSS_HEADER_SIZE;
 }
 
 void sss_packet_set_error(struct sss_packet *packet, int error)
 {
-    *(packet->status) = error;
+    SAFEALIGN_SETMEM_UINT32(packet->buffer + SSS_PACKET_ERR_OFFSET, error,
+                            NULL);
+}
+
+static void sss_packet_set_len(struct sss_packet *packet, uint32_t len)
+{
+    SAFEALIGN_SETMEM_UINT32(packet->buffer + SSS_PACKET_LEN_OFFSET, len, NULL);
+}
+
+static void sss_packet_set_cmd(struct sss_packet *packet,
+                               enum sss_cli_command cmd)
+{
+    SAFEALIGN_SETMEM_UINT32(packet->buffer + SSS_PACKET_CMD_OFFSET, cmd, NULL);
+}
+
+static uint32_t sss_packet_get_len(struct sss_packet *packet)
+{
+    uint32_t len;
+
+    SAFEALIGN_COPY_UINT32(&len, packet->buffer + SSS_PACKET_LEN_OFFSET, NULL);
+    return len;
 }
