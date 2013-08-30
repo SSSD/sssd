@@ -1644,7 +1644,7 @@ errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
                                      monitor_reconf_fn fn,
                                      bool ignore_missing);
 
-#ifdef HAVE_SYS_INOTIFY_H
+#ifdef HAVE_INOTIFY
 static void process_config_file(struct tevent_context *ev,
                                 struct tevent_timer *te,
                                 struct timeval t, void *ptr);
@@ -1869,7 +1869,7 @@ static void rewatch_config_file(struct tevent_context *ev,
     talloc_free(rw_ctx);
     file_ctx->needs_update = 0;
 }
-#endif
+#endif /* HAVE_INOTIFY */
 
 static void poll_config_file(struct tevent_context *ev,
                                     struct tevent_timer *te,
@@ -1919,7 +1919,7 @@ static void poll_config_file(struct tevent_context *ev,
 static int try_inotify(struct config_file_ctx *file_ctx, const char *filename,
                        monitor_reconf_fn fn)
 {
-#ifdef HAVE_SYS_INOTIFY_H
+#ifdef HAVE_INOTIFY
     int err, fd_args, ret;
     struct tevent_fd *tfd;
     struct config_file_callback *cb;
@@ -1988,7 +1988,7 @@ static int try_inotify(struct config_file_ctx *file_ctx, const char *filename,
     return EOK;
 #else
     return EINVAL;
-#endif
+#endif /* HAVE_INOTIFY */
 }
 
 static int monitor_config_file(TALLOC_CTX *mem_ctx,

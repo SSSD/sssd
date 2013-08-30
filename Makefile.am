@@ -568,6 +568,7 @@ sssd_SOURCES = \
     src/confdb/confdb_setup.c
 sssd_LDADD = \
     $(SSSD_LIBS) \
+    $(INOTIFY_LIBS) \
     $(LIBNL_LIBS) \
     $(KEYUTILS_LIBS) \
     libsss_util.la
