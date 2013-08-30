@@ -837,7 +837,6 @@ static void krb5_auth_done(struct tevent_req *subreq)
     uint8_t *buf = NULL;
     ssize_t len = -1;
     struct krb5_child_response *res;
-    const char *store_ccname;
     struct fo_server *search_srv;
     krb5_deltat renew_interval_delta;
     char *renew_interval_str;
@@ -1076,17 +1075,15 @@ static void krb5_auth_done(struct tevent_req *subreq)
         goto done;
     }
 
-    store_ccname = kr->cc_be->ccache_for_princ(kr, kr->ccname,
-                                               kr->upn);
-    if (store_ccname == NULL) {
+    ret = sss_krb5_check_ccache_princ(kr->uid, kr->gid, kr->ccname, kr->upn);
+    if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
                 ("No ccache for %s in %s?\n", kr->upn, kr->ccname));
-        ret = EIO;
         goto done;
     }
 
     if (kr->old_ccname) {
-        ret = safe_remove_old_ccache_file(kr->old_ccname, store_ccname,
+        ret = safe_remove_old_ccache_file(kr->old_ccname, kr->ccname,
                                           kr->uid, kr->gid);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1096,7 +1093,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
     }
 
     ret = krb5_save_ccname(state, state->sysdb, state->domain,
-                           pd->user, store_ccname);
+                           pd->user, kr->ccname);
     if (ret) {
         DEBUG(1, ("krb5_save_ccname failed.\n"));
         goto done;

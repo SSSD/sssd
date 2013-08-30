@@ -49,9 +49,6 @@ typedef errno_t (*cc_be_check_existing)(const char *location, uid_t uid,
                                         const char *realm, const char *princ,
                                         const char *cc_template, bool *active,
                                         bool *valid);
-typedef const char * (*cc_be_ccache_for_princ)(TALLOC_CTX *mem_ctx,
-                                               const char *location,
-                                               const char *princ);
 
 /* A ccache back end */
 struct sss_krb5_cc_be {
@@ -59,7 +56,6 @@ struct sss_krb5_cc_be {
 
     cc_be_create_fn create;
     cc_be_check_existing check_existing;
-    cc_be_ccache_for_princ ccache_for_princ;
 };
 
 extern struct sss_krb5_cc_be file_cc;
@@ -86,6 +82,8 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
 errno_t restore_creds(struct sss_creds *saved_creds);
 
 errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid);
+errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
+                                    const char *ccname, const char *principal);
 
 errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
                              struct tgt_times *tgtt);

@@ -928,6 +928,89 @@ done:
 }
 
 
+/* This function is called only as a way to validate that we have the
+ * right cache */
+errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
+                                    const char *ccname, const char *principal)
+{
+    struct sss_krb5_ccache *cc = NULL;
+    krb5_principal ccprinc = NULL;
+    krb5_principal kprinc = NULL;
+    krb5_error_code kerr;
+    const char *cc_type;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = sss_open_ccache_as_user(tmp_ctx, ccname, uid, gid, &cc);
+    if (ret) {
+        goto done;
+    }
+
+    cc_type = krb5_cc_get_type(cc->context, cc->ccache);
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("Searching for [%s] in cache of type [%s]\n", principal, cc_type));
+
+    kerr = krb5_parse_name(cc->context, principal, &kprinc);
+    if (kerr != 0) {
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    kerr = krb5_cc_get_principal(cc->context, cc->ccache, &ccprinc);
+    if (kerr != 0) {
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
+        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_get_principal failed.\n"));
+    }
+
+    if (ccprinc) {
+        if (krb5_principal_compare(cc->context, kprinc, ccprinc) == TRUE) {
+            /* found in the primary ccache */
+            ret = EOK;
+            goto done;
+        }
+    }
+
+#ifdef HAVE_KRB5_CC_COLLECTION
+
+    if (krb5_cc_support_switch(cc->context, cc_type)) {
+
+        krb5_cc_close(cc->context, cc->ccache);
+        cc->ccache = NULL;
+
+        kerr = krb5_cc_set_default_name(cc->context, ccname);
+        if (kerr != 0) {
+            KRB5_DEBUG(SSSDBG_MINOR_FAILURE, cc->context, kerr);
+            /* try to continue despite failure */
+        }
+
+        kerr = krb5_cc_cache_match(cc->context, kprinc, &cc->ccache);
+        if (kerr == 0) {
+            ret = EOK;
+            goto done;
+        }
+        KRB5_DEBUG(SSSDBG_TRACE_INTERNAL, cc->context, kerr);
+    }
+
+#endif /* HAVE_KRB5_CC_COLLECTION */
+
+    ret = ERR_NOT_FOUND;
+
+done:
+    krb5_free_principal(cc->context, ccprinc);
+    krb5_free_principal(cc->context, kprinc);
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 /*======== ccache back end utilities ========*/
 struct sss_krb5_cc_be *
 get_cc_be_ops(enum sss_krb5_cc_type type)
@@ -1113,18 +1196,10 @@ cc_file_check_existing(const char *location, uid_t uid,
     return EOK;
 }
 
-const char *
-cc_file_cache_for_princ(TALLOC_CTX *mem_ctx, const char *location,
-                        const char *princ)
-{
-    return talloc_strdup(mem_ctx, location);
-}
-
 struct sss_krb5_cc_be file_cc = {
     .type               = SSS_KRB5_TYPE_FILE,
     .create             = cc_file_create,
     .check_existing     = cc_file_check_existing,
-    .ccache_for_princ   = cc_file_cache_for_princ,
 };
 
 #ifdef HAVE_KRB5_CC_COLLECTION
@@ -1246,67 +1321,10 @@ done:
     return ret;
 }
 
-const char *
-cc_dir_cache_for_princ(TALLOC_CTX *mem_ctx, const char *location,
-                       const char *princ)
-{
-    krb5_context context = NULL;
-    krb5_error_code krberr;
-    char *name = NULL;
-    const char *ccname;
-    krb5_principal client_principal = NULL;
-
-    ccname = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_DIR);
-    if (!ccname) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get ccname file from %s\n",
-              location));
-        return NULL;
-    }
-
-    /* ccname already points to a subsidiary cache */
-    if (ccname[0] == ':' && ccname[1] && ccname[1] == '/') {
-        return talloc_strdup(mem_ctx, location);
-    }
-
-    krberr = krb5_init_context(&context);
-    if (krberr) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to init kerberos context\n"));
-        return NULL;
-    }
-
-    krberr = krb5_parse_name(context, princ, &client_principal);
-    if (krberr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
-        goto done;
-    }
-
-    /* This function is called only as a way to validate that,
-     * we have the right cache
-     */
-    name = sss_get_ccache_name_for_principal(mem_ctx, context,
-                                             client_principal, location);
-    if (name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not get full name of ccache\n"));
-        goto done;
-    }
-
-    talloc_zfree(name);
-    /* everytime return location for dir_cache */
-    name = talloc_strdup(mem_ctx, location);
-
-done:
-    krb5_free_principal(context, client_principal);
-    krb5_free_context(context);
-
-    return name;
-}
-
 struct sss_krb5_cc_be dir_cc = {
     .type               = SSS_KRB5_TYPE_DIR,
     .create             = cc_dir_create,
     .check_existing     = cc_dir_check_existing,
-    .ccache_for_princ   = cc_dir_cache_for_princ,
 };
 
 
@@ -1362,82 +1380,10 @@ cc_keyring_check_existing(const char *location, uid_t uid,
     return EOK;
 }
 
-const char *
-cc_keyring_cache_for_princ(TALLOC_CTX *mem_ctx, const char *location,
-                           const char *princ)
-{
-    krb5_context context = NULL;
-    krb5_error_code krberr;
-    char *name = NULL;
-    const char *residual;
-    size_t i;
-    size_t count;
-    krb5_principal client_principal = NULL;
-
-    residual = sss_krb5_residual_check_type(location, SSS_KRB5_TYPE_KEYRING);
-    if (!residual) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get residual from %s\n",
-              location));
-        return NULL;
-    }
-
-    /* residual already points to a subsidiary cache if it of the
-     * form "KEYRING:<type>:<UID>:krb5_cc_XXXXXXX"
-     * For simplicity, we'll count the colons, up to three.
-     */
-    i = count = 0;
-    while (residual[i] && count < 3) {
-        if (residual[i] == ':') {
-            count ++;
-        }
-        i++;
-    }
-
-    if (count >= 3) {
-        return talloc_strdup(mem_ctx, location);
-    }
-
-    krberr = krb5_init_context(&context);
-    if (krberr) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to init kerberos context\n"));
-        return NULL;
-    }
-
-    krberr = krb5_parse_name(context, princ, &client_principal);
-    if (krberr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, context, krberr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
-        goto done;
-    }
-
-    name = sss_get_ccache_name_for_principal(mem_ctx, context,
-                                             client_principal, location);
-    if (name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not get full name of ccache\n"));
-        goto done;
-    }
-
-    talloc_zfree(name);
-
-    /* Always return the master name here.
-     * We do the above only to ensure that the
-     * principal-specific name exists and can
-     * be found.
-     */
-    name = talloc_strdup(mem_ctx, location);
-
-done:
-    krb5_free_principal(context, client_principal);
-    krb5_free_context(context);
-
-    return name;
-}
-
 struct sss_krb5_cc_be keyring_cc = {
     .type               = SSS_KRB5_TYPE_KEYRING,
     .create             = cc_keyring_create,
     .check_existing     = cc_keyring_check_existing,
-    .ccache_for_princ   = cc_keyring_cache_for_princ,
 };
 
 #endif /* HAVE_KRB5_CC_COLLECTION */
