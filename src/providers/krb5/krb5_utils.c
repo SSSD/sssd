@@ -190,7 +190,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
     const char *cache_dir_tmpl;
     TALLOC_CTX *tmp_ctx = NULL;
     char action;
-    bool rewind;
+    bool rerun;
 
     *private_path = false;
 
@@ -223,10 +223,10 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
             goto done;
         }
 
-        rewind = true;
+        rerun = true;
         action = *n;
-        while (rewind) {
-            rewind = false;
+        while (rerun) {
+            rerun = false;
             switch (action) {
             case 'u':
                 if (kr->pd->user == NULL) {
@@ -332,19 +332,19 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 } else if (strncmp(n , S_EXP_UID, L_EXP_UID) == 0) {
                     action = 'U';
                     n += L_EXP_UID - 1;
-                    rewind = true;
+                    rerun = true;
                     continue;
                 } else if (strncmp(n , S_EXP_USERID, L_EXP_USERID) == 0) {
                     action = 'U';
                     n += L_EXP_USERID - 1;
-                    rewind = true;
+                    rerun = true;
                     continue;
                 } else if (strncmp(n , S_EXP_EUID, L_EXP_EUID) == 0) {
                     /* SSSD does not distinguish betwen uid and euid,
                      * so we treat both the same way */
                     action = 'U';
                     n += L_EXP_EUID - 1;
-                    rewind = true;
+                    rerun = true;
                     continue;
                 } else if (strncmp(n , S_EXP_NULL, L_EXP_NULL) == 0) {
                     /* skip immediately */
@@ -352,7 +352,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 } else if (strncmp(n , S_EXP_USERNAME, L_EXP_USERNAME) == 0) {
                     action = 'u';
                     n += L_EXP_USERNAME - 1;
-                    rewind = true;
+                    rerun = true;
                     continue;
                 } else if (strncmp(n , S_EXP_LIBDIR, L_EXP_LIBDIR) == 0) {
                     /* skip, only the libkrb5 library can resolve this */
