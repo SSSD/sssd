@@ -260,7 +260,8 @@ struct sss_child_ctx_old {
 };
 
 int child_handler_setup(struct tevent_context *ev, int pid,
-                        sss_child_callback_t cb, void *pvt)
+                        sss_child_callback_t cb, void *pvt,
+                        struct sss_child_ctx_old **_child_ctx)
 {
     struct sss_child_ctx_old *child_ctx;
 
@@ -284,7 +285,28 @@ int child_handler_setup(struct tevent_context *ev, int pid,
     child_ctx->pvt = pvt;
 
     DEBUG(8, ("Signal handler set up for pid [%d]\n", pid));
+
+    if (_child_ctx != NULL) {
+        *_child_ctx = child_ctx;
+    }
+
     return EOK;
+}
+
+void child_handler_destroy(struct sss_child_ctx_old *ctx)
+{
+    errno_t ret;
+
+    /* We still want to wait for the child to finish, but the caller is not
+     * interested in the result anymore (e.g. timeout was reached). */
+    ctx->cb = NULL;
+    ctx->pvt = NULL;
+
+    ret = kill(ctx->pid, SIGKILL);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_MINOR_FAILURE, ("kill failed [%d][%s].\n", ret, strerror(ret)));
+    }
 }
 
 /* Async communication with the child process via a pipe */

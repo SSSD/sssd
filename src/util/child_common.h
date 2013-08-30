@@ -78,9 +78,15 @@ typedef void (*sss_child_callback_t)(int child_status,
                                      struct tevent_signal *sige,
                                      void *pvt);
 
+struct sss_child_ctx_old;
+
 /* Set up child termination signal handler */
 int child_handler_setup(struct tevent_context *ev, int pid,
-                        sss_child_callback_t cb, void *pvt);
+                        sss_child_callback_t cb, void *pvt,
+                        struct sss_child_ctx_old **_child_ctx);
+
+/* Destroy child termination signal handler */
+void child_handler_destroy(struct sss_child_ctx_old *ctx);
 
 /* Async communication with the child process via a pipe */
 struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,

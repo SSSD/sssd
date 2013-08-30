@@ -860,6 +860,7 @@ failed:
 
 struct nsupdate_send_ctx {
     struct ipa_nsupdate_ctx *nsupdate_ctx;
+    struct sss_child_ctx_old *child_ctx;
     int child_status;
 };
 
@@ -1105,7 +1106,8 @@ fork_nsupdate_send(struct ipa_nsupdate_ctx *ctx)
 
         /* Set up SIGCHLD handler */
         ret = child_handler_setup(ctx->dyndns_ctx->ipa_ctx->id_ctx->sdap_id_ctx->be->ev,
-                                  pid, ipa_dyndns_child_handler, req);
+                                  pid, ipa_dyndns_child_handler, req,
+                                  &state->child_ctx);
         if (ret != EOK) {
             return NULL;
         }
@@ -1135,8 +1137,14 @@ static void ipa_dyndns_timeout(struct tevent_context *ev,
 {
     struct tevent_req *req =
             talloc_get_type(pvt, struct tevent_req);
+    struct nsupdate_send_ctx *state =
+            tevent_req_data(req, struct nsupdate_send_ctx);
 
     DEBUG(1, ("Timeout reached for dynamic DNS update\n"));
+
+    child_handler_destroy(state->child_ctx);
+    state->child_ctx = NULL;
+    state->child_status = ETIMEDOUT;
 
     tevent_req_error(req, ETIMEDOUT);
 }

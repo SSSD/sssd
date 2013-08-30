@@ -275,7 +275,7 @@ static errno_t fork_child(struct tevent_req *req)
         fd_nonblocking(state->io->read_from_child_fd);
         fd_nonblocking(state->io->write_to_child_fd);
 
-        ret = child_handler_setup(state->ev, pid, NULL, NULL);
+        ret = child_handler_setup(state->ev, pid, NULL, NULL, NULL);
         if (ret != EOK) {
             DEBUG(1, ("Could not set up child signal handler\n"));
             return ret;
