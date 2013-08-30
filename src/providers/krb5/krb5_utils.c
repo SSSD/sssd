@@ -1122,24 +1122,10 @@ cc_residual_exists(uid_t uid, const char *ccname,
     return EOK;
 }
 
-static void
-cc_check_template(const char *cc_template)
-{
-    size_t template_len;
-
-    template_len = strlen(cc_template);
-    if (template_len >= 6 &&
-        strcmp(cc_template + (template_len - 6), "XXXXXX") != 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("ccache file name template [%s] doesn't "
-                   "contain randomizing characters (XXXXXX), file might not "
-                   "be rewritable\n", cc_template));
-    }
-}
-
 errno_t
 cc_file_check_existing(const char *location, uid_t uid,
                        const char *realm, const char *princ,
-                       const char *cc_template, bool *_valid)
+                       bool *_valid)
 {
     errno_t ret;
     bool valid;
@@ -1162,7 +1148,6 @@ cc_file_check_existing(const char *location, uid_t uid,
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Could not check if ccache is active.\n"));
         }
-        cc_check_template(cc_template);
         return ret;
     }
 
@@ -1201,7 +1186,7 @@ cc_dir_create(const char *location, pcre *illegal_re,
 errno_t
 cc_dir_check_existing(const char *location, uid_t uid,
                       const char *realm, const char *princ,
-                      const char *cc_template, bool *_valid)
+                      bool *_valid)
 {
     bool valid;
     enum sss_krb5_cc_type type;
@@ -1262,7 +1247,6 @@ cc_dir_check_existing(const char *location, uid_t uid,
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Could not check if ccache is active.\n"));
         }
-        cc_check_template(cc_template);
         goto done;
     }
 
@@ -1326,7 +1310,7 @@ cc_keyring_create(const char *location, pcre *illegal_re,
 errno_t
 cc_keyring_check_existing(const char *location, uid_t uid,
                           const char *realm, const char *princ,
-                          const char *cc_template, bool *_valid)
+                          bool *_valid)
 {
     errno_t ret;
     bool valid;

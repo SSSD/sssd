@@ -144,6 +144,19 @@ static errno_t sss_get_system_ccname_template(TALLOC_CTX *mem_ctx,
 }
 #endif
 
+static void sss_check_cc_template(const char *cc_template)
+{
+    size_t template_len;
+
+    template_len = strlen(cc_template);
+    if (template_len >= 6 &&
+        strcmp(cc_template + (template_len - 6), "XXXXXX") != 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, ("ccache file name template [%s] doesn't "
+                   "contain randomizing characters (XXXXXX), file might not "
+                   "be rewritable\n", cc_template));
+    }
+}
+
 errno_t check_and_export_options(struct dp_option *opts,
                                  struct sss_domain_info *dom,
                                  struct krb5_ctx *krb5_ctx)
@@ -282,6 +295,10 @@ errno_t check_and_export_options(struct dp_option *opts,
     switch (cc_be) {
     case SSS_KRB5_TYPE_FILE:
         DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type FILE\n"));
+        /* warn if the file type (which is usally created in a sticky bit
+         * laden directory) does not have randomizing chracters */
+        sss_check_cc_template(ccname);
+
         krb5_ctx->cc_be = &file_cc;
         if (ccname[0] != '/') {
             /* FILE:/path/to/cc */

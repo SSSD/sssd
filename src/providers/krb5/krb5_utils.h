@@ -47,7 +47,7 @@ typedef errno_t (*cc_be_create_fn)(const char *location, pcre *illegal_re,
                                    uid_t uid, gid_t gid, bool private_path);
 typedef errno_t (*cc_be_check_existing)(const char *location, uid_t uid,
                                         const char *realm, const char *princ,
-                                        const char *cc_template, bool *valid);
+                                        bool *valid);
 
 /* A ccache back end */
 struct sss_krb5_cc_be {
