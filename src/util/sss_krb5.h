@@ -154,8 +154,6 @@ sss_krb5_get_type(const char *full_location);
 const char *
 sss_krb5_residual_by_type(const char *full_location, enum sss_krb5_cc_type type);
 const char *
-sss_krb5_cc_file_path(const char *full_location);
-const char *
 sss_krb5_residual_check_type(const char *full_location,
                              enum sss_krb5_cc_type expected_type);
 

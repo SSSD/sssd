@@ -921,36 +921,6 @@ sss_krb5_residual_by_type(const char *full_location,
 }
 
 const char *
-sss_krb5_cc_file_path(const char *full_location)
-{
-    enum sss_krb5_cc_type cc_type;
-    const char *residual;
-
-    cc_type = sss_krb5_get_type(full_location);
-    residual = sss_krb5_residual_by_type(full_location, cc_type);
-
-    switch(cc_type) {
-#ifdef HAVE_KRB5_CC_COLLECTION
-        case SSS_KRB5_TYPE_KEYRING:
-#endif /* HAVE_KRB5_CC_COLLECTION */
-        case SSS_KRB5_TYPE_FILE:
-            return residual;
-#ifdef HAVE_KRB5_CC_COLLECTION
-        case SSS_KRB5_TYPE_DIR:
-            /* DIR::/run/user/tkt_foo */
-            if (residual[0] == ':') {
-                ++residual;
-            }
-            return residual;
-#endif /* HAVE_KRB5_CC_COLLECTION */
-        case SSS_KRB5_TYPE_UNKNOWN:
-            break;
-    }
-
-    return NULL;
-}
-
-const char *
 sss_krb5_residual_check_type(const char *full_location,
                              enum sss_krb5_cc_type expected_type)
 {
