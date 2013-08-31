@@ -19,7 +19,8 @@ dnl versions of python
         PYTHON_LIBS="`$PYTHON -c \"from distutils import sysconfig; \
             print \\\" \\\".join(sysconfig.get_config_var('LIBS').split() + \
             sysconfig.get_config_var('SYSLIBS').split()) + \
-            ' -lpython' + sysconfig.get_config_var('VERSION')\"`"
+            ' -lpython' + sysconfig.get_config_var('VERSION') + \
+            ' -L' + sysconfig.get_config_var('LIBDIR')\"`"
             AC_MSG_RESULT([yes])
     else
         AC_MSG_ERROR([no. Please install python devel package])
