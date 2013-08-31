@@ -967,6 +967,30 @@ done:
     return ret;
 }
 
+static errno_t sss_low_level_path_check(const char *ccname)
+{
+    const char *filename;
+    struct stat buf;
+    int ret;
+
+    if (ccname[0] == '/') {
+        filename = ccname;
+    } else if (strncmp(ccname, "FILE:", 5) == 0) {
+        filename = ccname + 5;
+    } else if (strncmp(ccname, "DIR:", 4) == 0) {
+        filename = ccname + 4;
+        if (filename[0] == ':') filename += 1;
+    } else {
+        /* only FILE and DIR types need file checks so far, we ignore any
+         * other type */
+        return EOK;
+    }
+
+    ret = stat(filename, &buf);
+    if (ret == -1) return errno;
+    return EOK;
+}
+
 errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
                                   const char *realm, const char *principal)
 {
@@ -979,6 +1003,16 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
     krb5_creds cred = { 0 };
     krb5_error_code kerr;
     errno_t ret;
+
+    /* first of all verify if the old ccache file/dir exists as we may be
+     * trying to verify if an old ccache exists at all. If no file/dir
+     * exists bail out immediately otherwise a following krb5_cc_resolve()
+     * call may actually create paths and files we do not want to have
+     * around */
+    ret = sss_low_level_path_check(ccname);
+    if (ret) {
+        return ret;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {

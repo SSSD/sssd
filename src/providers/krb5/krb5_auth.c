@@ -69,6 +69,7 @@ check_old_ccache(const char *old_ccache, struct krb5child_req *kr,
                                     realm, kr->upn);
     switch (ret) {
     case ERR_NOT_FOUND:
+    case ENOENT:
         DEBUG(SSSDBG_TRACE_FUNC,
               ("Saved ccache %s doesn't exist.\n", old_ccache));
         return ENOENT;
