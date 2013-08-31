@@ -1039,66 +1039,6 @@ done:
 }
 
 
-/*======== ccache back end utilities ========*/
-struct sss_krb5_cc_be *
-get_cc_be_ops(enum sss_krb5_cc_type type)
-{
-    struct sss_krb5_cc_be *be = NULL;
-
-    switch (type) {
-        case SSS_KRB5_TYPE_FILE:
-            be = &file_cc;
-            break;
-
-#ifdef HAVE_KRB5_CC_COLLECTION
-        case SSS_KRB5_TYPE_DIR:
-            be = &dir_cc;
-            break;
-
-        case SSS_KRB5_TYPE_KEYRING:
-            be = &keyring_cc;
-            break;
-#endif /* HAVE_KRB5_CC_COLLECTION */
-
-        case SSS_KRB5_TYPE_UNKNOWN:
-            be = NULL;
-            break;
-    }
-
-    return be;
-}
-
-struct sss_krb5_cc_be *
-get_cc_be_ops_ccache(const char *ccache)
-{
-    enum sss_krb5_cc_type type;
-
-    type = sss_krb5_get_type(ccache);
-    return get_cc_be_ops(type);
-}
-
-/*======== Operations on the FILE: back end ========*/
-
-struct sss_krb5_cc_be file_cc = {
-    .type               = SSS_KRB5_TYPE_FILE,
-};
-
-#ifdef HAVE_KRB5_CC_COLLECTION
-/*======== Operations on the DIR: back end ========*/
-
-struct sss_krb5_cc_be dir_cc = {
-    .type               = SSS_KRB5_TYPE_DIR,
-};
-
-
-/*======== Operations on the KEYRING: back end ========*/
-
-struct sss_krb5_cc_be keyring_cc = {
-    .type               = SSS_KRB5_TYPE_KEYRING,
-};
-
-#endif /* HAVE_KRB5_CC_COLLECTION */
-
 errno_t get_domain_or_subdomain(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
                                 char *domain_name,
                                 struct sss_domain_info **dom)

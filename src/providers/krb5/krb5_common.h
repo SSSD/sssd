@@ -89,7 +89,6 @@ struct krb5_service {
 struct fo_service;
 struct deferred_auth_ctx;
 struct renew_tgt_ctx;
-struct sss_krb5_cc_be;
 
 enum krb5_config_type {
     K5C_GENERIC,
@@ -127,7 +126,6 @@ struct krb5_ctx {
     struct krb5_service *kpasswd_service;
     int child_debug_fd;
 
-    struct sss_krb5_cc_be *cc_be;
     pcre *illegal_path_re;
 
     struct deferred_auth_ctx *deferred_auth_ctx;

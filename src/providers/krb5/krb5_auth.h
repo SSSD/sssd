@@ -41,7 +41,6 @@ struct krb5child_req {
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
 
-    struct sss_krb5_cc_be *cc_be;
     const char *ccname;
     const char *old_ccname;
     const char *homedir;

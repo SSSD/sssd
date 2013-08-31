@@ -324,15 +324,6 @@ static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
                 return ENOMEM;
             }
 
-            if (kr->cc_be == NULL) {
-                kr->cc_be = get_cc_be_ops_ccache(kr->ccname);
-            }
-            if (kr->cc_be == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Cannot get operations on new ccache %s\n", kr->ccname));
-                return EINVAL;
-            }
-
             ret = sss_krb5_precreate_ccache(kr->ccname,
                                             kr->krb5_ctx->illegal_path_re,
                                             kr->uid, kr->gid, private_path);
@@ -340,19 +331,6 @@ static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
                 DEBUG(SSSDBG_OP_FAILURE, ("ccache creation failed.\n"));
                 return ret;
             }
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Saved ccache %s if of different type than ccache in "
-               "configuration file, reusing the old ccache\n",
-               kr->old_ccname));
-
-        kr->cc_be = get_cc_be_ops_ccache(kr->old_ccname);
-        if (kr->cc_be == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Cannot get operations on saved ccache %s\n",
-                   kr->old_ccname));
-            return EINVAL;
-        }
     }
 
     return EOK;
@@ -613,10 +591,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
             ret = ENOENT;
             goto done;
         }
-
-        /* The type of the ccache might change during the request if we
-         * end up reusing an old ccache */
-        kr->cc_be = krb5_ctx->cc_be;
 
         ccache_file = ldb_msg_find_attr_as_string(res->msgs[0],
                                                   SYSDB_CCACHE_FILE,

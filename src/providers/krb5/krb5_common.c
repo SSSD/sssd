@@ -167,7 +167,6 @@ errno_t check_and_export_options(struct dp_option *opts,
     const char *dummy;
     char *use_fast_str;
     char *fast_principal;
-    enum sss_krb5_cc_type cc_be;
     char *ccname;
 
     tmp_ctx = talloc_new(NULL);
@@ -291,53 +290,30 @@ errno_t check_and_export_options(struct dp_option *opts,
         }
     }
 
-    cc_be = sss_krb5_get_type(ccname);
-    switch (cc_be) {
-    case SSS_KRB5_TYPE_FILE:
+    if ((ccname[0] == '/') || (strncmp(ccname, "FILE:", 5) == 0)) {
         DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type FILE\n"));
         /* warn if the file type (which is usally created in a sticky bit
          * laden directory) does not have randomizing chracters */
         sss_check_cc_template(ccname);
 
-        krb5_ctx->cc_be = &file_cc;
-        if (ccname[0] != '/') {
-            /* FILE:/path/to/cc */
-            break;
-        }
-
-        DEBUG(SSSDBG_CONF_SETTINGS, ("The ccname template was "
+        if (ccname[0] == '/') {
+            /* /path/to/cc  prepend FILE: */
+            DEBUG(SSSDBG_CONF_SETTINGS, ("The ccname template was "
               "missing an explicit type, but is an absolute "
               "path specifier. Assuming FILE:\n"));
 
-        ccname = talloc_asprintf(tmp_ctx, "FILE:%s", ccname);
-        if (!ccname) {
-            ret = ENOMEM;
-            goto done;
+            ccname = talloc_asprintf(tmp_ctx, "FILE:%s", ccname);
+            if (!ccname) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = dp_opt_set_string(opts, KRB5_CCNAME_TMPL, ccname);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("dp_opt_set_string failed.\n"));
+                goto done;
+            }
         }
-
-        ret = dp_opt_set_string(opts, KRB5_CCNAME_TMPL, ccname);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("dp_opt_set_string failed.\n"));
-            goto done;
-        }
-        break;
-
-#ifdef HAVE_KRB5_CC_COLLECTION
-    case SSS_KRB5_TYPE_DIR:
-        DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type DIR\n"));
-        krb5_ctx->cc_be = &dir_cc;
-        break;
-
-    case SSS_KRB5_TYPE_KEYRING:
-        DEBUG(SSSDBG_CONF_SETTINGS, ("ccache is of type KEYRING\n"));
-        krb5_ctx->cc_be = &keyring_cc;
-        break;
-#endif /* HAVE_KRB5_CC_COLLECTION */
-
-    default:
-        DEBUG(SSSDBG_OP_FAILURE, ("Unknown ccname database\n"));
-        ret = EINVAL;
-        goto done;
     }
 
     ret = EOK;

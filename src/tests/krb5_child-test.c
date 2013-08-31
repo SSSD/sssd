@@ -196,7 +196,6 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
                  const char *ccname, const char *ccname_template,
                  int timeout)
 {
-    enum sss_krb5_cc_type cc_be;
     struct krb5child_req *kr;
     struct passwd *pwd;
     bool private = false;
@@ -262,28 +261,6 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     }
     if (!kr->ccname) goto fail;
 
-    cc_be = sss_krb5_get_type(kr->ccname);
-    switch (cc_be) {
-    case SSS_KRB5_TYPE_FILE:
-        kr->krb5_ctx->cc_be = &file_cc;
-        break;
-#ifdef HAVE_KRB5_CC_COLLECTION
-    case SSS_KRB5_TYPE_DIR:
-        kr->krb5_ctx->cc_be = &dir_cc;
-        break;
-#endif /* HAVE_KRB5_CC_COLLECTION */
-    default:
-        if (tmpl[0] != '/') {
-            DEBUG(SSSDBG_OP_FAILURE, ("Unkown ccname database\n"));
-            ret = EINVAL;
-            goto fail;
-        }
-        DEBUG(SSSDBG_CONF_SETTINGS, ("The ccname template was "
-              "missing an explicit type, but looks like an absolute "
-              "path specifier. Assuming FILE:\n"));
-        kr->krb5_ctx->cc_be = &file_cc;
-        break;
-    }
     DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%llu] gid [%llu]\n",
             kr->ccname, kr->uid, kr->gid));
 

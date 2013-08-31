@@ -42,18 +42,8 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
                                          const char *user,
                                          const char *upn);
 
-/* A ccache back end */
-struct sss_krb5_cc_be {
-    enum sss_krb5_cc_type type;
-};
-
-extern struct sss_krb5_cc_be file_cc;
-
 errno_t create_ccache_dir(const char *dirname, pcre *illegal_re,
                           uid_t uid, gid_t gid, bool private_path);
-
-struct sss_krb5_cc_be *get_cc_be_ops(enum sss_krb5_cc_type type);
-struct sss_krb5_cc_be *get_cc_be_ops_ccache(const char *ccache);
 
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              const char *template, bool file_mode,
@@ -77,13 +67,6 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
 
 errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
                              struct tgt_times *tgtt);
-
-#ifdef HAVE_KRB5_CC_COLLECTION
-
-extern struct sss_krb5_cc_be dir_cc;
-extern struct sss_krb5_cc_be keyring_cc;
-
-#endif /* HAVE_KRB5_CC_COLLECTION */
 
 
 errno_t get_domain_or_subdomain(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
