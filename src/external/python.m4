@@ -23,7 +23,8 @@ dnl versions of python
             ' -L' + sysconfig.get_config_var('LIBDIR')\"`"
             AC_MSG_RESULT([yes])
     else
-        AC_MSG_ERROR([no. Please install python devel package])
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR([Please install python devel package])
     fi
 ])
 
