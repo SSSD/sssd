@@ -159,16 +159,15 @@ m4_include([src/external/libndr_nbt.m4])
 
 WITH_UNICODE_LIB
 if test x$unicode_lib = xlibunistring; then
-	m4_include([src/external/libunistring.m4])
-	        AC_DEFINE_UNQUOTED(HAVE_LIBUNISTRING, 1, [Using libunistring for unicode])
-	        UNICODE_LIBS=-lunistring
-	        AC_SUBST(UNICODE_LIBS)
+    m4_include([src/external/libunistring.m4])
+    AC_DEFINE_UNQUOTED(HAVE_LIBUNISTRING, 1, [Using libunistring for unicode])
+    UNICODE_LIBS=$UNISTRING_LIBS
 else
-	m4_include([src/external/glib.m4])
-	        AC_DEFINE_UNQUOTED(HAVE_GLIB2, 1, [Using libunistring for unicode])
-	        UNICODE_LIBS=$GLIB2_LIBS
-	        AC_SUBST(UNICODE_LIBS)
+    m4_include([src/external/glib.m4])
+    AC_DEFINE_UNQUOTED(HAVE_GLIB2, 1, [Using glib2 for unicode])
+    UNICODE_LIBS=$GLIB2_LIBS
 fi
+AC_SUBST(UNICODE_LIBS)
 
 WITH_LIBNL
 
