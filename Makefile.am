@@ -356,6 +356,7 @@ PYTHON_BINDINGS_LIBS = \
     $(TDB_LIBS)
 
 TOOLS_LIBS = \
+    $(LTLIBINTL) \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
@@ -505,8 +506,10 @@ if BUILD_SUDO
     SSSD_DOCS += libsss_sudo_doc
 endif
 
+CLIENT_LIBS = $(LTLIBINTL)
+
 if HAVE_PTHREAD
-CLIENT_LIBS = -lpthread
+CLIENT_LIBS += -lpthread
 endif
 
 #####################
