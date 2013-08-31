@@ -16,8 +16,9 @@ if test -x "$KRB5_CONFIG"; then
   KRB5_LIBS="`$KRB5_CONFIG --libs`"
   AC_MSG_RESULT(yes)
 else
+    AC_MSG_RESULT([no])
     if test x$KRB5_PASSED_LIBS = x; then
-        AC_MSG_ERROR(no. Please install MIT kerberos devel package)
+        AC_MSG_ERROR([Please install MIT kerberos devel package])
     fi
 fi
 
