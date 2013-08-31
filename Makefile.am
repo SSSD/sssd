@@ -718,7 +718,7 @@ sssd_be_SOURCES = \
     src/providers/dp_refresh.c \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
-    -ldl \
+    $(LIBADD_DL) \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(PAM_LIBS) \
@@ -1095,7 +1095,7 @@ simple_access_tests_CFLAGS = \
     $(CHECK_CFLAGS) \
     -DUNIT_TESTING
 simple_access_tests_LDADD = \
-    -ldl \
+    $(LIBADD_DL) \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(CHECK_LIBS) \
