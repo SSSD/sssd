@@ -9,14 +9,14 @@ dnl ---------------------------------------------------------------------------
 dnl - Check for Mozilla LDAP or OpenLDAP SDK
 dnl ---------------------------------------------------------------------------
 
-for p in /usr/include/openldap24; do
+for p in /usr/include/openldap24 /usr/local/include; do
     if test -f "${p}/ldap.h"; then
         OPENLDAP_CFLAGS="${OPENLDAP_CFLAGS} -I${p}"
         break;
     fi
 done
 
-for p in /usr/lib64/openldap24 /usr/lib/openldap24; do
+for p in /usr/lib64/openldap24 /usr/lib/openldap24 /usr/local/lib ; do
     if test -f "${p}/libldap.so"; then
         OPENLDAP_LIBS="${OPENLDAP_LIBS} -L${p}"
         break;
