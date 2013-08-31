@@ -22,9 +22,10 @@ then
         Kerberos\ 5\ release\ 1.10* | \
         Kerberos\ 5\ release\ 1.11*)
             krb5_version_ok=yes
-            AC_MSG_RESULT(yes)
+            AC_MSG_RESULT([yes])
             ;;
         *)
+            AC_MSG_RESULT([no])
             AC_MSG_WARN([Cannot build authdata plugin with this version of
                          MIT Kerberos, please use 1.9.x or later])
     esac

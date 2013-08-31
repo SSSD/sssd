@@ -9,9 +9,11 @@ if test -x "$NSUPDATE"; then
     AC_MSG_RESULT([yes])
     AC_DEFINE_UNQUOTED([HAVE_NSUPDATE_REALM], 1, [Whether to use the 'realm' directive with nsupdate])
   else
-    AC_MSG_WARN([no. Will build without the 'realm' directive])
+    AC_MSG_RESULT([no])
+    AC_MSG_WARN([Will build without the 'realm' directive])
   fi
 
 else
-  AC_MSG_ERROR([no. nsupdate is not available])
+  AC_MSG_RESULT([no])
+  AC_MSG_ERROR([nsupdate is not available])
 fi
