@@ -42,6 +42,7 @@
 #include "providers/data_provider.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
+#include "util/util_sss_idmap.h"
 
 #define SSS_PAC_PIPE_NAME "pac"
 #define DEFAULT_PAC_FD_LIMIT 8192
@@ -103,16 +104,6 @@ static void pac_dp_reconnect_init(struct sbus_connection *conn,
 
     /* FIXME: kill the frontend and let the monitor restart it ? */
     /* nss_shutdown(rctx); */
-}
-
-static void *idmap_talloc(size_t size, void *pvt)
-{
-    return talloc_size(pvt, size);
-}
-
-static void idmap_free(void *ptr, void *pvt)
-{
-    talloc_free(ptr);
 }
 
 int pac_process_init(TALLOC_CTX *mem_ctx,
@@ -186,7 +177,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                             pac_dp_reconnect_init, iter);
     }
 
-    err = sss_idmap_init(idmap_talloc, pac_ctx, idmap_free,
+    err = sss_idmap_init(sss_idmap_talloc, pac_ctx, sss_idmap_talloc_free,
                          &pac_ctx->idmap_ctx);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_init failed.\n"));

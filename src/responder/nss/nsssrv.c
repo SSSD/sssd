@@ -47,6 +47,7 @@
 #include "providers/data_provider.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
+#include "util/util_sss_idmap.h"
 
 #define DEFAULT_PWFIELD "*"
 #define DEFAULT_NSS_FD_LIMIT 8192
@@ -413,16 +414,6 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
     /* nss_shutdown(rctx); */
 }
 
-static void *idmap_talloc(size_t size, void *pvt)
-{
-    return talloc_size(pvt, size);
-}
-
-static void idmap_free(void *ptr, void *pvt)
-{
-    talloc_free(ptr);
-}
-
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
@@ -490,7 +481,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                             nss_dp_reconnect_init, iter);
     }
 
-    err = sss_idmap_init(idmap_talloc, nctx, idmap_free,
+    err = sss_idmap_init(sss_idmap_talloc, nctx, sss_idmap_talloc_free,
                          &nctx->idmap_ctx);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_init failed.\n"));

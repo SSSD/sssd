@@ -407,6 +407,7 @@ dist_noinst_HEADERS = \
     src/util/auth_utils.h \
     src/util/authtok.h \
     src/util/util_safealign.h \
+    src/util/util_sss_idmap.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/responder/common/responder.h \
@@ -571,7 +572,8 @@ libsss_util_la_SOURCES = \
     src/util/util_lock.c \
     src/util/util_errors.c \
     src/util/sss_ini.c \
-    src/util/io.c
+    src/util/io.c \
+    src/util/util_sss_idmap.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(UNICODE_LIBS)

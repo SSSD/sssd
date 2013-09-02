@@ -24,6 +24,7 @@
 
 #include "providers/ldap/sdap_async.h"
 #include "providers/ad/ad_subdomains.h"
+#include "util/util_sss_idmap.h"
 #include <ctype.h>
 #include <ndr.h>
 #include <ndr/ndr_nbt.h>
@@ -777,16 +778,6 @@ struct bet_ops ad_subdomains_ops = {
     .finalize = NULL
 };
 
-static void *idmap_talloc(size_t size, void *pvt)
-{
-    return talloc_size(pvt, size);
-}
-
-static void idmap_free(void *ptr, void *pvt)
-{
-    talloc_free(ptr);
-}
-
 int ad_subdom_init(struct be_ctx *be_ctx,
                    struct ad_id_ctx *id_ctx,
                    const char *ad_domain,
@@ -825,7 +816,8 @@ int ad_subdom_init(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom offline callback"));
     }
 
-    err = sss_idmap_init(idmap_talloc, ctx, idmap_free, &ctx->idmap_ctx);
+    err = sss_idmap_init(sss_idmap_talloc, ctx, sss_idmap_talloc_free,
+                         &ctx->idmap_ctx);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to initialize idmap context.\n"));
         return EFAULT;

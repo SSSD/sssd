@@ -24,18 +24,7 @@
 #include "util/dlinklist.h"
 #include "util/murmurhash3.h"
 #include "providers/ldap/sdap_idmap.h"
-
-static void *
-sdap_idmap_talloc(size_t size, void *pvt)
-{
-    return talloc_size(pvt, size);
-}
-
-static void
-sdap_idmap_talloc_free(void *ptr, void *pvt)
-{
-    talloc_free(ptr);
-}
+#include "util/util_sss_idmap.h"
 
 static errno_t
 sdap_idmap_add_configured_external_range(struct sdap_idmap_ctx *idmap_ctx)
@@ -173,8 +162,8 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Initialize the map */
-    err = sss_idmap_init(sdap_idmap_talloc, idmap_ctx,
-                         sdap_idmap_talloc_free,
+    err = sss_idmap_init(sss_idmap_talloc, idmap_ctx,
+                         sss_idmap_talloc_free,
                          &idmap_ctx->map);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
