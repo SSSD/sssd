@@ -634,6 +634,7 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
     struct sss_iface_addr *addr;
     int i;
     int resolv_status;
+    enum restrict_family retry_family_order;
 
     ret = resolv_gethostbyname_recv(subreq, state, &resolv_status, NULL,
                                     &rhostent);
@@ -698,15 +699,14 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
         (state->be_res->family_order == IPV6_FIRST &&
          rhostent->family == AF_INET6))) {
 
-        state->be_res->family_order = \
-                            (state->be_res->family_order == IPV4_FIRST) ? \
+        retry_family_order = (state->be_res->family_order == IPV4_FIRST) ? \
                              IPV6_ONLY : \
                              IPV4_ONLY;
 
         subreq = resolv_gethostbyname_send(state, state->ev,
                                            state->be_res->resolv,
                                            state->hostname,
-                                           state->be_res->family_order,
+                                           retry_family_order,
                                            state->db);
         if (!subreq) {
             ret = ENOMEM;
