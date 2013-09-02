@@ -1,6 +1,6 @@
 /*
     Authors:
-        Pavel B??ezina <pbrezina@redhat.com>
+        Pavel Březina <pbrezina@redhat.com>
 
     Copyright (C) 2012 Red Hat
 
