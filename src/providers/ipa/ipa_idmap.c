@@ -24,18 +24,7 @@
 #include "util/util.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ipa/ipa_common.h"
-
-static void *
-ipa_idmap_talloc(size_t size, void *pvt)
-{
-    return talloc_size(pvt, size);
-}
-
-static void
-ipa_idmap_talloc_free(void *ptr, void *pvt)
-{
-    talloc_free(ptr);
-}
+#include "util/util_sss_idmap.h"
 
 errno_t ipa_idmap_find_new_domain(struct sdap_idmap_ctx *idmap_ctx,
                                   const char *dom_name,
@@ -168,8 +157,8 @@ errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
     idmap_ctx->find_new_domain = ipa_idmap_find_new_domain;
 
     /* Initialize the map */
-    err = sss_idmap_init(ipa_idmap_talloc, idmap_ctx,
-                         ipa_idmap_talloc_free,
+    err = sss_idmap_init(sss_idmap_talloc, idmap_ctx,
+                         sss_idmap_talloc_free,
                          &idmap_ctx->map);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
