@@ -95,6 +95,39 @@ struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
     return NULL;
 }
 
+struct sss_domain_info *find_subdomain_by_sid(struct sss_domain_info *domain,
+                                              const char *sid)
+{
+    struct sss_domain_info *dom = domain;
+    size_t sid_len = strlen(sid);
+    size_t dom_sid_len;
+
+    while (dom && dom->disabled) {
+        dom = get_next_domain(dom, true);
+    }
+
+    while (dom) {
+        dom_sid_len = strlen(dom->domain_id);
+
+        if (strncasecmp(dom->domain_id, sid, dom_sid_len) == 0) {
+            if (dom_sid_len == sid_len) {
+                /* sid is domain sid */
+                return dom;
+            }
+
+            /* sid is object sid, check if domain sid is align with
+             * sid first subauthority component */
+            if (sid[dom_sid_len] == '-') {
+                return dom;
+            }
+        }
+
+        dom = get_next_domain(dom, true);
+    }
+
+    return NULL;
+}
+
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *parent,
                                       const char *name,
