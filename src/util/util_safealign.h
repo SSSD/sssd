@@ -30,11 +30,10 @@
 #define _UTIL_SAFEALIGN_H
 
 #include <string.h>
-
-#define SIZE_T_MAX ((size_t) -1)
+#include <stdint.h>
 
 #define SIZE_T_OVERFLOW(current, add) \
-                        (((size_t)(add)) > (SIZE_T_MAX - ((size_t)(current))))
+                        (((size_t)(add)) > (SIZE_MAX - ((size_t)(current))))
 
 static inline void
 safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
