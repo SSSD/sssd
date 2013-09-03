@@ -127,6 +127,21 @@ void setup_simple(void)
     test_ctx->sysdb = test_ctx->ctx->domain->sysdb;
     test_ctx->ctx->domain->case_sensitive = true;
     test_ctx->ctx->domain->mpg = false; /* Simulate an LDAP domain better */
+
+    /* be_ctx */
+    test_ctx->be_ctx = talloc_zero(test_ctx, struct be_ctx);
+    fail_if(test_ctx->be_ctx == NULL, "Unable to setup be_ctx");
+
+    test_ctx->be_ctx->cdb = test_ctx->confdb;
+    test_ctx->be_ctx->ev = test_ctx->ev;
+    test_ctx->be_ctx->conf_path = "config/domain/LOCAL";
+    test_ctx->be_ctx->domain = test_ctx->ctx->domain;
+
+    test_ctx->ctx->be_ctx = test_ctx->be_ctx;
+
+    ret = sss_names_init(test_ctx->ctx->domain, test_ctx->confdb,
+                         "LOCAL", &test_ctx->be_ctx->domain->names);
+    fail_if(ret != EOK, "Unable to setup domain names (%d)", ret);
 }
 
 void teardown_simple(void)
@@ -148,7 +163,7 @@ void setup_simple_group(void)
      * g1 and g2 respectively */
     ret = sysdb_add_group(test_ctx->sysdb, test_ctx->ctx->domain,
                           "pvt", 999, NULL, 0, 0);
-    fail_if(ret != EOK, "Could not add private group");
+    fail_if(ret != EOK, "Could not add private group %s", strerror(ret));
 
     ret = sysdb_store_user(test_ctx->sysdb, test_ctx->ctx->domain,
                            "u1", NULL, 123, 999, "u1", "/home/u1",
@@ -204,21 +219,7 @@ void teardown_simple_group(void)
 
 void setup_simple_init(void)
 {
-    errno_t ret;
-
     setup_simple();
-
-    test_ctx->be_ctx = talloc_zero(test_ctx, struct be_ctx);
-    fail_if(test_ctx->be_ctx == NULL, "Unable to setup be_ctx");
-
-    test_ctx->be_ctx->cdb = test_ctx->confdb;
-    test_ctx->be_ctx->ev = test_ctx->ev;
-    test_ctx->be_ctx->conf_path = "config/domain/LOCAL";
-    test_ctx->be_ctx->domain = test_ctx->ctx->domain;
-
-    ret = sss_names_init(test_ctx->ctx->domain, test_ctx->confdb,
-                         "LOCAL", &test_ctx->be_ctx->domain->names);
-    fail_if(ret != EOK, "Unable to setup domain names (%d)", ret);
 }
 
 void teardown_simple_init(void)
