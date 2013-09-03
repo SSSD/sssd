@@ -388,14 +388,14 @@ END_TEST
 START_TEST(test_size_t_overflow)
 {
     fail_unless(!SIZE_T_OVERFLOW(1, 1), "unexpected overflow");
-    fail_unless(!SIZE_T_OVERFLOW(SIZE_T_MAX, 0), "unexpected overflow");
-    fail_unless(!SIZE_T_OVERFLOW(SIZE_T_MAX-10, 10), "unexpected overflow");
-    fail_unless(SIZE_T_OVERFLOW(SIZE_T_MAX, 1), "overflow not detected");
-    fail_unless(SIZE_T_OVERFLOW(SIZE_T_MAX, SIZE_T_MAX),
+    fail_unless(!SIZE_T_OVERFLOW(SIZE_MAX, 0), "unexpected overflow");
+    fail_unless(!SIZE_T_OVERFLOW(SIZE_MAX-10, 10), "unexpected overflow");
+    fail_unless(SIZE_T_OVERFLOW(SIZE_MAX, 1), "overflow not detected");
+    fail_unless(SIZE_T_OVERFLOW(SIZE_MAX, SIZE_MAX),
                 "overflow not detected");
-    fail_unless(SIZE_T_OVERFLOW(SIZE_T_MAX, ULLONG_MAX),
+    fail_unless(SIZE_T_OVERFLOW(SIZE_MAX, ULLONG_MAX),
                 "overflow not detected");
-    fail_unless(SIZE_T_OVERFLOW(SIZE_T_MAX, -10), "overflow not detected");
+    fail_unless(SIZE_T_OVERFLOW(SIZE_MAX, -10), "overflow not detected");
 }
 END_TEST
 
