@@ -424,11 +424,7 @@ static krb5_error_code create_empty_cred(krb5_context ctx, krb5_principal princ,
 
 done:
     if (kerr != 0) {
-        if (cred != NULL && cred->client != NULL) {
-            krb5_free_principal(ctx, cred->client);
-        }
-
-        free(cred);
+        krb5_free_creds(ctx, cred);
     } else {
         *_cred = cred;
     }
@@ -436,281 +432,38 @@ done:
     return kerr;
 }
 
-#ifdef HAVE_KRB5_CC_COLLECTION
-static bool need_switch_to_principal(krb5_context ctx, krb5_principal princ)
+
+static errno_t handle_randomized(char *in)
 {
-    krb5_error_code kerr;
-    krb5_ccache default_cc = NULL;
-    krb5_principal default_princ = NULL;
-    char *default_full_name = NULL;
-    char *full_name = NULL;
-    bool ret = false;
-
-    kerr = krb5_cc_default(ctx, &default_cc);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
-        goto done;
-    }
-
-    kerr = krb5_cc_get_principal(ctx, default_cc, &default_princ);
-    if (kerr == KRB5_FCC_NOFILE) {
-        /* There is not any default cache. */
-        ret = true;
-        goto done;
-    } else if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
-        goto done;
-    }
-
-    kerr = krb5_unparse_name(ctx, default_princ, &default_full_name);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
-        goto done;
-    }
-
-    kerr = krb5_unparse_name(ctx, princ, &full_name);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_TRACE_INTERNAL, kerr);
-        goto done;
-    }
-
-    DEBUG(SSSDBG_FUNC_DATA,
-          ("Comparing default principal [%s] and new principal [%s].\n",
-           default_full_name, full_name));
-    if (0 == strcmp(default_full_name, full_name)) {
-        ret = true;
-    }
-
-done:
-    if (default_cc != NULL) {
-        kerr = krb5_cc_close(ctx, default_cc);
-        if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-            goto done;
-        }
-    }
-
-    /* all functions can be safely called with NULL. */
-    krb5_free_principal(ctx, default_princ);
-    krb5_free_unparsed_name(ctx, default_full_name);
-    krb5_free_unparsed_name(ctx, full_name);
-
-    return ret;
-}
-#endif /* HAVE_KRB5_CC_COLLECTION */
-
-static krb5_error_code
-store_creds_in_ccache(krb5_context ctx, krb5_principal princ,
-                      krb5_ccache cc, krb5_creds *creds)
-{
-    krb5_error_code kerr;
-    krb5_creds *l_cred;
-    char *ccname;
-
-    if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
-        kerr = krb5_cc_get_full_name(ctx, cc, &ccname);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_TRACE_ALL,
-                  ("Couldn't determine full name of ccache\n"));
-        } else {
-            DEBUG(SSSDBG_TRACE_ALL,
-                  ("Storing credentials in [%s]\n", ccname));
-            krb5_free_string(ctx, ccname);
-        }
-    }
-
-    kerr = krb5_cc_initialize(ctx, cc, princ);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-        goto done;
-    }
-
-    if (creds == NULL) {
-        kerr = create_empty_cred(ctx, princ, &l_cred);
-        if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-            goto done;
-        }
-    } else {
-        l_cred = creds;
-    }
-
-    kerr = krb5_cc_store_cred(ctx, cc, l_cred);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-        goto done;
-    }
-
-#ifdef HAVE_KRB5_CC_COLLECTION
-    if (need_switch_to_principal(ctx, princ)) {
-        kerr = krb5_cc_switch(ctx, cc);
-        if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-            goto done;
-        }
-    }
-#endif /* HAVE_KRB5_CC_COLLECTION */
-
-    kerr = krb5_cc_close(ctx, cc);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-        goto done;
-    }
-
-done:
-    return kerr;
-}
-
-static krb5_error_code create_ccache_file(krb5_context ctx,
-                                          krb5_principal princ,
-                                          char *ccname, krb5_creds *creds)
-{
-    krb5_error_code kerr;
-    krb5_ccache tmp_cc = NULL;
-    char *cc_file_name;
-    int fd = -1;
     size_t ccname_len;
-    char *dummy;
-    char *tmp_ccname;
-    TALLOC_CTX *tmp_ctx = NULL;
-    mode_t old_umask;
+    char *ccname = NULL;
+    int ret;
+    int fd;
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Creating ccache at [%s]\n", ccname));
-
-    if (strncmp(ccname, "FILE:", 5) == 0) {
-        cc_file_name = ccname + 5;
+    /* We only treat the FILE type case in a special way due to the history
+     * of storing FILE type ccache in /tmp and associated security issues */
+    if (in[0] == '/') {
+        ccname = in;
+    } else if (strncmp(in, "FILE:", 5) == 0) {
+        ccname = in + 5;
     } else {
-        cc_file_name = ccname;
+        return EOK;
     }
 
-    if (cc_file_name[0] != '/') {
-        DEBUG(1, ("Ccache filename is not an absolute path.\n"));
-        return EINVAL;
-    }
-
-    tmp_ctx = talloc_new(tmp_ctx);
-    if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed.\n"));
-        return ENOMEM;
-    }
-
-    dummy = strrchr(cc_file_name, '/');
-    tmp_ccname = talloc_strndup(tmp_ctx, cc_file_name,
-                                (size_t) (dummy-cc_file_name));
-    if (tmp_ccname == NULL) {
-        DEBUG(1, ("talloc_strdup failed.\n"));
-        kerr = ENOMEM;
-        goto done;
-    }
-    tmp_ccname = talloc_asprintf_append(tmp_ccname, "/.krb5cc_dummy_XXXXXX");
-    if (tmp_ccname == NULL) {
-        kerr = ENOMEM;
-        goto done;
-    }
-
-    old_umask = umask(077);
-    fd = mkstemp(tmp_ccname);
-    umask(old_umask);
-    if (fd == -1) {
-        kerr = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("mkstemp failed [%d][%s].\n", kerr, strerror(kerr)));
-        goto done;
-    }
-
-    kerr = krb5_cc_resolve(ctx, tmp_ccname, &tmp_cc);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        goto done;
-    }
-
-    kerr = store_creds_in_ccache(ctx, princ, tmp_cc, creds);
-    if (fd != -1) {
-        close(fd);
-        fd = -1;
-    }
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        goto done;
-    }
-
-
-    ccname_len = strlen(cc_file_name);
-    if (ccname_len >= 6 && strcmp(cc_file_name + (ccname_len - 6), "XXXXXX") == 0) {
-        fd = mkstemp(cc_file_name);
+    ccname_len = strlen(ccname);
+    if (ccname_len >= 6 && strcmp(ccname + (ccname_len - 6), "XXXXXX") == 0) {
+        /* NOTE: this call is only used to create a unique name, as later
+         * krb5_cc_initialize() will unlink and recreate the file.
+         * This is ok because this part of the code is called with
+         * privileges already dropped when handling user ccache, or the ccache
+         * is stored in a private directory. So we do not have huge issues if
+         * something races, we mostly care only about not accidentally use
+         * an existing name and thus failing in the process of saving the
+         * cache. Malicious races can only be avoided by libkrb5 itself. */
+        fd = mkstemp(ccname);
         if (fd == -1) {
-            kerr = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("mkstemp failed [%d][%s].\n", kerr, strerror(kerr)));
-            goto done;
-        }
-    }
-
-    kerr = rename(tmp_ccname, cc_file_name);
-    if (kerr == -1) {
-        kerr = errno;
-        DEBUG(1, ("rename failed [%d][%s].\n", kerr, strerror(kerr)));
-    }
-
-    DEBUG(SSSDBG_TRACE_LIBS, ("Created ccache file: [%s]\n", ccname));
-
-done:
-    if (kerr != 0 && tmp_cc != NULL) {
-        krb5_cc_destroy(ctx, tmp_cc);
-    }
-
-    if (fd != -1) {
-        close(fd);
-    }
-
-    talloc_free(tmp_ctx);
-    return kerr;
-}
-
-#ifdef HAVE_KRB5_CC_COLLECTION
-
-static errno_t
-create_ccdir(const char *dirname, uid_t uid, gid_t gid)
-{
-    mode_t old_umask;
-    struct stat statbuf;
-    errno_t ret;
-
-    old_umask = umask(0000);
-    ret = mkdir(dirname, 0700);
-    umask(old_umask);
-    if (ret == -1) {
-        /* Failing the mkdir is only OK if the directory already
-         * exists AND it is owned by the same user and group and
-         * has the correct permissions.
-         */
-        ret = errno;
-        if (ret == EEXIST) {
-            errno = 0;
-            ret = stat(dirname, &statbuf);
-            if (ret == -1) {
-                ret = errno;
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                        ("stat failed [%d]: %s\n", ret, strerror(ret)));
-                return EIO;
-            }
-
-            if (statbuf.st_uid != uid || statbuf.st_gid != gid) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("The directory %s is owned by %d/%d, expected %d/%d\n",
-                       dirname, statbuf.st_uid, statbuf.st_gid, uid, gid));
-                return EACCES;
-            }
-
-            if ((statbuf.st_mode & ~S_IFMT) != 0700) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("The directory %s has wrong permissions %o, expected 0700\n",
-                       dirname, (statbuf.st_mode & ~S_IFMT)));
-                return EACCES;
-            }
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("mkdir [%s] failed [%d]: %s\n",
-                  dirname, ret, strerror(ret)));
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, ("mkstemp(\"%s\") failed!\n", ccname));
             return ret;
         }
     }
@@ -718,134 +471,77 @@ create_ccdir(const char *dirname, uid_t uid, gid_t gid)
     return EOK;
 }
 
-static krb5_error_code
-create_ccache_in_dir(uid_t uid, gid_t gid,
-                     krb5_context ctx,
-                     krb5_principal princ,
-                     char *ccname, krb5_creds *creds)
+/* NOTE: callers rely on 'name' being *changed* if it needs to be randomized,
+ * as they will then send the name back to the new name via the return call
+ * k5c_attach_ccname_msg(). Callers will send in a copy of the name if they
+ * do not care for changes. */
+static krb5_error_code create_ccache(char *ccname, krb5_creds *creds)
 {
+    krb5_context kctx = NULL;
+    krb5_ccache kcc = NULL;
+    const char *type;
     krb5_error_code kerr;
-    krb5_ccache tmp_cc = NULL;
-    const char *dirname;
+#ifdef HAVE_KRB5_CC_COLLECTION
+    krb5_ccache cckcc;
+    bool switch_to_cc = false;
+#endif
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Creating ccache at [%s]\n", ccname));
+    /* Set a restrictive umask, just in case we end up creating any file */
+    umask(077);
 
-    dirname = sss_krb5_residual_check_type(ccname, SSS_KRB5_TYPE_DIR);
-    if (dirname == NULL) {
-        return EIO;
-    }
-
-    if (dirname[0] == ':') {
-        /* Cache name in the form of DIR::filepath represents a single
-         * ccache in a collection that we are trying to reuse.
-         * See src/lib/krb5/ccache/cc_dir.c in the MIT Kerberos tree.
-         */
-        kerr = krb5_cc_resolve(ctx, ccname, &tmp_cc);
-        if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-            goto done;
-        }
-    } else if (dirname[0] == '/') {
-        /* An absolute path denotes that krb5_child should create a new
-         * ccache. We can afford to just call mkdir(dirname) because we
-         * only want the last component to be created.
-         */
-
-        kerr = create_ccdir(dirname, uid, gid);
-        if (kerr) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("Cannot create directory %s\n", dirname));
-            goto done;
-        }
-
-        kerr = krb5_cc_set_default_name(ctx, ccname);
-        if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-            goto done;
-        }
-
-        kerr = krb5_cc_new_unique(ctx, "DIR", NULL, &tmp_cc);
-        if (kerr != 0) {
-            KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-            goto done;
-        }
-    } else {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Wrong residual format for DIR in ccache %s\n", ccname));
-        return EIO;
-    }
-
-    kerr = store_creds_in_ccache(ctx, princ, tmp_cc, creds);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_OP_FAILURE, kerr);
-        goto done;
-    }
-
-done:
-    if (kerr != 0 && tmp_cc != NULL) {
-        krb5_cc_destroy(ctx, tmp_cc);
-    }
-    return kerr;
-}
-
-static krb5_error_code
-create_ccache_keyring(krb5_context ctx,
-                      krb5_principal princ,
-                      char *ccname,
-                      krb5_creds *creds)
-{
-    krb5_error_code kerr;
-    krb5_ccache tmp_cc = NULL;
-
-    DEBUG(SSSDBG_FUNC_DATA, ("Creating ccache at [%s]\n", ccname));
-
-    kerr = krb5_cc_resolve(ctx, ccname, &tmp_cc);
-    if (kerr != 0) {
+    /* we create a new context here as the main process one may have been
+     * opened as root and contain possibly references (even open handles ?)
+     * to resources we do not have or do not want to have access to */
+    kerr = krb5_init_context(&kctx);
+    if (kerr) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        goto done;
+        return ERR_INTERNAL;
     }
 
-    kerr = store_creds_in_ccache(ctx, princ, tmp_cc, creds);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        goto done;
-    }
+    kerr = handle_randomized(ccname);
+    if (kerr) goto done;
 
-done:
-    if (kerr != 0 && tmp_cc != NULL) {
-        krb5_cc_destroy(ctx, tmp_cc);
-    }
+    kerr = krb5_cc_resolve(kctx, ccname, &kcc);
+    if (kerr) goto done;
 
-    return kerr;
-}
-
-#endif /* HAVE_KRB5_CC_COLLECTION */
-
-static krb5_error_code
-create_ccache(uid_t uid, gid_t gid, krb5_context ctx,
-              krb5_principal princ, char *ccname, krb5_creds *creds)
-{
-    enum sss_krb5_cc_type cctype;
-
-    cctype = sss_krb5_get_type(ccname);
-    switch (cctype) {
-        case SSS_KRB5_TYPE_FILE:
-            return create_ccache_file(ctx, princ, ccname, creds);
+    type = krb5_cc_get_type(kctx, kcc);
+    DEBUG(SSSDBG_TRACE_ALL, ("Initializing ccache of type [%s]\n", type));
 
 #ifdef HAVE_KRB5_CC_COLLECTION
-        case SSS_KRB5_TYPE_DIR:
-            return create_ccache_in_dir(uid, gid, ctx, princ, ccname, creds);
+    if (krb5_cc_support_switch(kctx, type)) {
+        kerr = krb5_cc_set_default_name(kctx, ccname);
+        if (kerr) goto done;
 
-        case SSS_KRB5_TYPE_KEYRING:
-            return create_ccache_keyring(ctx, princ, ccname, creds);
-#endif /* HAVE_KRB5_CC_COLLECTION */
-
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown cache type\n"));
-            return EINVAL;
+        kerr = krb5_cc_cache_match(kctx, creds->client, &cckcc);
+        if (kerr == KRB5_CC_NOTFOUND) {
+            kerr = krb5_cc_new_unique(kctx, type, NULL, &cckcc);
+            switch_to_cc = true;
+        }
+        if (kerr) goto done;
+        krb5_cc_close(kctx, kcc);
+        kcc = cckcc;
     }
+#endif
 
-    return EINVAL;  /* Should never get here */
+    kerr = krb5_cc_initialize(kctx, kcc, creds->client);
+    if (kerr) goto done;
+
+    kerr = krb5_cc_store_cred(kctx, kcc, creds);
+    if (kerr) goto done;
+
+#ifdef HAVE_KRB5_CC_COLLECTION
+    if (switch_to_cc) {
+        kerr = krb5_cc_switch(kctx, kcc);
+        if (kerr) goto done;
+    }
+#endif
+
+done:
+    if (kcc) {
+        /* FIXME: should we krb5_cc_destroy in case of error ? */
+        krb5_cc_close(kctx, kcc);
+    }
+    return kerr;
 }
 
 static errno_t pack_response_packet(TALLOC_CTX *mem_ctx, errno_t error,
@@ -1176,7 +872,7 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
     }
 
     /* Use the updated principal in the creds in case canonicalized */
-    kerr = create_ccache_file(ctx, creds.client, ccname, &creds);
+    kerr = create_ccache(ccname, &creds);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
@@ -1255,8 +951,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     }
 
     /* Use the updated principal in the creds in case canonicalized */
-    kerr = create_ccache(kr->uid, kr->gid, kr->ctx,
-                         principal, cc_name, kr->creds);
+    kerr = create_ccache(cc_name, kr->creds);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
@@ -1647,17 +1342,22 @@ done:
 
 static errno_t create_empty_ccache(struct krb5_req *kr)
 {
+    krb5_creds *creds = NULL;
     krb5_error_code kerr;
 
     DEBUG(SSSDBG_TRACE_LIBS, ("Creating empty ccache\n"));
 
-    kerr = create_ccache(kr->uid, kr->gid, kr->ctx,
-                         kr->princ, kr->ccname, NULL);
+    kerr = create_empty_cred(kr->ctx, kr->princ, &creds);
+    if (kerr == 0) {
+        kerr = create_ccache(kr->ccname, creds);
+    }
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
     } else {
         kerr = k5c_attach_ccname_msg(kr);
     }
+
+    krb5_free_creds(kr->ctx, creds);
 
     return map_krb5_error(kerr);
 }
