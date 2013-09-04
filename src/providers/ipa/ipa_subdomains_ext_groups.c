@@ -204,7 +204,7 @@ static errno_t find_ipa_ext_memberships(TALLOC_CTX *mem_ctx,
     }
 
     if (result->count == 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("User [%d] not found in cache.\n",
+        DEBUG(SSSDBG_MINOR_FAILURE, ("User [%s] not found in cache.\n",
                                      user_name));
         ret = EOK;
         goto done;
