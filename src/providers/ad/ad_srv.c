@@ -33,7 +33,7 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_async.h"
 
-#define AD_SITE_DOMAIN "%s._sites.%s"
+#define AD_SITE_DOMAIN_FMT "%s._sites.%s"
 #define AD_AT_DNS_DOMAIN "DnsDomain"
 #define AD_AT_NT_VERSION "NtVer"
 #define AD_AT_NETLOGON "netlogon"
@@ -759,7 +759,7 @@ static void ad_srv_plugin_site_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret == EOK) {
         if (strcmp(state->service, "gc") == 0) {
-            primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN,
+            primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
                                              state->site, state->forest);
             if (primary_domain == NULL) {
                 ret = ENOMEM;
@@ -768,7 +768,7 @@ static void ad_srv_plugin_site_done(struct tevent_req *subreq)
 
             backup_domain = state->forest;
         } else {
-            primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN,
+            primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
                                              state->site, state->discovery_domain);
             if (primary_domain == NULL) {
                 ret = ENOMEM;
