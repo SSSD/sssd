@@ -40,7 +40,7 @@
             </citerefentry>
             as described in
             <citerefentry>
-                <refentrytitle>sssd-krb5.conf</refentrytitle>
+                <refentrytitle>sssd-krb5</refentrytitle>
                 <manvolnum>5</manvolnum>
             </citerefentry>
         </para>
