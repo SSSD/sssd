@@ -430,9 +430,6 @@ ad_enumeration_master_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Found flat name [%s].\n", flat_name));
-    DEBUG(SSSDBG_TRACE_FUNC, ("Found master SID [%s].\n", master_sid));
-
     ret = sysdb_master_domain_add_info(state->sdom->dom,
                                        flat_name, master_sid);
     if (ret != EOK) {

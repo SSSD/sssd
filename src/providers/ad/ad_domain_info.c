@@ -40,6 +40,79 @@
 
 #define MASTER_DOMAIN_SID_FILTER "objectclass=domain"
 
+static errno_t
+netlogon_get_flat_name(TALLOC_CTX *mem_ctx,
+                       struct sysdb_attrs *reply,
+                       char **_flat_name)
+{
+    errno_t ret;
+    struct ldb_message_element *el;
+    DATA_BLOB blob;
+    struct ndr_pull *ndr_pull = NULL;
+    enum ndr_err_code ndr_err;
+    struct netlogon_samlogon_response response;
+    const char *flat_name;
+
+    ret = sysdb_attrs_get_el(reply, AD_AT_NETLOGON, &el);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_el() failed\n"));
+        return ret;
+    }
+
+    if (el->num_values == 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("netlogon has no value\n"));
+        return ENOENT;
+    } else if (el->num_values > 1) {
+        DEBUG(SSSDBG_OP_FAILURE, ("More than one netlogon value?\n"));
+        return EIO;
+    }
+
+    blob.data = el->values[0].data;
+    blob.length = el->values[0].length;
+
+    ndr_pull = ndr_pull_init_blob(&blob, mem_ctx);
+    if (ndr_pull == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_init_blob() failed.\n"));
+        return ENOMEM;
+    }
+
+    ndr_err = ndr_pull_netlogon_samlogon_response(ndr_pull, NDR_SCALARS,
+                                                  &response);
+    if (!NDR_ERR_CODE_IS_SUCCESS(ndr_err)) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_netlogon_samlogon_response() "
+                                  "failed [%d]\n", ndr_err));
+        ret = EBADMSG;
+        goto done;
+    }
+
+    if (!(response.ntver & NETLOGON_NT_VERSION_5EX)) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Wrong version returned [%x]\n",
+                                  response.ntver));
+        ret = EBADMSG;
+        goto done;
+    }
+
+    if (response.data.nt5_ex.domain_name != NULL &&
+        *response.data.nt5_ex.domain_name != '\0') {
+        flat_name = response.data.nt5_ex.domain_name;
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("No netlogon data available\n"));
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_flat_name = talloc_strdup(mem_ctx, flat_name);
+    if (*_flat_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = EOK;
+done:
+    talloc_free(ndr_pull);
+    return EOK;
+}
+
 struct ad_master_domain_state {
     struct tevent_context *ev;
     struct sdap_id_conn_ctx *conn;
@@ -238,11 +311,6 @@ ad_master_domain_netlogon_done(struct tevent_req *subreq)
     int ret;
     size_t reply_count;
     struct sysdb_attrs **reply = NULL;
-    struct ldb_message_element *el;
-    DATA_BLOB blob;
-    enum ndr_err_code ndr_err;
-    struct ndr_pull *ndr_pull = NULL;
-    struct netlogon_samlogon_response response;
 
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
@@ -253,78 +321,34 @@ ad_master_domain_netlogon_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send request failed.\n"));
-        goto done;
+        tevent_req_error(req, ret);
+        return;
     }
 
+    /* Failure to get the flat name is not fatal. Just quit. */
     if (reply_count == 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No netlogon data available.\n"));
-        ret = ENOENT;
+        DEBUG(SSSDBG_MINOR_FAILURE, ("No netlogon data available. Flat name " \
+                                     "might not be usable\n"));
         goto done;
     } else if (reply_count > 1) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              ("More than one netlogon info returned.\n"));
-        ret = EINVAL;
+        DEBUG(SSSDBG_MINOR_FAILURE,
+                ("More than one netlogon info returned.\n"));
         goto done;
     }
 
-    ret = sysdb_attrs_get_el(reply[0], AD_AT_NETLOGON, &el);
+    /* Exactly one flat name. Carry on */
+
+    ret = netlogon_get_flat_name(state, reply[0], &state->flat);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_el() failed\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not get the flat name\n"));
+        /* Not fatal. Just quit. */
         goto done;
-    }
-
-    if (el->num_values == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("netlogon has no value\n"));
-        ret = ENOENT;
-        goto done;
-    } else if (el->num_values > 1) {
-        DEBUG(SSSDBG_OP_FAILURE, ("More than one netlogon value?\n"));
-        ret = EIO;
-        goto done;
-    }
-
-    blob.data =  el->values[0].data;
-    blob.length = el->values[0].length;
-
-    ndr_pull = ndr_pull_init_blob(&blob, state);
-    if (ndr_pull == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_init_blob() failed.\n"));
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ndr_err = ndr_pull_netlogon_samlogon_response(ndr_pull, NDR_SCALARS,
-                                                  &response);
-    if (!NDR_ERR_CODE_IS_SUCCESS(ndr_err)) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_netlogon_samlogon_response() "
-                                  "failed [%d]\n", ndr_err));
-        ret = EBADMSG;
-        goto done;
-    }
-
-    if (!(response.ntver & NETLOGON_NT_VERSION_5EX)) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Wrong version returned [%x]\n",
-                                  response.ntver));
-        ret = EBADMSG;
-        goto done;
-    }
-
-    if (response.data.nt5_ex.domain_name != NULL &&
-        *response.data.nt5_ex.domain_name != '\0') {
-        state->flat = talloc_strdup(state, response.data.nt5_ex.domain_name);
-        if (state->flat == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Found flat name [%s].\n", state->flat));
+done:
     tevent_req_done(req);
     return;
-
-done:
-    tevent_req_error(req, ret);
 }
 
 errno_t

@@ -371,9 +371,6 @@ static void ad_subdomains_master_dom_done(struct tevent_req *req)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Found flat name [%s].\n", ctx->flat_name));
-    DEBUG(SSSDBG_TRACE_FUNC, ("Found master SID [%s].\n", ctx->master_sid));
-
     ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
                                        ctx->flat_name, ctx->master_sid);
     if (ret != EOK) {
