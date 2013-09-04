@@ -149,14 +149,6 @@ enum sss_krb5_cc_type {
     SSS_KRB5_TYPE_UNKNOWN
 };
 
-enum sss_krb5_cc_type
-sss_krb5_get_type(const char *full_location);
-const char *
-sss_krb5_residual_by_type(const char *full_location, enum sss_krb5_cc_type type);
-const char *
-sss_krb5_residual_check_type(const char *full_location,
-                             enum sss_krb5_cc_type expected_type);
-
 /* === Compatibility routines for the Heimdal Kerberos implementation === */
 
 void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
