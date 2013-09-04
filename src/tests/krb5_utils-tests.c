@@ -673,6 +673,35 @@ START_TEST(test_no_substitution)
 }
 END_TEST
 
+START_TEST(test_krb5_style_expansion)
+{
+    char *result;
+    bool private_path = false;
+    const char *file_template;
+    const char *expected;
+
+    file_template = BASE"/%{uid}/%{USERID}/%{euid}/%{username}";
+    expected = BASE"/"UID"/"UID"/"UID"/"USERNAME;
+    result = expand_ccname_template(tmp_ctx, kr, file_template, true,
+                                    true, &private_path);
+
+    fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
+    fail_unless(strcmp(result, expected) == 0,
+                "Expansion failed, result [%s], expected [%s].",
+                result, expected);
+
+    file_template = BASE"/%{unknown}";
+    expected = BASE"/%{unknown}";
+    result = expand_ccname_template(tmp_ctx, kr, file_template, true,
+                                    false, &private_path);
+
+    fail_unless(result != NULL, "Cannot expand template [%s].", file_template);
+    fail_unless(strcmp(result, expected) == 0,
+                "Expansion failed, result [%s], expected [%s].",
+                result, expected);
+}
+END_TEST
+
 START_TEST(test_compare_principal_realm)
 {
     int ret;
@@ -738,6 +767,7 @@ Suite *krb5_utils_suite (void)
     tcase_add_test (tc_ccname_template, test_pid);
     tcase_add_test (tc_ccname_template, test_percent);
     tcase_add_test (tc_ccname_template, test_multiple_substitutions);
+    tcase_add_test (tc_ccname_template, test_krb5_style_expansion);
     suite_add_tcase (s, tc_ccname_template);
 
     TCase *tc_create_dir = tcase_create("create_dir");
