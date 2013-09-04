@@ -379,7 +379,7 @@ int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%u", NC_UID_PREFIX, uid);
+    str = talloc_asprintf(ctx, "%s/%"SPRIuid, NC_UID_PREFIX, uid);
     if (!str) return ENOMEM;
 
     ret = sss_ncache_check_str(ctx, str, ttl);
@@ -510,7 +510,7 @@ int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent, uid_t uid)
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%u", NC_UID_PREFIX, uid);
+    str = talloc_asprintf(ctx, "%s/%"SPRIuid, NC_UID_PREFIX, uid);
     if (!str) return ENOMEM;
 
     ret = sss_ncache_set_str(ctx, str, permanent);

@@ -22,6 +22,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
+#include "util/sss_format.h"
 #include "util/strtonum.h"
 #include "providers/proxy/proxy.h"
 
@@ -166,7 +169,7 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
 
     case NSS_STATUS_SUCCESS:
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("User found: (%s, %d, %d)\n",
+        DEBUG(SSSDBG_TRACE_FUNC, ("User found: (%s, %"SPRIuid", %d)\n",
               pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
@@ -314,7 +317,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     bool del_user = false;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Searching user by uid (%d)\n", uid));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Searching user by uid (%"SPRIuid")\n", uid));
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -354,7 +357,7 @@ done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("proxy -> getpwuid_r failed for '%d' <%d>: %s\n",
+              ("proxy -> getpwuid_r failed for '%"SPRIuid"' <%d>: %s\n",
                uid, ret, strerror(ret)));
     }
     return ret;
@@ -453,7 +456,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
 
             case NSS_STATUS_SUCCESS:
 
-                DEBUG(SSSDBG_TRACE_LIBS, ("User found (%s, %d, %d)\n",
+                DEBUG(SSSDBG_TRACE_LIBS, ("User found (%s, %"SPRIuid", %d)\n",
                             pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
 
                 /* uid=0 or gid=0 are invalid values */

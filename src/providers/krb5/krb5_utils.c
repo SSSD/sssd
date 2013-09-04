@@ -242,7 +242,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                               "because uid is invalid.\n"));
                     goto done;
                 }
-                result = talloc_asprintf_append(result, "%s%d", p,
+                result = talloc_asprintf_append(result, "%s%"SPRIuid, p,
                                                 kr->uid);
                 if (!file_mode) *private_path = true;
                 break;
@@ -386,7 +386,7 @@ static errno_t check_parent_stat(bool private_path, struct stat *parent_stat,
         if (!((parent_stat->st_uid == 0 && parent_stat->st_gid == 0) ||
                parent_stat->st_uid == uid)) {
             DEBUG(1, ("Private directory can only be created below a "
-                      "directory belonging to root or to [%d][%d].\n",
+                      "directory belonging to root or to [%"SPRIuid"][%d].\n",
                       uid, gid));
             return EINVAL;
         }

@@ -166,8 +166,9 @@ static int seed_id_input(const char *req,
             return ret;
         }
         if (*endptr != '\0') {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("extra characters [%s] after "
-                                         "ID [%d]\n", endptr, *_id_input));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("extra characters [%s] after ID [%"SPRIuid"]\n",
+                   endptr, *_id_input));
         }
     } else {
         ret = EINVAL;

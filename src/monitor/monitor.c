@@ -2695,7 +2695,8 @@ int main(int argc, const char *argv[])
 
     uid = getuid();
     if (uid != 0) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Running under %d, must be root\n", uid));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Running under %"SPRIuid", must be root\n", uid));
         sss_log(SSS_LOG_ALERT, "sssd must be run as root");
         return 8;
     }

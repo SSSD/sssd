@@ -1198,8 +1198,9 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
 
     if (domain->id_max != 0 && uid != 0 &&
         (uid < domain->id_min || uid > domain->id_max)) {
-        DEBUG(2, ("Supplied uid [%d] is not in the allowed range [%d-%d].\n",
-                  uid, domain->id_min, domain->id_max));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Supplied uid [%"SPRIuid"] is not in the allowed range "
+               "[%d-%d].\n", uid, domain->id_min, domain->id_max));
         return ERANGE;
     }
 

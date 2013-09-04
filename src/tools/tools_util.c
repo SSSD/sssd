@@ -360,7 +360,8 @@ static int remove_mail_spool(TALLOC_CTX *mem_ctx,
             case 0:
                 break;
             case -1:
-                DEBUG(3, ("%s not owned by %d, not removing\n",
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("%s not owned by %"SPRIuid", not removing\n",
                           spool_file, uid));
                 ret = EACCES;
                 /* FALLTHROUGH */
