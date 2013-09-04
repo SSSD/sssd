@@ -144,12 +144,20 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
     uint32_t size;
     char *pam_user;
     int ret;
-    uint32_t terminator = SSS_END_OF_PAM_REQUEST;
+    uint32_t start;
+    uint32_t terminator;
 
-    if (blen < 4*sizeof(uint32_t)+2 ||
-        ((uint32_t *)body)[0] != SSS_START_OF_PAM_REQUEST ||
-        memcmp(&body[blen - sizeof(uint32_t)], &terminator, sizeof(uint32_t)) != 0) {
-        DEBUG(1, ("Received data is invalid.\n"));
+    if (blen < 4*sizeof(uint32_t)+2) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Received data is invalid.\n"));
+        return EINVAL;
+    }
+
+    SAFEALIGN_COPY_UINT32(&start, body, NULL);
+    SAFEALIGN_COPY_UINT32(&terminator, body + blen - sizeof(uint32_t), NULL);
+
+    if (start != SSS_START_OF_PAM_REQUEST
+        || terminator != SSS_END_OF_PAM_REQUEST) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Received data is invalid.\n"));
         return EINVAL;
     }
 
@@ -709,14 +717,18 @@ errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
     uint8_t *body;
     size_t blen;
     errno_t ret;
-    uint32_t terminator = SSS_END_OF_PAM_REQUEST;
+    uint32_t terminator;
 
     sss_packet_get_body(cctx->creq->in, &body, &blen);
-    if (blen >= sizeof(uint32_t) &&
-        memcmp(&body[blen - sizeof(uint32_t)], &terminator, sizeof(uint32_t)) != 0) {
-        DEBUG(1, ("Received data not terminated.\n"));
-        ret = EINVAL;
-        goto done;
+    if (blen >= sizeof(uint32_t)) {
+        SAFEALIGN_COPY_UINT32(&terminator,
+                              body + blen - sizeof(uint32_t),
+                              NULL);
+        if (terminator != SSS_END_OF_PAM_REQUEST) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Received data not terminated.\n"));
+            ret = EINVAL;
+            goto done;
+        }
     }
 
     switch (cctx->cli_protocol_version->version) {
