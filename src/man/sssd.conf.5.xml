@@ -1024,6 +1024,19 @@ override_homedir = /home/%u
                             entries valid before asking the backend again
                         </para>
                         <para>
+                            The cache expiration timestamps are stored
+                            as attributes of individual objects in the
+                            cache. Therefore, changing the cache timeout only
+                            has effect for newly added or expired entries.
+                            You should run the
+                            <citerefentry>
+                                <refentrytitle>sss_cache</refentrytitle>
+                                <manvolnum>8</manvolnum>
+                            </citerefentry>
+                            tool in order to force refresh of entries that
+                            have already been cached.
+                        </para>
+                        <para>
                             Default: 5400
                         </para>
                     </listitem>
