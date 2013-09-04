@@ -1206,8 +1206,9 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
 
     if (domain->id_max != 0 && gid != 0 &&
         (gid < domain->id_min || gid > domain->id_max)) {
-        DEBUG(2, ("Supplied gid [%d] is not in the allowed range [%d-%d].\n",
-                  gid, domain->id_min, domain->id_max));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Supplied gid [%"SPRIgid"] is not in the allowed range "
+               "[%d-%d].\n", gid, domain->id_min, domain->id_max));
         return ERANGE;
     }
 
@@ -1391,8 +1392,9 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
 
     if (domain->id_max != 0 && gid != 0 &&
         (gid < domain->id_min || gid > domain->id_max)) {
-        DEBUG(2, ("Supplied gid [%d] is not in the allowed range [%d-%d].\n",
-                  gid, domain->id_min, domain->id_max));
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Supplied gid [%"SPRIgid"] is not in the allowed range "
+               "[%d-%d].\n", gid, domain->id_min, domain->id_max));
         return ERANGE;
     }
 

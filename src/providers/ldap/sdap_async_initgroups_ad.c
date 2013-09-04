@@ -472,8 +472,7 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
         }
 
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Processing membership GID [%lu]\n",
-               gid));
+              ("Processing membership GID [%"SPRIgid"]\n", gid));
 
         /* Check whether this GID already exists in the sysdb */
         ret = sysdb_search_group_by_gid(tmp_ctx, state->sysdb, state->domain,

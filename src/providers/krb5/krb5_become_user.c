@@ -31,7 +31,7 @@ errno_t become_user(uid_t uid, gid_t gid)
     int ret;
 
     DEBUG(SSSDBG_FUNC_DATA,
-          ("Trying to become user [%"SPRIuid"][%d].\n", uid, gid));
+          ("Trying to become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid));
 
     /* skip call if we already are the requested user */
     cuid = geteuid();

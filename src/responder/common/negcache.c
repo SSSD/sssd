@@ -393,7 +393,7 @@ int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl, gid_t gid)
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%u", NC_GID_PREFIX, gid);
+    str = talloc_asprintf(ctx, "%s/%"SPRIgid, NC_GID_PREFIX, gid);
     if (!str) return ENOMEM;
 
     ret = sss_ncache_check_str(ctx, str, ttl);
@@ -524,7 +524,7 @@ int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent, gid_t gid)
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%u", NC_GID_PREFIX, gid);
+    str = talloc_asprintf(ctx, "%s/%"SPRIgid, NC_GID_PREFIX, gid);
     if (!str) return ENOMEM;
 
     ret = sss_ncache_set_str(ctx, str, permanent);

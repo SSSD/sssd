@@ -386,8 +386,8 @@ static errno_t check_parent_stat(bool private_path, struct stat *parent_stat,
         if (!((parent_stat->st_uid == 0 && parent_stat->st_gid == 0) ||
                parent_stat->st_uid == uid)) {
             DEBUG(1, ("Private directory can only be created below a "
-                      "directory belonging to root or to [%"SPRIuid"][%d].\n",
-                      uid, gid));
+                      "directory belonging to root or to "
+                      "[%"SPRIuid"][%"SPRIgid"].\n", uid, gid));
             return EINVAL;
         }
 

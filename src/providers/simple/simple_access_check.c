@@ -245,7 +245,7 @@ simple_resolve_group_check(struct simple_resolve_group_state *state)
                                     group_attrs, &group);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-               ("Could not look up group by gid [%lu]: [%d][%s]\n",
+               ("Could not look up group by gid [%"SPRIgid"]: [%d][%s]\n",
                state->gid, ret, sss_strerror(ret)));
         return ret;
     }
@@ -470,7 +470,7 @@ static void simple_check_get_groups_next(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not resolve name of group with GID %llu\n",
+              ("Could not resolve name of group with GID %"SPRIgid"\n",
               state->lookup_gids[state->giter]));
         tevent_req_error(req, ret);
         return;
@@ -545,7 +545,7 @@ simple_check_process_group(struct simple_check_groups_state *state,
 
     /* Non-posix group with a GID. Needs resolving */
     state->lookup_gids[state->num_gids] = gid;
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Adding GID %llu\n", gid));
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Adding GID %"SPRIgid"\n", gid));
     state->num_gids++;
     return EOK;
 }
@@ -564,7 +564,7 @@ simple_check_get_groups_primary(struct simple_check_groups_state *state,
                                     gid, group_attrs, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-               ("Could not look up primary group [%lu]: [%d][%s]\n",
+              ("Could not look up primary group [%"SPRIgid"]: [%d][%s]\n",
                gid, ret, sss_strerror(ret)));
         /* We have to treat this as non-fatal, because the primary
          * group may be local to the machine and not available in
