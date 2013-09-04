@@ -43,11 +43,11 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
                                          const char *upn);
 
 errno_t create_ccache_dir(const char *dirname, pcre *illegal_re,
-                          uid_t uid, gid_t gid, bool private_path);
+                          uid_t uid, gid_t gid);
 
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              const char *template, bool file_mode,
-                             bool case_sensitive, bool *private_path);
+                             bool case_sensitive);
 
 errno_t become_user(uid_t uid, gid_t gid);
 struct sss_creds;
@@ -58,7 +58,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
 errno_t restore_creds(struct sss_creds *saved_creds);
 
 errno_t sss_krb5_precreate_ccache(const char *ccname, pcre *illegal_re,
-                                  uid_t uid, gid_t gid, bool private_path);
+                                  uid_t uid, gid_t gid);
 errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid);
 errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
                                     const char *ccname, const char *principal);
