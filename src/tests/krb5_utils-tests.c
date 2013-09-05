@@ -67,7 +67,7 @@ void teardown_create_dir(void)
     fail_unless(tmp_ctx != NULL, "Talloc context already freed.");
     ret = talloc_free(tmp_ctx);
     tmp_ctx = NULL;
-    fail_unless(ret == 0, "Connot free talloc context.");
+    fail_unless(ret == 0, "Cannot free talloc context.");
 }
 
 static void check_dir(const char *dirname, uid_t uid, gid_t gid, mode_t mode)
@@ -461,7 +461,7 @@ void free_talloc_context(void)
     fail_unless(tmp_ctx != NULL, "Talloc context already freed.");
     ret = talloc_free(tmp_ctx);
     tmp_ctx = NULL;
-    fail_unless(ret == 0, "Connot free talloc context.");
+    fail_unless(ret == 0, "Cannot free talloc context.");
 }
 
 static void do_test(const char *file_template, const char *dir_template,
@@ -482,7 +482,7 @@ static void do_test(const char *file_template, const char *dir_template,
                 "Expansion failed, result [%s], expected [%s].",
                 result, expected);
     fail_unless(private_path == expected_private_path,
-                "Unexprected private path, get [%s], expected [%s].",
+                "Unexpected private path, get [%s], expected [%s].",
                 private_path ? "true" : "false",
                 expected_private_path ? "true" : "false");
 }
@@ -577,7 +577,7 @@ START_TEST(test_ccache_dir)
 
     fail_unless(result == NULL, "Using %%d in ccache dir should fail.");
     fail_unless(private_path == false,
-                "Unexprected private path, get [%s], expected [%s].",
+                "Unexpected private path, get [%s], expected [%s].",
                 private_path ? "true" : "false", "false");
 }
 END_TEST
@@ -598,7 +598,7 @@ START_TEST(test_pid)
 
     fail_unless(result == NULL, "Using %%P in ccache dir should fail.");
     fail_unless(private_path == false,
-                "Unexprected private path, get [%s], expected [%s].",
+                "Unexpected private path, get [%s], expected [%s].",
                 private_path ? "true" : "false", "false");
 }
 END_TEST
@@ -632,7 +632,7 @@ START_TEST(test_unknow_template)
     fail_unless(result == NULL, "Unknown template [%s] should fail.",
                 test_template);
     fail_unless(private_path == false,
-                "Unexprected private path, get [%s], expected [%s].",
+                "Unexpected private path, get [%s], expected [%s].",
                 private_path ? "true" : "false", "false");
 }
 END_TEST
@@ -649,7 +649,7 @@ START_TEST(test_NULL)
     fail_unless(result == NULL, "Expected NULL as a result for an empty input.",
                 test_template);
     fail_unless(private_path == false,
-                "Unexprected private path, get [%s], expected [%s].",
+                "Unexpected private path, get [%s], expected [%s].",
                 private_path ? "true" : "false", "false");
 }
 END_TEST
@@ -668,7 +668,7 @@ START_TEST(test_no_substitution)
                 "Expansion failed, result [%s], expected [%s].",
                 result, test_template);
     fail_unless(private_path == false,
-                "Unexprected private path, get [%s], expected [%s].",
+                "Unexpected private path, get [%s], expected [%s].",
                 private_path ? "true" : "false", "false");
 }
 END_TEST
