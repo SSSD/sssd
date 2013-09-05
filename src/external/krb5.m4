@@ -91,4 +91,5 @@ AC_CHECK_HEADER([krb5/locate_plugin.h],
                 ])
 AM_CONDITIONAL([BUILD_KRB5_LOCATOR_PLUGIN],
                [test x$have_locate_plugin = xyes -a x$build_locator = xyes])
-
+AM_COND_IF([BUILD_KRB5_LOCATOR_PLUGIN],
+           [AC_DEFINE_UNQUOTED(HAVE_KRB5_LOCATOR_PLUGIN, 1, [Build with krb5 locator plugin])])

@@ -114,6 +114,7 @@ endif
 
 if HAVE_CHECK
     non_interactive_check_based_tests = \
+        dlopen-tests \
         sysdb-tests \
         strtonum-tests \
         resolv-tests \
@@ -889,6 +890,36 @@ libsss_test_common_la_SOURCES = \
 if HAVE_CHECK
 libsss_test_common_la_SOURCES += \
     src/tests/common_check.c
+
+check_LTLIBRARIES = \
+    libdlopen_test_providers.la
+
+libdlopen_test_providers_la_SOURCES = \
+    $(sssd_be_SOURCES)
+libdlopen_test_providers_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS) \
+    -DUNIT_TESTING
+libdlopen_test_providers_la_LIBADD = \
+    $(PAM_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
+libdlopen_test_providers_la_LDFLAGS = \
+    -module \
+    -avoid-version \
+    -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
+    -rpath $(abs_top_builddir) \
+    -export-dynamic
+
+dlopen_tests_SOURCES = \
+    src/tests/dlopen-tests.c
+dlopen_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+dlopen_tests_LDADD = \
+    $(LIBADD_DL) \
+    $(CHECK_LIBS)
 
 sysdb_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)

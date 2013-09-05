@@ -329,6 +329,7 @@ AC_DEFUN([WITH_PYTHON_BINDINGS],
     if test x"$with_python_bindings" = xyes; then
         HAVE_PYTHON_BINDINGS=1
         AC_SUBST(HAVE_PYTHON_BINDINGS)
+        AC_DEFINE_UNQUOTED(HAVE_PYTHON_BINDINGS, 1, [Build with python bindings])
     fi
     AM_CONDITIONAL([BUILD_PYTHON_BINDINGS], [test x"$with_python_bindings" = xyes])
   ])
