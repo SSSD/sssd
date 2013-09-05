@@ -243,6 +243,12 @@ static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
     }
 
     slot = mcc->hash_table[hash];
+    if (slot == MC_INVALID_VAL) {
+        /* record has already been removed. It may happen if rec->hash1 and
+         * rec->has2 are the same. (It is not very likely).
+         */
+        return;
+    }
     cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
     if (cur == rec) {
         /* rec->next can refer to record without matching hashes.
