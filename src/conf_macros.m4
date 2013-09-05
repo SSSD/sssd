@@ -152,6 +152,26 @@ AC_DEFUN([WITH_INITSCRIPT],
   AC_MSG_NOTICE([Will use init script type: $initscript])
   ])
 
+AC_DEFUN([WITH_SYSLOG],
+  [ AC_ARG_WITH([syslog],
+                [AC_HELP_STRING([--with-syslog=SYSLOG_TYPE],
+                                [Type of your system logger (syslog|journald). [syslog]]
+                               )
+                ],
+                [],
+                [with_syslog="syslog"]
+               )
+
+  if test x"$with_syslog" = xsyslog || \
+     test x"$with_syslog" = xjournald; then
+        syslog=$with_syslog
+  else
+      AC_MSG_ERROR([Uknown syslog type, supported types are syslog and journald])
+  fi
+
+  AM_CONDITIONAL([WITH_JOURNALD], [test x"$syslog" = xjournald])
+  ])
+
 AC_DEFUN([WITH_ENVIRONMENT_FILE],
   [ AC_ARG_WITH([environment_file],
                 [AC_HELP_STRING([--with-environment-file=PATH], [Path to environment file [/etc/sysconfig/sssd]])

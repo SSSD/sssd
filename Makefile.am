@@ -279,6 +279,7 @@ AM_CPPFLAGS = \
     $(LIBNL_CFLAGS) \
     $(OPENLDAP_CFLAGS) \
     $(GLIB2_CFLAGS) \
+    $(JOURNALD_CFLAGS) \
     -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
@@ -517,6 +518,10 @@ if HAVE_PTHREAD
 CLIENT_LIBS += -lpthread
 endif
 
+if WITH_JOURNALD
+SYSLOG_LIBS = $(JOURNALD_LIBS)
+endif
+
 #####################
 # Utility libraries #
 #####################
@@ -525,6 +530,7 @@ libsss_debug_la_SOURCES = \
     src/util/debug.c \
     src/util/sss_log.c
 libsss_debug_la_LDFLAGS = \
+    $(SYSLOG_LIBS) \
     -avoid-version
 
 pkglib_LTLIBRARIES += libsss_child.la

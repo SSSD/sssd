@@ -125,6 +125,7 @@ WITH_SUDO_LIB_PATH
 WITH_AUTOFS
 WITH_SSH
 WITH_CRYPTO
+WITH_SYSLOG
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -243,6 +244,11 @@ fi
 
 if test x$HAVE_SYSTEMD_UNIT != x; then
     AM_CHECK_SYSTEMD
+fi
+
+dnl If journald was selected for logging, configure journald
+if test x$syslog = xjournald; then
+    AM_CHECK_JOURNALD
 fi
 
 if test x$cryptolib = xnss; then

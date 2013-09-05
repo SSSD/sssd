@@ -23,7 +23,12 @@
 */
 
 #include "util/util.h"
+
+#ifdef WITH_JOURNALD
+#include <systemd/sd-journal.h>
+#else  /* WITH_JOURNALD */
 #include <syslog.h>
+#endif /* WITH_JOURNALD */
 
 static int sss_to_syslog(int priority)
 {
@@ -52,6 +57,34 @@ static int sss_to_syslog(int priority)
     }
 }
 
+#ifdef WITH_JOURNALD
+
+void sss_log(int priority, const char *format, ...)
+{
+    va_list ap;
+    int syslog_priority;
+    int ret;
+    char *message;
+
+    va_start(ap, format);
+    ret = vasprintf(&message, format, ap);
+    va_end(ap);
+
+    if (ret == -1) {
+        /* ENOMEM */
+        return;
+    }
+
+    syslog_priority = sss_to_syslog(priority);
+    sd_journal_send("MESSAGE=%s", message,
+                    "PRIORITY=%i", syslog_priority,
+                    "SYSLOG_FACILITY=%i", LOG_FAC(LOG_DAEMON),
+                    "SYSLOG_IDENTIFIER=%s", debug_prg_name,
+                    NULL);
+}
+
+#else /* WITH_JOURNALD */
+
 void sss_log(int priority, const char *format, ...)
 {
     va_list ap;
@@ -67,3 +100,5 @@ void sss_log(int priority, const char *format, ...)
 
     closelog();
 }
+
+#endif /* WITH_JOURNALD */
