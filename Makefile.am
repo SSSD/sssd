@@ -721,11 +721,11 @@ sssd_be_LDADD = \
     -ldl \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
+    $(PAM_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
-    -export-dynamic \
-    $(PAM_LIBS)
+    -export-dynamic
 
 if BUILD_PYTHON_BINDINGS
 sss_obfuscate_pythondir = $(sbindir)
