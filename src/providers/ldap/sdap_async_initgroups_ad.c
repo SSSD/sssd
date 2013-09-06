@@ -364,9 +364,12 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
     char *sid_str;
     gid_t gid;
     time_t now;
+    struct sss_domain_info *group_domain;
     struct sysdb_attrs **users;
     struct ldb_message_element *el;
     struct ldb_message *msg;
+    struct ldb_dn *group_ldb_dn;
+    const char *group_str_dn;
     char **ldap_grouplist;
     char **sysdb_grouplist;
     char **add_groups;
@@ -471,12 +474,20 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
             continue;
         }
 
+        group_domain = find_subdomain_by_sid(get_domains_head(state->domain),
+                                                              sid_str);
+        if (group_domain == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Domain not found for SID %s\n",
+                                         sid_str));
+            continue;
+        }
+
         DEBUG(SSSDBG_TRACE_LIBS,
               ("Processing membership GID [%"SPRIgid"]\n", gid));
 
         /* Check whether this GID already exists in the sysdb */
-        ret = sysdb_search_group_by_gid(tmp_ctx, state->sysdb, state->domain,
-                                        gid, attrs, &msg);
+        ret = sysdb_search_group_by_gid(tmp_ctx, group_domain->sysdb,
+                                        group_domain, gid, attrs, &msg);
         if (ret == EOK) {
             group_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
             if (!group_name) {
@@ -491,9 +502,10 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
              * the group or its GID occurs, it will replace this
              * temporary entry.
              */
+
             group_name = sid_str;
-            ret = sysdb_add_incomplete_group(state->sysdb,
-                                             state->domain,
+            ret = sysdb_add_incomplete_group(group_domain->sysdb,
+                                             group_domain,
                                              group_name, gid,
                                              NULL, sid_str, false, now);
             if (ret != EOK) {
@@ -510,12 +522,30 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
             goto done;
         }
 
+        group_ldb_dn = sysdb_group_dn(group_domain->sysdb, tmp_ctx,
+                                      group_domain, group_name);
+        if (group_ldb_dn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb_group_dn() failed\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        group_str_dn = ldb_dn_get_linearized(group_ldb_dn);
+        if (group_str_dn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("ldb_dn_get_linearized() failed\n"));
+            ret = EINVAL;
+            goto done;
+        }
+
         ldap_grouplist[group_count] =
-                talloc_strdup(ldap_grouplist, group_name);
+                talloc_strdup(ldap_grouplist, group_str_dn);
         if (!ldap_grouplist[group_count]) {
             ret = ENOMEM;
             goto done;
         }
+
+        talloc_zfree(group_ldb_dn); /* also frees group_str_dn */
+        group_str_dn = NULL;
 
         group_count++;
     }
@@ -524,8 +554,8 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
     /* Get the current sysdb group list for this user
      * so we can update it.
      */
-    ret = get_sysdb_grouplist(state, state->sysdb, state->domain,
-                              state->username, &sysdb_grouplist);
+    ret = get_sysdb_grouplist_dn(state, state->sysdb, state->domain,
+                                 state->username, &sysdb_grouplist);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Could not get the list of groups for [%s] in the sysdb: "
@@ -543,10 +573,10 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_LIBS,
           ("Updating memberships for [%s]\n", state->username));
-    ret = sysdb_update_members(state->sysdb, state->domain,
-                               state->username, SYSDB_MEMBER_USER,
-                               (const char *const *) add_groups,
-                               (const char *const *) del_groups);
+    ret = sysdb_update_members_dn(state->sysdb, state->domain,
+                                  state->username, SYSDB_MEMBER_USER,
+                                  (const char *const *) add_groups,
+                                  (const char *const *) del_groups);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Membership update failed [%d]: %s\n",
