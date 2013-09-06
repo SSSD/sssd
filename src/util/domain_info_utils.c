@@ -27,6 +27,19 @@
 /* the directory domain - realm mappings are written to */
 #define KRB5_MAPPING_DIR PUBCONF_PATH"/krb5.include.d"
 
+struct sss_domain_info *get_domains_head(struct sss_domain_info *domain)
+{
+    struct sss_domain_info *dom = NULL;
+
+    /* get to the top level domain */
+    for (dom = domain; dom->parent != NULL; dom = dom->parent);
+
+    /* proceed to the list head */
+    for (; dom->prev != NULL; dom = dom->prev);
+
+    return dom;
+}
+
 struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
                                         bool descend)
 {
