@@ -407,7 +407,7 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
                               struct ldb_message **msg)
 {
     TALLOC_CTX *tmp_ctx;
-    const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
+    const char *def_attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
     struct ldb_message **msgs = NULL;
     struct ldb_dn *basedn;
     size_t msgs_count = 0;
