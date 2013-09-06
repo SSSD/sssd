@@ -189,11 +189,11 @@ void setup_simple_group(void)
     fail_if(ret != EOK, "Could not add g2");
 
     ret = sysdb_add_group_member(test_ctx->sysdb, test_ctx->ctx->domain,
-                                 "g1", "u1", SYSDB_MEMBER_USER);
+                                 "g1", "u1", SYSDB_MEMBER_USER, false);
     fail_if(ret != EOK, "Could not add u1 to g1");
 
     ret = sysdb_add_group_member(test_ctx->sysdb, test_ctx->ctx->domain,
-                                 "g2", "u2", SYSDB_MEMBER_USER);
+                                 "g2", "u2", SYSDB_MEMBER_USER, false);
     fail_if(ret != EOK, "Could not add u2 to g2");
 }
 

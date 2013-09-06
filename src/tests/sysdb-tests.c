@@ -331,7 +331,7 @@ static int test_add_group_member(struct test_data *data)
 
     ret = sysdb_add_group_member(data->ctx->sysdb, data->ctx->domain,
                                  data->groupname, username,
-                                 SYSDB_MEMBER_USER);
+                                 SYSDB_MEMBER_USER, false);
     return ret;
 }
 
@@ -347,7 +347,7 @@ static int test_remove_group_member(struct test_data *data)
 
     ret = sysdb_remove_group_member(data->ctx->sysdb, data->ctx->domain,
                                     data->groupname, username,
-                                    SYSDB_MEMBER_USER);
+                                    SYSDB_MEMBER_USER, false);
     return ret;
 }
 
@@ -3969,7 +3969,7 @@ START_TEST(test_odd_characters)
     /* Add to the group */
     ret = sysdb_add_group_member(test_ctx->sysdb, test_ctx->domain,
                                  odd_groupname, odd_username,
-                                 SYSDB_MEMBER_USER);
+                                 SYSDB_MEMBER_USER, false);
     fail_unless(ret == EOK, "sysdb_add_group_member error [%d][%s]",
                             ret, strerror(ret));
 
