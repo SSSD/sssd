@@ -690,13 +690,15 @@ int sysdb_add_group_member(struct sysdb_ctx *sysdb,
                            struct sss_domain_info *domain,
                            const char *group,
                            const char *member,
-                           enum sysdb_member_type type);
+                           enum sysdb_member_type type,
+                           bool is_dn);
 
 int sysdb_remove_group_member(struct sysdb_ctx *sysdb,
                               struct sss_domain_info *domain,
                               const char *group,
                               const char *member,
-                              enum sysdb_member_type type);
+                              enum sysdb_member_type type,
+                              bool is_dn);
 
 errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                              struct sss_domain_info *domain,
@@ -704,6 +706,13 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                              enum sysdb_member_type type,
                              const char *const *add_groups,
                              const char *const *del_groups);
+
+errno_t sysdb_update_members_dn(struct sysdb_ctx *sysdb,
+                                struct sss_domain_info *member_domain,
+                                const char *member,
+                                enum sysdb_member_type type,
+                                const char *const *add_groups,
+                                const char *const *del_groups);
 
 /* Password caching function.
  * If you are in a transaction ignore sysdb and pass in the handle.
