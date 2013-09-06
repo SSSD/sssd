@@ -112,6 +112,12 @@ errno_t get_sysdb_grouplist(TALLOC_CTX *mem_ctx,
                             const char *name,
                             char ***grouplist);
 
+errno_t get_sysdb_grouplist_dn(TALLOC_CTX *mem_ctx,
+                               struct sysdb_ctx *sysdb,
+                               struct sss_domain_info *domain,
+                               const char *name,
+                               char ***grouplist);
+
 /* from sdap_async_nested_groups.c */
 struct tevent_req *sdap_nested_group_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,
