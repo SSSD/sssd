@@ -345,7 +345,7 @@ done:
         DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
     }
     else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -401,7 +401,7 @@ done:
         DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
     }
     else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
 
     talloc_zfree(tmp_ctx);
@@ -462,7 +462,7 @@ done:
         DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
     }
     else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -518,7 +518,7 @@ done:
         DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
     }
     else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
 
     talloc_zfree(tmp_ctx);
@@ -579,7 +579,7 @@ done:
         DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
     }
     else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -641,7 +641,7 @@ done:
         DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
     }
     else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -2449,7 +2449,7 @@ fail:
         DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
     }
     else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -2782,7 +2782,7 @@ fail:
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC, ("Entry not found\n"));
     } else {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -3325,7 +3325,7 @@ done:
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC, ("No such entry.\n"));
     } else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
 
     talloc_zfree(tmp_ctx);
