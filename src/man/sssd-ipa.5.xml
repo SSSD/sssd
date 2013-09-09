@@ -282,11 +282,6 @@
                             bases.
                         </para>
                         <para>
-                            If filter is given in any of search bases and
-                            <emphasis>ipa_hbac_support_srchost</emphasis>
-                            is set to False, the filter will be ignored.
-                        </para>
-                        <para>
                             Default: the value of
                             <emphasis>ldap_search_base</emphasis>
                         </para>
@@ -454,24 +449,6 @@
                         </para>
                         <para>
                             Default: DENY_ALL
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ipa_hbac_support_srchost (boolean)</term>
-                    <listitem>
-                        <para>
-                            If this is set to false, then srchost as given
-                            to SSSD by PAM will be ignored.
-                        </para>
-                        <para>
-                            Note that if set to <emphasis>False</emphasis>,
-                            this option casuses filters given in
-                            <emphasis>ipa_host_search_base</emphasis> to be ignored;
-                        </para>
-                        <para>
-                            Default: false
                         </para>
                     </listitem>
                 </varlistentry>

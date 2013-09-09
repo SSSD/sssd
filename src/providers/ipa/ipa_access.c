@@ -346,6 +346,12 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
          *    we want all hosts
          */
         hostname = NULL;
+
+        /* THIS FEATURE IS DEPRECATED */
+        DEBUG(SSSDBG_MINOR_FAILURE, ("WARNING: Using deprecated option "
+                    "ipa_hbac_support_srchost.\n"));
+        sss_log(SSS_LOG_NOTICE, "WARNING: Using deprecated option "
+                    "ipa_hbac_support_srchost.\n");
     } else {
         hostname = dp_opt_get_string(hbac_ctx->ipa_options, IPA_HOSTNAME);
     }

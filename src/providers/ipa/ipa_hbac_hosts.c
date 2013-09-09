@@ -268,6 +268,11 @@ hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
         shosts->category = HBAC_CATEGORY_ALL;
         ret = EOK;
         goto done;
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("WARNING: Using deprecated option "
+                    "ipa_hbac_support_srchost.\n"));
+        sss_log(SSS_LOG_NOTICE, "WARNING: Using deprecated option "
+                    "ipa_hbac_support_srchost.\n");
     }
 
     ret = hbac_host_attrs_to_rule(tmp_ctx, domain,
