@@ -2891,6 +2891,8 @@ int main(int argc, const char *argv[])
         return 2;
     }
 
+    setenv(SSS_DOM_ENV, be_domain, 1);
+
     ret = die_if_parent_died();
     if (ret != EOK) {
         /* This is not fatal, don't return */

@@ -72,6 +72,8 @@ int debug_get_level(int old_level);
 int debug_convert_old_level(int old_level);
 errno_t set_debug_file_from_fd(const int fd);
 
+#define SSS_DOM_ENV           "_SSS_DOM"
+
 #define SSSDBG_FATAL_FAILURE  0x0010   /* level 0 */
 #define SSSDBG_CRIT_FAILURE   0x0020   /* level 1 */
 #define SSSDBG_OP_FAILURE     0x0040   /* level 2 */

@@ -65,6 +65,7 @@ void sss_log(int priority, const char *format, ...)
     int syslog_priority;
     int ret;
     char *message;
+    const char *domain;
 
     va_start(ap, format);
     ret = vasprintf(&message, format, ap);
@@ -75,8 +76,14 @@ void sss_log(int priority, const char *format, ...)
         return;
     }
 
+    domain = getenv(SSS_DOM_ENV);
+    if (domain == NULL) {
+        domain = "";
+    }
+
     syslog_priority = sss_to_syslog(priority);
     sd_journal_send("MESSAGE=%s", message,
+                    "SSSD_DOMAIN=%s", domain,
                     "PRIORITY=%i", syslog_priority,
                     "SYSLOG_FACILITY=%i", LOG_FAC(LOG_DAEMON),
                     "SYSLOG_IDENTIFIER=%s", debug_prg_name,

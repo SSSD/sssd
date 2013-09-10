@@ -423,6 +423,11 @@ int server_setup(const char *name, int flags,
 
     setenv("_SSS_LOOPS", "NO", 0);
 
+    /* To make sure the domain cannot be set from the environment, unset the
+     * variable explicitly when setting up any server. Backends later set the
+     * value after reading domain from the configuration */
+    unsetenv(SSS_DOM_ENV);
+
     setup_signals();
 
     /* we want default permissions on created files to be very strict,
