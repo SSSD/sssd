@@ -33,6 +33,8 @@ bool is_dn(const char *str)
     LDAPDN dn;
 
     ret = ldap_str2dn(str, &dn, LDAP_DN_FORMAT_LDAPV3);
+    ldap_dnfree(dn);
+
     return (ret == LDAP_SUCCESS ? true : false);
 }
 
