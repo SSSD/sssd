@@ -63,6 +63,30 @@ sdap_domain_get(struct sdap_options *opts,
     return sditer;
 }
 
+struct sdap_domain *
+sdap_domain_get_by_dn(struct sdap_options *opts,
+                      const char *dn)
+{
+    struct sdap_domain *sditer = NULL;
+    char *dc = NULL;
+
+    dc = strstr(dn, "dc=");
+    if (dc == NULL) {
+        dc = strstr(dn, "DC=");
+        if (dc == NULL) {
+            return NULL;
+        }
+    }
+
+    DLIST_FOR_EACH(sditer, opts->sdom) {
+        if (strcasecmp(sditer->basedn, dc) == 0) {
+            return sditer;
+        }
+    }
+
+    return NULL;
+}
+
 errno_t
 sdap_domain_add(struct sdap_options *opts,
                 struct sss_domain_info *dom,
