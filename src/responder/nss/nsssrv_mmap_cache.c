@@ -93,6 +93,34 @@ struct sss_mc_ctx {
     else used = false; \
 } while (0)
 
+static inline
+uint32_t sss_mc_next_slot_with_hash(struct sss_mc_rec *rec,
+                                    uint32_t hash)
+{
+    if (rec->hash1 == hash) {
+        return rec->next1;
+    } else if (rec->hash2 == hash) {
+        return rec->next2;
+    } else {
+        /* it should never happen. */
+        return MC_INVALID_VAL;
+    }
+}
+
+static inline
+void sss_mc_chain_slot_to_record_with_hash(struct sss_mc_rec *rec,
+                                           uint32_t hash,
+                                           uint32_t slot)
+{
+    /* changing a single uint32_t is atomic, so there is no
+     * need to use barriers in this case */
+    if (rec->hash1 == hash) {
+        rec->next1 = slot;
+    } else if (rec->hash2 == hash) {
+        rec->next2 = slot;
+    }
+}
+
 /* This function will store corrupted memcache to disk for later
  * analysis. */
 static void  sss_mc_save_corrupted(struct sss_mc_ctx *mc_ctx)
@@ -196,13 +224,12 @@ static void sss_mc_add_rec_to_chain(struct sss_mc_ctx *mcc,
             /* rec already stored in hash chain */
             return;
         }
-        slot = cur->next;
+        slot = sss_mc_next_slot_with_hash(cur, hash);
     } while (slot != MC_INVALID_VAL);
     /* end of chain, append our record here */
 
-    /* changing a single uint32_t is atomic, so there is no
-     * need to use barriers in this case */
-    cur->next = MC_PTR_TO_SLOT(mcc->data_table, rec);
+    slot = MC_PTR_TO_SLOT(mcc->data_table, rec);
+    sss_mc_chain_slot_to_record_with_hash(cur, hash, slot);
 }
 
 static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
@@ -230,19 +257,19 @@ static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
     }
     cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
     if (cur == rec) {
-        mcc->hash_table[hash] = rec->next;
+        mcc->hash_table[hash] = sss_mc_next_slot_with_hash(rec, hash);
     } else {
-        slot = cur->next;
+        slot = sss_mc_next_slot_with_hash(cur, hash);
         while (slot != MC_INVALID_VAL) {
             prev = cur;
             cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
             if (cur == rec) {
-                /* changing a single uint32_t is atomic, so there is no
-                 * need to use barriers in this case */
-                prev->next = cur->next;
+                slot = sss_mc_next_slot_with_hash(cur, hash);
+
+                sss_mc_chain_slot_to_record_with_hash(prev, hash, slot);
                 slot = MC_INVALID_VAL;
             } else {
-                slot = cur->next;
+                slot = sss_mc_next_slot_with_hash(cur, hash);
             }
         }
     }
@@ -284,7 +311,8 @@ static void sss_mc_invalidate_rec(struct sss_mc_ctx *mcc,
                                         - sizeof(struct sss_mc_rec)));
     rec->len = MC_INVALID_VAL32;
     rec->expire = MC_INVALID_VAL64;
-    rec->next = MC_INVALID_VAL32;
+    rec->next1 = MC_INVALID_VAL32;
+    rec->next2 = MC_INVALID_VAL32;
     rec->hash1 = MC_INVALID_VAL32;
     rec->hash2 = MC_INVALID_VAL32;
     MC_LOWER_BARRIER(rec);
@@ -313,7 +341,7 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
         return false;
     }
 
-    /* rec->next can be invalid if there are no next records */
+    /* next record can be invalid if there are no next records */
 
     if (rec->hash1 == MC_INVALID_VAL32) {
         return false;
@@ -322,7 +350,7 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
         slot = mcc->hash_table[rec->hash1];
         while (slot != MC_INVALID_VAL32 && self != rec) {
             self = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
-            slot = self->next;
+            slot = sss_mc_next_slot_with_hash(self, rec->hash1);
         }
         if (self != rec) {
             return false;
@@ -333,7 +361,7 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
         slot = mcc->hash_table[rec->hash2];
         while (slot != MC_INVALID_VAL32 && self != rec) {
             self = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
-            slot = self->next;
+            slot = sss_mc_next_slot_with_hash(self, rec->hash2);
         }
         if (self != rec) {
             return false;
@@ -527,7 +555,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
             break;
         }
 
-        slot = rec->next;
+        slot = sss_mc_next_slot_with_hash(rec, hash);
     }
 
     if (slot == MC_INVALID_VAL) {
@@ -583,7 +611,9 @@ static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
     /* mark as not valid yet */
     MC_RAISE_INVALID_BARRIER(rec);
     rec->len = rec_len;
-    rec->next = MC_INVALID_VAL;
+    rec->next1 = MC_INVALID_VAL;
+    rec->next2 = MC_INVALID_VAL;
+    rec->padding = MC_INVALID_VAL;
     MC_LOWER_BARRIER(rec);
 
     /* and now mark slots as used */
@@ -769,7 +799,7 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
             break;
         }
 
-        slot = rec->next;
+        slot = sss_mc_next_slot_with_hash(rec, hash);
     }
 
     if (slot == MC_INVALID_VAL) {
@@ -908,7 +938,7 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
             break;
         }
 
-        slot = rec->next;
+        slot = sss_mc_next_slot_with_hash(rec, hash);
     }
 
     if (slot == MC_INVALID_VAL) {

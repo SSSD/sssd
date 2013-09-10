@@ -53,15 +53,15 @@ typedef uint32_t rel_ptr_t;
 #define MC_INVALID_VAL MC_INVALID_VAL32
 
 /*
- * 32 seem a good compromise for slot size
+ * 40 seem a good compromise for slot size
  * 4 blocks are enough for the average passwd entry of 42 bytes
- * passwd records have 84 bytes of overhead, 128 - 82 = 46 bytes
- * 3 blocks can contain a very minimal entry, 96 - 82 = 14 bytes
+ * passwd records have 84 bytes of overhead, 160 - 82 = 78 bytes
+ * 3 blocks can contain a very minimal entry, 120 - 82 = 38 bytes
  *
  * 3 blocks are enough for groups w/o users (private user groups)
- * group records have 68 bytes of overhead, 96 - 66 = 30 bytes
+ * group records have 68 bytes of overhead, 120 - 66 = 54 bytes
  */
-#define MC_SLOT_SIZE 32
+#define MC_SLOT_SIZE 40
 #define MC_SIZE_TO_SLOTS(len) (((len) + (MC_SLOT_SIZE - 1)) / MC_SLOT_SIZE)
 #define MC_PTR_TO_SLOT(base, ptr) (MC_PTR_DIFF(ptr, base) / MC_SLOT_SIZE)
 #define MC_SLOT_TO_PTR(base, slot, type) \
@@ -78,8 +78,8 @@ typedef uint32_t rel_ptr_t;
                             - MC_PTR_DIFF(rec, (mc_ctx)->data_table))))
 
 
-#define SSS_MC_MAJOR_VNO    0
-#define SSS_MC_MINOR_VNO    4
+#define SSS_MC_MAJOR_VNO    1
+#define SSS_MC_MINOR_VNO    0
 
 #define SSS_MC_HEADER_UNINIT    0   /* after ftruncate or before reset */
 #define SSS_MC_HEADER_ALIVE     1   /* current and in use */
@@ -106,9 +106,13 @@ struct sss_mc_rec {
     uint32_t b1;            /* barrier 1 */
     uint32_t len;           /* total record length including record data */
     uint64_t expire;        /* record expiration time (cast to time_t) */
-    rel_ptr_t next;         /* ptr of next record rel to data_table */
+    rel_ptr_t next1;        /* ptr of next record rel to data_table */
+                            /* next1 is related to hash1 */
+    rel_ptr_t next2;        /* ptr of next record rel to data_table */
+                            /* next2 is related to hash2 */
     uint32_t hash1;         /* val of first hash (usually name of record) */
     uint32_t hash2;         /* val of second hash (usually id of record) */
+    uint32_t padding;       /* padding & reserved for future changes */
     uint32_t b2;            /* barrier 2 - 32 bytes mark, fits a slot */
     char data[0];
 };

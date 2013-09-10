@@ -291,3 +291,16 @@ errno_t sss_nss_str_ptr_from_buffer(char **str, void **cookie,
     return 0;
 }
 
+uint32_t sss_nss_mc_next_slot_with_hash(struct sss_mc_rec *rec,
+                                        uint32_t hash)
+{
+    if (rec->hash1 == hash) {
+        return rec->next1;
+    } else if (rec->hash2 == hash) {
+        return rec->next2;
+    } else {
+        /* it should never happen. */
+        return MC_INVALID_VAL;
+    }
+
+}

@@ -130,7 +130,7 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
         /* check record matches what we are searching for */
         if (hash != rec->hash1) {
             /* if name hash does not match we can skip this immediately */
-            slot = rec->next;
+            slot = sss_nss_mc_next_slot_with_hash(rec, hash);
             continue;
         }
 
@@ -152,7 +152,7 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
             break;
         }
 
-        slot = rec->next;
+        slot = sss_nss_mc_next_slot_with_hash(rec, hash);
     }
 
     if (!MC_SLOT_WITHIN_BOUNDS(slot, gr_mc_ctx.dt_size)) {
@@ -205,7 +205,7 @@ errno_t sss_nss_mc_getgrgid(gid_t gid,
         /* check record matches what we are searching for */
         if (hash != rec->hash2) {
             /* if uid hash does not match we can skip this immediately */
-            slot = rec->next;
+            slot = sss_nss_mc_next_slot_with_hash(rec, hash);
             continue;
         }
 
@@ -214,7 +214,7 @@ errno_t sss_nss_mc_getgrgid(gid_t gid,
             break;
         }
 
-        slot = rec->next;
+        slot = sss_nss_mc_next_slot_with_hash(rec, hash);
     }
 
     if (!MC_SLOT_WITHIN_BOUNDS(slot, gr_mc_ctx.dt_size)) {
