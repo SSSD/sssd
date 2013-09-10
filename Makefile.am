@@ -767,8 +767,11 @@ sss_userdel_SOURCES = \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_userdel_LDADD = \
     $(TOOLS_LIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
-sss_userdel_CFLAGS = $(AM_CFLAGS)
+sss_userdel_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS)
 sss_userdel_LDFLAGS = \
     $(CLIENT_LIBS)
 
@@ -973,12 +976,14 @@ krb5_utils_tests_SOURCES = \
     $(SSSD_FAILOVER_OBJ)
 krb5_utils_tests_CFLAGS = \
     $(AM_CFLAGS) \
-    $(CHECK_CFLAGS)
+    $(CHECK_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS)
 krb5_utils_tests_LDADD = \
     $(SSSD_LIBS)\
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(CHECK_LIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
@@ -1075,12 +1080,14 @@ find_uid_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
     $(DHASH_CFLAGS) \
-    $(CHECK_CFLAGS)
+    $(CHECK_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS)
 find_uid_tests_LDADD = \
     libsss_debug.la \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     $(CHECK_LIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
     libsss_test_common.la
 
 auth_tests_SOURCES = \
@@ -1234,12 +1241,14 @@ krb5_child_test_SOURCES = \
 krb5_child_test_CFLAGS = \
     $(AM_CFLAGS) \
     -DKRB5_CHILD_DIR=\"$(builddir)\" \
-    $(CHECK_CFLAGS)
+    $(CHECK_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS)
 krb5_child_test_LDADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(CHECK_LIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
@@ -1286,11 +1295,13 @@ test_find_uid_SOURCES = \
 test_find_uid_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
-    $(DHASH_CFLAGS)
+    $(DHASH_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS)
 test_find_uid_LDADD = \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     $(CMOCKA_LIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
     libsss_debug.la
 
 test_io_SOURCES = \
@@ -1540,12 +1551,14 @@ libsss_ldap_la_SOURCES = \
     src/util/sss_krb5.c
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS) \
     $(LDAP_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ldap_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
     libsss_ldap_common.la \
     libsss_idmap.la
 libsss_ldap_la_LDFLAGS = \
@@ -1584,8 +1597,10 @@ libsss_krb5_la_SOURCES = \
     src/util/sss_krb5.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS) \
     $(DHASH_CFLAGS)
 libsss_krb5_la_LIBADD = \
+    $(SYSTEMD_LOGIN_LIBS) \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
@@ -1631,11 +1646,13 @@ libsss_ipa_la_SOURCES = \
     src/util/sss_krb5.c
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS) \
     $(LDAP_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ipa_la_LIBADD = \
+    $(SYSTEMD_LOGIN_LIBS) \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(NDR_NBT_LIBS) \
@@ -1683,11 +1700,13 @@ libsss_ad_la_SOURCES = \
 
 libsss_ad_la_CFLAGS = \
     $(AM_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS) \
     $(LDAP_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS) \
     $(NDR_NBT_CFLAGS)
 libsss_ad_la_LIBADD = \
+    $(SYSTEMD_LOGIN_LIBS) \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \

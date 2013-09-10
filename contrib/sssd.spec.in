@@ -125,6 +125,9 @@ BuildRequires: libnl3-devel
 %else
 BuildRequires: libnl-devel
 %endif
+%if (0%{?use_systemd} == 1)
+BuildRequires: systemd-devel
+%endif
 
 # RHEL 5 is too old to support samba4 and the PAC responder
 %if !0%{?is_rhel5}

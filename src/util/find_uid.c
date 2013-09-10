@@ -40,6 +40,10 @@
 #include "util/util.h"
 #include "util/strtonum.h"
 
+#ifdef HAVE_SYSTEMD_LOGIN
+#include <systemd/sd-login.h>
+#endif
+
 #define INITIAL_TABLE_SIZE 64
 #define PATHLEN (NAME_MAX + 14)
 #define BUFSIZE 4096
@@ -300,6 +304,22 @@ errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table)
 errno_t check_if_uid_is_active(uid_t uid, bool *result)
 {
     int ret;
+
+#ifdef HAVE_SYSTEMD_LOGIN
+    ret = sd_uid_get_sessions(uid, 0, NULL);
+    if (ret > 0) {
+        *result = true;
+    }
+    if (ret == 0) {
+        *result = false;
+    }
+    if (ret >= 0) {
+        return EOK;
+    }
+    DEBUG(SSSDBG_CRIT_FAILURE, ("systemd-login gave error %d: %s\n",
+                                -ret, strerror(-ret)));
+    /* fall back to the old method */
+#endif
 
     ret = get_active_uid_linux(NULL, uid);
     if (ret != EOK && ret != ENOENT) {
