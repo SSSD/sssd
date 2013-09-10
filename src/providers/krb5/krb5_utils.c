@@ -851,6 +851,8 @@ static errno_t sss_destroy_ccache(struct sss_krb5_ccache *cc)
         KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
         DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_destroy failed.\n"));
         ret = EIO;
+    } else {
+        ret = EOK;
     }
 
     /* krb5_cc_destroy frees cc->ccache in all events */
