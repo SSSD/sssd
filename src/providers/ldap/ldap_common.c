@@ -69,6 +69,7 @@ sdap_domain_add(struct sdap_options *opts,
                 struct sdap_domain **_sdom)
 {
     struct sdap_domain *sdom;
+    errno_t ret;
 
     sdom = talloc_zero(opts, struct sdap_domain);
     if (sdom == NULL) {
@@ -77,11 +78,27 @@ sdap_domain_add(struct sdap_options *opts,
     sdom->dom = dom;
     sdom->head = &opts->sdom;
 
+    /* Convert the domain name into search base */
+    ret = domain_to_basedn(sdom, sdom->dom->name, &sdom->basedn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+            ("Cannot convert domain name [%s] to base DN [%d]: %s\n",
+            dom->name, ret, strerror(ret)));
+        goto done;
+    }
+
     talloc_set_destructor((TALLOC_CTX *)sdom, sdap_domain_destructor);
     DLIST_ADD_END(opts->sdom, sdom, struct sdap_domain *);
 
     if (_sdom) *_sdom = sdom;
-    return EOK;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(sdom);
+    }
+
+    return ret;
 }
 
 errno_t
@@ -91,7 +108,6 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
 {
     struct sss_domain_info *dom;
     struct sdap_domain *sdom, *sditer;
-    char *basedn;
     errno_t ret;
 
     for (dom = get_next_domain(parent, true);
@@ -120,16 +136,6 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
             sdom = sditer;
         }
 
-        /* Convert the domain name into search base */
-        ret = domain_to_basedn(sdom, sdom->dom->name, &basedn);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                ("Cannot convert domain name [%s] to base DN [%d]: %s\n",
-                dom->name, ret, strerror(ret)));
-            talloc_free(basedn);
-            return ret;
-        }
-
         /* Update search bases */
         talloc_zfree(sdom->search_bases);
         sdom->search_bases = talloc_array(sdom, struct sdap_search_base *, 2);
@@ -138,9 +144,8 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
         }
         sdom->search_bases[1] = NULL;
 
-        ret = sdap_create_search_base(sdom, basedn, LDAP_SCOPE_SUBTREE, NULL,
-                                      &sdom->search_bases[0]);
-        talloc_free(basedn);
+        ret = sdap_create_search_base(sdom, sdom->basedn, LDAP_SCOPE_SUBTREE,
+                                      NULL, &sdom->search_bases[0]);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Cannot create new sdap search base\n"));
             return ret;
