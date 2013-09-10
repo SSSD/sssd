@@ -898,7 +898,7 @@ ldb_mod_test_dir: memberof.la
 	mkdir -p $(builddir)/ldb_mod_test_dir
 	cp $(builddir)/.libs/memberof.so $(builddir)/ldb_mod_test_dir
 
-noinst_LTLIBRARIES += \
+check_LTLIBRARIES = \
     libsss_test_common.la
 
 libsss_test_common_la_SOURCES = \
@@ -914,7 +914,7 @@ if HAVE_CHECK
 libsss_test_common_la_SOURCES += \
     src/tests/common_check.c
 
-check_LTLIBRARIES = \
+check_LTLIBRARIES += \
     libdlopen_test_providers.la
 
 libdlopen_test_providers_la_SOURCES = \
