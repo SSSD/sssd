@@ -175,7 +175,8 @@ sdap_dn_by_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_attrs *ldap_attrs,
     return EOK;
 }
 
-static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
+static int sdap_fill_memberships(struct sdap_options *opts,
+                                 struct sysdb_attrs *group_attrs,
                                  struct sysdb_ctx *ctx,
                                  struct sss_domain_info *domain,
                                  hash_table_t *ghosts,
@@ -190,6 +191,9 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
     errno_t hret;
     hash_key_t key;
     hash_value_t value;
+    struct sdap_domain *sdom;
+    struct sysdb_ctx *member_sysdb;
+    struct sss_domain_info *member_dom;
 
     ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
     if (ret) {
@@ -215,9 +219,20 @@ static int sdap_fill_memberships(struct sysdb_attrs *group_attrs,
         }
 
         if (hret == HASH_ERROR_KEY_NOT_FOUND) {
+            sdom = sdap_domain_get_by_dn(opts, (char *)values[i].data);
+            if (sdom == NULL) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Member [%s] is it out of domain "
+                      "scope?\n", (char *)values[i].data));
+                member_sysdb = ctx;
+                member_dom = domain;
+            } else {
+                member_sysdb = sdom->dom->sysdb;
+                member_dom = sdom->dom;
+            }
+
             /* sync search entry with this as origDN */
-            ret = sdap_find_entry_by_origDN(el->values, ctx, domain,
-                                            (char *)values[i].data,
+            ret = sdap_find_entry_by_origDN(el->values, member_sysdb,
+                                            member_dom, (char *)values[i].data,
                                             (char **)&el->values[j].data);
             if (ret == ENOENT) {
                 /* member may be outside of the configured search bases
@@ -720,7 +735,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
             goto fail;
         }
 
-        ret = sdap_fill_memberships(group_attrs, ctx, dom, ghosts,
+        ret = sdap_fill_memberships(opts, group_attrs, ctx, dom, ghosts,
                                     el->values, el->num_values,
                                     userdns, nuserdns);
         if (ret) {
