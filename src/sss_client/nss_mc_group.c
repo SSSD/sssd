@@ -27,6 +27,7 @@
 #include <sys/mman.h>
 #include <time.h>
 #include "nss_mc.h"
+#include "util/util_safealign.h"
 
 struct sss_cli_mc_ctx gr_mc_ctx = { false, -1, 0, NULL, 0, NULL, 0, NULL, 0 };
 
@@ -64,7 +65,14 @@ static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
 
     /* fill in group */
     result->gr_gid = data->gid;
-    result->gr_mem = (char **)buffer;
+
+    /* The address &buffer[0] must be aligned to sizeof(char *) */
+    if (!IS_ALIGNED(buffer, char *)) {
+        /* The buffer is not properly aligned. */
+        return EFAULT;
+    }
+
+    result->gr_mem = (char **)DISCARD_ALIGN(buffer);
     result->gr_mem[data->members] = NULL;
 
     cookie = NULL;

@@ -127,11 +127,8 @@ sss_nss_getsvc_readrep(struct sss_nss_svc_rep *sr,
                                   NULL);
     if (ret != EOK) return ret;
 
-    /* Make sure sr->buffer[i+pad] is 32-bit aligned */
-    pad = 0;
-    while((i + pad) % 4) {
-        pad++;
-    }
+    /* Make sure sr->buffer[i+pad] is aligned to sizeof(char *) */
+    pad = PADDING_SIZE(i, char *);
 
     /* Copy in the aliases */
     sr->result->s_aliases = (char **) &(sr->buffer[i+pad]);

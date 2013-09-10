@@ -233,14 +233,12 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
                                   NULL);
     if (ret != EOK) return ret;
 
-    /* Make sure pr->buffer[i+pad] is 32 bit aligned */
-    pad = 0;
-    while((i + pad) % 4) {
-        pad++;
-    }
+    /* Make sure pr->buffer[i+pad] is aligned to sizeof(char *) */
+    pad = PADDING_SIZE(i, char *);
 
     /* now members */
     pr->result->gr_mem = (char **)&(pr->buffer[i+pad]);
+
     ptmem = (sizeof(char *) * (mem_num + 1)) + pad;
     if (ptmem > dlen) {
         return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */

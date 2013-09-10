@@ -32,6 +32,16 @@
 #include <string.h>
 #include <stdint.h>
 
+/* Use this macro to suppress alignment warnings (use it
+ * only to suppress false-positives) */
+#define DISCARD_ALIGN(ptr) ((void *)(ptr))
+
+#define IS_ALIGNED(ptr, type) \
+    ((uintptr_t)(ptr) % sizeof(type) == 0)
+
+#define PADDING_SIZE(base, type) \
+    ((sizeof(type) - ((base) % sizeof(type))) % sizeof(type))
+
 #define SIZE_T_OVERFLOW(current, add) \
                         (((size_t)(add)) > (SIZE_MAX - ((size_t)(current))))
 
