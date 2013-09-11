@@ -200,7 +200,6 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     struct passwd *pwd;
     bool private = false;
     errno_t ret;
-    const char *tmpl;
 
     /* The top level child request */
     kr = talloc_zero(mem_ctx, struct krb5child_req);
@@ -233,9 +232,6 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
         ret = dp_opt_set_string(kr->krb5_ctx->opts, KRB5_CCNAME_TMPL,
                                 ccname_template);
         if (ret != EOK) goto fail;
-        tmpl = ccname_template;
-    } else {
-        tmpl = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_CCNAME_TMPL);
     }
 
     if (timeout) {
