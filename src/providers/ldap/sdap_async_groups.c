@@ -2016,6 +2016,8 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
     const char *username;
     char *clean_orig_dn;
     const char *original_dn;
+    struct sss_domain_info *user_dom;
+    struct sdap_domain *sdap_dom;
 
     TALLOC_CTX *tmp_ctx;
     struct ldb_message **msgs;
@@ -2056,14 +2058,6 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
     in_transaction = true;
 
     for (i = 0; i < num_users; i++) {
-        ret = sdap_get_user_primary_name(tmp_ctx, opts, users[i],
-                                         domain, &username);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("User entry %d has no name attribute. Skipping\n", i));
-            continue;
-        }
-
         ret = sysdb_attrs_get_el(users[i], SYSDB_ORIG_DN, &el);
         if (el->num_values == 0) {
             ret = EINVAL;
@@ -2083,6 +2077,17 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
+        sdap_dom = sdap_domain_get_by_dn(opts, original_dn);
+        user_dom = sdap_dom == NULL ? domain : sdap_dom->dom;
+
+        ret = sdap_get_user_primary_name(tmp_ctx, opts, users[i],
+                                         user_dom, &username);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("User entry %d has no name attribute. Skipping\n", i));
+            continue;
+        }
+
         /* Check for the specified origDN in the sysdb */
         filter = talloc_asprintf(tmp_ctx, "(%s=%s)",
                                  SYSDB_ORIG_DN,
@@ -2091,7 +2096,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
-        ret = sysdb_search_users(tmp_ctx, sysdb, domain, filter,
+        ret = sysdb_search_users(tmp_ctx, user_dom->sysdb, user_dom, filter,
                                  search_attrs, &count, &msgs);
         talloc_zfree(filter);
         talloc_zfree(clean_orig_dn);
@@ -2120,7 +2125,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
 
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, username);
             if (ret) goto done;
-            ret = sysdb_set_user_attr(sysdb, domain, sysdb_name,
+            ret = sysdb_set_user_attr(user_dom->sysdb, user_dom, sysdb_name,
                                       attrs, SYSDB_MOD_REP);
             if (ret != EOK) goto done;
         } else {
