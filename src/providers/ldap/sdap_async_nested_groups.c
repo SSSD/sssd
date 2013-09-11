@@ -328,11 +328,14 @@ done:
 }
 
 static errno_t
-sdap_nested_group_check_cache(struct sss_domain_info *domain,
+sdap_nested_group_check_cache(struct sdap_options *opts,
+                              struct sss_domain_info *domain,
                               const char *member_dn,
                               enum sdap_nested_group_dn_type *_type)
 {
     TALLOC_CTX *tmp_ctx = NULL;
+    struct sdap_domain *sdap_domain = NULL;
+    struct sss_domain_info *member_domain = NULL;
     char *sanitized_dn = NULL;
     char *filter = NULL;
     errno_t ret;
@@ -354,8 +357,12 @@ sdap_nested_group_check_cache(struct sss_domain_info *domain,
         goto done;
     }
 
+    /* determine correct domain of this member */
+    sdap_domain = sdap_domain_get_by_dn(opts, member_dn);
+    member_domain = sdap_domain == NULL ? domain : sdap_domain->dom;
+
     /* search in users */
-    ret = sdap_nested_group_sysdb_search_users(domain, filter);
+    ret = sdap_nested_group_sysdb_search_users(member_domain, filter);
     if (ret == EOK || ret == EAGAIN) {
         /* user found */
         *_type = SDAP_NESTED_GROUP_DN_USER;
@@ -366,7 +373,7 @@ sdap_nested_group_check_cache(struct sss_domain_info *domain,
     }
 
     /* search in groups */
-    ret = sdap_nested_group_sysdb_search_groups(domain, filter);
+    ret = sdap_nested_group_sysdb_search_groups(member_domain, filter);
     if (ret == EOK || ret == EAGAIN) {
         /* group found */
         *_type = SDAP_NESTED_GROUP_DN_GROUP;
@@ -453,7 +460,8 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
         }
 
         /* check sysdb */
-        ret = sdap_nested_group_check_cache(group_ctx->domain, dn, &type);
+        ret = sdap_nested_group_check_cache(group_ctx->opts, group_ctx->domain,
+                                            dn, &type);
         if (ret == EOK) {
             /* found and valid */
             DEBUG(SSSDBG_TRACE_ALL, ("[%s] found in cache, skipping\n", dn));
