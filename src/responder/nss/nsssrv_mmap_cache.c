@@ -205,27 +205,6 @@ static void sss_mc_add_rec_to_chain(struct sss_mc_ctx *mcc,
     cur->next = MC_PTR_TO_SLOT(mcc->data_table, rec);
 }
 
-static inline uint32_t
-sss_mc_get_next_slot_with_hash(struct sss_mc_ctx *mcc,
-                               struct sss_mc_rec *start_rec,
-                               uint32_t hash)
-{
-    struct sss_mc_rec *rec;
-    uint32_t slot;
-
-    slot = start_rec->next;
-    while (slot != MC_INVALID_VAL) {
-        rec = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
-        if (rec->hash1 == hash || rec->hash2 == hash) {
-            break;
-        }
-
-        slot = rec->next;
-    }
-
-    return slot;
-}
-
 static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
                                      struct sss_mc_rec *rec,
                                      uint32_t hash)
@@ -251,11 +230,7 @@ static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
     }
     cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
     if (cur == rec) {
-        /* rec->next can refer to record without matching hashes.
-         * We need to skip this(those) records, because
-         * mcc->hash_table[hash] have to refer to valid start of the chain.
-         */
-        mcc->hash_table[hash] = sss_mc_get_next_slot_with_hash(mcc, rec, hash);
+        mcc->hash_table[hash] = rec->next;
     } else {
         slot = cur->next;
         while (slot != MC_INVALID_VAL) {
@@ -263,14 +238,7 @@ static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
             cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
             if (cur == rec) {
                 /* changing a single uint32_t is atomic, so there is no
-                 * need to use barriers in this case.
-                 *
-                 * This situation is different to the removing record from
-                 * the beggining of the chain. The record have to only be
-                 * removed from chain, because this chain can be
-                 * subset or supperset of another chain and we don't want
-                 * to break another chains.
-                 */
+                 * need to use barriers in this case */
                 prev->next = cur->next;
                 slot = MC_INVALID_VAL;
             } else {
