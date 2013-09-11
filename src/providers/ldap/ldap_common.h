@@ -171,7 +171,7 @@ errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
                                struct sdap_id_conn_ctx *conn,
                                struct sdap_domain *sdom);
 errno_t ldap_id_cleanup(struct sdap_options *opts,
-                        struct sss_domain_info *dom);
+                        struct sdap_domain *sdom);
 int ldap_id_cleanup_create_timer(struct sdap_id_ctx *ctx,
                                  struct sdap_domain *sdom,
                                  struct timeval tv);

@@ -60,7 +60,7 @@ static void ldap_id_cleanup_timer(struct tevent_context *ev,
         return;
     }
 
-    ret = ldap_id_cleanup(cctx->ctx->opts, cctx->sdom->dom);
+    ret = ldap_id_cleanup(cctx->ctx->opts, cctx->sdom);
     if (ret != EOK) {
         /* On error schedule starting from now, not the last run */
         tv = tevent_timeval_current();
@@ -71,7 +71,6 @@ static void ldap_id_cleanup_timer(struct tevent_context *ev,
     delay = dp_opt_get_int(cctx->ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
     tv = tevent_timeval_add(&tv, delay, 0);
     ldap_id_cleanup_set_timer(cctx, tv);
-    cctx->sdom->last_purge = tevent_timeval_current();
 }
 
 static errno_t ldap_id_cleanup_set_timer(struct ldap_id_cleanup_ctx *cctx,
@@ -116,7 +115,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
                           struct sss_domain_info *domain);
 
 errno_t ldap_id_cleanup(struct sdap_options *opts,
-                        struct sss_domain_info *dom)
+                        struct sdap_domain *sdom)
 {
     int ret, tret;
     bool in_transaction = false;
@@ -127,34 +126,35 @@ errno_t ldap_id_cleanup(struct sdap_options *opts,
         return ENOMEM;
     }
 
-    ret = sysdb_transaction_start(dom->sysdb);
+    ret = sysdb_transaction_start(sdom->dom->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
     }
     in_transaction = true;
 
-    ret = cleanup_users(opts, dom);
+    ret = cleanup_users(opts, sdom->dom);
     if (ret && ret != ENOENT) {
         goto done;
     }
 
-    ret = cleanup_groups(tmp_ctx, dom->sysdb, dom);
+    ret = cleanup_groups(tmp_ctx, sdom->dom->sysdb, sdom->dom);
     if (ret) {
         goto done;
     }
 
-    ret = sysdb_transaction_commit(dom->sysdb);
+    ret = sysdb_transaction_commit(sdom->dom->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto done;
     }
     in_transaction = false;
 
+    sdom->last_purge = tevent_timeval_current();
     ret = EOK;
 done:
     if (in_transaction) {
-        tret = sysdb_transaction_cancel(dom->sysdb);
+        tret = sysdb_transaction_cancel(sdom->dom->sysdb);
         if (tret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
         }

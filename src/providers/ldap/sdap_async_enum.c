@@ -311,7 +311,7 @@ static void sdap_dom_enum_services_done(struct tevent_req *subreq)
     }
 
     if (state->purge) {
-        ret = ldap_id_cleanup(state->ctx->opts, state->sdom->dom);
+        ret = ldap_id_cleanup(state->ctx->opts, state->sdom);
         if (ret != EOK) {
             /* Not fatal, worst case we'll have stale entries that would be
              * removed on a subsequent online lookup
