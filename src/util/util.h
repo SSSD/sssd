@@ -548,6 +548,10 @@ struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
                                                bool match_any);
 struct sss_domain_info *find_subdomain_by_sid(struct sss_domain_info *domain,
                                               const char *sid);
+struct sss_domain_info *
+find_subdomain_by_object_name(struct sss_domain_info *domain,
+                              const char *object_name);
+
 bool subdomain_enumerates(struct sss_domain_info *parent,
                           const char *sd_name);
 

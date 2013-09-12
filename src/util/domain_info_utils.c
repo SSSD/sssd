@@ -128,6 +128,41 @@ struct sss_domain_info *find_subdomain_by_sid(struct sss_domain_info *domain,
     return NULL;
 }
 
+struct sss_domain_info *
+find_subdomain_by_object_name(struct sss_domain_info *domain,
+                              const char *object_name)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sss_domain_info *dom = NULL;
+    char *domainname = NULL;
+    char *name = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return NULL;
+    }
+
+    ret = sss_parse_name(tmp_ctx, domain->names, object_name,
+                         &domainname, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to parse name '%s' [%d]: %s\n",
+                                    object_name, ret, sss_strerror(ret)));
+        goto done;
+    }
+
+    if (domainname == NULL) {
+        dom = domain;
+    } else {
+        dom = find_subdomain_by_name(domain, domainname, true);
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return dom;
+}
+
 struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *parent,
                                       const char *name,
