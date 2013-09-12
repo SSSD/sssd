@@ -13,7 +13,7 @@
 
     <refnamediv id='name'>
         <refname>sssd_krb5_locator_plugin</refname>
-        <refpurpose>the configuration file for SSSD</refpurpose>
+        <refpurpose>Kerberos locator plugin</refpurpose>
     </refnamediv>
 
     <refsect1 id='description'>

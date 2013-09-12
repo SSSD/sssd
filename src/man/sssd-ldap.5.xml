@@ -14,7 +14,7 @@
 
     <refnamediv id='name'>
         <refname>sssd-ldap</refname>
-        <refpurpose>the configuration file for SSSD</refpurpose>
+        <refpurpose>SSSD LDAP provider</refpurpose>
     </refnamediv>
 
     <refsect1 id='description'>

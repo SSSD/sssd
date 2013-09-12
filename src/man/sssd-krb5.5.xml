@@ -14,7 +14,7 @@
 
     <refnamediv id='name'>
         <refname>sssd-krb5</refname>
-        <refpurpose>the configuration file for SSSD</refpurpose>
+        <refpurpose>SSSD Kerberos provider</refpurpose>
     </refnamediv>
 
     <refsect1 id='description'>

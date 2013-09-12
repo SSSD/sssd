@@ -14,7 +14,7 @@
 
     <refnamediv id='name'>
         <refname>sssd-ad</refname>
-        <refpurpose>the configuration file for SSSD</refpurpose>
+        <refpurpose>SSSD Active Directory provider</refpurpose>
     </refnamediv>
 
     <refsect1 id='description'>

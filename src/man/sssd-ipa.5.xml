@@ -14,7 +14,7 @@
 
     <refnamediv id='name'>
         <refname>sssd-ipa</refname>
-        <refpurpose>the configuration file for SSSD</refpurpose>
+        <refpurpose>SSSD IPA provider</refpurpose>
     </refnamediv>
 
     <refsect1 id='description'>
