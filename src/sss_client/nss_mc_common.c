@@ -113,8 +113,8 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
     char *envval;
     int ret;
 
-    envval = getenv("_SSS_MC_SPECIAL");
-    if (envval && strcmp(envval, "NO") == 0) {
+    envval = getenv("SSS_NSS_USE_MEMCACHE");
+    if (envval && strcasecmp(envval, "NO") == 0) {
         return EPERM;
     }
 
