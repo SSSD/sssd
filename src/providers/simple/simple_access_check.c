@@ -44,13 +44,22 @@ static errno_t
 simple_check_users(struct simple_ctx *ctx, const char *username,
                    bool *access_granted)
 {
+    struct sss_domain_info *domain = NULL;
     int i;
-    bool cs = ctx->domain->case_sensitive;
 
     /* First, check whether the user is in the allowed users list */
     if (ctx->allow_users != NULL) {
         for(i = 0; ctx->allow_users[i] != NULL; i++) {
-            if (sss_string_equal(cs, username, ctx->allow_users[i])) {
+            domain = find_subdomain_by_object_name(ctx->domain,
+                                                   ctx->allow_users[i]);
+            if (domain == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid user %s!\n",
+                                            ctx->allow_users[i]));
+                return EINVAL;
+            }
+
+            if (sss_string_equal(domain->case_sensitive, username,
+                                 ctx->allow_users[i])) {
                 DEBUG(SSSDBG_TRACE_LIBS,
                       ("User [%s] found in allow list, access granted.\n",
                       username));
@@ -74,10 +83,19 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
     /* Next check whether this user has been specifically denied */
     if (ctx->deny_users != NULL) {
         for(i = 0; ctx->deny_users[i] != NULL; i++) {
-            if (sss_string_equal(cs, username, ctx->deny_users[i])) {
+            domain = find_subdomain_by_object_name(ctx->domain,
+                                                   ctx->deny_users[i]);
+            if (domain == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid user %s!\n",
+                                            ctx->deny_users[i]));
+                return EINVAL;
+            }
+
+            if (sss_string_equal(domain->case_sensitive, username,
+                                 ctx->deny_users[i])) {
                 DEBUG(SSSDBG_TRACE_LIBS,
                       ("User [%s] found in deny list, access denied.\n",
-                      username));
+                        ctx->deny_users[i]));
 
                 /* Return immediately on explicit denial */
                 *access_granted = false;
@@ -93,9 +111,9 @@ static errno_t
 simple_check_groups(struct simple_ctx *ctx, const char **group_names,
                     bool *access_granted)
 {
+    struct sss_domain_info *domain = NULL;
     bool matched;
     int i, j;
-    bool cs = ctx->domain->case_sensitive;
 
     /* Now process allow and deny group rules
      * If access was already granted above, we'll skip
@@ -104,8 +122,17 @@ simple_check_groups(struct simple_ctx *ctx, const char **group_names,
     if (ctx->allow_groups && !*access_granted) {
         matched = false;
         for (i = 0; ctx->allow_groups[i]; i++) {
+            domain = find_subdomain_by_object_name(ctx->domain,
+                                                   ctx->allow_groups[i]);
+            if (domain == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid group %s!\n",
+                                            ctx->allow_groups[i]));
+                return EINVAL;
+            }
+
             for(j = 0; group_names[j]; j++) {
-                if (sss_string_equal(cs, group_names[j], ctx->allow_groups[i])) {
+                if (sss_string_equal(domain->case_sensitive,
+                                     group_names[j], ctx->allow_groups[i])) {
                     matched = true;
                     break;
                 }
@@ -128,8 +155,17 @@ simple_check_groups(struct simple_ctx *ctx, const char **group_names,
     if (ctx->deny_groups) {
         matched = false;
         for (i = 0; ctx->deny_groups[i]; i++) {
+            domain = find_subdomain_by_object_name(ctx->domain,
+                                                   ctx->deny_groups[i]);
+            if (domain == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid group %s!\n",
+                                            ctx->deny_groups[i]));
+                return EINVAL;
+            }
+
             for(j = 0; group_names[j]; j++) {
-                if (sss_string_equal(cs, group_names[j], ctx->deny_groups[i])) {
+                if (sss_string_equal(domain->case_sensitive,
+                                     group_names[j], ctx->deny_groups[i])) {
                     matched = true;
                     break;
                 }
