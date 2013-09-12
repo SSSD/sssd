@@ -184,7 +184,7 @@ ok_for_dns(struct sockaddr *sa)
         } else if (inet_netof(*addr) == IN_LOOPBACKNET) {
             DEBUG(SSSDBG_FUNC_DATA, ("Loopback IPv4 address %s\n", straddr));
             return false;
-        } else if ((addr->s_addr & 0xffff0000) == 0xa9fe0000) {
+        } else if ((addr->s_addr & htonl(0xffff0000)) == htonl(0xa9fe0000)) {
             /* 169.254.0.0/16 */
             DEBUG(SSSDBG_FUNC_DATA, ("Link-local IPv4 address %s\n", straddr));
             return false;

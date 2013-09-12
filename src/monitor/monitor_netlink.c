@@ -610,7 +610,7 @@ static bool route_is_multicast(struct rtnl_route *route_obj)
             return false;
         }
 
-        return IN_MULTICAST(addr4->s_addr);
+        return IN_MULTICAST(ntohl(addr4->s_addr));
     } else if (nl_addr_get_family(nl) == AF_INET6) {
         addr6 = nl_addr_get_binary_addr(nl);
         if (!addr6) {
