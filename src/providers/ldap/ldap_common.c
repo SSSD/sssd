@@ -77,16 +77,6 @@ sdap_domain_add(struct sdap_options *opts,
     sdom->dom = dom;
     sdom->head = &opts->sdom;
 
-    if (opts->sdom) {
-        /* Only allow subdomains of the parent domain */
-        if (dom->parent == NULL ||
-            dom->parent != opts->sdom->dom) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Domain %s is not a subdomain of %s\n",
-                  dom->name, opts->sdom->dom->name));
-            return EINVAL;
-        }
-    }
-
     talloc_set_destructor((TALLOC_CTX *)sdom, sdap_domain_destructor);
     DLIST_ADD_END(opts->sdom, sdom, struct sdap_domain *);
 
