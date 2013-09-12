@@ -187,6 +187,14 @@
         </variablelist>
     </refsect1>
 
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+            If the environment variable SSS_NSS_USE_MEMCACHE is set to "NO",
+            client applications will not use the fast in memory cache.
+        </para>
+    </refsect1>
+
 	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>
