@@ -239,7 +239,7 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx,
             }
 
             /* ignore multicast */
-            if (IN_MULTICAST(ip4_addr->sin_addr.s_addr)) {
+            if (IN_MULTICAST(ntohl(ip4_addr->sin_addr.s_addr))) {
                 continue;
             }
 
