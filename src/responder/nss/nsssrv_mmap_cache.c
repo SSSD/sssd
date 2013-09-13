@@ -191,6 +191,13 @@ static void sss_mc_add_rec_to_chain(struct sss_mc_ctx *mcc,
     }
 
     do {
+        if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Corrupted fastcache. Slot number too big.\n"));
+            sss_mmap_cache_reset(mcc);
+            return;
+        }
+
         cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
         if (cur == rec) {
             /* rec already stored in hash chain */
@@ -205,16 +212,24 @@ static void sss_mc_add_rec_to_chain(struct sss_mc_ctx *mcc,
     cur->next = MC_PTR_TO_SLOT(mcc->data_table, rec);
 }
 
-static inline uint32_t
+static inline errno_t
 sss_mc_get_next_slot_with_hash(struct sss_mc_ctx *mcc,
                                struct sss_mc_rec *start_rec,
-                               uint32_t hash)
+                               uint32_t hash,
+                               uint32_t *_slot)
 {
     struct sss_mc_rec *rec;
     uint32_t slot;
 
     slot = start_rec->next;
     while (slot != MC_INVALID_VAL) {
+        if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  ("Corrupted fastcache. Slot number too big.\n"));
+            sss_mmap_cache_reset(mcc);
+            return EINVAL;
+        }
+
         rec = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
         if (rec->hash1 == hash || rec->hash2 == hash) {
             break;
@@ -223,23 +238,27 @@ sss_mc_get_next_slot_with_hash(struct sss_mc_ctx *mcc,
         slot = rec->next;
     }
 
-    return slot;
+    *_slot = slot;
+
+    return EOK;
 }
 
-static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
-                                     struct sss_mc_rec *rec,
-                                     uint32_t hash)
+static errno_t sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
+                                        struct sss_mc_rec *rec,
+                                        uint32_t hash)
 {
     struct sss_mc_rec *prev = NULL;
     struct sss_mc_rec *cur = NULL;
     uint32_t slot;
 
     if (hash > MC_HT_ELEMS(mcc->ht_size)) {
-        /* It can happen if rec->hash1 and rec->hash2 was the same.
-         * or it is invalid hash. It is better to return
-         * than trying to access out of bounds memory
-         */
-        return;
+        if (hash == MC_INVALID_VAL) {
+            /* This can happen if rec->hash1 and rec->hash2 was the same. */
+            return EOK;
+        }
+
+        /* The hash is invalid. */
+        return EINVAL;
     }
 
     slot = mcc->hash_table[hash];
@@ -247,18 +266,34 @@ static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
         /* record has already been removed. It may happen if rec->hash1 and
          * rec->has2 are the same. (It is not very likely).
          */
-        return;
+        return EOK;
     }
+
+    if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Corrupted fastcache. Slot number too big.\n"));
+        sss_mmap_cache_reset(mcc);
+        return EINVAL;
+    }
+
     cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
     if (cur == rec) {
         /* rec->next can refer to record without matching hashes.
          * We need to skip this(those) records, because
          * mcc->hash_table[hash] have to refer to valid start of the chain.
          */
-        mcc->hash_table[hash] = sss_mc_get_next_slot_with_hash(mcc, rec, hash);
+        return sss_mc_get_next_slot_with_hash(mcc, rec, hash,
+                                              &mcc->hash_table[hash]);
     } else {
         slot = cur->next;
         while (slot != MC_INVALID_VAL) {
+            if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      ("Corrupted fastcache. Slot number too big.\n"));
+                sss_mmap_cache_reset(mcc);
+                return EINVAL;
+            }
+
             prev = cur;
             cur = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
             if (cur == rec) {
@@ -278,6 +313,8 @@ static void sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
             }
         }
     }
+
+    return EOK;
 }
 
 static void sss_mc_free_slots(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
@@ -296,6 +333,8 @@ static void sss_mc_free_slots(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
 static void sss_mc_invalidate_rec(struct sss_mc_ctx *mcc,
                                   struct sss_mc_rec *rec)
 {
+    errno_t ret;
+
     if (rec->b1 == MC_INVALID_VAL) {
         /* record already invalid */
         return;
@@ -303,9 +342,16 @@ static void sss_mc_invalidate_rec(struct sss_mc_ctx *mcc,
 
     /* Remove from hash chains */
     /* hash chain 1 */
-    sss_mc_rm_rec_from_chain(mcc, rec, rec->hash1);
+    ret = sss_mc_rm_rec_from_chain(mcc, rec, rec->hash1);
+    if (ret != EOK) {
+        return;
+    }
+
     /* hash chain 2 */
-    sss_mc_rm_rec_from_chain(mcc, rec, rec->hash2);
+    ret = sss_mc_rm_rec_from_chain(mcc, rec, rec->hash2);
+    if (ret != EOK) {
+        return;
+    }
 
     /* Clear from free_table */
     sss_mc_free_slots(mcc, rec);
@@ -353,6 +399,13 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
         self = NULL;
         slot = mcc->hash_table[rec->hash1];
         while (slot != MC_INVALID_VAL32 && self != rec) {
+            if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      ("Corrupted fastcache. Slot number too big.\n"));
+                sss_mmap_cache_reset(mcc);
+                return false;
+            }
+
             self = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
             slot = self->next;
         }
@@ -364,6 +417,13 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
         self = NULL;
         slot = mcc->hash_table[rec->hash2];
         while (slot != MC_INVALID_VAL32 && self != rec) {
+            if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      ("Corrupted fastcache. Slot number too big.\n"));
+                sss_mmap_cache_reset(mcc);
+                return false;
+            }
+
             self = MC_SLOT_TO_PTR(mcc->data_table, slot, struct sss_mc_rec);
             slot = self->next;
         }
