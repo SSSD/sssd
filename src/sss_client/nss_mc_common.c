@@ -205,6 +205,10 @@ errno_t sss_nss_mc_get_record(struct sss_cli_mc_ctx *ctx,
     int count;
     int ret;
 
+    if (!MC_SLOT_WITHIN_BOUNDS(slot, ctx->dt_size)) {
+        return EINVAL;
+    }
+
     /* try max 5 times */
     for (count = 5; count > 0; count--) {
         rec = MC_SLOT_TO_PTR(ctx->data_table, slot, struct sss_mc_rec);
