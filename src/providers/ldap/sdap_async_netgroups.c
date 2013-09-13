@@ -53,15 +53,13 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
     char *timestamp = NULL;
     char **missing = NULL;
 
-    ret = sysdb_attrs_get_el(attrs,
-                             opts->netgroup_map[SDAP_AT_NETGROUP_NAME].sys_name,
-                             &el);
-    if (ret) goto fail;
-    if (el->num_values == 0) {
-        ret = EINVAL;
+    ret = sdap_get_netgroup_primary_name(memctx, opts, attrs, dom, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get netgroup name\n"));
         goto fail;
     }
-    name = (const char *)el->values[0].data;
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Processing netgroup %s\n", name));
 
     netgroup_attrs = sysdb_new_attrs(memctx);
     if (!netgroup_attrs) {

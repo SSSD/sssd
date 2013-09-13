@@ -1260,3 +1260,14 @@ errno_t sdap_get_group_primary_name(TALLOC_CTX *memctx,
                                  opts->group_map[SDAP_AT_GROUP_NAME].name,
                                  attrs, dom, _group_name);
 }
+
+errno_t sdap_get_netgroup_primary_name(TALLOC_CTX *memctx,
+                                       struct sdap_options *opts,
+                                       struct sysdb_attrs *attrs,
+                                       struct sss_domain_info *dom,
+                                       const char **_netgroup_name)
+{
+    return sdap_get_primary_name(memctx,
+                                 opts->netgroup_map[SDAP_AT_NETGROUP_NAME].name,
+                                 attrs, dom, _netgroup_name);
+}
