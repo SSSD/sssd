@@ -66,10 +66,30 @@ sudoers: files sss
                 <manvolnum>5</manvolnum>
             </citerefentry>.
         </para>
+        <para>
+            <emphasis>Note</emphasis>: in order to use netgroups or IPA
+            hostgroups in sudo rules, you also need to correctly set
+            <citerefentry>
+                <refentrytitle>nisdomainname</refentrytitle>
+                <manvolnum>1</manvolnum>
+            </citerefentry>
+            to your NIS domain name (which equals to IPA domain name when
+            using hostgroups).
+        </para>
     </refsect1>
 
     <refsect1 id='sssd'>
         <title>Configuring SSSD to fetch sudo rules</title>
+        <para>
+            All configuration that is needed on SSSD side is to extend the list
+            of <emphasis>services</emphasis> with "sudo" in [sssd] section of
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>. To speed up the LDAP lookups, you can also set
+            search base for sudo rules using
+            <emphasis>ldap_sudo_search_base</emphasis> option.
+        </para>
         <para>
             The following example shows how to configure SSSD to download sudo
             rules from an LDAP server.
@@ -89,8 +109,8 @@ ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
 </programlisting>
         </para>
         <para>
-            When the SSSD is configured to use the IPA provider, the sudo
-            provider is automatically enabled. The sudo search base
+            When the SSSD is configured to use IPA as the ID provider,
+            the sudo provider is automatically enabled. The sudo search base
             is configured to use the compat tree (ou=sudoers,$DC).
         </para>
     </refsect1>
