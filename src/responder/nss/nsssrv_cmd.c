@@ -440,8 +440,9 @@ static int fill_pwent(struct sss_packet *packet,
                                           uid, gid,
                                           &gecos, &homedir, &shell);
             if (ret != EOK && ret != ENOMEM) {
-                DEBUG(1, ("Failed to store user %s(%s) in mmap cache!",
-                          name.str, domain));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("Failed to store user %s(%s) in mmap cache!\n",
+                        name.str, domain));
             }
         }
     }
