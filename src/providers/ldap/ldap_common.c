@@ -792,6 +792,18 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
+        if (old_filter != NULL) {
+            /* Using a deprecated ldap_{user,group}_search_filter */
+            DEBUG(SSSDBG_IMPORTANT_INFO, ("WARNING: Using a deprecated filter "
+                  "option for %s. Please see the documentation on LDAP search "
+                  "bases to see how the obsolete option can be migrated\n",
+                  class_name));
+            sss_log(SSS_LOG_NOTICE, "WARNING: Using a deprecated filter option"
+                    "for %s. Please see the documentation on LDAP search bases "
+                    "to see how the obsolete option can be migrated\n",
+                    class_name);
+        }
+
         ret = sdap_create_search_base(search_bases, unparsed_base,
                                       LDAP_SCOPE_SUBTREE, old_filter,
                                       &search_bases[0]);

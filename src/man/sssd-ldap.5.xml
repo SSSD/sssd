@@ -2331,50 +2331,6 @@ ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
                     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
                 </varlistentry>
 
-                <varlistentry>
-                    <term>ldap_user_search_filter (string)</term>
-                    <listitem>
-                        <para>
-                            This option specifies an additional LDAP search
-                            filter criteria that restrict user searches.
-                        </para>
-                        <para>
-                            This option is <emphasis>deprecated</emphasis> in
-                            favor of the syntax used by ldap_user_search_base.
-                        </para>
-                        <para>
-                            Default: not set
-                        </para>
-                        <para>
-                            Example:
-                        </para>
-                        <programlisting>
-                            ldap_user_search_filter = (loginShell=/bin/tcsh)
-                        </programlisting>
-                        <para>
-                            This filter would restrict user searches to users
-                            that have their shell set to /bin/tcsh.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ldap_group_search_filter (string)</term>
-                    <listitem>
-                        <para>
-                            This option specifies an additional LDAP search
-                            filter criteria that restrict group searches.
-                        </para>
-                        <para>
-                            This option is <emphasis>deprecated</emphasis> in
-                            favor of the syntax used by ldap_group_search_base.
-                        </para>
-                        <para>
-                            Default: not set
-                        </para>
-                    </listitem>
-                </varlistentry>
-
                 <varlistentry condition="with_sudo">
                     <term>ldap_sudo_search_base (string)</term>
                     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
