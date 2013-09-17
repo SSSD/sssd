@@ -514,7 +514,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                          CONFDB_MEMCACHE_TIMEOUT,
                          300, &memcache_timeout);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to set up automatic reconnection\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to get 'memcache_timeout' option from confdb.\n"));
         goto fail;
     }
 
