@@ -772,7 +772,8 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             /* set negative cache only if not result of cache check */
             ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
             if (ret != EOK) {
-                return ret;
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Cannot set negcache for %s@%s\n",
+                      name, dom->name));
             }
 
             /* if a multidomain search, try with next */
@@ -1220,6 +1221,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
+    int err;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1310,9 +1312,10 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
 done:
     if (ret == ENOENT) {
         /* The entry was not found, need to set result in negative cache */
-        ret = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
-        if (ret != EOK) {
-            return ret;
+        err = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
+        if (err != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                ("Cannot set negative cache for UID %d\n", cmdctx->id));
         }
     }
 
@@ -2593,7 +2596,8 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             /* set negative cache only if not result of cache check */
             ret = sss_ncache_set_group(nctx->ncache, false, dom, name);
             if (ret != EOK) {
-                return ret;
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Cannot set negcache for %s@%s\n",
+                      name, dom->name));
             }
 
             /* if a multidomain search, try with next */
@@ -2663,6 +2667,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
+    int err;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -2754,9 +2759,10 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
 done:
     if (ret == ENOENT) {
         /* The entry was not found, need to set result in negative cache */
-        ret = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
-        if (ret != EOK) {
-            return ret;
+        err = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
+        if (err != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                ("Cannot set negative cache for GID %d\n", cmdctx->id));
         }
     }
 
@@ -3583,7 +3589,8 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             /* set negative cache only if not result of cache check */
             ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
             if (ret != EOK) {
-                return ret;
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Cannot set negcache for %s@%s\n",
+                      name, dom->name));
             }
 
             /* if a multidomain search, try with next */
@@ -3635,6 +3642,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
+    int err;
     const char *attrs[] = {SYSDB_NAME, SYSDB_OBJECTCLASS, SYSDB_SID_STR, NULL};
     bool user_found = false;
     bool group_found = false;
@@ -3824,12 +3832,14 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             if (cmdctx->cmd == SSS_NSS_GETSIDBYNAME) {
                 ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
                 if (ret != EOK) {
-                    return ret;
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          ("Cannot set negcache for %s@%s\n", name, dom->name));
                 }
 
                 ret = sss_ncache_set_group(nctx->ncache, false, dom, name);
                 if (ret != EOK) {
-                    return ret;
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          ("Cannot set negcache for %s@%s\n", name, dom->name));
                 }
             }
             /* if a multidomain search, try with next */
@@ -3895,14 +3905,16 @@ done:
         if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                 ("No matching domain found for [%d], fail!\n", cmdctx->id));
-            ret = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
-            if (ret != EOK) {
-                return ret;
+            err = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
+            if (err != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                    ("Cannot set negative cache for UID %d\n", cmdctx->id));
             }
 
-            ret = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
-            if (ret != EOK) {
-                return ret;
+            err = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
+            if (err != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                    ("Cannot set negative cache for GID %d\n", cmdctx->id));
             }
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -3952,7 +3964,8 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
         /* set negative cache only if not result of cache check */
         ret = sss_ncache_set_sid(nctx->ncache, false, cmdctx->secid);
         if (ret != EOK) {
-            return ret;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Cannot set negative cache for %s\n", cmdctx->secid));
         }
 
         return ENOENT;
