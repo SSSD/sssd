@@ -1236,7 +1236,8 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
                 dom = get_next_domain(dom, true);
                 continue;
             }
-            return ENOENT;
+            ret = ENOENT;
+            goto done;
         }
 
         if (dom != dctx->domain) {
@@ -1253,18 +1254,21 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
         ret = sysdb_getpwuid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
         if (dctx->res->count > 1) {
             DEBUG(0, ("getpwuid call returned more than one result !?!\n"));
-            return ENOENT;
+            ret = ENOENT;
+            goto done;
         }
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
@@ -1274,15 +1278,10 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
                 continue;
             }
 
-            DEBUG(2, ("No results for getpwuid call\n"));
-
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
-            if (ret != EOK) {
-                return ret;
-            }
-
-            return ENOENT;
+            DEBUG(SSSDBG_MINOR_FAILURE, ("No results for getpwuid call\n"));
+            ret = ENOENT;
+            goto done;
         }
 
         /* if this is a caching provider (or if we haven't checked the cache
@@ -1296,18 +1295,30 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
                  */
-                return ret;
+                goto done;
             }
         }
 
         /* One result found */
         DEBUG(6, ("Returning info for uid [%d@%s]\n", cmdctx->id, dom->name));
 
-        return EOK;
+        ret = EOK;
+        goto done;
     }
 
-    DEBUG(2, ("No matching domain found for [%d], fail!\n", cmdctx->id));
-    return ENOENT;
+    /* All domains were tried and none had the entry. */
+    ret = ENOENT;
+done:
+    if (ret == ENOENT) {
+        /* The entry was not found, need to set result in negative cache */
+        ret = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    DEBUG(SSSDBG_MINOR_FAILURE, ("No matching domain found for [%d]\n", cmdctx->id));
+    return ret;
 }
 
 static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx);
@@ -2668,7 +2679,8 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
                 dom = get_next_domain(dom, true);
                 continue;
             }
-            return ENOENT;
+            ret = ENOENT;
+            goto done;
         }
 
         if (dom != dctx->domain) {
@@ -2685,18 +2697,21 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
         ret = sysdb_getgrgid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
         if (dctx->res->count > 1) {
             DEBUG(0, ("getgrgid call returned more than one result !?!\n"));
-            return ENOENT;
+            ret = ENOENT;
+            goto done;
         }
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
@@ -2706,15 +2721,10 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
                 continue;
             }
 
-            DEBUG(2, ("No results for getgrgid call\n"));
-
             /* set negative cache only if not result of cache check */
-            ret = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
-            if (ret != EOK) {
-                return ret;
-            }
-
-            return ENOENT;
+            DEBUG(SSSDBG_MINOR_FAILURE, ("No results for getgrgid call\n"));
+            ret = ENOENT;
+            goto done;
         }
 
         /* if this is a caching provider (or if we haven't checked the cache
@@ -2728,18 +2738,31 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
                  */
-                return ret;
+                goto done;
             }
         }
 
         /* One result found */
         DEBUG(6, ("Returning info for gid [%d@%s]\n", cmdctx->id, dom->name));
 
-        return EOK;
+        /* Success. Break from the loop and return EOK */
+        ret = EOK;
+        goto done;
     }
 
-    DEBUG(2, ("No matching domain found for [%d], fail!\n", cmdctx->id));
-    return ENOENT;
+    /* All domains were tried and none had the entry. */
+    ret = ENOENT;
+done:
+    if (ret == ENOENT) {
+        /* The entry was not found, need to set result in negative cache */
+        ret = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    DEBUG(SSSDBG_MINOR_FAILURE, ("No matching domain found for [%d]\n", cmdctx->id));
+    return ret;
 }
 
 static int nss_cmd_getgrgid(struct cli_ctx *cctx)
@@ -3639,7 +3662,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                     dom = get_next_domain(dom, true);
                     continue;
                 }
-                return ENOENT;
+                ret = ENOENT;
+                goto done;
             }
         } else {
            /* if it is a domainless search, skip domains that require fully
@@ -3670,7 +3694,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             name = sss_get_cased_name(cmdctx, cmdctx->name, dom->case_sensitive);
             if (name == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sss_get_cased_name failed.\n"));
-                return ENOMEM;
+                ret = ENOMEM;
+                goto done;
             }
 
             /* For subdomains a fully qualified name is needed for
@@ -3679,7 +3704,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 sysdb_name = sss_tc_fqname(cmdctx, dom->names, dom, name);
                 if (sysdb_name == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
-                    return ENOMEM;
+                    ret = ENOMEM;
+                    goto done;
                 }
             }
 
@@ -3702,7 +3728,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 /* There are no further domains or this was a
                  * fully-qualified user request.
                  */
-                return ENOENT;
+                ret = ENOENT;
+                goto done;
             }
 
             DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s@%s]\n",
@@ -3714,7 +3741,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("Fatal: Sysdb CTX not found for this domain!\n"));
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
         if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
@@ -3723,7 +3751,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             if (ret != EOK && ret != ENOENT) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Failed to make request to our cache!\n"));
-                return EIO;
+                ret = EIO;
+                goto done;
             }
 
             if (ret == EOK) {
@@ -3735,7 +3764,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 if (ret != EOK && ret != ENOENT) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           ("Failed to make request to our cache!\n"));
-                    return EIO;
+                    ret = EIO;
+                    goto done;
                 }
 
                 if (ret == EOK) {
@@ -3749,7 +3779,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             if (ret != EOK && ret != ENOENT) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Failed to make request to our cache!\n"));
-                return EIO;
+                ret = EIO;
+                goto done;
             }
 
             if (ret == EOK) {
@@ -3762,7 +3793,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 if (ret != EOK && ret != ENOENT) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           ("Failed to make request to our cache!\n"));
-                    return EIO;
+                    ret = EIO;
+                    goto done;
                 }
 
                 if (ret == EOK) {
@@ -3774,7 +3806,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         dctx->res = talloc_zero(cmdctx, struct ldb_result);
         if (dctx->res == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
 
         if (user_found || group_found) {
@@ -3782,7 +3815,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             dctx->res->msgs = talloc_array(dctx->res, struct ldb_message *, 1);
             if (dctx->res->msgs == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
-                return ENOMEM;
+                ret = ENOMEM;
+                goto done;
             }
             dctx->res->msgs[0] = talloc_steal(dctx->res, msg);
         }
@@ -3806,20 +3840,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             }
 
             DEBUG(SSSDBG_OP_FAILURE, ("No matching user or group found.\n"));
-
-            if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
-                ret = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
-                if (ret != EOK) {
-                    return ret;
-                }
-
-                ret = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
-                if (ret != EOK) {
-                    return ret;
-                }
-            }
-
-            return ENOENT;
+            ret = ENOENT;
+            goto done;
         }
 
         /* if this is a caching provider (or if we haven't checked the cache
@@ -3848,7 +3870,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
                  */
-                return ret;
+                goto done;
             }
         }
 
@@ -3861,17 +3883,34 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                                       name, dom->name));
         }
 
-        return EOK;
+        /* Success. Break from the loop and return EOK */
+        ret = EOK;
+        goto done;
     }
 
-    if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("No matching domain found for [%d], fail!\n", cmdctx->id));
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("No matching domain found for [%s], fail!\n", cmdctx->name));
+    /* All domains were tried and none had the entry. */
+    ret = ENOENT;
+done:
+    if (ret == ENOENT) {
+        /* The entry was not found, need to set result in negative cache */
+        if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                ("No matching domain found for [%d], fail!\n", cmdctx->id));
+            ret = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
+            if (ret != EOK) {
+                return ret;
+            }
+
+            ret = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
+            if (ret != EOK) {
+                return ret;
+            }
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("No matching domain found for [%s], fail!\n", cmdctx->name));
+        }
     }
-    return ENOENT;
+    return ret;
 }
 
 static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
