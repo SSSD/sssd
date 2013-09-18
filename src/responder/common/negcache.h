@@ -33,7 +33,7 @@ int sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
 int sss_ncache_check_group(struct sss_nc_ctx *ctx, int ttl,
                            struct sss_domain_info *dom, const char *name);
 int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
-                           const char *domain, const char *name);
+                           struct sss_domain_info *dom, const char *name);
 int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid);
 int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl, gid_t gid);
 int sss_ncache_check_sid(struct sss_nc_ctx *ctx, int ttl, const char *sid);

@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include "tdb.h"
+#include "responder/common/negcache.h"
 
 #define NC_ENTRY_PREFIX "NCE/"
 #define NC_USER_PREFIX NC_ENTRY_PREFIX"USER"
