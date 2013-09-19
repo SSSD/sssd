@@ -608,7 +608,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
             } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("check_if_ccache_file_is_used failed.\n"));
-                goto done;
+                ccache_file = NULL;
             }
         } else {
             kr->active_ccache = false;

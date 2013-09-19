@@ -1092,7 +1092,7 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
     kerr = krb5_cc_retrieve_cred(cc->context, cc->ccache,
                                  KRB5_TC_MATCH_TIMES, &mcred, &cred);
     if (kerr) {
-        if (kerr == KRB5_CC_NOTFOUND) {
+        if (kerr == KRB5_CC_NOTFOUND || KRB5_FCC_NOFILE) {
             DEBUG(SSSDBG_TRACE_INTERNAL, ("TGT not found or expired.\n"));
             ret = EINVAL;
         } else {
