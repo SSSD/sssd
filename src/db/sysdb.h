@@ -108,6 +108,7 @@
 #define SYSDB_PRIMARY_GROUP_GIDNUM "origPrimaryGroupGidNumber"
 #define SYSDB_SID_STR "objectSIDString"
 #define SYSDB_UPN "userPrincipalName"
+#define SYSDB_CANONICAL_UPN "canonicalUserPrincipalName"
 #define SYSDB_CCACHE_FILE "ccacheFile"
 
 #define SYSDB_ORIG_DN "originalDN"
