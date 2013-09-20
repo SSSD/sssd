@@ -1692,16 +1692,13 @@ static void process_config_file(struct tevent_context *ev,
 {
     TALLOC_CTX *tmp_ctx;
     struct inotify_event *in_event;
-    char *buf;
     char *name;
     ssize_t len;
-    ssize_t event_size;
     struct config_file_ctx *file_ctx;
     struct config_file_callback *cb;
     struct rewatch_ctx *rw_ctx;
     errno_t ret;
 
-    event_size = sizeof(struct inotify_event);
     file_ctx = talloc_get_type(ptr, struct config_file_ctx);
 
     DEBUG(1, ("Processing config file changes\n"));
@@ -1709,13 +1706,14 @@ static void process_config_file(struct tevent_context *ev,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return;
 
-    buf = talloc_size(tmp_ctx, event_size);
-    if (!buf) {
+    in_event = talloc(tmp_ctx, struct inotify_event);
+    if (!in_event) {
         goto done;
     }
 
     errno = 0;
-    len = sss_atomic_read_s(file_ctx->mt_ctx->inotify_fd, buf, event_size);
+    len = sss_atomic_read_s(file_ctx->mt_ctx->inotify_fd, in_event,
+                            sizeof(struct inotify_event));
     if (len == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1723,8 +1721,6 @@ static void process_config_file(struct tevent_context *ev,
                ret, strerror(ret)));
         goto done;
     }
-
-    in_event = (struct inotify_event *)buf;
 
     if (in_event->len > 0) {
         /* Read in the name, even though we don't use it,
