@@ -1665,6 +1665,11 @@
                         <para>
                             Default: none
                         </para>
+                        <para>
+                            <emphasis>Note</emphasis>: if a password policy
+                            is configured on server side, it always takes
+                            precedence over policy set with this option.
+                        </para>
                     </listitem>
                 </varlistentry>
 
