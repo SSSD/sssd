@@ -310,15 +310,15 @@ errno_t check_if_uid_is_active(uid_t uid, bool *result)
     ret = sd_uid_get_sessions(uid, 0, NULL);
     if (ret > 0) {
         *result = true;
+        return EOK;
     }
     if (ret == 0) {
         *result = false;
     }
-    if (ret >= 0) {
-        return EOK;
+    if (ret < 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("systemd-login gave error %d: %s\n",
+                                    -ret, strerror(-ret)));
     }
-    DEBUG(SSSDBG_CRIT_FAILURE, ("systemd-login gave error %d: %s\n",
-                                -ret, strerror(-ret)));
     /* fall back to the old method */
 #endif
 
