@@ -76,7 +76,7 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    attrs = talloc_array(state, const char *, 4);
+    attrs = talloc_array(state, const char *, 5);
     if (attrs == NULL) {
         DEBUG(1, ("talloc_array failed.\n"));
         ret = ENOMEM;
@@ -86,7 +86,8 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
     attrs[0] = SYSDB_UPN;
     attrs[1] = SYSDB_UIDNUM;
     attrs[2] = SYSDB_GIDNUM;
-    attrs[3] = NULL;
+    attrs[3] = SYSDB_CANONICAL_UPN;
+    attrs[4] = NULL;
 
     ret = sysdb_get_user_attr(state, be_ctx->domain->sysdb, be_ctx->domain,
                               state->pd->user, attrs, &res);

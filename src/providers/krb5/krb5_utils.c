@@ -35,18 +35,36 @@ errno_t find_or_guess_upn(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
                           struct sss_domain_info *dom, const char *user,
                           const char *user_dom, char **_upn)
 {
-    const char *upn;
+    const char *upn = NULL;
     int ret;
 
-    upn = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
-    if (upn == NULL) {
-        ret = krb5_get_simple_upn(mem_ctx, krb5_ctx, dom, user,
-                                  user_dom, _upn);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("krb5_get_simple_upn failed.\n"));
-            return ret;
+    if (krb5_ctx == NULL || dom == NULL || user == NULL || _upn == NULL) {
+        return EINVAL;
+    }
+
+    if (msg != NULL) {
+        upn = ldb_msg_find_attr_as_string(msg, SYSDB_CANONICAL_UPN, NULL);
+        if (upn != NULL) {
+            ret = EOK;
+            goto done;
         }
-    } else {
+
+        upn = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
+        if (upn != NULL) {
+            ret = EOK;
+            goto done;
+        }
+    }
+
+    ret = krb5_get_simple_upn(mem_ctx, krb5_ctx, dom, user,
+                              user_dom, _upn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("krb5_get_simple_upn failed.\n"));
+        return ret;
+    }
+
+done:
+    if (ret == EOK && upn != NULL) {
         *_upn = talloc_strdup(mem_ctx, upn);
         if (*_upn == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
@@ -54,7 +72,7 @@ errno_t find_or_guess_upn(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
         }
     }
 
-    return EOK;
+    return ret;
 }
 
 errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
@@ -65,11 +83,12 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
     TALLOC_CTX *tmp_ctx;
     int ret;
     int sret;
-    const char *attrs[] = {SYSDB_UPN, NULL};
+    const char *attrs[] = {SYSDB_UPN, SYSDB_CANONICAL_UPN, NULL};
     struct sysdb_attrs *new_attrs;
     struct ldb_result *res;
     bool in_transaction = false;
     const char *cached_upn;
+    const char *cached_canonical_upn;
 
     if (sysdb == NULL || user == NULL || upn == NULL) {
         return EINVAL;
@@ -103,8 +122,23 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Replacing UPN [%s] with [%s] for user [%s].\n",
-                              cached_upn, upn, user));
+    cached_canonical_upn = ldb_msg_find_attr_as_string(res->msgs[0],
+                                                       SYSDB_CANONICAL_UPN,
+                                                       NULL);
+
+    if (cached_canonical_upn != NULL
+            && strcmp(cached_canonical_upn, upn) == 0) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Cached canonical UPN and new one match, "
+                                 "nothing to do.\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, ("Replacing canonical UPN [%s] with [%s] " \
+                              "for user [%s].\n",
+                              cached_canonical_upn == NULL ?
+                                                 "empty" : cached_canonical_upn,
+                              upn, user));
 
     new_attrs = sysdb_new_attrs(tmp_ctx);
     if (new_attrs == NULL) {
@@ -113,7 +147,7 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_attrs_add_string(new_attrs, SYSDB_UPN, upn);
+    ret = sysdb_attrs_add_string(new_attrs, SYSDB_CANONICAL_UPN, upn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
         goto done;
@@ -128,7 +162,8 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
     in_transaction = true;
 
     ret = sysdb_set_entry_attr(sysdb, res->msgs[0]->dn, new_attrs,
-                               SYSDB_MOD_REP);
+                               cached_canonical_upn == NULL ? SYSDB_MOD_ADD :
+                                                              SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed [%d][%s].\n",
                                   ret, strerror(ret)));

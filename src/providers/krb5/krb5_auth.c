@@ -513,7 +513,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    attrs = talloc_array(state, const char *, 6);
+    attrs = talloc_array(state, const char *, 7);
     if (attrs == NULL) {
         ret = ENOMEM;
         goto done;
@@ -524,7 +524,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     attrs[2] = SYSDB_CCACHE_FILE;
     attrs[3] = SYSDB_UIDNUM;
     attrs[4] = SYSDB_GIDNUM;
-    attrs[5] = NULL;
+    attrs[5] = SYSDB_CANONICAL_UPN;
+    attrs[6] = NULL;
 
     ret = krb5_setup(state, pd, krb5_ctx, &state->kr);
     if (ret != EOK) {
