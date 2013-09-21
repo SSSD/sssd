@@ -27,6 +27,7 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "db/sysdb_autofs.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_autofs.h"
 
 enum autofs_map_op {
     AUTOFS_MAP_OP_ADD,

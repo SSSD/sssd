@@ -37,6 +37,7 @@
 #include <sys/time.h>
 
 #include "dhash.h"
+#include "util/find_uid.h"
 #include "util/util.h"
 #include "util/strtonum.h"
 

@@ -25,6 +25,7 @@
 #include <check.h>
 
 #include "tests/common.h"
+#include "tests/common_check.h"
 
 void ck_leak_check_setup(void)
 {

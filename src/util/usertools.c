@@ -26,6 +26,7 @@
 
 #include "confdb/confdb.h"
 #include "util/util.h"
+#include "responder/common/responder.h"
 
 #ifdef HAVE_LIBPCRE_LESSER_THAN_7
 #define NAME_DOMAIN_PATTERN_OPTIONS (PCRE_EXTENDED)

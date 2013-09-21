@@ -31,6 +31,7 @@
 #include <pk11func.h>
 
 #include "util/util.h"
+#include "util/crypto/nss/nss_util.h"
 
 static int nspr_nss_init_done = 0;
 

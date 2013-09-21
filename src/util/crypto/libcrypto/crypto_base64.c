@@ -20,6 +20,7 @@
 */
 
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 
 #include <openssl/bio.h>
 #include <openssl/evp.h>

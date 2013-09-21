@@ -23,6 +23,7 @@
 */
 
 #include "util/util.h"
+#include "util/user_info_msg.h"
 #include "sss_client/sss_cli.h"
 
 errno_t pack_user_info_chpass_error(TALLOC_CTX *mem_ctx,

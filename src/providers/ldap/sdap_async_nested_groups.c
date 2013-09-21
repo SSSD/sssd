@@ -33,6 +33,7 @@
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
+#include "providers/ldap/sdap_async_private.h"
 
 #define sdap_nested_group_sysdb_search_users(domain, filter) \
     sdap_nested_group_sysdb_search((domain), (filter), true)

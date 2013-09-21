@@ -31,6 +31,7 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ad/ad_domain_info.h"
 #include "util/util.h"
 
 #define AD_AT_OBJECT_SID "objectSID"

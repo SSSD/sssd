@@ -27,6 +27,7 @@
 #include "providers/dp_backend.h"
 #include "providers/dp_dyndns.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/ldap/sdap_dyndns.h"
 #include "providers/ldap/sdap_id_op.h"
 #include "providers/ldap/ldap_common.h"
 

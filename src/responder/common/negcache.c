@@ -22,6 +22,7 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder.h"
+#include "responder/common/negcache.h"
 #include <fcntl.h>
 #include <time.h>
 #include "tdb.h"

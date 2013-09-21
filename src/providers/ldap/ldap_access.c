@@ -27,6 +27,7 @@
 #include "src/providers/data_provider.h"
 #include "src/providers/dp_backend.h"
 #include "src/providers/ldap/sdap_access.h"
+#include "providers/ldap/ldap_common.h"
 
 static void sdap_access_reply(struct be_req *be_req, int pam_status)
 {

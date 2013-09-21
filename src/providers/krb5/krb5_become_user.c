@@ -23,6 +23,7 @@
 */
 
 #include "util/util.h"
+#include "providers/krb5/krb5_utils.h"
 #include <grp.h>
 
 errno_t become_user(uid_t uid, gid_t gid)

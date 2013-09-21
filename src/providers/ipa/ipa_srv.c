@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "resolv/async_resolv.h"
 #include "providers/fail_over_srv.h"
+#include "providers/ipa/ipa_srv.h"
 
 #define IPA_DNS_LOCATION "_location"
 

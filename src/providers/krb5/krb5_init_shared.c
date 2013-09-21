@@ -24,6 +24,7 @@
 
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/krb5/krb5_init_shared.h"
 
 errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
                         struct be_ctx *bectx)

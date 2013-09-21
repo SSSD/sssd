@@ -29,6 +29,7 @@
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
+#include "providers/ldap/sdap_async_enum.h"
 #include "providers/ldap/sdap_idmap.h"
 
 static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,

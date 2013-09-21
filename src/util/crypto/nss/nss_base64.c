@@ -22,6 +22,7 @@
 
 #include "util/util.h"
 #include "util/crypto/nss/nss_util.h"
+#include "util/crypto/sss_crypto.h"
 
 #include <base64.h>
 

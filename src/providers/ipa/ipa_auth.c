@@ -29,6 +29,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/ipa/ipa_auth.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_config.h"
 
