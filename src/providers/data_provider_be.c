@@ -2891,7 +2891,11 @@ int main(int argc, const char *argv[])
         return 2;
     }
 
-    setenv(SSS_DOM_ENV, be_domain, 1);
+    ret = setenv(SSS_DOM_ENV, be_domain, 1);
+    if (ret != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Setting "SSS_DOM_ENV" failed, journald "
+              "logging mightnot work as expected\n"));
+    }
 
     ret = die_if_parent_died();
     if (ret != EOK) {

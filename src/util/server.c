@@ -426,7 +426,11 @@ int server_setup(const char *name, int flags,
     /* To make sure the domain cannot be set from the environment, unset the
      * variable explicitly when setting up any server. Backends later set the
      * value after reading domain from the configuration */
-    unsetenv(SSS_DOM_ENV);
+    ret = unsetenv(SSS_DOM_ENV);
+    if (ret != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Unsetting "SSS_DOM_ENV" failed, journald "
+              "logging mightnot work as expected\n"));
+    }
 
     setup_signals();
 
