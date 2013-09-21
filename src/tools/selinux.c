@@ -31,7 +31,7 @@
 #include <semanage/semanage.h>
 #endif
 
-#include "util/util.h"
+#include "tools/tools_util.h"
 
 #ifndef DEFAULT_SERANGE
 #define DEFAULT_SERANGE "s0"
