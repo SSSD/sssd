@@ -757,8 +757,8 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
             if (dp_opt_get_bool(kr->krb5_ctx->opts,
                                 KRB5_STORE_PASSWORD_IF_OFFLINE)) {
                 krb5_auth_cache_creds(state->kr->krb5_ctx,
-                                      state->be_ctx->domain->sysdb,
-                                      state->be_ctx->domain,
+                                      state->domain->sysdb,
+                                      state->domain,
                                       state->be_ctx->cdb,
                                       kr->pd, kr->uid,
                                       &state->pam_status, &state->dp_err);
@@ -1103,8 +1103,8 @@ static void krb5_auth_done(struct tevent_req *subreq)
         if (dp_opt_get_bool(kr->krb5_ctx->opts,
                             KRB5_STORE_PASSWORD_IF_OFFLINE)) {
             krb5_auth_cache_creds(state->kr->krb5_ctx,
-                                  state->be_ctx->domain->sysdb,
-                                  state->be_ctx->domain,
+                                  state->domain->sysdb,
+                                  state->domain,
                                   state->be_ctx->cdb,
                                   state->pd, state->kr->uid,
                                   &state->pam_status, &state->dp_err);
