@@ -178,7 +178,6 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
               struct sss_domain_info *dom, struct be_acct_req *ar)
 {
     struct sdap_id_conn_ctx **clist;
-    int i=0;
 
     /* LDAP, GC, sentinel */
     clist = talloc_zero_array(breq, struct sdap_id_conn_ctx *, 3);
@@ -190,12 +189,18 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
     case BE_REQ_USER_AND_GROUP: /* get SID */
     case BE_REQ_GROUP: /* group */
     case BE_REQ_INITGROUPS: /* init groups for user */
-        if (ad_ctx->gc_ctx && IS_SUBDOMAIN(dom)) {
-            clist[i] = ad_ctx->gc_ctx;
-            i++;
-        } else {
-            clist[i] = ad_ctx->ldap_ctx;
+        /* Always try GC first */
+        clist[0] = ad_ctx->gc_ctx;
+        if (IS_SUBDOMAIN(dom) == true) {
+            /* Subdomain users are only present in GC. */
+            break;
         }
+
+        /* With root domain users we have the option to
+         * fall back to LDAP in case ie POSIX attributes
+         * are used but not replicated to GC
+         */
+        clist[1] = ad_ctx->ldap_ctx;
         break;
 
     default:
