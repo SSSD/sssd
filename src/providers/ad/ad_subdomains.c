@@ -25,6 +25,7 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ad/ad_subdomains.h"
 #include "providers/ad/ad_domain_info.h"
+#include "providers/ldap/sdap_idmap.h"
 #include "util/util_sss_idmap.h"
 #include <ctype.h>
 #include <ndr.h>
@@ -108,6 +109,7 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
     struct ldb_message_element *el;
     char *sid_str;
     uint32_t trust_type;
+    bool mpg;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -158,9 +160,13 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
         goto done;
     }
 
+    mpg = sdap_idmap_domain_has_algorithmic_mapping(
+                                             ctx->sdap_id_ctx->opts->idmap_ctx,
+                                             domain->domain_id);
+
     /* AD subdomains are currently all mpg and do not enumerate */
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
-                                true, false, NULL);
+                                mpg, false, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
         goto done;
