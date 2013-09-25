@@ -128,6 +128,7 @@
 #define SYSDB_SUBDOMAIN_ID "domainID"
 #define SYSDB_SUBDOMAIN_MPG "mpg"
 #define SYSDB_SUBDOMAIN_ENUM "enumerate"
+#define SYSDB_SUBDOMAIN_FOREST "memberOfForest"
 
 #define SYSDB_BASE_ID "baseID"
 #define SYSDB_ID_RANGE_SIZE "idRangeSize"
@@ -375,7 +376,7 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name);
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
                               const char *flat_name, const char *domain_id,
-                              bool mpg, bool enumerate);
+                              bool mpg, bool enumerate, const char *forest);
 
 errno_t sysdb_update_subdomains(struct sss_domain_info *domain);
 

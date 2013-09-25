@@ -456,6 +456,84 @@ static errno_t ipa_subdom_enumerates(struct sss_domain_info *parent,
     return EOK;
 }
 
+static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
+                                     struct ldb_context *ldb_ctx,
+                                     struct sysdb_attrs *attrs,
+                                     char **_forest)
+{
+    int ret;
+    const char *orig_dn;
+    struct ldb_dn *dn = NULL;
+    const struct ldb_val *val;
+    char *forest = NULL;
+
+    ret = sysdb_attrs_get_string(attrs, SYSDB_ORIG_DN, &orig_dn);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_ALL, ("Checking if we need the forest name for [%s].\n",
+                             orig_dn));
+
+    dn = ldb_dn_new(mem_ctx, ldb_ctx, orig_dn);
+    if (dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ldb_dn_new failed.\n"));
+        goto done;
+    }
+
+    if (!ldb_dn_validate(dn)) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Original DN [%s] is not a valid DN.\n",
+                                  orig_dn));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (ldb_dn_get_comp_num(dn) < 5) {
+        /* We are only interested in the member domain objects. In IPA the
+         * forest root object is stored as e.g.
+         * cn=AD.DOM,cn=ad,cn=trusts,dc=example,dc=com. Member domains in the
+         * forest are children of the forest root object e.g.
+         * cn=SUB.AD.DOM,cn=AD.DOM,cn=ad,cn=trusts,dc=example,dc=com. Since
+         * the forest name is not stored in the member objects we derive it
+         * from the RDN of the forest root object. */
+        ret = EOK;
+        goto done;
+    }
+
+    val = ldb_dn_get_component_val(dn, 3);
+    if (strncasecmp("trusts", (const char *) val->data, val->length) != 0) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("4th component is not 'trust', nothing to do.\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    val = ldb_dn_get_component_val(dn, 2);
+    if (strncasecmp("ad", (const char *) val->data, val->length) != 0) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("3rd component is not 'ad', nothing to do.\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    val = ldb_dn_get_component_val(dn, 1);
+    forest = talloc_strndup(mem_ctx, (const char *) val->data, val->length);
+    if (forest == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strndup failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+done:
+    talloc_free(dn);
+
+    if (ret == EOK) {
+        *_forest = forest;
+    }
+
+    return ret;
+}
+
 static errno_t ipa_subdom_store(struct sss_domain_info *parent,
                                 struct sdap_idmap_ctx *sdap_idmap_ctx,
                                 struct sysdb_attrs *attrs,
@@ -466,6 +544,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     char *realm;
     const char *flat;
     const char *id;
+    char *forest = NULL;
     int ret;
     bool mpg;
 
@@ -500,8 +579,14 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
 
     mpg = sdap_idmap_domain_has_algorithmic_mapping(sdap_idmap_ctx, id);
 
+    ret = ipa_subdom_get_forest(tmp_ctx, sysdb_ctx_get_ldb(parent->sysdb),
+                                attrs, &forest);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
-                                id, mpg, enumerate);
+                                id, mpg, enumerate, forest);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
         goto done;
