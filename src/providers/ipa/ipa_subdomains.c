@@ -932,7 +932,9 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
             goto done;
         }
 
-        ret = sss_write_domain_mappings(domain);
+        ret = sss_write_domain_mappings(domain,
+                        dp_opt_get_bool(ctx->sd_ctx->id_ctx->ipa_options->basic,
+                        IPA_SERVER_MODE));
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("sss_krb5_write_mappings failed.\n"));

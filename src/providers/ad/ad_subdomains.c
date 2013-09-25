@@ -482,7 +482,7 @@ static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
             goto done;
         }
 
-        ret = sss_write_domain_mappings(ctx->sd_ctx->be_ctx->domain);
+        ret = sss_write_domain_mappings(ctx->sd_ctx->be_ctx->domain, false);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("sss_krb5_write_mappings failed.\n"));
