@@ -261,11 +261,47 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
             DEBUG(SSSDBG_MINOR_FAILURE, ("SRV resolution enabled on the IPA server. "
                   "Site discovery of trusted AD servers might not work\n"));
 
+            /* If SRV discovery is enabled on the server and
+             * dns_discovery_domain is set explicitly, then
+             * the current failover code would use the dns_discovery
+             * domain to try to find AD servers and fail
+             */
+            if (dp_opt_get_string(bectx->be_res->opts,
+                                  DP_RES_OPT_DNS_DOMAIN)) {
+                sss_log(SSS_LOG_ERR, ("SRV discovery is enabled on the IPA "
+                        "server while using custom dns_discovery_domain. "
+                        "DNS discovery of trusted AD domain will likely fail. "
+                        "It is recommended not to use SRV discovery or the "
+                        "dns_discovery_domain option for the IPA domain while "
+                        "running on the server itself\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, ("SRV discovery is enabled on IPA "
+                      "server while using custom dns_discovery_domain. "
+                      "DNS discovery of trusted AD domain will likely fail. "
+                      "It is recommended not to use SRV discovery or the "
+                      "dns_discovery_domain option for the IPA domain while "
+                      "running on the server itself\n"));
+            }
+
             ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
                                             "[%d]: %s\n", ret, strerror(ret)));
                 goto done;
+            }
+        } else {
+            /* In server mode we need to ignore the dns_discovery_domain if set
+             * and only discover servers based on AD domains
+             */
+            ret = dp_opt_set_string(bectx->be_res->opts, DP_RES_OPT_DNS_DOMAIN,
+                                    NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Could not reset the "
+                    "dns_discovery_domain, trusted AD domains discovery "
+                    "might fail. Please remove dns_discovery_domain "
+                    "from the config file and restart the SSSD\n"));
+            } else {
+                DEBUG(SSSDBG_CONF_SETTINGS, ("The value of dns_discovery_domain "
+                      "will be ignored in ipa_server_mode\n"));
             }
         }
     } else {
