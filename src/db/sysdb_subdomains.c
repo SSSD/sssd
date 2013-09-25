@@ -35,6 +35,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_MPG,
                            SYSDB_SUBDOMAIN_ENUM,
+                           SYSDB_SUBDOMAIN_FOREST,
                            NULL};
     struct sss_domain_info *dom;
     struct ldb_dn *basedn;
@@ -42,6 +43,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
     const char *realm;
     const char *flat;
     const char *id;
+    const char *forest;
     bool mpg;
     bool enumerate;
 
@@ -101,6 +103,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
         enumerate = ldb_msg_find_attr_as_bool(res->msgs[i],
                                               SYSDB_SUBDOMAIN_ENUM, false);
 
+        forest = ldb_msg_find_attr_as_string(res->msgs[i],
+                                             SYSDB_SUBDOMAIN_FOREST, NULL);
+
         /* explicitly use dom->next as we need to check 'disabled' domains */
         for (dom = domain->subdomains; dom; dom = dom->next) {
             if (strcasecmp(dom->name, name) == 0) {
@@ -156,13 +161,27 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                     dom->enumerate = enumerate;
                 }
 
+                if ((dom->forest == NULL && forest != NULL)
+                        || (dom->forest != NULL && forest != NULL
+                            && strcasecmp(dom->forest, forest) != 0)) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          ("Forest changed from [%s] to [%s]!\n",
+                           dom->forest, forest));
+                    talloc_zfree(dom->forest);
+                    dom->forest = talloc_strdup(dom, forest);
+                    if (dom->forest == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
+
                 break;
             }
         }
         /* If not found in loop it is a new subdomain */
         if (dom == NULL) {
             dom = new_subdomain(domain, domain, name, realm,
-                                flat, id, mpg, enumerate);
+                                flat, id, mpg, enumerate, forest);
             if (dom == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -356,7 +375,7 @@ done:
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
                               const char *flat_name, const char *domain_id,
-                              bool mpg, bool enumerate)
+                              bool mpg, bool enumerate, const char *forest)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -368,6 +387,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_MPG,
                            SYSDB_SUBDOMAIN_ENUM,
+                           SYSDB_SUBDOMAIN_FOREST,
                            NULL};
     const char *tmp_str;
     bool tmp_bool;
@@ -377,6 +397,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
     int id_flags = 0;
     int mpg_flags = 0;
     int enum_flags = 0;
+    int forest_flags = 0;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -407,6 +428,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         if (domain_id) id_flags = LDB_FLAG_MOD_ADD;
         mpg_flags = LDB_FLAG_MOD_ADD;
         enum_flags = LDB_FLAG_MOD_ADD;
+        if (forest) forest_flags = LDB_FLAG_MOD_ADD;
     } else if (res->count != 1) {
         ret = EINVAL;
         goto done;
@@ -443,10 +465,18 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         if (tmp_bool != enumerate) {
             enum_flags = LDB_FLAG_MOD_REPLACE;
         }
+
+        if (forest) {
+            tmp_str = ldb_msg_find_attr_as_string(res->msgs[0],
+                                                  SYSDB_SUBDOMAIN_FOREST, NULL);
+            if (!tmp_str || strcasecmp(tmp_str, forest) != 0) {
+                forest_flags = LDB_FLAG_MOD_REPLACE;
+            }
+        }
     }
 
     if (!store && realm_flags == 0 && flat_flags == 0 && id_flags == 0
-            && mpg_flags == 0 && enum_flags == 0) {
+            && mpg_flags == 0 && enum_flags == 0 && forest_flags == 0) {
         ret = EOK;
         goto done;
     }
@@ -538,6 +568,21 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
 
         ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_ENUM,
                                  enumerate ? "TRUE" : "FALSE");
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+    }
+
+    if (forest_flags) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_FOREST, forest_flags,
+                                NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_FOREST, forest);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;

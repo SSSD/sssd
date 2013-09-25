@@ -238,6 +238,7 @@ struct sss_domain_info {
     char *realm;
     char *flat_name;
     char *domain_id;
+    char *forest;
     struct timeval subdomains_last_checked;
 
     struct sss_domain_info *prev;

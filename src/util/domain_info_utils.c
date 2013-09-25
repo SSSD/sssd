@@ -183,7 +183,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *flat_name,
                                       const char *id,
                                       bool mpg,
-                                      bool enumerate)
+                                      bool enumerate,
+                                      const char *forest)
 {
     struct sss_domain_info *dom;
 
@@ -235,6 +236,14 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
         dom->domain_id = talloc_strdup(dom, id);
         if (dom->domain_id == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy id.\n"));
+            goto fail;
+        }
+    }
+
+    if (forest != NULL) {
+        dom->forest = talloc_strdup(dom, forest);
+        if (dom->forest == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy forest.\n"));
             goto fail;
         }
     }

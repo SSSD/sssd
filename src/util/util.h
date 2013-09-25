@@ -564,7 +564,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *flat_name,
                                       const char *id,
                                       bool mpg,
-                                      bool enumerate);
+                                      bool enumerate,
+                                      const char *forest);
 
 errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
                          struct confdb_ctx *cdb,
