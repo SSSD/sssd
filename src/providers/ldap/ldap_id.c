@@ -169,9 +169,28 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                                    attr_name, clean_name,
-                                    ctx->opts->user_map[SDAP_OC_USER].name);
+    if (use_id_mapping || filter_type == BE_FILTER_SECID) {
+        /* When mapping IDs or looking for SIDs, we don't want to limit
+         * ourselves to users with a UID value. But there must be a SID to map
+         * from.
+         */
+        state->filter = talloc_asprintf(state,
+                                        "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
+                                        attr_name, clean_name,
+                                        ctx->opts->user_map[SDAP_OC_USER].name,
+                                        ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+                                        ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name);
+    } else {
+        /* When not ID-mapping, make sure there is a non-NULL UID */
+        state->filter = talloc_asprintf(state,
+                                        "(&(%s=%s)(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
+                                        attr_name, clean_name,
+                                        ctx->opts->user_map[SDAP_OC_USER].name,
+                                        ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+                                        ctx->opts->user_map[SDAP_AT_USER_UID].name,
+                                        ctx->opts->user_map[SDAP_AT_USER_UID].name);
+    }
+
     talloc_zfree(clean_name);
     if (!state->filter) {
         DEBUG(2, ("Failed to build the base filter\n"));
