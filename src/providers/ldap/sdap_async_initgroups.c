@@ -1442,7 +1442,7 @@ struct sdap_initgr_rfc2307bis_state {
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
     const char *name;
-    const char *base_filter;
+    char *base_filter;
     char *filter;
     const char **attrs;
     const char *orig_dn;
@@ -1493,6 +1493,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     struct sdap_initgr_rfc2307bis_state *state;
     const char **attr_filter;
     char *clean_orig_dn;
+    bool use_id_mapping;
 
     req = tevent_req_create(memctx, &state, struct sdap_initgr_rfc2307bis_state);
     if (!req) return NULL;
@@ -1540,8 +1541,11 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
     if (ret != EOK) goto done;
 
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
+                                                               dom->domain_id);
+
     state->base_filter =
-            talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*))",
+            talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)",
                             opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                             clean_orig_dn,
                             opts->group_map[SDAP_OC_GROUP].name,
@@ -1550,6 +1554,28 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         ret = ENOMEM;
         goto done;
     }
+
+    if (use_id_mapping) {
+        /* When mapping IDs or looking for SIDs, we don't want to limit
+         * ourselves to groups with a GID value. But there must be a SID to map
+         * from.
+         */
+        state->base_filter = talloc_asprintf_append(state->base_filter,
+                                        "(%s=*))",
+                                        opts->group_map[SDAP_AT_GROUP_OBJECTSID].name);
+    } else {
+        /* When not ID-mapping, make sure there is a non-NULL UID */
+        state->base_filter = talloc_asprintf_append(state->base_filter,
+                                        "(&(%s=*)(!(%s=0))))",
+                                        opts->group_map[SDAP_AT_GROUP_GID].name,
+                                        opts->group_map[SDAP_AT_GROUP_GID].name);
+    }
+    if (!state->base_filter) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+
     talloc_zfree(clean_orig_dn);
 
     ret = sdap_initgr_rfc2307bis_next_base(req);
@@ -2551,7 +2577,7 @@ struct sdap_get_initgr_state {
     const char *name;
     const char **grp_attrs;
     const char **user_attrs;
-    const char *user_base_filter;
+    char *user_base_filter;
     char *filter;
     int timeout;
 
@@ -2580,6 +2606,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     struct sdap_get_initgr_state *state;
     int ret;
     char *clean_name;
+    bool use_id_mapping;
 
     DEBUG(9, ("Retrieving info for initgroups call\n"));
 
@@ -2606,6 +2633,10 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         goto done;
     }
 
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                          id_ctx->opts->idmap_ctx,
+                                                          sdom->dom->domain_id);
+
     ret = sss_filter_sanitize(state, name, &clean_name);
     if (ret != EOK) {
         talloc_zfree(req);
@@ -2613,10 +2644,30 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     }
 
     state->user_base_filter =
-            talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+            talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)",
                             state->opts->user_map[SDAP_AT_USER_NAME].name,
                             clean_name,
                             state->opts->user_map[SDAP_OC_USER].name);
+    if (!state->user_base_filter) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    if (use_id_mapping) {
+        /* When mapping IDs or looking for SIDs, we don't want to limit
+         * ourselves to users with a UID value. But there must be a SID to map
+         * from.
+         */
+        state->user_base_filter = talloc_asprintf_append(state->user_base_filter,
+                                        "(%s=*))",
+                                        id_ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name);
+    } else {
+        /* When not ID-mapping, make sure there is a non-NULL UID */
+        state->user_base_filter = talloc_asprintf_append(state->user_base_filter,
+                                        "(&(%s=*)(!(%s=0))))",
+                                        id_ctx->opts->user_map[SDAP_AT_USER_UID].name,
+                                        id_ctx->opts->user_map[SDAP_AT_USER_UID].name);
+    }
     if (!state->user_base_filter) {
         talloc_zfree(req);
         return NULL;
