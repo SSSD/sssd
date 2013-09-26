@@ -242,24 +242,14 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     hostname = dp_opt_get_string(ipa_options->basic, IPA_HOSTNAME);
     server_mode = dp_opt_get_bool(ipa_options->basic, IPA_SERVER_MODE);
 
-    if (dp_opt_get_bool(ipa_options->basic, IPA_ENABLE_DNS_SITES)) {
-        /* use IPA plugin */
-        ipa_domain = dp_opt_get_string(ipa_options->basic, IPA_DOMAIN);
-        srv_ctx = ipa_srv_plugin_ctx_init(bectx, bectx->be_res->resolv,
-                                          hostname, ipa_domain);
-        if (srv_ctx == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-
-        be_fo_set_srv_lookup_plugin(bectx, ipa_srv_plugin_send,
-                                    ipa_srv_plugin_recv, srv_ctx, "IPA");
-    } else if (server_mode == true) {
+    if (server_mode == true) {
         ipa_servers = dp_opt_get_string(ipa_options->basic, IPA_SERVER);
-        if (srv_in_server_list(ipa_servers) == true) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("SRV resolution enabled on the IPA server. "
-                  "Site discovery of trusted AD servers might not work\n"));
+        if (srv_in_server_list(ipa_servers) == true
+                || dp_opt_get_bool(ipa_options->basic,
+                                   IPA_ENABLE_DNS_SITES) == true) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("SRV resolution or IPA sites enabled "
+                  "on the IPA server. Site discovery of trusted AD servers "
+                  "might not work\n"));
 
             /* If SRV discovery is enabled on the server and
              * dns_discovery_domain is set explicitly, then
@@ -304,6 +294,19 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
                       "will be ignored in ipa_server_mode\n"));
             }
         }
+    } else if (dp_opt_get_bool(ipa_options->basic, IPA_ENABLE_DNS_SITES)) {
+        /* use IPA plugin */
+        ipa_domain = dp_opt_get_string(ipa_options->basic, IPA_DOMAIN);
+        srv_ctx = ipa_srv_plugin_ctx_init(bectx, bectx->be_res->resolv,
+                                          hostname, ipa_domain);
+        if (srv_ctx == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        be_fo_set_srv_lookup_plugin(bectx, ipa_srv_plugin_send,
+                                    ipa_srv_plugin_recv, srv_ctx, "IPA");
     } else {
         /* fall back to standard plugin on clients. */
         ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
