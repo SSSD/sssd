@@ -265,6 +265,20 @@ AC_DEFUN([WITH_KRB5_PLUGIN_PATH],
     AC_SUBST(krb5pluginpath)
   ])
 
+AC_DEFUN([WITH_CIFS_PLUGIN_PATH],
+  [ AC_ARG_WITH([cifs-plugin-path],
+                [AC_HELP_STRING([--with-cifs-plugin-path=PATH],
+                                [Path to cifs-utils plugin store [/usr/lib/cifs-utils]]
+                               )
+                ]
+               )
+    cifspluginpath="${libdir}/cifs-utils"
+    if test x"$with_cifs_plugin_path" != x; then
+        cifspluginpath=$with_cifs_plugin_path
+    fi
+    AC_SUBST(cifspluginpath)
+  ])
+
 AC_DEFUN([WITH_KRB5_RCACHE_DIR],
   [ AC_ARG_WITH([krb5-rcache-dir],
                 [AC_HELP_STRING([--with-krb5-rcache-dir=PATH],

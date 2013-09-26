@@ -56,6 +56,9 @@ struct so {
 #ifdef HAVE_PAC_RESPONDER
     { "sssd_pac_plugin.so", { LIBPFX"sssd_pac_plugin.so", NULL } },
 #endif
+#ifdef HAVE_CIFS_IDMAP_PLUGIN
+    { "cifs_idmap_sss.so", { LIBPFX"cifs_idmap_sss.so", NULL } },
+#endif
     { "memberof.so", { LIBPFX"memberof.so", NULL } },
     { "libsss_child.so", { "libtevent.so",
                            LIBPFX"libsss_debug.so",

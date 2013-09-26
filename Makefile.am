@@ -32,6 +32,9 @@ endif
 if BUILD_PAC_RESPONDER
 krb5authdata_plugindir = @krb5authdatapluginpath@
 endif
+if BUILD_CIFS_IDMAP_PLUGIN
+cifsplugindir = @cifspluginpath@
+endif
 sssdconfdir = $(sysconfdir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
@@ -190,6 +193,11 @@ endif
 if BUILD_PAC_RESPONDER
 krb5authdata_plugin_LTLIBRARIES = \
     sssd_pac_plugin.la
+endif
+
+if BUILD_CIFS_IDMAP_PLUGIN
+cifsplugin_LTLIBRARIES = \
+    cifs_idmap_sss.la
 endif
 
 noinst_LTLIBRARIES =
@@ -1874,6 +1882,19 @@ pysss_nss_idmap_la_LIBADD = \
     $(PYTHON_LIBS) \
     libsss_nss_idmap.la
 pysss_nss_idmap_la_LDFLAGS = \
+    -avoid-version \
+    -module
+endif
+
+if BUILD_CIFS_IDMAP_PLUGIN
+cifs_idmap_sss_la_SOURCES = \
+    src/lib/cifs_idmap_sss/cifs_idmap_sss.c
+cifs_idmap_sss_la_LIBADD = \
+    libsss_idmap.la \
+    libsss_nss_idmap.la
+cifs_idmap_sss_la_CFLAGS = \
+    $(AM_CFLAGS)
+cifs_idmap_sss_la_LDFLAGS = \
     -avoid-version \
     -module
 endif

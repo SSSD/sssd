@@ -115,6 +115,7 @@ WITH_KRB5_RCACHE_DIR
 WITH_KRB5AUTHDATA_PLUGIN_PATH
 WITH_KRB5_CONF
 WITH_PYTHON_BINDINGS
+WITH_CIFS_PLUGIN_PATH
 WITH_SELINUX
 WITH_NSCD
 WITH_SEMANAGE
@@ -153,6 +154,7 @@ m4_include([src/external/libkeyutils.m4])
 m4_include([src/external/libnl.m4])
 m4_include([src/external/systemd.m4])
 m4_include([src/external/pac_responder.m4])
+m4_include([src/external/cifsidmap.m4])
 m4_include([src/external/signal.m4])
 m4_include([src/external/inotify.m4])
 m4_include([src/external/libndr_nbt.m4])
