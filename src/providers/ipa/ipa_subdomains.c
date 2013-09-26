@@ -880,6 +880,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     struct ipa_subdomains_req_ctx *ctx;
     struct sss_domain_info *domain;
     bool refresh_has_changes = false;
+    int dp_error = DP_ERR_FATAL;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
     domain = ctx->sd_ctx->be_ctx->domain;
@@ -964,7 +965,10 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     }
 
 done:
-    be_req_terminate(ctx->be_req, DP_ERR_FATAL, ret, NULL);
+    if (ret == EOK) {
+        dp_error = DP_ERR_OK;
+    }
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
 }
 
 
