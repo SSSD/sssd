@@ -1482,8 +1482,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
         TALLOC_CTX *memctx,
         struct tevent_context *ev,
         struct sdap_options *opts,
-        struct sysdb_ctx *sysdb,
-        struct sss_domain_info *dom,
+        struct sdap_domain *sdom,
         struct sdap_handle *sh,
         const char *name,
         const char *orig_dn)
@@ -1500,8 +1499,8 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
 
     state->ev = ev;
     state->opts = opts;
-    state->sysdb = sysdb;
-    state->dom = dom;
+    state->sysdb = sdom->dom->sysdb;
+    state->dom = sdom->dom;
     state->sh = sh;
     state->op = NULL;
     state->name = name;
@@ -1509,7 +1508,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     state->num_direct_parents = 0;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
     state->base_iter = 0;
-    state->search_bases = opts->sdom->group_search_bases;
+    state->search_bases = sdom->group_search_bases;
     state->orig_dn = orig_dn;
 
     if (!state->search_bases) {
@@ -1541,8 +1540,9 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
     ret = sss_filter_sanitize(state, orig_dn, &clean_orig_dn);
     if (ret != EOK) goto done;
 
-    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
-                                                               dom->domain_id);
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                        opts->idmap_ctx,
+                                                        sdom->dom->domain_id);
 
     state->base_filter =
             talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)(%s=*)",
@@ -2571,6 +2571,7 @@ struct sdap_get_initgr_state {
     struct sysdb_ctx *sysdb;
     struct sdap_options *opts;
     struct sss_domain_info *dom;
+    struct sdap_domain *sdom;
     struct sdap_handle *sh;
     struct sdap_id_ctx *id_ctx;
     struct sdap_id_conn_ctx *conn;
@@ -2617,6 +2618,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->opts = id_ctx->opts;
     state->dom = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
+    state->sdom = sdom;
     state->sh = sh;
     state->id_ctx = id_ctx;
     state->conn = conn;
@@ -2873,8 +2875,8 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
                                                             state->timeout);
         } else {
             subreq = sdap_initgr_rfc2307bis_send(
-                    state, state->ev, state->opts, state->sysdb,
-                    state->dom, state->sh,
+                    state, state->ev, state->opts,
+                    state->sdom, state->sh,
                     cname, orig_dn);
         }
         if (!subreq) {
