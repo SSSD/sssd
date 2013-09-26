@@ -73,6 +73,11 @@
             <programlisting>
 ldap_id_mapping = False
             </programlisting>
+            In order to retrieve users and groups using POSIX attributes from trusted
+            domains, the AD administrator must make sure that the POSIX attributes
+            are replicated to the Global Catalog.
+        </para>
+        <para>
             Users, groups and other entities served by SSSD are always treated as
             case-insensitive in the AD provider for compatibility with Active
             Directory's LDAP implementation.
