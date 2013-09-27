@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-08-28 22:37+0200\n"
+"POT-Creation-Date: 2013-09-27 21:05+0200\n"
 "PO-Revision-Date: 2013-07-24 12:40+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <trans-uk@lists.fedoraproject.org>\n"
@@ -1179,22 +1179,22 @@ msgstr "Вказати нетиповий файл налаштувань"
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
-#: src/providers/krb5/krb5_child.c:2227 src/providers/ldap/ldap_child.c:435
-#: src/util/util.h:93
+#: src/providers/krb5/krb5_child.c:1931 src/providers/ldap/ldap_child.c:435
+#: src/util/util.h:100
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
-#: src/providers/krb5/krb5_child.c:2229 src/providers/ldap/ldap_child.c:437
-#: src/util/util.h:97
+#: src/providers/krb5/krb5_child.c:1933 src/providers/ldap/ldap_child.c:437
+#: src/util/util.h:104
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
-#: src/providers/krb5/krb5_child.c:2231 src/providers/ldap/ldap_child.c:439
-#: src/util/util.h:99
+#: src/providers/krb5/krb5_child.c:1935 src/providers/ldap/ldap_child.c:439
+#: src/util/util.h:106
 msgid "Show timestamps with microseconds"
 msgstr "Показувати мікросекунди у часових позначках"
 
-#: src/providers/krb5/krb5_child.c:2233 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:1937 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
@@ -1860,6 +1860,6 @@ msgstr "Не вистачає пам'яті\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s слід запускати від імені користувача root\n"
 
-#: src/util/util.h:95
+#: src/util/util.h:102
 msgid "Send the debug output to files instead of stderr"
 msgstr "Надіслати діагностичні дані до файлів, а не до stderr"
