@@ -37,6 +37,7 @@
 #include <pcre.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 
 #include <talloc.h>
 #include <tevent.h>
@@ -438,6 +439,18 @@ errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
                                enum check_file_type type);
 
 /* from util.c */
+#define SSS_NO_LINKLOCAL 0x01
+#define SSS_NO_LOOPBACK 0x02
+#define SSS_NO_MULTICAST 0x04
+#define SSS_NO_BROADCAST 0x08
+
+#define SSS_NO_SPECIAL \
+        (SSS_NO_LINKLOCAL|SSS_NO_LOOPBACK|SSS_NO_MULTICAST|SSS_NO_BROADCAST)
+
+/* These two functions accept addr in network order */
+bool check_ipv4_addr(struct in_addr *addr, uint8_t check);
+bool check_ipv6_addr(struct in6_addr *addr, uint8_t check);
+
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, bool skip_empty,
                        char ***_list, int *size);

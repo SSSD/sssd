@@ -808,6 +808,128 @@ START_TEST(test_split_on_separator)
 }
 END_TEST
 
+struct check_ip_test_data {
+    const char *str_ipaddr;
+    uint8_t flags;
+    bool expected_ret;
+};
+
+START_TEST(test_check_ipv4_addr)
+{
+    int a;
+    int num_of_tests;
+    int ret;
+    bool bret;
+    struct in_addr addr;
+    struct check_ip_test_data tst_data[] = {
+        {
+            "192.168.100.1", /* input IPv4 address */
+            0, /* flags value */
+            true /* Expected return value */
+        },
+        {
+            "224.0.0.22", /* multicast address */
+            SSS_NO_MULTICAST,
+            false
+        },
+        {
+            "192.186.0.224",
+            SSS_NO_MULTICAST,
+            true
+        },
+        {
+            "127.0.0.1",
+            SSS_NO_LOOPBACK,
+            false
+        },
+        {
+            "169.254.0.11",
+            SSS_NO_LINKLOCAL,
+            false
+        },
+        {
+            "255.255.255.255",
+            SSS_NO_BROADCAST,
+            false
+        },
+        {
+            "255.255.255.255",
+            SSS_NO_SPECIAL,
+            false
+        },
+        {
+            "192.168.254.169",
+            SSS_NO_SPECIAL,
+            true
+        },
+    };
+
+    num_of_tests = sizeof(tst_data) / sizeof(struct check_ip_test_data);
+
+    for (a = 0; a < num_of_tests; a++) {
+        /* fill sockaddr_in structure */
+
+        ret = inet_pton(AF_INET, tst_data[a].str_ipaddr, &addr);
+        fail_if(ret != 1, "inet_pton failed.");
+
+        bret = check_ipv4_addr(&addr, tst_data[a].flags);
+        fail_unless(bret == tst_data[a].expected_ret,
+                    "check_ipv4_addr failed (iteration %d)", a);
+    }
+}
+END_TEST
+
+START_TEST(test_check_ipv6_addr)
+{
+    int a;
+    int num_of_tests;
+    int ret;
+    bool bret;
+    struct in6_addr addr;
+    struct check_ip_test_data tst_data[] = {
+        {
+            "fde9:7e3f:1ed3:24a5::4", /* input IPv6 address */
+            0, /* flags value */
+            true /* Expected return value */
+        },
+        {
+            "fe80::f2de:f1ff:fefa:67f0",
+            SSS_NO_LINKLOCAL,
+            false
+        },
+        {
+            "::1",
+            SSS_NO_LOOPBACK,
+            false
+        },
+        {
+            "ff00::123",
+            SSS_NO_MULTICAST,
+            false
+        },
+        {
+            "ff00::321",
+            SSS_NO_SPECIAL,
+            false
+        },
+    };
+
+    num_of_tests = sizeof(tst_data) / sizeof(struct check_ip_test_data);
+
+    for (a = 0; a < num_of_tests; a++) {
+        /* fill sockaddr_in structure */
+
+        ret = inet_pton(AF_INET6, tst_data[a].str_ipaddr, &addr);
+        fail_if(ret != 1, "inet_pton failed.");
+
+        bret = check_ipv6_addr(&addr, tst_data[a].flags);
+        fail_unless(bret == tst_data[a].expected_ret,
+                    "check_ipv6_addr failed (iteration %d)", a);
+
+    }
+}
+END_TEST
+
 START_TEST(test_is_host_in_domain)
 {
     struct {
@@ -851,6 +973,8 @@ Suite *util_suite(void)
     tcase_add_test (tc_util, test_add_string_to_list);
     tcase_add_test (tc_util, test_string_in_list);
     tcase_add_test (tc_util, test_split_on_separator);
+    tcase_add_test (tc_util, test_check_ipv4_addr);
+    tcase_add_test (tc_util, test_check_ipv6_addr);
     tcase_add_test (tc_util, test_is_host_in_domain);
     tcase_set_timeout(tc_util, 60);
 
