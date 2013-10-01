@@ -58,6 +58,22 @@ errno_t sdap_connect_host_recv(TALLOC_CTX *mem_ctx,
                                struct tevent_req *req,
                                struct sdap_handle **_sh);
 
+/* Search users in LDAP, return them as attrs */
+struct tevent_req *sdap_search_user_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sss_domain_info *dom,
+                                         struct sdap_options *opts,
+                                         struct sdap_search_base **search_bases,
+                                         struct sdap_handle *sh,
+                                         const char **attrs,
+                                         const char *filter,
+                                         int timeout,
+                                         bool enumeration);
+int sdap_search_user_recv(TALLOC_CTX *memctx, struct tevent_req *req,
+                          char **higher_usn, struct sysdb_attrs ***users,
+                          size_t *count);
+
+/* Search users in LDAP using the request above, save them to cache */
 struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
                                        struct sss_domain_info *dom,
