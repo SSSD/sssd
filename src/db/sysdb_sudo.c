@@ -154,6 +154,14 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
         *result = true;
     }
 
+    if (result) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Rule [%s] matches time restrictions\n",
+                                 name));
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL, ("Rule [%s] does not match time "
+                                 "restrictions\n", name));
+    }
+
     ret = EOK;
 done:
     talloc_free(tmp_ctx);
