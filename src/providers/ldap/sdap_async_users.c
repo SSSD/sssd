@@ -579,15 +579,15 @@ done:
 
 /* ==Search-Users-with-filter============================================= */
 
-struct sdap_get_users_state {
+struct sdap_search_user_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
     struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
+
     const char **attrs;
     const char *base_filter;
-    char *filter;
+    const char *filter;
     int timeout;
     bool enumeration;
 
@@ -599,33 +599,31 @@ struct sdap_get_users_state {
     struct sdap_search_base **search_bases;
 };
 
-static errno_t sdap_get_users_next_base(struct tevent_req *req);
-static void sdap_get_users_process(struct tevent_req *subreq);
+static errno_t sdap_search_user_next_base(struct tevent_req *req);
+static void sdap_search_user_process(struct tevent_req *subreq);
 
-struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
-                                       struct tevent_context *ev,
-                                       struct sss_domain_info *dom,
-                                       struct sysdb_ctx *sysdb,
-                                       struct sdap_options *opts,
-                                       struct sdap_search_base **search_bases,
-                                       struct sdap_handle *sh,
-                                       const char **attrs,
-                                       const char *filter,
-                                       int timeout,
-                                       bool enumeration)
+struct tevent_req *sdap_search_user_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sss_domain_info *dom,
+                                         struct sdap_options *opts,
+                                         struct sdap_search_base **search_bases,
+                                         struct sdap_handle *sh,
+                                         const char **attrs,
+                                         const char *filter,
+                                         int timeout,
+                                         bool enumeration)
 {
     errno_t ret;
     struct tevent_req *req;
-    struct sdap_get_users_state *state;
+    struct sdap_search_user_state *state;
 
-    req = tevent_req_create(memctx, &state, struct sdap_get_users_state);
-    if (!req) return NULL;
+    req = tevent_req_create(memctx, &state, struct sdap_search_user_state);
+    if (req == NULL) return NULL;
 
     state->ev = ev;
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
-    state->sysdb = sysdb;
     state->attrs = attrs;
     state->higher_usn = NULL;
     state->users =  NULL;
@@ -643,7 +641,7 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sdap_get_users_next_base(req);
+    ret = sdap_search_user_next_base(req);
 
 done:
     if (ret != EOK) {
@@ -654,18 +652,18 @@ done:
     return req;
 }
 
-static errno_t sdap_get_users_next_base(struct tevent_req *req)
+static errno_t sdap_search_user_next_base(struct tevent_req *req)
 {
     struct tevent_req *subreq;
-    struct sdap_get_users_state *state;
+    struct sdap_search_user_state *state;
 
-    state = tevent_req_data(req, struct sdap_get_users_state);
+    state = tevent_req_data(req, struct sdap_search_user_state);
 
     talloc_zfree(state->filter);
     state->filter = sdap_get_id_specific_filter(state,
                         state->base_filter,
                         state->search_bases[state->base_iter]->filter);
-    if (!state->filter) {
+    if (state->filter == NULL) {
         return ENOMEM;
     }
 
@@ -681,20 +679,20 @@ static errno_t sdap_get_users_next_base(struct tevent_req *req)
             state->opts->user_map, SDAP_OPTS_USER,
             state->timeout,
             state->enumeration); /* If we're enumerating, we need paging */
-    if (!subreq) {
+    if (subreq == NULL) {
         return ENOMEM;
     }
-    tevent_req_set_callback(subreq, sdap_get_users_process, req);
+    tevent_req_set_callback(subreq, sdap_search_user_process, req);
 
     return EOK;
 }
 
-static void sdap_get_users_process(struct tevent_req *subreq)
+static void sdap_search_user_process(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_get_users_state *state = tevent_req_data(req,
-                                            struct sdap_get_users_state);
+    struct sdap_search_user_state *state = tevent_req_data(req,
+                                            struct sdap_search_user_state);
     int ret;
     size_t count, i;
     struct sysdb_attrs **users;
@@ -744,7 +742,7 @@ static void sdap_get_users_process(struct tevent_req *subreq)
         state->base_iter++;
         if (state->search_bases[state->base_iter]) {
             /* There are more search bases to try */
-            ret = sdap_get_users_next_base(req);
+            ret = sdap_search_user_next_base(req);
             if (ret != EOK) {
                 tevent_req_error(req, ret);
             }
@@ -760,12 +758,112 @@ static void sdap_get_users_process(struct tevent_req *subreq)
         return;
     }
 
+    DEBUG(SSSDBG_TRACE_ALL, ("Retrieved total %zu users\n", state->count));
+    tevent_req_done(req);
+}
+
+
+int sdap_search_user_recv(TALLOC_CTX *memctx, struct tevent_req *req,
+                          char **higher_usn, struct sysdb_attrs ***users,
+                          size_t *count)
+{
+    struct sdap_search_user_state *state = tevent_req_data(req,
+                                            struct sdap_search_user_state);
+
+    if (higher_usn) {
+        *higher_usn = talloc_steal(memctx, state->higher_usn);
+    }
+
+    if (users) {
+        *users = talloc_steal(memctx, state->users);
+    }
+
+    if (count) {
+        *count = state->count;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+/* ==Search-And-Save-Users-with-filter============================================= */
+struct sdap_get_users_state {
+    struct sysdb_ctx *sysdb;
+    struct sdap_options *opts;
+    struct sss_domain_info *dom;
+
+    char *higher_usn;
+    struct sysdb_attrs **users;
+    size_t count;
+};
+
+static void sdap_get_users_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
+                                       struct tevent_context *ev,
+                                       struct sss_domain_info *dom,
+                                       struct sysdb_ctx *sysdb,
+                                       struct sdap_options *opts,
+                                       struct sdap_search_base **search_bases,
+                                       struct sdap_handle *sh,
+                                       const char **attrs,
+                                       const char *filter,
+                                       int timeout,
+                                       bool enumeration)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct sdap_get_users_state *state;
+
+    req = tevent_req_create(memctx, &state, struct sdap_get_users_state);
+    if (!req) return NULL;
+
+    state->sysdb = sysdb;
+    state->opts = opts;
+    state->dom = dom;
+
+    subreq = sdap_search_user_send(state, ev, dom, opts, search_bases,
+                                   sh, attrs, filter, timeout, enumeration);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, sdap_get_users_done, req);
+
+    ret = EOK;
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void sdap_get_users_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_users_state *state = tevent_req_data(req,
+                                            struct sdap_get_users_state);
+    int ret;
+
+    ret = sdap_search_user_recv(state, subreq, &state->higher_usn,
+                                &state->users, &state->count);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to retrieve users\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
     ret = sdap_save_users(state, state->sysdb,
                           state->dom, state->opts,
                           state->users, state->count,
                           &state->higher_usn);
     if (ret) {
-        DEBUG(2, ("Failed to store users.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to store users.\n"));
         tevent_req_error(req, ret);
         return;
     }
