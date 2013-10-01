@@ -193,10 +193,10 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx,
     char **ip_addr_list = NULL;
     struct ifaddrs *ifaces = NULL;
     struct ifaddrs *iface = NULL;
-    struct sockaddr_in *ip4_addr = NULL;
-    struct sockaddr_in *ip4_network = NULL;
-    struct sockaddr_in6 *ip6_addr = NULL;
-    struct sockaddr_in6 *ip6_network = NULL;
+    struct sockaddr_in ip4_addr;
+    struct sockaddr_in ip4_network;
+    struct sockaddr_in6 ip6_addr;
+    struct sockaddr_in6 ip6_network;
     char ip_addr[INET6_ADDRSTRLEN + 1];
     char network_addr[INET6_ADDRSTRLEN + 1];
     in_addr_t ip4_netmask = 0;
@@ -230,55 +230,41 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx,
         netmask = 0;
         switch (iface->ifa_addr->sa_family) {
         case AF_INET:
-            ip4_addr = (struct sockaddr_in*)(iface->ifa_addr);
-            ip4_network = (struct sockaddr_in*)(iface->ifa_netmask);
+            memcpy(&ip4_addr, iface->ifa_addr, sizeof(struct sockaddr_in));
+            memcpy(&ip4_network, iface->ifa_netmask, sizeof(struct sockaddr_in));
 
-            /* ignore loopback */
-            if (inet_netof(ip4_addr->sin_addr) == IN_LOOPBACKNET) {
-                continue;
-            }
-
-            /* ignore multicast */
-            if (IN_MULTICAST(ntohl(ip4_addr->sin_addr.s_addr))) {
-                continue;
-            }
-
-            /* ignore broadcast */
-            if (ntohl(ip4_addr->sin_addr.s_addr) == INADDR_BROADCAST) {
+            if (!check_ipv4_addr(&ip4_addr.sin_addr,
+                                  SSS_NO_LOOPBACK|SSS_NO_MULTICAST
+                                  |SSS_NO_BROADCAST)) {
                 continue;
             }
 
             /* get network mask length */
-            ip4_netmask = ntohl(ip4_network->sin_addr.s_addr);
+            ip4_netmask = ntohl(ip4_network.sin_addr.s_addr);
             while (ip4_netmask) {
                 netmask++;
                 ip4_netmask <<= 1;
             }
 
             /* get network address */
-            ip4_network->sin_addr.s_addr = ip4_addr->sin_addr.s_addr
-                                           & ip4_network->sin_addr.s_addr;
+            ip4_network.sin_addr.s_addr = ip4_addr.sin_addr.s_addr
+                                           & ip4_network.sin_addr.s_addr;
 
-            sinx_addr = &ip4_addr->sin_addr;
-            sinx_network = &ip4_network->sin_addr;
+            sinx_addr = &ip4_addr.sin_addr;
+            sinx_network = &ip4_network.sin_addr;
             break;
         case AF_INET6:
-            ip6_addr = (struct sockaddr_in6*)(iface->ifa_addr);
-            ip6_network = (struct sockaddr_in6*)(iface->ifa_netmask);
+            memcpy(&ip6_addr, iface->ifa_addr, sizeof(struct sockaddr_in6));
+            memcpy(&ip6_network, iface->ifa_netmask, sizeof(struct sockaddr_in6));
 
-            /* ignore loopback */
-            if (IN6_IS_ADDR_LOOPBACK(&ip6_addr->sin6_addr)) {
-                continue;
-            }
-
-            /* ignore multicast */
-            if (IN6_IS_ADDR_MULTICAST(&ip6_addr->sin6_addr)) {
+            if (!check_ipv6_addr(&ip6_addr.sin6_addr,
+                                  SSS_NO_LOOPBACK|SSS_NO_MULTICAST)) {
                 continue;
             }
 
             /* get network mask length */
             for (i = 0; i < 4; i++) {
-                ip6_netmask = ntohl(((uint32_t*)(&ip6_network->sin6_addr))[i]);
+                ip6_netmask = ntohl(((uint32_t*)(&ip6_network.sin6_addr))[i]);
                 while (ip6_netmask) {
                     netmask++;
                     ip6_netmask <<= 1;
@@ -287,13 +273,13 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx,
 
             /* get network address */
             for (i = 0; i < 4; i++) {
-                ((uint32_t*)(&ip6_network->sin6_addr))[i] =
-                          ((uint32_t*)(&ip6_addr->sin6_addr))[i]
-                        & ((uint32_t*)(&ip6_network->sin6_addr))[i];
+                ((uint32_t*)(&ip6_network.sin6_addr))[i] =
+                          ((uint32_t*)(&ip6_addr.sin6_addr))[i]
+                        & ((uint32_t*)(&ip6_network.sin6_addr))[i];
             }
 
-            sinx_addr = &ip6_addr->sin6_addr;
-            sinx_network = &ip6_network->sin6_addr;
+            sinx_addr = &ip6_addr.sin6_addr;
+            sinx_network = &ip6_network.sin6_addr;
             break;
         default:
             /* skip other families */
