@@ -343,6 +343,146 @@ shadow_fail:
 }
 
 /* ==Get-User-DN========================================================== */
+struct get_user_dn_state {
+    const char *username;
+
+    char *orig_dn;
+};
+
+static void get_user_dn_done(struct tevent_req *subreq);
+
+static struct tevent_req *get_user_dn_send(TALLOC_CTX *memctx,
+                                           struct tevent_context *ev,
+                                           struct sss_domain_info *domain,
+                                           struct sdap_handle *sh,
+                                           struct sdap_options *opts,
+                                           const char *username)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct get_user_dn_state *state;
+    char *clean_name;
+    char *filter;
+    const char **attrs;
+    errno_t ret;
+
+    req = tevent_req_create(memctx, &state, struct get_user_dn_state);
+    if (!req) return NULL;
+
+    state->username = username;
+
+    ret = sss_filter_sanitize(state, username, &clean_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+                             opts->user_map[SDAP_AT_USER_NAME].name,
+                             clean_name,
+                             opts->user_map[SDAP_OC_USER].name);
+    talloc_zfree(clean_name);
+    if (filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build the base filter\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* We're mostly interested in the DN anyway */
+    attrs = talloc_array(state, const char *, 3);
+    if (attrs == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    attrs[0] = "objectclass";
+    attrs[1] = opts->user_map[SDAP_AT_USER_NAME].name;
+    attrs[2] = NULL;
+
+    subreq = sdap_search_user_send(state, ev, domain, opts,
+                                   opts->sdom->user_search_bases,
+                                   sh, attrs, filter,
+                                   dp_opt_get_int(opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, get_user_dn_done, req);
+    return req;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void get_user_dn_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct get_user_dn_state *state = tevent_req_data(req,
+                                                    struct get_user_dn_state);
+    struct ldb_message_element *el;
+    struct sysdb_attrs **users;
+    size_t count;
+
+    ret = sdap_search_user_recv(state, subreq, NULL, &users, &count);
+    talloc_zfree(subreq);
+    if (ret && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to retrieve users\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (count == 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("No such user\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    } else if (count > 1) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Multiple users matched\n"));
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    /* exactly one user. Get the originalDN */
+    ret = sysdb_attrs_get_el_ext(users[0], SYSDB_ORIG_DN, false, &el);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("originalDN is not available for [%s].\n", state->username));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->orig_dn = talloc_strdup(state, (const char *) el->values[0].data);
+    if (state->orig_dn == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, ("Found originalDN [%s] for [%s]\n",
+          state->orig_dn, state->username));
+    tevent_req_done(req);
+}
+
+static int get_user_dn_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req,
+                            char **orig_dn)
+{
+    struct get_user_dn_state *state = tevent_req_data(req,
+                                                    struct get_user_dn_state);
+
+    if (orig_dn) {
+        *orig_dn = talloc_move(mem_ctx, &state->orig_dn);
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
 
 static int get_user_dn(TALLOC_CTX *memctx,
                        struct sysdb_ctx *sysdb,
@@ -391,25 +531,20 @@ static int get_user_dn(TALLOC_CTX *memctx,
 
     switch (res->count) {
     case 0:
-        /* FIXME: not in cache, needs a true search */
-        ret = ENOENT;
+        /* No such user entry? Look it up */
+        ret = EAGAIN;
         break;
 
     case 1:
         dn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_ORIG_DN, NULL);
-        if (dn) {
-            dn = talloc_strdup(tmpctx, dn);
-        } else {
-            /* TODO: try to search ldap server ? */
-
-            /* FIXME: remove once we store originalDN on every call
-             * NOTE: this is wrong, works only with some DITs */
-            dn = talloc_asprintf(tmpctx, "%s=%s,%s",
-                                 opts->user_map[SDAP_AT_USER_NAME].name,
-                                 username,
-                                 dp_opt_get_string(opts->basic,
-                                                   SDAP_USER_SEARCH_BASE));
+        if (dn == NULL) {
+            /* The user entry has no original DN. This is the case when the ID
+             * provider is not LDAP-based (proxy perhaps) */
+            ret = EAGAIN;
+            break;
         }
+
+        dn = talloc_strdup(tmpctx, dn);
         if (!dn) {
             ret = ENOMEM;
             break;
@@ -466,6 +601,8 @@ struct auth_state {
 };
 
 static struct tevent_req *auth_get_server(struct tevent_req *req);
+static void auth_get_dn_done(struct tevent_req *subreq);
+static void auth_do_bind(struct tevent_req *req);
 static void auth_resolve_done(struct tevent_req *subreq);
 static void auth_connect_done(struct tevent_req *subreq);
 static void auth_bind_user_done(struct tevent_req *subreq);
@@ -610,10 +747,51 @@ static void auth_connect_done(struct tevent_req *subreq)
     ret = get_user_dn(state, state->ctx->be->domain->sysdb, state->ctx->be->domain,
                       state->ctx->opts, state->username, &state->dn,
                       &state->pw_expire_type, &state->pw_expire_data);
-    if (ret) {
-        tevent_req_error(req, ret);
+    if (ret == EOK) {
+        /* All required user data was pre-cached during an identity lookup.
+         * We can proceed with the bind */
+        auth_do_bind(req);
+        return;
+    } else if (ret == EAGAIN) {
+        /* The cached user entry was missing the bind DN. Need to look
+         * it up based on user name in order to perform the bind */
+        subreq = get_user_dn_send(req, state->ev, state->ctx->be->domain,
+                                  state->sh, state->ctx->opts, state->username);
+        if (subreq == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, auth_get_dn_done, req);
         return;
     }
+
+    tevent_req_error(req, ret);
+    return;
+}
+
+static void auth_get_dn_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct auth_state *state = tevent_req_data(req, struct auth_state);
+    errno_t ret;
+
+    ret = get_user_dn_recv(state, subreq, &state->dn);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ERR_ACCOUNT_UNKNOWN);
+        return;
+    }
+
+    /* The DN was found with an LDAP lookup
+     * We can proceed with the bind */
+    return auth_do_bind(req);
+}
+
+static void auth_do_bind(struct tevent_req *req)
+{
+    struct auth_state *state = tevent_req_data(req, struct auth_state);
+    struct tevent_req *subreq;
 
     subreq = sdap_auth_send(state, state->ev, state->sh,
                             NULL, NULL, state->dn,
