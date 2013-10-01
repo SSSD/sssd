@@ -108,12 +108,19 @@ errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
          */
         if (cmd_ctx->sudo_ctx->timed) {
             /* filter rules by time */
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("Applying time restrictions on"
+                                      "%u rules\n", cmd_ctx->num_rules));
+
             ret = sysdb_sudo_filter_rules_by_time(cmd_ctx, cmd_ctx->num_rules,
                                                   cmd_ctx->rules, 0,
                                                   &num_rules, &rules);
             if (ret != EOK) {
                 return EFAULT;
             }
+
+            DEBUG(SSSDBG_TRACE_FUNC, ("Got %u rules after time filter\n",
+                                      num_rules));
         }
 
         /* send result */
