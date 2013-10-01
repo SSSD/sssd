@@ -95,6 +95,7 @@ int __wrap_getifaddrs(struct ifaddrs **_ifap)
     struct ifaddrs *ifap_head = NULL;
     char *name;
     char *straddr;
+    struct sockaddr_in *sa;
 
     while ((name = sss_mock_ptr_type(char *)) != NULL) {
         straddr = sss_mock_ptr_type(char *);
@@ -122,18 +123,21 @@ int __wrap_getifaddrs(struct ifaddrs **_ifap)
             goto fail;
         }
 
-        ifap->ifa_addr = (struct sockaddr *) talloc(ifap, struct sockaddr_in);
-        if (ifap->ifa_addr == NULL) {
+        /* Do not alocate directly on ifap->ifa_addr to
+         * avoid alignment warnings */
+        sa = talloc(ifap, struct sockaddr_in);
+        if (sa == NULL) {
             errno = ENOMEM;
             goto fail;
         }
-        ((struct sockaddr_in *) ifap->ifa_addr)->sin_family = AF_INET;
+        sa->sin_family = AF_INET;
 
         /* convert straddr into ifa_addr */
-        if (inet_pton(AF_INET, straddr,
-                      &(((struct sockaddr_in *) ifap->ifa_addr)->sin_addr)) != 1) {
+        if (inet_pton(AF_INET, straddr, &sa->sin_addr) != 1) {
             goto fail;
         }
+
+        ifap->ifa_addr = (struct sockaddr *) sa;
     }
 
     *_ifap = ifap_head;
