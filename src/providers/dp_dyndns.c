@@ -144,55 +144,16 @@ fail:
 static bool
 ok_for_dns(struct sockaddr *sa)
 {
-    char straddr[INET6_ADDRSTRLEN];
-    struct in6_addr *addr6;
-    struct in_addr *addr;
+    struct sockaddr_in sa4;
+    struct sockaddr_in6 sa6;
 
     switch (sa->sa_family) {
     case AF_INET6:
-        addr6 = &((struct sockaddr_in6 *) sa)->sin6_addr;
-
-        if (inet_ntop(AF_INET6, addr6, straddr, INET6_ADDRSTRLEN) == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("inet_ntop failed, won't log IP addresses\n"));
-            snprintf(straddr, INET6_ADDRSTRLEN, "unknown");
-        }
-
-        if (IN6_IS_ADDR_LINKLOCAL(addr6)) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Link local IPv6 address %s\n", straddr));
-            return false;
-        } else if (IN6_IS_ADDR_LOOPBACK(addr6)) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Loopback IPv6 address %s\n", straddr));
-            return false;
-        } else if (IN6_IS_ADDR_MULTICAST(addr6)) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Multicast IPv6 address %s\n", straddr));
-            return false;
-        }
-        break;
+        memcpy(&sa6, sa, sizeof(struct sockaddr_in6));
+        return check_ipv6_addr(&sa6.sin6_addr, SSS_NO_SPECIAL);
     case AF_INET:
-        addr = &((struct sockaddr_in *) sa)->sin_addr;
-
-        if (inet_ntop(AF_INET, addr, straddr, INET6_ADDRSTRLEN) == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("inet_ntop failed, won't log IP addresses\n"));
-            snprintf(straddr, INET6_ADDRSTRLEN, "unknown");
-        }
-
-        if (IN_MULTICAST(ntohl(addr->s_addr))) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Multicast IPv4 address %s\n", straddr));
-            return false;
-        } else if (inet_netof(*addr) == IN_LOOPBACKNET) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Loopback IPv4 address %s\n", straddr));
-            return false;
-        } else if ((addr->s_addr & htonl(0xffff0000)) == htonl(0xa9fe0000)) {
-            /* 169.254.0.0/16 */
-            DEBUG(SSSDBG_FUNC_DATA, ("Link-local IPv4 address %s\n", straddr));
-            return false;
-        } else if (addr->s_addr == htonl(INADDR_BROADCAST)) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Broadcast IPv4 address %s\n", straddr));
-            return false;
-        }
-        break;
+        memcpy(&sa4, sa, sizeof(struct sockaddr_in));
+        return check_ipv4_addr(&sa4.sin_addr, SSS_NO_SPECIAL);
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
         return false;
