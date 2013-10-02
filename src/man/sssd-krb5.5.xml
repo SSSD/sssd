@@ -59,7 +59,7 @@
 
     </refsect1>
 
-    <refsect1 id='file-format'>
+    <refsect1 id='configuration-options'>
         <title>CONFIGURATION OPTIONS</title>
         <para>
             If the auth-module krb5 is used in an SSSD domain, the following

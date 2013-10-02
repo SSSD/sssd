@@ -45,7 +45,7 @@
         </para>
     </refsect1>
 
-    <refsect1 id='file-format'>
+    <refsect1 id='configuration-options'>
         <title>CONFIGURATION OPTIONS</title>
         <para>
             All of the common configuration options that apply to SSSD domains also apply

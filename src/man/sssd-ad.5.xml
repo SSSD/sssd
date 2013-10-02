@@ -84,7 +84,7 @@ ldap_id_mapping = False
         </para>
     </refsect1>
 
-    <refsect1 id='file-format'>
+    <refsect1 id='configuration-options'>
         <title>CONFIGURATION OPTIONS</title>
         <para>Refer to the section <quote>DOMAIN SECTIONS</quote> of the
             <citerefentry>
