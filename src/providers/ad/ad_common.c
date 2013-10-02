@@ -441,7 +441,7 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
         }
         sdata->gc = true;
 
-        ret = be_fo_add_server(bectx, fo_service, list[i], 0, sdata, primary);
+        ret = be_fo_add_server(bectx, fo_gc_service, list[i], 0, sdata, primary);
         if (ret && ret != EEXIST) {
             DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
             goto done;
