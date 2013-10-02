@@ -608,3 +608,19 @@ AC_DEFUN([WITH_SAMBA],
     fi
     AM_CONDITIONAL([BUILD_SAMBA], [test x"$with_samba" = xyes])
   ])
+
+AC_DEFUN([WITH_IFP],
+  [ AC_ARG_WITH([infopipe],
+                [AC_HELP_STRING([--with-infopipe],
+                                [Whether to build with InfoPipe support [yes]]
+                               )
+                ],
+                [with_infopipe=$withval],
+                with_infopipe=yes
+               )
+
+    if test x"$with_infopipe" = xyes; then
+        AC_DEFINE(BUILD_IFP, 1, [whether to build with InfoPipe support])
+    fi
+    AM_CONDITIONAL([BUILD_IFP], [test x"$with_infopipe" = xyes])
+  ])

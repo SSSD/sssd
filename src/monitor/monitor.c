@@ -870,7 +870,7 @@ done:
 static char *check_services(char **services)
 {
     const char *known_services[] = { "nss", "pam", "sudo", "autofs", "ssh",
-                                     "pac", NULL };
+                                     "pac", "ifp", NULL };
     int i;
     int ii;
 

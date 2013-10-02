@@ -91,6 +91,7 @@
                                 <phrase condition="with_autofs">, autofs</phrase>
                                 <phrase condition="with_ssh">, ssh</phrase>
                                 <phrase condition="with_pac_responder">, pac</phrase>
+                                <phrase condition="with_ifp">, ifp</phrase>
                             </para>
                         </listitem>
                     </varlistentry>

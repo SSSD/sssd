@@ -132,6 +132,9 @@
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"
 
+/* InfoPipe */
+#define CONFDB_IFP_CONF_ENTRY "config/ifp"
+
 /* Domains */
 #define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"
 #define CONFDB_DOMAIN_BASEDN "cn=domain,cn=config"
