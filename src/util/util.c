@@ -23,11 +23,11 @@
 #include <poll.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <talloc.h>
+#include <dhash.h>
 
-#include "talloc.h"
 #include "util/util.h"
 #include "util/sss_utf8.h"
-#include "dhash.h"
 
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, bool skip_empty,

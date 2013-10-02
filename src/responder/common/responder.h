@@ -22,15 +22,17 @@
 #ifndef __SSS_RESPONDER_H__
 #define __SSS_RESPONDER_H__
 
+#include "config.h"
+
 #include <stdint.h>
 #include <sys/un.h>
 #include <pcre.h>
 #include <sys/resource.h>
-#include "config.h"
-#include "talloc.h"
-#include "tevent.h"
-#include "ldb.h"
-#include "dhash.h"
+#include <talloc.h>
+#include <tevent.h>
+#include <ldb.h>
+#include <dhash.h>
+
 #include "sbus/sssd_dbus.h"
 #include "sss_client/sss_cli.h"
 

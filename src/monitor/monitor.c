@@ -34,19 +34,19 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <popt.h>
+#include <tevent.h>
+#include <dbus/dbus.h>
 
 /* Needed for res_init() */
 #include <netinet/in.h>
 #include <arpa/nameser.h>
 #include <resolv.h>
 
-#include "popt.h"
-#include "tevent.h"
 #include "confdb/confdb.h"
 #include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
 #include "monitor/monitor.h"
-#include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "responder/common/responder_sbus.h"

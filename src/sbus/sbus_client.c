@@ -19,8 +19,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <talloc.h>
+
 #include "util/util.h"
-#include "talloc.h"
 #include "sbus_client.h"
 
 int sbus_client_init(TALLOC_CTX *mem_ctx,

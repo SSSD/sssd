@@ -20,8 +20,9 @@
 */
 
 #include "config.h"
-#include "talloc.h"
-#include "tevent.h"
+#include <talloc.h>
+#include <tevent.h>
+
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
 #include "providers/data_provider.h"

@@ -24,7 +24,7 @@
 
 struct sbus_connection;
 
-#include "dbus/dbus.h"
+#include <dbus/dbus.h>
 
 typedef int (*sbus_msg_handler_fn)(DBusMessage *, struct sbus_connection *);
 

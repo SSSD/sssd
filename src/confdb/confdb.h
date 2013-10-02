@@ -23,10 +23,11 @@
 #define _CONF_DB_H
 
 #include <stdbool.h>
-#include "talloc.h"
-#include "tevent.h"
-#include "ldb.h"
-#include "ldb_errors.h"
+#include <talloc.h>
+#include <tevent.h>
+#include <ldb.h>
+#include <ldb_errors.h>
+
 #include "config.h"
 
 /**

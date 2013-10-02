@@ -30,12 +30,12 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <popt.h>
+#include <dbus/dbus.h>
 
-#include "popt.h"
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
-#include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"

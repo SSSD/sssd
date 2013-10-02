@@ -34,14 +34,14 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <dlfcn.h>
+#include <popt.h>
+#include <dbus/dbus.h>
 
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
-#include "popt.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "providers/proxy/proxy.h"
 

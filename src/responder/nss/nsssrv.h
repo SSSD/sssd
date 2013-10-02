@@ -22,13 +22,15 @@
 #ifndef __NSSSRV_H__
 #define __NSSSRV_H__
 
+#include "config.h"
+
 #include <stdint.h>
 #include <sys/un.h>
-#include "config.h"
-#include "talloc.h"
-#include "tevent.h"
-#include "ldb.h"
-#include "dbus/dbus.h"
+#include <talloc.h>
+#include <tevent.h>
+#include <ldb.h>
+#include <dbus/dbus.h>
+
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
