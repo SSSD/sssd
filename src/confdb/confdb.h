@@ -130,9 +130,6 @@
 /* PAC */
 #define CONFDB_PAC_CONF_ENTRY "config/pac"
 
-/* Data Provider */
-#define CONFDB_DP_CONF_ENTRY "config/dp"
-
 /* Domains */
 #define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"
 #define CONFDB_DOMAIN_BASEDN "cn=domain,cn=config"
