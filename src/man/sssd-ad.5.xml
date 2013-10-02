@@ -169,6 +169,30 @@ ldap_id_mapping = False
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_access_filter (boolean)</term>
+                    <listitem>
+                        <para>
+                            This option specifies LDAP access control
+                            filter that the user must match in order
+                            to be allowed access. Please note that the
+                            <quote>access_filter</quote> option must be
+                            explicitly set to <quote>ad</quote> in order
+                            for this option to have an effect.
+                        </para>
+                        <para>
+                            Example:
+                        </para>
+                        <programlisting>
+access_provider = ad
+ad_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
+                        </programlisting>
+                        <para>
+                            Default: Not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>
