@@ -41,6 +41,7 @@ enum ad_basic_opt {
     AD_KEYTAB,
     AD_KRB5_REALM,
     AD_ENABLE_DNS_SITES,
+    AD_ACCESS_FILTER,
 
     AD_OPTS_BASIC /* opts counter */
 };
