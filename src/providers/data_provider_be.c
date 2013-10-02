@@ -2013,6 +2013,8 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
         becli->bectx->ssh_cli = becli;
     } else if (strcasecmp(cli_name, "PAC") == 0) {
         becli->bectx->pac_cli = becli;
+    } else if (strcasecmp(cli_name, "InfoPipe") == 0) {
+        becli->bectx->ifp_cli = becli;
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown client! [%s]\n", cli_name);
     }

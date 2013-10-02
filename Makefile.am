@@ -115,6 +115,10 @@ endif
 if BUILD_SSH
 sssdlibexec_PROGRAMS += sssd_ssh
 endif
+if BUILD_IFP
+sssdlibexec_PROGRAMS += sssd_ifp
+endif
+
 
 if BUILD_PAC_RESPONDER
     sssdlibexec_PROGRAMS += sssd_pac
@@ -320,6 +324,7 @@ AM_CPPFLAGS = \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
     -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
     -DSSS_SSH_SOCKET_NAME=\"$(pipepath)/ssh\" \
+    -DSSS_IFP_SOCKET_NAME=\"$(pipepath)/ifp\" \
     -DLOCALEDIR=\"$(localedir)\"
 
 EXTRA_DIST = build/config.rpath
@@ -457,6 +462,7 @@ dist_noinst_HEADERS = \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
     src/responder/ssh/sshsrv_private.h \
+    src/responder/ifp/ifp_private.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_meta.h \
@@ -796,6 +802,19 @@ sssd_pac_LDADD = \
     $(SSSD_LIBS) \
     libsss_idmap.la \
     $(SSSD_INTERNAL_LTLIBS)
+
+if BUILD_IFP
+sssd_ifp_SOURCES = \
+    src/responder/ifp/ifpsrv.c \
+    src/responder/ifp/ifpsrv_cmd.c \
+    $(SSSD_UTIL_OBJ) \
+    $(SSSD_RESPONDER_OBJ)
+sssd_ifp_CFLAGS = \
+    $(AM_CFLAGS)
+sssd_ifp_LDADD = \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
+endif
 
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \

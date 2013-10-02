@@ -393,6 +393,16 @@ Requires: libsss_nss_idmap = %{version}-%{release}
 The libsss_nss_idmap-python contains the bindings so that libsss_nss_idmap can
 be used by Python applications.
 
+%package dbus
+Summary: The D-Bus responder of the SSSD
+Group: Applications/System
+License: GPLv3+
+Requires: sssd-common = %{version}-%{release}
+
+%description dbus
+Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
+the information from the SSSD to be transmitted over the system bus.
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -553,6 +563,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
+%{_libexecdir}/%{servicename}/sssd_ifp
 
 %dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_simple.so
@@ -650,6 +661,12 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING
 %{_libexecdir}/%{servicename}/proxy_child
 %{_libdir}/%{name}/libsss_proxy.so
+
+%files dbus
+%defattr(-,root,root,-)
+%doc COPYING
+%{_libexecdir}/%{servicename}/sssd_ifp
+%{_mandir}/man5/sssd-ifp.5*
 
 %files client -f sssd_client.lang
 %defattr(-,root,root,-)

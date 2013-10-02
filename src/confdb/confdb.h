@@ -130,6 +130,9 @@
 /* PAC */
 #define CONFDB_PAC_CONF_ENTRY "config/pac"
 
+/* InfoPipe */
+#define CONFDB_IFP_CONF_ENTRY "config/ifp"
+
 /* Domains */
 #define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"
 #define CONFDB_DOMAIN_BASEDN "cn=domain,cn=config"

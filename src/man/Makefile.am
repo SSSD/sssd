@@ -21,7 +21,10 @@ endif
 if BUILD_PAC_RESPONDER
 PAC_RESPONDER_CONDS = ;with_pac_responder
 endif
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)
+if BUILD_IFP
+IFP_CONDS = ;with_ifp
+endif
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)
 
 
 #Special Rules:
@@ -50,6 +53,10 @@ endif
 
 if BUILD_SUDO
 man_MANS += sssd-sudo.5
+endif
+
+if BUILD_IFP
+man_MANS += sssd-ifp.5
 endif
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
