@@ -1228,7 +1228,7 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                     continue;
                 }
 
-                ret = sysdb_save_autofsentry(sysdb, domain,
+                ret = sysdb_save_autofsentry(domain,
                                              (const char *) val->data,
                                              key, value, NULL);
                 if (ret != EOK) {

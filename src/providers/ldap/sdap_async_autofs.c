@@ -83,8 +83,7 @@ get_autofs_entry_value(struct sysdb_attrs *entry, struct sdap_options *opts)
 }
 
 static errno_t
-add_autofs_entry(struct sysdb_ctx *sysdb,
-                 struct sss_domain_info *domain,
+add_autofs_entry(struct sss_domain_info *domain,
                  const char *map,
                  struct sdap_options *opts,
                  struct sysdb_attrs *entry)
@@ -104,12 +103,11 @@ add_autofs_entry(struct sysdb_ctx *sysdb,
         return EINVAL;
     }
 
-    return sysdb_save_autofsentry(sysdb, domain, map, key, value, NULL);
+    return sysdb_save_autofsentry(domain, map, key, value, NULL);
 }
 
 static errno_t
-save_autofs_entries(struct sysdb_ctx *sysdb,
-                    struct sss_domain_info *domain,
+save_autofs_entries(struct sss_domain_info *domain,
                     struct sdap_options *opts,
                     const char *map,
                     char **add_dn_list,
@@ -146,7 +144,7 @@ save_autofs_entries(struct sysdb_ctx *sysdb,
 
         DEBUG(SSSDBG_TRACE_FUNC,
               ("Saving autofs entry [%s]\n", add_dn_list[i]));
-        ret = add_autofs_entry(sysdb, domain, map, opts, entry);
+        ret = add_autofs_entry(domain, map, opts, entry);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Cannot save entry [%s] to cache\n", add_dn_list[i]));
@@ -161,7 +159,7 @@ save_autofs_entries(struct sysdb_ctx *sysdb,
 }
 
 static errno_t
-del_autofs_entries(struct sysdb_ctx *sysdb,
+del_autofs_entries(struct sss_domain_info *dom,
                    struct sdap_options *opts,
                    const char *map,
                    char **del_dn_list)
@@ -173,7 +171,7 @@ del_autofs_entries(struct sysdb_ctx *sysdb,
         DEBUG(SSSDBG_TRACE_FUNC,
               ("Removing autofs entry [%s]\n", del_dn_list[i]));
 
-        ret = sysdb_del_autofsentry(sysdb, del_dn_list[i]);
+        ret = sysdb_del_autofsentry(dom, del_dn_list[i]);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Cannot delete entry %s\n", del_dn_list[i]));
@@ -186,8 +184,7 @@ del_autofs_entries(struct sysdb_ctx *sysdb,
 }
 
 static errno_t
-save_autofs_map(struct sysdb_ctx *sysdb,
-                struct sss_domain_info *dom,
+save_autofs_map(struct sss_domain_info *dom,
                 struct sdap_options *opts,
                 struct sysdb_attrs *map)
 {
@@ -200,7 +197,7 @@ save_autofs_map(struct sysdb_ctx *sysdb,
 
     now = time(NULL);
 
-    ret = sysdb_save_autofsmap(sysdb, dom, mapname, mapname,
+    ret = sysdb_save_autofsmap(dom, mapname, mapname,
                                NULL, dom->autofsmap_timeout, now);
     if (ret != EOK) {
         return ret;
@@ -215,7 +212,6 @@ struct automntmaps_process_members_state {
     struct sdap_handle *sh;
     struct sss_domain_info *dom;
     int    timeout;
-    struct sysdb_ctx *sysdb;
 
     const char *orig_dn;
     char *base_filter;
@@ -243,7 +239,6 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *dom,
                                  struct sdap_search_base **search_bases,
                                  int    timeout,
-                                 struct sysdb_ctx *sysdb,
                                  struct sysdb_attrs *map)
 {
     errno_t ret;
@@ -258,7 +253,6 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
-    state->sysdb = sysdb;
     state->timeout = timeout;
     state->base_iter = 0;
     state->map = map;
@@ -429,7 +423,6 @@ struct sdap_get_automntmap_state {
     struct sdap_options *opts;
     struct sdap_handle *sh;
     struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
     const char **attrs;
     const char *base_filter;
     char *filter;
@@ -456,7 +449,6 @@ static struct tevent_req *
 sdap_get_automntmap_send(TALLOC_CTX *memctx,
                          struct tevent_context *ev,
                          struct sss_domain_info *dom,
-                         struct sysdb_ctx *sysdb,
                          struct sdap_options *opts,
                          struct sdap_search_base **search_bases,
                          struct sdap_handle *sh,
@@ -475,7 +467,6 @@ sdap_get_automntmap_send(TALLOC_CTX *memctx,
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
-    state->sysdb = sysdb;
     state->attrs = attrs;
     state->higher_timestamp = NULL;
     state->map =  NULL;
@@ -577,7 +568,7 @@ sdap_get_automntmap_process(struct tevent_req *subreq)
     subreq = automntmaps_process_members_send(state, state->ev, state->opts,
                                               state->sh, state->dom,
                                               state->search_bases,
-                                              state->timeout, state->sysdb,
+                                              state->timeout,
                                               state->map[0]);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
@@ -716,7 +707,7 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
     }
 
     subreq = sdap_get_automntmap_send(state, ev, dom,
-                                      sysdb, state->opts,
+                                      state->opts,
                                       state->opts->sdom->autofs_search_bases,
                                       state->sh,
                                       state->attrs, state->filter,
@@ -832,7 +823,6 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
             }
 
             ldap_entrylist[j] = sysdb_autofsentry_strdn(ldap_entrylist,
-                                                        state->sysdb,
                                                         state->dom,
                                                         state->mapname,
                                                         key, val);
@@ -857,8 +847,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
         ldap_entrylist[state->entries_count] = NULL;
     }
 
-    ret = sysdb_autofs_entries_by_map(tmp_ctx, state->sysdb,
-                                      state->dom, state->mapname,
+    ret = sysdb_autofs_entries_by_map(tmp_ctx, state->dom, state->mapname,
                                       &count, &entries);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -907,7 +896,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     in_transaction = true;
 
     /* Save the map itself */
-    ret = save_autofs_map(state->sysdb, state->dom, state->opts, state->map);
+    ret = save_autofs_map(state->dom, state->opts, state->map);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
              ("Cannot save autofs map entry [%d]: %s\n",
@@ -917,7 +906,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
 
     /* Create entries that don't exist yet */
     if (add_entries && add_entries[0]) {
-        ret = save_autofs_entries(state->sysdb, state->dom, state->opts,
+        ret = save_autofs_entries(state->dom, state->opts,
                                   state->mapname, add_entries,
                                   entry_hash);
         if (ret != EOK) {
@@ -930,7 +919,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
 
     /* Delete entries that don't exist anymore */
     if (del_entries && del_entries[0]) {
-        ret = del_autofs_entries(state->sysdb, state->opts,
+        ret = del_autofs_entries(state->dom, state->opts,
                                  state->mapname, del_entries);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,

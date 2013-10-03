@@ -443,7 +443,7 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                                                  sys_attrs, SYSDB_MOD_REP);
                     break;
                 case TYPE_AUTOFSMAP:
-                    ret = sysdb_set_autofsmap_attr(sysdb, domain, name,
+                    ret = sysdb_set_autofsmap_attr(domain, name,
                                                    sys_attrs, SYSDB_MOD_REP);
                     break;
                 default:

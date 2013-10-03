@@ -111,8 +111,7 @@ void sdap_autofs_handler(struct be_req *be_req)
     }
 
     if (autofs_req->invalidate) {
-        ret = sysdb_invalidate_autofs_maps(id_ctx->be->domain->sysdb,
-                                           id_ctx->be->domain);
+        ret = sysdb_invalidate_autofs_maps(id_ctx->be->domain);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE, ("Could not invalidate autofs maps, "
                   "backend might return stale entries\n"));
@@ -270,8 +269,7 @@ sdap_autofs_get_map_done(struct tevent_req *subreq)
     }
 
     if (ret == ENOENT) {
-        ret = sysdb_delete_autofsmap(state->ctx->be->domain->sysdb,
-                                     state->ctx->be->domain, state->map_name);
+        ret = sysdb_delete_autofsmap(state->ctx->be->domain, state->map_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE,
                 ("Cannot delete autofs map %s [%d]: %s\n",

@@ -36,8 +36,7 @@
 #define SYSDB_AUTOFS_ENTRY_VALUE  "automountInformation"
 
 errno_t
-sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
-                     struct sss_domain_info *domain,
+sysdb_save_autofsmap(struct sss_domain_info *domain,
                      const char *name,
                      const char *autofsmapname,
                      struct sysdb_attrs *attrs,
@@ -46,49 +45,42 @@ sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
 
 errno_t
 sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
-                     struct sysdb_ctx *sysdb,
                      struct sss_domain_info *domain,
                      const char *map_name,
                      struct ldb_message **map);
 
 errno_t
-sysdb_delete_autofsmap(struct sysdb_ctx *sysdb_ctx,
-                       struct sss_domain_info *domain,
+sysdb_delete_autofsmap(struct sss_domain_info *domain,
                        const char *name);
 
 errno_t
-sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
-                       struct sss_domain_info *domain,
+sysdb_save_autofsentry(struct sss_domain_info *domain,
                        const char *map,
                        const char *key,
                        const char *value,
                        struct sysdb_attrs *attrs);
 errno_t
-sysdb_del_autofsentry(struct sysdb_ctx *sysdb_ctx,
+sysdb_del_autofsentry(struct sss_domain_info *domain,
                       const char *entry_dn);
 
 errno_t
 sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
-                            struct sysdb_ctx *sysdb,
                             struct sss_domain_info *domain,
                             const char *mapname,
                             size_t *_count,
                             struct ldb_message ***_entries);
 
 errno_t
-sysdb_set_autofsmap_attr(struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
+sysdb_set_autofsmap_attr(struct sss_domain_info *domain,
                          const char *name,
                          struct sysdb_attrs *attrs,
                          int mod_op);
 
 errno_t
-sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain);
+sysdb_invalidate_autofs_maps(struct sss_domain_info *domain);
 
 char *
 sysdb_autofsentry_strdn(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         struct sss_domain_info *domain,
                         const char *map_name,
                         const char *entry_name,

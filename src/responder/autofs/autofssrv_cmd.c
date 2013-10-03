@@ -654,7 +654,7 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
 
         /* Look into the cache */
         talloc_free(dctx->map);
-        ret = sysdb_get_map_byname(dctx, sysdb, dom, lookup_ctx->mapname,
+        ret = sysdb_get_map_byname(dctx, dom, lookup_ctx->mapname,
                                    &dctx->map);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not check cache\n"));
@@ -706,7 +706,7 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
         /* OK, the map is in cache and valid.
          * Let's get all members and return it
          */
-        ret = sysdb_autofs_entries_by_map(map, sysdb, dom, map->mapname,
+        ret = sysdb_autofs_entries_by_map(map, dom, map->mapname,
                                           &map->entry_count,
                                           &map->entries);
         if (ret != EOK && ret != ENOENT) {
