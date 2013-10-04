@@ -154,7 +154,7 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
         *result = true;
     }
 
-    if (result) {
+    if (*result) {
         DEBUG(SSSDBG_TRACE_ALL, ("Rule [%s] matches time restrictions\n",
                                  name));
     } else {
