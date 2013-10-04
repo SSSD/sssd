@@ -198,7 +198,6 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
 {
     struct krb5child_req *kr;
     struct passwd *pwd;
-    bool private = false;
     errno_t ret;
 
     /* The top level child request */
@@ -246,7 +245,7 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
         kr->ccname = expand_ccname_template(kr, kr,
                                         dp_opt_get_cstring(kr->krb5_ctx->opts,
                                                            KRB5_CCNAME_TMPL),
-                                            true, true, &private);
+                                            true, true);
         if (!kr->ccname) goto fail;
 
         DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%llu] gid [%llu]\n",
@@ -262,7 +261,7 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
 
     ret = sss_krb5_precreate_ccache(kr->ccname,
                                     kr->krb5_ctx->illegal_path_re,
-                                    kr->uid, kr->gid, private);
+                                    kr->uid, kr->gid);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("create_ccache_dir failed.\n"));
         goto fail;
