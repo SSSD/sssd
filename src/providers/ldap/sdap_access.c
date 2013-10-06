@@ -45,6 +45,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
                                              struct sss_domain_info *domain,
                                              struct sdap_access_ctx *access_ctx,
+                                             struct sdap_id_conn_ctx *conn,
                                              const char *username,
                                              struct ldb_message *user_entry);
 static errno_t sdap_access_filter_recv(struct tevent_req *req);
@@ -62,6 +63,7 @@ struct sdap_access_req_ctx {
     struct pam_data *pd;
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
+    struct sdap_id_conn_ctx *conn;
     struct be_ctx *be_ctx;
     struct sss_domain_info *domain;
     struct ldb_message *user_entry;
@@ -78,6 +80,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct be_ctx *be_ctx,
                  struct sss_domain_info *domain,
                  struct sdap_access_ctx *access_ctx,
+                 struct sdap_id_conn_ctx *conn,
                  struct pam_data *pd)
 {
     errno_t ret;
@@ -85,7 +88,6 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct ldb_result *res;
     const char *attrs[] = { "*", NULL };
-    struct sss_domain_info *user_dom;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_access_req_ctx);
     if (req == NULL) {
@@ -98,6 +100,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     state->pd = pd;
     state->ev = ev;
     state->access_ctx = access_ctx;
+    state->conn = conn;
     state->current_rule = 0;
 
     DEBUG(6, ("Performing access check for user [%s]\n", pd->user));
@@ -108,20 +111,9 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Get original user DN, take care of subdomain users as well */
-    if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
-        user_dom = find_subdomain_by_name(be_ctx->domain, pd->domain, true);
-        if (user_dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("find_subdomain_by_name failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-        ret = sysdb_get_user_attr(state, user_dom->sysdb, user_dom,
-                                  pd->user, attrs, &res);
-    } else {
-        ret = sysdb_get_user_attr(state, domain->sysdb, domain,
-                                  pd->user, attrs, &res);
-    }
+    /* Get original user DN, domain already points to the right (sub)domain */
+    ret = sysdb_get_user_attr(state, domain->sysdb, domain,
+                              pd->user, attrs, &res);
     if (ret != EOK) {
         if (ret == ENOENT) {
             /* If we can't find the user, return access denied */
@@ -177,6 +169,7 @@ static errno_t check_next_rule(struct sdap_access_req_ctx *state,
             subreq = sdap_access_filter_send(state, state->ev, state->be_ctx,
                                              state->domain,
                                              state->access_ctx,
+                                             state->conn,
                                              state->pd->user,
                                              state->user_entry);
             if (subreq == NULL) {
@@ -624,7 +617,8 @@ struct sdap_access_filter_req_ctx {
     const char *filter;
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
-    struct sdap_id_ctx *sdap_ctx;
+    struct sdap_options *opts;
+    struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *sdap_op;
     struct sysdb_handle *handle;
     struct sss_domain_info *domain;
@@ -641,6 +635,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
                                              struct sss_domain_info *domain,
                                              struct sdap_access_ctx *access_ctx,
+                                             struct sdap_id_conn_ctx *conn,
                                              const char *username,
                                              struct ldb_message *user_entry)
 {
@@ -664,7 +659,8 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
 
     state->filter = NULL;
     state->username = username;
-    state->sdap_ctx = access_ctx->id_ctx;
+    state->opts = access_ctx->id_ctx->opts;
+    state->conn = conn;
     state->ev = ev;
     state->access_ctx = access_ctx;
     state->domain = domain;
@@ -707,9 +703,9 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     state->filter = talloc_asprintf(
         state,
         "(&(%s=%s)(objectclass=%s)%s)",
-        state->sdap_ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+        state->opts->user_map[SDAP_AT_USER_NAME].name,
         clean_username,
-        state->sdap_ctx->opts->user_map[SDAP_OC_USER].name,
+        state->opts->user_map[SDAP_OC_USER].name,
         state->access_ctx->filter);
     if (state->filter == NULL) {
         DEBUG(0, ("Could not construct access filter\n"));
@@ -721,7 +717,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     DEBUG(6, ("Checking filter against LDAP\n"));
 
     state->sdap_op = sdap_id_op_create(state,
-                                       state->sdap_ctx->conn->conn_cache);
+                                       state->conn->conn_cache);
     if (!state->sdap_op) {
         DEBUG(2, ("sdap_id_op_create failed\n"));
         ret = ENOMEM;
@@ -805,13 +801,13 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
      */
     subreq = sdap_get_generic_send(state,
                                    state->ev,
-                                   state->sdap_ctx->opts,
+                                   state->opts,
                                    sdap_id_op_handle(state->sdap_op),
                                    state->basedn,
                                    LDAP_SCOPE_BASE,
                                    state->filter, NULL,
                                    NULL, 0,
-                                   dp_opt_get_int(state->sdap_ctx->opts->basic,
+                                   dp_opt_get_int(state->opts->basic,
                                                   SDAP_SEARCH_TIMEOUT),
                                    false);
     if (subreq == NULL) {
