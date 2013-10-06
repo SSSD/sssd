@@ -50,6 +50,7 @@ void sdap_pam_access_handler(struct be_req *breq)
     struct pam_data *pd;
     struct tevent_req *req;
     struct sdap_access_ctx *access_ctx;
+    struct sss_domain_info *dom;
 
     pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
 
@@ -57,8 +58,16 @@ void sdap_pam_access_handler(struct be_req *breq)
             talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                             struct sdap_access_ctx);
 
+    dom = be_ctx->domain;
+    if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
+        /* Subdomain request, verify subdomain */
+        dom = find_subdomain_by_name(be_ctx->domain, pd->domain, true);
+    }
+
     req = sdap_access_send(breq, be_ctx->ev, be_ctx,
-                           be_ctx->domain, access_ctx, pd);
+                           dom, access_ctx,
+                           access_ctx->id_ctx->conn,
+                           pd);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to start sdap_access request\n"));
         sdap_access_reply(breq, PAM_SYSTEM_ERR);

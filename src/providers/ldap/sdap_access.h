@@ -26,6 +26,7 @@
 #define SDAP_ACCESS_H_
 
 #include "providers/dp_backend.h"
+#include "providers/ldap/ldap_common.h"
 
 #define SYSDB_LDAP_ACCESS_FILTER "ldap_access_filter_allow"
 
@@ -62,6 +63,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
                  struct be_ctx *be_ctx,
                  struct sss_domain_info *domain,
                  struct sdap_access_ctx *access_ctx,
+                 struct sdap_id_conn_ctx *conn,
                  struct pam_data *pd);
 errno_t sdap_access_recv(struct tevent_req *req);
 

@@ -78,6 +78,7 @@ void ipa_access_handler(struct be_req *be_req)
     struct pam_data *pd;
     struct ipa_access_ctx *ipa_access_ctx;
     struct tevent_req *req;
+    struct sss_domain_info *dom;
     struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
 
     pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
@@ -85,13 +86,21 @@ void ipa_access_handler(struct be_req *be_req)
     ipa_access_ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                                      struct ipa_access_ctx);
 
+    dom = be_ctx->domain;
+    if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
+        /* Subdomain request, verify subdomain */
+        dom = find_subdomain_by_name(be_ctx->domain, pd->domain, true);
+    }
+
     /* First, verify that this account isn't locked.
      * We need to do this in case the auth phase was
      * skipped (such as during GSSAPI single-sign-on
      * or SSH public key exchange.
      */
-    req = sdap_access_send(be_req, be_ctx->ev, be_ctx, be_ctx->domain,
-                           ipa_access_ctx->sdap_access_ctx, pd);
+    req = sdap_access_send(be_req, be_ctx->ev, be_ctx, dom,
+                           ipa_access_ctx->sdap_access_ctx,
+                           ipa_access_ctx->sdap_access_ctx->id_ctx->conn,
+                           pd);
     if (!req) {
         be_req_terminate(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
         return;

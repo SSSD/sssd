@@ -56,7 +56,9 @@ ad_access_handler(struct be_req *breq)
 
     /* Verify that the account is not locked */
     req = sdap_access_send(breq, be_ctx->ev, be_ctx, domain,
-                           access_ctx->sdap_access_ctx, pd);
+                           access_ctx->sdap_access_ctx,
+                           access_ctx->sdap_access_ctx->id_ctx->conn,
+                           pd);
     if (!req) {
         be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
         return;
