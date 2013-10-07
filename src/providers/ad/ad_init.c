@@ -366,6 +366,7 @@ sssm_ad_access_init(struct be_ctx *bectx,
     errno_t ret;
     struct ad_access_ctx *access_ctx;
     struct ad_id_ctx *ad_id_ctx;
+    const char *filter;
 
     access_ctx = talloc_zero(bectx, struct ad_access_ctx);
     if (!access_ctx) return ENOMEM;
@@ -392,10 +393,27 @@ sssm_ad_access_init(struct be_ctx *bectx,
         ret = ENOMEM;
         goto fail;
     }
-
     access_ctx->sdap_access_ctx->id_ctx = access_ctx->sdap_ctx;
+
+    /* If ad_access_filter is set, the value of ldap_acess_order is
+     * expire, filter, otherwise only expire
+     */
     access_ctx->sdap_access_ctx->access_rule[0] = LDAP_ACCESS_EXPIRE;
-    access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_EMPTY;
+    filter = dp_opt_get_cstring(access_ctx->ad_options, AD_ACCESS_FILTER);
+    if (filter != NULL) {
+        access_ctx->sdap_access_ctx->filter = sdap_get_access_filter(
+                                                  access_ctx->sdap_access_ctx,
+                                                  filter);
+        if (access_ctx->sdap_access_ctx->filter == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_FILTER;
+        access_ctx->sdap_access_ctx->access_rule[2] = LDAP_ACCESS_EMPTY;
+    } else {
+        access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_EMPTY;
+    }
 
     *ops = &ad_access_ops;
     *pvt_data = access_ctx;

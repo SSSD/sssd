@@ -261,6 +261,9 @@ char *sdap_get_id_specific_filter(TALLOC_CTX *mem_ctx,
                                   const char *base_filter,
                                   const char *extra_filter);
 
+char *sdap_get_access_filter(TALLOC_CTX *mem_ctx,
+                             const char *base_filter);
+
 errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
                          struct ldb_message **msgs,
                          struct sysdb_attrs ***attrs);
