@@ -12,23 +12,25 @@
     <para>
          <emphasis>0</emphasis>,
          <emphasis>0x0010</emphasis>:
-         Fatal failures. Anything that would prevent SSSD from starting up or causes it to cease running.
+         Fatal failures. Anything that would prevent SSSD from starting up or
+         causes it to cease running.
     </para>
     <para>
          <emphasis>1</emphasis>,
          <emphasis>0x0020</emphasis>:
-         Critical failures. An error that doesn't kill the SSSD, but one that indicates
-         that at least one major feature is not going to work properly.
+         Critical failures. An error that doesn't kill the SSSD, but one that
+         indicates that at least one major feature is not going to work
+         properly.
     </para>
     <para>
          <emphasis>2</emphasis>,
-         <emphasis>0x0040</emphasis>: Serious failures. An error announcing that a particular request or
-         operation has failed.
+         <emphasis>0x0040</emphasis>: Serious failures. An error announcing
+         that a particular request or operation has failed.
     </para>
     <para>
          <emphasis>3</emphasis>,
-         <emphasis>0x0080</emphasis>: Minor failures. These are the errors that would percolate down to
-         cause the operation failure of 2.
+         <emphasis>0x0080</emphasis>: Minor failures. These are the errors that
+         would percolate down to cause the operation failure of 2.
     </para>
     <para>
          <emphasis>4</emphasis>,
@@ -44,29 +46,34 @@
     </para>
     <para>
          <emphasis>7</emphasis>,
-         <emphasis>0x1000</emphasis>: Trace messages for internal control functions.
+         <emphasis>0x1000</emphasis>: Trace messages for internal control
+         functions.
     </para>
     <para>
          <emphasis>8</emphasis>,
-         <emphasis>0x2000</emphasis>: Contents of function-internal variables that may be interesting.
+         <emphasis>0x2000</emphasis>: Contents of function-internal variables
+         that may be interesting.
     </para>
     <para>
          <emphasis>9</emphasis>,
          <emphasis>0x4000</emphasis>: Extremely low-level tracing information.
     </para>
     <para>
-        To log required bitmask debug levels, simply add their numbers together as shown in following examples:
+        To log required bitmask debug levels, simply add their numbers together
+        as shown in following examples:
     </para>
     <para>
         <emphasis>Example</emphasis>: To log fatal failures, critical failures,
         serious failures and function data use 0x0270.
     </para>
     <para>
-        <emphasis>Example</emphasis>: To log fatal failures, configuration settings, function data,
-        trace messages for internal control functions use 0x1310.
+        <emphasis>Example</emphasis>: To log fatal failures, configuration
+        settings, function data, trace messages for internal control functions
+        use 0x1310.
     </para>
     <para>
-        <emphasis>Note</emphasis>: The bitmask format of debug levels was introduced in 1.7.0.
+        <emphasis>Note</emphasis>: The bitmask format of debug levels was
+        introduced in 1.7.0.
     </para>
     <para>
         <emphasis>Default</emphasis>: 0
