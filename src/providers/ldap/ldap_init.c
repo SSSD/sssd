@@ -341,7 +341,7 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
             access_ctx->access_rule[c] = LDAP_ACCESS_FILTER;
 
             filter = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
-                                                    SDAP_ACCESS_FILTER);
+                                        SDAP_ACCESS_FILTER);
             if (filter == NULL) {
                 /* It's okay if this is NULL. In that case we will simply act
                  * like the 'deny' provider.
@@ -349,24 +349,14 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
                 DEBUG(0, ("Warning: LDAP access rule 'filter' is set, "
                           "but no ldap_access_filter configured. "
                           "All domain users will be denied access.\n"));
-            }
-            else {
-                if (filter[0] == '(') {
-                    /* This filter is wrapped in parentheses.
-                     * Pass it as-is to the openldap libraries.
-                     */
-                    access_ctx->filter = filter;
-                }
-                else {
-                    /* Add parentheses around the filter */
-                    access_ctx->filter = talloc_asprintf(access_ctx, "(%s)", filter);
-                    if (access_ctx->filter == NULL) {
-                        ret = ENOMEM;
-                        goto done;
-                    }
+            } else {
+                access_ctx->filter = sdap_get_access_filter(access_ctx,
+                                                            filter);
+                if (access_ctx->filter == NULL) {
+                    ret = ENOMEM;
+                    goto done;
                 }
             }
-
         } else if (strcasecmp(order_list[c], LDAP_ACCESS_EXPIRE_NAME) == 0) {
             access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE;
 

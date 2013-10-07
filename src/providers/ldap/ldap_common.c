@@ -1745,6 +1745,25 @@ char *sdap_get_id_specific_filter(TALLOC_CTX *mem_ctx,
     return filter; /* NULL or not */
 }
 
+char *sdap_get_access_filter(TALLOC_CTX *mem_ctx,
+                             const char *base_filter)
+{
+    char *filter = NULL;
+
+    if (base_filter == NULL) return NULL;
+
+    if (base_filter[0] == '(') {
+        /* This filter is wrapped in parentheses.
+         * Pass it as-is to the openldap libraries.
+         */
+        filter = talloc_strdup(mem_ctx, base_filter);
+    } else {
+        filter = talloc_asprintf(mem_ctx, "(%s)", base_filter);
+    }
+
+    return filter;
+}
+
 errno_t
 sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
                        struct sdap_idmap_ctx *idmap_ctx,
