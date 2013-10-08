@@ -24,9 +24,11 @@
 #define AD_ACCESS_H_
 
 struct ad_access_ctx {
-    struct sdap_id_ctx *sdap_ctx;
     struct dp_option *ad_options;
     struct sdap_access_ctx *sdap_access_ctx;
+
+    struct sdap_id_conn_ctx *ldap_ctx;
+    struct sdap_id_conn_ctx *gc_ctx;
 };
 
 void

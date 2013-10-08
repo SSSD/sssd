@@ -375,7 +375,8 @@ sssm_ad_access_init(struct be_ctx *bectx,
     if (ret != EOK) {
         goto fail;
     }
-    access_ctx->sdap_ctx = ad_id_ctx->sdap_id_ctx;
+    access_ctx->ldap_ctx = ad_id_ctx->ldap_ctx;
+    access_ctx->gc_ctx = ad_id_ctx->gc_ctx;
 
     ret = dp_copy_options(access_ctx, ad_options->basic, AD_OPTS_BASIC,
                           &access_ctx->ad_options);
@@ -393,7 +394,7 @@ sssm_ad_access_init(struct be_ctx *bectx,
         ret = ENOMEM;
         goto fail;
     }
-    access_ctx->sdap_access_ctx->id_ctx = access_ctx->sdap_ctx;
+    access_ctx->sdap_access_ctx->id_ctx = ad_id_ctx->sdap_id_ctx;
 
     /* If ad_access_filter is set, the value of ldap_acess_order is
      * expire, filter, otherwise only expire
