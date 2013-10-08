@@ -644,6 +644,8 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     const char *basedn;
     char *clean_username;
     errno_t ret = ERR_INTERNAL;
+    char *name;
+    char *domname;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_access_filter_req_ctx);
     if (req == NULL) {
@@ -694,8 +696,16 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Construct the filter */
+    /* Subdomain users are identified by FQDN. We need to use just the username */
+    ret = sss_parse_name(state, domain->names, username, &domname, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not parse [%s] into name and "
+               "domain components, access might fail\n", username));
+        name = discard_const(username);
+    }
 
-    ret = sss_filter_sanitize(state, state->username, &clean_username);
+    ret = sss_filter_sanitize(state, name, &clean_username);
     if (ret != EOK) {
         goto done;
     }
