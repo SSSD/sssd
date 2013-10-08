@@ -402,7 +402,10 @@ sssm_ad_access_init(struct be_ctx *bectx,
     access_ctx->sdap_access_ctx->access_rule[0] = LDAP_ACCESS_EXPIRE;
     filter = dp_opt_get_cstring(access_ctx->ad_options, AD_ACCESS_FILTER);
     if (filter != NULL) {
-        access_ctx->sdap_access_ctx->filter = sdap_get_access_filter(
+        /* The processing of the extended filter is performed during the access
+         * check itself
+         */
+        access_ctx->sdap_access_ctx->filter = talloc_strdup(
                                                   access_ctx->sdap_access_ctx,
                                                   filter);
         if (access_ctx->sdap_access_ctx->filter == NULL) {
