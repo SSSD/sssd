@@ -991,6 +991,9 @@ static errno_t map_krb5_error(krb5_error_code kerr)
     case KRB5_REALM_CANT_RESOLVE:
         return ERR_NETWORK_IO;
 
+    case KRB5KDC_ERR_CLIENT_REVOKED:
+        return ERR_ACCOUNT_EXPIRED;
+
     case KRB5KDC_ERR_KEY_EXP:
         return ERR_CREDS_EXPIRED;
 
