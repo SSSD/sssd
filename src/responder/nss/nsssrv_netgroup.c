@@ -428,7 +428,6 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
     errno_t ret;
     struct sss_domain_info *dom = step_ctx->dctx->domain;
     struct getent_ctx *netgr;
-    struct sysdb_ctx *sysdb;
     char *name = NULL;
     uint32_t lifetime;
 
@@ -461,15 +460,13 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n",
                   name, dom->name));
-        sysdb = dom->sysdb;
-        if (sysdb == NULL) {
+        if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
 
         /* Look up the netgroup in the cache */
-        ret = sysdb_getnetgr(step_ctx->dctx, sysdb, dom, name,
-                             &step_ctx->dctx->res);
+        ret = sysdb_getnetgr(step_ctx->dctx, dom, name, &step_ctx->dctx->res);
         if (step_ctx->dctx->res->count > 1) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   ("getnetgr call returned more than one result !?!\n"));

@@ -905,8 +905,8 @@ static errno_t be_initgroups_prereq(struct be_req *be_req)
     const char *tmpstr;
     int i;
 
-    ret = sysdb_initgroups(be_req, be_req->be_ctx->domain->sysdb,
-                           be_req->be_ctx->domain, ar->filter_value, &res);
+    ret = sysdb_initgroups(be_req, be_req->be_ctx->domain, ar->filter_value,
+                           &res);
     if (ret && ret != ENOENT) {
         return ret;
     }

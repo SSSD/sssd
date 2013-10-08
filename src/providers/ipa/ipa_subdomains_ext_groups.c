@@ -196,8 +196,7 @@ static errno_t find_ipa_ext_memberships(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_initgroups(tmp_ctx, user_dom->sysdb, user_dom, user_name,
-                           &result);
+    ret = sysdb_initgroups(tmp_ctx, user_dom, user_name, &result);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_initgroups failed.\n"));
         goto done;

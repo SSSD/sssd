@@ -685,7 +685,7 @@ static int seed_domain_user_info(const char *name,
     }
 
     /* look for user in cache */
-    ret = sysdb_getpwnam(tmp_ctx, sysdb, domain, name, &res);
+    ret = sysdb_getpwnam(tmp_ctx, domain, name, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Couldn't lookup user (%s) in the cache\n", name));

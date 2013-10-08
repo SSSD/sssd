@@ -255,7 +255,6 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
          * sysdb did assign it automatically, do a lookup */
         if (tctx->octx->uid == 0 || tctx->octx->gid == 0) {
             ret = sysdb_getpwnam_sync(tctx,
-                                      tctx->sysdb,
                                       tctx->octx->name,
                                       tctx->octx);
             if (ret != EOK) {
@@ -364,7 +363,6 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
 
     if (tctx->octx->remove_homedir) {
         ret = sysdb_getpwnam_sync(tctx,
-                                  tctx->sysdb,
                                   tctx->octx->name,
                                   tctx->octx);
         if (ret != EOK) {

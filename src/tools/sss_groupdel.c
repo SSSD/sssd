@@ -91,7 +91,7 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    ret = sysdb_getgrnam_sync(tctx, tctx->sysdb, tctx->octx->name, tctx->octx);
+    ret = sysdb_getgrnam_sync(tctx, tctx->octx->name, tctx->octx);
     if (ret != EOK) {
         /* Error message will be printed in the switch */
         goto done;

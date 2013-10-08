@@ -411,36 +411,30 @@ int sysdb_domain_init(TALLOC_CTX *mem_ctx,
  * These functions automatically starts an operation
  * therefore they cannot be called within a transaction */
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
-                   struct sysdb_ctx *sysdb,
                    struct sss_domain_info *domain,
                    const char *name,
                    struct ldb_result **res);
 
 int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
-                   struct sysdb_ctx *sysdb,
                    struct sss_domain_info *domain,
                    uid_t uid,
                    struct ldb_result **res);
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
-                    struct sysdb_ctx *sysdb,
                     struct sss_domain_info *domain,
                     struct ldb_result **res);
 
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
-                   struct sysdb_ctx *sysdb,
                    struct sss_domain_info *domain,
                    const char *name,
                    struct ldb_result **res);
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
-                   struct sysdb_ctx *sysdb,
                    struct sss_domain_info *domain,
                    gid_t gid,
                    struct ldb_result **res);
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
-                    struct sysdb_ctx *sysdb,
                     struct sss_domain_info *domain,
                     struct ldb_result **res);
 
@@ -457,26 +451,22 @@ struct sysdb_netgroup_ctx {
 };
 
 errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
-                       struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain,
                        const char *netgroup,
                        struct ldb_result **res);
 
 int sysdb_initgroups(TALLOC_CTX *mem_ctx,
-                     struct sysdb_ctx *sysdb,
                      struct sss_domain_info *domain,
                      const char *name,
                      struct ldb_result **res);
 
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         struct sss_domain_info *domain,
                         const char *name,
                         const char **attributes,
                         struct ldb_result **res);
 
 int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
-                            struct sysdb_ctx *sysdb,
                             struct sss_domain_info *domain,
                             const char *netgrname,
                             const char **attributes,
@@ -855,7 +845,6 @@ errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
                            char **remove_attrs);
 
 errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
-                                 struct sysdb_ctx *sysdb,
                                  struct sss_domain_info *dom,
                                  enum sysdb_member_type mtype,
                                  const char *name,

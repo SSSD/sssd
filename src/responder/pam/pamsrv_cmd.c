@@ -903,7 +903,6 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 {
     struct sss_domain_info *dom = preq->domain;
     char *name = NULL;
-    struct sysdb_ctx *sysdb;
     time_t cacheExpire;
     int ret;
     struct tevent_req *dpreq;
@@ -956,14 +955,13 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
 
-        sysdb = dom->sysdb;
-        if (sysdb == NULL) {
+        if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             preq->pd->pam_status = PAM_SYSTEM_ERR;
             return EFAULT;
         }
 
-        ret = sysdb_getpwnam(preq, sysdb, dom, name, &preq->res);
+        ret = sysdb_getpwnam(preq, dom, name, &preq->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;

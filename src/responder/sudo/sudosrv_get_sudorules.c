@@ -111,8 +111,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
         DEBUG(SSSDBG_FUNC_DATA, ("Requesting info about [%s@%s]\n",
               name, dom->name));
 
-        ret = sysdb_getpwnam(dctx, dctx->domain->sysdb,
-                             dctx->domain, name, &user);
+        ret = sysdb_getpwnam(dctx, dctx->domain, name, &user);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Failed to make request to our cache!\n"));

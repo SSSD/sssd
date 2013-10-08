@@ -532,8 +532,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     }
     kr = state->kr;
 
-    ret = sysdb_get_user_attr(state, state->sysdb, state->domain,
-                              state->pd->user, attrs, &res);
+    ret = sysdb_get_user_attr(state, state->domain, state->pd->user, attrs,
+                              &res);
     if (ret) {
         DEBUG(5, ("sysdb search for upn of user [%s] failed.\n", pd->user));
         state->pam_status = PAM_SYSTEM_ERR;

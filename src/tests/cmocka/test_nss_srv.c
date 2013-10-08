@@ -371,9 +371,8 @@ void test_nss_getpwnam_search(void **state)
     mock_fill_user();
     set_cmd_cb(test_nss_getpwnam_search_check);
 
-    ret = sysdb_getpwnam(nss_test_ctx, nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->tctx->dom, "testuser_search",
-                         &res);
+    ret = sysdb_getpwnam(nss_test_ctx, nss_test_ctx->tctx->dom,
+                         "testuser_search", &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 0);
 
@@ -386,9 +385,8 @@ void test_nss_getpwnam_search(void **state)
     assert_int_equal(ret, EOK);
 
     /* test_nss_getpwnam_search_check will check the user attributes */
-    ret = sysdb_getpwnam(nss_test_ctx, nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->tctx->dom, "testuser_search",
-                         &res);
+    ret = sysdb_getpwnam(nss_test_ctx, nss_test_ctx->tctx->dom,
+                         "testuser_search", &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
 }
@@ -463,9 +461,8 @@ void test_nss_getpwnam_update(void **state)
     assert_int_equal(ret, EOK);
 
     /* Check the user was updated in the cache */
-    ret = sysdb_getpwnam(nss_test_ctx, nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->tctx->dom, "testuser_update",
-                         &res);
+    ret = sysdb_getpwnam(nss_test_ctx, nss_test_ctx->tctx->dom,
+                         "testuser_update", &res);
     assert_int_equal(ret, EOK);
     assert_int_equal(res->count, 1);
 

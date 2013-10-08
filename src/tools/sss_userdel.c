@@ -220,7 +220,6 @@ int main(int argc, const char **argv)
     }
 
     ret = sysdb_getpwnam_sync(tctx,
-                              tctx->sysdb,
                               tctx->octx->name,
                               tctx->octx);
     if (ret != EOK) {

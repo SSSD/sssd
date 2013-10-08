@@ -571,7 +571,6 @@ int groupdel(TALLOC_CTX *mem_ctx,
  * getpwnam, getgrnam and friends
  */
 int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         const char *name,
                         struct ops_ctx *out)
 {
@@ -579,7 +578,7 @@ int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
     const char *str;
     int ret;
 
-    ret = sysdb_getpwnam(mem_ctx, sysdb, out->domain, name, &res);
+    ret = sysdb_getpwnam(mem_ctx, out->domain, name, &res);
     if (ret) {
         return ret;
     }
@@ -644,7 +643,6 @@ int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
 }
 
 int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         const char *name,
                         struct ops_ctx *out)
 {
@@ -652,7 +650,7 @@ int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
     const char *str;
     int ret;
 
-    ret = sysdb_getgrnam(mem_ctx, sysdb, out->domain, name, &res);
+    ret = sysdb_getgrnam(mem_ctx, out->domain, name, &res);
     if (ret) {
         return ret;
     }

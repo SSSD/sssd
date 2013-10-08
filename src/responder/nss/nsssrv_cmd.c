@@ -122,7 +122,7 @@ void nss_update_pw_memcache(struct nss_ctx *nctx)
     now = time(NULL);
 
     for (dom = nctx->rctx->domains; dom; dom = get_next_domain(dom, false)) {
-        ret = sysdb_enumpwent(nctx, dom->sysdb, dom, &res);
+        ret = sysdb_enumpwent(nctx, dom, &res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Failed to enumerate users for domain [%s]\n", dom->name));
@@ -701,7 +701,6 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
     char *name = NULL;
-    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
 
@@ -752,13 +751,12 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
 
-        sysdb = dom->sysdb;
-        if (sysdb == NULL) {
+        if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
 
-        ret = sysdb_getpwnam(cmdctx, sysdb, dom, name, &dctx->res);
+        ret = sysdb_getpwnam(cmdctx, dom, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;
@@ -1233,7 +1231,6 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
     int err;
@@ -1267,14 +1264,13 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%d@%s]\n", cmdctx->id, dom->name));
 
-        sysdb = dom->sysdb;
-        if (sysdb == NULL) {
+        if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             ret = EIO;
             goto done;
         }
 
-        ret = sysdb_getpwuid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
+        ret = sysdb_getpwuid(cmdctx, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             ret = EIO;
@@ -1730,7 +1726,6 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
     struct nss_dom_ctx *dctx = step_ctx->dctx;
     struct getent_ctx *pctx = step_ctx->getent_ctx;
     struct nss_ctx *nctx = step_ctx->nctx;
-    struct sysdb_ctx *sysdb;
     struct ldb_result *res;
     struct timeval tv;
     struct tevent_timer *te;
@@ -1755,8 +1750,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
 
         DEBUG(6, ("Requesting info for domain [%s]\n", dom->name));
 
-        sysdb = dom->sysdb;
-        if (sysdb == NULL) {
+        if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
@@ -1793,7 +1787,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
             }
         }
 
-        ret = sysdb_enumpwent(dctx, sysdb, dom, &res);
+        ret = sysdb_enumpwent(dctx, dom, &res);
         if (ret != EOK) {
             DEBUG(1, ("Enum from cache failed, skipping domain [%s]\n",
                       dom->name));
@@ -2119,7 +2113,7 @@ void nss_update_gr_memcache(struct nss_ctx *nctx)
     now = time(NULL);
 
     for (dom = nctx->rctx->domains; dom; dom = get_next_domain(dom, false)) {
-        ret = sysdb_enumgrent(nctx, dom->sysdb, dom, &res);
+        ret = sysdb_enumgrent(nctx, dom, &res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Failed to enumerate users for domain [%s]\n", dom->name));
@@ -2594,7 +2588,6 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
     char *name = NULL;
-    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
 
@@ -2645,13 +2638,12 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
 
-        sysdb = dom->sysdb;
-        if (sysdb == NULL) {
+        if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
 
-        ret = sysdb_getgrnam(cmdctx, sysdb, dom, name, &dctx->res);
+        ret = sysdb_getgrnam(cmdctx, dom, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             return EIO;
@@ -2734,7 +2726,6 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
     int err;
@@ -2768,14 +2759,13 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%d@%s]\n", cmdctx->id, dom->name));
 
-        sysdb = dom->sysdb;
-        if (sysdb == NULL) {
+        if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             ret = EIO;
             goto done;
         }
 
-        ret = sysdb_getgrgid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
+        ret = sysdb_getgrgid(cmdctx, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
             ret = EIO;
@@ -3021,7 +3011,6 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
     struct nss_dom_ctx *dctx = step_ctx->dctx;
     struct getent_ctx *gctx = step_ctx->getent_ctx;
     struct nss_ctx *nctx = step_ctx->nctx;
-    struct sysdb_ctx *sysdb;
     struct ldb_result *res;
     struct timeval tv;
     struct tevent_timer *te;
@@ -3046,8 +3035,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
 
         DEBUG(6, ("Requesting info for domain [%s]\n", dom->name));
 
-        sysdb = dom->sysdb;
-        if (sysdb == NULL) {
+        if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
@@ -3084,7 +3072,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
             }
         }
 
-        ret = sysdb_enumgrent(dctx, sysdb, dom, &res);
+        ret = sysdb_enumgrent(dctx, dom, &res);
         if (ret != EOK) {
             DEBUG(1, ("Enum from cache failed, skipping domain [%s]\n",
                       dom->name));
@@ -3413,7 +3401,7 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
 
     tmp_ctx = talloc_new(NULL);
 
-    ret = sysdb_initgroups(tmp_ctx, dom->sysdb, dom, name, &res);
+    ret = sysdb_initgroups(tmp_ctx, dom, name, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Failed to make request to our cache! [%d][%s]\n",
@@ -3598,7 +3586,6 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
     struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
     char *name = NULL;
-    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int ret;
 
@@ -3649,13 +3636,12 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
 
-        sysdb = dom->sysdb;
-        if (sysdb == NULL) {
+        if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
         }
 
-        ret = sysdb_initgroups(cmdctx, sysdb, dom, name, &dctx->res);
+        ret = sysdb_initgroups(cmdctx, dom, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache! [%d][%s]\n",
                       ret, strerror(ret)));

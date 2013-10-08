@@ -100,7 +100,7 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_get_user_attr(tmp_ctx, sysdb, domain, user, attrs, &res);
+    ret = sysdb_get_user_attr(tmp_ctx, domain, user, attrs, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_user_attr failed.\n"));
         goto done;

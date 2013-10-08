@@ -1816,7 +1816,7 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_getpwnam(tmp_ctx, sysdb, domain, name, &res);
+    ret = sysdb_getpwnam(tmp_ctx, domain, name, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot canonicalize username\n"));
         goto done;

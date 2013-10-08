@@ -92,12 +92,10 @@ int groupmod(TALLOC_CTX *mem_ctx,
             struct ops_ctx *data);
 
 int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         const char *name,
                         struct ops_ctx *out);
 
 int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         const char *name,
                         struct ops_ctx *out);
 

@@ -112,8 +112,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Get original user DN, domain already points to the right (sub)domain */
-    ret = sysdb_get_user_attr(state, domain->sysdb, domain,
-                              pd->user, attrs, &res);
+    ret = sysdb_get_user_attr(state, domain, pd->user, attrs, &res);
     if (ret != EOK) {
         if (ret == ENOENT) {
             /* If we can't find the user, return access denied */

@@ -384,7 +384,7 @@ static int get_user_dn(TALLOC_CTX *memctx,
     attrs[9] = SYSDB_PWD_ATTRIBUTE;
     attrs[10] = NULL;
 
-    ret = sysdb_get_user_attr(tmpctx, sysdb, domain, username, attrs, &res);
+    ret = sysdb_get_user_attr(tmpctx, domain, username, attrs, &res);
     if (ret) {
         goto done;
     }

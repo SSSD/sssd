@@ -123,7 +123,7 @@ int main(int argc, const char **argv)
         goto fini;
     }
     /* check the username to be able to give sensible error message */
-    ret = sysdb_getgrnam_sync(tctx, tctx->sysdb, tctx->octx->name, tctx->octx);
+    ret = sysdb_getgrnam_sync(tctx, tctx->octx->name, tctx->octx);
     if (ret != EOK) {
         ERROR("Cannot find group in local domain, "
               "modifying groups is allowed only in local domain\n");

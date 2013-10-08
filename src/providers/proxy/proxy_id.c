@@ -100,7 +100,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     /* Canonicalize the username in case it was actually an alias */
 
     if (ctx->fast_alias == true) {
-        ret = sysdb_getpwuid(tmpctx, sysdb, dom, uid, &cached_pwd);
+        ret = sysdb_getpwuid(tmpctx, dom, uid, &cached_pwd);
         if (ret != EOK) {
             /* Non-fatal, attempt to canonicalize online */
             DEBUG(SSSDBG_TRACE_FUNC, ("Request to cache failed [%d]: %s\n",
@@ -836,7 +836,7 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
 
     /* Canonicalize the group name in case it was actually an alias */
     if (ctx->fast_alias == true) {
-        ret = sysdb_getgrgid(tmpctx, sysdb, dom, gid, &cached_grp);
+        ret = sysdb_getgrgid(tmpctx, dom, gid, &cached_grp);
         if (ret != EOK) {
             /* Non-fatal, attempt to canonicalize online */
             DEBUG(SSSDBG_TRACE_FUNC, ("Request to cache failed [%d]: %s\n",
@@ -1206,7 +1206,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
 
     /* Canonicalize the username in case it was actually an alias */
     if (ctx->fast_alias == true) {
-        ret = sysdb_getpwuid(tmpctx, sysdb, dom, uid, &cached_pwd);
+        ret = sysdb_getpwuid(tmpctx, dom, uid, &cached_pwd);
         if (ret != EOK) {
             /* Non-fatal, attempt to canonicalize online */
             DEBUG(SSSDBG_TRACE_FUNC, ("Request to cache failed [%d]: %s\n",

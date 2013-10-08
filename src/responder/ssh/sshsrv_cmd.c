@@ -219,7 +219,6 @@ static errno_t
 ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
 {
     errno_t ret;
-    struct sysdb_ctx *sysdb;
     const char *attrs[] = { SYSDB_NAME, SYSDB_SSH_PUBKEY, NULL };
     struct ldb_result *res;
 
@@ -227,14 +226,13 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
           ("Requesting SSH user public keys for [%s@%s]\n",
            cmd_ctx->name, cmd_ctx->domain->name));
 
-    sysdb = cmd_ctx->domain->sysdb;
-    if (sysdb == NULL) {
+    if (cmd_ctx->domain->sysdb == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Fatal: Sysdb CTX not found for this domain!\n"));
         return EFAULT;
     }
 
-    ret = sysdb_get_user_attr(cmd_ctx, sysdb, cmd_ctx->domain,
+    ret = sysdb_get_user_attr(cmd_ctx, cmd_ctx->domain,
                               cmd_ctx->name, attrs, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
