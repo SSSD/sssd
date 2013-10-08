@@ -1006,6 +1006,12 @@ static void krb5_auth_done(struct tevent_req *subreq)
         ret = EOK;
         goto done;
 
+    case ERR_ACCOUNT_EXPIRED:
+        state->pam_status = PAM_ACCT_EXPIRED;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
+
     case ERR_NO_CREDS:
         state->pam_status = PAM_CRED_UNAVAIL;
         state->dp_err = DP_ERR_OK;
