@@ -180,11 +180,46 @@ ldap_id_mapping = False
                             for this option to have an effect.
                         </para>
                         <para>
-                            Example:
+                            The option also supports specifying different
+                            filters per domain or forest. This
+                            extended filter would consist of:
+                            <quote>KEYWORD:NAME:FILTER</quote>.
+                            The keyword can be either <quote>DOM</quote>,
+                            <quote>FOREST</quote> or missing.
+                        </para>
+                        <para>
+                            If the keyword equals to <quote>DOM</quote>
+                            or is missing, then <quote>NAME</quote> specifies
+                            the domain or subdomain the filter applies to.
+                            If the keyword equals to <quote>FOREST</quote>,
+                            then the filter equals to all domains from the
+                            forest specified by <quote>NAME</quote>.
+                        </para>
+                        <para>
+                            Multiple filters can be separated with the
+                            <quote>?</quote> character, similarly to how
+                            search bases work.
+                        </para>
+                        <para>
+                            The most specific match is always used. For
+                            example, if the option specified filter
+                            for a domain the user is a member of and a
+                            global filter, the per-domain filter would
+                            be applied.  If there are more matches with
+                            the same specification, the first one is used.
+                        </para>
+                        <para>
+                            Examples:
                         </para>
                         <programlisting>
-access_provider = ad
-ad_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
+# apply filter on domain called dom1 only:
+dom1:(memberOf=cn=admins,ou=groups,dc=dom1,dc=com)
+
+# apply filter on domain called dom2 only:
+DOM:dom2:(memberOf=cn=admins,ou=groups,dc=dom2,dc=com)
+
+# apply filter on forest called EXAMPLE.COM only:
+FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                         </programlisting>
                         <para>
                             Default: Not set

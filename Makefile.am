@@ -150,7 +150,8 @@ if HAVE_CMOCKA
         dyndns-tests \
         fqnames-tests \
         test_sss_idmap \
-        test_utils
+        test_utils \
+        ad_access_filter_tests
 endif
 
 check_PROGRAMS = \
@@ -1364,6 +1365,32 @@ test_utils_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
+
+ad_access_filter_tests_SOURCES = \
+    $(TEST_MOCK_OBJ) \
+    $(sssd_be_SOURCES) \
+    src/util/sss_ldap.c \
+    src/util/sss_krb5.c \
+    src/util/find_uid.c \
+    src/util/user_info_msg.c \
+    src/tests/cmocka/test_ad_access_filter.c
+ad_access_filter_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS) \
+    -DUNIT_TESTING
+ad_access_filter_tests_LDADD = \
+    $(PAM_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
+    libsss_ldap_common.la \
+    libsss_idmap.la \
+    libsss_krb5_common.la \
+    libsss_test_common.la
+
 endif
 
 noinst_PROGRAMS = pam_test_client
