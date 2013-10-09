@@ -29,6 +29,9 @@
 #define IDMAP_RANGE_MIN 1234
 #define IDMAP_RANGE_MAX 9876
 
+#define IDMAP_RANGE_MIN2 11234
+#define IDMAP_RANGE_MAX2 19876
+
 const char test_sid[] = "S-1-5-21-2127521184-1604012920-1887927527-72713";
 uint8_t test_bin_sid[] = {0x01, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x15,
                           0x00, 0x00, 0x00, 0xA0, 0x65, 0xCF, 0x7E, 0x78, 0x4B,
@@ -139,6 +142,65 @@ END_TEST
 START_TEST(idmap_test_add_domain)
 {
     idmap_add_domain_setup();
+}
+END_TEST
+
+START_TEST(idmap_test_add_domain_collisions)
+{
+    enum idmap_error_code err;
+    struct sss_idmap_range range = {IDMAP_RANGE_MIN, IDMAP_RANGE_MAX};
+    struct sss_idmap_range range2 = {IDMAP_RANGE_MIN2, IDMAP_RANGE_MAX2};
+
+    err = sss_idmap_add_domain(idmap_ctx, "test.dom", "S-1-5-21-1-2-3", &range);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_domain failed.");
+
+    err = sss_idmap_add_domain(idmap_ctx, "test.dom", "S-1-5-21-1-2-4",
+                               &range2);
+    fail_unless(err == IDMAP_COLLISION,
+                "sss_idmap_add_domain added domain with the same name.");
+
+    err = sss_idmap_add_domain(idmap_ctx, "test.dom2", "S-1-5-21-1-2-3",
+                               &range2);
+    fail_unless(err == IDMAP_COLLISION,
+                "sss_idmap_add_domain added domain with the same SID.");
+
+    err = sss_idmap_add_domain(idmap_ctx, "test.dom2", "S-1-5-21-1-2-4",
+                               &range);
+    fail_unless(err == IDMAP_COLLISION,
+                "sss_idmap_add_domain added domain with the same range.");
+
+    err = sss_idmap_add_domain(idmap_ctx, "test.dom2", "S-1-5-21-1-2-4",
+                               &range2);
+    fail_unless(err == IDMAP_SUCCESS,
+                "sss_idmap_add_domain failed to add second domain.");
+}
+END_TEST
+
+START_TEST(idmap_test_add_domain_collisions_ext_mapping)
+{
+    enum idmap_error_code err;
+    struct sss_idmap_range range = {IDMAP_RANGE_MIN, IDMAP_RANGE_MAX};
+    struct sss_idmap_range range2 = {IDMAP_RANGE_MIN2, IDMAP_RANGE_MAX2};
+
+    err = sss_idmap_add_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-3",
+                                  &range, NULL, 0, true);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_domain failed.");
+
+    err = sss_idmap_add_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-4",
+                                  &range2, NULL, 0, true);
+    fail_unless(err == IDMAP_COLLISION,
+                "sss_idmap_add_domain added domain with the same name.");
+
+    err = sss_idmap_add_domain_ex(idmap_ctx, "test.dom2", "S-1-5-21-1-2-3",
+                                  &range2, NULL, 0, true);
+    fail_unless(err == IDMAP_COLLISION,
+                "sss_idmap_add_domain added domain with the same SID.");
+
+    err = sss_idmap_add_domain_ex(idmap_ctx, "test.dom2", "S-1-5-21-1-2-4",
+                                  &range, NULL, 0, true);
+    fail_unless(err == IDMAP_SUCCESS,
+                "sss_idmap_add_domain failed to add second domain with " \
+                "external mapping and the same range.");
 }
 END_TEST
 
@@ -510,6 +572,8 @@ Suite *idmap_test_suite (void)
                               idmap_ctx_teardown);
 
     tcase_add_test(tc_dom, idmap_test_add_domain);
+    tcase_add_test(tc_dom, idmap_test_add_domain_collisions);
+    tcase_add_test(tc_dom, idmap_test_add_domain_collisions_ext_mapping);
 
     suite_add_tcase(s, tc_dom);
 
