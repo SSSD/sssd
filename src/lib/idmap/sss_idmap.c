@@ -432,24 +432,28 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
 
     dom->name = idmap_strdup(ctx, domain_name);
     if (dom->name == NULL) {
+        err = IDMAP_OUT_OF_MEMORY;
         goto fail;
     }
 
     if (domain_sid != NULL) {
         dom->sid = idmap_strdup(ctx, domain_sid);
         if (dom->sid == NULL) {
+            err = IDMAP_OUT_OF_MEMORY;
             goto fail;
         }
     }
 
     dom->range = idmap_range_dup(ctx, range);
     if (dom->range == NULL) {
+        err = IDMAP_OUT_OF_MEMORY;
         goto fail;
     }
 
     if (range_id != NULL) {
         dom->range_id = idmap_strdup(ctx, range_id);
         if (dom->range_id == NULL) {
+            err = IDMAP_OUT_OF_MEMORY;
             goto fail;
         }
     }
@@ -459,8 +463,7 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
 
     err = dom_check_collision(ctx->idmap_domain_info, dom);
     if (err != IDMAP_SUCCESS) {
-        ctx->free_func(dom, ctx->alloc_pvt);
-        return err;
+        goto fail;
     }
 
     dom->next = ctx->idmap_domain_info;
@@ -469,11 +472,9 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
     return IDMAP_SUCCESS;
 
 fail:
-    ctx->free_func(dom->sid, ctx->alloc_pvt);
-    ctx->free_func(dom->name, ctx->alloc_pvt);
-    ctx->free_func(dom, ctx->alloc_pvt);
+    sss_idmap_free_domain(ctx, dom);
 
-    return IDMAP_OUT_OF_MEMORY;
+    return err;
 }
 
 enum idmap_error_code sss_idmap_add_domain(struct sss_idmap_ctx *ctx,
