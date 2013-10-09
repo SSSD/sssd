@@ -329,6 +329,7 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
     struct sss_idmap_range range;
     enum idmap_error_code err;
     id_t idmap_upper;
+    bool external_mapping = true;
 
     ret = sss_idmap_ctx_get_upper(idmap_ctx->map, &idmap_upper);
     if (ret != IDMAP_SUCCESS) {
@@ -338,28 +339,39 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
         goto done;
     }
 
-    ret = sss_idmap_calculate_range(idmap_ctx->map, dom_sid, &slice, &range);
-    if (ret != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to calculate range for domain [%s]: [%d]\n", dom_name,
-               ret));
-        ret = EIO;
-        goto done;
-    }
-    DEBUG(SSSDBG_TRACE_LIBS,
-          ("Adding domain [%s] as slice [%"SPRIid"]\n", dom_sid, slice));
+    if (dp_opt_get_bool(idmap_ctx->id_ctx->opts->basic, SDAP_ID_MAPPING)) {
+        external_mapping = false;
+        ret = sss_idmap_calculate_range(idmap_ctx->map, dom_sid, &slice, &range);
+        if (ret != IDMAP_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("Failed to calculate range for domain [%s]: [%d]\n", dom_name,
+                   ret));
+            ret = EIO;
+            goto done;
+        }
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("Adding domain [%s] as slice [%"SPRIid"]\n", dom_sid, slice));
 
-    if (range.max > idmap_upper) {
-        /* This should never happen */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("BUG: Range maximum exceeds the global maximum: "
-               "%d > %"SPRIid"\n", range.max, idmap_upper));
-        ret = EINVAL;
-        goto done;
+        if (range.max > idmap_upper) {
+            /* This should never happen */
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("BUG: Range maximum exceeds the global maximum: "
+                   "%u > %"SPRIid"\n", range.max, idmap_upper));
+            ret = EINVAL;
+            goto done;
+        }
+    } else {
+        ret = sdap_idmap_get_configured_external_range(idmap_ctx, &range);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  ("sdap_idmap_get_configured_external_range failed.\n"));
+            return ret;
+        }
     }
 
     /* Add this domain to the map */
-    err = sss_idmap_add_domain(idmap_ctx->map, dom_name, dom_sid, &range);
+    err = sss_idmap_add_domain_ex(idmap_ctx->map, dom_name, dom_sid, &range,
+                                  NULL, 0, external_mapping);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Could not add domain [%s] to the map: [%d]\n",
@@ -368,11 +380,19 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
         goto done;
     }
 
-    /* Add this domain to the SYSDB cache so it will survive reboot */
-    ret = sysdb_idmap_store_mapping(idmap_ctx->id_ctx->be->domain->sysdb,
-                                    idmap_ctx->id_ctx->be->domain,
-                                    dom_name, dom_sid,
-                                    slice);
+    /* If algorithmic mapping is used add this domain to the SYSDB cache so it
+     * will survive reboot */
+    if (!external_mapping) {
+        ret = sysdb_idmap_store_mapping(idmap_ctx->id_ctx->be->domain->sysdb,
+                                        idmap_ctx->id_ctx->be->domain,
+                                        dom_name, dom_sid,
+                                        slice);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_idmap_store_mapping failed.\n"));
+            goto done;
+        }
+    }
+
 done:
     return ret;
 }
