@@ -27,12 +27,13 @@
 #include "util/util_sss_idmap.h"
 
 static errno_t
-sdap_idmap_add_configured_external_range(struct sdap_idmap_ctx *idmap_ctx)
+sdap_idmap_get_configured_external_range(struct sdap_idmap_ctx *idmap_ctx,
+                                         struct sss_idmap_range *range)
 {
     int int_id;
-    struct sss_idmap_range range;
     struct sdap_id_ctx *id_ctx;
-    enum idmap_error_code err;
+    uint32_t min;
+    uint32_t max;
 
     if (idmap_ctx == NULL) {
         return EINVAL;
@@ -45,31 +46,53 @@ sdap_idmap_add_configured_external_range(struct sdap_idmap_ctx *idmap_ctx)
         DEBUG(SSSDBG_CONF_SETTINGS, ("ldap_min_id must be greater than 0.\n"));
         return EINVAL;
     }
-    range.min = int_id;
+    min = int_id;
 
     int_id = dp_opt_get_int(id_ctx->opts->basic, SDAP_MAX_ID);
     if (int_id < 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("ldap_min_id must be greater than 0.\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, ("ldap_max_id must be greater than 0.\n"));
         return EINVAL;
     }
-    range.max = int_id;
+    max = int_id;
 
-    if ((range.min == 0 && range.max != 0)
-            || (range.min != 0 && range.max == 0)) {
+    if ((min == 0 && max != 0) || (min != 0 && max == 0)) {
         DEBUG(SSSDBG_CONF_SETTINGS, ("Both ldap_min_id and ldap_max_id " \
                                      "either must be 0 (not set) " \
                                      "or positive integers.\n"));
         return EINVAL;
     }
 
-    if (range.min == 0 && range.max == 0) {
+    if (min == 0 && max == 0) {
         /* ldap_min_id and ldap_max_id not set, using min_id and max_id */
-        range.min = id_ctx->be->domain->id_min;
-        range.max = id_ctx->be->domain->id_max;
-        if (range.max == 0) {
-            range.max = UINT32_MAX;
+        min = id_ctx->be->domain->id_min;
+        max = id_ctx->be->domain->id_max;
+        if (max == 0) {
+            max = UINT32_MAX;
         }
     }
+
+    range->min = min;
+    range->max =max;
+
+    return EOK;
+}
+
+static errno_t
+sdap_idmap_add_configured_external_range(struct sdap_idmap_ctx *idmap_ctx)
+{
+    int ret;
+    struct sss_idmap_range range;
+    struct sdap_id_ctx *id_ctx;
+    enum idmap_error_code err;
+
+    ret = sdap_idmap_get_configured_external_range(idmap_ctx, &range);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("sdap_idmap_get_configured_external_range failed.\n"));
+        return ret;
+    }
+
+    id_ctx = idmap_ctx->id_ctx;
 
     err = sss_idmap_add_domain_ex(idmap_ctx->map, id_ctx->be->domain->name,
                                   id_ctx->be->domain->domain_id, &range,
