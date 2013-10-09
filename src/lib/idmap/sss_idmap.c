@@ -357,11 +357,13 @@ static enum idmap_error_code dom_check_collision(
         /* TODO: if both ranges have the same ID check if an update is
          * needed. */
 
-        /* check if ID ranges overlap */
-        if ((new_dom->range->min >= dom->range->min
-                && new_dom->range->min <= dom->range->max)
-            || (new_dom->range->max >= dom->range->min
-                && new_dom->range->max <= dom->range->max)) {
+        /* Check if ID ranges overlap.
+         * ID ranges with external mapping may overlap. */
+        if ((!new_dom->external_mapping && !dom->external_mapping)
+            && ((new_dom->range->min >= dom->range->min
+                    && new_dom->range->min <= dom->range->max)
+                || (new_dom->range->max >= dom->range->min
+                    && new_dom->range->max <= dom->range->max))) {
             return IDMAP_COLLISION;
         }
 
