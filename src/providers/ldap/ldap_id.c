@@ -365,6 +365,11 @@ static void users_get_done(struct tevent_req *subreq)
             }
             break;
 
+        case BE_FILTER_SECID:
+            /* Since it is not clear if the SID belongs to a user or a group
+             * we have nothing to do here. */
+            break;
+
         default:
             tevent_req_error(req, EINVAL);
             return;
@@ -692,6 +697,11 @@ static void groups_get_done(struct tevent_req *subreq)
                 tevent_req_error(req, ret);
                 return;
             }
+            break;
+
+        case BE_FILTER_SECID:
+            /* Since it is not clear if the SID belongs to a user or a group
+             * we have nothing to do here. */
             break;
 
         default:
