@@ -213,6 +213,20 @@ enum idmap_error_code sss_idmap_init(idmap_alloc_func *alloc_func,
     return IDMAP_SUCCESS;
 }
 
+static void sss_idmap_free_domain(struct sss_idmap_ctx *ctx,
+                                  struct idmap_domain_info *dom)
+{
+    if (ctx == NULL || dom == NULL) {
+        return;
+    }
+
+    ctx->free_func(dom->range_id, ctx->alloc_pvt);
+    ctx->free_func(dom->range, ctx->alloc_pvt);
+    ctx->free_func(dom->name, ctx->alloc_pvt);
+    ctx->free_func(dom->sid, ctx->alloc_pvt);
+    ctx->free_func(dom, ctx->alloc_pvt);
+}
+
 enum idmap_error_code sss_idmap_free(struct sss_idmap_ctx *ctx)
 {
     struct idmap_domain_info *dom;
@@ -224,10 +238,7 @@ enum idmap_error_code sss_idmap_free(struct sss_idmap_ctx *ctx)
     while (next) {
         dom = next;
         next = dom->next;
-        ctx->free_func(dom->range, ctx->alloc_pvt);
-        ctx->free_func(dom->name, ctx->alloc_pvt);
-        ctx->free_func(dom->sid, ctx->alloc_pvt);
-        ctx->free_func(dom, ctx->alloc_pvt);
+        sss_idmap_free_domain(ctx, dom);
     }
 
     ctx->free_func(ctx, ctx->alloc_pvt);
