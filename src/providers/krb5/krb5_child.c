@@ -1675,6 +1675,7 @@ static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline)
     len = sss_atomic_read_s(fd, buf, IN_BUF_SIZE);
     if (len == -1) {
         ret = errno;
+        ret = (ret == 0) ? EINVAL: ret;
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("read failed [%d][%s].\n", ret, strerror(ret)));
         return ret;
