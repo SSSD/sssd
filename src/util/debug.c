@@ -104,10 +104,14 @@ int debug_convert_old_level(int old_level)
     return new_level;
 }
 
+static void debug_fflush(void)
+{
+    fflush(debug_file ? debug_file : stderr);
+}
+
 static void debug_vprintf(const char *format, va_list ap)
 {
     vfprintf(debug_file ? debug_file : stderr, format, ap);
-    fflush(debug_file ? debug_file : stderr);
 }
 
 static void debug_printf(const char *format, ...)
@@ -155,6 +159,7 @@ void debug_fn(const char *function, int newlevel, const char *format, ...)
     va_start(ap, format);
     debug_vprintf(format, ap);
     va_end(ap);
+    debug_fflush();
 }
 
 int debug_get_level(int old_level)
