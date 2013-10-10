@@ -1553,12 +1553,28 @@ static void get_user_and_group_users_done(struct tevent_req *subreq)
     ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
     talloc_zfree(subreq);
 
-    if (ret == EOK) { /* Matching user found */
-        tevent_req_done(req);
-    } else {
+    if (ret != EOK) {
         tevent_req_error(req, ret);
+        return;
     }
 
+    if (state->sdap_ret == ENOENT) {
+        /* The search ran to completion, but nothing was found.
+         * Delete the existing entry, if any. */
+        ret = sysdb_delete_by_sid(state->sysdb, state->domain,
+                                  state->filter_val);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not delete entry by SID!\n"));
+            tevent_req_error(req, ret);
+            return;
+        }
+    } else if (state->sdap_ret != EOK) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    /* Both ret and sdap->ret are EOK. Matching user found */
+    tevent_req_done(req);
     return;
 }
 
