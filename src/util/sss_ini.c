@@ -223,7 +223,7 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
     ret = ini_config_parse(init_data->file,
                            INI_STOP_ON_ANY,
                            INI_MV1S_OVERWRITE,
-                           0,
+                           INI_PARSE_NOWRAP,
                            init_data->sssd_config);
 
     if (ret != EOK) {
