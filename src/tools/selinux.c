@@ -121,7 +121,8 @@ static void sss_semanage_error_callback(void *varg,
         return;
     }
 
-    DEBUG_MSG(level, "libsemanage", message);
+    if (DEBUG_IS_SET(level))
+        debug_fn("libsemanage", level, "%s\n", message);
     free(message);
 }
 

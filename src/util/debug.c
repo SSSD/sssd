@@ -104,15 +104,56 @@ int debug_convert_old_level(int old_level)
     return new_level;
 }
 
-void debug_fn(const char *format, ...)
+static void debug_vprintf(const char *format, va_list ap)
+{
+    vfprintf(debug_file ? debug_file : stderr, format, ap);
+    fflush(debug_file ? debug_file : stderr);
+}
+
+static void debug_printf(const char *format, ...)
+                SSS_ATTRIBUTE_PRINTF(1, 2);
+
+static void debug_printf(const char *format, ...)
 {
     va_list ap;
 
     va_start(ap, format);
 
-    vfprintf(debug_file ? debug_file : stderr, format, ap);
-    fflush(debug_file ? debug_file : stderr);
+    debug_vprintf(format, ap);
 
+    va_end(ap);
+}
+
+void debug_fn(const char *function, int newlevel, const char *format, ...)
+{
+    va_list ap;
+    if (debug_timestamps) {
+        struct timeval tv;
+        struct tm *tm;
+        char datetime[20];
+        int year;
+        gettimeofday(&tv, NULL);
+        tm = localtime(&tv.tv_sec);
+        year = tm->tm_year + 1900;
+        /* get date time without year */
+        memcpy(datetime, ctime(&tv.tv_sec), 19);
+        datetime[19] = '\0';
+        if (debug_microseconds) {
+            debug_printf("(%s:%.6ld %d) [%s] [%s] (%#.4x): ",
+                         datetime, tv.tv_usec,
+                         year, debug_prg_name,
+                         function, newlevel);
+        } else {
+            debug_printf("(%s %d) [%s] [%s] (%#.4x): ",
+                         datetime, year,
+                         debug_prg_name, function, newlevel);
+        }
+    } else {
+        debug_printf("[%s] [%s] (%#.4x): ",
+                     debug_prg_name, function, newlevel);
+    }
+    va_start(ap, format);
+    debug_vprintf(format, ap);
     va_end(ap);
 }
 
@@ -168,7 +209,8 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
         return;
     }
 
-    DEBUG_MSG(loglevel, "ldb", message);
+    if (DEBUG_IS_SET(loglevel))
+        debug_fn("ldb", loglevel, "%s\n", message);
 
     free(message);
 }

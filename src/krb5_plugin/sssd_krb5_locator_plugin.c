@@ -48,7 +48,7 @@
 #define DEBUG_KEY "[sssd_krb5_locator] "
 #define PLUGIN_DEBUG(body) do { \
     if (ctx->debug) { \
-        debug_fn body; \
+        plugin_debug_fn body; \
     } \
 } while(0)
 
@@ -61,7 +61,7 @@ struct sssd_ctx {
     bool debug;
 };
 
-void debug_fn(const char *format, ...)
+void plugin_debug_fn(const char *format, ...)
 {
     va_list ap;
     char *s = NULL;
