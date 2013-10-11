@@ -88,7 +88,6 @@ getserv_send(TALLOC_CTX *mem_ctx,
     size_t dom_idx = 0;
     struct nss_ctx *nctx =
             talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
-    struct sysdb_ctx *sysdb;
     time_t now = time(NULL);
     uint64_t lastUpdate;
     uint64_t cacheExpire;
@@ -165,8 +164,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
          }
          if (!dom) break;
 
-         sysdb = dom->sysdb;
-         if (sysdb == NULL) {
+         if (dom->sysdb == NULL) {
              DEBUG(SSSDBG_CRIT_FAILURE,
                    ("Critical: Sysdb CTX not found for [%s]!\n", dom->name));
              ret = EINVAL;
@@ -212,7 +210,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
                     SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                     dom->name));
 
-             ret = sysdb_getservbyname(state, sysdb, dom,
+             ret = sysdb_getservbyname(state, dom,
                                        SVC_NAME_CASED,
                                        SVC_PROTO_CASED,
                                        &state->res);
@@ -253,7 +251,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
                     SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                     dom->name));
 
-             ret = sysdb_getservbyport(state, sysdb, dom, port,
+             ret = sysdb_getservbyport(state, dom, port,
                                        SVC_PROTO_CASED,
                                        &state->res);
          }
@@ -450,7 +448,6 @@ static void lookup_service_done(struct tevent_req *subreq)
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
     char *err_msg;
-    struct sysdb_ctx *sysdb;
 
     struct tevent_req *req =
             tevent_req_callback_data(subreq, struct tevent_req);
@@ -481,8 +478,7 @@ static void lookup_service_done(struct tevent_req *subreq)
      * be returned, if it exists. Otherwise, move to the
      * next provider.
      */
-    sysdb = dom->sysdb;
-    if (sysdb == NULL) {
+    if (dom->sysdb == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Critical: Sysdb CTX not found for [%s]!\n",
                 dom->name));
@@ -497,7 +493,7 @@ static void lookup_service_done(struct tevent_req *subreq)
                SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                dom->name));
 
-        ret = sysdb_getservbyname(state, sysdb, dom,
+        ret = sysdb_getservbyname(state, dom,
                                   SVC_NAME_CASED,
                                   SVC_PROTO_CASED,
                                   &state->res);
@@ -508,7 +504,7 @@ static void lookup_service_done(struct tevent_req *subreq)
                SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
                dom->name));
 
-        ret = sysdb_getservbyport(state, sysdb, dom,
+        ret = sysdb_getservbyport(state, dom,
                                   state->port,
                                   SVC_PROTO_CASED,
                                   &state->res);
@@ -1384,7 +1380,7 @@ lookup_servent_send(TALLOC_CTX *mem_ctx,
             goto immediate;
         }
 
-        ret = sysdb_enumservent(state, sysdb, dom, &state->res);
+        ret = sysdb_enumservent(state, dom, &state->res);
         /* Whatever the result, we're done, so report it */
         goto immediate;
     }
@@ -1446,7 +1442,7 @@ lookup_servent_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_enumservent(state, sysdb, state->dom, &state->res);
+    ret = sysdb_enumservent(state, state->dom, &state->res);
     /* Whatever the result, we're done, so report it */
 
 done:

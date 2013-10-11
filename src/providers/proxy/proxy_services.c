@@ -28,8 +28,7 @@
 #define BUFLEN  1024
 
 errno_t
-proxy_save_service(struct sysdb_ctx *sysdb,
-                   struct sss_domain_info *domain,
+proxy_save_service(struct sss_domain_info *domain,
                    struct servent *svc,
                    bool lowercase,
                    uint64_t cache_timeout)
@@ -72,7 +71,7 @@ proxy_save_service(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_store_service(sysdb, domain,
+    ret = sysdb_store_service(domain,
                               cased_name,
                               ntohs(svc->s_port),
                               cased_aliases,
@@ -87,7 +86,6 @@ done:
 
 errno_t
 get_serv_byname(struct proxy_id_ctx *ctx,
-                struct sysdb_ctx *sysdb,
                 struct sss_domain_info *dom,
                 const char *name,
                 const char *protocol)
@@ -117,11 +115,11 @@ get_serv_byname(struct proxy_id_ctx *ctx,
 
     if (status == NSS_STATUS_NOTFOUND) {
         /* Make sure we remove it from the cache */
-        ret = sysdb_svc_delete(sysdb, dom, name, 0, protocol);
+        ret = sysdb_svc_delete(dom, name, 0, protocol);
     } else {
 
         /* Results found. Save them into the cache */
-        ret = proxy_save_service(sysdb, dom, result,
+        ret = proxy_save_service(dom, result,
                                  !dom->case_sensitive,
                                  dom->service_timeout);
     }
@@ -133,7 +131,6 @@ done:
 
 errno_t
 get_serv_byport(struct proxy_id_ctx *ctx,
-                struct sysdb_ctx *sysdb,
                 struct sss_domain_info *dom,
                 const char *be_filter,
                 const char *protocol)
@@ -171,10 +168,10 @@ get_serv_byport(struct proxy_id_ctx *ctx,
 
     if (status == NSS_STATUS_NOTFOUND) {
         /* Make sure we remove it from the cache */
-        ret = sysdb_svc_delete(sysdb, dom, NULL, port, protocol);
+        ret = sysdb_svc_delete(dom, NULL, port, protocol);
     } else {
         /* Results found. Save them into the cache */
-        ret = proxy_save_service(sysdb, dom, result,
+        ret = proxy_save_service(dom, result,
                                  !dom->case_sensitive,
                                  dom->service_timeout);
     }
@@ -309,14 +306,14 @@ enum_services(struct proxy_id_ctx *ctx,
                     break;
                 }
 
-                ret = sysdb_store_service(sysdb, dom,
-                        svc->s_name,
-                        svc->s_port,
-                        cased_aliases,
-                        protocols,
-                        NULL, NULL,
-                        dom->service_timeout,
-                        now);
+                ret = sysdb_store_service(dom,
+                                          svc->s_name,
+                                          svc->s_port,
+                                          cased_aliases,
+                                          protocols,
+                                          NULL, NULL,
+                                          dom->service_timeout,
+                                          now);
                 if (ret) {
                     /* Do not fail completely on errors.
                      * Just report the failure to save and go on */

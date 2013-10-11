@@ -47,7 +47,6 @@
 
 errno_t
 sysdb_getservbyname(TALLOC_CTX *mem_ctx,
-                    struct sysdb_ctx *sysdb,
                     struct sss_domain_info *domain,
                     const char *name,
                     const char *proto,
@@ -55,7 +54,6 @@ sysdb_getservbyname(TALLOC_CTX *mem_ctx,
 
 errno_t
 sysdb_getservbyport(TALLOC_CTX *mem_ctx,
-                    struct sysdb_ctx *sysdb,
                     struct sss_domain_info *domain,
                     int port,
                     const char *proto,
@@ -63,13 +61,11 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
 
 errno_t
 sysdb_enumservent(TALLOC_CTX *mem_ctx,
-                  struct sysdb_ctx *sysdb,
                   struct sss_domain_info *domain,
                   struct ldb_result **_res);
 
 errno_t
-sysdb_store_service(struct sysdb_ctx *sysdb,
-                    struct sss_domain_info *domain,
+sysdb_store_service(struct sss_domain_info *domain,
                     const char *primary_name,
                     int port,
                     const char **aliases,
@@ -85,7 +81,6 @@ sysdb_svc_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
 
 errno_t
 sysdb_svc_add(TALLOC_CTX *mem_ctx,
-              struct sysdb_ctx *sysdb,
               struct sss_domain_info *domain,
               const char *primary_name,
               int port,
@@ -94,21 +89,18 @@ sysdb_svc_add(TALLOC_CTX *mem_ctx,
               struct ldb_dn **dn);
 
 errno_t
-sysdb_svc_delete(struct sysdb_ctx *sysdb,
-                 struct sss_domain_info *domain,
+sysdb_svc_delete(struct sss_domain_info *domain,
                  const char *name,
                  int port,
                  const char *proto);
 
 errno_t
-sysdb_set_service_attr(struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
+sysdb_set_service_attr(struct sss_domain_info *domain,
                        const char *name,
                        struct sysdb_attrs *attrs,
                        int mod_op);
 
 errno_t sysdb_search_services(TALLOC_CTX *mem_ctx,
-                              struct sysdb_ctx *sysdb,
                               struct sss_domain_info *domain,
                               const char *sub_filter,
                               const char **attrs,

@@ -475,7 +475,7 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
 
     cache_timeout = dom->service_timeout;
 
-    ret = sysdb_store_service(sysdb, dom, name, port, aliases, store_protocols,
+    ret = sysdb_store_service(dom, name, port, aliases, store_protocols,
                               svc_attrs, missing, cache_timeout, now);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,

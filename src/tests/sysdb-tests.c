@@ -4035,15 +4035,14 @@ void services_check_match(struct sysdb_test_ctx *test_ctx,
 
     if (by_name) {
         /* Look up the service by name */
-        ret = sysdb_getservbyname(test_ctx, test_ctx->sysdb,
-                                  test_ctx->domain, primary_name,
+        ret = sysdb_getservbyname(test_ctx, test_ctx->domain, primary_name,
                                   NULL, &res);
         fail_if(ret != EOK, "sysdb_getservbyname error [%s]\n",
                              strerror(ret));
     } else {
         /* Look up the newly-added service by port */
-        ret = sysdb_getservbyport(test_ctx, test_ctx->sysdb,
-                                  test_ctx->domain, port, NULL, &res);
+        ret = sysdb_getservbyport(test_ctx, test_ctx->domain, port, NULL,
+                                  &res);
         fail_if(ret != EOK, "sysdb_getservbyport error [%s]\n",
                              strerror(ret));
     }
@@ -4135,7 +4134,7 @@ START_TEST(test_sysdb_add_services)
     ret = sysdb_transaction_start(test_ctx->sysdb);
     fail_if(ret != EOK, "[%s]", strerror(ret));
 
-    ret = sysdb_svc_add(NULL, test_ctx->sysdb, test_ctx->domain,
+    ret = sysdb_svc_add(NULL, test_ctx->domain,
                         primary_name, port,
                         aliases, protocols,
                         NULL);
@@ -4160,8 +4159,7 @@ START_TEST(test_sysdb_add_services)
      * doesn't like adding and deleting the same entry in a
      * single transaction.
      */
-    ret = sysdb_svc_delete(test_ctx->sysdb, test_ctx->domain,
-                           primary_name, 0, NULL);
+    ret = sysdb_svc_delete(test_ctx->domain, primary_name, 0, NULL);
     fail_if(ret != EOK, "[%s]", strerror(ret));
 
     talloc_free(test_ctx);
@@ -4209,7 +4207,7 @@ START_TEST(test_sysdb_store_services)
     fail_if(ret != EOK, "[%s]", strerror(ret));
 
     /* Store this group (which will add it) */
-    ret = sysdb_store_service(test_ctx->sysdb, test_ctx->domain,
+    ret = sysdb_store_service(test_ctx->domain,
                               primary_name, port,
                               aliases, protocols,
                               NULL, NULL, 1, 1);
@@ -4226,7 +4224,7 @@ START_TEST(test_sysdb_store_services)
                               aliases, protocols);
 
     /* Change the service name */
-    ret = sysdb_store_service(test_ctx->sysdb, test_ctx->domain,
+    ret = sysdb_store_service(test_ctx->domain,
                               alt_primary_name, port,
                               aliases, protocols,
                               NULL, NULL, 1, 1);
@@ -4243,14 +4241,14 @@ START_TEST(test_sysdb_store_services)
 
 
     /* Change it back */
-    ret = sysdb_store_service(test_ctx->sysdb, test_ctx->domain,
+    ret = sysdb_store_service(test_ctx->domain,
                               primary_name, port,
                               aliases, protocols,
                               NULL, NULL, 1, 1);
     fail_if (ret != EOK, "[%s]", strerror(ret));
 
     /* Change the port number */
-    ret = sysdb_store_service(test_ctx->sysdb, test_ctx->domain,
+    ret = sysdb_store_service(test_ctx->domain,
                               primary_name, altport,
                               aliases, protocols,
                               NULL, NULL, 1, 1);
@@ -4277,8 +4275,7 @@ START_TEST(test_sysdb_store_services)
      * doesn't like adding and deleting the same entry in a
      * single transaction.
      */
-    ret = sysdb_svc_delete(test_ctx->sysdb, test_ctx->domain,
-                           NULL, altport, NULL);
+    ret = sysdb_svc_delete(test_ctx->domain, NULL, altport, NULL);
     fail_if(ret != EOK, "[%s]", strerror(ret));
 
     talloc_free(test_ctx);
@@ -4329,7 +4326,7 @@ START_TEST(test_sysdb_svc_remove_alias)
     ret = sysdb_transaction_start(test_ctx->sysdb);
     fail_if(ret != EOK, "[%s]", strerror(ret));
 
-    ret = sysdb_svc_add(NULL, test_ctx->sysdb, test_ctx->domain,
+    ret = sysdb_svc_add(NULL, test_ctx->domain,
                         primary_name, port,
                         aliases, protocols,
                         NULL);

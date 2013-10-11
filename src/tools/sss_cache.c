@@ -369,7 +369,7 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
         break;
     case TYPE_SERVICE:
         type_string = "service";
-        ret = sysdb_search_services(ctx, sysdb, dinfo,
+        ret = sysdb_search_services(ctx, dinfo,
                                     filter, attrs, &msg_count, &msgs);
         break;
     case TYPE_AUTOFSMAP:
@@ -439,7 +439,7 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                             sys_attrs, SYSDB_MOD_REP);
                     break;
                 case TYPE_SERVICE:
-                    ret = sysdb_set_service_attr(sysdb, domain, name,
+                    ret = sysdb_set_service_attr(domain, name,
                                                  sys_attrs, SYSDB_MOD_REP);
                     break;
                 case TYPE_AUTOFSMAP:

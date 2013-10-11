@@ -37,8 +37,7 @@ struct sdap_reinit_cleanup_state {
 static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
                                      struct sss_domain_info *domain);
 static void sdap_reinit_cleanup_done(struct tevent_req *subreq);
-static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
-                                          struct sss_domain_info *domain);
+static errno_t sdap_reinit_delete_records(struct sss_domain_info *domain);
 
 struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
                                             struct be_ctx *be_ctx,
@@ -165,8 +164,7 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
     msgs_num = 0;
 
     /* reset services' usn */
-    ret = sysdb_search_services(tmp_ctx, sysdb, domain,
-                                "", attrs, &msgs_num, &msgs);
+    ret = sysdb_search_services(tmp_ctx, domain, "", attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Cannot search services [%d]: %s\n", ret, strerror(ret)));
@@ -226,7 +224,7 @@ static void sdap_reinit_cleanup_done(struct tevent_req *subreq)
         /* This error is non-fatal, so continue */
     }
 
-    ret = sdap_reinit_delete_records(state->sysdb, state->domain);
+    ret = sdap_reinit_delete_records(state->domain);
     if (ret != EOK) {
         goto fail;
     }
@@ -254,8 +252,7 @@ static void sdap_delete_msgs_dn(struct sysdb_ctx *sysdb,
     }
 }
 
-static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
-                                          struct sss_domain_info *domain)
+static errno_t sdap_reinit_delete_records(struct sss_domain_info *domain)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     bool in_transaction = false;
@@ -264,6 +261,7 @@ static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
     const char *attrs[] = { "dn", NULL };
     int sret;
     errno_t ret;
+    struct sysdb_ctx *sysdb = domain->sysdb;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -298,7 +296,7 @@ static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
     msgs_num = 0;
 
     /* purge untouched services */
-    ret = sysdb_search_services(tmp_ctx, sysdb, domain, "(!("SYSDB_USN"=*))",
+    ret = sysdb_search_services(tmp_ctx, domain, "(!("SYSDB_USN"=*))",
                                 attrs, &msgs_num, &msgs);
     sdap_delete_msgs_dn(sysdb, msgs, msgs_num);
     talloc_zfree(msgs);

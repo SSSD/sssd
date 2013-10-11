@@ -154,14 +154,12 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
                      const char *name);
 
 errno_t get_serv_byname(struct proxy_id_ctx *ctx,
-                        struct sysdb_ctx *sysdb,
                         struct sss_domain_info *dom,
                         const char *name,
                         const char *protocol);
 
 errno_t
 get_serv_byport(struct proxy_id_ctx *ctx,
-                struct sysdb_ctx *sysdb,
                 struct sss_domain_info *dom,
                 const char *be_filter,
                 const char *protocol);

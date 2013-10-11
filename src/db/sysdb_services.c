@@ -40,7 +40,6 @@ sysdb_svc_remove_alias(struct sysdb_ctx *sysdb,
 
 errno_t
 sysdb_getservbyname(TALLOC_CTX *mem_ctx,
-                    struct sysdb_ctx *sysdb,
                     struct sss_domain_info *domain,
                     const char *name,
                     const char *proto,
@@ -81,7 +80,7 @@ sysdb_getservbyname(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_services(mem_ctx, sysdb, domain, subfilter,
+    ret = sysdb_search_services(mem_ctx, domain, subfilter,
                                 attrs, &msgs_count, &msgs);
     if (ret == EOK) {
         res = talloc_zero(mem_ctx, struct ldb_result);
@@ -102,7 +101,6 @@ done:
 
 errno_t
 sysdb_getservbyport(TALLOC_CTX *mem_ctx,
-                    struct sysdb_ctx *sysdb,
                     struct sss_domain_info *domain,
                     int port,
                     const char *proto,
@@ -141,7 +139,7 @@ sysdb_getservbyport(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_services(mem_ctx, sysdb, domain, subfilter,
+    ret = sysdb_search_services(mem_ctx, domain, subfilter,
                                 attrs, &msgs_count, &msgs);
     if (ret == EOK) {
         res = talloc_zero(mem_ctx, struct ldb_result);
@@ -162,8 +160,7 @@ done:
 }
 
 errno_t
-sysdb_store_service(struct sysdb_ctx *sysdb,
-                    struct sss_domain_info *domain,
+sysdb_store_service(struct sss_domain_info *domain,
                     const char *primary_name,
                     int port,
                     const char **aliases,
@@ -182,9 +179,12 @@ sysdb_store_service(struct sysdb_ctx *sysdb,
     unsigned int i;
     struct ldb_dn *update_dn = NULL;
     struct sysdb_attrs *attrs;
+    struct sysdb_ctx *sysdb;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
+
+    sysdb = domain->sysdb;
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
@@ -201,7 +201,7 @@ sysdb_store_service(struct sysdb_ctx *sysdb,
      * properly. Last entry saved to the cache should
      * always "win".
      */
-    ret = sysdb_getservbyport(tmp_ctx, sysdb, domain, port, NULL, &res);
+    ret = sysdb_getservbyport(tmp_ctx, domain, port, NULL, &res);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     } else if (ret != ENOENT) {
@@ -267,7 +267,7 @@ sysdb_store_service(struct sysdb_ctx *sysdb,
      * need to update existing entries or modify
      * aliases.
      */
-    ret = sysdb_getservbyname(tmp_ctx, sysdb, domain, primary_name, NULL, &res);
+    ret = sysdb_getservbyname(tmp_ctx, domain, primary_name, NULL, &res);
     if (ret != EOK && ret != ENOENT) {
         goto done;
     } else if (ret != ENOENT) { /* Found entries */
@@ -351,7 +351,7 @@ sysdb_store_service(struct sysdb_ctx *sysdb,
         ret = sysdb_svc_update(sysdb, update_dn, port, aliases, protocols);
     } else {
         /* Add a new entry */
-        ret = sysdb_svc_add(tmp_ctx, sysdb, domain, primary_name, port,
+        ret = sysdb_svc_add(tmp_ctx, domain, primary_name, port,
                             aliases, protocols, &update_dn);
     }
     if (ret != EOK) goto done;
@@ -430,7 +430,6 @@ sysdb_svc_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
 
 errno_t
 sysdb_svc_add(TALLOC_CTX *mem_ctx,
-              struct sysdb_ctx *sysdb,
               struct sss_domain_info *domain,
               const char *primary_name,
               int port,
@@ -454,7 +453,7 @@ sysdb_svc_add(TALLOC_CTX *mem_ctx,
     }
 
     /* svc dn */
-    msg->dn = sysdb_svc_dn(sysdb, msg, domain->name, primary_name);
+    msg->dn = sysdb_svc_dn(domain->sysdb, msg, domain->name, primary_name);
     if (!msg->dn) {
         ret = ENOMEM;
         goto done;
@@ -513,7 +512,7 @@ sysdb_svc_add(TALLOC_CTX *mem_ctx,
                     (unsigned long)time(NULL));
     if (ret) goto done;
 
-    lret = ldb_add(sysdb->ldb, msg);
+    lret = ldb_add(domain->sysdb->ldb, msg);
     ret = sysdb_error_to_errno(lret);
 
     if (ret == EOK && dn) {
@@ -636,8 +635,7 @@ done:
 }
 
 errno_t
-sysdb_svc_delete(struct sysdb_ctx *sysdb,
-                 struct sss_domain_info *domain,
+sysdb_svc_delete(struct sss_domain_info *domain,
                  const char *name,
                  int port,
                  const char *proto)
@@ -647,6 +645,7 @@ sysdb_svc_delete(struct sysdb_ctx *sysdb,
     struct ldb_result *res;
     unsigned int i;
     bool in_transaction = false;
+    struct sysdb_ctx *sysdb = domain->sysdb;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -662,7 +661,7 @@ sysdb_svc_delete(struct sysdb_ctx *sysdb,
     in_transaction = true;
 
     if (name) {
-        ret = sysdb_getservbyname(tmp_ctx, sysdb, domain, name, proto, &res);
+        ret = sysdb_getservbyname(tmp_ctx, domain, name, proto, &res);
         if (ret != EOK && ret != ENOENT) goto done;
         if (ret == ENOENT) {
             /* Doesn't exist in the DB. Nothing to do */
@@ -670,7 +669,7 @@ sysdb_svc_delete(struct sysdb_ctx *sysdb,
             goto done;
         }
     } else {
-        ret = sysdb_getservbyport(tmp_ctx, sysdb, domain, port, proto, &res);
+        ret = sysdb_getservbyport(tmp_ctx, domain, port, proto, &res);
         if (ret != EOK && ret != ENOENT) goto done;
         if (ret == ENOENT) {
             /* Doesn't exist in the DB. Nothing to do */
@@ -715,7 +714,6 @@ done:
 
 errno_t
 sysdb_enumservent(TALLOC_CTX *mem_ctx,
-                  struct sysdb_ctx *sysdb,
                   struct sss_domain_info *domain,
                   struct ldb_result **_res)
 {
@@ -731,7 +729,7 @@ sysdb_enumservent(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_services(mem_ctx, sysdb, domain, "",
+    ret = sysdb_search_services(mem_ctx, domain, "",
                                 attrs, &msgs_count, &msgs);
     if (ret == EOK) {
         res = talloc_zero(mem_ctx, struct ldb_result);
@@ -751,8 +749,7 @@ done:
 }
 
 errno_t
-sysdb_set_service_attr(struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
+sysdb_set_service_attr(struct sss_domain_info *domain,
                        const char *name,
                        struct sysdb_attrs *attrs,
                        int mod_op)
@@ -766,13 +763,13 @@ sysdb_set_service_attr(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    dn = sysdb_svc_dn(sysdb, tmp_ctx, domain->name, name);
+    dn = sysdb_svc_dn(domain->sysdb, tmp_ctx, domain->name, name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_set_entry_attr(sysdb, dn, attrs, mod_op);
+    ret = sysdb_set_entry_attr(domain->sysdb, dn, attrs, mod_op);
 
 done:
     talloc_free(tmp_ctx);
@@ -780,7 +777,6 @@ done:
 }
 
 errno_t sysdb_search_services(TALLOC_CTX *mem_ctx,
-                              struct sysdb_ctx *sysdb,
                               struct sss_domain_info *domain,
                               const char *sub_filter,
                               const char **attrs,
@@ -797,7 +793,7 @@ errno_t sysdb_search_services(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                             SYSDB_TMPL_SVC_BASE, domain->name);
     if (!basedn) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to build base dn\n"));
@@ -815,7 +811,7 @@ errno_t sysdb_search_services(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL,
           ("Search services with filter: %s\n", filter));
 
-    ret = sysdb_search_entry(mem_ctx, sysdb, basedn,
+    ret = sysdb_search_entry(mem_ctx, domain->sysdb, basedn,
                              LDB_SCOPE_SUBTREE, filter, attrs,
                              msgs_count, msgs);
     if (ret) {

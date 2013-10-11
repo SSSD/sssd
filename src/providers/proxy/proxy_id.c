@@ -1477,7 +1477,7 @@ void proxy_get_account_info(struct be_req *breq)
                 return be_req_terminate(breq, DP_ERR_FATAL,
                                    ENODEV, "Services are not supported");
             }
-            ret = get_serv_byname(ctx, sysdb, domain,
+            ret = get_serv_byname(ctx, domain,
                                   ar->filter_value,
                                   ar->extra_value);
             break;
@@ -1486,7 +1486,7 @@ void proxy_get_account_info(struct be_req *breq)
                 return be_req_terminate(breq, DP_ERR_FATAL,
                                    ENODEV, "Services are not supported");
             }
-            ret = get_serv_byport(ctx, sysdb, domain,
+            ret = get_serv_byport(ctx, domain,
                                   ar->filter_value,
                                   ar->extra_value);
             break;
