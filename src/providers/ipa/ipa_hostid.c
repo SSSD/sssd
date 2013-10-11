@@ -272,8 +272,7 @@ hosts_get_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE,
               ("No host with name [%s] found.\n", state->name));
 
-        ret = sysdb_delete_ssh_host(state->domain->sysdb, state->domain,
-                                    state->name);
+        ret = sysdb_delete_ssh_host(state->domain, state->name);
         if (ret != EOK && ret != ENOENT) {
             goto done;
         }
@@ -301,8 +300,7 @@ hosts_get_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_store_ssh_host(state->domain->sysdb, state->domain,
-                               state->name, state->alias, now,
+    ret = sysdb_store_ssh_host(state->domain, state->name, state->alias, now,
                                attrs);
     if (ret != EOK) {
         goto done;

@@ -355,7 +355,7 @@ ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
         return EFAULT;
     }
 
-    ret = sysdb_get_ssh_host(cmd_ctx, sysdb, cmd_ctx->domain,
+    ret = sysdb_get_ssh_host(cmd_ctx, cmd_ctx->domain,
                              cmd_ctx->name, attrs, &cmd_ctx->result);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -563,8 +563,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     }
 
     if (cmd_ctx->domain) {
-        ret = sysdb_update_ssh_known_host_expire(cmd_ctx->domain->sysdb,
-                                                 cmd_ctx->domain,
+        ret = sysdb_update_ssh_known_host_expire(cmd_ctx->domain,
                                                  cmd_ctx->name, now,
                                                  ssh_ctx->known_hosts_timeout);
         if (ret != EOK && ret != ENOENT) {
@@ -597,7 +596,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
             goto done;
         }
 
-        ret = sysdb_get_ssh_known_hosts(tmp_ctx, sysdb, dom, now, attrs,
+        ret = sysdb_get_ssh_known_hosts(tmp_ctx, dom, now, attrs,
                                         &hosts, &num_hosts);
         if (ret != EOK) {
             if (ret != ENOENT) {
