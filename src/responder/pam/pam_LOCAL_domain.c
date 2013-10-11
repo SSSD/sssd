@@ -87,7 +87,7 @@ static void do_successful_login(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_set_user_attr(lreq->dbctx, lreq->domain,
+    ret = sysdb_set_user_attr(lreq->domain,
                               lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
@@ -128,7 +128,7 @@ static void do_failed_login(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_set_user_attr(lreq->dbctx, lreq->domain,
+    ret = sysdb_set_user_attr(lreq->domain,
                               lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
@@ -197,7 +197,7 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_set_user_attr(lreq->dbctx, lreq->domain,
+    ret = sysdb_set_user_attr(lreq->domain,
                               lreq->preq->pd->user,
                               lreq->mod_attrs, SYSDB_MOD_REP);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),

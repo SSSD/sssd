@@ -502,21 +502,18 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
 
 /* Search User (by uid, sid or name) */
 int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
-                              struct sysdb_ctx *sysdb,
                               struct sss_domain_info *domain,
                               const char *name,
                               const char **attrs,
                               struct ldb_message **msg);
 
 int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
-                             struct sysdb_ctx *sysdb,
                              struct sss_domain_info *domain,
                              uid_t uid,
                              const char **attrs,
                              struct ldb_message **msg);
 
 int sysdb_search_user_by_sid_str(TALLOC_CTX *mem_ctx,
-                                 struct sysdb_ctx *sysdb,
                                  struct sss_domain_info *domain,
                                  const char *sid_str,
                                  const char **attrs,
@@ -524,21 +521,18 @@ int sysdb_search_user_by_sid_str(TALLOC_CTX *mem_ctx,
 
 /* Search Group (by gid, sid or name) */
 int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
-                               struct sysdb_ctx *sysdb,
                                struct sss_domain_info *domain,
                                const char *name,
                                const char **attrs,
                                struct ldb_message **msg);
 
 int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
-                              struct sysdb_ctx *sysdb,
                               struct sss_domain_info *domain,
                               gid_t gid,
                               const char **attrs,
                               struct ldb_message **msg);
 
 int sysdb_search_group_by_sid_str(TALLOC_CTX *mem_ctx,
-                                  struct sysdb_ctx *sysdb,
                                   struct sss_domain_info *domain,
                                   const char *sid_str,
                                   const char **attrs,
@@ -546,7 +540,6 @@ int sysdb_search_group_by_sid_str(TALLOC_CTX *mem_ctx,
 
 /* Search Netgroup (by name) */
 int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
-                                  struct sysdb_ctx *sysdb,
                                   struct sss_domain_info *domain,
                                   const char *name,
                                   const char **attrs,
@@ -559,15 +552,13 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
                          int mod_op);
 
 /* Replace user attrs */
-int sysdb_set_user_attr(struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *domain,
+int sysdb_set_user_attr(struct sss_domain_info *domain,
                         const char *name,
                         struct sysdb_attrs *attrs,
                         int mod_op);
 
 /* Replace group attrs */
-int sysdb_set_group_attr(struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
+int sysdb_set_group_attr(struct sss_domain_info *domain,
                          const char *name,
                          struct sysdb_attrs *attrs,
                          int mod_op);

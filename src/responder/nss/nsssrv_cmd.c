@@ -3816,8 +3816,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         }
 
         if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
-            ret = sysdb_search_user_by_uid(cmdctx, sysdb, dom, cmdctx->id,
-                                           attrs, &msg);
+            ret = sysdb_search_user_by_uid(cmdctx, dom, cmdctx->id, attrs,
+                                           &msg);
             if (ret != EOK && ret != ENOENT) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       ("Failed to make request to our cache!\n"));
@@ -3829,8 +3829,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 user_found = true;
             } else {
                 talloc_free(msg);
-                ret = sysdb_search_group_by_gid(cmdctx, sysdb, dom, cmdctx->id,
-                                                attrs, &msg);
+                ret = sysdb_search_group_by_gid(cmdctx, dom, cmdctx->id, attrs,
+                                                &msg);
                 if (ret != EOK && ret != ENOENT) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           ("Failed to make request to our cache!\n"));
@@ -3843,7 +3843,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 }
             }
         } else {
-            ret = sysdb_search_user_by_name(cmdctx, sysdb, dom,
+            ret = sysdb_search_user_by_name(cmdctx, dom,
                                             sysdb_name ? sysdb_name : name,
                                             attrs, &msg);
             if (ret != EOK && ret != ENOENT) {
@@ -3857,7 +3857,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 user_found = true;
             } else {
                 talloc_free(msg);
-                ret = sysdb_search_group_by_name(cmdctx, sysdb, dom,
+                ret = sysdb_search_group_by_name(cmdctx, dom,
                                                  sysdb_name ? sysdb_name : name,
                                                  attrs, &msg);
                 if (ret != EOK && ret != ENOENT) {

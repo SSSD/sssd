@@ -674,8 +674,8 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
     if (!tmp_ctx) return ENOMEM;
 
     for (i = 0; grp->gr_mem[i]; i++) {
-        ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
-                                        grp->gr_mem[i], NULL, &msg);
+        ret = sysdb_search_user_by_name(tmp_ctx, domain, grp->gr_mem[i],
+                                        NULL, &msg);
         if (ret == EOK) {
             /* Member already exists in the cache */
             DEBUG(SSSDBG_TRACE_INTERNAL,

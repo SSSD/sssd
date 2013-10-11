@@ -328,8 +328,7 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
-                                    username, attrs, &msg);
+    ret = sysdb_search_user_by_name(tmp_ctx, domain, username, attrs, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Error looking up user %s\n", username));
         goto done;
@@ -374,8 +373,8 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     /* resolve primary group */
     gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
     if (gid != 0) {
-        ret = sysdb_search_group_by_gid(tmp_ctx, sysdb, domain, gid,
-                                        group_attrs, &group_msg);
+        ret = sysdb_search_group_by_gid(tmp_ctx, domain, gid, group_attrs,
+                                        &group_msg);
         if (ret == EOK) {
             primary_group = ldb_msg_find_attr_as_string(group_msg, SYSDB_NAME,
                                                         NULL);

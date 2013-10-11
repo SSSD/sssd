@@ -333,7 +333,7 @@ int group_show(TALLOC_CTX *mem_ctx,
     int i;
 
     /* First, search for the root group */
-    ret = sysdb_search_group_by_name(mem_ctx, sysdb, domain, name, attrs, &msg);
+    ret = sysdb_search_group_by_name(mem_ctx, domain, name, attrs, &msg);
     if (ret) {
         DEBUG(2, ("Search failed: %s (%d)\n", strerror(ret), ret));
         goto done;
@@ -506,8 +506,8 @@ int group_show_recurse(TALLOC_CTX *mem_ctx,
             continue;
         }
 
-        ret = sysdb_search_group_by_name(mem_ctx, sysdb, domain,
-                                         group_members[i], attrs, &msg);
+        ret = sysdb_search_group_by_name(mem_ctx, domain, group_members[i],
+                                         attrs, &msg);
         if (ret) {
             DEBUG(2, ("Search failed: %s (%d)\n", strerror(ret), ret));
             return EIO;
@@ -560,7 +560,7 @@ static int group_show_mpg(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sysdb_search_user_by_name(info, sysdb, domain, name, attrs, &msg);
+    ret = sysdb_search_user_by_name(info, domain, name, attrs, &msg);
     if (ret) {
         DEBUG(2, ("Search failed: %s (%d)\n", strerror(ret), ret));
         goto fail;

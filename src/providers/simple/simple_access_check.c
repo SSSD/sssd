@@ -279,8 +279,7 @@ simple_resolve_group_check(struct simple_resolve_group_state *state)
                                   SYSDB_GIDNUM, NULL };
 
     /* Check the cache by GID again and fetch the name */
-    ret = sysdb_search_group_by_gid(state, state->domain->sysdb,
-                                    state->domain, state->gid,
+    ret = sysdb_search_group_by_gid(state, state->domain, state->gid,
                                     group_attrs, &group);
     if (ret == ENOENT) {
         /* The group is missing, we will try to update it. */
@@ -425,8 +424,8 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_user_by_name(state, state->domain->sysdb, state->domain,
-                                    username, attrs, &user);
+    ret = sysdb_search_user_by_name(state, state->domain, username, attrs,
+                                    &user);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("No such user %s\n", username));
         ret = ERR_ACCOUNT_UNKNOWN;
@@ -637,8 +636,8 @@ simple_check_get_groups_primary(struct simple_check_groups_state *state,
                                   SYSDB_GIDNUM, SYSDB_SID_STR, NULL };
     struct ldb_message *msg;
 
-    ret = sysdb_search_group_by_gid(state, state->domain->sysdb, state->domain,
-                                    gid, group_attrs, &msg);
+    ret = sysdb_search_group_by_gid(state, state->domain, gid, group_attrs,
+                                    &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Could not look up primary group [%"SPRIgid"]: [%d][%s]\n",

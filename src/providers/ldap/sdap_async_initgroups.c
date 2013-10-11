@@ -74,8 +74,8 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
             goto done;
         }
 
-        ret = sysdb_search_group_by_name(tmp_ctx, sysdb, domain,
-                                         tmp_name, NULL, &msg);
+        ret = sysdb_search_group_by_name(tmp_ctx, domain, tmp_name, NULL,
+                                         &msg);
         if (ret == EOK) {
             continue;
         } else if (ret == ENOENT) {
@@ -3109,7 +3109,7 @@ static errno_t get_sysdb_grouplist_ex(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain, name,
+    ret = sysdb_search_user_by_name(tmp_ctx, domain, name,
                                     attrs, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,

@@ -216,8 +216,8 @@ errno_t sss_selinux_extract_user(TALLOC_CTX *mem_ctx,
     attrs[1] = SYSDB_ORIG_MEMBEROF;
     attrs[2] = NULL;
 
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain, username,
-                                    attrs, &user_msg);
+    ret = sysdb_search_user_by_name(tmp_ctx, domain, username, attrs,
+                                    &user_msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_name failed.\n"));
         goto done;

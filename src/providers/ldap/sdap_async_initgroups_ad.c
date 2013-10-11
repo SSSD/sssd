@@ -486,8 +486,8 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
               ("Processing membership GID [%"SPRIgid"]\n", gid));
 
         /* Check whether this GID already exists in the sysdb */
-        ret = sysdb_search_group_by_gid(tmp_ctx, group_domain->sysdb,
-                                        group_domain, gid, attrs, &msg);
+        ret = sysdb_search_group_by_gid(tmp_ctx, group_domain, gid, attrs,
+                                        &msg);
         if (ret == EOK) {
             group_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
             if (!group_name) {

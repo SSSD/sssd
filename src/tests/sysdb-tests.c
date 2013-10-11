@@ -313,8 +313,7 @@ static int test_set_user_attr(struct test_data *data)
 {
     int ret;
 
-    ret = sysdb_set_user_attr(data->ctx->sysdb,
-                              data->ctx->domain, data->username,
+    ret = sysdb_set_user_attr(data->ctx->domain, data->username,
                               data->attrs, SYSDB_MOD_REP);
     return ret;
 }
@@ -1802,8 +1801,8 @@ static void cached_authentication_with_expiration(const char *username,
     data->attrs = sysdb_new_attrs(data);
     ret = sysdb_attrs_add_time_t(data->attrs, SYSDB_LAST_ONLINE_AUTH, now);
 
-    ret = sysdb_set_user_attr(data->ctx->sysdb, data->ctx->domain,
-                              data->username, data->attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(data->ctx->domain, data->username, data->attrs,
+                              SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Could not modify user %s", data->username);
 
     ret = sysdb_cache_auth(test_ctx->sysdb,
@@ -2254,9 +2253,7 @@ START_TEST (test_sysdb_memberof_mod_add)
 
     /* Before the add, the groups should not contain the ghost attribute */
     for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
-        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                        test_ctx->domain,
-                                        itergid,
+        ret = sysdb_search_group_by_gid(data, test_ctx->domain, itergid,
                                         data->attrlist, &data->msg);
         fail_if(ret != EOK, "Cannot retrieve group %llu\n",
                 (unsigned long long) data->gid);
@@ -2277,7 +2274,7 @@ START_TEST (test_sysdb_memberof_mod_add)
     }
 
     /* Perform the add operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+    ret =  sysdb_set_group_attr(test_ctx->domain,
                                 data->groupname, data->attrs, SYSDB_MOD_ADD);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
@@ -2285,9 +2282,7 @@ START_TEST (test_sysdb_memberof_mod_add)
      * as a member
      */
     for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
-        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                        test_ctx->domain,
-                                        itergid,
+        ret = sysdb_search_group_by_gid(data, test_ctx->domain, itergid,
                                         data->attrlist, &data->msg);
         fail_if(ret != EOK, "Cannot retrieve group %llu\n",
                 (unsigned long long) data->gid);
@@ -2353,9 +2348,7 @@ START_TEST (test_sysdb_memberof_mod_replace)
      * as a member
      */
     for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
-        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                        test_ctx->domain,
-                                        itergid,
+        ret = sysdb_search_group_by_gid(data, test_ctx->domain, itergid,
                                         data->attrlist, &data->msg);
         fail_if(ret != EOK, "Cannot retrieve group %llu\n",
                 (unsigned long long) data->gid);
@@ -2371,7 +2364,7 @@ START_TEST (test_sysdb_memberof_mod_replace)
     }
 
     /* Perform the replace operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+    ret =  sysdb_set_group_attr(test_ctx->domain,
                                 data->groupname, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
@@ -2379,9 +2372,7 @@ START_TEST (test_sysdb_memberof_mod_replace)
      * as a member
      */
     for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
-        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                        test_ctx->domain,
-                                        itergid,
+        ret = sysdb_search_group_by_gid(data, test_ctx->domain, itergid,
                                         data->attrlist, &data->msg);
         fail_if(ret != EOK, "Cannot retrieve group %llu\n",
                 (unsigned long long) data->gid);
@@ -2453,9 +2444,7 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
      * and testuserb as a member
      */
     for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
-        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                        test_ctx->domain,
-                                        itergid,
+        ret = sysdb_search_group_by_gid(data, test_ctx->domain, itergid,
                                         data->attrlist, &data->msg);
         fail_if(ret != EOK, "Cannot retrieve group %llu\n",
                 (unsigned long long) data->gid);
@@ -2500,7 +2489,7 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
     }
 
     /* Perform the replace operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+    ret =  sysdb_set_group_attr(test_ctx->domain,
                                 data->groupname, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
@@ -2508,9 +2497,7 @@ START_TEST (test_sysdb_memberof_mod_replace_keep)
      * to keep ghost users inherited from other groups
      */
     for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
-        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                        test_ctx->domain,
-                                        itergid,
+        ret = sysdb_search_group_by_gid(data, test_ctx->domain, itergid,
                                         data->attrlist, &data->msg);
         fail_if(ret != EOK, "Cannot retrieve group %llu\n",
                 (unsigned long long) data->gid);
@@ -2668,10 +2655,9 @@ START_TEST (test_sysdb_memberof_check_memberuid_without_group_5)
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    _i + MBO_GROUP_BASE,
-                                    data->attrlist, &data->msg);
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain,
+                                    _i + MBO_GROUP_BASE, data->attrlist,
+                                    &data->msg);
     if (_i == 5) {
         fail_unless(ret == ENOENT,
                     "sysdb_search_group_by_gid found "
@@ -2720,10 +2706,9 @@ START_TEST (test_sysdb_memberof_check_memberuid)
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    _i + MBO_GROUP_BASE,
-                                    data->attrlist, &data->msg);
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain,
+                                    _i + MBO_GROUP_BASE, data->attrlist,
+                                    &data->msg);
 
     fail_if(ret != EOK, "Could not check group %d", data->gid);
 
@@ -2763,10 +2748,9 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop)
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    _i + MBO_GROUP_BASE,
-                                    data->attrlist, &data->msg);
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain,
+                                    _i + MBO_GROUP_BASE, data->attrlist,
+                                    &data->msg);
 
     fail_if(ret != EOK, "Could not check group %d", data->gid);
 
@@ -2806,10 +2790,9 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    _i + MBO_GROUP_BASE,
-                                    data->attrlist, &data->msg);
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain,
+                                    _i + MBO_GROUP_BASE, data->attrlist,
+                                    &data->msg);
 
     if (_i == 5) {
         fail_unless(ret == ENOENT,
@@ -2858,9 +2841,7 @@ START_TEST (test_sysdb_memberof_check_nested_ghosts)
     data->attrlist[0] = SYSDB_GHOST;
     data->attrlist[1] = NULL;
 
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid,
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
                                     data->attrlist, &data->msg);
     fail_if(ret != EOK, "Cannot retrieve group %llu\n", (unsigned long long) data->gid);
 
@@ -2897,9 +2878,7 @@ START_TEST (test_sysdb_memberof_check_nested_double_ghosts)
     data->attrlist[0] = SYSDB_GHOST;
     data->attrlist[1] = NULL;
 
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid,
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
                                     data->attrlist, &data->msg);
     fail_if(ret != EOK, "Cannot retrieve group %llu\n", (unsigned long long) data->gid);
 
@@ -2939,9 +2918,7 @@ START_TEST (test_sysdb_memberof_remove_child_group_and_check_ghost)
     data->attrlist[0] = SYSDB_GHOST;
     data->attrlist[1] = NULL;
 
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid,
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
                                     data->attrlist, &data->msg);
     fail_if(ret != EOK, "Cannot retrieve group %llu\n", (unsigned long long) data->gid);
 
@@ -2961,9 +2938,8 @@ START_TEST (test_sysdb_memberof_remove_child_group_and_check_ghost)
     talloc_free(data->msg);
 
     /* Check the parent again. The inherited ghost user should be gone. */
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid, data->attrlist, &data->msg);
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
+                                    data->attrlist, &data->msg);
     fail_if(ret != EOK, "Cannot retrieve group %llu\n", (unsigned long long) data->gid);
 
     fail_unless(strcmp(data->msg->elements[0].name, SYSDB_GHOST) == 0,
@@ -3021,9 +2997,7 @@ START_TEST (test_sysdb_memberof_mod_del)
      * as a member
      */
     for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
-        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                        test_ctx->domain,
-                                        itergid,
+        ret = sysdb_search_group_by_gid(data, test_ctx->domain, itergid,
                                         data->attrlist, &data->msg);
         fail_if(ret != EOK, "Cannot retrieve group %llu\n",
                 (unsigned long long) data->gid);
@@ -3039,15 +3013,13 @@ START_TEST (test_sysdb_memberof_mod_del)
     }
 
     /* Delete the attribute */
-    ret = sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+    ret = sysdb_set_group_attr(test_ctx->domain,
                                data->groupname, data->attrs, SYSDB_MOD_DEL);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the delete, we shouldn't be able to find the ghost attribute */
     for (itergid = data->gid ; itergid < MBO_GROUP_BASE + NUM_GHOSTS; itergid++) {
-        ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                        test_ctx->domain,
-                                        itergid,
+        ret = sysdb_search_group_by_gid(data, test_ctx->domain, itergid,
                                         data->attrlist, &data->msg);
         fail_if(ret != EOK, "Cannot retrieve group %llu\n",
                 (unsigned long long) data->gid);
@@ -3095,9 +3067,7 @@ START_TEST (test_sysdb_memberof_check_ghost)
     data->attrlist[0] = SYSDB_GHOST;
     data->attrlist[1] = NULL;
 
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid,
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
                                     data->attrlist, &data->msg);
 
     fail_if(ret != EOK, "Could not check group %d", data->gid);
@@ -3189,9 +3159,7 @@ START_TEST (test_sysdb_memberof_check_convert)
     data->attrlist[1] = SYSDB_MEMBER;
     data->attrlist[2] = NULL;
 
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid,
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
                                     data->attrlist, &data->msg);
 
     fail_if(ret != EOK, "Could not check group %d", data->gid);
@@ -3273,9 +3241,7 @@ START_TEST (test_sysdb_memberof_ghost_replace)
     data->attrlist[1] = NULL;
 
     /* Before the replace, the group has the testghost%_i as a member */
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid,
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
                                     data->attrlist, &data->msg);
     fail_if(ret != EOK, "Cannot retrieve group %llu\n",
             (unsigned long long) data->gid);
@@ -3290,14 +3256,12 @@ START_TEST (test_sysdb_memberof_ghost_replace)
     fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_del);
 
     /* Perform the replace operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+    ret =  sysdb_set_group_attr(test_ctx->domain,
                                 data->groupname, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the replace, the group has the testghost%_i as a member */
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid,
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
                                     data->attrlist, &data->msg);
     fail_if(ret != EOK, "Cannot retrieve group %llu\n",
             (unsigned long long) data->gid);
@@ -3357,9 +3321,7 @@ START_TEST (test_sysdb_memberof_ghost_replace_noop)
     data->attrlist[1] = NULL;
 
     /* Before the replace, the group has the testghost%_i as a member */
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid,
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
                                     data->attrlist, &data->msg);
     fail_if(ret != EOK, "Cannot retrieve group %llu\n",
             (unsigned long long) data->gid);
@@ -3374,14 +3336,12 @@ START_TEST (test_sysdb_memberof_ghost_replace_noop)
     fail_if(test_gv == NULL, "Cannot find ghost user %s\n", ghostname_del);
 
     /* Perform the replace operation */
-    ret =  sysdb_set_group_attr(test_ctx->sysdb, test_ctx->domain,
+    ret =  sysdb_set_group_attr(test_ctx->domain,
                                 data->groupname, data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Cannot set group attrs\n");
 
     /* After the replace, the group has the testghost%_i as a member */
-    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
-                                    test_ctx->domain,
-                                    data->gid,
+    ret = sysdb_search_group_by_gid(data, test_ctx->domain, data->gid,
                                     data->attrlist, &data->msg);
     fail_if(ret != EOK, "Cannot retrieve group %llu\n",
             (unsigned long long) data->gid);
@@ -3731,8 +3691,7 @@ START_TEST (test_sysdb_search_netgroup_by_name)
 
     netgrname = talloc_asprintf(test_ctx, "testnetgr%d", _i);
 
-    ret = sysdb_search_netgroup_by_name(test_ctx, test_ctx->sysdb,
-                                        test_ctx->domain,
+    ret = sysdb_search_netgroup_by_name(test_ctx, test_ctx->domain,
                                         netgrname, NULL, &msg);
     fail_if(ret != EOK, "Could not find netgroup with name %s", netgrname);
 
@@ -3906,8 +3865,7 @@ START_TEST(test_odd_characters)
                             ret, strerror(ret));
 
     /* Retrieve */
-    ret = sysdb_search_group_by_name(test_ctx, test_ctx->sysdb,
-                                     test_ctx->domain,
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain,
                                      odd_groupname, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_group_by_name error [%d][%s]",
                             ret, strerror(ret));
@@ -3938,7 +3896,7 @@ START_TEST(test_odd_characters)
 
     /* Retrieve */
     ret = sysdb_search_user_by_name(test_ctx,
-                                    test_ctx->sysdb, test_ctx->domain,
+                                    test_ctx->domain,
                                     odd_username, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_name error [%d][%s]",
                             ret, strerror(ret));
@@ -4470,9 +4428,8 @@ START_TEST(test_sysdb_search_sid_str)
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
-    ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->sysdb,
-                                        test_ctx->domain, "S-1-2-3-4",
-                                        NULL, &msg);
+    ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->domain,
+                                        "S-1-2-3-4", NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_group_by_sid_str failed with [%d][%s].",
                 ret, strerror(ret));
 
@@ -4482,8 +4439,7 @@ START_TEST(test_sysdb_search_sid_str)
                 ret, strerror(ret));
 
     /* Verify it's gone */
-    ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->sysdb,
-                                        test_ctx->domain, "S-1-2-3-4",
+    ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->domain, "S-1-2-3-4",
                                         NULL, &msg);
     fail_unless(ret == ENOENT, "sysdb_search_group_by_sid_str failed with [%d][%s].",
                 ret, strerror(ret));
@@ -4504,9 +4460,8 @@ START_TEST(test_sysdb_search_sid_str)
     fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
                 ret, strerror(ret));
 
-    ret = sysdb_search_user_by_sid_str(test_ctx, test_ctx->sysdb,
-                                       test_ctx->domain, "S-1-2-3-4-5",
-                                       NULL, &msg);
+    ret = sysdb_search_user_by_sid_str(test_ctx, test_ctx->domain,
+                                       "S-1-2-3-4-5", NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_sid_str failed with [%d][%s].",
                 ret, strerror(ret));
 
@@ -4627,8 +4582,8 @@ START_TEST(test_sysdb_subdomain_store_user)
 
     /* Subdomains are case-insensitive. Test that the lowercased name
      * can be found, too */
-    ret = sysdb_search_user_by_name(test_ctx, test_ctx->sysdb, subdomain,
-                                    "subdomuser", attrs, &msg);
+    ret = sysdb_search_user_by_name(test_ctx, subdomain, "subdomuser", attrs,
+                                    &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_name failed.");
 
     ret = sysdb_delete_user(subdomain->sysdb, subdomain, "subdomuser", 0);
@@ -4678,15 +4633,14 @@ START_TEST(test_sysdb_subdomain_user_ops)
                           "name=subdomuser,cn=users,cn=test.sub,cn=sysdb");
     fail_unless(check_dn != NULL);
 
-    ret = sysdb_search_user_by_name(test_ctx, subdomain->sysdb, subdomain,
-                                    "subdomuser", NULL, &msg);
+    ret = sysdb_search_user_by_name(test_ctx, subdomain, "subdomuser", NULL,
+                                    &msg);
     fail_unless(ret == EOK, "sysdb_search_user_by_name failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_search_user_by_uid(test_ctx, subdomain->sysdb, subdomain,
-                                   12345, NULL, &msg);
+    ret = sysdb_search_user_by_uid(test_ctx, subdomain, 12345, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_domuser_by_uid failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
@@ -4731,15 +4685,14 @@ START_TEST(test_sysdb_subdomain_group_ops)
                           "name=subdomgroup,cn=groups,cn=test.sub,cn=sysdb");
     fail_unless(check_dn != NULL);
 
-    ret = sysdb_search_group_by_name(test_ctx, subdomain->sysdb, subdomain,
-                                     "subdomgroup", NULL, &msg);
+    ret = sysdb_search_group_by_name(test_ctx, subdomain, "subdomgroup", NULL,
+                                     &msg);
     fail_unless(ret == EOK, "sysdb_search_domgroup_by_name failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_search_group_by_gid(test_ctx, subdomain->sysdb, subdomain,
-                                    12345, NULL, &msg);
+    ret = sysdb_search_group_by_gid(test_ctx, subdomain, 12345, NULL, &msg);
     fail_unless(ret == EOK, "sysdb_search_domgroup_by_gid failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,

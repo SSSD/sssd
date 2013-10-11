@@ -265,8 +265,7 @@ errno_t sss_mc_refresh_nested_group(struct tools_ctx *tctx,
         /* try to carry on */
     }
 
-    ret = sysdb_search_group_by_name(tctx, tctx->sysdb, tctx->local,
-                                     name, attrs, &msg);
+    ret = sysdb_search_group_by_name(tctx, tctx->local, name, attrs, &msg);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
                ("Search failed: %s (%d)\n", strerror(ret), ret));

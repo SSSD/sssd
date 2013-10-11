@@ -921,8 +921,8 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         goto done;
     }
 
-    tret = sysdb_set_user_attr(state->domain->sysdb, state->domain,
-                               state->username, attrs, SYSDB_MOD_REP);
+    tret = sysdb_set_user_attr(state->domain, state->username, attrs,
+                               SYSDB_MOD_REP);
     if (tret != EOK) {
         /* Failing to save to the cache is non-fatal.
          * Just return the result.

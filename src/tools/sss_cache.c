@@ -427,11 +427,11 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         if (ret == EOK) {
             switch (entry_type) {
                 case TYPE_USER:
-                    ret = sysdb_set_user_attr(sysdb, domain, name, sys_attrs,
+                    ret = sysdb_set_user_attr(domain, name, sys_attrs,
                                               SYSDB_MOD_REP);
                     break;
                 case TYPE_GROUP:
-                    ret = sysdb_set_group_attr(sysdb, domain, name, sys_attrs,
+                    ret = sysdb_set_group_attr(domain, name, sys_attrs,
                                                SYSDB_MOD_REP);
                     break;
                 case TYPE_NETGROUP:

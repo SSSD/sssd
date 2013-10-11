@@ -536,8 +536,8 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
      * This will give us the list of both POSIX and
      * non-POSIX groups that this user belongs to.
      */
-    ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
-                                    users->name, attrs, &msg);
+    ret = sysdb_search_user_by_name(tmp_ctx, domain, users->name,
+                                    attrs, &msg);
     if (ret != EOK) {
         DEBUG(1, ("Could not determine user memberships for [%s]\n",
                   users->name));

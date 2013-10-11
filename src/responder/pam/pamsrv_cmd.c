@@ -351,8 +351,8 @@ static errno_t set_last_login(struct pam_auth_req *preq)
         goto fail;
     }
 
-    ret = sysdb_set_user_attr(preq->domain->sysdb, preq->domain,
-                              preq->pd->user, attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(preq->domain, preq->pd->user, attrs,
+                              SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(2, ("set_last_login failed.\n"));
         preq->pd->pam_status = PAM_SYSTEM_ERR;

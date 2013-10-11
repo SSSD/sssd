@@ -572,8 +572,8 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    ret = sysdb_search_user_by_uid(tmp_ctx, sysdb, pr_ctx->dom,
-                                   pwd->pw_uid, attrs, &msg);
+    ret = sysdb_search_user_by_uid(tmp_ctx, pr_ctx->dom, pwd->pw_uid, attrs,
+                                   &msg);
     if (ret == ENOENT) {
         if (pwd->pw_gid == 0 && !pr_ctx->dom->mpg) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Primary group RID from the PAC " \
@@ -644,8 +644,7 @@ struct tevent_req *pac_save_memberships_send(struct pac_req_ctx *pr_ctx)
         goto done;
     }
 
-    ret = sysdb_search_user_by_name(state, dom->sysdb, dom, dom_name, NULL,
-                                    &msg);
+    ret = sysdb_search_user_by_name(state, dom, dom_name, NULL, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_name failed " \
                                   "[%d][%s].\n", ret, strerror(ret)));

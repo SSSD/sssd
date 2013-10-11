@@ -218,7 +218,7 @@ int usermod(TALLOC_CTX *mem_ctx,
     }
 
     if (attrs->num != 0) {
-        ret = sysdb_set_user_attr(sysdb, data->domain, data->name,
+        ret = sysdb_set_user_attr(data->domain, data->name,
                                   attrs, SYSDB_MOD_REP);
         if (ret) {
             return ret;
@@ -273,7 +273,7 @@ int groupmod(TALLOC_CTX *mem_ctx,
             return ret;
         }
 
-        ret = sysdb_set_group_attr(sysdb, data->domain, data->name,
+        ret = sysdb_set_group_attr(data->domain, data->name,
                                    attrs, SYSDB_MOD_REP);
         if (ret) {
             return ret;
