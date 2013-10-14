@@ -41,6 +41,12 @@
 %define _hardened_build 1
 %endif
 
+%if (0%{?fedora} >= 17 || 0%{?rhel} >= 7)
+    %global with_cifs_utils_plugin 1
+%else
+    %global with_cifs_utils_plugin_option --disable-cifs-idmap-plugin
+%endif
+
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
@@ -127,6 +133,9 @@ BuildRequires: libnl-devel
 %endif
 %if (0%{?use_systemd} == 1)
 BuildRequires: systemd-devel
+%endif
+%if (0%{?with_cifs_utils_plugin} == 1)
+BuildRequires: cifs-utils-devel
 %endif
 
 # RHEL 5 is too old to support samba4 and the PAC responder
@@ -412,6 +421,7 @@ autoreconf -ivf
     --disable-rpath \
     %{?with_ccache} \
     %{with_initscript} \
+    %{?with_cifs_utils_plugin_option} \
     %{?experimental}
 
 make %{?_smp_mflags} all
@@ -644,6 +654,10 @@ rm -rf $RPM_BUILD_ROOT
 %if !0%{?is_rhel5}
 %{_libdir}/krb5/plugins/authdata/sssd_pac_plugin.so
 %endif
+%if (0%{?with_cifs_utils_plugin} == 1)
+%{_libdir}/cifs-utils/cifs_idmap_sss.so
+%ghost %{_sysconfdir}/cifs-utils/idmap-plugin
+%endif
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 
@@ -773,7 +787,18 @@ if [ $1 = 0 ]; then
 fi
 %endif
 
+%if (0%{?with_cifs_utils_plugin} == 1)
+%post client
+/sbin/ldconfig
+/usr/sbin/alternatives --install /etc/cifs-utils/idmap-plugin cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so 20
+
+%preun client
+if [ $1 -eq 0 ]; then
+        /usr/sbin/alternatives --remove cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so
+fi
+%else
 %post client -p /sbin/ldconfig
+%endif
 
 %postun client -p /sbin/ldconfig
 
