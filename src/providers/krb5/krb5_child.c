@@ -896,7 +896,6 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     int realm_length;
     krb5_error_code kerr;
     char *cc_name;
-    krb5_principal principal;
 
     kerr = sss_krb5_get_init_creds_opt_set_expire_callback(kr->ctx, kr->options,
                                                   sss_krb5_expire_callback_func,
@@ -941,13 +940,12 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         }
     }
 
-    principal = kr->creds ? kr->creds->client : kr->princ;
-
     /* If kr->ccname is cache collection (DIR:/...), we want to work
      * directly with file ccache (DIR::/...), but cache collection
      * should be returned back to back end.
      */
-    cc_name = sss_get_ccache_name_for_principal(kr->pd, kr->ctx, principal,
+    cc_name = sss_get_ccache_name_for_principal(kr->pd, kr->ctx,
+                                                kr->creds->client,
                                                 kr->ccname);
     if (cc_name == NULL) {
         cc_name = kr->ccname;
