@@ -251,7 +251,7 @@ sdap_dyndns_addrs_diff(struct sdap_dyndns_update_state *state, bool *_do_update)
     int i;
     char **str_dnslist = NULL, **str_local_list = NULL;
     char **dns_only = NULL, **local_only = NULL;
-    bool do_update;
+    bool do_update = false;
 
     ret = sss_iface_addr_list_as_str_list(state,
                                           state->dns_addrlist, &str_dnslist);
