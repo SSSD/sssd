@@ -424,7 +424,8 @@ static krb5_error_code create_empty_cred(krb5_context ctx, krb5_principal princ,
 
 done:
     if (kerr != 0) {
-        krb5_free_creds(ctx, cred);
+        krb5_free_cred_contents(ctx, cred);
+        free(cred);
     } else {
         *_cred = cred;
     }
