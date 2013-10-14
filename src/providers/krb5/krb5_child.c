@@ -974,6 +974,10 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     }
 
     sss_krb5_princ_realm(kr->ctx, kr->princ, &realm_name, &realm_length);
+    if (realm_length == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_krb5_princ_realm failed.\n");
+        return KRB5KRB_ERR_GENERIC;
+    }
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Attempting kinit for realm [%s]\n",realm_name);
@@ -1136,6 +1140,10 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
 
     set_changepw_options(kr->options);
     sss_krb5_princ_realm(kr->ctx, kr->princ, &realm_name, &realm_length);
+    if (realm_length == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_krb5_princ_realm failed.\n");
+        return ERR_INTERNAL;
+    }
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Attempting kinit for realm [%s]\n",realm_name);

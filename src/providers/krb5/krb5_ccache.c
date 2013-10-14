@@ -574,6 +574,11 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
     }
 
     sss_krb5_princ_realm(ctx, client_princ, &realm_name, &realm_length);
+    if (realm_length == 0) {
+        kerr = KRB5KRB_ERR_GENERIC;
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_krb5_princ_realm failed.\n");
+        goto done;
+    }
 
     server_name = talloc_asprintf(NULL, "krbtgt/%.*s@%.*s",
                                   realm_length, realm_name,

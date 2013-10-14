@@ -212,6 +212,14 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             sss_krb5_princ_realm(krb_ctx, client_princ,
                                  &realm_name,
                                  &realm_len);
+            if (realm_len == 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "sss_krb5_princ_realm failed.\n");
+                if (_principal) talloc_zfree(*_principal);
+                if (_primary) talloc_zfree(*_primary);
+                ret = EINVAL;
+                goto done;
+            }
+
             *_realm = talloc_asprintf(mem_ctx, "%.*s",
                                       realm_len, realm_name);
             if (!*_realm) {
@@ -279,6 +287,10 @@ static bool match_principal(krb5_context ctx,
     bool ret = false;
 
     sss_krb5_princ_realm(ctx, principal, &realm_name, &realm_len);
+    if (realm_len == 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "sss_krb5_princ_realm failed.\n");
+        return false;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
