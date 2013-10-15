@@ -1826,11 +1826,13 @@ endif
 libsss_ad_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS) \
+    $(SASL_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS) \
     $(NDR_NBT_CFLAGS)
 libsss_ad_la_LIBADD = \
     $(OPENLDAP_LIBS) \
+    $(SASL_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
     $(NDR_NBT_LIBS) \
