@@ -109,9 +109,7 @@ errno_t set_debug_file_from_fd(const int fd);
          {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0, \
           _("Show timestamps with microseconds"), NULL},
 
-#define DEBUG_UNWRAP(...) __VA_ARGS__
-
-/** \def DEBUG(level, body)
+/** \def DEBUG(level, format, ...)
     \brief macro to generate debug messages
 
     \param level the debug level, please use one of the SSSDBG_* macros
@@ -124,12 +122,14 @@ errno_t set_debug_file_from_fd(const int fd);
         looking for additional clues
       - 7-10 is for informational stuff
 
-    \param body the debug message you want to send, should end with \n
+    \param format the debug message format string, should result in a
+                  newline-terminated message
+    \param ... the debug message format arguments
 */
-#define DEBUG(level, body) do { \
+#define DEBUG(level, format, ...) do { \
     int __debug_macro_newlevel = debug_get_level(level); \
     if (DEBUG_IS_SET(__debug_macro_newlevel)) \
-        debug_fn(__FUNCTION__, __debug_macro_newlevel, DEBUG_UNWRAP body); \
+        debug_fn(__FUNCTION__, __debug_macro_newlevel, format, ##__VA_ARGS__); \
 } while (0)
 
 /** \def DEBUG_IS_SET(level)
