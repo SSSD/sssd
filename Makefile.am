@@ -1758,12 +1758,14 @@ libsss_ad_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS) \
     $(LDAP_CFLAGS) \
+    $(SASL_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS) \
     $(NDR_NBT_CFLAGS)
 libsss_ad_la_LIBADD = \
     $(SYSTEMD_LOGIN_LIBS) \
     $(OPENLDAP_LIBS) \
+    $(SASL_LIBS) \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \

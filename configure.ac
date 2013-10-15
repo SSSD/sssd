@@ -158,6 +158,7 @@ m4_include([src/external/cifsidmap.m4])
 m4_include([src/external/signal.m4])
 m4_include([src/external/inotify.m4])
 m4_include([src/external/libndr_nbt.m4])
+m4_include([src/external/sasl.m4])
 
 WITH_UNICODE_LIB
 if test x$unicode_lib = xlibunistring; then
@@ -261,8 +262,6 @@ if test x$cryptolib = xlibcrypto; then
 fi
 
 AM_CHECK_INOTIFY
-
-AC_CHECK_HEADERS([sasl/sasl.h],,AC_MSG_ERROR([Could not find SASL headers]))
 
 AC_CACHE_CHECK([whether compiler supports __attribute__((destructor))],
                sss_client_cv_attribute_destructor,
