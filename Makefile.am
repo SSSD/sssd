@@ -1605,7 +1605,7 @@ libsss_ldap_la_SOURCES = \
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS) \
-    $(LDAP_CFLAGS) \
+    $(OPENLDAP_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ldap_la_LIBADD = \
     $(OPENLDAP_LIBS) \
@@ -1701,7 +1701,7 @@ libsss_ipa_la_SOURCES = \
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS) \
-    $(LDAP_CFLAGS) \
+    $(OPENLDAP_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
     $(KRB5_CFLAGS)
@@ -1757,7 +1757,7 @@ libsss_ad_la_SOURCES = \
 libsss_ad_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS) \
-    $(LDAP_CFLAGS) \
+    $(OPENLDAP_CFLAGS) \
     $(SASL_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS) \
