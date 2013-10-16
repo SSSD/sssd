@@ -143,7 +143,6 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     id_t rangesize;
     bool autorid_mode;
     struct sdap_idmap_ctx *idmap_ctx = NULL;
-    struct sysdb_ctx *sysdb = id_ctx->be->domain->sysdb;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -223,7 +222,7 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Read in any existing mappings from the cache */
-    ret = sysdb_idmap_get_mappings(tmp_ctx, sysdb, id_ctx->be->domain, &res);
+    ret = sysdb_idmap_get_mappings(tmp_ctx, id_ctx->be->domain, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               ("Could not read ID mappings from the cache: [%s]\n",
@@ -383,8 +382,7 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
     /* If algorithmic mapping is used add this domain to the SYSDB cache so it
      * will survive reboot */
     if (!external_mapping) {
-        ret = sysdb_idmap_store_mapping(idmap_ctx->id_ctx->be->domain->sysdb,
-                                        idmap_ctx->id_ctx->be->domain,
+        ret = sysdb_idmap_store_mapping(idmap_ctx->id_ctx->be->domain,
                                         dom_name, dom_sid,
                                         slice);
         if (ret != EOK) {

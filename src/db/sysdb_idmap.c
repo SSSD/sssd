@@ -25,8 +25,8 @@
 #include "db/sysdb_private.h"
 
 static struct ldb_dn *
-sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-               struct sss_domain_info *domain, const char *object_sid)
+sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sss_domain_info *domain,
+               const char *object_sid)
 {
     errno_t ret;
     char *clean_sid;
@@ -39,7 +39,7 @@ sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
     DEBUG(SSSDBG_TRACE_ALL, (SYSDB_TMPL_IDMAP"\n", clean_sid, domain->name));
 
-    dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_IDMAP,
+    dn = ldb_dn_new_fmt(mem_ctx, domain->sysdb->ldb, SYSDB_TMPL_IDMAP,
                         clean_sid, domain->name);
     talloc_free(clean_sid);
 
@@ -47,8 +47,7 @@ sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 }
 
 errno_t
-sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
-                          struct sss_domain_info *domain,
+sysdb_idmap_store_mapping(struct sss_domain_info *domain,
                           const char *dom_name,
                           const char *dom_sid,
                           id_t slice_num)
@@ -68,7 +67,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    dn = sysdb_idmap_dn(tmp_ctx, sysdb, domain, dom_sid);
+    dn = sysdb_idmap_dn(tmp_ctx, domain, dom_sid);
     if (!dn) {
         ret = ENOMEM;
         goto done;
@@ -81,7 +80,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
     }
     update_msg->dn = dn;
 
-    ret = sysdb_transaction_start(sysdb);
+    ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
@@ -91,7 +90,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
 
 
     /* Check for an existing mapping */
-    ret = sysdb_search_entry(tmp_ctx, sysdb, dn, LDB_SCOPE_BASE,
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, dn, LDB_SCOPE_BASE,
                              NULL, attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) goto done;
 
@@ -167,7 +166,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
             goto done;
         }
 
-        lret = ldb_add(sysdb->ldb, update_msg);
+        lret = ldb_add(domain->sysdb->ldb, update_msg);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Failed to add mapping: [%s]\n",
@@ -245,7 +244,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
             }
         }
 
-        lret = ldb_modify(sysdb->ldb, update_msg);
+        lret = ldb_modify(domain->sysdb->ldb, update_msg);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Failed to update mapping: [%s]\n",
@@ -255,7 +254,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
         }
     }
 
-    ret = sysdb_transaction_commit(sysdb);
+    ret = sysdb_transaction_commit(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Could not commit transaction: [%s]\n", strerror(ret)));
@@ -265,7 +264,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
 
 done:
     if (in_transaction) {
-        sret = sysdb_transaction_cancel(sysdb);
+        sret = sysdb_transaction_cancel(domain->sysdb);
         if (sret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Could not cancel transaction\n"));
@@ -277,7 +276,6 @@ done:
 
 errno_t
 sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
-                         struct sysdb_ctx *sysdb,
                          struct sss_domain_info *domain,
                          struct ldb_result **_result)
 {
@@ -293,14 +291,14 @@ sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_ALL, (SYSDB_TMPL_IDMAP_BASE"\n", domain->name));
 
-    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+    base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                              SYSDB_TMPL_IDMAP_BASE, domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
+    lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, SYSDB_IDMAP_FILTER);
     if (lret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
