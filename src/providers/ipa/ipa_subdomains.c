@@ -1305,13 +1305,14 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
         return EINVAL;
     }
 
-    id_ctx->server_mode = talloc(id_ctx, struct ipa_server_mode_ctx);
+    id_ctx->server_mode = talloc_zero(id_ctx, struct ipa_server_mode_ctx);
     if (id_ctx->server_mode == NULL) {
         return ENOMEM;
     }
     id_ctx->server_mode->realm = realm;
     id_ctx->server_mode->hostname = hostname;
     id_ctx->server_mode->trusts = NULL;
+    id_ctx->server_mode->ext_groups = NULL;
 
     return EOK;
 }
