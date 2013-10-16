@@ -26,7 +26,6 @@
 /* Cache functions specific for the native sudo LDAP schema */
 errno_t
 sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
-                               struct sysdb_ctx *sysdb_ctx,
                                struct sss_domain_info *domain,
                                struct sdap_attr_map *map,
                                struct sysdb_attrs **replies,

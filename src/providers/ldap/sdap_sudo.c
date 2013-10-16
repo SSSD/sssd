@@ -250,8 +250,7 @@ static int sdap_sudo_setup_periodical_refresh(struct sdap_sudo_ctx *sudo_ctx)
         }
     }
 
-    ret = sysdb_sudo_get_last_full_refresh(id_ctx->be->domain->sysdb,
-                                           id_ctx->be->domain,
+    ret = sysdb_sudo_get_last_full_refresh(id_ctx->be->domain,
                                            &last_full);
     if (ret != EOK) {
         return ret;
@@ -631,8 +630,7 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     state->sudo_ctx->full_refresh_done = true;
 
     /* save the time in the sysdb */
-    ret = sysdb_sudo_set_last_full_refresh(state->sysdb, state->domain,
-                                           time(NULL));
+    ret = sysdb_sudo_set_last_full_refresh(state->domain, time(NULL));
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to save time of "
                                      "a successful full refresh\n"));

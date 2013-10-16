@@ -86,15 +86,13 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
 
 static void sdap_sudo_refresh_load_done(struct tevent_req *subreq);
 
-static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
-                                   struct sss_domain_info *dom,
+static int sdap_sudo_purge_sudoers(struct sss_domain_info *dom,
                                    const char *filter,
                                    struct sdap_attr_map *map,
                                    size_t rules_count,
                                    struct sysdb_attrs **rules);
 
 static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
-                                   struct sysdb_ctx *sysdb_ctx,
                                    struct sss_domain_info *domain,
                                    struct sdap_options *opts,
                                    size_t rules_count,
@@ -488,7 +486,7 @@ static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
     in_transaction = true;
 
     /* purge cache */
-    ret = sdap_sudo_purge_sudoers(state->sysdb, state->domain, state->sysdb_filter,
+    ret = sdap_sudo_purge_sudoers(state->domain, state->sysdb_filter,
                                   state->opts->sudorule_map, rules_count, rules);
     if (ret != EOK) {
         goto done;
@@ -496,7 +494,7 @@ static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
 
     /* store rules */
     now = time(NULL);
-    ret = sdap_sudo_store_sudoers(state, state->sysdb, state->domain,
+    ret = sdap_sudo_store_sudoers(state, state->domain,
                                   state->opts, rules_count, rules,
                                   state->domain->sudo_timeout, now,
                                   &state->highest_usn);
@@ -535,8 +533,7 @@ done:
     }
 }
 
-static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
-                                   struct sss_domain_info *dom,
+static int sdap_sudo_purge_sudoers(struct sss_domain_info *dom,
                                    const char *filter,
                                    struct sdap_attr_map *map,
                                    size_t rules_count,
@@ -562,7 +559,7 @@ static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
                 continue;
             }
 
-            ret = sysdb_sudo_purge_byname(sysdb_ctx, dom, name);
+            ret = sysdb_sudo_purge_byname(dom, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Failed to delete rule %s: [%s]\n",
@@ -574,7 +571,7 @@ static int sdap_sudo_purge_sudoers(struct sysdb_ctx *sysdb_ctx,
         ret = EOK;
     } else {
         /* purge cache by provided filter */
-        ret = sysdb_sudo_purge_byfilter(sysdb_ctx, dom, filter);
+        ret = sysdb_sudo_purge_byfilter(dom, filter);
         if (ret != EOK) {
             goto done;
         }
@@ -590,7 +587,6 @@ done:
 }
 
 static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
-                                   struct sysdb_ctx *sysdb_ctx,
                                    struct sss_domain_info *domain,
                                    struct sdap_options *opts,
                                    size_t rules_count,
@@ -606,7 +602,7 @@ static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
         return EOK;
     }
 
-    ret = sdap_save_native_sudorule_list(mem_ctx, sysdb_ctx, domain,
+    ret = sdap_save_native_sudorule_list(mem_ctx, domain,
                                          opts->sudorule_map, rules,
                                          rules_count, cache_timeout, now,
                                          _usn);

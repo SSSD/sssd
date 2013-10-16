@@ -355,7 +355,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
      * expired rules for this user and defaults at once we will save one
      * provider call
      */
-    ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->domain->sysdb, cmd_ctx->domain,
+    ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->domain,
                                    cmd_ctx->orig_username, NULL, &groupnames);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -559,7 +559,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
     switch (cmd_ctx->type) {
     case SSS_SUDO_USER:
         debug_name = cmd_ctx->cased_username;
-        ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->domain->sysdb,
+        ret = sysdb_get_sudo_user_info(tmp_ctx,
                                        cmd_ctx->domain,
                                        cmd_ctx->orig_username,
                                        NULL, &groupnames);

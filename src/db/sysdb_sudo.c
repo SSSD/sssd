@@ -302,7 +302,7 @@ done:
 }
 
 errno_t
-sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
                          const char *username, uid_t *_uid,
                          char ***groupnames)
@@ -357,7 +357,7 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
             /* Get a list of the groups by groupname only */
             for (i = 0; i < groups->num_values; i++) {
-                ret = sysdb_group_dn_name(sysdb,
+                ret = sysdb_group_dn_name(domain->sysdb,
                                           sysdb_groupnames,
                                           (const char *)groups->values[i].data,
                                           &sysdb_groupnames[i]);
@@ -415,8 +415,7 @@ done:
 }
 
 errno_t
-sysdb_save_sudorule(struct sysdb_ctx *sysdb,
-                    struct sss_domain_info *domain,
+sysdb_save_sudorule(struct sss_domain_info *domain,
                     const char *rule_name,
                     struct sysdb_attrs *attrs)
 {
@@ -439,7 +438,8 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb,
         return ret;
     }
 
-    ret = sysdb_store_custom(sysdb, domain, rule_name, SUDORULE_SUBDIR, attrs);
+    ret = sysdb_store_custom(domain->sysdb, domain, rule_name,
+                             SUDORULE_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
               ret, strerror(ret)));
@@ -449,8 +449,7 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb,
     return EOK;
 }
 
-static errno_t sysdb_sudo_set_refresh_time(struct sysdb_ctx *sysdb,
-                                           struct sss_domain_info *domain,
+static errno_t sysdb_sudo_set_refresh_time(struct sss_domain_info *domain,
                                            const char *attr_name,
                                            time_t value)
 {
@@ -467,14 +466,15 @@ static errno_t sysdb_sudo_set_refresh_time(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+    dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
+                        SYSDB_TMPL_CUSTOM_SUBTREE,
                         SUDORULE_SUBDIR, domain->name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+    lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
                       NULL, NULL);
     if (lret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(lret);
@@ -514,9 +514,9 @@ static errno_t sysdb_sudo_set_refresh_time(struct sysdb_ctx *sysdb,
     }
 
     if (res->count) {
-        lret = ldb_modify(sysdb->ldb, msg);
+        lret = ldb_modify(domain->sysdb->ldb, msg);
     } else {
-        lret = ldb_add(sysdb->ldb, msg);
+        lret = ldb_add(domain->sysdb->ldb, msg);
     }
 
     ret = sysdb_error_to_errno(lret);
@@ -526,8 +526,7 @@ done:
     return ret;
 }
 
-static errno_t sysdb_sudo_get_refresh_time(struct sysdb_ctx *sysdb,
-                                           struct sss_domain_info *domain,
+static errno_t sysdb_sudo_get_refresh_time(struct sss_domain_info *domain,
                                            const char *attr_name,
                                            time_t *value)
 {
@@ -543,14 +542,14 @@ static errno_t sysdb_sudo_get_refresh_time(struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+    dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
                         SUDORULE_SUBDIR, domain->name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
+    lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE,
                       attrs, NULL);
     if (lret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(lret);
@@ -582,26 +581,23 @@ done:
     return ret;
 }
 
-errno_t sysdb_sudo_set_last_full_refresh(struct sysdb_ctx *sysdb,
-                                         struct sss_domain_info *domain,
+errno_t sysdb_sudo_set_last_full_refresh(struct sss_domain_info *domain,
                                          time_t value)
 {
-    return sysdb_sudo_set_refresh_time(sysdb, domain,
+    return sysdb_sudo_set_refresh_time(domain,
                                        SYSDB_SUDO_AT_LAST_FULL_REFRESH, value);
 }
 
-errno_t sysdb_sudo_get_last_full_refresh(struct sysdb_ctx *sysdb,
-                                         struct sss_domain_info *domain,
+errno_t sysdb_sudo_get_last_full_refresh(struct sss_domain_info *domain,
                                          time_t *value)
 {
-    return sysdb_sudo_get_refresh_time(sysdb, domain,
+    return sysdb_sudo_get_refresh_time(domain,
                                        SYSDB_SUDO_AT_LAST_FULL_REFRESH, value);
 }
 
 /* ====================  Purge functions ==================== */
 
-static errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb,
-                                    struct sss_domain_info *domain)
+static errno_t sysdb_sudo_purge_all(struct sss_domain_info *domain)
 {
     struct ldb_dn *base_dn = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
@@ -610,10 +606,10 @@ static errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb,
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
 
-    base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, domain, SUDORULE_SUBDIR);
+    base_dn = sysdb_custom_subtree_dn(domain->sysdb, tmp_ctx, domain, SUDORULE_SUBDIR);
     NULL_CHECK(base_dn, ret, done);
 
-    ret = sysdb_delete_recursive(sysdb, base_dn, true);
+    ret = sysdb_delete_recursive(domain->sysdb, base_dn, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_recursive failed.\n"));
         goto done;
@@ -625,16 +621,14 @@ done:
     return ret;
 }
 
-errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
-                                struct sss_domain_info *domain,
+errno_t sysdb_sudo_purge_byname(struct sss_domain_info *domain,
                                 const char *name)
 {
     DEBUG(SSSDBG_TRACE_INTERNAL, ("Deleting sudo rule %s\n", name));
-    return sysdb_delete_custom(sysdb, domain, name, SUDORULE_SUBDIR);
+    return sysdb_delete_custom(domain->sysdb, domain, name, SUDORULE_SUBDIR);
 }
 
-errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
-                                  struct sss_domain_info *domain,
+errno_t sysdb_sudo_purge_byfilter(struct sss_domain_info *domain,
                                   const char *filter)
 {
     TALLOC_CTX *tmp_ctx;
@@ -652,14 +646,14 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
 
     /* just purge all if there's no filter */
     if (!filter) {
-        return sysdb_sudo_purge_all(sysdb, domain);
+        return sysdb_sudo_purge_all(domain);
     }
 
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
 
     /* match entries based on the filter and remove them one by one */
-    ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
                               SUDORULE_SUBDIR, attrs,
                               &count, &msgs);
     if (ret == ENOENT) {
@@ -671,7 +665,7 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_transaction_start(sysdb);
+    ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
         goto done;
@@ -686,14 +680,14 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
             continue;
         }
 
-        ret = sysdb_sudo_purge_byname(sysdb, domain, name);
+        ret = sysdb_sudo_purge_byname(domain, name);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not delete rule %s\n", name));
             goto done;
         }
     }
 
-    ret = sysdb_transaction_commit(sysdb);
+    ret = sysdb_transaction_commit(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto done;
@@ -702,7 +696,7 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
 
 done:
     if (in_transaction) {
-        sret = sysdb_transaction_cancel(sysdb);
+        sret = sysdb_transaction_cancel(domain->sysdb);
         if (sret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
         }

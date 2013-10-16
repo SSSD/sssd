@@ -56,7 +56,6 @@ static errno_t sdap_sudo_get_usn(TALLOC_CTX *mem_ctx,
 
 static errno_t
 sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
-                          struct sysdb_ctx *sysdb_ctx,
                           struct sss_domain_info *domain,
                           struct sdap_attr_map *map,
                           struct sysdb_attrs *attrs,
@@ -94,7 +93,7 @@ sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
         /* but we will store the rule anyway */
     }
 
-    ret = sysdb_save_sudorule(sysdb_ctx, domain, rule_name, attrs);
+    ret = sysdb_save_sudorule(domain, rule_name, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Could not save sudorule %s\n", rule_name));
         return ret;
@@ -105,7 +104,6 @@ sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
 
 errno_t
 sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
-                               struct sysdb_ctx *sysdb_ctx,
                                struct sss_domain_info *domain,
                                struct sdap_attr_map *map,
                                struct sysdb_attrs **replies,
@@ -127,17 +125,16 @@ sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_transaction_start(sysdb_ctx);
+    ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Could not start transaction\n"));
         goto fail;
     }
     in_transaction = true;
 
-    for (i=0; i<replies_count; i++) {
+    for (i=0; i < replies_count; i++) {
         usn_value = NULL;
-        ret = sdap_save_native_sudorule(tmp_ctx, sysdb_ctx,
-                                        domain, map, replies[i],
+        ret = sdap_save_native_sudorule(tmp_ctx, domain, map, replies[i],
                                         cache_timeout, now, &usn_value);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to save sudo rule, "
@@ -161,7 +158,7 @@ sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sysdb_transaction_commit(sysdb_ctx);
+    ret = sysdb_transaction_commit(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
         goto fail;
@@ -175,7 +172,7 @@ sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
     ret = EOK;
 fail:
     if (in_transaction) {
-        tret = sysdb_transaction_cancel(sysdb_ctx);
+        tret = sysdb_transaction_cancel(domain->sysdb);
         if (tret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
         }
