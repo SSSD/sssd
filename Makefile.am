@@ -1857,6 +1857,8 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_access.c \
     src/providers/krb5/krb5_child_handler.c \
     src/providers/krb5/krb5_init_shared.c
+libsss_krb5_common_la_LIBADD = \
+    $(KEYUTILS_LIBS)
 libsss_krb5_common_la_LDFLAGS = \
     -avoid-version
 libsss_krb5_common_la_CFLAGS = \
@@ -1928,7 +1930,6 @@ libsss_krb5_la_CFLAGS = \
 libsss_krb5_la_LIBADD = \
     $(SYSTEMD_LOGIN_LIBS) \
     $(DHASH_LIBS) \
-    $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     libsss_krb5_common.la
 libsss_krb5_la_LDFLAGS = \
@@ -1982,7 +1983,6 @@ libsss_ipa_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(NDR_NBT_LIBS) \
-    $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     $(SELINUX_LIBS) \
     libsss_ldap_common.la \
@@ -2045,7 +2045,6 @@ libsss_ad_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(SASL_LIBS) \
     $(DHASH_LIBS) \
-    $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     $(NDR_NBT_LIBS) \
     libsss_ldap_common.la \
