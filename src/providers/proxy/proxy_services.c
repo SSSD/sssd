@@ -198,7 +198,7 @@ enum_services(struct proxy_id_ctx *ctx,
     char *newbuf;
     errno_t ret, sret;
     time_t now = time(NULL);
-    const char *protocols[2] = { NULL, NULL };
+    const char **protocols;
     const char **cased_aliases;
     bool again;
 
@@ -218,6 +218,12 @@ enum_services(struct proxy_id_ctx *ctx,
     buflen = DEFAULT_BUFSIZE;
     buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    protocols = talloc_zero_array(tmpctx, const char *, 2);
+    if (protocols == NULL) {
         ret = ENOMEM;
         goto done;
     }
