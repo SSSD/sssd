@@ -464,7 +464,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Storing info for user %s\n", user_name));
 
-    ret = sysdb_store_user(ctx, dom, user_name, pwd, uid, gid,
+    ret = sysdb_store_user(dom, user_name, pwd, uid, gid,
                            gecos, homedir, shell, orig_dn,
                            user_attrs, missing, cache_timeout, now);
     if (ret) goto done;

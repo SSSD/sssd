@@ -149,8 +149,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     key.str = sid_str;
     value.ul = 0;
 
-    ret = sysdb_search_object_by_sid(mem_ctx, user_dom->sysdb, user_dom,
-                                     sid_str, NULL, &msg);
+    ret = sysdb_search_object_by_sid(mem_ctx, user_dom, sid_str, NULL, &msg);
     if (ret == EOK && msg->count == 1) {
         value.ul = ldb_msg_find_attr_as_uint64(msg->msgs[0], SYSDB_UIDNUM, 0);
         talloc_free(msg);
@@ -184,8 +183,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     key.str = sid_str;
     value.ul = 0;
 
-    ret = sysdb_search_object_by_sid(mem_ctx, user_dom->sysdb, user_dom,
-                                     sid_str, NULL, &msg);
+    ret = sysdb_search_object_by_sid(mem_ctx, user_dom, sid_str, NULL, &msg);
     if (ret == EOK && msg->count == 1) {
         value.ul = ldb_msg_find_attr_as_uint64(msg->msgs[0], SYSDB_GIDNUM, 0);
         talloc_free(msg);
@@ -213,8 +211,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
         key.str = sid_str;
         value.ul = 0;
 
-        ret = sysdb_search_object_by_sid(mem_ctx, user_dom->sysdb, user_dom,
-                                         sid_str, NULL, &msg);
+        ret = sysdb_search_object_by_sid(mem_ctx, user_dom, sid_str,
+                                         NULL, &msg);
         if (ret == EOK && msg->count == 1) {
             value.ul = ldb_msg_find_attr_as_uint64(msg->msgs[0],
                                                    SYSDB_GIDNUM, 0);
@@ -247,8 +245,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
 
         ret = responder_get_domain_by_id(pac_ctx->rctx, sid_str, &group_dom);
         if (ret == EOK) {
-            ret = sysdb_search_object_by_sid(mem_ctx, group_dom->sysdb,
-                                             group_dom, sid_str, NULL, &msg);
+            ret = sysdb_search_object_by_sid(mem_ctx, group_dom, sid_str,
+                                             NULL, &msg);
             if (ret == EOK && msg->count == 1 ) {
                 value.ul = ldb_msg_find_attr_as_uint64(msg->msgs[0],
                                                        SYSDB_GIDNUM, 0);

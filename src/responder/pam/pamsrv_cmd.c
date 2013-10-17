@@ -499,7 +499,7 @@ static void pam_reply(struct pam_auth_req *preq)
                     goto done;
                 }
 
-                ret = sysdb_cache_auth(preq->domain->sysdb, preq->domain,
+                ret = sysdb_cache_auth(preq->domain,
                                        pd->user, password,
                                        pctx->rctx->cdb, false,
                                        &exp_date, &delay_until);

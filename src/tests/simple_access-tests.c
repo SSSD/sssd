@@ -161,38 +161,35 @@ void setup_simple_group(void)
 
     /* Add test users u1 and u2 that would be members of test groups
      * g1 and g2 respectively */
-    ret = sysdb_add_group(test_ctx->sysdb, test_ctx->ctx->domain,
-                          "pvt", 999, NULL, 0, 0);
+    ret = sysdb_add_group(test_ctx->ctx->domain, "pvt", 999, NULL, 0, 0);
     fail_if(ret != EOK, "Could not add private group %s", strerror(ret));
 
-    ret = sysdb_store_user(test_ctx->sysdb, test_ctx->ctx->domain,
+    ret = sysdb_store_user(test_ctx->ctx->domain,
                            "u1", NULL, 123, 999, "u1", "/home/u1",
                            "/bin/bash", NULL, NULL, NULL, -1, 0);
     fail_if(ret != EOK, "Could not add u1");
 
-    ret = sysdb_store_user(test_ctx->sysdb, test_ctx->ctx->domain,
+    ret = sysdb_store_user(test_ctx->ctx->domain,
                            "u2", NULL, 456, 999, "u1", "/home/u1",
                            "/bin/bash", NULL, NULL, NULL, -1, 0);
     fail_if(ret != EOK, "Could not add u2");
 
-    ret = sysdb_store_user(test_ctx->sysdb, test_ctx->ctx->domain,
+    ret = sysdb_store_user(test_ctx->ctx->domain,
                            "u3", NULL, 789, 999, "u1", "/home/u1",
                            "/bin/bash", NULL, NULL, NULL, -1, 0);
     fail_if(ret != EOK, "Could not add u3");
 
-    ret = sysdb_add_group(test_ctx->sysdb, test_ctx->ctx->domain,
-                          "g1", 321, NULL, 0, 0);
+    ret = sysdb_add_group(test_ctx->ctx->domain, "g1", 321, NULL, 0, 0);
     fail_if(ret != EOK, "Could not add g1");
 
-    ret = sysdb_add_group(test_ctx->sysdb, test_ctx->ctx->domain,
-                          "g2", 654, NULL, 0, 0);
+    ret = sysdb_add_group(test_ctx->ctx->domain, "g2", 654, NULL, 0, 0);
     fail_if(ret != EOK, "Could not add g2");
 
-    ret = sysdb_add_group_member(test_ctx->sysdb, test_ctx->ctx->domain,
+    ret = sysdb_add_group_member(test_ctx->ctx->domain,
                                  "g1", "u1", SYSDB_MEMBER_USER, false);
     fail_if(ret != EOK, "Could not add u1 to g1");
 
-    ret = sysdb_add_group_member(test_ctx->sysdb, test_ctx->ctx->domain,
+    ret = sysdb_add_group_member(test_ctx->ctx->domain,
                                  "g2", "u2", SYSDB_MEMBER_USER, false);
     fail_if(ret != EOK, "Could not add u2 to g2");
 }
@@ -201,17 +198,17 @@ void teardown_simple_group(void)
 {
     errno_t ret;
 
-    ret = sysdb_delete_user(test_ctx->sysdb, test_ctx->ctx->domain, "u1", 0);
+    ret = sysdb_delete_user(test_ctx->ctx->domain, "u1", 0);
     fail_if(ret != EOK, "Could not delete u1");
-    ret = sysdb_delete_user(test_ctx->sysdb, test_ctx->ctx->domain, "u2", 0);
+    ret = sysdb_delete_user(test_ctx->ctx->domain, "u2", 0);
     fail_if(ret != EOK, "Could not delete u2");
-    ret = sysdb_delete_user(test_ctx->sysdb, test_ctx->ctx->domain, "u3", 0);
+    ret = sysdb_delete_user(test_ctx->ctx->domain, "u3", 0);
     fail_if(ret != EOK, "Could not delete u3");
-    ret = sysdb_delete_group(test_ctx->sysdb, test_ctx->ctx->domain, "g1", 0);
+    ret = sysdb_delete_group(test_ctx->ctx->domain, "g1", 0);
     fail_if(ret != EOK, "Could not delete g1");
-    ret = sysdb_delete_group(test_ctx->sysdb, test_ctx->ctx->domain, "g2", 0);
+    ret = sysdb_delete_group(test_ctx->ctx->domain, "g2", 0);
     fail_if(ret != EOK, "Could not delete g2");
-    ret = sysdb_delete_group(test_ctx->sysdb, test_ctx->ctx->domain, "pvt", 0);
+    ret = sysdb_delete_group(test_ctx->ctx->domain, "pvt", 0);
     fail_if(ret != EOK, "Could not delete pvt");
 
     teardown_simple();

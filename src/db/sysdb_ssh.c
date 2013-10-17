@@ -30,7 +30,7 @@ sysdb_update_ssh_host(struct sss_domain_info *domain,
 {
     errno_t ret;
 
-    ret = sysdb_store_custom(domain->sysdb, domain, name, SSH_HOSTS_SUBDIR,
+    ret = sysdb_store_custom(domain, name, SSH_HOSTS_SUBDIR,
                              attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -226,7 +226,7 @@ sysdb_delete_ssh_host(struct sss_domain_info *domain,
                       const char *name)
 {
     DEBUG(SSSDBG_TRACE_FUNC, ("Deleting host %s\n", name));
-    return sysdb_delete_custom(domain->sysdb, domain, name, SSH_HOSTS_SUBDIR);
+    return sysdb_delete_custom(domain, name, SSH_HOSTS_SUBDIR);
 }
 
 static errno_t
@@ -247,7 +247,7 @@ sysdb_search_ssh_hosts(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, domain, filter,
                               SSH_HOSTS_SUBDIR, attrs,
                               &num_results, &results);
     if (ret != EOK && ret != ENOENT) {

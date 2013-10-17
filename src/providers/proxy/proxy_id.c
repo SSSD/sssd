@@ -209,7 +209,7 @@ delete_user(struct sysdb_ctx *sysdb,
     DEBUG(SSSDBG_TRACE_FUNC,
           ("User %s does not exist (or is invalid) on remote server,"
            " deleting!\n", name));
-    ret = sysdb_delete_user(sysdb, domain, name, uid);
+    ret = sysdb_delete_user(domain, name, uid);
     if (ret == ENOENT) {
         ret = EOK;
     }
@@ -279,7 +279,7 @@ static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
         }
     }
 
-    ret = sysdb_store_user(sysdb, domain,
+    ret = sysdb_store_user(domain,
                            real_name,
                            pwd->pw_passwd,
                            pwd->pw_uid,
@@ -626,7 +626,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         }
     }
 
-    ret = sysdb_store_group(sysdb, dom,
+    ret = sysdb_store_group(dom,
                             real_name,
                             grp->gr_gid,
                             attrs,
@@ -883,7 +883,7 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
               ("Group %s does not exist (or is invalid) on remote server,"
                " deleting!\n", name));
 
-        ret = sysdb_delete_group(sysdb, dom, NULL, gid);
+        ret = sysdb_delete_group(dom, NULL, gid);
         if (ret == ENOENT) {
             ret = EOK;
         }
@@ -961,7 +961,7 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
               ("Group %"SPRIgid" does not exist (or is invalid) on remote "
                "server, deleting!\n", gid));
 
-        ret = sysdb_delete_group(sysdb, dom, NULL, gid);
+        ret = sysdb_delete_group(dom, NULL, gid);
         if (ret == ENOENT) {
             ret = EOK;
         }

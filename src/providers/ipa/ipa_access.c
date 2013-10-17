@@ -704,7 +704,7 @@ errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, domain, filter,
                               HBAC_RULES_SUBDIR, attrs,
                               &rule_count, &msgs);
     if (ret != EOK && ret != ENOENT) {

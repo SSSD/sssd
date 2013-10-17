@@ -77,7 +77,7 @@ static int mod_groups_member(struct sysdb_ctx *sysdb,
             goto done;
         }
 
-        ret = sysdb_mod_group_member(sysdb, member_dn, parent_dn, optype);
+        ret = sysdb_mod_group_member(dom, member_dn, parent_dn, optype);
         if (ret) {
             goto done;
         }
@@ -468,8 +468,7 @@ int useradd(TALLOC_CTX *mem_ctx,
 {
     int ret;
 
-    ret = sysdb_add_user(sysdb,
-                         data->domain, data->name, data->uid, data->gid,
+    ret = sysdb_add_user(data->domain, data->name, data->uid, data->gid,
                          data->gecos, data->home, data->shell,
                          NULL, NULL, 0, 0);
     if (ret) {
@@ -533,8 +532,7 @@ int groupadd(struct sysdb_ctx *sysdb,
 {
     int ret;
 
-    ret = sysdb_add_group(sysdb, data->domain,
-                          data->name, data->gid, NULL, 0, 0);
+    ret = sysdb_add_group(data->domain, data->name, data->gid, NULL, 0, 0);
     if (ret == EOK) {
         flush_nscd_cache(NSCD_DB_GROUP);
     }

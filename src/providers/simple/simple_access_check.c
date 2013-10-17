@@ -437,7 +437,7 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_asq_search(state, state->domain->sysdb,
+    ret = sysdb_asq_search(state, state->domain,
                            user->dn, NULL, SYSDB_MEMBEROF,
                            attrs, &group_count, &groups);
     if (ret != EOK) {

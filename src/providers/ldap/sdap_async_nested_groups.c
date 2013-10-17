@@ -286,10 +286,10 @@ static errno_t sdap_nested_group_sysdb_search(struct sss_domain_info *domain,
     errno_t ret;
 
     if (user) {
-        ret = sysdb_search_users(NULL, domain->sysdb, domain, filter, attrs,
+        ret = sysdb_search_users(NULL, domain, filter, attrs,
                                  &count, &msgs);
     } else {
-        ret = sysdb_search_groups(NULL, domain->sysdb, domain, filter, attrs,
+        ret = sysdb_search_groups(NULL, domain, filter, attrs,
                                   &count, &msgs);
     }
     if (ret != EOK) {

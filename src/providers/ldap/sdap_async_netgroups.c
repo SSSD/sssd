@@ -138,7 +138,7 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    ret = sysdb_add_netgroup(ctx, dom, name, NULL, netgroup_attrs, missing,
+    ret = sysdb_add_netgroup(dom, name, NULL, netgroup_attrs, missing,
                              dom->netgroup_timeout, now);
     if (ret) goto fail;
 

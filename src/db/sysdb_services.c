@@ -379,7 +379,7 @@ sysdb_store_service(struct sss_domain_info *domain,
     if (ret != EOK) goto done;
 
     if (remove_attrs) {
-        ret = sysdb_remove_attrs(sysdb, domain, primary_name,
+        ret = sysdb_remove_attrs(domain, primary_name,
                                  SYSDB_MEMBER_SERVICE,
                                  remove_attrs);
         if (ret != EOK) {

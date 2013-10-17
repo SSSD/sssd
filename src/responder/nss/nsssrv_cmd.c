@@ -4008,7 +4008,7 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
         return EIO;
     }
 
-    ret = sysdb_search_object_by_sid(cmdctx, sysdb, dom, cmdctx->secid, NULL,
+    ret = sysdb_search_object_by_sid(cmdctx, dom, cmdctx->secid, NULL,
                                      &dctx->res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to make request to our cache!\n"));

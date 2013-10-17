@@ -195,7 +195,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
 
                 DEBUG(SSSDBG_TRACE_INTERNAL,
                       ("Adding fake group %s to sysdb\n", groupname));
-                ret = sysdb_add_incomplete_group(sysdb, domain, groupname, gid,
+                ret = sysdb_add_incomplete_group(domain, groupname, gid,
                                                  original_dn, sid_str, posix,
                                                  now);
                 if (ret != EOK) {
@@ -297,7 +297,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
     }
 
     DEBUG(8, ("Updating memberships for %s\n", name));
-    ret = sysdb_update_members(sysdb, domain, name, type,
+    ret = sysdb_update_members(domain, name, type,
                                (const char *const *) add_groups,
                                (const char *const *) del_groups);
     if (ret != EOK) {
@@ -1118,7 +1118,7 @@ sdap_initgr_store_group_memberships(struct sdap_initgr_nested_state *state)
     in_transaction = true;
 
     DLIST_FOR_EACH(miter, memberships) {
-        ret = sysdb_update_members(state->sysdb, state->dom, miter->name,
+        ret = sysdb_update_members(state->dom, miter->name,
                                    SYSDB_MEMBER_GROUP,
                                    (const char *const *) miter->add,
                                    (const char *const *) miter->del);
@@ -1245,8 +1245,7 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     in_transaction = true;
 
     DEBUG(8, ("Updating memberships for %s\n", state->username));
-    ret = sysdb_update_members(state->sysdb, state->dom,
-                               state->username, SYSDB_MEMBER_USER,
+    ret = sysdb_update_members(state->dom, state->username, SYSDB_MEMBER_USER,
                                (const char *const *) add_groups,
                                (const char *const *) del_groups);
     if (ret != EOK) {
@@ -1923,7 +1922,7 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
         } else {
             add[num_added] = NULL;
         }
-        ret = sysdb_update_members(state->sysdb, state->dom, iter->name,
+        ret = sysdb_update_members(state->dom, iter->name,
                                    SYSDB_MEMBER_GROUP,
                                   (const char *const *) add,
                                   (const char *const *) iter->del);
@@ -2083,8 +2082,7 @@ errno_t save_rfc2307bis_user_memberships(
     }
 
     DEBUG(8, ("Updating memberships for %s\n", state->name));
-    ret = sysdb_update_members(state->sysdb, state->dom,
-                               state->name, SYSDB_MEMBER_USER,
+    ret = sysdb_update_members(state->dom, state->name, SYSDB_MEMBER_USER,
                                (const char *const *)add_groups,
                                (const char *const *)del_groups);
     if (ret != EOK) {

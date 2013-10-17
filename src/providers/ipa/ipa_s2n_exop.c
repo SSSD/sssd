@@ -830,7 +830,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 gid = attrs->a.user.pw_gid;
             }
 
-            ret = sysdb_store_user(state->dom->sysdb, state->dom, name, NULL,
+            ret = sysdb_store_user(state->dom, name, NULL,
                                    attrs->a.user.pw_uid,
                                    gid, NULL, /* gecos */
                                    homedir, NULL, NULL, user_attrs, NULL,
@@ -886,9 +886,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 }
             }
 
-            ret = sysdb_store_group(state->dom->sysdb, state->dom, name,
-                                    attrs->a.group.gr_gid, group_attrs,
-                                    timeout, now);
+            ret = sysdb_store_group(state->dom, name, attrs->a.group.gr_gid,
+                                    group_attrs, timeout, now);
             break;
         default:
             DEBUG(SSSDBG_OP_FAILURE, ("Unexpected response type [%d].\n",

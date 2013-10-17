@@ -160,8 +160,7 @@ sysdb_save_autofsmap(struct sss_domain_info *domain,
         goto done;
     }
 
-    ret = sysdb_store_custom(domain->sysdb, domain, name,
-                             AUTOFS_MAP_SUBDIR, attrs);
+    ret = sysdb_store_custom(domain, name, AUTOFS_MAP_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
               ret, strerror(ret)));
@@ -179,7 +178,7 @@ sysdb_delete_autofsmap(struct sss_domain_info *domain,
                        const char *name)
 {
     DEBUG(SSSDBG_TRACE_FUNC, ("Deleting autofs map %s\n", name));
-    return sysdb_delete_custom(domain->sysdb, domain, name, AUTOFS_MAP_SUBDIR);
+    return sysdb_delete_custom(domain, name, AUTOFS_MAP_SUBDIR);
 }
 
 errno_t
@@ -219,7 +218,7 @@ sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, domain, filter,
                               AUTOFS_MAP_SUBDIR, attrs,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
@@ -464,7 +463,7 @@ sysdb_invalidate_autofs_maps(struct sss_domain_info *domain)
         goto done;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, domain, filter,
                               AUTOFS_MAP_SUBDIR, attrs,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {

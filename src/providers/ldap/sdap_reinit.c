@@ -144,7 +144,7 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
     in_transaction = true;
 
     /* reset users' usn */
-    ret = sysdb_search_users(tmp_ctx, sysdb, domain,
+    ret = sysdb_search_users(tmp_ctx, domain,
                              "", attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         goto done;
@@ -154,8 +154,7 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
     msgs_num = 0;
 
     /* reset groups' usn */
-    ret = sysdb_search_groups(tmp_ctx, sysdb, domain,
-                              "", attrs, &msgs_num, &msgs);
+    ret = sysdb_search_groups(tmp_ctx, domain, "", attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         goto done;
     }
@@ -276,7 +275,7 @@ static errno_t sdap_reinit_delete_records(struct sss_domain_info *domain)
     in_transaction = true;
 
     /* purge untouched users */
-    ret = sysdb_search_users(tmp_ctx, sysdb, domain, "(!("SYSDB_USN"=*))",
+    ret = sysdb_search_users(tmp_ctx, domain, "(!("SYSDB_USN"=*))",
                              attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         goto done;
@@ -286,7 +285,7 @@ static errno_t sdap_reinit_delete_records(struct sss_domain_info *domain)
     msgs_num = 0;
 
     /* purge untouched groups */
-    ret = sysdb_search_groups(tmp_ctx, sysdb, domain, "(!("SYSDB_USN"=*))",
+    ret = sysdb_search_groups(tmp_ctx, domain, "(!("SYSDB_USN"=*))",
                               attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         goto done;

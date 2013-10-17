@@ -287,8 +287,8 @@ static void pac_lookup_sids_done(struct tevent_req *req)
             }
 
             msg = NULL;
-            ret = sysdb_search_object_by_sid(pr_ctx, dom->sysdb, dom,
-                                             entries[c].key.str, NULL, &msg);
+            ret = sysdb_search_object_by_sid(pr_ctx, dom, entries[c].key.str,
+                                             NULL, &msg);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_object_by_sid " \
                                           "failed.\n"));
@@ -589,7 +589,7 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
             goto done;
         }
 
-        ret = sysdb_store_user(sysdb, pr_ctx->dom, pwd->pw_name, NULL,
+        ret = sysdb_store_user(pr_ctx->dom, pwd->pw_name, NULL,
                                pwd->pw_uid, pwd->pw_gid, pwd->pw_gecos,
                                pwd->pw_dir,
                                pwd->pw_shell, NULL, user_attrs, NULL,
@@ -714,7 +714,7 @@ pac_save_memberships_delete(struct pac_save_memberships_state *state)
     for (c = 0; c < pr_ctx->del_grp_count; c++) {
         /* If there is a failure for one group we still try to remove the
          * remaining groups. */
-        ret = sysdb_mod_group_member(pr_ctx->dom->sysdb, state->user_dn,
+        ret = sysdb_mod_group_member(pr_ctx->dom, state->user_dn,
                                      pr_ctx->del_grp_list[c].dn,
                                      LDB_FLAG_MOD_DELETE);
         if (ret != EOK) {
@@ -901,8 +901,8 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_search_object_by_sid(tmp_ctx, grp_dom->sysdb, grp_dom,
-                                     grp_sid_str, group_attrs, &group);
+    ret = sysdb_search_object_by_sid(tmp_ctx, grp_dom, grp_sid_str,
+                                     group_attrs, &group);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_INTERNAL, ("sysdb_search_object_by_sid " \
                                       "for SID [%s] failed [%d][%s].\n",
@@ -927,7 +927,7 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
     DEBUG(SSSDBG_TRACE_ALL, ("Adding user [%s] to group [%s][%s].\n",
                              ldb_dn_get_linearized(user_dn), grp_sid_str,
                              ldb_dn_get_linearized(group->msgs[0]->dn)));
-    ret = sysdb_mod_group_member(grp_dom->sysdb, user_dn, group->msgs[0]->dn,
+    ret = sysdb_mod_group_member(grp_dom, user_dn, group->msgs[0]->dn,
                                  LDB_FLAG_MOD_ADD);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed user [%s] " \

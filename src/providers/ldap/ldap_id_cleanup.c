@@ -172,7 +172,6 @@ static int cleanup_users(struct sdap_options *opts,
                          struct sss_domain_info *dom)
 {
     TALLOC_CTX *tmpctx;
-    struct sysdb_ctx *sysdb = dom->sysdb;
     const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter = NULL;
@@ -216,8 +215,7 @@ static int cleanup_users(struct sdap_options *opts,
         goto done;
     }
 
-    ret = sysdb_search_users(tmpctx, sysdb, dom,
-                             subfilter, attrs, &count, &msgs);
+    ret = sysdb_search_users(tmpctx, dom, subfilter, attrs, &count, &msgs);
     if (ret) {
         if (ret == ENOENT) {
             ret = EOK;
@@ -263,7 +261,7 @@ static int cleanup_users(struct sdap_options *opts,
 
         /* If not logged in or cannot check the table, delete him */
         DEBUG(9, ("About to delete user %s\n", name));
-        ret = sysdb_delete_user(sysdb, dom, name, 0);
+        ret = sysdb_delete_user(dom, name, 0);
         if (ret) {
             goto done;
         }
@@ -338,8 +336,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sysdb_search_groups(tmpctx, sysdb, domain,
-                              subfilter, attrs, &count, &msgs);
+    ret = sysdb_search_groups(tmpctx, domain, subfilter, attrs, &count, &msgs);
     if (ret) {
         if (ret == ENOENT) {
             ret = EOK;
@@ -403,7 +400,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             }
 
             DEBUG(8, ("About to delete group %s\n", name));
-            ret = sysdb_delete_group(sysdb, domain, name, 0);
+            ret = sysdb_delete_group(domain, name, 0);
             if (ret) {
                 DEBUG(2, ("Group delete returned %d (%s)\n",
                           ret, strerror(ret)));

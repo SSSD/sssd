@@ -354,17 +354,17 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
     switch (entry_type) {
     case TYPE_USER:
         type_string = "user";
-        ret = sysdb_search_users(ctx, sysdb, dinfo,
+        ret = sysdb_search_users(ctx, dinfo,
                                  filter, attrs, &msg_count, &msgs);
         break;
     case TYPE_GROUP:
         type_string = "group";
-        ret = sysdb_search_groups(ctx, sysdb, dinfo,
+        ret = sysdb_search_groups(ctx, dinfo,
                                   filter, attrs, &msg_count, &msgs);
         break;
     case TYPE_NETGROUP:
         type_string = "netgroup";
-        ret = sysdb_search_netgroups(ctx, sysdb, dinfo,
+        ret = sysdb_search_netgroups(ctx, dinfo,
                                      filter, attrs, &msg_count, &msgs);
         break;
     case TYPE_SERVICE:
@@ -435,8 +435,8 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                                                SYSDB_MOD_REP);
                     break;
                 case TYPE_NETGROUP:
-                    ret = sysdb_set_netgroup_attr(sysdb, domain, name,
-                            sys_attrs, SYSDB_MOD_REP);
+                    ret = sysdb_set_netgroup_attr(domain, name, sys_attrs,
+                                                  SYSDB_MOD_REP);
                     break;
                 case TYPE_SERVICE:
                     ret = sysdb_set_service_attr(domain, name,
@@ -701,7 +701,7 @@ search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                   size_t *msgs_count, struct ldb_message ***msgs)
 {
 #ifdef BUILD_AUTOFS
-    return sysdb_search_custom(mem_ctx, sysdb, domain, sub_filter,
+    return sysdb_search_custom(mem_ctx, domain, sub_filter,
                                AUTOFS_MAP_SUBDIR, attrs,
                                msgs_count, msgs);
 #else

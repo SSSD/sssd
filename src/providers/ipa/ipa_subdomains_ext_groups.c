@@ -340,8 +340,8 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
             goto done;
         }
 
-        ret = sysdb_search_groups(tmp_ctx, group_dom->sysdb, group_dom,
-                                  subfilter, NULL, &msgs_count, &msgs);
+        ret = sysdb_search_groups(tmp_ctx, group_dom, subfilter, NULL,
+                                  &msgs_count, &msgs);
         if (ret != EOK) {
             if (ret == ENOENT) {
                 DEBUG(SSSDBG_TRACE_ALL, ("Group [%s] not in the cache.\n",
@@ -357,7 +357,7 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
 /* TODO? Do we have to remove members as well? I think not because the AD
  * query before removes all memberships. */
 
-        ret = sysdb_mod_group_member(group_dom->sysdb, user_dn, msgs[0]->dn,
+        ret = sysdb_mod_group_member(group_dom, user_dn, msgs[0]->dn,
                                      LDB_FLAG_MOD_ADD);
         if (ret != EOK && ret != EEXIST) {
             DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed.\n"));

@@ -645,7 +645,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
         domain = domain->parent;
     }
 
-    ret = sysdb_search_custom(tmp_ctx, sysdb, domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, domain, filter,
                               SUDORULE_SUBDIR, attrs,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {

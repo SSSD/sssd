@@ -564,20 +564,17 @@ int sysdb_set_group_attr(struct sss_domain_info *domain,
                          int mod_op);
 
 /* Replace netgroup attrs */
-int sysdb_set_netgroup_attr(struct sysdb_ctx *sysdb,
-                            struct sss_domain_info *domain,
+int sysdb_set_netgroup_attr(struct sss_domain_info *domain,
                             const char *name,
                             struct sysdb_attrs *attrs,
                             int mod_op);
 
 /* Allocate a new id */
-int sysdb_get_new_id(struct sysdb_ctx *sysdb,
-                     struct sss_domain_info *domain,
+int sysdb_get_new_id(struct sss_domain_info *domain,
                      uint32_t *id);
 
 /* Add user (only basic attrs and w/o checks) */
-int sysdb_add_basic_user(struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
+int sysdb_add_basic_user(struct sss_domain_info *domain,
                          const char *name,
                          uid_t uid, gid_t gid,
                          const char *gecos,
@@ -585,8 +582,7 @@ int sysdb_add_basic_user(struct sysdb_ctx *sysdb,
                          const char *shell);
 
 /* Add user (all checks) */
-int sysdb_add_user(struct sysdb_ctx *sysdb,
-                   struct sss_domain_info *domain,
+int sysdb_add_user(struct sss_domain_info *domain,
                    const char *name,
                    uid_t uid, gid_t gid,
                    const char *gecos,
@@ -598,20 +594,17 @@ int sysdb_add_user(struct sysdb_ctx *sysdb,
                    time_t now);
 
 /* Add group (only basic attrs and w/o checks) */
-int sysdb_add_basic_group(struct sysdb_ctx *sysdb,
-                          struct sss_domain_info *domain,
+int sysdb_add_basic_group(struct sss_domain_info *domain,
                           const char *name, gid_t gid);
 
 /* Add group (all checks) */
-int sysdb_add_group(struct sysdb_ctx *sysdb,
-                    struct sss_domain_info *domain,
+int sysdb_add_group(struct sss_domain_info *domain,
                     const char *name, gid_t gid,
                     struct sysdb_attrs *attrs,
                     int cache_timeout,
                     time_t now);
 
-int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
-                               struct sss_domain_info *domain,
+int sysdb_add_incomplete_group(struct sss_domain_info *domain,
                                const char *name,
                                gid_t gid,
                                const char *original_dn,
@@ -620,12 +613,10 @@ int sysdb_add_incomplete_group(struct sysdb_ctx *sysdb,
                                time_t now);
 
 /* Add netgroup (only basic attrs and w/o checks) */
-int sysdb_add_basic_netgroup(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
+int sysdb_add_basic_netgroup(struct sss_domain_info *domain,
                              const char *name, const char *description);
 
-int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
+int sysdb_add_netgroup(struct sss_domain_info *domain,
                        const char *name,
                        const char *description,
                        struct sysdb_attrs *attrs,
@@ -634,13 +625,12 @@ int sysdb_add_netgroup(struct sysdb_ctx *sysdb,
                        time_t now);
 
 /* mod_op must be either LDB_FLAG_MOD_ADD or LDB_FLAG_MOD_DELETE */
-int sysdb_mod_group_member(struct sysdb_ctx *sysdb,
+int sysdb_mod_group_member(struct sss_domain_info *domain,
                            struct ldb_dn *member_dn,
                            struct ldb_dn *group_dn,
                            int mod_op);
 
-int sysdb_store_user(struct sysdb_ctx *sysdb,
-                     struct sss_domain_info *domain,
+int sysdb_store_user(struct sss_domain_info *domain,
                      const char *name,
                      const char *pwd,
                      uid_t uid, gid_t gid,
@@ -653,8 +643,7 @@ int sysdb_store_user(struct sysdb_ctx *sysdb,
                      uint64_t cache_timeout,
                      time_t now);
 
-int sysdb_store_group(struct sysdb_ctx *sysdb,
-                      struct sss_domain_info *domain,
+int sysdb_store_group(struct sss_domain_info *domain,
                       const char *name,
                       gid_t gid,
                       struct sysdb_attrs *attrs,
@@ -668,29 +657,25 @@ enum sysdb_member_type {
     SYSDB_MEMBER_SERVICE,
 };
 
-int sysdb_add_group_member(struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *domain,
+int sysdb_add_group_member(struct sss_domain_info *domain,
                            const char *group,
                            const char *member,
                            enum sysdb_member_type type,
                            bool is_dn);
 
-int sysdb_remove_group_member(struct sysdb_ctx *sysdb,
-                              struct sss_domain_info *domain,
+int sysdb_remove_group_member(struct sss_domain_info *domain,
                               const char *group,
                               const char *member,
                               enum sysdb_member_type type,
                               bool is_dn);
 
-errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
+errno_t sysdb_update_members(struct sss_domain_info *domain,
                              const char *member,
                              enum sysdb_member_type type,
                              const char *const *add_groups,
                              const char *const *del_groups);
 
-errno_t sysdb_update_members_dn(struct sysdb_ctx *sysdb,
-                                struct sss_domain_info *member_domain,
+errno_t sysdb_update_members_dn(struct sss_domain_info *member_domain,
                                 const char *member,
                                 enum sysdb_member_type type,
                                 const char *const *add_groups,
@@ -701,8 +686,7 @@ errno_t sysdb_update_members_dn(struct sysdb_ctx *sysdb,
  * If you are not in a transaction pass NULL in handle and provide sysdb,
  * in this case a transaction will be automatically started and the
  * function will be completely wrapped in it's own sysdb transaction */
-int sysdb_cache_password(struct sysdb_ctx *sysdb,
-                         struct sss_domain_info *domain,
+int sysdb_cache_password(struct sss_domain_info *domain,
                          const char *username,
                          const char *password);
 
@@ -710,8 +694,7 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
                                     struct ldb_message *ldb_msg,
                                     uint32_t *failed_login_attempts,
                                     time_t *delayed_until);
-int sysdb_cache_auth(struct sysdb_ctx *sysdb,
-                     struct sss_domain_info *domain,
+int sysdb_cache_auth(struct sss_domain_info *domain,
                      const char *name,
                      const char *password,
                      struct confdb_ctx *cdb,
@@ -719,14 +702,12 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
                      time_t *_expire_date,
                      time_t *_delayed_until);
 
-int sysdb_store_custom(struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
+int sysdb_store_custom(struct sss_domain_info *domain,
                        const char *object_name,
                        const char *subtree_name,
                        struct sysdb_attrs *attrs);
 
 int sysdb_search_custom(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         struct sss_domain_info *domain,
                         const char *filter,
                         const char *subtree_name,
@@ -735,7 +716,6 @@ int sysdb_search_custom(TALLOC_CTX *mem_ctx,
                         struct ldb_message ***msgs);
 
 int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
-                                struct sysdb_ctx *sysdb,
                                 struct sss_domain_info *domain,
                                 const char *object_name,
                                 const char *subtree_name,
@@ -743,13 +723,12 @@ int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
                                 size_t *_count,
                                 struct ldb_message ***_msgs);
 
-int sysdb_delete_custom(struct sysdb_ctx *sysdb,
-                        struct sss_domain_info *domain,
+int sysdb_delete_custom(struct sss_domain_info *domain,
                         const char *object_name,
                         const char *subtree_name);
 
 int sysdb_asq_search(TALLOC_CTX *mem_ctx,
-                     struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
                      struct ldb_dn *base_dn,
                      const char *expression,
                      const char *asq_attribute,
@@ -758,39 +737,33 @@ int sysdb_asq_search(TALLOC_CTX *mem_ctx,
                      struct ldb_message ***msgs);
 
 int sysdb_search_users(TALLOC_CTX *mem_ctx,
-                       struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain,
                        const char *sub_filter,
                        const char **attrs,
                        size_t *msgs_count,
                        struct ldb_message ***msgs);
 
-int sysdb_delete_user(struct sysdb_ctx *sysdb,
-                      struct sss_domain_info *domain,
+int sysdb_delete_user(struct sss_domain_info *domain,
                       const char *name, uid_t uid);
 
 int sysdb_search_groups(TALLOC_CTX *mem_ctx,
-                        struct sysdb_ctx *sysdb,
                         struct sss_domain_info *domain,
                         const char *sub_filter,
                         const char **attrs,
                         size_t *msgs_count,
                         struct ldb_message ***msgs);
 
-int sysdb_delete_group(struct sysdb_ctx *sysdb,
-                       struct sss_domain_info *domain,
+int sysdb_delete_group(struct sss_domain_info *domain,
                        const char *name, gid_t gid);
 
 int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
-                           struct sysdb_ctx *sysdb,
                            struct sss_domain_info *domain,
                            const char *sub_filter,
                            const char **attrs,
                            size_t *msgs_count,
                            struct ldb_message ***msgs);
 
-int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
-                          struct sss_domain_info *domain,
+int sysdb_delete_netgroup(struct sss_domain_info *domain,
                           const char *name);
 
 int sysdb_delete_by_sid(struct sysdb_ctx *sysdb,
@@ -829,8 +802,7 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
                              struct sss_domain_info *domain,
                              bool enumerated);
 
-errno_t sysdb_remove_attrs(struct sysdb_ctx *sysdb,
-                           struct sss_domain_info *domain,
+errno_t sysdb_remove_attrs(struct sss_domain_info *domain,
                            const char *name,
                            enum sysdb_member_type type,
                            char **remove_attrs);
@@ -870,7 +842,6 @@ errno_t sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
                                  struct ldb_result **_result);
 
 errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
-                                   struct sysdb_ctx *sysdb,
                                    struct sss_domain_info *domain,
                                    const char *sid_str,
                                    const char **attrs,

@@ -438,7 +438,7 @@ sysdb_save_sudorule(struct sss_domain_info *domain,
         return ret;
     }
 
-    ret = sysdb_store_custom(domain->sysdb, domain, rule_name,
+    ret = sysdb_store_custom(domain, rule_name,
                              SUDORULE_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
@@ -625,7 +625,7 @@ errno_t sysdb_sudo_purge_byname(struct sss_domain_info *domain,
                                 const char *name)
 {
     DEBUG(SSSDBG_TRACE_INTERNAL, ("Deleting sudo rule %s\n", name));
-    return sysdb_delete_custom(domain->sysdb, domain, name, SUDORULE_SUBDIR);
+    return sysdb_delete_custom(domain, name, SUDORULE_SUBDIR);
 }
 
 errno_t sysdb_sudo_purge_byfilter(struct sss_domain_info *domain,
@@ -653,7 +653,7 @@ errno_t sysdb_sudo_purge_byfilter(struct sss_domain_info *domain,
     NULL_CHECK(tmp_ctx, ret, done);
 
     /* match entries based on the filter and remove them one by one */
-    ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
+    ret = sysdb_search_custom(tmp_ctx, domain, filter,
                               SUDORULE_SUBDIR, attrs,
                               &count, &msgs);
     if (ret == ENOENT) {

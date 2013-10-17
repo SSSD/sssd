@@ -465,7 +465,7 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
         }
 
         /* First check if this is a specific service */
-        ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
+        ret = sysdb_search_custom(tmp_ctx, domain, filter,
                                   HBAC_SERVICES_SUBDIR, attrs,
                                   &count, &msgs);
         if (ret != EOK && ret != ENOENT) goto done;
@@ -500,7 +500,7 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
             num_services++;
         } else { /* ret == ENOENT */
             /* Check if this is a service group */
-            ret = sysdb_search_custom(tmp_ctx, domain->sysdb, domain, filter,
+            ret = sysdb_search_custom(tmp_ctx, domain, filter,
                                       HBAC_SERVICEGROUPS_SUBDIR, attrs,
                                       &count, &msgs);
             if (ret != EOK && ret != ENOENT) goto done;

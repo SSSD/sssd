@@ -78,8 +78,7 @@ ipa_hbac_save_list(struct sss_domain_info *domain,
         }
         DEBUG(9, ("Object name: [%s].\n", object_name));
 
-        ret = sysdb_store_custom(domain->sysdb, domain,
-                                 object_name, subdir, list[c]);
+        ret = sysdb_store_custom(domain, object_name, subdir, list[c]);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_store_custom failed.\n"));
             goto done;

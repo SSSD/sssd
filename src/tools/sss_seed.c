@@ -740,7 +740,7 @@ static int seed_cache_user(struct seed_ctx *sctx)
     in_transaction = true;
 
     if (sctx->user_cached == false) {
-        ret = sysdb_add_user(sctx->sysdb, sctx->domain, sctx->uctx->name,
+        ret = sysdb_add_user(sctx->domain, sctx->uctx->name,
                              sctx->uctx->uid, sctx->uctx->gid,
                              sctx->uctx->gecos, sctx->uctx->home,
                              sctx->uctx->shell, NULL, NULL, 0, 0);
@@ -753,7 +753,7 @@ static int seed_cache_user(struct seed_ctx *sctx)
         }
     }
 
-    ret = sysdb_cache_password(sctx->sysdb, sctx->domain, sctx->uctx->name,
+    ret = sysdb_cache_password(sctx->domain, sctx->uctx->name,
                                sctx->uctx->password);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to cache password. (%d)[%s]\n",

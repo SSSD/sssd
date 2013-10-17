@@ -270,7 +270,7 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
         return;
     }
 
-    ret = sysdb_cache_auth(sysdb, domain, pd->user,
+    ret = sysdb_cache_auth(domain, pd->user,
                            password, cdb, true, NULL, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Offline authentication failed\n"));
@@ -373,7 +373,7 @@ static void krb5_auth_store_creds(struct sysdb_ctx *sysdb,
         return;
     }
 
-    ret = sysdb_cache_password(sysdb, domain, pd->user, password);
+    ret = sysdb_cache_password(domain, pd->user, password);
     if (ret) {
         DEBUG(2, ("Failed to cache password, offline auth may not work."
                   " (%d)[%s]!?\n", ret, strerror(ret)));

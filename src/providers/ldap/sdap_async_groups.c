@@ -114,7 +114,7 @@ sdap_get_members_with_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         return ENOMEM;
     }
 
-    ret = sysdb_search_users(mem_ctx, sysdb, domain, filter,
+    ret = sysdb_search_users(mem_ctx, domain, filter,
                              search_attrs, &count, &msgs);
     talloc_free(filter);
     if (ret == ENOENT) {
@@ -301,8 +301,8 @@ sdap_store_group_with_gid(struct sysdb_ctx *ctx,
         }
     }
 
-    ret = sysdb_store_group(ctx, domain, name, gid,
-                            group_attrs, cache_timeout, now);
+    ret = sysdb_store_group(domain, name, gid, group_attrs,
+                            cache_timeout, now);
     if (ret) {
         DEBUG(2, ("Could not store group %s\n", name));
         return ret;
@@ -743,7 +743,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sysdb_store_group(ctx, dom, group_name, 0, group_attrs,
+    ret = sysdb_store_group(dom, group_name, 0, group_attrs,
                             dom->group_timeout, now);
     if (ret) goto fail;
 
@@ -1252,7 +1252,7 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
         goto done;
     }
 
-    ret = sysdb_search_users(tmp_ctx, state->sysdb, state->dom, filter,
+    ret = sysdb_search_users(tmp_ctx, state->dom, filter,
                              attrs, &count, &msgs);
     if (ret == EOK && count > 0) {
         /* Entry exists but the group references it with an alias. */
@@ -2111,7 +2111,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
-        ret = sysdb_search_users(tmp_ctx, user_dom->sysdb, user_dom, filter,
+        ret = sysdb_search_users(tmp_ctx, domain, filter,
                                  search_attrs, &count, &msgs);
         talloc_zfree(filter);
         talloc_zfree(clean_orig_dn);

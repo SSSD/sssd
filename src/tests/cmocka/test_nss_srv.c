@@ -269,8 +269,7 @@ void test_nss_getpwnam(void **state)
     errno_t ret;
 
     /* Prime the cache with a valid user */
-    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->tctx->dom,
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
                          "testuser", 123, 456, "test user",
                          "/home/testuser", "/bin/sh", NULL,
                          NULL, 300, 0);
@@ -335,8 +334,7 @@ static int test_nss_getpwnam_search_acct_cb(void *pvt)
     errno_t ret;
     struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
 
-    ret = sysdb_add_user(ctx->tctx->sysdb,
-                         ctx->tctx->dom,
+    ret = sysdb_add_user(ctx->tctx->dom,
                          "testuser_search", 567, 890, "test search",
                          "/home/testsearch", "/bin/sh", NULL,
                          NULL, 300, 0);
@@ -401,8 +399,7 @@ static int test_nss_getpwnam_update_acct_cb(void *pvt)
     errno_t ret;
     struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
 
-    ret = sysdb_store_user(ctx->tctx->sysdb,
-                           ctx->tctx->dom,
+    ret = sysdb_store_user(ctx->tctx->dom,
                            "testuser_update", NULL, 10, 11, "test user",
                            "/home/testuser", "/bin/ksh", NULL,
                            NULL, NULL, 300, 0);
@@ -433,8 +430,7 @@ void test_nss_getpwnam_update(void **state)
     const char *shell;
 
     /* Prime the cache with a valid but expired user */
-    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->tctx->dom,
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
                          "testuser_update", 10, 11, "test user",
                          "/home/testuser", "/bin/sh", NULL,
                          NULL, 1, 1);
@@ -495,8 +491,7 @@ void test_nss_getpwnam_fqdn(void **state)
     errno_t ret;
 
     /* Prime the cache with a valid user */
-    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->tctx->dom,
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
                          "testuser_fqdn", 124, 457, "test user",
                          "/home/testuser", "/bin/sh", NULL,
                          NULL, 300, 0);
@@ -544,8 +539,7 @@ void test_nss_getpwnam_fqdn_resize(void **state)
     errno_t ret;
 
     /* Prime the cache with a valid user */
-    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->tctx->dom,
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
                          "testuser_fqdn_resize", 125, 458, "test user",
                          "/home/testuser", "/bin/sh", NULL,
                          NULL, 300, 0);
@@ -649,8 +643,7 @@ void test_nss_getgrnam_no_members(void **state)
     errno_t ret;
 
     /* Prime the cache with a valid group */
-    ret = sysdb_add_group(nss_test_ctx->tctx->sysdb,
-                          nss_test_ctx->tctx->dom,
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
                           "testgroup", 1123,
                           NULL, 300, 0);
     assert_int_equal(ret, EOK);
@@ -701,34 +694,29 @@ void test_nss_getgrnam_members(void **state)
     errno_t ret;
 
     /* Prime the cache with a valid group and some members */
-    ret = sysdb_add_group(nss_test_ctx->tctx->sysdb,
-                          nss_test_ctx->tctx->dom,
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
                           "testgroup_members", 1124,
                           NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->tctx->dom,
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
                          "testmember1", 2001, 456, "test member1",
                          "/home/testmember2", "/bin/sh", NULL,
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->tctx->dom,
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
                          "testmember2", 2002, 456, "test member2",
                          "/home/testmember2", "/bin/sh", NULL,
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_add_group_member(nss_test_ctx->tctx->sysdb,
-                                 nss_test_ctx->tctx->dom,
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
                                  "testgroup_members", "testmember1",
                                  SYSDB_MEMBER_USER, false);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_add_group_member(nss_test_ctx->tctx->sysdb,
-                                 nss_test_ctx->tctx->dom,
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
                                  "testgroup_members", "testmember2",
                                  SYSDB_MEMBER_USER, false);
     assert_int_equal(ret, EOK);
@@ -834,37 +822,32 @@ void test_nss_getgrnam_members_subdom(void **state)
 
     /* Add a group from a subdomain and two members from the same subdomain
      */
-    ret = sysdb_add_group(nss_test_ctx->tctx->sysdb,
-                          nss_test_ctx->subdom,
+    ret = sysdb_add_group(nss_test_ctx->subdom,
                           "testsubdomgroup@"TEST_SUBDOM_NAME,
                           2124, NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->subdom,
+    ret = sysdb_add_user(nss_test_ctx->subdom,
                          "submember1@"TEST_SUBDOM_NAME,
                          4001, 456, "test subdomain member1",
                          "/home/submember1", "/bin/sh", NULL,
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
-                         nss_test_ctx->subdom,
+    ret = sysdb_add_user(nss_test_ctx->subdom,
                          "submember2@"TEST_SUBDOM_NAME,
                          2002, 456, "test subdomain member2",
                          "/home/submember2", "/bin/sh", NULL,
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_add_group_member(nss_test_ctx->tctx->sysdb,
-                                 nss_test_ctx->subdom,
+    ret = sysdb_add_group_member(nss_test_ctx->subdom,
                                  "testsubdomgroup@"TEST_SUBDOM_NAME,
                                  "submember1@"TEST_SUBDOM_NAME,
                                  SYSDB_MEMBER_USER, false);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_add_group_member(nss_test_ctx->tctx->sysdb,
-                                 nss_test_ctx->subdom,
+    ret = sysdb_add_group_member(nss_test_ctx->subdom,
                                  "testsubdomgroup@"TEST_SUBDOM_NAME,
                                  "submember2@"TEST_SUBDOM_NAME,
                                  SYSDB_MEMBER_USER, false);
@@ -927,8 +910,7 @@ void test_nss_getgrnam_mix_dom(void **state)
     assert_non_null(group_strdn);
     add_groups[0] = group_strdn;
 
-    ret = sysdb_update_members_dn(nss_test_ctx->tctx->sysdb,
-                                  nss_test_ctx->subdom,
+    ret = sysdb_update_members_dn(nss_test_ctx->subdom,
                                   "submember1@"TEST_SUBDOM_NAME,
                                   SYSDB_MEMBER_USER,
                                   add_groups, NULL);
@@ -1036,8 +1018,7 @@ void test_nss_getgrnam_mix_subdom(void **state)
     assert_non_null(group_strdn);
     add_groups[0] = group_strdn;
 
-    ret = sysdb_update_members_dn(nss_test_ctx->tctx->sysdb,
-                                  nss_test_ctx->tctx->dom,
+    ret = sysdb_update_members_dn(nss_test_ctx->tctx->dom,
                                   "testmember1",
                                   SYSDB_MEMBER_USER,
                                   add_groups, NULL);

@@ -171,7 +171,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
 
     DEBUG(6, ("Storing info for netgroup %s\n", name));
 
-    ret = sysdb_add_netgroup(ctx, dom, name, NULL, netgroup_attrs, NULL,
+    ret = sysdb_add_netgroup(dom, name, NULL, netgroup_attrs, NULL,
                              dom->netgroup_timeout, 0);
     if (ret) goto fail;
 

@@ -309,7 +309,7 @@ static void ipa_id_get_netgroup_done(struct tevent_req *subreq)
     }
 
     if (ret == ENOENT) {
-        ret = sysdb_delete_netgroup(state->sysdb, state->domain, state->name);
+        ret = sysdb_delete_netgroup(state->domain, state->name);
         if (ret != EOK && ret != ENOENT) {
             tevent_req_error(req, ret);
             return;

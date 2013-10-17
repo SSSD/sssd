@@ -504,8 +504,7 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
              */
 
             group_name = sid_str;
-            ret = sysdb_add_incomplete_group(group_domain->sysdb,
-                                             group_domain,
+            ret = sysdb_add_incomplete_group(group_domain,
                                              group_name, gid,
                                              NULL, sid_str, false, now);
             if (ret != EOK) {
@@ -573,7 +572,7 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_LIBS,
           ("Updating memberships for [%s]\n", state->username));
-    ret = sysdb_update_members_dn(state->sysdb, state->domain,
+    ret = sysdb_update_members_dn(state->domain,
                                   state->username, SYSDB_MEMBER_USER,
                                   (const char *const *) add_groups,
                                   (const char *const *) del_groups);

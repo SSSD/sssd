@@ -215,7 +215,7 @@ static void ldap_netgroup_get_done(struct tevent_req *subreq)
     }
 
     if (ret == ENOENT && state->noexist_delete == true) {
-        ret = sysdb_delete_netgroup(state->sysdb, state->domain, state->name);
+        ret = sysdb_delete_netgroup(state->domain, state->name);
         if (ret != EOK && ret != ENOENT) {
             tevent_req_error(req, ret);
             return;
