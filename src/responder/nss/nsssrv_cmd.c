@@ -1039,6 +1039,20 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
     DEBUG(SSSDBG_TRACE_FUNC, ("Running command [%d] with input [%s].\n",
                                dctx->cmdctx->cmd, rawname));
 
+    /* We need to attach to subdomain request, if the first one is not
+     * finished yet. We may not be able to lookup object in AD otherwise. */
+    if (cctx->rctx->get_domains_last_call.tv_sec == 0) {
+        req = sss_dp_get_domains_send(cctx->rctx, cctx->rctx, true, NULL);
+        if (req == NULL) {
+            ret = ENOMEM;
+        } else {
+            dctx->rawname = rawname;
+            tevent_req_set_callback(req, nss_cmd_getbynam_done, dctx);
+            ret = EAGAIN;
+        }
+        goto done;
+    }
+
     domname = NULL;
     ret = sss_parse_name_for_domains(cmdctx, cctx->rctx->domains,
                                      cctx->rctx->default_domain, rawname,
