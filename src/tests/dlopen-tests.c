@@ -99,7 +99,8 @@ static bool recursive_dlopen(const char **name, int round, char **errmsg)
 
     handle = dlopen(name[round], RTLD_GLOBAL|RTLD_NOW);
     if (!handle) {
-        asprintf(errmsg, "dlopen() failed: %s", dlerror());
+        if (asprintf(errmsg, "dlopen() failed: %s", dlerror()) == -1)
+            *errmsg = NULL;
         return false;
     }
 
