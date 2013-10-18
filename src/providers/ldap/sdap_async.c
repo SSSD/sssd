@@ -1177,6 +1177,13 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
     state->cb_data = cb_data;
     state->clientctrls = clientctrls;
 
+    if (state->sh == NULL || state->sh->ldap == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Trying LDAP search while not connected.\n"));
+        tevent_req_error(req, EIO);
+        tevent_req_post(req, ev);
+        return req;
+    }
 
     /* Be extra careful and never allow paging for BASE searches,
      * even if requested.
