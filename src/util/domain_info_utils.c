@@ -251,9 +251,11 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->enumerate = enumerate;
     dom->fqnames = true;
     dom->mpg = mpg;
-    /* FIXME: get ranges from the server */
-    dom->id_min = 0;
-    dom->id_max = 0xffffffff;
+    /* If the parent domain explicitly limits ID ranges, the subdomain
+     * should honour the limits as well.
+     */
+    dom->id_min = parent->id_min ? parent->id_min : 0;
+    dom->id_max = parent->id_max ? parent->id_max : 0xffffffff;
     dom->pwd_expiration_warning = parent->pwd_expiration_warning;
     dom->cache_credentials = parent->cache_credentials;
     dom->case_sensitive = false;
