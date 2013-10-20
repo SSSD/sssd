@@ -88,6 +88,8 @@ void sss_log(int priority, const char *format, ...)
                     "SYSLOG_FACILITY=%i", LOG_FAC(LOG_DAEMON),
                     "SYSLOG_IDENTIFIER=%s", debug_prg_name,
                     NULL);
+
+    free(message);
 }
 
 #else /* WITH_JOURNALD */
