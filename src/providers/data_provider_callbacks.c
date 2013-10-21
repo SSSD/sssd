@@ -231,6 +231,33 @@ void be_run_online_cb(struct be_ctx *be) {
     }
 }
 
+int be_add_unconditional_online_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
+                                   be_callback_t cb, void *pvt,
+                                   struct be_cb **unconditional_online_cb)
+{
+    return be_add_cb(mem_ctx, ctx, cb, pvt, &ctx->unconditional_online_cb_list,
+                     unconditional_online_cb);
+}
+
+void be_run_unconditional_online_cb(struct be_ctx *be)
+{
+    int ret;
+
+    if (be->unconditional_online_cb_list) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Running unconditional online callbacks.\n"));
+
+        ret = be_run_cb(be, be->unconditional_online_cb_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("be_run_cb failed.\n"));
+        }
+
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL,
+              ("List of unconditional online callbacks is empty, " \
+               "nothing to do.\n"));
+    }
+}
+
 int be_add_offline_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t cb,
                       void *pvt, struct be_cb **offline_cb)
 {
