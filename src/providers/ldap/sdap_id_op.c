@@ -692,6 +692,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
         conn_cache->cached_connection = conn_data;
 
         /* Run any post-connection routines */
+        be_run_unconditional_online_cb(conn_cache->id_conn->id_ctx->be);
         be_run_online_cb(conn_cache->id_conn->id_ctx->be);
 
     } else {

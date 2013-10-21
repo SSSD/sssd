@@ -2209,6 +2209,8 @@ static void check_if_online(struct be_ctx *ctx)
     int ret;
     struct be_req *be_req = NULL;
 
+    be_run_unconditional_online_cb(ctx);
+
     if (ctx->offstat.offline == false) {
         DEBUG(8, ("Backend is already online, nothing to do.\n"));
         return;
