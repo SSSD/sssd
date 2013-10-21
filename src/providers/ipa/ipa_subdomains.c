@@ -1106,6 +1106,21 @@ static void ipa_subdom_be_req_callback(struct be_req *be_req,
     talloc_free(be_req);
 }
 
+static void ipa_subdom_reset_timeouts_cb(void *pvt)
+{
+    struct ipa_subdomains_ctx *ctx;
+
+    ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Bad private pointer\n"));
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, ("Resetting last_refreshed and disabled_until.\n"));
+    ctx->last_refreshed = 0;
+    ctx->disabled_until = 0;
+}
+
 static void ipa_subdom_online_cb(void *pvt)
 {
     struct ipa_subdomains_ctx *ctx;
@@ -1251,6 +1266,14 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
     ctx->disabled_until = 0;
     *ops = &ipa_subdomains_ops;
     *pvt_data = ctx;
+
+    ret = be_add_unconditional_online_cb(ctx, be_ctx,
+                                         ipa_subdom_reset_timeouts_cb, ctx,
+                                         NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to add subdom reset timeouts callback"));
+    }
 
     ret = be_add_online_cb(ctx, be_ctx, ipa_subdom_online_cb, ctx, NULL);
     if (ret != EOK) {
