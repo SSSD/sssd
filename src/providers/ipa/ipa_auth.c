@@ -157,7 +157,6 @@ done:
 }
 
 static int get_password_migration_flag_recv(struct tevent_req *req,
-                                            TALLOC_CTX *mem_ctx,
                                             bool *password_migration)
 {
     struct get_password_migration_flag_state *state = tevent_req_data(req,
@@ -290,8 +289,7 @@ static void ipa_get_migration_flag_done(struct tevent_req *req)
     int ret;
     int dp_err = DP_ERR_FATAL;
 
-    ret = get_password_migration_flag_recv(req, state,
-                                           &state->password_migration);
+    ret = get_password_migration_flag_recv(req, &state->password_migration);
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("get_password_migration_flag "
