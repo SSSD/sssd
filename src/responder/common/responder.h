@@ -159,11 +159,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct sbus_interface *dp_intf,
                      struct resp_ctx **responder_ctx);
 
-int sss_parse_name_for_domains(TALLOC_CTX *memctx,
-                               struct sss_domain_info *domains,
-                               const char *default_domain,
-                               const char *orig, char **domain, char **name);
-
 int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
                            struct be_conn **_conn);
 struct sss_domain_info *
