@@ -49,6 +49,7 @@ struct err_string error_to_str[] = {
     { "Dynamic DNS update timed out" }, /* ERR_DYNDNS_TIMEOUT */
     { "Dynamic DNS update not possible while offline" }, /* ERR_DYNDNS_OFFLINE */
     { "Entry not found" }, /* ERR_NOT_FOUND */
+    { "Domain not found" }, /* ERR_DOMAIN_NOT_FOUND */
 };
 
 
