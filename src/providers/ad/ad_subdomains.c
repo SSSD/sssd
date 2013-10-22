@@ -58,9 +58,6 @@
 /* do not refresh more often than every 5 seconds for now */
 #define AD_SUBDOMAIN_REFRESH_LIMIT 5
 
-/* refresh automatically every 4 hours */
-#define AD_SUBDOMAIN_REFRESH_PERIOD (3600 * 4)
-
 struct ad_subdomains_ctx {
     struct be_ctx *be_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
@@ -528,12 +525,15 @@ static void ad_subdom_online_cb(void *pvt)
     struct ad_subdomains_ctx *ctx;
     struct be_req *be_req;
     struct timeval tv;
+    uint32_t refresh_interval;
 
     ctx = talloc_get_type(pvt, struct ad_subdomains_ctx);
     if (!ctx) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Bad private pointer\n"));
         return;
     }
+
+    refresh_interval = ctx->be_ctx->domain->subdomain_refresh_interval;
 
     be_req = be_req_create(ctx, NULL, ctx->be_ctx,
                            ad_subdom_be_req_callback, NULL);
@@ -544,7 +544,7 @@ static void ad_subdom_online_cb(void *pvt)
 
     ad_subdomains_retrieve(ctx, be_req);
 
-    tv = tevent_timeval_current_ofs(AD_SUBDOMAIN_REFRESH_PERIOD, 0);
+    tv = tevent_timeval_current_ofs(refresh_interval, 0);
     ctx->timer_event = tevent_add_timer(ctx->be_ctx->ev, ctx, tv,
                                         ad_subdom_timer_refresh, ctx);
     if (!ctx->timer_event) {

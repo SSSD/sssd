@@ -1142,6 +1142,14 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
+    ret = get_entry_as_uint32(res->msgs[0], &domain->subdomain_refresh_interval,
+                              CONFDB_DOMAIN_SUBDOMAIN_REFRESH, 14400);
+    if (ret != EOK || domain->subdomain_refresh_interval == 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Invalid value for [%s]\n", CONFDB_DOMAIN_SUBDOMAIN_REFRESH));
+        goto done;
+    }
+
     *_domain = domain;
     ret = EOK;
 done:

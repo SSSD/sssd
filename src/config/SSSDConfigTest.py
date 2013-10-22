@@ -533,7 +533,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'session_provider',
             'hostid_provider',
             'subdomains_provider',
-            'realmd_tags']
+            'realmd_tags',
+            'subdomain_refresh_interval']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -888,7 +889,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'session_provider',
             'hostid_provider',
             'subdomains_provider',
-            'realmd_tags']
+            'realmd_tags',
+            'subdomain_refresh_interval']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
