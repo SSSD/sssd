@@ -127,6 +127,7 @@ static struct bet_data bet_data[] = {
 struct be_req {
     struct be_client *becli;
     struct be_ctx *be_ctx;
+    struct sss_domain_info *domain;
     void *req_data;
 
     be_async_callback_t fn;
@@ -160,6 +161,7 @@ struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
 
     be_req->becli = becli;
     be_req->be_ctx = be_ctx;
+    be_req->domain = be_ctx->domain;
     be_req->fn = fn;
     be_req->pvt = pvt_fn_data;
 
@@ -169,6 +171,23 @@ struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
     talloc_set_destructor(be_req, be_req_destructor);
 
     return be_req;
+}
+
+static errno_t be_req_set_domain(struct be_req *be_req, const char *domain)
+{
+    struct sss_domain_info *dom = NULL;
+
+    dom = find_subdomain_by_name(be_req->be_ctx->domain, domain, true);
+    if (dom == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown domain [%s]!\n", domain));
+        return ERR_DOMAIN_NOT_FOUND;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Changing request domain from [%s] to [%s]\n",
+                              be_req->domain->name, dom->name));
+    be_req->domain = dom;
+
+    return EOK;
 }
 
 struct be_ctx *be_req_get_be_ctx(struct be_req *be_req)
@@ -995,6 +1014,13 @@ be_get_account_info_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = be_req_set_domain(be_req, ar->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set request domain [%d]: %s\n",
+                                    ret, sss_strerror(ret)));
+        goto done;
+    }
+
     ret = be_file_account_request(be_req, ar);
     if (ret != EOK) {
         goto done;
@@ -1141,6 +1167,16 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
         err_msg = "Out of memory";
+        goto done;
+    }
+
+    ret = be_req_set_domain(be_req, domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set request domain [%d]: %s\n",
+                                    ret, sss_strerror(ret)));
+        err_maj = DP_ERR_FATAL;
+        err_min = ret;
+        err_msg = sss_strerror(ret);
         goto done;
     }
 
@@ -1359,6 +1395,13 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
         }
     }
 
+    ret = be_req_set_domain(be_req, pd->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set request domain [%d]: %s\n",
+                                    ret, sss_strerror(ret)));
+        pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
 
     DEBUG(4, ("Got request with the following data\n"));
     DEBUG_PAM_DATA(4, pd);
