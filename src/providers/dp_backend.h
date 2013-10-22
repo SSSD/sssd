@@ -295,6 +295,9 @@ void *be_req_get_data(struct be_req *be_req);
 void be_req_terminate(struct be_req *be_req,
                       int dp_err_type, int errnum, const char *errstr);
 
+void be_terminate_domain_requests(struct be_ctx *be_ctx,
+                                  const char *domain);
+
 /* Request account information */
 struct tevent_req *
 be_get_account_info_send(TALLOC_CTX *mem_ctx,

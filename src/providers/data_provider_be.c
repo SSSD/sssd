@@ -207,6 +207,26 @@ void be_req_terminate(struct be_req *be_req,
     be_req->fn(be_req, dp_err_type, errnum, errstr);
 }
 
+void be_terminate_domain_requests(struct be_ctx *be_ctx,
+                                  const char *domain)
+{
+    struct be_req *be_req = NULL;
+
+    DEBUG(SSSDBG_TRACE_FUNC, ("Terminating requests for domain [%s]\n",
+                              domain));
+
+    if (domain == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("BUG: domain is NULL\n"));
+        return;
+    }
+
+    DLIST_FOR_EACH(be_req, be_ctx->active_requests) {
+        if (strcmp(domain, be_req->domain->name) == 0) {
+            be_req_terminate(be_req, DP_ERR_FATAL, ERR_DOMAIN_NOT_FOUND,
+                             sss_strerror(ERR_DOMAIN_NOT_FOUND));
+        }
+    }
+}
 
 struct be_async_req {
     be_req_fn_t fn;
