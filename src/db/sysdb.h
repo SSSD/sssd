@@ -812,6 +812,10 @@ int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain,
                           const char *name);
 
+int sysdb_delete_by_sid(struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
+                        const char *sid_str);
+
 errno_t sysdb_attrs_to_list(TALLOC_CTX *mem_ctx,
                             struct sysdb_attrs **attrs,
                             int attr_count,

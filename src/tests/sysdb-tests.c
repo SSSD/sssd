@@ -4499,6 +4499,18 @@ START_TEST(test_sysdb_search_sid_str)
     fail_unless(ret == EOK, "sysdb_search_group_by_sid_str failed with [%d][%s].",
                 ret, strerror(ret));
 
+    /* Delete the group by SID */
+    ret = sysdb_delete_by_sid(test_ctx->sysdb, test_ctx->domain, "S-1-2-3-4");
+    fail_unless(ret == EOK, "sysdb_delete_by_sid failed with [%d][%s].",
+                ret, strerror(ret));
+
+    /* Verify it's gone */
+    ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->sysdb,
+                                        test_ctx->domain, "S-1-2-3-4",
+                                        NULL, &msg);
+    fail_unless(ret == ENOENT, "sysdb_search_group_by_sid_str failed with [%d][%s].",
+                ret, strerror(ret));
+
     talloc_free(msg);
     msg = NULL;
 
