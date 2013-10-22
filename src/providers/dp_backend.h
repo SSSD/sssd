@@ -150,6 +150,9 @@ struct be_ctx {
     struct be_refresh_ctx *refresh_ctx;
 
     size_t check_online_ref_count;
+
+    /* List of ongoing requests */
+    struct be_req *active_requests;
 };
 
 struct bet_ops {
