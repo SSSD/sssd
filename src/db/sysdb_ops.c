@@ -2841,6 +2841,55 @@ done:
     return ret;
 }
 
+int sysdb_delete_by_sid(struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
+                        const char *sid_str)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    int ret;
+
+    if (!sid_str) return EINVAL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_object_by_sid(tmp_ctx, sysdb, domain,
+                                     sid_str, NULL, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("search by sid failed: %d (%s)\n",
+              ret, strerror(ret)));
+        goto done;
+    }
+
+    if (res->count > 1) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("getbysid call returned more than one " \
+                                     "result !?!\n"));
+        ret = EIO;
+        goto done;
+    }
+
+    if (res->count == 0) {
+        /* No existing entry. Just quit. */
+        ret = EOK;
+        goto done;
+    }
+
+    ret = sysdb_delete_entry(sysdb, res->msgs[0]->dn, false);
+    if (ret != EOK) {
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 /* ========= Authentication against cached password ============ */
 
 
