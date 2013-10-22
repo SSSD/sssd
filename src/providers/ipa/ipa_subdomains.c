@@ -295,6 +295,10 @@ ipa_ad_subdom_remove(struct ipa_subdomains_ctx *ctx,
 
     sdap_domain_remove(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
     DLIST_REMOVE(ctx->id_ctx->server_mode->trusts, iter);
+
+    /* terminate all requests for this subdomain so we can free it */
+    be_terminate_domain_requests(ctx->be_ctx, subdom->name);
+    talloc_zfree(sdom);
 }
 
 const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,

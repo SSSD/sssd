@@ -180,6 +180,7 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
                                      int count, struct sysdb_attrs **reply,
                                      bool *changes)
 {
+    struct sdap_domain *sdom;
     struct sss_domain_info *domain, *dom;
     bool handled[count];
     const char *value;
@@ -216,8 +217,18 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
                 goto done;
             }
 
+            sdom = sdap_domain_get(ctx->sdap_id_ctx->opts, dom);
+            if (sdom == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("BUG: Domain does not exist?\n"));
+                continue;
+            }
+
             /* Remove the subdomain from the list of LDAP domains */
             sdap_domain_remove(ctx->sdap_id_ctx->opts, dom);
+
+            /* terminate all requests for this subdomain so we can free it */
+            be_terminate_domain_requests(ctx->be_ctx, dom->name);
+            talloc_zfree(sdom);
         } else {
             /* ok let's try to update it */
             ret = ad_subdom_store(ctx, domain, reply[c]);
