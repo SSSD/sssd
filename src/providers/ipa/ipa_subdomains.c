@@ -291,12 +291,12 @@ ipa_ad_subdom_remove(struct ipa_subdomains_ctx *ctx,
         return;
     }
 
-    sdap_domain_remove(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
-    DLIST_REMOVE(ctx->id_ctx->server_mode->trusts, iter);
-
     sdom = sdap_domain_get(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
     if (sdom == NULL) return;
     be_ptask_destroy(&sdom->enum_task);
+
+    sdap_domain_remove(iter->ad_id_ctx->sdap_id_ctx->opts, subdom);
+    DLIST_REMOVE(ctx->id_ctx->server_mode->trusts, iter);
 }
 
 const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
