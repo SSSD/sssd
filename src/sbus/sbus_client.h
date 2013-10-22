@@ -22,7 +22,7 @@
 #ifndef SBUS_CLIENT_H_
 #define SBUS_CLIENT_H_
 
-#include "tevent.h"
+#include <tevent.h>
 #include "sbus/sssd_dbus.h"
 
 int sbus_client_init(TALLOC_CTX *mem_ctx,

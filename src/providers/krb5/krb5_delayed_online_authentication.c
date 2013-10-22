@@ -27,9 +27,9 @@
 #include <sys/types.h>
 #include <keyutils.h>
 #endif
+#include <dhash.h>
 
 #include "providers/krb5/krb5_auth.h"
-#include "dhash.h"
 #include "util/util.h"
 #include "util/find_uid.h"
 

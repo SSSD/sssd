@@ -26,8 +26,8 @@
 
 #include <talloc.h>
 #include <sys/types.h>
+#include <dhash.h>
 
-#include "dhash.h"
 #include "util/util.h"
 
 errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table);

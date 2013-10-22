@@ -18,9 +18,10 @@
 */
 
 #include <string.h>
+#include <dhash.h>
+
 #include "ldb_module.h"
 #include "util/util.h"
-#include "dhash.h"
 
 #define DB_MEMBER "member"
 #define DB_GHOST "ghost"

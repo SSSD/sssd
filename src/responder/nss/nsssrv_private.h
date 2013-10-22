@@ -25,7 +25,7 @@
 #ifndef NSSSRV_PRIVATE_H_
 #define NSSSRV_PRIVATE_H_
 
-#include "dhash.h"
+#include <dhash.h>
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;

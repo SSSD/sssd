@@ -28,8 +28,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <ldb.h>
 #include "util/util.h"
-#include "ldb.h"
 #include "confdb/confdb.h"
 #include "monitor/monitor_interfaces.h"
 

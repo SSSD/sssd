@@ -29,10 +29,10 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <cmocka.h>
+#include <dhash.h>
 
 #include "util/find_uid.h"
 #include "tests/common.h"
-#include "dhash.h"
 
 void test_check_if_uid_is_active_success(void **state)
 {

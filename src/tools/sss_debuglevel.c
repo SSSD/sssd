@@ -28,9 +28,9 @@
 #include <ctype.h>
 #include <signal.h>
 #include <utime.h>
+#include <ldb.h>
 
 #include "config.h"
-#include "ldb.h"
 #include "util/util.h"
 #include "tools/tools_util.h"
 #include "confdb/confdb.h"
