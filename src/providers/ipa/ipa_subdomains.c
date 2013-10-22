@@ -47,8 +47,6 @@
 /* do not refresh more often than every 5 seconds for now */
 #define IPA_SUBDOMAIN_REFRESH_LIMIT 5
 
-/* refresh automatically every 4 hours */
-#define IPA_SUBDOMAIN_REFRESH_PERIOD (3600 * 4)
 #define IPA_SUBDOMAIN_DISABLED_PERIOD 3600
 
 enum ipa_subdomains_req_type {
@@ -1126,6 +1124,7 @@ static void ipa_subdom_online_cb(void *pvt)
     struct ipa_subdomains_ctx *ctx;
     struct be_req *be_req;
     struct timeval tv;
+    uint32_t refresh_interval;
 
     ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
     if (!ctx) {
@@ -1134,6 +1133,8 @@ static void ipa_subdom_online_cb(void *pvt)
     }
 
     ctx->disabled_until = 0;
+
+    refresh_interval = ctx->be_ctx->domain->subdomain_refresh_interval;
 
     be_req = be_req_create(ctx, NULL, ctx->be_ctx,
                            ipa_subdom_be_req_callback, NULL);
@@ -1144,7 +1145,7 @@ static void ipa_subdom_online_cb(void *pvt)
 
     ipa_subdomains_retrieve(ctx, be_req);
 
-    tv = tevent_timeval_current_ofs(IPA_SUBDOMAIN_REFRESH_PERIOD, 0);
+    tv = tevent_timeval_current_ofs(refresh_interval, 0);
     ctx->timer_event = tevent_add_timer(ctx->be_ctx->ev, ctx, tv,
                                         ipa_subdom_timer_refresh, ctx);
     if (!ctx->timer_event) {

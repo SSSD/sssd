@@ -161,6 +161,7 @@
 #define CONFDB_DOMAIN_SUBDOMAIN_HOMEDIR "subdomain_homedir"
 #define CONFDB_DOMAIN_DEFAULT_SUBDOMAIN_HOMEDIR "/home/%d/%u"
 #define CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS "ignore_group_members"
+#define CONFDB_DOMAIN_SUBDOMAIN_REFRESH "subdomain_refresh_interval"
 
 #define CONFDB_DOMAIN_USER_CACHE_TIMEOUT "entry_cache_user_timeout"
 #define CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT "entry_cache_group_timeout"
@@ -225,6 +226,7 @@ struct sss_domain_info {
     uint32_t sudo_timeout;
 
     uint32_t refresh_expired_interval;
+    uint32_t subdomain_refresh_interval;
 
     int pwd_expiration_warning;
 
