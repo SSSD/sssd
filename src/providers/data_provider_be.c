@@ -137,7 +137,17 @@ struct be_req {
      * selinux provider is calling the callback.
      */
     int phase;
+
+    struct be_req *prev;
+    struct be_req *next;
 };
+
+static int be_req_destructor(struct be_req *be_req)
+{
+    DLIST_REMOVE(be_req->be_ctx->active_requests, be_req);
+
+    return 0;
+}
 
 struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
                              struct be_client *becli, struct be_ctx *be_ctx,
@@ -152,6 +162,11 @@ struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
     be_req->be_ctx = be_ctx;
     be_req->fn = fn;
     be_req->pvt = pvt_fn_data;
+
+    /* Add this request to active request list and make sure it is
+     * removed on termination. */
+    DLIST_ADD(be_ctx->active_requests, be_req);
+    talloc_set_destructor(be_req, be_req_destructor);
 
     return be_req;
 }
