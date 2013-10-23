@@ -112,26 +112,34 @@ struct sss_domain_info *find_subdomain_by_sid(struct sss_domain_info *domain,
                                               const char *sid)
 {
     struct sss_domain_info *dom = domain;
-    size_t sid_len = strlen(sid);
+    size_t sid_len;
     size_t dom_sid_len;
+
+    if (sid == NULL) {
+        return NULL;
+    }
+
+    sid_len = strlen(sid);
 
     while (dom && dom->disabled) {
         dom = get_next_domain(dom, true);
     }
 
     while (dom) {
-        dom_sid_len = strlen(dom->domain_id);
+        if (dom->domain_id != NULL) {
+            dom_sid_len = strlen(dom->domain_id);
 
-        if (strncasecmp(dom->domain_id, sid, dom_sid_len) == 0) {
-            if (dom_sid_len == sid_len) {
-                /* sid is domain sid */
-                return dom;
-            }
+            if (strncasecmp(dom->domain_id, sid, dom_sid_len) == 0) {
+                if (dom_sid_len == sid_len) {
+                    /* sid is domain sid */
+                    return dom;
+                }
 
-            /* sid is object sid, check if domain sid is align with
-             * sid first subauthority component */
-            if (sid[dom_sid_len] == '-') {
-                return dom;
+                /* sid is object sid, check if domain sid is align with
+                 * sid first subauthority component */
+                if (sid[dom_sid_len] == '-') {
+                    return dom;
+                }
             }
         }
 
