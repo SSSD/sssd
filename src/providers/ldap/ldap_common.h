@@ -52,6 +52,8 @@ struct sdap_id_conn_ctx {
     struct sdap_id_conn_cache *conn_cache;
     /* dlinklist pointers */
     struct sdap_id_conn_ctx *prev, *next;
+    /* do not go offline, try another connection */
+    bool ignore_mark_offline;
 };
 
 struct sdap_id_ctx {

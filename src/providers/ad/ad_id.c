@@ -118,6 +118,14 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
                                             struct ad_handle_acct_info_state);
 
     ret = sdap_handle_acct_req_recv(subreq, &dp_error, &err, &sdap_err);
+    if (dp_error == DP_ERR_OFFLINE
+        && state->conn[state->cindex]->ignore_mark_offline) {
+         /* This is a special case: GC does not work.
+          *  We need to Fall back to ldap
+          */
+        ret = EOK;
+        sdap_err = ENOENT;
+    }
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -192,9 +200,12 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
         /* Always try GC first */
         clist[0] = ad_ctx->gc_ctx;
         if (IS_SUBDOMAIN(dom) == true) {
+            clist[0]->ignore_mark_offline = false;
             /* Subdomain users are only present in GC. */
             break;
         }
+        /* fall back to ldap if gc is not available */
+        clist[0]->ignore_mark_offline = true;
 
         /* With root domain users we have the option to
          * fall back to LDAP in case ie POSIX attributes
