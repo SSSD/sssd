@@ -81,7 +81,10 @@ enum idmap_error_code {
     IDMAP_COLLISION,
 
     /** External source should be consulted for idmapping */
-    IDMAP_EXTERNAL
+    IDMAP_EXTERNAL,
+
+    /** The provided  name was not found */
+    IDMAP_NAME_UNKNOWN
 };
 
 /**
@@ -524,16 +527,49 @@ bool is_domain_sid(const char *str);
 /**
  * @brief Check if a domain is configured with algorithmic mapping
  *
- * @param[in] ctx      Idmap context
- * @param[in] dom_sid  SID string, can be either a domain SID or an object SID
+ * @param[in] ctx                      Idmap context
+ * @param[in] dom_sid                  SID string, can be either a domain SID
+ *                                     or an object SID
+ * @param[out] has_algorithmic_mapping Boolean value indicating if the given
+ *                                     domain is configured for algorithmic
+ *                                     mapping or not.
  *
  * @return
- * TODO ....
+ *  - #IDMAP_SUCCESS:         Domain for the given SID was found and
+ *                            has_algorithmic_mapping is set accordingly
+ *  - #IDMAP_SID_INVALID:     Provided SID is invalid
+ *  - #IDMAP_CONTEXT_INVALID: Provided idmap context is invalid
+ *  - #IDMAP_NO_DOMAIN:       No domains are available in the idmap context
+ *  - #IDMAP_SID_UNKNOWN:     No domain with the given SID was found in the
+ *                            idmap context
  */
 enum idmap_error_code
 sss_idmap_domain_has_algorithmic_mapping(struct sss_idmap_ctx *ctx,
                                          const char *dom_sid,
                                          bool *has_algorithmic_mapping);
+
+/**
+ * @brief Check if a domain is configured with algorithmic mapping
+ *
+ * @param[in]  ctx                     Idmap context
+ * @param[in]  dom_name                Name of the domain
+ * @param[out] has_algorithmic_mapping Boolean value indicating if the given
+ *                                     domain is configured for algorithmic
+ *                                     mapping or not.
+ *
+ * @return
+ *  - #IDMAP_SUCCESS:         Domain for the given name was found and
+ *                            has_algorithmic_mapping is set accordingly
+ *  - #IDMAP_ERROR:           Provided name is invalid
+ *  - #IDMAP_CONTEXT_INVALID: Provided idmap context is invalid
+ *  - #IDMAP_NO_DOMAIN:       No domains are available in the idmap context
+ *  - #IDMAP_NAME_UNKNOWN:    No domain with the given name was found in the
+ *                            idmap context
+ */
+enum idmap_error_code
+sss_idmap_domain_by_name_has_algorithmic_mapping(struct sss_idmap_ctx *ctx,
+                                                 const char *dom_name,
+                                                 bool *has_algorithmic_mapping);
 
 /**
  * @brief Convert binary SID to SID structure

@@ -953,3 +953,36 @@ sss_idmap_domain_has_algorithmic_mapping(struct sss_idmap_ctx *ctx,
 
     return IDMAP_SID_UNKNOWN;
 }
+
+enum idmap_error_code
+sss_idmap_domain_by_name_has_algorithmic_mapping(struct sss_idmap_ctx *ctx,
+                                                 const char *dom_name,
+                                                 bool *has_algorithmic_mapping)
+{
+    struct idmap_domain_info *idmap_domain_info;
+
+    if (dom_name == NULL) {
+        return IDMAP_ERROR;
+    }
+
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    if (ctx->idmap_domain_info == NULL) {
+        return IDMAP_NO_DOMAIN;
+    }
+
+    idmap_domain_info = ctx->idmap_domain_info;
+
+    while (idmap_domain_info != NULL) {
+        if (idmap_domain_info->name != NULL
+                && strcmp(dom_name, idmap_domain_info->name) == 0) {
+
+            *has_algorithmic_mapping = !idmap_domain_info->external_mapping;
+            return IDMAP_SUCCESS;
+        }
+
+        idmap_domain_info = idmap_domain_info->next;
+    }
+
+    return IDMAP_NAME_UNKNOWN;
+}
