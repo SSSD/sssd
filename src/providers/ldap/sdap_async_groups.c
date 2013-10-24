@@ -478,6 +478,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
+                                                               dom->name,
                                                                sid_str);
     if (use_id_mapping) {
         posix_group = true;

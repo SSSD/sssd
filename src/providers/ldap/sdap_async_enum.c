@@ -366,6 +366,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
 
     use_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                         ctx->opts->idmap_ctx,
+                                                        sdom->dom->name,
                                                         sdom->dom->domain_id);
 
     /* We always want to filter on objectclass and an available name */
@@ -540,6 +541,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
 
     use_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                         ctx->opts->idmap_ctx,
+                                                        sdom->dom->name,
                                                         sdom->dom->domain_id);
 
     /* We always want to filter on objectclass and an available name */

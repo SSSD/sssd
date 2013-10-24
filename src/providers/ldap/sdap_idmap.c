@@ -513,6 +513,7 @@ done:
 }
 
 bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
+                                               const char *dom_name,
                                                const char *dom_sid)
 {
     enum idmap_error_code err;
@@ -526,6 +527,15 @@ bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
     if (err == IDMAP_SUCCESS) {
         return has_algorithmic_mapping;
     } else if (err != IDMAP_SID_UNKNOWN && err != IDMAP_NO_DOMAIN) {
+        return false;
+    }
+
+    err = sss_idmap_domain_by_name_has_algorithmic_mapping(ctx->map,
+                                                  dom_name,
+                                                  &has_algorithmic_mapping);
+    if (err == IDMAP_SUCCESS) {
+        return has_algorithmic_mapping;
+    } else if (err != IDMAP_NAME_UNKNOWN && err != IDMAP_NO_DOMAIN) {
         return false;
     }
 
@@ -554,7 +564,7 @@ bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
         }
     }
 
-    ret = ctx->find_new_domain(ctx, new_dom_sid, new_dom_sid);
+    ret = ctx->find_new_domain(ctx, dom_name, new_dom_sid);
     talloc_free(tmp_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,

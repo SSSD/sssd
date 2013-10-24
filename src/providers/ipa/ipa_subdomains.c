@@ -577,7 +577,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
         goto done;
     }
 
-    mpg = sdap_idmap_domain_has_algorithmic_mapping(sdap_idmap_ctx, id);
+    mpg = sdap_idmap_domain_has_algorithmic_mapping(sdap_idmap_ctx, name, id);
 
     ret = ipa_subdom_get_forest(tmp_ctx, sysdb_ctx_get_ldb(parent->sysdb),
                                 attrs, &forest);

@@ -100,6 +100,7 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
     }
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
+                                                             domain->name,
                                                              domain->domain_id);
 
     ret = sysdb_transaction_start(sysdb);
@@ -1542,6 +1543,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                         opts->idmap_ctx,
+                                                        sdom->dom->name,
                                                         sdom->dom->domain_id);
 
     state->base_filter =
@@ -2637,6 +2639,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                           id_ctx->opts->idmap_ctx,
+                                                          sdom->dom->name,
                                                           sdom->dom->domain_id);
 
     ret = sss_filter_sanitize(state, name, &clean_name);
@@ -2684,6 +2687,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
 
     state->use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                          state->opts->idmap_ctx,
+                                                         state->dom->name,
                                                          state->dom->domain_id);
 
     ret = sdap_get_initgr_next_base(req);
