@@ -226,6 +226,9 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
             /* Remove the subdomain from the list of LDAP domains */
             sdap_domain_remove(ctx->sdap_id_ctx->opts, dom);
 
+            be_ptask_destroy(&sdom->enum_task);
+            be_ptask_destroy(&sdom->cleanup_task);
+
             /* terminate all requests for this subdomain so we can free it */
             be_terminate_domain_requests(ctx->be_ctx, dom->name);
             talloc_zfree(sdom);
