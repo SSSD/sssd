@@ -61,6 +61,17 @@ typedef errno_t
 (*be_ptask_recv_t)(struct tevent_req *req);
 
 /**
+ * If EOK, task will be scheduled again to 'last_execution_time + period'.
+ * If other error code, task will be rescheduled to 'now + period'.
+ */
+typedef errno_t
+(*be_ptask_sync_t)(TALLOC_CTX *mem_ctx,
+                   struct tevent_context *ev,
+                   struct be_ctx *be_ctx,
+                   struct be_ptask *be_ptask,
+                   void *pvt);
+
+/**
  * The first execution is scheduled first_delay seconds after the task is
  * created.
  *
@@ -84,6 +95,18 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         void *pvt,
                         const char *name,
                         struct be_ptask **_task);
+
+errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
+                             struct be_ctx *be_ctx,
+                             time_t period,
+                             time_t first_delay,
+                             time_t enabled_delay,
+                             time_t timeout,
+                             enum be_ptask_offline offline,
+                             be_ptask_sync_t fn,
+                             void *pvt,
+                             const char *name,
+                             struct be_ptask **_task);
 
 void be_ptask_enable(struct be_ptask *task);
 void be_ptask_disable(struct be_ptask *task);

@@ -352,3 +352,97 @@ time_t be_ptask_get_period(struct be_ptask *task)
 {
     return task->period;
 }
+
+struct be_ptask_sync_ctx {
+    be_ptask_sync_t fn;
+    void *pvt;
+};
+
+struct be_ptask_sync_state {
+    int dummy;
+};
+
+/* This is not an asynchronous request so there is not any _done function. */
+static struct tevent_req *
+be_ptask_sync_send(TALLOC_CTX *mem_ctx,
+                   struct tevent_context *ev,
+                   struct be_ctx *be_ctx,
+                   struct be_ptask *be_ptask,
+                   void *pvt)
+{
+    struct be_ptask_sync_ctx *ctx = NULL;
+    struct be_ptask_sync_state *state = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct be_ptask_sync_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        return NULL;
+    }
+
+    ctx = talloc_get_type(pvt, struct be_ptask_sync_ctx);
+    ret = ctx->fn(mem_ctx, ev, be_ctx, be_ptask, ctx->pvt);
+
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static errno_t be_ptask_sync_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
+                             struct be_ctx *be_ctx,
+                             time_t period,
+                             time_t first_delay,
+                             time_t enabled_delay,
+                             time_t timeout,
+                             enum be_ptask_offline offline,
+                             be_ptask_sync_t fn,
+                             void *pvt,
+                             const char *name,
+                             struct be_ptask **_task)
+{
+    errno_t ret;
+    struct be_ptask_sync_ctx *ctx = NULL;
+
+    ctx = talloc_zero(mem_ctx, struct be_ptask_sync_ctx);
+    if (ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ctx->fn = fn;
+    ctx->pvt = pvt;
+
+    ret = be_ptask_create(mem_ctx, be_ctx, period, first_delay,
+                          enabled_delay, timeout, offline,
+                          be_ptask_sync_send, be_ptask_sync_recv,
+                          ctx, name, _task);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (_task != NULL) {
+        talloc_steal(*_task, ctx);
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(ctx);
+    }
+
+    return ret;
+}
