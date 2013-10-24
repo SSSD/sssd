@@ -105,6 +105,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                           ctx->opts->idmap_ctx,
+                                                          sdom->dom->name,
                                                           sdom->dom->domain_id);
     switch (filter_type) {
     case BE_FILTER_NAME:
@@ -471,6 +472,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                           ctx->opts->idmap_ctx,
+                                                          sdom->dom->name,
                                                           sdom->dom->domain_id);
 
     switch(filter_type) {

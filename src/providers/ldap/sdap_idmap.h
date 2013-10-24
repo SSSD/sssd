@@ -57,6 +57,7 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
                        id_t *id);
 
 bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
+                                               const char *name,
                                                const char *dom_sid);
 
 #endif /* SDAP_IDMAP_H_ */

@@ -215,6 +215,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
+                                                               dom->name,
                                                                sid_str);
 
     /* Retrieve or map the UID as appropriate */
