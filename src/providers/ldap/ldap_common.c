@@ -951,29 +951,19 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx,
                         be_ptask_send_t send_fn,
                         be_ptask_recv_t recv_fn)
 {
-    struct timeval tv;
-    int ret = EOK;
-    int delay;
+    int ret;
 
     /* set up enumeration task */
     if (sdom->dom->enumerate) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Setting up enumeration for %s\n", sdom->dom->name));
+        DEBUG(SSSDBG_TRACE_FUNC, ("Setting up enumeration for %s\n",
+                                  sdom->dom->name));
         ret = ldap_setup_enumeration(ctx, conn, sdom, send_fn, recv_fn);
     } else {
         /* the enumeration task, runs the cleanup process by itself,
          * but if enumeration is not running we need to schedule it */
-        delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
-        if (delay == 0) {
-            /* Cleanup has been explicitly disabled, so we won't
-             * schedule any cleanup tasks.
-             */
-            return EOK;
-        }
-
-        /* run the first one in a couple of seconds so that we have time to
-         * finish initializations first*/
-        tv = tevent_timeval_current_ofs(10, 0);
-        ret = ldap_id_cleanup_create_timer(ctx, sdom, tv);
+        DEBUG(SSSDBG_TRACE_FUNC, ("Setting up cleanup task for %s\n",
+                                  sdom->dom->name));
+        ret = ldap_setup_cleanup(ctx, sdom);
     }
 
     return ret;

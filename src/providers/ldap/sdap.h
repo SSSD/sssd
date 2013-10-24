@@ -386,6 +386,8 @@ struct sdap_domain {
 
     /* Enumeration and cleanup periodic task */
     struct be_ptask *enum_task;
+    struct be_ptask *cleanup_task;
+
     /* enumeration loop timer */
     struct timeval last_enum;
     /* cleanup loop timer */
