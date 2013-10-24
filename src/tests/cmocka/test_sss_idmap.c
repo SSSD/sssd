@@ -367,6 +367,44 @@ void test_has_algorithmic(void **state)
     assert_false(use_id_mapping);
 }
 
+void test_has_algorithmic_by_name(void **state)
+{
+    struct test_ctx *test_ctx;
+    bool use_id_mapping;
+    enum idmap_error_code err;
+
+    test_ctx = talloc_get_type(*state, struct test_ctx);
+
+    assert_non_null(test_ctx);
+
+    err = sss_idmap_domain_by_name_has_algorithmic_mapping(NULL, NULL, &use_id_mapping);
+    assert_int_equal(err, IDMAP_ERROR);
+
+    err = sss_idmap_domain_by_name_has_algorithmic_mapping(NULL, TEST_DOM_SID,
+                                                   &use_id_mapping);
+    assert_int_equal(err, IDMAP_CONTEXT_INVALID);
+
+    err = sss_idmap_domain_by_name_has_algorithmic_mapping(test_ctx->idmap_ctx, NULL,
+                                                   &use_id_mapping);
+    assert_int_equal(err, IDMAP_ERROR);
+
+    err = sss_idmap_domain_by_name_has_algorithmic_mapping(test_ctx->idmap_ctx,
+                                                   TEST_DOM_NAME"1",
+                                                   &use_id_mapping);
+    assert_int_equal(err, IDMAP_NAME_UNKNOWN);
+
+    err = sss_idmap_domain_by_name_has_algorithmic_mapping(test_ctx->idmap_ctx,
+                                                   TEST_DOM_NAME,
+                                                   &use_id_mapping);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_true(use_id_mapping);
+
+    err = sss_idmap_domain_by_name_has_algorithmic_mapping(test_ctx->idmap_ctx,
+                                                   TEST_2_DOM_NAME,
+                                                   &use_id_mapping);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_false(use_id_mapping);
+}
 
 int main(int argc, const char *argv[])
 {
@@ -394,6 +432,9 @@ int main(int argc, const char *argv[])
                                  test_sss_idmap_setup_with_external_mappings,
                                  test_sss_idmap_teardown),
         unit_test_setup_teardown(test_has_algorithmic,
+                                 test_sss_idmap_setup_with_both,
+                                 test_sss_idmap_teardown),
+        unit_test_setup_teardown(test_has_algorithmic_by_name,
                                  test_sss_idmap_setup_with_both,
                                  test_sss_idmap_teardown),
     };
