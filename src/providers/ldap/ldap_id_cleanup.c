@@ -38,74 +38,73 @@ struct ldap_id_cleanup_ctx {
     struct sdap_domain *sdom;
 };
 
-static errno_t ldap_id_cleanup_set_timer(struct ldap_id_cleanup_ctx *cctx,
-                                         struct timeval tv);
-
-static void ldap_id_cleanup_timer(struct tevent_context *ev,
-                                  struct tevent_timer *tt,
-                                  struct timeval tv, void *pvt)
+static errno_t ldap_cleanup_task(TALLOC_CTX *mem_ctx,
+                                 struct tevent_context *ev,
+                                 struct be_ctx *be_ctx,
+                                 struct be_ptask *be_ptask,
+                                 void *pvt)
 {
-    struct ldap_id_cleanup_ctx *cctx = talloc_get_type(pvt,
-                                                struct ldap_id_cleanup_ctx);
-    int delay;
+    struct ldap_id_cleanup_ctx *cleanup_ctx = NULL;
+
+    cleanup_ctx = talloc_get_type(pvt, struct ldap_id_cleanup_ctx);
+    return ldap_id_cleanup(cleanup_ctx->ctx->opts, cleanup_ctx->sdom);
+}
+
+errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
+                           struct sdap_domain *sdom)
+{
     errno_t ret;
+    time_t first_delay;
+    time_t period;
+    struct ldap_id_cleanup_ctx *cleanup_ctx = NULL;
+    char *name = NULL;
 
-    if (be_is_offline(cctx->ctx->be)) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Backend is marked offline, retry later!\n"));
-        /* schedule starting from now, not the last run */
-        delay = dp_opt_get_int(cctx->ctx->opts->basic,
-                               SDAP_CACHE_PURGE_TIMEOUT);
-        tv = tevent_timeval_current_ofs(delay, 0);
-        ldap_id_cleanup_set_timer(cctx, tv);
-        return;
+    period = dp_opt_get_int(id_ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
+    if (period == 0) {
+        /* Cleanup has been explicitly disabled, so we won't
+         * create any cleanup tasks. */
+        ret = EOK;
+        goto done;
     }
 
-    ret = ldap_id_cleanup(cctx->ctx->opts, cctx->sdom);
-    if (ret != EOK) {
-        /* On error schedule starting from now, not the last run */
-        tv = tevent_timeval_current();
-    } else {
-        tv = cctx->sdom->last_purge;
+    /* Run the first one in a couple of seconds so that we have time to
+     * finish initializations first. */
+    first_delay = 10;
+
+    cleanup_ctx = talloc_zero(sdom, struct ldap_id_cleanup_ctx);
+    if (cleanup_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
-    delay = dp_opt_get_int(cctx->ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
-    tv = tevent_timeval_add(&tv, delay, 0);
-    ldap_id_cleanup_set_timer(cctx, tv);
-}
+    cleanup_ctx->ctx = id_ctx;
+    cleanup_ctx->sdom = sdom;
 
-static errno_t ldap_id_cleanup_set_timer(struct ldap_id_cleanup_ctx *cctx,
-                                         struct timeval tv)
-{
-    struct tevent_timer *cleanup_task;
-
-    cleanup_task = tevent_add_timer(cctx->ctx->be->ev, cctx->ctx,
-                                    tv, ldap_id_cleanup_timer, cctx);
-    if (cleanup_task == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("FATAL: failed to setup cleanup task!\n"));
-        return EFAULT;
-    }
-
-    return EOK;
-}
-
-int ldap_id_cleanup_create_timer(struct sdap_id_ctx *ctx,
-                                 struct sdap_domain *sdom,
-                                 struct timeval tv)
-{
-    struct ldap_id_cleanup_ctx *cctx;
-
-    DEBUG(SSSDBG_FUNC_DATA,
-          ("Scheduling next cleanup at %ld.%ld\n",
-          (long)tv.tv_sec, (long)tv.tv_usec));
-
-    cctx = talloc(ctx, struct ldap_id_cleanup_ctx);
-    if (cctx == NULL) {
+    name = talloc_asprintf(cleanup_ctx, "Cleanup of %s", sdom->dom->name);
+    if (name == NULL) {
         return ENOMEM;
     }
-    cctx->ctx = ctx;
-    cctx->sdom = sdom;
 
-    return ldap_id_cleanup_set_timer(cctx, tv);
+    ret = be_ptask_create_sync(sdom, id_ctx->be, period, first_delay,
+                               5 /* enabled delay */, period /* timeout */,
+                               BE_PTASK_OFFLINE_SKIP, ldap_cleanup_task,
+                               cleanup_ctx, name, &sdom->cleanup_task);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to initialize cleanup periodic "
+                                     "task for %s\n", sdom->dom->name));
+        goto done;
+    }
+
+    talloc_steal(sdom->cleanup_task, cleanup_ctx);
+    ret = EOK;
+
+done:
+    talloc_free(name);
+    if (ret != EOK) {
+        talloc_free(cleanup_ctx);
+    }
+
+    return ret;
 }
 
 static int cleanup_users(struct sdap_options *opts,

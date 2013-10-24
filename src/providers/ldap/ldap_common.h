@@ -195,11 +195,11 @@ ldap_enumeration_send(TALLOC_CTX *mem_ctx,
                       void *pvt);
 errno_t ldap_enumeration_recv(struct tevent_req *req);
 
+errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
+                           struct sdap_domain *sdom);
+
 errno_t ldap_id_cleanup(struct sdap_options *opts,
                         struct sdap_domain *sdom);
-int ldap_id_cleanup_create_timer(struct sdap_id_ctx *ctx,
-                                 struct sdap_domain *sdom,
-                                 struct timeval tv);
 
 void sdap_mark_offline(struct sdap_id_ctx *ctx);
 
