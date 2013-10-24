@@ -661,6 +661,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     char *address;
     const char *safe_address;
     char *new_uri;
+    int new_port;
     const char *srv_name;
     struct ad_server_data *sdata = NULL;
 
@@ -729,12 +730,15 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     talloc_zfree(service->gc->uri);
     talloc_zfree(service->gc->sockaddr);
     if (sdata && sdata->gc) {
+        new_port = fo_get_server_port(server);
+        new_port = (new_port == 0) ? AD_GC_PORT : new_port;
+
         service->gc->uri = talloc_asprintf(service->gc, "%s:%d",
-                                           new_uri, AD_GC_PORT);
+                                           new_uri, new_port);
 
         service->gc->sockaddr = resolv_get_sockaddr_address(service->gc,
                                                             srvaddr,
-                                                            AD_GC_PORT);
+                                                            new_port);
     } else {
         /* Make sure there always is an URI even if we know that this
          * server doesn't support GC. That way the lookup would go through
