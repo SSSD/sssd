@@ -25,9 +25,9 @@
 #include "tests/cmocka/common_mock.h"
 
 #define DOM_COUNT 10
-#define DOMNAME_TMPL "name_%u.dom"
-#define FLATNAME_TMPL "name_%u"
-#define SID_TMPL "S-1-5-21-1-2-%u"
+#define DOMNAME_TMPL "name_%zu.dom"
+#define FLATNAME_TMPL "name_%zu"
+#define SID_TMPL "S-1-5-21-1-2-%zu"
 
 struct dom_list_test_ctx {
     size_t dom_count;
