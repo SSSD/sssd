@@ -2287,7 +2287,7 @@ static int fill_members(struct sss_packet *packet,
             if (ret >= (name.len + delim + dom_len)) {
                 /* need more space,
                  * got creative with the print format ? */
-                int t = ret - name.len + delim + dom_len + 1;
+                int t = ret - (name.len + delim + dom_len) + 1;
                 ret = sss_packet_grow(packet, t);
                 if (ret != EOK) {
                     goto done;
