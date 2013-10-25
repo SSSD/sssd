@@ -391,6 +391,42 @@ done:
     return ret;
 }
 
+static bool
+sdap_nested_member_is_ent(struct sdap_nested_group_ctx *group_ctx,
+                          const char *dn, char **filter, bool is_user)
+{
+    struct sdap_domain *sditer = NULL;
+    bool ret = false;
+    struct sdap_search_base **search_bases;
+
+    DLIST_FOR_EACH(sditer, group_ctx->opts->sdom) {
+        search_bases = is_user ? sditer->user_search_bases : \
+                                 sditer->group_search_bases;
+
+        ret = sss_ldap_dn_in_search_bases(group_ctx, dn, search_bases,
+                                          filter);
+        if (ret == true) {
+            break;
+        }
+    }
+
+    return ret;
+}
+
+static inline bool
+sdap_nested_member_is_user(struct sdap_nested_group_ctx *group_ctx,
+                           const char *dn, char **filter)
+{
+    return sdap_nested_member_is_ent(group_ctx, dn, filter, true);
+}
+
+static inline bool
+sdap_nested_member_is_group(struct sdap_nested_group_ctx *group_ctx,
+                            const char *dn, char **filter)
+{
+    return sdap_nested_member_is_ent(group_ctx, dn, filter, false);
+}
+
 static errno_t
 sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
                                 struct sdap_nested_group_ctx *group_ctx,
@@ -474,13 +510,11 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
         /* try to determine type by dn */
         if (type == SDAP_NESTED_GROUP_DN_UNKNOWN) {
             /* user */
-            is_user = sss_ldap_dn_in_search_bases(tmp_ctx, dn,
-                           group_ctx->user_search_bases,
-                           &user_filter);
+            is_user = sdap_nested_member_is_user(group_ctx, dn,
+                                                 &user_filter);
 
-            is_group = sss_ldap_dn_in_search_bases(tmp_ctx, dn,
-                           group_ctx->group_search_bases,
-                           &group_filter);
+            is_group = sdap_nested_member_is_group(group_ctx, dn,
+                                                   &group_filter);
 
             if (is_user && is_group) {
                 /* search bases overlap */
@@ -2030,7 +2064,6 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
     size_t num_entries = 0;
     size_t i, j;
     bool member_found;
-    bool bret;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -2109,9 +2142,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
             /* we found a user */
 
             /* skip the user if it is not amongst configured search bases */
-            bret = sss_ldap_dn_in_search_bases(state, orig_dn,
-                                               opts->sdom->user_search_bases, NULL);
-            if (!bret) {
+            if (!sdap_nested_member_is_user(state->group_ctx, orig_dn, NULL)) {
                 continue;
             }
 
@@ -2136,9 +2167,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
             }
 
             /* skip the group if it is not amongst configured search bases */
-            bret = sss_ldap_dn_in_search_bases(state, orig_dn,
-                                               opts->sdom->group_search_bases, NULL);
-            if (!bret) {
+            if (!sdap_nested_member_is_group(state->group_ctx, orig_dn, NULL)) {
                 continue;
             }
 
