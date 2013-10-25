@@ -479,10 +479,21 @@ done:
 bool be_is_offline(struct be_ctx *ctx)
 {
     time_t now = time(NULL);
+    int offline_timeout;
+    int ret;
 
     /* check if we are past the offline blackout timeout */
-    /* FIXME: get offline_timeout from configuration */
-    if (ctx->offstat.went_offline + 60 < now) {
+    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
+                         CONFDB_DOMAIN_OFFLINE_TIMEOUT, 60,
+                         &offline_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Failed to get offline_timeout from confdb. "
+               "Using default value (60 seconds)\n"));
+        offline_timeout = 60;
+    }
+
+    if (ctx->offstat.went_offline + offline_timeout < now) {
         ctx->offstat.offline = false;
     }
 

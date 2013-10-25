@@ -171,6 +171,7 @@
 #define CONFDB_DOMAIN_SUDO_CACHE_TIMEOUT "entry_cache_sudo_timeout"
 #define CONFDB_DOMAIN_PWD_EXPIRATION_WARNING "pwd_expiration_warning"
 #define CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL "refresh_expired_interval"
+#define CONFDB_DOMAIN_OFFLINE_TIMEOUT "offline_timeout"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"

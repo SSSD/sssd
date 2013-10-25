@@ -378,6 +378,21 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>offline_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            If SSSD is in offline mode, and last attempt to go
+                            online was less than number of seconds specified
+                            in this option ago, new requests for data will not
+                            result in attempt to go online.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </refsect2>
 
