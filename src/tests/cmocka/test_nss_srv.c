@@ -35,10 +35,12 @@
 #define TEST_CONF_DB "test_nss_conf.ldb"
 #define TEST_SYSDB_FILE "cache_nss_test.ldb"
 #define TEST_DOM_NAME "nss_test"
+#define TEST_SUBDOM_NAME "test.sub"
 #define TEST_ID_PROVIDER "ldap"
 
 struct nss_test_ctx {
     struct sss_test_ctx *tctx;
+    struct sss_domain_info *subdom;
 
     struct resp_ctx *rctx;
     struct cli_ctx *cctx;
@@ -68,6 +70,7 @@ mock_nctx(TALLOC_CTX *mem_ctx)
         return NULL;
     }
     nctx->neg_timeout = 10;
+    nctx->pwfield = discard_const("*");
 
     return nctx;
 }
@@ -144,7 +147,7 @@ int __wrap_sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
 }
 
 /* Mock input from the client library */
-static void mock_input_user(const char *username)
+static void mock_input_user_or_group(const char *username)
 {
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, username);
@@ -156,6 +159,25 @@ static void mock_fill_user(void)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 }
+
+static void mock_fill_group_with_members(unsigned members)
+{
+    unsigned i;
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    if (members == 0) return;
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Member header , one per member */
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    for (i=0; i<members; i++) {
+        will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    }
+}
+
 
 static int parse_user_packet(uint8_t *body, size_t blen, struct passwd *pwd)
 {
@@ -169,6 +191,10 @@ static int parse_user_packet(uint8_t *body, size_t blen, struct passwd *pwd)
     rp += strlen(pwd->pw_name) + 1;
     if (rp >= blen) return EINVAL;
 
+    pwd->pw_passwd = (char *) body+rp;
+    rp += strlen(pwd->pw_passwd) + 1;
+    if (rp >= blen) return EINVAL;
+
     pwd->pw_gecos = (char *) body+rp;
     rp += strlen(pwd->pw_gecos) + 1;
     if (rp >= blen) return EINVAL;
@@ -178,6 +204,41 @@ static int parse_user_packet(uint8_t *body, size_t blen, struct passwd *pwd)
     if (rp >= blen) return EINVAL;
 
     pwd->pw_shell = (char *) body+rp;
+    rp += strlen(pwd->pw_shell) + 1;
+    if (rp != blen) return EINVAL;
+
+    return EOK;
+}
+
+static int parse_group_packet(uint8_t *body, size_t blen, struct group *gr, uint32_t *nmem)
+{
+    size_t rp = 2 * sizeof(uint32_t); /* Len and reserved */
+    unsigned i;
+
+    SAFEALIGN_COPY_UINT32(&gr->gr_gid, body+rp, &rp);
+    SAFEALIGN_COPY_UINT32(nmem, body+rp, &rp);
+
+    gr->gr_name = (char *) body+rp;
+    rp += strlen(gr->gr_name) + 1;
+    if (rp >= blen) return EINVAL;
+
+    gr->gr_passwd = (char *) body+rp;
+    rp += strlen(gr->gr_passwd) + 1;
+
+    if (*nmem > 0) {
+        gr->gr_mem = talloc_zero_array(nss_test_ctx, char *, *nmem);
+        if (gr->gr_mem == NULL) return ENOMEM;
+
+        for (i = 0; i < *nmem; i++) {
+            if (rp >= blen) return EINVAL;
+
+            gr->gr_mem[i] = talloc_strdup(gr->gr_mem, (char *) body+rp);
+            rp += strlen(gr->gr_mem[i]) + 1;
+        }
+    }
+
+    /* Make sure we exactly matched the end of the packet */
+    if (rp != blen) return EINVAL;
     return EOK;
 }
 
@@ -199,6 +260,7 @@ static int test_nss_getpwnam_check(uint8_t *body, size_t blen)
     assert_int_equal(pwd.pw_gid, 456);
     assert_string_equal(pwd.pw_name, "testuser");
     assert_string_equal(pwd.pw_shell, "/bin/sh");
+    assert_string_equal(pwd.pw_passwd, "*");
     return EOK;
 }
 
@@ -214,7 +276,7 @@ void test_nss_getpwnam(void **state)
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_user("testuser");
+    mock_input_user_or_group("testuser");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     mock_fill_user();
 
@@ -236,7 +298,7 @@ void test_nss_getpwnam_neg(void **state)
 {
     errno_t ret;
 
-    mock_input_user("testuser_neg");
+    mock_input_user_or_group("testuser_neg");
     mock_account_recv_simple();
 
     assert_true(nss_test_ctx->ncache_hit == false);
@@ -256,7 +318,7 @@ void test_nss_getpwnam_neg(void **state)
      */
     nss_test_ctx->tctx->done = false;
 
-    mock_input_user("testuser_neg");
+    mock_input_user_or_group("testuser_neg");
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
                           nss_test_ctx->nss_cmds);
     assert_int_equal(ret, EOK);
@@ -303,7 +365,7 @@ void test_nss_getpwnam_search(void **state)
     errno_t ret;
     struct ldb_result *res;
 
-    mock_input_user("testuser_search");
+    mock_input_user_or_group("testuser_search");
     mock_account_recv(0, 0, NULL, test_nss_getpwnam_search_acct_cb, nss_test_ctx);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     mock_fill_user();
@@ -381,7 +443,7 @@ void test_nss_getpwnam_update(void **state)
     assert_int_equal(ret, EOK);
 
     /* Mock client input */
-    mock_input_user("testuser_update");
+    mock_input_user_or_group("testuser_update");
     /* Mock client command */
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     /* Call this function when user is updated by the mock DP request */
@@ -443,7 +505,7 @@ void test_nss_getpwnam_fqdn(void **state)
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_user("testuser_fqdn@"TEST_DOM_NAME);
+    mock_input_user_or_group("testuser_fqdn@"TEST_DOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     mock_fill_user();
 
@@ -492,7 +554,7 @@ void test_nss_getpwnam_fqdn_resize(void **state)
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_user("testuser_fqdn_resize@"TEST_DOM_NAME);
+    mock_input_user_or_group("testuser_fqdn_resize@"TEST_DOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     mock_fill_user();
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -546,6 +608,290 @@ void test_nss_setup(struct sss_test_conf_param params[],
     assert_non_null(nss_test_ctx->cctx);
 }
 
+static int test_nss_getgrnam_check(struct group *expected, struct group *gr, const int nmem)
+{
+    int i;
+
+    assert_int_equal(gr->gr_gid, expected->gr_gid);
+    assert_string_equal(gr->gr_name, expected->gr_name);
+    assert_string_equal(gr->gr_passwd, expected->gr_passwd);
+
+    for (i = 0; i < nmem; i++) {
+        assert_string_equal(gr->gr_mem[i], expected->gr_mem[i]);
+    }
+    return EOK;
+}
+
+static int test_nss_getgrnam_no_members_check(uint8_t *body, size_t blen)
+{
+    int ret;
+    uint32_t nmem;
+    struct group gr;
+    struct group expected = {
+        .gr_gid = 1123,
+        .gr_name = discard_const("testgroup"),
+        .gr_passwd = discard_const("*"),
+        .gr_mem = NULL,
+    };
+
+    ret = parse_group_packet(body, blen, &gr, &nmem);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(nmem, 0);
+
+    ret = test_nss_getgrnam_check(&expected, &gr, nmem);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+/* Test that requesting a valid, cached group with no members returns a valid
+ * group structure
+ */
+void test_nss_getgrnam_no_members(void **state)
+{
+    errno_t ret;
+
+    /* Prime the cache with a valid group */
+    ret = sysdb_add_group(nss_test_ctx->tctx->sysdb,
+                          nss_test_ctx->tctx->dom,
+                          "testgroup", 1123,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testgroup");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    mock_fill_group_with_members(0);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_no_members_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+static int test_nss_getgrnam_members_check(uint8_t *body, size_t blen)
+{
+    int ret;
+    uint32_t nmem;
+    struct group gr;
+    const char *exp_members[] = { "testmember1", "testmember2" };
+    struct group expected = {
+        .gr_gid = 1124,
+        .gr_name = discard_const("testgroup_members"),
+        .gr_passwd = discard_const("*"),
+        .gr_mem = discard_const(exp_members)
+    };
+
+    ret = parse_group_packet(body, blen, &gr, &nmem);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(nmem, 2);
+
+    ret = test_nss_getgrnam_check(&expected, &gr, nmem);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+/* Test that requesting a valid, cached group with some members returns a valid
+ * group structure with those members present
+ */
+void test_nss_getgrnam_members(void **state)
+{
+    errno_t ret;
+
+    /* Prime the cache with a valid group and some members */
+    ret = sysdb_add_group(nss_test_ctx->tctx->sysdb,
+                          nss_test_ctx->tctx->dom,
+                          "testgroup_members", 1124,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
+                         nss_test_ctx->tctx->dom,
+                         "testmember1", 2001, 456, "test member1",
+                         "/home/testmember2", "/bin/sh", NULL,
+                         NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
+                         nss_test_ctx->tctx->dom,
+                         "testmember2", 2002, 456, "test member2",
+                         "/home/testmember2", "/bin/sh", NULL,
+                         NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->sysdb,
+                                 nss_test_ctx->tctx->dom,
+                                 "testgroup_members", "testmember1",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->sysdb,
+                                 nss_test_ctx->tctx->dom,
+                                 "testgroup_members", "testmember2",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testgroup_members");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    mock_fill_group_with_members(2);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_members_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+static int test_nss_getgrnam_members_check_fqdn(uint8_t *body, size_t blen)
+{
+    int ret;
+    uint32_t nmem;
+    struct group gr;
+    const char *exp_members[] = { "testmember1@"TEST_DOM_NAME,
+                                  "testmember2@"TEST_DOM_NAME };
+    struct group expected = {
+        .gr_gid = 1124,
+        .gr_name = discard_const("testgroup_members@"TEST_DOM_NAME),
+        .gr_passwd = discard_const("*"),
+        .gr_mem = discard_const(exp_members)
+    };
+
+    ret = parse_group_packet(body, blen, &gr, &nmem);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(nmem, 2);
+
+    ret = test_nss_getgrnam_check(&expected, &gr, nmem);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+/* Test that requesting a valid, cached group with some members returns a valid
+ * group structure with those members present as fully qualified names
+ */
+void test_nss_getgrnam_members_fqdn(void **state)
+{
+    errno_t ret;
+
+    nss_test_ctx->tctx->dom->fqnames = true;
+
+    mock_input_user_or_group("testgroup_members@"TEST_DOM_NAME);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    mock_fill_group_with_members(2);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_members_check_fqdn);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+
+    /* Restore FQDN settings */
+    nss_test_ctx->tctx->dom->fqnames = false;
+    assert_int_equal(ret, EOK);
+}
+
+static int test_nss_getgrnam_members_check_subdom(uint8_t *body, size_t blen)
+{
+    int ret;
+    uint32_t nmem;
+    struct group gr;
+    const char *exp_members[] = { "submember1@"TEST_SUBDOM_NAME,
+                                  "submember2@"TEST_SUBDOM_NAME };
+    struct group expected = {
+        .gr_gid = 2124,
+        .gr_name = discard_const("testsubdomgroup@"TEST_SUBDOM_NAME),
+        .gr_passwd = discard_const("*"),
+        .gr_mem = discard_const(exp_members)
+    };
+
+    ret = parse_group_packet(body, blen, &gr, &nmem);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(nmem, 2);
+
+    ret = test_nss_getgrnam_check(&expected, &gr, nmem);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+/* Test that requesting a valid, cached group with some members returns a valid
+ * group structure with those members present as fully qualified names
+ */
+void test_nss_getgrnam_members_subdom(void **state)
+{
+    errno_t ret;
+
+    nss_test_ctx->tctx->dom->fqnames = true;
+
+    /* Add a group from a subdomain and two members from the same subdomain
+     */
+    ret = sysdb_add_group(nss_test_ctx->tctx->sysdb,
+                          nss_test_ctx->subdom,
+                          "testsubdomgroup@"TEST_SUBDOM_NAME,
+                          2124, NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
+                         nss_test_ctx->subdom,
+                         "submember1@"TEST_SUBDOM_NAME,
+                         4001, 456, "test subdomain member1",
+                         "/home/submember1", "/bin/sh", NULL,
+                         NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_user(nss_test_ctx->tctx->sysdb,
+                         nss_test_ctx->subdom,
+                         "submember2@"TEST_SUBDOM_NAME,
+                         2002, 456, "test subdomain member2",
+                         "/home/submember2", "/bin/sh", NULL,
+                         NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->sysdb,
+                                 nss_test_ctx->subdom,
+                                 "testsubdomgroup@"TEST_SUBDOM_NAME,
+                                 "submember1@"TEST_SUBDOM_NAME,
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->sysdb,
+                                 nss_test_ctx->subdom,
+                                 "testsubdomgroup@"TEST_SUBDOM_NAME,
+                                 "submember2@"TEST_SUBDOM_NAME,
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+
+    mock_input_user_or_group("testsubdomgroup@"TEST_SUBDOM_NAME);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    mock_fill_group_with_members(2);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_members_check_subdom);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+
+    /* Restore FQDN settings */
+    nss_test_ctx->tctx->dom->fqnames = false;
+    assert_int_equal(ret, EOK);
+}
+
 void nss_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
@@ -565,6 +911,30 @@ void nss_fqdn_test_setup(void **state)
     };
 
     test_nss_setup(params, state);
+}
+
+void nss_subdom_test_setup(void **state)
+{
+    const char *const testdom[4] = { TEST_SUBDOM_NAME, "TEST.SUB", "test", "S-3" };
+    struct sss_domain_info *subdomain;
+    errno_t ret;
+
+    nss_test_setup(state);
+
+    subdomain = new_subdomain(nss_test_ctx, nss_test_ctx->tctx->dom,
+                              testdom[0], testdom[1], testdom[2], testdom[3],
+                              false, false, NULL);
+    assert_non_null(subdomain);
+
+    ret = sysdb_subdomain_store(nss_test_ctx->tctx->sysdb,
+                                testdom[0], testdom[1], testdom[2], testdom[3],
+                                false, false, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(nss_test_ctx->tctx->dom);
+    assert_int_equal(ret, EOK);
+
+    nss_test_ctx->subdom = subdomain;
 }
 
 void nss_fqdn_resize_test_setup(void **state)
@@ -610,6 +980,14 @@ int main(int argc, const char *argv[])
                                  nss_fqdn_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getpwnam_fqdn_resize,
                                  nss_fqdn_resize_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getgrnam_no_members,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getgrnam_members,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getgrnam_members_fqdn,
+                                 nss_fqdn_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getgrnam_members_subdom,
+                                 nss_subdom_test_setup, nss_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
