@@ -2159,6 +2159,52 @@ void nss_update_gr_memcache(struct nss_ctx *nctx)
 #define MNUM_ROFFSET sizeof(uint32_t)
 #define STRS_ROFFSET 2*sizeof(uint32_t)
 
+static int parse_member(TALLOC_CTX *mem_ctx, struct sss_domain_info *group_dom,
+                        const char *member, struct sss_domain_info **_member_dom,
+                        struct sized_string *_name, bool *_add_domain)
+{
+    errno_t ret;
+    char *username;
+    char *domname;
+    const char *use_member;
+    struct sss_domain_info *member_dom;
+    bool add_domain;
+
+    ret = sss_parse_name(mem_ctx, group_dom->names, member, &domname, &username);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not parse [%s] into "
+              "name-value components.\n", member));
+        return ret;
+    }
+
+    add_domain = (!IS_SUBDOMAIN(group_dom) && group_dom->fqnames);
+    use_member = member;
+    member_dom = group_dom;
+
+    if (IS_SUBDOMAIN(group_dom) == false && domname != NULL) {
+        /* The group is stored in the parent domain, but the member comes from.
+         * a subdomain. No need to add the domain component, it's already
+         * present in the memberuid/ghost attribute
+         */
+        add_domain = false;
+    }
+
+    if (IS_SUBDOMAIN(group_dom) == true && domname == NULL) {
+        /* The group is stored in a subdomain, but the member comes
+         * from the parent domain. Need to add the domain component
+         * of the parent domain
+         */
+        add_domain = true;
+        use_member = username;
+        member_dom = group_dom->parent;
+    }
+
+    to_sized_string(_name, use_member);
+    *_add_domain = add_domain;
+    *_member_dom = member_dom;
+    return EOK;
+}
+
 static int fill_members(struct sss_packet *packet,
                         struct sss_domain_info *dom,
                         struct nss_ctx *nctx,
@@ -2182,12 +2228,8 @@ static int fill_members(struct sss_packet *packet,
     size_t blen;
 
     const char *domain = dom->name;
-    bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
-
-    if (add_domain) {
-        delim = 1;
-        dom_len = sss_fqdom_len(dom->names, dom);
-    }
+    bool add_domain;
+    struct sss_domain_info *member_dom;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -2217,7 +2259,20 @@ static int fill_members(struct sss_packet *packet,
             }
         }
 
-        to_sized_string(&name, tmpstr);
+        delim = 0;
+        dom_len = 0;
+
+        ret = parse_member(tmp_ctx, dom, tmpstr, &member_dom, &name, &add_domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("Could not process member %s, skipping\n", tmpstr));
+            continue;
+        }
+
+        if (add_domain) {
+            delim = 1;
+            dom_len = sss_fqdom_len(member_dom->names, member_dom);
+        }
 
         ret = sss_packet_grow(packet, name.len + delim + dom_len);
         if (ret != EOK) {
@@ -2228,7 +2283,7 @@ static int fill_members(struct sss_packet *packet,
         if (add_domain) {
             ret = sss_fqname((char *)&body[rzero + rsize],
                              name.len + delim + dom_len,
-                             dom->names, dom, name.str);
+                             member_dom->names, member_dom, name.str);
             if (ret >= (name.len + delim + dom_len)) {
                 /* need more space,
                  * got creative with the print format ? */
@@ -2243,7 +2298,7 @@ static int fill_members(struct sss_packet *packet,
                 /* retry */
                 ret = sss_fqname((char *)&body[rzero + rsize],
                                 name.len + delim + dom_len,
-                                dom->names, dom, name.str);
+                                member_dom->names, member_dom, name.str);
             }
 
             if (ret != name.len + delim + dom_len - 1) {
