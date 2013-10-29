@@ -1024,6 +1024,12 @@ static void krb5_auth_done(struct tevent_req *subreq)
         ret = EOK;
         goto done;
 
+    case ERR_CHPASS_FAILED:
+        state->pam_status = PAM_AUTHTOK_ERR;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
+
     default:
         state->pam_status = PAM_SYSTEM_ERR;
         state->dp_err = DP_ERR_OK;
