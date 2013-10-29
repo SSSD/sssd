@@ -449,13 +449,6 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ret = sdap_get_group_primary_name(tmpctx, opts, attrs, dom, &group_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get group name\n"));
-        goto done;
-    }
-    DEBUG(SSSDBG_TRACE_FUNC, ("Processing group %s\n", group_name));
-
     /* Always store SID string if available */
     ret = sdap_attrs_get_sid_str(tmpctx, opts->idmap_ctx, attrs,
                               opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
@@ -476,6 +469,24 @@ static int sdap_save_group(TALLOC_CTX *memctx,
                                      strerror(ret)));
         sid_str = NULL;
     }
+
+    /* If this object has a SID available, we will determine the correct
+     * domain by its SID. */
+    if (sid_str != NULL) {
+        dom = find_subdomain_by_sid(get_domains_head(dom), sid_str);
+        if (dom == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("SID %s does not belong to any known "
+                                      "domain\n", sid_str));
+            return ERR_DOMAIN_NOT_FOUND;
+        }
+    }
+
+    ret = sdap_get_group_primary_name(tmpctx, opts, attrs, dom, &group_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get group name\n"));
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_FUNC, ("Processing group %s\n", group_name));
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
                                                                dom->name,
