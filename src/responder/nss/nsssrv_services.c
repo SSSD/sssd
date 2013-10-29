@@ -700,7 +700,7 @@ fill_service(struct sss_packet *packet,
         sss_packet_get_body(packet, &body, &blen);
 
         /* Store the port number */
-        SAFEALIGN_SET_UINT32(&body[rzero + rsize], (uint32_t)htons(port), &rsize);
+        SAFEALIGN_SETMEM_UINT32(&body[rzero + rsize], (uint32_t)htons(port), &rsize);
 
         /* Get the aliases */
         el = ldb_msg_find_element(msg, SYSDB_NAME_ALIAS);
@@ -756,7 +756,7 @@ fill_service(struct sss_packet *packet,
         /* We must not advance rsize here, the data has already been
          * allocated and skipped earlier when aptr was assigned to.
          */
-        SAFEALIGN_SET_UINT32(&body[aptr], written_aliases, NULL);
+        SAFEALIGN_SETMEM_UINT32(&body[aptr], written_aliases, NULL);
 
         num++;
     }
