@@ -26,8 +26,8 @@ PROCESSORS=$(/usr/bin/getconf _NPROCESSORS_ONLN)
 alias fedconfig='../configure \
                      --build=$SSS_ARCH-unknown-linux-gnu \
                      --host=$SSS_ARCH-unknown-linux-gnu \
-                     --target=$SSS_ARCH-redhat-linux-gnu \
-                     --program-prefix= --prefix=/usr \
+                     --program-prefix= \
+                     --prefix=/usr \
                      --exec-prefix=/usr \
                      --bindir=/usr/bin \
                      --sbindir=/usr/sbin \
@@ -46,8 +46,6 @@ alias fedconfig='../configure \
                      --with-initscript=systemd \
                      --with-test-dir=/dev/shm \
                      --enable-all-experimental-features \
-                     --with-default-ccache-dir=/run/user/%U \
-                     --with-default-ccname-template=DIR:%d/ccdir \
                      --cache-file=/tmp/fedconfig.cache \
                      $SSSD_NO_MANPAGES'
 
