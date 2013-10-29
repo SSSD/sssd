@@ -159,8 +159,8 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
 
     mpg = sdap_idmap_domain_has_algorithmic_mapping(
                                              ctx->sdap_id_ctx->opts->idmap_ctx,
-                                             domain->name,
-                                             domain->domain_id);
+                                             name,
+                                             sid_str);
 
     /* AD subdomains are currently all mpg and do not enumerate */
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
