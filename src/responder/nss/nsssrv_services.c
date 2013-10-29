@@ -752,7 +752,11 @@ fill_service(struct sss_packet *packet,
             written_aliases++;
             talloc_zfree(tmpstr);
         }
-        SAFEALIGN_SET_UINT32(&body[aptr], written_aliases, &rsize);
+
+        /* We must not advance rsize here, the data has already been
+         * allocated and skipped earlier when aptr was assigned to.
+         */
+        SAFEALIGN_SET_UINT32(&body[aptr], written_aliases, NULL);
 
         num++;
     }
