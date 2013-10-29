@@ -139,6 +139,38 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto done;
     }
 
+    /* Always store SID string if available */
+    ret = sdap_attrs_get_sid_str(tmpctx, opts->idmap_ctx, attrs,
+                                opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
+                                &sid_str);
+    if (ret == EOK) {
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR, sid_str);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not add SID string: [%s]\n",
+                                         strerror(ret)));
+            goto done;
+        }
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_ALL, ("objectSID: not available for group [%s].\n",
+                                 user_name));
+        sid_str = NULL;
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not identify objectSID: [%s]\n",
+                                     strerror(ret)));
+        sid_str = NULL;
+    }
+
+    /* If this object has a SID available, we will determine the correct
+     * domain by its SID. */
+    if (sid_str != NULL) {
+        dom = find_subdomain_by_sid(get_domains_head(dom), sid_str);
+        if (dom == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("SID %s does not belong to any known "
+                                      "domain\n", sid_str));
+            return ERR_DOMAIN_NOT_FOUND;
+        }
+    }
+
     ret = sdap_get_user_primary_name(memctx, opts, attrs, dom, &user_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed to get user name\n"));
@@ -191,28 +223,6 @@ int sdap_save_user(TALLOC_CTX *memctx,
     if (ret) goto done;
     if (el->num_values == 0) shell = NULL;
     else shell = (const char *)el->values[0].data;
-
-    /* Always store SID string if available */
-    ret = sdap_attrs_get_sid_str(tmpctx, opts->idmap_ctx, attrs,
-                                opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
-                                &sid_str);
-    if (ret == EOK) {
-        ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR, sid_str);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not add SID string: [%s]\n",
-                                         strerror(ret)));
-            goto done;
-        }
-    } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_ALL, ("objectSID: not available for group [%s].\n",
-                                 user_name));
-        sid_str = NULL;
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not identify objectSID: [%s]\n",
-                                     strerror(ret)));
-        sid_str = NULL;
-    }
-
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(opts->idmap_ctx,
                                                                dom->name,
