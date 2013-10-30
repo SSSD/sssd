@@ -891,6 +891,8 @@ libsss_test_common_la_SOURCES = \
     src/tests/common_dom.c \
     src/tests/leak_check.c \
     src/tests/common.c
+libsss_test_common_la_LIBADD = \
+    $(TALLOC_LIBS)
 
 if HAVE_CHECK
 libsss_test_common_la_SOURCES += \
@@ -1352,6 +1354,7 @@ test_sss_idmap_CFLAGS = \
     $(AM_CFLAGS)
 test_sss_idmap_LDADD = \
     $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
     libsss_idmap.la \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
@@ -1363,6 +1366,7 @@ test_utils_CFLAGS = \
     $(AM_CFLAGS)
 test_utils_LDADD = \
     $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
