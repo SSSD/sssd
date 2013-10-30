@@ -134,7 +134,7 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
         talloc_zfree(sdom->search_bases);
         sdom->search_bases = talloc_array(sdom, struct sdap_search_base *, 2);
         if (sdom->search_bases == NULL) {
-            return ret;
+            return ENOMEM;
         }
         sdom->search_bases[1] = NULL;
 
