@@ -8,10 +8,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-09-27 21:05+0200\n"
+"POT-Creation-Date: 2013-10-30 23:22+0100\n"
 "PO-Revision-Date: 2013-08-27 03:30+0000\n"
 "Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
-"Language-Team: Japanese <trans-ja@lists.fedoraproject.org>\n"
+"Language-Team: Japanese (http://www.transifex.com/projects/p/fedora/language/"
+"ja/)\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -308,12 +309,12 @@ msgid "Whether to automatically update the client's DNS entry"
 msgstr "自動的にクライアントの DNS エントリーを更新するかどうか"
 
 #: src/config/SSSDConfig/__init__.py.in:130
-#: src/config/SSSDConfig/__init__.py.in:144
+#: src/config/SSSDConfig/__init__.py.in:145
 msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr "クライアントの DNS 項目を更新後、適用する TTL"
 
 #: src/config/SSSDConfig/__init__.py.in:131
-#: src/config/SSSDConfig/__init__.py.in:145
+#: src/config/SSSDConfig/__init__.py.in:146
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr "動的 DNS 更新のために使用される IP のインターフェース"
 
@@ -338,273 +339,278 @@ msgstr "DNS 更新を実行するために使用すべき認証の種類"
 msgid "Control enumeration of trusted domains"
 msgstr ""
 
-#: src/config/SSSDConfig/__init__.py.in:139
+#: src/config/SSSDConfig/__init__.py.in:137
+#, fuzzy
+msgid "How often should subdomains list be refreshed"
+msgstr "期限切れのエントリーがバックグラウンドで更新される頻度"
+
+#: src/config/SSSDConfig/__init__.py.in:140
 msgid "IPA domain"
 msgstr "IPA ドメイン"
 
-#: src/config/SSSDConfig/__init__.py.in:140
+#: src/config/SSSDConfig/__init__.py.in:141
 msgid "IPA server address"
 msgstr "IPA サーバーのアドレス"
 
-#: src/config/SSSDConfig/__init__.py.in:141
+#: src/config/SSSDConfig/__init__.py.in:142
 msgid "Address of backup IPA server"
 msgstr "バックアップ IPA サーバーのアドレス"
 
-#: src/config/SSSDConfig/__init__.py.in:142
+#: src/config/SSSDConfig/__init__.py.in:143
 msgid "IPA client hostname"
 msgstr "IPA クライアントのホスト名"
 
-#: src/config/SSSDConfig/__init__.py.in:143
+#: src/config/SSSDConfig/__init__.py.in:144
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr "FreeIPA にあるクライアントの DNS エントリーを自動的に更新するかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:146
+#: src/config/SSSDConfig/__init__.py.in:147
 msgid "Search base for HBAC related objects"
 msgstr "HBAC 関連オブジェクトの検索ベース"
 
-#: src/config/SSSDConfig/__init__.py.in:147
+#: src/config/SSSDConfig/__init__.py.in:148
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr "IPA サーバーに対する HBAC ルールを検索している間の合計時間"
 
-#: src/config/SSSDConfig/__init__.py.in:148
+#: src/config/SSSDConfig/__init__.py.in:149
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
 msgstr "IPA サーバーに対する SELinux マップの検索の間の秒単位の合計時間"
 
-#: src/config/SSSDConfig/__init__.py.in:149
+#: src/config/SSSDConfig/__init__.py.in:150
 msgid "If DENY rules are present, either DENY_ALL or IGNORE"
 msgstr "DENY ルールが存在すると、DENY_ALL または IGNORE です"
 
-#: src/config/SSSDConfig/__init__.py.in:150
+#: src/config/SSSDConfig/__init__.py.in:151
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr "もし偽に設定されていると、 PAM により渡されたホスト引数は無視されます"
 
-#: src/config/SSSDConfig/__init__.py.in:151
+#: src/config/SSSDConfig/__init__.py.in:152
 msgid "The automounter location this IPA client is using"
 msgstr "この IPA クライアントが使用している automounter の場所"
 
-#: src/config/SSSDConfig/__init__.py.in:152
+#: src/config/SSSDConfig/__init__.py.in:153
 msgid "Search base for object containing info about IPA domain"
 msgstr "IPA ドメインに関する情報を含むオブジェクトに対する検索ベース"
 
-#: src/config/SSSDConfig/__init__.py.in:153
+#: src/config/SSSDConfig/__init__.py.in:154
 msgid "Search base for objects containing info about ID ranges"
 msgstr "ID 範囲に関する情報を含むオブジェクトに対する検索ベース"
 
-#: src/config/SSSDConfig/__init__.py.in:154
-#: src/config/SSSDConfig/__init__.py.in:161
+#: src/config/SSSDConfig/__init__.py.in:155
+#: src/config/SSSDConfig/__init__.py.in:162
 msgid "Enable DNS sites - location based service discovery"
 msgstr "DNS サイトの有効化 - 位置にサービス探索"
 
-#: src/config/SSSDConfig/__init__.py.in:157
+#: src/config/SSSDConfig/__init__.py.in:158
 msgid "Active Directory domain"
 msgstr "Active Directory ドメイン"
 
-#: src/config/SSSDConfig/__init__.py.in:158
+#: src/config/SSSDConfig/__init__.py.in:159
 msgid "Active Directory server address"
 msgstr "Active Directory サーバーアドレス"
 
-#: src/config/SSSDConfig/__init__.py.in:159
+#: src/config/SSSDConfig/__init__.py.in:160
 msgid "Active Directory backup server address"
 msgstr "Active Directory バックアップサーバーのアドレス"
 
-#: src/config/SSSDConfig/__init__.py.in:160
+#: src/config/SSSDConfig/__init__.py.in:161
 msgid "Active Directory client hostname"
 msgstr "Active Directory クライアントホスト名"
 
-#: src/config/SSSDConfig/__init__.py.in:164
 #: src/config/SSSDConfig/__init__.py.in:165
+#: src/config/SSSDConfig/__init__.py.in:166
 msgid "Kerberos server address"
 msgstr "Kerberos サーバーのアドレス"
 
-#: src/config/SSSDConfig/__init__.py.in:166
+#: src/config/SSSDConfig/__init__.py.in:167
 msgid "Kerberos backup server address"
 msgstr "Kerberos バックアップサーバーのアドレス"
 
-#: src/config/SSSDConfig/__init__.py.in:167
+#: src/config/SSSDConfig/__init__.py.in:168
 msgid "Kerberos realm"
 msgstr "Kerberos レルム"
 
-#: src/config/SSSDConfig/__init__.py.in:168
+#: src/config/SSSDConfig/__init__.py.in:169
 msgid "Authentication timeout"
 msgstr "認証のタイムアウト"
 
-#: src/config/SSSDConfig/__init__.py.in:169
+#: src/config/SSSDConfig/__init__.py.in:170
 msgid "Whether to create kdcinfo files"
 msgstr "kdcinfo ファイルを作成するかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:172
+#: src/config/SSSDConfig/__init__.py.in:173
 msgid "Directory to store credential caches"
 msgstr "クレディンシャルのキャッシュを保存するディレクトリー"
 
-#: src/config/SSSDConfig/__init__.py.in:173
+#: src/config/SSSDConfig/__init__.py.in:174
 msgid "Location of the user's credential cache"
 msgstr "ユーザーのクレディンシャルキャッシュの位置"
 
-#: src/config/SSSDConfig/__init__.py.in:174
+#: src/config/SSSDConfig/__init__.py.in:175
 msgid "Location of the keytab to validate credentials"
 msgstr "クレディンシャルを検証するキーテーブルの場所"
 
-#: src/config/SSSDConfig/__init__.py.in:175
+#: src/config/SSSDConfig/__init__.py.in:176
 msgid "Enable credential validation"
 msgstr "クレディンシャルの検証を有効にする"
 
-#: src/config/SSSDConfig/__init__.py.in:176
+#: src/config/SSSDConfig/__init__.py.in:177
 msgid "Store password if offline for later online authentication"
 msgstr "後からオンライン認証するためにオフラインの場合にパスワードを保存します"
 
-#: src/config/SSSDConfig/__init__.py.in:177
+#: src/config/SSSDConfig/__init__.py.in:178
 msgid "Renewable lifetime of the TGT"
 msgstr "更新可能な TGT の有効期間"
 
-#: src/config/SSSDConfig/__init__.py.in:178
+#: src/config/SSSDConfig/__init__.py.in:179
 msgid "Lifetime of the TGT"
 msgstr "TGT の有効期間"
 
-#: src/config/SSSDConfig/__init__.py.in:179
+#: src/config/SSSDConfig/__init__.py.in:180
 msgid "Time between two checks for renewal"
 msgstr "更新を確認する間隔"
 
-#: src/config/SSSDConfig/__init__.py.in:180
+#: src/config/SSSDConfig/__init__.py.in:181
 msgid "Enables FAST"
 msgstr "FAST を有効にする"
 
-#: src/config/SSSDConfig/__init__.py.in:181
+#: src/config/SSSDConfig/__init__.py.in:182
 msgid "Selects the principal to use for FAST"
 msgstr "FAST に使用するプリンシパルを選択する"
 
-#: src/config/SSSDConfig/__init__.py.in:182
+#: src/config/SSSDConfig/__init__.py.in:183
 msgid "Enables principal canonicalization"
 msgstr "プリンシパル正規化を有効にする"
 
-#: src/config/SSSDConfig/__init__.py.in:183
+#: src/config/SSSDConfig/__init__.py.in:184
 msgid "Enables enterprise principals"
 msgstr "エンタープライズ・プリンシパルの有効化"
 
-#: src/config/SSSDConfig/__init__.py.in:186
 #: src/config/SSSDConfig/__init__.py.in:187
+#: src/config/SSSDConfig/__init__.py.in:188
 msgid "Server where the change password service is running if not on the KDC"
 msgstr "KDC になければ、パスワード変更サービスが実行されているサーバー"
 
-#: src/config/SSSDConfig/__init__.py.in:190
+#: src/config/SSSDConfig/__init__.py.in:191
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, LDAP サーバーの URI"
 
-#: src/config/SSSDConfig/__init__.py.in:191
+#: src/config/SSSDConfig/__init__.py.in:192
 msgid "ldap_backup_uri, The URI of the LDAP server"
 msgstr "ldap_backup_uri, LDAP サーバーの URI"
 
-#: src/config/SSSDConfig/__init__.py.in:192
+#: src/config/SSSDConfig/__init__.py.in:193
 msgid "The default base DN"
 msgstr "デフォルトのベース DN"
 
-#: src/config/SSSDConfig/__init__.py.in:193
+#: src/config/SSSDConfig/__init__.py.in:194
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "LDAP サーバーにおいて使用中のスキーマ形式, rfc2307"
 
-#: src/config/SSSDConfig/__init__.py.in:194
+#: src/config/SSSDConfig/__init__.py.in:195
 msgid "The default bind DN"
 msgstr "デフォルトのバインド DN"
 
-#: src/config/SSSDConfig/__init__.py.in:195
+#: src/config/SSSDConfig/__init__.py.in:196
 msgid "The type of the authentication token of the default bind DN"
 msgstr "デフォルトのバインド DN の認証トークンの種類"
 
-#: src/config/SSSDConfig/__init__.py.in:196
+#: src/config/SSSDConfig/__init__.py.in:197
 msgid "The authentication token of the default bind DN"
 msgstr "デフォルトのバインド DN の認証トークン"
 
-#: src/config/SSSDConfig/__init__.py.in:197
+#: src/config/SSSDConfig/__init__.py.in:198
 msgid "Length of time to attempt connection"
 msgstr "接続を試行する時間"
 
-#: src/config/SSSDConfig/__init__.py.in:198
+#: src/config/SSSDConfig/__init__.py.in:199
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "LDAP 同期操作を試行する時間"
 
-#: src/config/SSSDConfig/__init__.py.in:199
+#: src/config/SSSDConfig/__init__.py.in:200
 msgid "Length of time between attempts to reconnect while offline"
 msgstr "オフラインの間に再接続を試行する時間"
 
-#: src/config/SSSDConfig/__init__.py.in:200
+#: src/config/SSSDConfig/__init__.py.in:201
 msgid "Use only the upper case for realm names"
 msgstr "レルム名に対して大文字のみを使用する"
 
-#: src/config/SSSDConfig/__init__.py.in:201
+#: src/config/SSSDConfig/__init__.py.in:202
 msgid "File that contains CA certificates"
 msgstr "CA 証明書を含むファイル"
 
-#: src/config/SSSDConfig/__init__.py.in:202
+#: src/config/SSSDConfig/__init__.py.in:203
 msgid "Path to CA certificate directory"
 msgstr "CA 証明書のディレクトリーのパス"
 
-#: src/config/SSSDConfig/__init__.py.in:203
+#: src/config/SSSDConfig/__init__.py.in:204
 msgid "File that contains the client certificate"
 msgstr "クライアント証明書を含むファイル"
 
-#: src/config/SSSDConfig/__init__.py.in:204
+#: src/config/SSSDConfig/__init__.py.in:205
 msgid "File that contains the client key"
 msgstr "クライアントの鍵を含むファイル"
 
-#: src/config/SSSDConfig/__init__.py.in:205
+#: src/config/SSSDConfig/__init__.py.in:206
 msgid "List of possible ciphers suites"
 msgstr "利用可能な暗号の一覧"
 
-#: src/config/SSSDConfig/__init__.py.in:206
+#: src/config/SSSDConfig/__init__.py.in:207
 msgid "Require TLS certificate verification"
 msgstr "TLS 証明書の検証を要求する"
 
-#: src/config/SSSDConfig/__init__.py.in:207
+#: src/config/SSSDConfig/__init__.py.in:208
 msgid "Specify the sasl mechanism to use"
 msgstr "使用する SASL メカニズムを指定する"
 
-#: src/config/SSSDConfig/__init__.py.in:208
+#: src/config/SSSDConfig/__init__.py.in:209
 msgid "Specify the sasl authorization id to use"
 msgstr "使用する SASL 認可 ID を指定する"
 
-#: src/config/SSSDConfig/__init__.py.in:209
+#: src/config/SSSDConfig/__init__.py.in:210
 msgid "Specify the sasl authorization realm to use"
 msgstr "使用する SASL 認可レルムを指定する"
 
-#: src/config/SSSDConfig/__init__.py.in:210
+#: src/config/SSSDConfig/__init__.py.in:211
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr "LDAP SASL 認可の最小 SSF を指定する"
 
-#: src/config/SSSDConfig/__init__.py.in:211
+#: src/config/SSSDConfig/__init__.py.in:212
 msgid "Kerberos service keytab"
 msgstr "Kerberos サービスのキーテーブル"
 
-#: src/config/SSSDConfig/__init__.py.in:212
+#: src/config/SSSDConfig/__init__.py.in:213
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "LDAP 接続に対して Kerberos 認証を使用する"
 
-#: src/config/SSSDConfig/__init__.py.in:213
+#: src/config/SSSDConfig/__init__.py.in:214
 msgid "Follow LDAP referrals"
 msgstr "LDAP リフェラルにしたがう"
 
-#: src/config/SSSDConfig/__init__.py.in:214
+#: src/config/SSSDConfig/__init__.py.in:215
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "LDAP 接続の TGT の有効期間"
 
-#: src/config/SSSDConfig/__init__.py.in:215
+#: src/config/SSSDConfig/__init__.py.in:216
 msgid "How to dereference aliases"
 msgstr "エイリアスを参照解決する方法"
 
-#: src/config/SSSDConfig/__init__.py.in:216
+#: src/config/SSSDConfig/__init__.py.in:217
 msgid "Service name for DNS service lookups"
 msgstr "DNS サービス検索のサービス名"
 
-#: src/config/SSSDConfig/__init__.py.in:217
+#: src/config/SSSDConfig/__init__.py.in:218
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr "単一の LDAP 問い合わせにおいて取得するレコード数"
 
-#: src/config/SSSDConfig/__init__.py.in:218
+#: src/config/SSSDConfig/__init__.py.in:219
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr "完全な参照解決を引き起こすために欠けている必要があるメンバーの数"
 
-#: src/config/SSSDConfig/__init__.py.in:219
+#: src/config/SSSDConfig/__init__.py.in:220
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
@@ -612,372 +618,372 @@ msgstr ""
 "LDAP ライブラリーが SASL バインド中にホスト名を正規化するために逆引きを実行す"
 "るかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:221
+#: src/config/SSSDConfig/__init__.py.in:222
 msgid "entryUSN attribute"
 msgstr "entryUSN 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:222
+#: src/config/SSSDConfig/__init__.py.in:223
 msgid "lastUSN attribute"
 msgstr "lastUSN 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:224
+#: src/config/SSSDConfig/__init__.py.in:225
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr "LDAP サーバーを切断する前に接続を保持する時間"
 
-#: src/config/SSSDConfig/__init__.py.in:226
+#: src/config/SSSDConfig/__init__.py.in:227
 msgid "Disable the LDAP paging control"
 msgstr "LDAP ページング制御を無効化する"
 
-#: src/config/SSSDConfig/__init__.py.in:227
+#: src/config/SSSDConfig/__init__.py.in:228
 msgid "Disable Active Directory range retrieval"
 msgstr "Active Directory 範囲の取得の無効化"
 
-#: src/config/SSSDConfig/__init__.py.in:230
+#: src/config/SSSDConfig/__init__.py.in:231
 msgid "Length of time to wait for a search request"
 msgstr "検索要求を待つ時間"
 
-#: src/config/SSSDConfig/__init__.py.in:231
+#: src/config/SSSDConfig/__init__.py.in:232
 msgid "Length of time to wait for a enumeration request"
 msgstr "列挙の要求を待つ時間"
 
-#: src/config/SSSDConfig/__init__.py.in:232
+#: src/config/SSSDConfig/__init__.py.in:233
 msgid "Length of time between enumeration updates"
 msgstr "列挙の更新間隔"
 
-#: src/config/SSSDConfig/__init__.py.in:233
+#: src/config/SSSDConfig/__init__.py.in:234
 msgid "Length of time between cache cleanups"
 msgstr "キャッシュをクリーンアップする間隔"
 
-#: src/config/SSSDConfig/__init__.py.in:234
+#: src/config/SSSDConfig/__init__.py.in:235
 msgid "Require TLS for ID lookups"
 msgstr "ID 検索に TLS を要求する"
 
-#: src/config/SSSDConfig/__init__.py.in:235
+#: src/config/SSSDConfig/__init__.py.in:236
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
 msgstr "事前設定済み ID の代わりに objectSID の ID マッピングを使用します"
 
-#: src/config/SSSDConfig/__init__.py.in:236
+#: src/config/SSSDConfig/__init__.py.in:237
 msgid "Base DN for user lookups"
 msgstr "ユーザー検索のベース DN"
 
-#: src/config/SSSDConfig/__init__.py.in:237
+#: src/config/SSSDConfig/__init__.py.in:238
 msgid "Scope of user lookups"
 msgstr "ユーザー検索の範囲"
 
-#: src/config/SSSDConfig/__init__.py.in:238
+#: src/config/SSSDConfig/__init__.py.in:239
 msgid "Filter for user lookups"
 msgstr "ユーザー検索のフィルター"
 
-#: src/config/SSSDConfig/__init__.py.in:239
+#: src/config/SSSDConfig/__init__.py.in:240
 msgid "Objectclass for users"
 msgstr "ユーザーのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:240
+#: src/config/SSSDConfig/__init__.py.in:241
 msgid "Username attribute"
 msgstr "ユーザー名の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:242
+#: src/config/SSSDConfig/__init__.py.in:243
 msgid "UID attribute"
 msgstr "UID の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:243
+#: src/config/SSSDConfig/__init__.py.in:244
 msgid "Primary GID attribute"
 msgstr "プライマリー GID の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:244
+#: src/config/SSSDConfig/__init__.py.in:245
 msgid "GECOS attribute"
 msgstr "GECOS の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:245
+#: src/config/SSSDConfig/__init__.py.in:246
 msgid "Home directory attribute"
 msgstr "ホームディレクトリの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:246
+#: src/config/SSSDConfig/__init__.py.in:247
 msgid "Shell attribute"
 msgstr "シェルの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:247
+#: src/config/SSSDConfig/__init__.py.in:248
 msgid "UUID attribute"
 msgstr "UUID の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:248
-#: src/config/SSSDConfig/__init__.py.in:284
+#: src/config/SSSDConfig/__init__.py.in:249
+#: src/config/SSSDConfig/__init__.py.in:285
 msgid "objectSID attribute"
 msgstr "objectSID 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:249
+#: src/config/SSSDConfig/__init__.py.in:250
 msgid "Active Directory primary group attribute for ID-mapping"
 msgstr "ID マッピングの Active Directory プライマリーグループ属性"
 
-#: src/config/SSSDConfig/__init__.py.in:250
+#: src/config/SSSDConfig/__init__.py.in:251
 msgid "User principal attribute (for Kerberos)"
 msgstr "ユーザープリンシパルの属性（Kerberos 用）"
 
-#: src/config/SSSDConfig/__init__.py.in:251
+#: src/config/SSSDConfig/__init__.py.in:252
 msgid "Full Name"
 msgstr "氏名"
 
-#: src/config/SSSDConfig/__init__.py.in:252
+#: src/config/SSSDConfig/__init__.py.in:253
 msgid "memberOf attribute"
 msgstr "memberOf 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:253
+#: src/config/SSSDConfig/__init__.py.in:254
 msgid "Modification time attribute"
 msgstr "変更日時の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:255
+#: src/config/SSSDConfig/__init__.py.in:256
 msgid "shadowLastChange attribute"
 msgstr "shadowLastChange 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:256
+#: src/config/SSSDConfig/__init__.py.in:257
 msgid "shadowMin attribute"
 msgstr "shadowMin 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:257
+#: src/config/SSSDConfig/__init__.py.in:258
 msgid "shadowMax attribute"
 msgstr "shadowMax 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:258
+#: src/config/SSSDConfig/__init__.py.in:259
 msgid "shadowWarning attribute"
 msgstr "shadowWarning 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:259
+#: src/config/SSSDConfig/__init__.py.in:260
 msgid "shadowInactive attribute"
 msgstr "shadowInactive 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:260
+#: src/config/SSSDConfig/__init__.py.in:261
 msgid "shadowExpire attribute"
 msgstr "shadowExpire 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:261
+#: src/config/SSSDConfig/__init__.py.in:262
 msgid "shadowFlag attribute"
 msgstr "shadowFlag 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:262
+#: src/config/SSSDConfig/__init__.py.in:263
 msgid "Attribute listing authorized PAM services"
 msgstr "認可された PAM サービスを一覧化する属性"
 
-#: src/config/SSSDConfig/__init__.py.in:263
+#: src/config/SSSDConfig/__init__.py.in:264
 msgid "Attribute listing authorized server hosts"
 msgstr "認可されたサーバーホストを一覧化する属性"
 
-#: src/config/SSSDConfig/__init__.py.in:264
+#: src/config/SSSDConfig/__init__.py.in:265
 msgid "krbLastPwdChange attribute"
 msgstr "krbLastPwdChange 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:265
+#: src/config/SSSDConfig/__init__.py.in:266
 msgid "krbPasswordExpiration attribute"
 msgstr "krbPasswordExpiration 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:266
+#: src/config/SSSDConfig/__init__.py.in:267
 msgid "Attribute indicating that server side password policies are active"
 msgstr "サーバー側パスワードポリシーが有効であることを意味する属性"
 
-#: src/config/SSSDConfig/__init__.py.in:267
+#: src/config/SSSDConfig/__init__.py.in:268
 msgid "accountExpires attribute of AD"
 msgstr "AD の accountExpires 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:268
+#: src/config/SSSDConfig/__init__.py.in:269
 msgid "userAccountControl attribute of AD"
 msgstr "AD の userAccountControl 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:269
+#: src/config/SSSDConfig/__init__.py.in:270
 msgid "nsAccountLock attribute"
 msgstr "nsAccountLock 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:270
+#: src/config/SSSDConfig/__init__.py.in:271
 msgid "loginDisabled attribute of NDS"
 msgstr "NDS の loginDisabled 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:271
+#: src/config/SSSDConfig/__init__.py.in:272
 msgid "loginExpirationTime attribute of NDS"
 msgstr "NDS の loginExpirationTime 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:272
+#: src/config/SSSDConfig/__init__.py.in:273
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr "NDS の loginAllowedTimeMap 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:273
+#: src/config/SSSDConfig/__init__.py.in:274
 msgid "SSH public key attribute"
 msgstr "SSH 公開鍵の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:275
+#: src/config/SSSDConfig/__init__.py.in:276
 msgid "Base DN for group lookups"
 msgstr "グループ検索のベース DN"
 
-#: src/config/SSSDConfig/__init__.py.in:278
+#: src/config/SSSDConfig/__init__.py.in:279
 msgid "Objectclass for groups"
 msgstr "グループのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:279
+#: src/config/SSSDConfig/__init__.py.in:280
 msgid "Group name"
 msgstr "グループ名"
 
-#: src/config/SSSDConfig/__init__.py.in:280
+#: src/config/SSSDConfig/__init__.py.in:281
 msgid "Group password"
 msgstr "グループのパスワード"
 
-#: src/config/SSSDConfig/__init__.py.in:281
+#: src/config/SSSDConfig/__init__.py.in:282
 msgid "GID attribute"
 msgstr "GID 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:282
+#: src/config/SSSDConfig/__init__.py.in:283
 msgid "Group member attribute"
 msgstr "グループメンバー属性"
 
-#: src/config/SSSDConfig/__init__.py.in:283
+#: src/config/SSSDConfig/__init__.py.in:284
 msgid "Group UUID attribute"
 msgstr "グループ UUID 属性"
 
-#: src/config/SSSDConfig/__init__.py.in:285
+#: src/config/SSSDConfig/__init__.py.in:286
 msgid "Modification time attribute for groups"
 msgstr "グループの変更日時の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:287
+#: src/config/SSSDConfig/__init__.py.in:288
 msgid "Maximum nesting level SSSd will follow"
 msgstr "SSSd がしたがう最大入れ子レベル"
 
-#: src/config/SSSDConfig/__init__.py.in:289
+#: src/config/SSSDConfig/__init__.py.in:290
 msgid "Base DN for netgroup lookups"
 msgstr "ネットグループ検索のベース DN"
 
-#: src/config/SSSDConfig/__init__.py.in:290
+#: src/config/SSSDConfig/__init__.py.in:291
 msgid "Objectclass for netgroups"
 msgstr "ネットグループのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:291
+#: src/config/SSSDConfig/__init__.py.in:292
 msgid "Netgroup name"
 msgstr "ネットグループ名"
 
-#: src/config/SSSDConfig/__init__.py.in:292
+#: src/config/SSSDConfig/__init__.py.in:293
 msgid "Netgroups members attribute"
 msgstr "ネットグループメンバーの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:293
+#: src/config/SSSDConfig/__init__.py.in:294
 msgid "Netgroup triple attribute"
 msgstr "ネットグループの三つ組の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:294
+#: src/config/SSSDConfig/__init__.py.in:295
 msgid "Netgroup UUID attribute"
 msgstr "ネットグループ UUID の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:295
+#: src/config/SSSDConfig/__init__.py.in:296
 msgid "Modification time attribute for netgroups"
 msgstr "ネットグループの変更日時の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:297
+#: src/config/SSSDConfig/__init__.py.in:298
 msgid "Base DN for service lookups"
 msgstr "サービス検索のベース DN"
 
-#: src/config/SSSDConfig/__init__.py.in:298
+#: src/config/SSSDConfig/__init__.py.in:299
 msgid "Objectclass for services"
 msgstr "サービスのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:299
+#: src/config/SSSDConfig/__init__.py.in:300
 msgid "Service name attribute"
 msgstr "サービス名の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:300
+#: src/config/SSSDConfig/__init__.py.in:301
 msgid "Service port attribute"
 msgstr "サービスポートの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:301
+#: src/config/SSSDConfig/__init__.py.in:302
 msgid "Service protocol attribute"
 msgstr "サービスプロトコルの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:304
+#: src/config/SSSDConfig/__init__.py.in:305
 msgid "Lower bound for ID-mapping"
 msgstr "ID マッピングの下限"
 
-#: src/config/SSSDConfig/__init__.py.in:305
+#: src/config/SSSDConfig/__init__.py.in:306
 msgid "Upper bound for ID-mapping"
 msgstr "ID マッピングの上限"
 
-#: src/config/SSSDConfig/__init__.py.in:306
+#: src/config/SSSDConfig/__init__.py.in:307
 msgid "Number of IDs for each slice when ID-mapping"
 msgstr "ID マッピングするとき、各スライスに対する ID の数"
 
-#: src/config/SSSDConfig/__init__.py.in:307
+#: src/config/SSSDConfig/__init__.py.in:308
 msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr "ID マッピングに対する autorid 互換アルゴリズムを使用します"
 
-#: src/config/SSSDConfig/__init__.py.in:308
+#: src/config/SSSDConfig/__init__.py.in:309
 msgid "Name of the default domain for ID-mapping"
 msgstr "ID マッピングに対するデフォルトドメインの名前"
 
-#: src/config/SSSDConfig/__init__.py.in:309
+#: src/config/SSSDConfig/__init__.py.in:310
 msgid "SID of the default domain for ID-mapping"
 msgstr "ID マッピングに対するデフォルトドメインの SID"
 
-#: src/config/SSSDConfig/__init__.py.in:311
+#: src/config/SSSDConfig/__init__.py.in:312
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
 msgstr "グループ検索のために LDAP_MATCHING_RULE_IN_CHAIN を使用します"
 
-#: src/config/SSSDConfig/__init__.py.in:312
+#: src/config/SSSDConfig/__init__.py.in:313
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr "初期グループの検索のために LDAP_MATCHING_RULE_IN_CHAIN を使用します"
 
-#: src/config/SSSDConfig/__init__.py.in:313
+#: src/config/SSSDConfig/__init__.py.in:314
 msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr "LDAP サーバーから許可される ID の下限の設定"
 
-#: src/config/SSSDConfig/__init__.py.in:314
+#: src/config/SSSDConfig/__init__.py.in:315
 msgid "Set upper boundary for allowed IDs from the LDAP server"
 msgstr "LDAP サーバーから許可される ID の上限の設定"
 
-#: src/config/SSSDConfig/__init__.py.in:317
+#: src/config/SSSDConfig/__init__.py.in:318
 msgid "Policy to evaluate the password expiration"
 msgstr "パスワード失効の評価のポリシー"
 
-#: src/config/SSSDConfig/__init__.py.in:320
+#: src/config/SSSDConfig/__init__.py.in:321
 msgid "LDAP filter to determine access privileges"
 msgstr "アクセス権限を決めるための LDAP フィルター"
 
-#: src/config/SSSDConfig/__init__.py.in:321
+#: src/config/SSSDConfig/__init__.py.in:322
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr "どの属性がアカウントが失効しているかを評価するために使用されるか"
 
-#: src/config/SSSDConfig/__init__.py.in:322
+#: src/config/SSSDConfig/__init__.py.in:323
 msgid "Which rules should be used to evaluate access control"
 msgstr "どのルールがアクセス制御を評価するために使用されるか"
 
-#: src/config/SSSDConfig/__init__.py.in:325
+#: src/config/SSSDConfig/__init__.py.in:326
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "パスワードの変更が許可される LDAP サーバーの URI"
 
-#: src/config/SSSDConfig/__init__.py.in:326
+#: src/config/SSSDConfig/__init__.py.in:327
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "パスワードの変更が許可されるバックアップ LDAP サーバーの URI"
 
-#: src/config/SSSDConfig/__init__.py.in:327
+#: src/config/SSSDConfig/__init__.py.in:328
 msgid "DNS service name for LDAP password change server"
 msgstr "LDAP パスワードの変更サーバーの DNS サービス名"
 
-#: src/config/SSSDConfig/__init__.py.in:328
+#: src/config/SSSDConfig/__init__.py.in:329
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
 msgstr "パスワード変更後 ldap_user_shadow_last_change 属性を更新するかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:331
+#: src/config/SSSDConfig/__init__.py.in:332
 msgid "Base DN for sudo rules lookups"
 msgstr "sudo ルール検索のベース DN"
 
-#: src/config/SSSDConfig/__init__.py.in:332
+#: src/config/SSSDConfig/__init__.py.in:333
 msgid "Automatic full refresh period"
 msgstr "自動的な完全更新間隔"
 
-#: src/config/SSSDConfig/__init__.py.in:333
+#: src/config/SSSDConfig/__init__.py.in:334
 msgid "Automatic smart refresh period"
 msgstr "自動的なスマート更新間隔"
 
-#: src/config/SSSDConfig/__init__.py.in:334
+#: src/config/SSSDConfig/__init__.py.in:335
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
 "ホスト名、IP アドレスおよびネットワークによるフィルタールールを使用するかどう"
 "か"
 
-#: src/config/SSSDConfig/__init__.py.in:335
+#: src/config/SSSDConfig/__init__.py.in:336
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -985,114 +991,114 @@ msgstr ""
 "sudo ルールをフィルターするこのマシンのホスト名および/または完全修飾ドメイン"
 "名"
 
-#: src/config/SSSDConfig/__init__.py.in:336
+#: src/config/SSSDConfig/__init__.py.in:337
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "sudo ルールをフィルターするこのマシンの IPv4 または IPv6 アドレスまたはネット"
 "ワーク"
 
-#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:338
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr "ホスト属性にネットワークグループを含むルールを含めるかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:338
+#: src/config/SSSDConfig/__init__.py.in:339
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr "ホスト属性に正規表現を含むルールを含めるかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:339
+#: src/config/SSSDConfig/__init__.py.in:340
 msgid "Object class for sudo rules"
 msgstr "sudo ルールのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:340
+#: src/config/SSSDConfig/__init__.py.in:341
 msgid "Sudo rule name"
 msgstr "sudo ルール名"
 
-#: src/config/SSSDConfig/__init__.py.in:341
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "Sudo rule command attribute"
 msgstr "sudo ルールのコマンドの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:342
+#: src/config/SSSDConfig/__init__.py.in:343
 msgid "Sudo rule host attribute"
 msgstr "sudo ルールのホストの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:343
+#: src/config/SSSDConfig/__init__.py.in:344
 msgid "Sudo rule user attribute"
 msgstr "sudo ルールのユーザーの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:344
+#: src/config/SSSDConfig/__init__.py.in:345
 msgid "Sudo rule option attribute"
 msgstr "sudo ルールのオプションの属性"
 
-#: src/config/SSSDConfig/__init__.py.in:345
+#: src/config/SSSDConfig/__init__.py.in:346
 msgid "Sudo rule runasuser attribute"
 msgstr "sudo ルールの runasuser の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:346
+#: src/config/SSSDConfig/__init__.py.in:347
 msgid "Sudo rule runasgroup attribute"
 msgstr "sudo ルールの runasgroup の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:347
+#: src/config/SSSDConfig/__init__.py.in:348
 msgid "Sudo rule notbefore attribute"
 msgstr "sudo ルールの notbefore の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:348
+#: src/config/SSSDConfig/__init__.py.in:349
 msgid "Sudo rule notafter attribute"
 msgstr "sudo ルールの notafter の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:349
+#: src/config/SSSDConfig/__init__.py.in:350
 msgid "Sudo rule order attribute"
 msgstr "sudo ルールの order の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:352
+#: src/config/SSSDConfig/__init__.py.in:353
 msgid "Object class for automounter maps"
 msgstr "automounter マップのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:353
+#: src/config/SSSDConfig/__init__.py.in:354
 msgid "Automounter map name attribute"
 msgstr "オートマウントのマップ名の属性"
 
-#: src/config/SSSDConfig/__init__.py.in:354
+#: src/config/SSSDConfig/__init__.py.in:355
 msgid "Object class for automounter map entries"
 msgstr "automounter マップエントリーのオブジェクトクラス"
 
-#: src/config/SSSDConfig/__init__.py.in:355
+#: src/config/SSSDConfig/__init__.py.in:356
 msgid "Automounter map entry key attribute"
 msgstr "automounter マップエントリーのキー属性"
 
-#: src/config/SSSDConfig/__init__.py.in:356
+#: src/config/SSSDConfig/__init__.py.in:357
 msgid "Automounter map entry value attribute"
 msgstr "automounter マップエントリーの値属性"
 
-#: src/config/SSSDConfig/__init__.py.in:357
+#: src/config/SSSDConfig/__init__.py.in:358
 msgid "Base DN for automounter map lookups"
 msgstr "automonter のマップ検索のベース DN"
 
-#: src/config/SSSDConfig/__init__.py.in:360
+#: src/config/SSSDConfig/__init__.py.in:361
 msgid "Comma separated list of allowed users"
 msgstr "許可ユーザーのカンマ区切り一覧"
 
-#: src/config/SSSDConfig/__init__.py.in:361
+#: src/config/SSSDConfig/__init__.py.in:362
 msgid "Comma separated list of prohibited users"
 msgstr "禁止ユーザーのカンマ区切り一覧"
 
-#: src/config/SSSDConfig/__init__.py.in:364
+#: src/config/SSSDConfig/__init__.py.in:365
 msgid "Default shell, /bin/bash"
 msgstr "デフォルトのシェル, /bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:365
+#: src/config/SSSDConfig/__init__.py.in:366
 msgid "Base for home directories"
 msgstr "ホームディレクトリーのベース"
 
-#: src/config/SSSDConfig/__init__.py.in:368
+#: src/config/SSSDConfig/__init__.py.in:369
 msgid "The name of the NSS library to use"
 msgstr "使用する NSS ライブラリーの名前"
 
-#: src/config/SSSDConfig/__init__.py.in:369
+#: src/config/SSSDConfig/__init__.py.in:370
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr "可能ならばキャッシュから正規化されたグループ名を検索するかどうか"
 
-#: src/config/SSSDConfig/__init__.py.in:372
+#: src/config/SSSDConfig/__init__.py.in:373
 msgid "PAM stack to use"
 msgstr "使用する PAM スタック"
 
@@ -1112,26 +1118,26 @@ msgstr "非標準の設定ファイルの指定"
 msgid "Print version number and exit"
 msgstr "バージョン番号を表示して終了する"
 
-#: src/providers/krb5/krb5_child.c:1931 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:1933 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:100
 msgid "Debug level"
 msgstr "デバッグレベル"
 
-#: src/providers/krb5/krb5_child.c:1933 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:1935 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:104
 msgid "Add debug timestamps"
 msgstr "デバッグのタイムスタンプを追加する"
 
-#: src/providers/krb5/krb5_child.c:1935 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:1937 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:106
 msgid "Show timestamps with microseconds"
 msgstr "タイムスタンプをミリ秒単位で表示する"
 
-#: src/providers/krb5/krb5_child.c:1937 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:1939 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "デバッグログのオープンファイルディスクリプター"
 
-#: src/providers/data_provider_be.c:2850
+#: src/providers/data_provider_be.c:2930
 msgid "Domain of the information provider (mandatory)"
 msgstr "情報プロバイダーのドメイン (必須)"
 
