@@ -1337,7 +1337,6 @@ dyndns_tests_LDADD = \
     libsss_test_common.la
 
 fqnames_tests_SOURCES = \
-    $(TEST_MOCK_OBJ) \
     src/tests/cmocka/test_fqnames.c
 fqnames_tests_CFLAGS = \
     $(AM_CFLAGS)
@@ -1348,7 +1347,6 @@ fqnames_tests_LDADD = \
     libsss_test_common.la
 
 test_sss_idmap_SOURCES = \
-    $(TEST_MOCK_OBJ) \
     src/tests/cmocka/test_sss_idmap.c
 test_sss_idmap_CFLAGS = \
     $(AM_CFLAGS)
@@ -1360,7 +1358,6 @@ test_sss_idmap_LDADD = \
     libsss_test_common.la
 
 test_utils_SOURCES = \
-    $(TEST_MOCK_OBJ) \
     src/tests/cmocka/test_utils.c
 test_utils_CFLAGS = \
     $(AM_CFLAGS)
@@ -1371,7 +1368,6 @@ test_utils_LDADD = \
     libsss_test_common.la
 
 ad_access_filter_tests_SOURCES = \
-    $(TEST_MOCK_OBJ) \
     $(sssd_be_SOURCES) \
     src/util/sss_ldap.c \
     src/util/sss_krb5.c \
