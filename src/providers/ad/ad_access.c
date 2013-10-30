@@ -169,9 +169,17 @@ ad_parse_access_filter(TALLOC_CTX *mem_ctx,
     int flags;
     TALLOC_CTX *tmp_ctx;
 
+    if (_filter == NULL) return EINVAL;
+
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) {
         ret = ENOMEM;
+        goto done;
+    }
+
+    if (filter_list == NULL) {
+        *_filter = NULL;
+        ret = EOK;
         goto done;
     }
 
