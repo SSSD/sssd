@@ -99,6 +99,18 @@ done:
     talloc_free(tmp_ctx);
 }
 
+/* Test that setting no filter lets all access through
+ */
+void test_no_filter(void **state)
+{
+    struct filter_parse_result expected = {
+        .result = EOK,
+        .best_match = NULL
+    };
+
+    test_parse_filter_generic(NULL, &expected);
+}
+
 /* Test that if one filter is provided, it is returned as-is
  */
 void test_single_filter(void **state)
@@ -303,6 +315,10 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_parse_malformed,
                                  parse_test_setup,
                                  parse_test_teardown),
+
+        unit_test_setup_teardown(test_no_filter,
+                                 ad_access_filter_test_setup,
+                                 ad_access_filter_test_teardown),
 
         unit_test_setup_teardown(test_single_filter,
                                  ad_access_filter_test_setup,
