@@ -168,7 +168,7 @@ static errno_t be_spy_create(TALLOC_CTX *mem_ctx, struct be_req *be_req)
         ret = ENOMEM;
         goto done;
     }
-    cli_spy->freectx = mem_ctx;
+    cli_spy->freectx = be_req;
 
     /* Also create a spy on the be_req so that we
      * can free the other spy when the be_req
