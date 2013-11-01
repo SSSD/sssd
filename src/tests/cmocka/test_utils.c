@@ -81,6 +81,211 @@ void teardown_dom_list(void **state)
     assert_true(leak_check_teardown());
 }
 
+void test_find_subdomain_by_name_null(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom;
+
+    dom = find_subdomain_by_name(NULL, NULL, false);
+    assert_null(dom);
+
+    dom = find_subdomain_by_name(test_ctx->dom_list, NULL, false);
+    assert_null(dom);
+
+    dom = find_subdomain_by_name(NULL, "test", false);
+    assert_null(dom);
+}
+
+void test_find_subdomain_by_name(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom;
+    size_t c;
+    char *name;
+    char *flat_name;
+    char *sid;
+
+    for (c = 0; c < test_ctx->dom_count; c++) {
+        name = talloc_asprintf(global_talloc_context, DOMNAME_TMPL, c);
+        assert_non_null(name);
+
+        flat_name = talloc_asprintf(global_talloc_context, FLATNAME_TMPL, c);
+        assert_non_null(flat_name);
+
+        sid = talloc_asprintf(global_talloc_context, SID_TMPL, c);
+        assert_non_null(sid);
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, name, false);
+        assert_non_null(dom);
+        assert_string_equal(name, dom->name);
+        assert_string_equal(flat_name, dom->flat_name);
+        assert_string_equal(sid, dom->domain_id);
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, name, true);
+        assert_non_null(dom);
+        assert_string_equal(name, dom->name);
+        assert_string_equal(flat_name, dom->flat_name);
+        assert_string_equal(sid, dom->domain_id);
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, flat_name, true);
+        assert_non_null(dom);
+        assert_string_equal(name, dom->name);
+        assert_string_equal(flat_name, dom->flat_name);
+        assert_string_equal(sid, dom->domain_id);
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, flat_name, false);
+        assert_null(dom);
+
+        talloc_free(name);
+        talloc_free(flat_name);
+        talloc_free(sid);
+    }
+}
+
+void test_find_subdomain_by_name_missing_flat_name(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom;
+    size_t c;
+    char *name;
+    char *flat_name;
+    char *sid;
+    size_t mis;
+
+    mis = test_ctx->dom_count/2;
+    assert_true((mis >= 1 && mis < test_ctx->dom_count));
+
+    dom = test_ctx->dom_list;
+    for (c = 0; c < mis; c++) {
+        assert_non_null(dom);
+        dom = dom->next;
+    }
+    assert_non_null(dom);
+    dom->flat_name = NULL;
+
+    for (c = 0; c < test_ctx->dom_count; c++) {
+        name = talloc_asprintf(global_talloc_context, DOMNAME_TMPL, c);
+        assert_non_null(name);
+
+        flat_name = talloc_asprintf(global_talloc_context, FLATNAME_TMPL, c);
+        assert_non_null(flat_name);
+
+        sid = talloc_asprintf(global_talloc_context, SID_TMPL, c);
+        assert_non_null(sid);
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, name, true);
+        assert_non_null(dom);
+        assert_string_equal(name, dom->name);
+        if (c == mis - 1) {
+            assert_null(dom->flat_name);
+        } else {
+            assert_string_equal(flat_name, dom->flat_name);
+        }
+        assert_string_equal(sid, dom->domain_id);
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, name, false);
+        assert_non_null(dom);
+        assert_string_equal(name, dom->name);
+        if (c == mis - 1) {
+            assert_null(dom->flat_name);
+        } else {
+            assert_string_equal(flat_name, dom->flat_name);
+        }
+        assert_string_equal(sid, dom->domain_id);
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, flat_name, true);
+        if (c == mis - 1) {
+            assert_null(dom);
+        } else {
+            assert_non_null(dom);
+            assert_string_equal(name, dom->name);
+            assert_string_equal(flat_name, dom->flat_name);
+            assert_string_equal(sid, dom->domain_id);
+        }
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, flat_name, false);
+        assert_null(dom);
+
+        talloc_free(name);
+        talloc_free(flat_name);
+        talloc_free(sid);
+    }
+}
+
+void test_find_subdomain_by_name_disabled(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom;
+    size_t c;
+    char *name;
+    char *flat_name;
+    char *sid;
+    size_t mis;
+
+    mis = test_ctx->dom_count/2;
+    assert_true((mis >= 1 && mis < test_ctx->dom_count));
+
+    dom = test_ctx->dom_list;
+    for (c = 0; c < mis; c++) {
+        assert_non_null(dom);
+        dom = dom->next;
+    }
+    assert_non_null(dom);
+    dom->disabled = true;
+
+    for (c = 0; c < test_ctx->dom_count; c++) {
+        name = talloc_asprintf(global_talloc_context, DOMNAME_TMPL, c);
+        assert_non_null(name);
+
+        flat_name = talloc_asprintf(global_talloc_context, FLATNAME_TMPL, c);
+        assert_non_null(flat_name);
+
+        sid = talloc_asprintf(global_talloc_context, SID_TMPL, c);
+        assert_non_null(sid);
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, name, true);
+        if (c == mis - 1) {
+            assert_null(dom);
+        } else {
+            assert_non_null(dom);
+            assert_string_equal(name, dom->name);
+            assert_string_equal(flat_name, dom->flat_name);
+            assert_string_equal(sid, dom->domain_id);
+        }
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, name, false);
+        if (c == mis - 1) {
+            assert_null(dom);
+        } else {
+            assert_non_null(dom);
+            assert_string_equal(name, dom->name);
+            assert_string_equal(flat_name, dom->flat_name);
+            assert_string_equal(sid, dom->domain_id);
+        }
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, flat_name, true);
+        if (c == mis - 1) {
+            assert_null(dom);
+        } else {
+            assert_non_null(dom);
+            assert_string_equal(name, dom->name);
+            assert_string_equal(flat_name, dom->flat_name);
+            assert_string_equal(sid, dom->domain_id);
+        }
+
+        dom = find_subdomain_by_name(test_ctx->dom_list, flat_name, false);
+        assert_null(dom);
+
+        talloc_free(name);
+        talloc_free(flat_name);
+        talloc_free(sid);
+    }
+}
+
 void test_find_subdomain_by_sid_null(void **state)
 {
     struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
@@ -177,6 +382,54 @@ void test_find_subdomain_by_sid_missing_sid(void **state)
     }
 }
 
+void test_find_subdomain_by_sid_disabled(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom;
+    size_t c;
+    char *name;
+    char *flat_name;
+    char *sid;
+    size_t mis;
+
+    mis = test_ctx->dom_count/2;
+    assert_true((mis >= 1 && mis < test_ctx->dom_count));
+
+    dom = test_ctx->dom_list;
+    for (c = 0; c < mis; c++) {
+        assert_non_null(dom);
+        dom = dom->next;
+    }
+    assert_non_null(dom);
+    dom->disabled = true;
+
+    for (c = 0; c < test_ctx->dom_count; c++) {
+        name = talloc_asprintf(global_talloc_context, DOMNAME_TMPL, c);
+        assert_non_null(name);
+
+        flat_name = talloc_asprintf(global_talloc_context, FLATNAME_TMPL, c);
+        assert_non_null(flat_name);
+
+        sid = talloc_asprintf(global_talloc_context, SID_TMPL, c);
+        assert_non_null(sid);
+
+        dom = find_subdomain_by_sid(test_ctx->dom_list, sid);
+        if (c == mis - 1) {
+            assert_null(dom);
+        } else {
+            assert_non_null(dom);
+            assert_string_equal(name, dom->name);
+            assert_string_equal(flat_name, dom->flat_name);
+            assert_string_equal(sid, dom->domain_id);
+        }
+
+        talloc_free(name);
+        talloc_free(flat_name);
+        talloc_free(sid);
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -193,6 +446,16 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_find_subdomain_by_sid,
                                  setup_dom_list, teardown_dom_list),
         unit_test_setup_teardown(test_find_subdomain_by_sid_missing_sid,
+                                 setup_dom_list, teardown_dom_list),
+        unit_test_setup_teardown(test_find_subdomain_by_sid_disabled,
+                                 setup_dom_list, teardown_dom_list),
+        unit_test_setup_teardown(test_find_subdomain_by_name_null,
+                                 setup_dom_list, teardown_dom_list),
+        unit_test_setup_teardown(test_find_subdomain_by_name,
+                                 setup_dom_list, teardown_dom_list),
+        unit_test_setup_teardown(test_find_subdomain_by_name_missing_flat_name,
+                                 setup_dom_list, teardown_dom_list),
+        unit_test_setup_teardown(test_find_subdomain_by_name_disabled,
                                  setup_dom_list, teardown_dom_list),
     };
 

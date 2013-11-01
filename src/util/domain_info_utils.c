@@ -93,6 +93,10 @@ struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
 {
     struct sss_domain_info *dom = domain;
 
+    if (name == NULL) {
+        return NULL;
+    }
+
     while (dom && dom->disabled) {
         dom = get_next_domain(dom, true);
     }
