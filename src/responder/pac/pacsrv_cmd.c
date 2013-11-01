@@ -161,6 +161,8 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
         goto done;
     }
 
+    talloc_steal(pr_ctx, pr_ctx->user_dom_sid_str);
+
     ret = responder_get_domain_by_id(cctx->rctx, pr_ctx->user_dom_sid_str,
                                      &pr_ctx->dom);
     if (ret == EAGAIN || ret == ENOENT) {

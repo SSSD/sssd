@@ -172,7 +172,9 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
 
     ret = EOK;
 done:
+    sss_idmap_free_sid(ctx->sdap_id_ctx->opts->idmap_ctx->map, sid_str);
     talloc_free(tmp_ctx);
+
     return ret;
 }
 

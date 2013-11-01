@@ -264,14 +264,14 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        talloc_zfree(sid_str);
+        sss_idmap_free_sid(pac_ctx->idmap_ctx, sid_str);
     }
 
     ret = EOK;
 
 done:
     talloc_free(sid_str);
-    talloc_free(user_dom_sid_str);
+    sss_idmap_free_sid(pac_ctx->idmap_ctx, user_dom_sid_str);
 
     if (ret == EOK) {
         *_sid_table = sid_table;
