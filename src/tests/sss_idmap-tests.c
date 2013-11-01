@@ -280,7 +280,7 @@ START_TEST(idmap_test_uid2sid)
                 "sss_idmap_unix_to_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
 
-    talloc_free(sid);
+    sss_idmap_free_sid(idmap_ctx, sid);
 }
 END_TEST
 
@@ -304,7 +304,7 @@ START_TEST(idmap_test_uid2dom_sid)
                 "sss_idmap_unix_to_dom_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
 
-    talloc_free(sid);
+    sss_idmap_free_sid(idmap_ctx, sid);
     talloc_free(dom_sid);
 }
 END_TEST
@@ -330,7 +330,7 @@ START_TEST(idmap_test_uid2bin_sid)
                 "sss_idmap_unix_to_bin_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
 
-    talloc_free(sid);
+    sss_idmap_free_sid(idmap_ctx, sid);
     talloc_free(bin_sid);
 }
 END_TEST
@@ -385,7 +385,7 @@ START_TEST(idmap_test_sid2dom_sid)
                 "SID strings do not match.");
 
     talloc_free(dom_sid);
-    talloc_free(new_sid);
+    sss_idmap_free_sid(idmap_ctx, new_sid);
 }
 END_TEST
 
@@ -418,7 +418,7 @@ START_TEST(idmap_test_large_and_too_large_sid)
                 "did not return IDMAP_SID_INVALID");
 
     talloc_free(dom_sid);
-    talloc_free(new_sid);
+    sss_idmap_free_sid(idmap_ctx, new_sid);
 }
 END_TEST
 
@@ -454,7 +454,7 @@ START_TEST(idmap_test_bin_sid2sid)
                                             "expected [%s], get [%s]",
                                             test_sid, sid);
 
-    talloc_free(sid);
+    sss_idmap_free_sid(idmap_ctx, sid);
 }
 END_TEST
 
@@ -528,7 +528,7 @@ START_TEST(idmap_test_smb_sid2sid)
                                             "expected [%s], get [%s]",
                                             test_sid, sid);
 
-    talloc_free(sid);
+    sss_idmap_free_sid(idmap_ctx, sid);
 }
 END_TEST
 

@@ -291,8 +291,7 @@ static errno_t ad_account_can_shortcut(struct be_ctx *be_ctx,
 
 done:
     if (sid != NULL) {
-        /* FIXME: use library function when #2133 is fixed */
-        talloc_free(sid);
+        sss_idmap_free_sid(idmap_ctx->map, sid);
     }
 
     if (ret == EOK) {

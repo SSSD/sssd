@@ -139,7 +139,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
             attr_name = ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
             ret = sss_filter_sanitize(state, sid, &clean_name);
-            talloc_zfree(sid);
+            sss_idmap_free_sid(ctx->opts->idmap_ctx->map, sid);
             if (ret != EOK) {
                 goto fail;
             }
@@ -509,7 +509,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
             attr_name = ctx->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name;
             ret = sss_filter_sanitize(state, sid, &clean_name);
-            talloc_zfree(sid);
+            sss_idmap_free_sid(ctx->opts->idmap_ctx->map, sid);
             if (ret != EOK) {
                 goto fail;
             }

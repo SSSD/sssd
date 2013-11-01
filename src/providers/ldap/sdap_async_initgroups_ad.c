@@ -594,6 +594,8 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
     in_transaction = false;
 
 done:
+    sss_idmap_free_sid(state->opts->idmap_ctx->map, sid_str);
+
     if (in_transaction) {
         sret = sysdb_transaction_cancel(state->sysdb);
         DEBUG(SSSDBG_FATAL_FAILURE,

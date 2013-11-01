@@ -251,6 +251,7 @@ void test_map_id(void **state)
     err = sss_idmap_unix_to_sid(test_ctx->idmap_ctx, id, &sid);
     assert_int_equal(err, IDMAP_SUCCESS);
     assert_string_equal(sid, TEST_DOM_SID"-0");
+    sss_idmap_free_sid(test_ctx->idmap_ctx, sid);
 
     err = sss_idmap_sid_to_unix(test_ctx->idmap_ctx,
                                 TEST_DOM_SID"-"TEST_OFFSET_STR, &id);
@@ -260,6 +261,7 @@ void test_map_id(void **state)
     err = sss_idmap_unix_to_sid(test_ctx->idmap_ctx, id, &sid);
     assert_int_equal(err, IDMAP_SUCCESS);
     assert_string_equal(sid, TEST_DOM_SID"-"TEST_OFFSET_STR);
+    sss_idmap_free_sid(test_ctx->idmap_ctx, sid);
 }
 
 void test_map_id_external(void **state)
