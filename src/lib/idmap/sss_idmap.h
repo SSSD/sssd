@@ -504,6 +504,54 @@ enum idmap_error_code sss_idmap_unix_to_bin_sid(struct sss_idmap_ctx *ctx,
 enum idmap_error_code sss_idmap_free(struct sss_idmap_ctx *ctx);
 
 /**
+ * @brief Free mapped SID.
+ *
+ * @param[in] ctx         Idmap context
+ * @param[in] sid         SID to be freed.
+ *
+ * @return
+ *  - #IDMAP_CONTEXT_INVALID: Provided context is invalid
+ */
+enum idmap_error_code sss_idmap_free_sid(struct sss_idmap_ctx *ctx,
+                                         char *sid);
+
+/**
+ * @brief Free mapped domain SID.
+ *
+ * @param[in] ctx         Idmap context
+ * @param[in] dom_sid     Domain SID to be freed.
+ *
+ * @return
+ *  - #IDMAP_CONTEXT_INVALID: Provided context is invalid
+ */
+enum idmap_error_code sss_idmap_free_dom_sid(struct sss_idmap_ctx *ctx,
+                                             struct sss_dom_sid *dom_sid);
+
+/**
+ * @brief Free mapped Samba SID.
+ *
+ * @param[in] ctx         Idmap context
+ * @param[in] smb_sid     Samba SID to be freed.
+ *
+ * @return
+ *  - #IDMAP_CONTEXT_INVALID: Provided context is invalid
+ */
+enum idmap_error_code sss_idmap_free_smb_sid(struct sss_idmap_ctx *ctx,
+                                             struct dom_sid *smb_sid);
+
+/**
+ * @brief Free mapped binary SID.
+ *
+ * @param[in] ctx         Idmap context
+ * @param[in] smb_sid     Binary SID to be freed.
+ *
+ * @return
+ *  - #IDMAP_CONTEXT_INVALID: Provided context is invalid
+ */
+enum idmap_error_code sss_idmap_free_bin_sid(struct sss_idmap_ctx *ctx,
+                                             uint8_t *bin_sid);
+
+/**
  * @brief Translate error code to a string
  *
  * @param[in] err  Idmap error code
