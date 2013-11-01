@@ -261,7 +261,7 @@ START_TEST(idmap_test_dom_sid2uid)
                 "sss_idmap_dom_sid_to_unix returned wrong id, "
                 "got [%d], expected [%d].", id, 1000 + IDMAP_RANGE_MIN);
 
-    talloc_free(dom_sid);
+    sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
 }
 END_TEST
 
@@ -305,7 +305,7 @@ START_TEST(idmap_test_uid2dom_sid)
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
 
     sss_idmap_free_sid(idmap_ctx, sid);
-    talloc_free(dom_sid);
+    sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
 }
 END_TEST
 
@@ -358,7 +358,7 @@ START_TEST(idmap_test_bin_sid2dom_sid)
     fail_unless(memcmp(test_bin_sid, new_bin_sid, test_bin_sid_length) == 0,
                 "Binary SIDs do not match.");
 
-    talloc_free(dom_sid);
+    sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
     talloc_free(new_bin_sid);
 }
 END_TEST
@@ -384,7 +384,7 @@ START_TEST(idmap_test_sid2dom_sid)
     fail_unless(strcmp("S-1-5-21-1-2-3-1000", new_sid) == 0,
                 "SID strings do not match.");
 
-    talloc_free(dom_sid);
+    sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
     sss_idmap_free_sid(idmap_ctx, new_sid);
 }
 END_TEST
@@ -417,7 +417,7 @@ START_TEST(idmap_test_large_and_too_large_sid)
                 "Trying to convert  a SID with a too large component "
                 "did not return IDMAP_SID_INVALID");
 
-    talloc_free(dom_sid);
+    sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
     sss_idmap_free_sid(idmap_ctx, new_sid);
 }
 END_TEST
@@ -475,7 +475,7 @@ START_TEST(idmap_test_smb_sid2dom_sid)
     fail_unless(memcmp(&test_smb_sid, new_smb_sid, sizeof(struct dom_sid)) == 0,
                 "Samba dom_sid-s do not match.");
 
-    talloc_free(dom_sid);
+    sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
     talloc_free(new_smb_sid);
 }
 END_TEST
