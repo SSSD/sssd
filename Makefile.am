@@ -539,8 +539,9 @@ pkglib_LTLIBRARIES += libsss_debug.la
 libsss_debug_la_SOURCES = \
     src/util/debug.c \
     src/util/sss_log.c
+libsss_debug_la_LIBADD = \
+    $(SYSLOG_LIBS)
 libsss_debug_la_LDFLAGS = \
-    $(SYSLOG_LIBS) \
     -avoid-version
 
 pkglib_LTLIBRARIES += libsss_child.la
@@ -614,9 +615,10 @@ dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
 libipa_hbac_la_SOURCES = \
     src/providers/ipa/hbac_evaluator.c \
     src/util/sss_utf8.c
-libipa_hbac_la_LDFLAGS = \
-    -version-info 0:1:0 \
+libipa_hbac_la_LIBADD = \
     $(UNICODE_LIBS)
+libipa_hbac_la_LDFLAGS = \
+    -version-info 0:1:0
 
 dist_pkgconfig_DATA += src/lib/idmap/sss_idmap.pc
 libsss_idmap_la_SOURCES = \
@@ -631,8 +633,9 @@ libsss_nss_idmap_la_SOURCES = \
     src/sss_client/idmap/sss_nss_idmap.c \
     src/sss_client/common.c \
     src/util/strtonum.c
+libsss_nss_idmap_la_LIBADD = \
+    $(CLIENT_LIBS)
 libsss_nss_idmap_la_LDFLAGS = \
-    $(CLIENT_LIBS) \
     -version-info 0:1:0
 
 include_HEADERS = \
@@ -786,12 +789,11 @@ sss_userdel_SOURCES = \
 sss_userdel_LDADD = \
     $(TOOLS_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(CLIENT_LIBS)
 sss_userdel_CFLAGS = \
     $(AM_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS)
-sss_userdel_LDFLAGS = \
-    $(CLIENT_LIBS)
 
 sss_groupadd_SOURCES = \
     src/tools/sss_groupadd.c \
@@ -805,30 +807,27 @@ sss_groupdel_SOURCES = \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_groupdel_LDADD = \
     $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
-sss_groupdel_CFLAGS = $(AM_CFLAGS)
-sss_groupdel_LDFLAGS = \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(CLIENT_LIBS)
+sss_groupdel_CFLAGS = $(AM_CFLAGS)
 
 sss_usermod_SOURCES = \
     src/tools/sss_usermod.c \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_usermod_LDADD = \
     $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
-sss_usermod_CFLAGS = $(AM_CFLAGS)
-sss_usermod_LDFLAGS = \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(CLIENT_LIBS)
+sss_usermod_CFLAGS = $(AM_CFLAGS)
 
 sss_groupmod_SOURCES = \
     src/tools/sss_groupmod.c \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_groupmod_LDADD = \
     $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
-sss_groupmod_CFLAGS = $(AM_CFLAGS)
-sss_groupmod_LDFLAGS = \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(CLIENT_LIBS)
+sss_groupmod_CFLAGS = $(AM_CFLAGS)
 
 sss_groupshow_SOURCES = \
     src/tools/sss_groupshow.c \
@@ -842,10 +841,9 @@ sss_cache_SOURCES = \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_cache_LDADD = \
     $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
-sss_cache_CFLAGS = $(AM_CFLAGS)
-sss_cache_LDFLAGS = \
+    $(SSSD_INTERNAL_LTLIBS) \
     $(CLIENT_LIBS)
+sss_cache_CFLAGS = $(AM_CFLAGS)
 
 sss_debuglevel_SOURCES = \
     src/tools/sss_debuglevel.c \
@@ -868,7 +866,7 @@ sss_sudo_cli_SOURCES = \
     src/sss_client/sudo/sss_sudo_response.c \
     src/sss_client/sudo_testcli/sudo_testcli.c
 sss_sudo_cli_CFLAGS = $(AM_CFLAGS)
-sss_sudo_cli_LDFLAGS = $(CLIENT_LIBS)
+sss_sudo_cli_LDADD = $(CLIENT_LIBS)
 endif
 
 if BUILD_SSH
@@ -878,8 +876,8 @@ sss_ssh_authorizedkeys_SOURCES = \
     src/sss_client/ssh/sss_ssh_authorizedkeys.c
 sss_ssh_authorizedkeys_CFLAGS = $(AM_CFLAGS)
 sss_ssh_authorizedkeys_LDADD = \
-    $(SSSD_INTERNAL_LTLIBS)
-sss_ssh_authorizedkeys_LDFLAGS = $(CLIENT_LIBS) $(TALLOC_LIBS) $(POPT_LIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(CLIENT_LIBS) $(TALLOC_LIBS) $(POPT_LIBS)
 
 sss_ssh_knownhostsproxy_SOURCES = \
     src/sss_client/common.c \
@@ -887,8 +885,8 @@ sss_ssh_knownhostsproxy_SOURCES = \
     src/sss_client/ssh/sss_ssh_knownhostsproxy.c
 sss_ssh_knownhostsproxy_CFLAGS = $(AM_CFLAGS)
 sss_ssh_knownhostsproxy_LDADD = \
-    $(SSSD_INTERNAL_LTLIBS)
-sss_ssh_knownhostsproxy_LDFLAGS = $(CLIENT_LIBS) $(TALLOC_LIBS) $(POPT_LIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(CLIENT_LIBS) $(TALLOC_LIBS) $(POPT_LIBS)
 endif
 
 #################
@@ -1427,7 +1425,7 @@ noinst_PROGRAMS += autofs_test_client
 endif
 
 pam_test_client_SOURCES = src/sss_client/pam_test_client.c
-pam_test_client_LDFLAGS = -lpam -lpam_misc
+pam_test_client_LDADD = -lpam -lpam_misc
 
 if BUILD_AUTOFS
 autofs_test_client_SOURCES = \
@@ -1435,7 +1433,7 @@ autofs_test_client_SOURCES = \
     src/sss_client/autofs/sss_autofs.c \
     src/sss_client/common.c
 autofs_test_client_CFLAGS = $(AM_CFLAGS)
-autofs_test_client_LDFLAGS = -lpopt $(CLIENT_LIBS)
+autofs_test_client_LDADD = -lpopt $(CLIENT_LIBS)
 endif
 
 ####################
@@ -1457,8 +1455,9 @@ libnss_sss_la_SOURCES = \
     src/sss_client/nss_mc_passwd.c \
     src/sss_client/nss_mc_group.c \
     src/sss_client/nss_mc.h
+libnss_sss_la_LIBADD = \
+    $(CLIENT_LIBS)
 libnss_sss_la_LDFLAGS = \
-    $(CLIENT_LIBS) \
     -module \
     -version-info 2:0:0 \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_nss.exports
@@ -1471,9 +1470,10 @@ pam_sss_la_SOURCES = \
     src/util/atomic_io.c \
     src/sss_client/sss_pam_macros.h
 
-pam_sss_la_LDFLAGS = \
+pam_sss_la_LIBADD = \
     $(CLIENT_LIBS) \
-    -lpam \
+    -lpam
+pam_sss_la_LDFLAGS = \
     -module \
     -avoid-version \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_pam.exports
@@ -1487,8 +1487,9 @@ libsss_sudo_la_SOURCES = \
     src/sss_client/sudo/sss_sudo.c \
     src/sss_client/sudo/sss_sudo.h \
     src/sss_client/sudo/sss_sudo_private.h
+libsss_sudo_la_LIBADD = \
+    $(CLIENT_LIBS)
 libsss_sudo_la_LDFLAGS = \
-    $(CLIENT_LIBS) \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_sudo.exports \
     -module \
     -avoid-version
@@ -1505,8 +1506,9 @@ libsss_autofs_la_SOURCES = \
     src/sss_client/autofs/sss_autofs.c \
     src/sss_client/autofs/sss_autofs_private.h
 
+libsss_autofs_la_LIBADD = \
+    $(CLIENT_LIBS)
 libsss_autofs_la_LDFLAGS = \
-    $(CLIENT_LIBS) \
     -module \
     -avoid-version \
     -Wl,--version-script,$(srcdir)/src/sss_client/autofs/sss_autofs.exports
@@ -1864,9 +1866,10 @@ sssd_pac_plugin_la_SOURCES = \
 sssd_pac_plugin_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)
-sssd_pac_plugin_la_LDFLAGS = \
+sssd_pac_plugin_la_LIBADD = \
     $(CLIENT_LIBS) \
-    -lkrb5 \
+    -lkrb5
+sssd_pac_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
 
