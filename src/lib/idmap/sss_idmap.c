@@ -246,6 +246,42 @@ enum idmap_error_code sss_idmap_free(struct sss_idmap_ctx *ctx)
     return IDMAP_SUCCESS;
 }
 
+static enum idmap_error_code sss_idmap_free_ptr(struct sss_idmap_ctx *ctx,
+                                                void *ptr)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+
+    if (ptr != NULL) {
+        ctx->free_func(ptr, ctx->alloc_pvt);
+    }
+
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code sss_idmap_free_sid(struct sss_idmap_ctx *ctx,
+                                         char *sid)
+{
+    return sss_idmap_free_ptr(ctx, sid);
+}
+
+enum idmap_error_code sss_idmap_free_dom_sid(struct sss_idmap_ctx *ctx,
+                                             struct sss_dom_sid *dom_sid)
+{
+    return sss_idmap_free_ptr(ctx, dom_sid);
+}
+
+enum idmap_error_code sss_idmap_free_smb_sid(struct sss_idmap_ctx *ctx,
+                                             struct dom_sid *smb_sid)
+{
+    return sss_idmap_free_ptr(ctx, smb_sid);
+}
+
+enum idmap_error_code sss_idmap_free_bin_sid(struct sss_idmap_ctx *ctx,
+                                             uint8_t *bin_sid)
+{
+    return sss_idmap_free_ptr(ctx, bin_sid);
+}
+
 enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
                                                 const char *dom_sid,
                                                 id_t *slice_num,
