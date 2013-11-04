@@ -476,7 +476,7 @@ START_TEST(idmap_test_smb_sid2dom_sid)
                 "Samba dom_sid-s do not match.");
 
     sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
-    talloc_free(new_smb_sid);
+    sss_idmap_free_smb_sid(idmap_ctx, new_smb_sid);
 }
 END_TEST
 
@@ -512,7 +512,7 @@ START_TEST(idmap_test_bin_sid2smb_sid)
     fail_unless(memcmp(&test_smb_sid, smb_sid, sizeof(struct dom_sid)) == 0,
                  "Samba dom_sid structs do not match.");
 
-    talloc_free(smb_sid);
+    sss_idmap_free_smb_sid(idmap_ctx, smb_sid);
 }
 END_TEST
 
@@ -543,7 +543,7 @@ START_TEST(idmap_test_sid2smb_sid)
     fail_unless(memcmp(&test_smb_sid, smb_sid, sizeof(struct dom_sid)) == 0,
                  "Samba dom_sid structs do not match.");
 
-    talloc_free(smb_sid);
+    sss_idmap_free_smb_sid(idmap_ctx, smb_sid);
 }
 END_TEST
 
