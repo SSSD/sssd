@@ -324,7 +324,7 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    netgr_basedn = sysdb_netgroup_base_dn(sysdb, state, dom);
+    netgr_basedn = sysdb_netgroup_base_dn(state, dom);
     if (netgr_basedn == NULL) {
         ret = ENOMEM;
         goto fail;

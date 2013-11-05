@@ -31,8 +31,7 @@ sysdb_autofsmap_dn(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domain,
                    const char *map_name)
 {
-    return sysdb_custom_dn(domain->sysdb, mem_ctx, domain,
-                           map_name, AUTOFS_MAP_SUBDIR);
+    return sysdb_custom_dn(mem_ctx, domain, map_name, AUTOFS_MAP_SUBDIR);
 }
 
 static struct ldb_dn *

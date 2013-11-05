@@ -91,8 +91,7 @@ errno_t sysdb_dn_sanitize(TALLOC_CTX *mem_ctx, const char *input,
     return ret;
 }
 
-struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
-                                       TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_custom_subtree_dn(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *dom,
                                        const char *subtree_name)
 {
@@ -110,7 +109,7 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+    dn = ldb_dn_new_fmt(tmp_ctx, dom->sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
                         clean_subtree, dom->name);
     if (dn) {
         talloc_steal(mem_ctx, dn);
@@ -120,7 +119,7 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
     return dn;
 }
 
-struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_custom_dn(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *dom,
                                const char *object_name,
                                const char *subtree_name)
@@ -146,7 +145,7 @@ struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_CUSTOM, clean_name,
+    dn = ldb_dn_new_fmt(mem_ctx, dom->sysdb->ldb, SYSDB_TMPL_CUSTOM, clean_name,
                         clean_subtree, dom->name);
 
 done:
@@ -154,8 +153,8 @@ done:
     return dn;
 }
 
-struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                             struct sss_domain_info *dom, const char *name)
+struct ldb_dn *sysdb_user_dn(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
+                             const char *name)
 {
     errno_t ret;
     char *clean_name;
@@ -166,14 +165,14 @@ struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_USER,
+    dn = ldb_dn_new_fmt(mem_ctx, dom->sysdb->ldb, SYSDB_TMPL_USER,
                         clean_name, dom->name);
     talloc_free(clean_name);
 
     return dn;
 }
 
-struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_group_dn(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *dom, const char *name)
 {
     errno_t ret;
@@ -185,14 +184,14 @@ struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_GROUP,
+    dn = ldb_dn_new_fmt(mem_ctx, dom->sysdb->ldb, SYSDB_TMPL_GROUP,
                         clean_name, dom->name);
     talloc_free(clean_name);
 
     return dn;
 }
 
-struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_netgroup_dn(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *dom, const char *name)
 {
     errno_t ret;
@@ -204,18 +203,17 @@ struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_NETGROUP,
+    dn = ldb_dn_new_fmt(mem_ctx, dom->sysdb->ldb, SYSDB_TMPL_NETGROUP,
                         clean_name, dom->name);
     talloc_free(clean_name);
 
     return dn;
 }
 
-struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb,
-                                      TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_netgroup_base_dn(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *dom)
 {
-    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb,
+    return ldb_dn_new_fmt(mem_ctx, dom->sysdb->ldb,
                           SYSDB_TMPL_NETGROUP_BASE, dom->name);
 }
 
@@ -283,10 +281,10 @@ errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
     return sysdb_get_rdn(sysdb, mem_ctx, _dn, NULL, _name);
 }
 
-struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_domain_dn(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *dom)
 {
-    return ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_DOM_BASE, dom->name);
+    return ldb_dn_new_fmt(mem_ctx, dom->sysdb->ldb, SYSDB_DOM_BASE, dom->name);
 }
 
 struct ldb_dn *sysdb_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx)
@@ -1486,8 +1484,7 @@ done:
     return ret;
 }
 
-errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
+errno_t sysdb_has_enumerated(struct sss_domain_info *domain,
                              bool *has_enumerated)
 {
     errno_t ret;
@@ -1501,21 +1498,22 @@ errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, domain->name);
+    dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE,
+                        domain->name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_get_bool(sysdb, dn, SYSDB_HAS_ENUMERATED, has_enumerated);
+    ret = sysdb_get_bool(domain->sysdb, dn, SYSDB_HAS_ENUMERATED,
+                         has_enumerated);
 
 done:
     talloc_free(tmp_ctx);
     return ret;
 }
 
-errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
+errno_t sysdb_set_enumerated(struct sss_domain_info *domain,
                              bool enumerated)
 {
     errno_t ret;
@@ -1528,13 +1526,14 @@ errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, domain->name);
+    dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE,
+                        domain->name);
     if (!dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_set_bool(sysdb, dn, domain->name,
+    ret = sysdb_set_bool(domain->sysdb, dn, domain->name,
                          SYSDB_HAS_ENUMERATED, enumerated);
 
 done:
@@ -1801,7 +1800,6 @@ done:
 }
 
 errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
-                            struct sysdb_ctx *sysdb,
                             struct sss_domain_info *domain,
                             const char *name,
                             const char **_cname)

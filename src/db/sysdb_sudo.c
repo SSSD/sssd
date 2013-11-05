@@ -606,7 +606,7 @@ static errno_t sysdb_sudo_purge_all(struct sss_domain_info *domain)
     tmp_ctx = talloc_new(NULL);
     NULL_CHECK(tmp_ctx, ret, done);
 
-    base_dn = sysdb_custom_subtree_dn(domain->sysdb, tmp_ctx, domain, SUDORULE_SUBDIR);
+    base_dn = sysdb_custom_subtree_dn(tmp_ctx, domain, SUDORULE_SUBDIR);
     NULL_CHECK(base_dn, ret, done);
 
     ret = sysdb_delete_recursive(domain->sysdb, base_dn, true);

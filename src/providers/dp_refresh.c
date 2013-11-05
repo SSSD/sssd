@@ -97,7 +97,7 @@ static errno_t be_refresh_get_netgroups(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn = NULL;
     errno_t ret;
 
-    base_dn = sysdb_netgroup_base_dn(domain->sysdb, mem_ctx, domain);
+    base_dn = sysdb_netgroup_base_dn(mem_ctx, domain);
     if (base_dn == NULL) {
         return ENOMEM;
     }

@@ -585,8 +585,7 @@ ad_enumeration_done(struct tevent_req *subreq)
      * process on the next SSSD service restart (to avoid
      * slowing down system boot-up
      */
-    ret = sysdb_set_enumerated(state->sdom->dom->sysdb,
-                               state->sdom->dom, true);
+    ret = sysdb_set_enumerated(state->sdom->dom, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Could not mark domain as having enumerated.\n"));

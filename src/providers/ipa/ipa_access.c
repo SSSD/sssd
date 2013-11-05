@@ -513,8 +513,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
         /* Delete any rules in the sysdb so offline logins
          * are also denied.
          */
-        base_dn = sysdb_custom_subtree_dn(domain->sysdb, tmp_ctx,
-                                          domain, HBAC_RULES_SUBDIR);
+        base_dn = sysdb_custom_subtree_dn(tmp_ctx, domain, HBAC_RULES_SUBDIR);
         if (base_dn == NULL) {
             talloc_free(tmp_ctx);
             ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);

@@ -317,7 +317,6 @@ errno_t sysdb_attrs_primary_name_list(struct sysdb_ctx *sysdb,
                                       const char *ldap_attr,
                                       char ***name_list);
 errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
-                            struct sysdb_ctx *sysdb,
                             struct sss_domain_info *domain,
                             const char *name,
                             const char **_cname);
@@ -332,26 +331,24 @@ int sysdb_error_to_errno(int ldberr);
 /* DNs related helper functions */
 errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                       const char *_dn, char **_name, char **_val);
-struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                             struct sss_domain_info *dom, const char *name);
-struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                              struct sss_domain_info *dom, const char *name);
-struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_user_dn(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
+                             const char *name);
+struct ldb_dn *sysdb_group_dn(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
+                              const char *name);
+struct ldb_dn *sysdb_netgroup_dn(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *dom, const char *name);
-struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *sysdb,
-                                      TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_netgroup_base_dn(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *dom);
 errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
                             const char *dn_str, char **name);
-struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_domain_dn(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *dom);
 struct ldb_dn *sysdb_base_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx);
-struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_custom_dn(TALLOC_CTX *mem_ctx,
                                struct sss_domain_info *dom,
                                const char *object_name,
                                const char *subtree_name);
-struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *sysdb,
-                                       TALLOC_CTX *mem_ctx,
+struct ldb_dn *sysdb_custom_subtree_dn(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *dom,
                                        const char *subtree_name);
 
@@ -794,12 +791,10 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
                        const char *attr_name,
                        bool value);
 
-errno_t sysdb_has_enumerated(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
+errno_t sysdb_has_enumerated(struct sss_domain_info *domain,
                              bool *has_enumerated);
 
-errno_t sysdb_set_enumerated(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
+errno_t sysdb_set_enumerated(struct sss_domain_info *domain,
                              bool enumerated);
 
 errno_t sysdb_remove_attrs(struct sss_domain_info *domain,

@@ -71,7 +71,7 @@ static int mod_groups_member(struct sysdb_ctx *sysdb,
 /* FIXME: add transaction around loop */
     for (i = 0; grouplist[i]; i++) {
 
-        parent_dn = sysdb_group_dn(sysdb, tmpctx, dom, grouplist[i]);
+        parent_dn = sysdb_group_dn(tmpctx, dom, grouplist[i]);
         if (!parent_dn) {
             ret = ENOMEM;
             goto done;
@@ -199,7 +199,7 @@ int usermod(TALLOC_CTX *mem_ctx,
     int ret;
 
     if (data->addgroups || data->rmgroups) {
-        member_dn = sysdb_user_dn(sysdb, mem_ctx, data->domain, data->name);
+        member_dn = sysdb_user_dn(mem_ctx, data->domain, data->name);
         if (!member_dn) {
             return ENOMEM;
         }
@@ -257,7 +257,7 @@ int groupmod(TALLOC_CTX *mem_ctx,
     int ret;
 
     if (data->addgroups || data->rmgroups) {
-        member_dn = sysdb_group_dn(sysdb, mem_ctx, data->domain, data->name);
+        member_dn = sysdb_group_dn(mem_ctx, data->domain, data->name);
         if (!member_dn) {
             return ENOMEM;
         }
@@ -478,7 +478,7 @@ int useradd(TALLOC_CTX *mem_ctx,
     if (data->addgroups) {
         struct ldb_dn *member_dn;
 
-        member_dn = sysdb_user_dn(sysdb, mem_ctx, data->domain, data->name);
+        member_dn = sysdb_user_dn(mem_ctx, data->domain, data->name);
         if (!member_dn) {
             ret = ENOMEM;
             goto done;
@@ -507,7 +507,7 @@ int userdel(TALLOC_CTX *mem_ctx,
     struct ldb_dn *user_dn;
     int ret;
 
-    user_dn = sysdb_user_dn(sysdb, mem_ctx, data->domain, data->name);
+    user_dn = sysdb_user_dn(mem_ctx, data->domain, data->name);
     if (!user_dn) {
         DEBUG(1, ("Could not construct a user DN\n"));
         return ENOMEM;
@@ -549,7 +549,7 @@ int groupdel(TALLOC_CTX *mem_ctx,
     struct ldb_dn *group_dn;
     int ret;
 
-    group_dn = sysdb_group_dn(sysdb, mem_ctx, data->domain, data->name);
+    group_dn = sysdb_group_dn(mem_ctx, data->domain, data->name);
     if (group_dn == NULL) {
         DEBUG(1, ("Could not construct a group DN\n"));
         return ENOMEM;

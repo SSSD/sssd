@@ -2814,8 +2814,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     }
     in_transaction = false;
 
-    ret = sysdb_get_real_name(state, state->sysdb,
-                              state->dom, state->name, &cname);
+    ret = sysdb_get_real_name(state, state->dom, state->name, &cname);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot canonicalize username\n"));
         tevent_req_error(req, ret);

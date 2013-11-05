@@ -521,8 +521,7 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
             goto done;
         }
 
-        group_ldb_dn = sysdb_group_dn(group_domain->sysdb, tmp_ctx,
-                                      group_domain, group_name);
+        group_ldb_dn = sysdb_group_dn(tmp_ctx, group_domain, group_name);
         if (group_ldb_dn == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb_group_dn() failed\n"));
             ret = ENOMEM;

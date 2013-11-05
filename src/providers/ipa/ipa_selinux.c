@@ -228,7 +228,7 @@ ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         goto fail;
     }
 
-    host_dn = sysdb_custom_dn(sysdb, op_ctx, domain, hostname, HBAC_HOSTS_SUBDIR);
+    host_dn = sysdb_custom_dn(op_ctx, domain, hostname, HBAC_HOSTS_SUBDIR);
     if (host_dn == NULL) {
         goto fail;
     }

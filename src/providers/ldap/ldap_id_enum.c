@@ -39,7 +39,7 @@ errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
     bool has_enumerated;
     struct ldap_enum_ctx *ectx;
 
-    ret = sysdb_has_enumerated(sdom->dom->sysdb, sdom->dom, &has_enumerated);
+    ret = sysdb_has_enumerated(sdom->dom, &has_enumerated);
     if (ret != EOK) {
         return ret;
     }
