@@ -167,7 +167,7 @@ static int sid_to_cifs_sid(struct sssd_ctx *ctx, const char *sid,
     }
 
     memcpy(csid, bsid, length);
-    free(bsid);
+    sss_idmap_free_bin_sid(ctx->idmap, bsid);
 
     return 0;
 }
