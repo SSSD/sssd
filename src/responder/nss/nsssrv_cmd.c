@@ -3558,6 +3558,13 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
 
     ((uint32_t *)body)[0] = num-skipped; /* num results */
     ((uint32_t *)body)[1] = 0; /* reserved */
+    blen = (2 + bindex) * sizeof(uint32_t);
+    ret = sss_packet_set_size(packet, blen);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Could not set packet size to value:%zu\n", blen));
+        return ret;
+    }
 
     return EOK;
 }
