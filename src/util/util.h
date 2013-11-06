@@ -616,4 +616,11 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
 #define BUILD_WITH_PAC_RESPONDER false
 #endif
 
+/* from well_known_sids.c */
+errno_t well_known_sid_to_name(const char *sid, const char **dom,
+                               const char **name);
+
+errno_t name_to_well_known_sid(const char *dom, const char *name,
+                               const char **sid);
+
 #endif /* __SSSD_UTIL_H__ */

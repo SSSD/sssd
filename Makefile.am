@@ -589,7 +589,8 @@ libsss_util_la_SOURCES = \
     src/util/util_errors.c \
     src/util/sss_ini.c \
     src/util/io.c \
-    src/util/util_sss_idmap.c
+    src/util/util_sss_idmap.c \
+    src/util/well_known_sids.c
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(UNICODE_LIBS)

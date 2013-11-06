@@ -547,6 +547,113 @@ void test_sss_names_init(void **state)
     talloc_free(names_ctx);
 }
 
+void test_well_known_sid_to_name(void **state)
+{
+    int ret;
+    const char *name;
+    const char *dom;
+
+    ret = well_known_sid_to_name(NULL, NULL, NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("abc", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-0", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-0-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-0-0", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "NULL AUTHORITY");
+    assert_string_equal(name, "NULL SID");
+
+    ret = well_known_sid_to_name("S-1-0-0-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-6", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "NT AUTHORITY");
+    assert_string_equal(name, "SERVICE");
+
+    ret = well_known_sid_to_name("S-1-5-6-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-21", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-21-", &dom, &name);
+    assert_int_equal(ret, ENOENT);
+
+    ret = well_known_sid_to_name("S-1-5-21-abc", &dom, &name);
+    assert_int_equal(ret, ENOENT);
+
+    ret = well_known_sid_to_name("S-1-5-32", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-32-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+    ret = well_known_sid_to_name("S-1-5-32-551", &dom, &name);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "BUILTIN");
+    assert_string_equal(name, "Backup Operators");
+
+    ret = well_known_sid_to_name("S-1-5-32-551-", &dom, &name);
+    assert_int_equal(ret, EINVAL);
+
+}
+
+void test_name_to_well_known_sid(void **state)
+{
+    int ret;
+    const char *sid;
+
+    ret = name_to_well_known_sid(NULL, NULL, NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = name_to_well_known_sid("abc", "def", &sid);
+    assert_int_equal(ret, ENOENT);
+
+    ret = name_to_well_known_sid("", "def", &sid);
+    assert_int_equal(ret, ENOENT);
+
+    ret = name_to_well_known_sid("BUILTIN", "def", &sid);
+    assert_int_equal(ret, EINVAL);
+
+    ret = name_to_well_known_sid("NT AUTHORITY", "def", &sid);
+    assert_int_equal(ret, EINVAL);
+
+    ret = name_to_well_known_sid("LOCAL AUTHORITY", "LOCAL", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-2-0");
+
+    ret = name_to_well_known_sid(NULL, "LOCAL", &sid);
+    assert_int_equal(ret, EINVAL);
+
+    ret = name_to_well_known_sid("BUILTIN", "Cryptographic Operators", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-5-32-569");
+
+    ret = name_to_well_known_sid("NT AUTHORITY", "DIALUP", &sid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sid, "S-1-5-1");
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -577,6 +684,9 @@ int main(int argc, const char *argv[])
 
         unit_test_setup_teardown(test_sss_names_init,
                                  confdb_test_setup, confdb_test_teardown),
+
+        unit_test(test_well_known_sid_to_name),
+        unit_test(test_name_to_well_known_sid),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
