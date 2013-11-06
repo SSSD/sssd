@@ -40,6 +40,38 @@
         </para>
     </refsect1>
 
+    <refsect1 id='configuration-options'>
+        <title>CONFIGURATION OPTIONS</title>
+            <para>
+                These options can be used to configure the InfoPipe responder.
+            </para>
+            <variablelist>
+                <varlistentry>
+                    <term>allowed_uids (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the comma-separated list of UID values or
+                            user names that are allowed to access the InfoPipe
+                            responder. User names are resolved to UIDs at
+                            startup.
+                        </para>
+                        <para>
+                            Default: 0 (only the root user is allowed to access
+                            the InfoPipe responder)
+                        </para>
+                        <para>
+                            Please note that although the UID 0 is used as the
+                            default it will be overwritten with this option. If
+                            you still want to allow the root user to access the
+                            InfoPipe responder, which would be the typical
+                            case, you have to add 0 to the list of allowed UIDs
+                            as well.
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>

@@ -40,6 +40,8 @@
 #include "responder/ifp/ifp_private.h"
 #include "responder/common/responder_sbus.h"
 
+#define DEFAULT_ALLOWED_UIDS "0"
+
 struct mon_cli_iface monitor_ifp_methods = {
     { &mon_cli_iface_meta, 0 },
     .ping = monitor_common_pong,
@@ -201,6 +203,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     struct be_conn *iter;
     int ret;
     int max_retries;
+    char *uid_str;
 
     ifp_cmds = get_ifp_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
@@ -233,6 +236,23 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
                                    "%1$s@%2$s", &ifp_ctx->snctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing regex data\n");
+        goto fail;
+    }
+
+    ret = confdb_get_string(ifp_ctx->rctx->cdb, ifp_ctx->rctx,
+                            CONFDB_IFP_CONF_ENTRY, CONFDB_SERVICE_ALLOWED_UIDS,
+                            DEFAULT_ALLOWED_UIDS, &uid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to get allowed UIDs.\n"));
+        goto fail;
+    }
+
+    ret = csv_string_to_uid_array(ifp_ctx->rctx, uid_str, true,
+                                  &ifp_ctx->rctx->allowed_uids_count,
+                                  &ifp_ctx->rctx->allowed_uids);
+    talloc_free(uid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to set allowed UIDs.\n"));
         goto fail;
     }
 

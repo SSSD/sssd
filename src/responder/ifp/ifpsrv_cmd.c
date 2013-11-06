@@ -39,12 +39,18 @@ int ifp_ping(struct sbus_request *dbus_req, void *data)
     static const char *pong = "PONG";
     const char *request;
     DBusError dberr;
+    errno_t ret;
+    struct ifp_req *ifp_req;
 
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
         return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
     }
 
+    ret = ifp_req_create(dbus_req, ifp_ctx, &ifp_req);
+    if (ret != EOK) {
+        return ifp_req_create_handle_failure(dbus_req, ret);
+    }
 
     if (!sbus_request_parse_or_finish(dbus_req,
                                       DBUS_TYPE_STRING, &request,

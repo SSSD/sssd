@@ -94,6 +94,9 @@ option_strings = {
     # [pac]
     'allowed_uids': _('List of UIDs or user names allowed to access the PAC responder'),
 
+    # [ifp]
+    'allowed_uids': _('List of UIDs or user names allowed to access the InfoPipe responder'),
+
     # [provider]
     'id_provider' : _('Identity provider'),
     'auth_provider' : _('Authentication provider'),
