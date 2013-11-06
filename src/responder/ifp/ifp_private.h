@@ -56,6 +56,9 @@ errno_t ifp_req_create(struct sbus_request *dbus_req,
                        struct ifp_ctx *ifp_ctx,
                        struct ifp_req **_ifp_req);
 
+/* Returns an appropriate DBus error for specific ifp_req_create failures */
+int ifp_req_create_handle_failure(struct sbus_request *dbus_req, errno_t err);
+
 const char *ifp_path_strip_prefix(const char *path, const char *prefix);
 errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,
                                struct ldb_message_element *el);

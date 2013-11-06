@@ -24,6 +24,7 @@
 
 #include "db/sysdb.h"
 #include "tests/cmocka/common_mock.h"
+#include "tests/cmocka/common_mock_resp.h"
 #include "responder/ifp/ifp_private.h"
 #include "sbus/sssd_dbus_private.h"
 
@@ -35,6 +36,14 @@ mock_ifp_ctx(TALLOC_CTX *mem_ctx)
     ifp_ctx = talloc_zero(mem_ctx, struct ifp_ctx);
     assert_non_null(ifp_ctx);
 
+    ifp_ctx->rctx = mock_rctx(ifp_ctx, NULL, NULL, NULL);
+    assert_non_null(ifp_ctx->rctx);
+
+    ifp_ctx->rctx->allowed_uids = talloc_array(ifp_ctx->rctx, uint32_t, 1);
+    assert_non_null(ifp_ctx->rctx->allowed_uids);
+    ifp_ctx->rctx->allowed_uids[0] = geteuid();
+    ifp_ctx->rctx->allowed_uids_count = 1;
+
     ifp_ctx->sysbus = talloc_zero(ifp_ctx, struct sysbus_ctx);
     assert_non_null(ifp_ctx->sysbus);
 
@@ -45,7 +54,7 @@ mock_ifp_ctx(TALLOC_CTX *mem_ctx)
 }
 
 static struct sbus_request *
-mock_sbus_request(TALLOC_CTX *mem_ctx)
+mock_sbus_request(TALLOC_CTX *mem_ctx, uid_t client)
 {
     struct sbus_request *sr;
 
@@ -58,6 +67,8 @@ mock_sbus_request(TALLOC_CTX *mem_ctx)
     sr->message = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_CALL);
     assert_non_null(sr->message);
     dbus_message_set_serial(sr->message, 1);
+
+    sr->client = client;
 
     return sr;
 }
@@ -75,7 +86,7 @@ void ifp_test_req_create(void **state)
     assert_non_null(ifp_ctx);
     check_leaks_push(ifp_ctx);
 
-    sr = mock_sbus_request(ifp_ctx);
+    sr = mock_sbus_request(ifp_ctx, geteuid());
     assert_non_null(sr);
     check_leaks_push(sr);
 
@@ -84,6 +95,32 @@ void ifp_test_req_create(void **state)
     talloc_free(ireq);
 
     assert_true(check_leaks_pop(sr) == true);
+    talloc_free(sr);
+
+    assert_true(check_leaks_pop(ifp_ctx) == true);
+    talloc_free(ifp_ctx);
+
+    assert_true(leak_check_teardown());
+}
+
+void ifp_test_req_wrong_uid(void **state)
+{
+    struct ifp_req *ireq;
+    struct sbus_request *sr;
+    struct ifp_ctx *ifp_ctx;
+    errno_t ret;
+
+    assert_true(leak_check_setup());
+
+    ifp_ctx = mock_ifp_ctx(global_talloc_context);
+    assert_non_null(ifp_ctx);
+    check_leaks_push(ifp_ctx);
+
+    sr = mock_sbus_request(ifp_ctx, geteuid()+1);
+    assert_non_null(sr);
+
+    ret = ifp_req_create(sr, ifp_ctx, &ireq);
+    assert_int_equal(ret, EACCES);
     talloc_free(sr);
 
     assert_true(check_leaks_pop(ifp_ctx) == true);
@@ -111,7 +148,7 @@ void test_el_to_dict(void **state)
     char *attr_name;
     char *attr_val;
 
-    sr = mock_sbus_request(global_talloc_context);
+    sr = mock_sbus_request(global_talloc_context, geteuid());
     assert_non_null(sr);
 
     el = talloc(sr, struct ldb_message_element);
@@ -181,6 +218,7 @@ int main(int argc, const char *argv[])
 
     const UnitTest tests[] = {
         unit_test(ifp_test_req_create),
+        unit_test(ifp_test_req_wrong_uid),
         unit_test(test_path_prefix),
         unit_test(test_el_to_dict),
     };
