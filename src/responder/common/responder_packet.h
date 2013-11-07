@@ -37,6 +37,7 @@ int sss_packet_set_size(struct sss_packet *packet, size_t size);
 int sss_packet_recv(struct sss_packet *packet, int fd);
 int sss_packet_send(struct sss_packet *packet, int fd);
 enum sss_cli_command sss_packet_get_cmd(struct sss_packet *packet);
+uint32_t sss_packet_get_status(struct sss_packet *packet);
 void sss_packet_get_body(struct sss_packet *packet, uint8_t **body, size_t *blen);
 void sss_packet_set_error(struct sss_packet *packet, int error);
 

@@ -266,6 +266,15 @@ enum sss_cli_command sss_packet_get_cmd(struct sss_packet *packet)
     return (enum sss_cli_command)cmd;
 }
 
+uint32_t sss_packet_get_status(struct sss_packet *packet)
+{
+    uint32_t status;
+
+    SAFEALIGN_COPY_UINT32(&status, packet->buffer + SSS_PACKET_ERR_OFFSET,
+                          NULL);
+    return status;
+}
+
 void sss_packet_get_body(struct sss_packet *packet, uint8_t **body, size_t *blen)
 {
     *body = packet->buffer + SSS_PACKET_BODY_OFFSET;
