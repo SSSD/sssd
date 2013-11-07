@@ -218,10 +218,10 @@ struct ldb_dn *sysdb_netgroup_base_dn(TALLOC_CTX *mem_ctx,
 }
 
 errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                      const char *_dn, char **_name, char **_val)
+                      const char *dn, char **_name, char **_val)
 {
     errno_t ret;
-    struct ldb_dn *dn;
+    struct ldb_dn *ldb_dn;
     const char *attr_name = NULL;
     const struct ldb_val *val;
     TALLOC_CTX *tmp_ctx;
@@ -234,14 +234,14 @@ errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, "%s", _dn);
-    if (dn == NULL) {
+    ldb_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, "%s", dn);
+    if (ldb_dn == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
     if (_name) {
-        attr_name = ldb_dn_get_rdn_name(dn);
+        attr_name = ldb_dn_get_rdn_name(ldb_dn);
         if (attr_name == NULL) {
             ret = EINVAL;
             goto done;
@@ -254,7 +254,7 @@ errno_t sysdb_get_rdn(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
         }
     }
 
-    val = ldb_dn_get_rdn_val(dn);
+    val = ldb_dn_get_rdn_val(ldb_dn);
     if (val == NULL) {
         ret = EINVAL;
         if (_name) talloc_free(*_name);
@@ -276,9 +276,9 @@ done:
 }
 
 errno_t sysdb_group_dn_name(struct sysdb_ctx *sysdb, TALLOC_CTX *mem_ctx,
-                            const char *_dn, char **_name)
+                            const char *dn, char **_name)
 {
-    return sysdb_get_rdn(sysdb, mem_ctx, _dn, NULL, _name);
+    return sysdb_get_rdn(sysdb, mem_ctx, dn, NULL, _name);
 }
 
 struct ldb_dn *sysdb_domain_dn(TALLOC_CTX *mem_ctx,
