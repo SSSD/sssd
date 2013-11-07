@@ -361,7 +361,7 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
     size_t user_count, group_count, i;
     TALLOC_CTX *tmp_ctx;
     bool in_transaction = false;
-    char *sid_str;
+    char *sid_str = NULL;
     gid_t gid;
     time_t now;
     struct sss_domain_info *group_domain;
