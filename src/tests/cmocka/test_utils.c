@@ -24,6 +24,10 @@
 
 #include "tests/cmocka/common_mock.h"
 
+#define TESTS_PATH "tests_utils"
+#define TEST_CONF_DB "test_utils_conf.ldb"
+#define TEST_SYSDB_FILE "cache_utils_test.ldb"
+
 #define DOM_COUNT 10
 #define DOMNAME_TMPL "name_%zu.dom"
 #define FLATNAME_TMPL "name_%zu"
@@ -430,6 +434,119 @@ void test_find_subdomain_by_sid_disabled(void **state)
     }
 }
 
+struct name_init_test_ctx {
+    struct confdb_ctx *confdb;
+};
+
+#define GLOBAL_FULL_NAME_FORMAT "%1$s@%2$s"
+#define GLOBAL_RE_EXPRESSION "(?P<name>[^@]+)@?(?P<domain>[^@]*$)"
+
+#define TEST_DOMAIN_NAME "test.dom"
+#define DOMAIN_FULL_NAME_FORMAT "%3$s\\%1$s"
+#define DOMAIN_RE_EXPRESSION "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
+                             "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+                             "(^(?P<name>[^@\\\\]+)$))"
+
+void confdb_test_setup(void **state)
+{
+    struct name_init_test_ctx *test_ctx;
+    char *conf_db = NULL;
+    char *dompath = NULL;
+    int ret;
+    const char *val[2];
+    val[1] = NULL;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context, struct name_init_test_ctx);
+    assert_non_null(test_ctx);
+
+    conf_db = talloc_asprintf(test_ctx, "%s/%s", TESTS_PATH, TEST_CONF_DB);
+    assert_non_null(conf_db);
+
+    ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(conf_db);
+
+    val[0] = TEST_DOMAIN_NAME;
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           "config/sssd", "domains", val);
+    assert_int_equal(ret, EOK);
+
+    val[0] = GLOBAL_FULL_NAME_FORMAT;
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           "config/sssd", "full_name_format", val);
+    assert_int_equal(ret, EOK);
+
+    val[0] = GLOBAL_RE_EXPRESSION;
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           "config/sssd", "re_expression", val);
+    assert_int_equal(ret, EOK);
+
+    dompath = talloc_asprintf(test_ctx, "config/domain/%s", TEST_DOMAIN_NAME);
+    assert_non_null(dompath);
+
+    val[0] = "ldap";
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           dompath, "id_provider", val);
+    assert_int_equal(ret, EOK);
+
+    val[0] = DOMAIN_FULL_NAME_FORMAT;
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           dompath, "full_name_format", val);
+    assert_int_equal(ret, EOK);
+
+    val[0] = DOMAIN_RE_EXPRESSION;
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           dompath, "re_expression", val);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(dompath);
+
+    check_leaks_push(test_ctx);
+    *state = test_ctx;
+}
+
+void confdb_test_teardown(void **state)
+{
+    struct name_init_test_ctx *test_ctx;
+
+    test_ctx = talloc_get_type(*state, struct name_init_test_ctx);
+
+    assert_true(check_leaks_pop(test_ctx) == true);
+    talloc_free(test_ctx);
+    assert_true(leak_check_teardown());
+}
+
+void test_sss_names_init(void **state)
+{
+    struct name_init_test_ctx *test_ctx;
+    struct sss_names_ctx *names_ctx;
+    int ret;
+
+    test_ctx = talloc_get_type(*state, struct name_init_test_ctx);
+
+    ret = sss_names_init(test_ctx, test_ctx->confdb, NULL, &names_ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(names_ctx);
+    assert_string_equal(names_ctx->re_pattern, GLOBAL_RE_EXPRESSION);
+    assert_string_equal(names_ctx->fq_fmt, GLOBAL_FULL_NAME_FORMAT"%3$s");
+    assert_int_equal(names_ctx->fq_flags, FQ_FMT_NAME|FQ_FMT_DOMAIN);
+
+    talloc_free(names_ctx);
+
+    ret = sss_names_init(test_ctx, test_ctx->confdb, TEST_DOMAIN_NAME,
+                         &names_ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(names_ctx);
+    assert_string_equal(names_ctx->re_pattern, DOMAIN_RE_EXPRESSION);
+    assert_string_equal(names_ctx->fq_fmt, DOMAIN_FULL_NAME_FORMAT"%2$s");
+    assert_int_equal(names_ctx->fq_flags, FQ_FMT_NAME|FQ_FMT_FLAT_NAME);
+
+    talloc_free(names_ctx);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -457,6 +574,9 @@ int main(int argc, const char *argv[])
                                  setup_dom_list, teardown_dom_list),
         unit_test_setup_teardown(test_find_subdomain_by_name_disabled,
                                  setup_dom_list, teardown_dom_list),
+
+        unit_test_setup_teardown(test_sss_names_init,
+                                 confdb_test_setup, confdb_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -479,6 +599,8 @@ int main(int argc, const char *argv[])
     /* Even though normally the tests should clean up after themselves
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+    test_dom_suite_setup(TESTS_PATH);
 
     return run_tests(tests);
 }

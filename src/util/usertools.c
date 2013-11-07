@@ -241,9 +241,9 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
                    const char *domain, struct sss_names_ctx **out)
 {
     TALLOC_CTX *tmpctx = NULL;
-    char *conf_path;
-    char *re_pattern;
-    char *fq_fmt;
+    char *conf_path = NULL;
+    char *re_pattern = NULL;;
+    char *fq_fmt = NULL;
     int ret;
 
     tmpctx = talloc_new(NULL);
@@ -252,15 +252,17 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         goto done;
     }
 
-    conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL, domain);
-    if (conf_path == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
+    if (domain != NULL) {
+        conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL, domain);
+        if (conf_path == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
 
-    ret = confdb_get_string(cdb, tmpctx, conf_path,
-                            CONFDB_NAME_REGEX, NULL, &re_pattern);
-    if (ret != EOK) goto done;
+        ret = confdb_get_string(cdb, tmpctx, conf_path,
+                                CONFDB_NAME_REGEX, NULL, &re_pattern);
+        if (ret != EOK) goto done;
+    }
 
     /* If not found in the domain, look in globals */
     if (re_pattern == NULL) {
@@ -269,7 +271,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         if (ret != EOK) goto done;
     }
 
-    if (re_pattern == NULL) {
+    if (re_pattern == NULL && conf_path != NULL) {
         ret = get_id_provider_default_re(tmpctx, cdb, conf_path, &re_pattern);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Failed to get provider default regular " \
@@ -295,9 +297,11 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
 #endif
     }
 
-    ret = confdb_get_string(cdb, tmpctx, conf_path,
-                            CONFDB_FULL_NAME_FORMAT, NULL, &fq_fmt);
-    if (ret != EOK) goto done;
+    if (conf_path != NULL) {
+        ret = confdb_get_string(cdb, tmpctx, conf_path,
+                                CONFDB_FULL_NAME_FORMAT, NULL, &fq_fmt);
+        if (ret != EOK) goto done;
+    }
 
     /* If not found in the domain, look in globals */
     if (fq_fmt == NULL) {
