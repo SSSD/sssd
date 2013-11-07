@@ -4334,7 +4334,7 @@ static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     /* If the body isn't a SID, fail */
     err = sss_idmap_sid_to_bin_sid(nctx->idmap_ctx, sid_str,
                                    &bin_sid, &bin_sid_length);
-    talloc_free(bin_sid);
+    sss_idmap_free_bin_sid(nctx->idmap_ctx, bin_sid);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_sid_to_bin_sid failed for [%s].\n",
                                   body));

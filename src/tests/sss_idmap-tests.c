@@ -242,7 +242,7 @@ START_TEST(idmap_test_bin_sid2uid)
                 "sss_idmap_bin_sid_to_unix returned wrong id, "
                 "got [%d], expected [%d].", id, 1000 + IDMAP_RANGE_MIN);
 
-    talloc_free(bin_sid);
+    sss_idmap_free_bin_sid(idmap_ctx, bin_sid);
 }
 END_TEST
 
@@ -331,7 +331,7 @@ START_TEST(idmap_test_uid2bin_sid)
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
 
     sss_idmap_free_sid(idmap_ctx, sid);
-    talloc_free(bin_sid);
+    sss_idmap_free_bin_sid(idmap_ctx, bin_sid);
 }
 END_TEST
 
@@ -359,7 +359,7 @@ START_TEST(idmap_test_bin_sid2dom_sid)
                 "Binary SIDs do not match.");
 
     sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
-    talloc_free(new_bin_sid);
+    sss_idmap_free_bin_sid(idmap_ctx, new_bin_sid);
 }
 END_TEST
 
@@ -437,7 +437,7 @@ START_TEST(idmap_test_sid2bin_sid)
     fail_unless(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
                 "Binary SIDs do not match");
 
-    talloc_free(bin_sid);
+    sss_idmap_free_bin_sid(idmap_ctx, bin_sid);
 }
 END_TEST
 
@@ -496,7 +496,7 @@ START_TEST(idmap_test_smb_sid2bin_sid)
     fail_unless(memcmp(bin_sid, test_bin_sid, test_bin_sid_length) == 0,
                 "Binary SIDs do not match.");
 
-    talloc_free(bin_sid);
+    sss_idmap_free_bin_sid(idmap_ctx, bin_sid);
 }
 END_TEST
 
