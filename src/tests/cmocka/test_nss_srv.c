@@ -96,7 +96,7 @@ void __wrap_sss_packet_get_body(struct sss_packet *packet,
 }
 
 /* Mock returning result to client. Terminate the unit test instead. */
-typedef int (*cmd_cb_fn_t)(uint8_t *, size_t );
+typedef int (*cmd_cb_fn_t)(uint32_t, uint8_t *, size_t );
 
 static void set_cmd_cb(cmd_cb_fn_t fn)
 {
@@ -114,7 +114,8 @@ void __wrap_sss_cmd_done(struct cli_ctx *cctx, void *freectx)
 
     __real_sss_packet_get_body(packet, &body, &blen);
 
-    nss_test_ctx->tctx->error = check_cb(body, blen);
+    nss_test_ctx->tctx->error = check_cb(sss_packet_get_status(packet),
+                                         body, blen);
     nss_test_ctx->tctx->done = true;
 }
 
@@ -248,10 +249,12 @@ static int parse_group_packet(uint8_t *body, size_t blen, struct group *gr, uint
  * not be called and test_nss_getpwnam_check will make sure the user is
  * the same as the test entered before starting
  */
-static int test_nss_getpwnam_check(uint8_t *body, size_t blen)
+static int test_nss_getpwnam_check(uint32_t status, uint8_t *body, size_t blen)
 {
     struct passwd pwd;
     errno_t ret;
+
+    assert_int_equal(status, EOK);
 
     ret = parse_user_packet(body, blen, &pwd);
     assert_int_equal(ret, EOK);
@@ -343,10 +346,13 @@ static int test_nss_getpwnam_search_acct_cb(void *pvt)
     return EOK;
 }
 
-static int test_nss_getpwnam_search_check(uint8_t *body, size_t blen)
+static int test_nss_getpwnam_search_check(uint32_t status,
+                                          uint8_t *body, size_t blen)
 {
     struct passwd pwd;
     errno_t ret;
+
+    assert_int_equal(status, EOK);
 
     ret = parse_user_packet(body, blen, &pwd);
     assert_int_equal(ret, EOK);
@@ -408,10 +414,13 @@ static int test_nss_getpwnam_update_acct_cb(void *pvt)
     return EOK;
 }
 
-static int test_nss_getpwnam_update_check(uint8_t *body, size_t blen)
+static int test_nss_getpwnam_update_check(uint32_t status,
+                                          uint8_t *body, size_t blen)
 {
     struct passwd pwd;
     errno_t ret;
+
+    assert_int_equal(status, EOK);
 
     ret = parse_user_packet(body, blen, &pwd);
     assert_int_equal(ret, EOK);
@@ -469,10 +478,13 @@ void test_nss_getpwnam_update(void **state)
 /* Check that a FQDN is returned if the domain is FQDN-only and a
  * FQDN is requested
  */
-static int test_nss_getpwnam_check_fqdn(uint8_t *body, size_t blen)
+static int test_nss_getpwnam_check_fqdn(uint32_t status,
+                                        uint8_t *body, size_t blen)
 {
     struct passwd pwd;
     errno_t ret;
+
+    assert_int_equal(status, EOK);
 
     nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
 
@@ -517,10 +529,13 @@ void test_nss_getpwnam_fqdn(void **state)
  * Check that FQDN processing is able to handle arbitrarily sized
  * delimeter
  */
-static int test_nss_getpwnam_check_resize_fqdn(uint8_t *body, size_t blen)
+static int test_nss_getpwnam_check_resize_fqdn(uint32_t status,
+                                               uint8_t *body, size_t blen)
 {
     struct passwd pwd;
     errno_t ret;
+
+    assert_int_equal(status, EOK);
 
     nss_test_ctx->cctx->rctx->domains[0].fqnames = false;
 
@@ -613,7 +628,8 @@ static int test_nss_getgrnam_check(struct group *expected, struct group *gr, con
     return EOK;
 }
 
-static int test_nss_getgrnam_no_members_check(uint8_t *body, size_t blen)
+static int test_nss_getgrnam_no_members_check(uint32_t status,
+                                              uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
@@ -624,6 +640,8 @@ static int test_nss_getgrnam_no_members_check(uint8_t *body, size_t blen)
         .gr_passwd = discard_const("*"),
         .gr_mem = NULL,
     };
+
+    assert_int_equal(status, EOK);
 
     ret = parse_group_packet(body, blen, &gr, &nmem);
     assert_int_equal(ret, EOK);
@@ -663,7 +681,8 @@ void test_nss_getgrnam_no_members(void **state)
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_members_check(uint8_t *body, size_t blen)
+static int test_nss_getgrnam_members_check(uint32_t status,
+                                           uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
@@ -675,6 +694,8 @@ static int test_nss_getgrnam_members_check(uint8_t *body, size_t blen)
         .gr_passwd = discard_const("*"),
         .gr_mem = discard_const(exp_members)
     };
+
+    assert_int_equal(status, EOK);
 
     ret = parse_group_packet(body, blen, &gr, &nmem);
     assert_int_equal(ret, EOK);
@@ -736,7 +757,8 @@ void test_nss_getgrnam_members(void **state)
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_members_check_fqdn(uint8_t *body, size_t blen)
+static int test_nss_getgrnam_members_check_fqdn(uint32_t status,
+                                                uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
@@ -749,6 +771,8 @@ static int test_nss_getgrnam_members_check_fqdn(uint8_t *body, size_t blen)
         .gr_passwd = discard_const("*"),
         .gr_mem = discard_const(exp_members)
     };
+
+    assert_int_equal(status, EOK);
 
     ret = parse_group_packet(body, blen, &gr, &nmem);
     assert_int_equal(ret, EOK);
@@ -787,7 +811,8 @@ void test_nss_getgrnam_members_fqdn(void **state)
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_members_check_subdom(uint8_t *body, size_t blen)
+static int test_nss_getgrnam_members_check_subdom(uint32_t status,
+                                                  uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
@@ -800,6 +825,8 @@ static int test_nss_getgrnam_members_check_subdom(uint8_t *body, size_t blen)
         .gr_passwd = discard_const("*"),
         .gr_mem = discard_const(exp_members)
     };
+
+    assert_int_equal(status, EOK);
 
     ret = parse_group_packet(body, blen, &gr, &nmem);
     assert_int_equal(ret, EOK);
@@ -872,7 +899,8 @@ void test_nss_getgrnam_members_subdom(void **state)
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_check_mix_dom(uint8_t *body, size_t blen)
+static int test_nss_getgrnam_check_mix_dom(uint32_t status,
+                                           uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
@@ -886,6 +914,8 @@ static int test_nss_getgrnam_check_mix_dom(uint8_t *body, size_t blen)
         .gr_passwd = discard_const("*"),
         .gr_mem = discard_const(exp_members)
     };
+
+    assert_int_equal(status, EOK);
 
     ret = parse_group_packet(body, blen, &gr, &nmem);
     assert_int_equal(ret, EOK);
@@ -931,7 +961,8 @@ void test_nss_getgrnam_mix_dom(void **state)
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_check_mix_dom_fqdn(uint8_t *body, size_t blen)
+static int test_nss_getgrnam_check_mix_dom_fqdn(uint32_t status,
+                                                uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
@@ -945,6 +976,8 @@ static int test_nss_getgrnam_check_mix_dom_fqdn(uint8_t *body, size_t blen)
         .gr_passwd = discard_const("*"),
         .gr_mem = discard_const(exp_members)
     };
+
+    assert_int_equal(status, EOK);
 
     ret = parse_group_packet(body, blen, &gr, &nmem);
     assert_int_equal(ret, EOK);
@@ -980,7 +1013,8 @@ void test_nss_getgrnam_mix_dom_fqdn(void **state)
     assert_int_equal(ret, EOK);
 }
 
-static int test_nss_getgrnam_check_mix_subdom(uint8_t *body, size_t blen)
+static int test_nss_getgrnam_check_mix_subdom(uint32_t status,
+                                              uint8_t *body, size_t blen)
 {
     int ret;
     uint32_t nmem;
@@ -994,6 +1028,8 @@ static int test_nss_getgrnam_check_mix_subdom(uint8_t *body, size_t blen)
         .gr_passwd = discard_const("*"),
         .gr_mem = discard_const(exp_members)
     };
+
+    assert_int_equal(status, EOK);
 
     ret = parse_group_packet(body, blen, &gr, &nmem);
     assert_int_equal(ret, EOK);
