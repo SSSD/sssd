@@ -30,6 +30,8 @@
 #include "responder/common/negcache.h"
 #include "responder/nss/nsssrv.h"
 #include "responder/nss/nsssrv_private.h"
+#include "sss_client/idmap/sss_nss_idmap.h"
+#include "util/util_sss_idmap.h"
 
 #define TESTS_PATH "tests_nss"
 #define TEST_CONF_DB "test_nss_conf.ldb"
@@ -58,6 +60,7 @@ mock_nctx(TALLOC_CTX *mem_ctx)
 {
     struct nss_ctx *nctx;
     errno_t ret;
+    enum idmap_error_code err;
 
     nctx = talloc_zero(mem_ctx, struct nss_ctx);
     if (!nctx) {
@@ -71,6 +74,14 @@ mock_nctx(TALLOC_CTX *mem_ctx)
     }
     nctx->neg_timeout = 10;
     nctx->pwfield = discard_const("*");
+
+    err = sss_idmap_init(sss_idmap_talloc, nctx, sss_idmap_talloc_free,
+                         &nctx->idmap_ctx);
+    if (err != IDMAP_SUCCESS) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_init failed.\n"));
+        talloc_free(nctx);
+        return NULL;
+    }
 
     return nctx;
 }
@@ -605,6 +616,11 @@ void test_nss_setup(struct sss_test_conf_param params[],
     nss_test_ctx->nctx = mock_nctx(nss_test_ctx);
     assert_non_null(nss_test_ctx->nctx);
 
+    ret = sss_names_init(nss_test_ctx->nctx, nss_test_ctx->tctx->confdb,
+                         NULL, &nss_test_ctx->nctx->global_names);
+    assert_int_equal(ret, EOK);
+    assert_non_null(nss_test_ctx->nctx->global_names);
+
     nss_test_ctx->rctx = mock_rctx(nss_test_ctx, nss_test_ctx->tctx->ev,
                                    nss_test_ctx->tctx->dom, nss_test_ctx->nctx);
     assert_non_null(nss_test_ctx->rctx);
@@ -1075,6 +1091,168 @@ void test_nss_getgrnam_mix_subdom(void **state)
     assert_int_equal(ret, EOK);
 }
 
+static int test_nss_well_known_sid_check(uint32_t status,
+                                         uint8_t *body, size_t blen)
+{
+    const char *name;
+    enum sss_id_type type;
+    size_t rp = 2 * sizeof(uint32_t);
+    char *expected_result = sss_mock_ptr_type(char *);
+
+    if (expected_result == NULL) {
+        assert_int_equal(status, EINVAL);
+        assert_int_equal(blen, 0);
+    } else {
+        assert_int_equal(status, EOK);
+
+        SAFEALIGN_COPY_UINT32(&type, body+rp, &rp);
+
+        name = (char *) body+rp;
+
+        assert_int_equal(type, SSS_ID_TYPE_GID);
+        assert_string_equal(name, expected_result);
+    }
+
+    return EOK;
+}
+
+void test_nss_well_known_getnamebysid(void **state)
+{
+    errno_t ret;
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "S-1-5-32-550");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(test_nss_well_known_sid_check, "Print Operators@BUILTIN");
+
+    set_cmd_cb(test_nss_well_known_sid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_well_known_getnamebysid_special(void **state)
+{
+    errno_t ret;
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "S-1-2-0");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(test_nss_well_known_sid_check, "LOCAL@LOCAL AUTHORITY");
+
+    set_cmd_cb(test_nss_well_known_sid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_well_known_getnamebysid_non_existing(void **state)
+{
+    errno_t ret;
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "S-1-5-32-123");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
+    will_return(test_nss_well_known_sid_check, NULL);
+
+    set_cmd_cb(test_nss_well_known_sid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_well_known_getidbysid_failure(void **state)
+{
+    errno_t ret;
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "S-1-5-32-550");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETIDBYSID);
+    will_return(test_nss_well_known_sid_check, NULL);
+
+    set_cmd_cb(test_nss_well_known_sid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETIDBYSID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_well_known_getsidbyname(void **state)
+{
+    errno_t ret;
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "Cryptographic Operators@BUILTIN");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(test_nss_well_known_sid_check, "S-1-5-32-569");
+
+    set_cmd_cb(test_nss_well_known_sid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_well_known_getsidbyname_nonexisting(void **state)
+{
+    errno_t ret;
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "Abc@BUILTIN");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
+    will_return(test_nss_well_known_sid_check, NULL);
+
+    set_cmd_cb(test_nss_well_known_sid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_well_known_getsidbyname_special(void **state)
+{
+    errno_t ret;
+
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, "CREATOR OWNER@CREATOR AUTHORITY");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(test_nss_well_known_sid_check, "S-1-3-0");
+
+    set_cmd_cb(test_nss_well_known_sid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETSIDBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void nss_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
@@ -1177,6 +1355,20 @@ int main(int argc, const char *argv[])
                                  nss_subdom_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getgrnam_mix_subdom,
                                  nss_subdom_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_well_known_getnamebysid,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_well_known_getnamebysid_special,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_well_known_getnamebysid_non_existing,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_well_known_getidbysid_failure,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_well_known_getsidbyname,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_well_known_getsidbyname_nonexisting,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_well_known_getsidbyname_special,
+                                 nss_test_setup, nss_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

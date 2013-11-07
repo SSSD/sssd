@@ -973,6 +973,57 @@ done:
     }
 }
 
+static int nss_check_name_of_well_known_sid(struct nss_cmd_ctx *cmdctx,
+                                            const char *full_name)
+{
+    char *wk_name = NULL;
+    char *wk_dom_name = NULL;
+    const char *wk_sid;
+    int ret;
+    struct sized_string sid;
+    uint8_t *body;
+    size_t blen;
+    struct cli_ctx *cctx;
+    struct nss_ctx *nss_ctx;
+
+    nss_ctx = talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct nss_ctx);
+    ret = sss_parse_name(cmdctx, nss_ctx->global_names, full_name,
+                         &wk_dom_name, &wk_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_parse_name failed.\n"));
+        return ret;
+    }
+
+    ret = name_to_well_known_sid(wk_dom_name, wk_name, &wk_sid);
+    talloc_free(wk_dom_name);
+    talloc_free(wk_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_ALL, ("Name [%s] is not the name of a " \
+                                 "Well-Known SID.\n", full_name));
+        return ret;
+    }
+
+    to_sized_string(&sid, wk_sid);
+
+    cctx = cmdctx->cctx;
+    ret = sss_packet_new(cctx->creq, sid.len + 3 * sizeof(uint32_t),
+                         sss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        return ENOMEM;
+    }
+
+    sss_packet_get_body(cctx->creq->out, &body, &blen);
+    ((uint32_t *)body)[0] = 1; /* num results */
+    ((uint32_t *)body)[1] = 0; /* reserved */
+    ((uint32_t *)body)[2] = (uint32_t) SSS_ID_TYPE_GID;
+    memcpy(&body[3*sizeof(uint32_t)], sid.str, sid.len);
+
+    sss_packet_set_error(cctx->creq->out, EOK);
+    sss_cmd_done(cctx, cmdctx);
+    return EOK;
+}
+
 static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx);
 static void nss_cmd_getbynam_done(struct tevent_req *req);
 static int nss_cmd_getpwnam(struct cli_ctx *cctx)
@@ -1036,6 +1087,20 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Running command [%d] with input [%s].\n",
                                dctx->cmdctx->cmd, rawname));
+
+    if (dctx->cmdctx->cmd == SSS_NSS_GETSIDBYNAME) {
+        ret = nss_check_name_of_well_known_sid(cmdctx, rawname);
+        if (ret != ENOENT) {
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_ALL, ("Name [%s] is the name of a " \
+                                         "Well-Known SID.\n", rawname));
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      ("nss_check_name_of_well_known_sid failed.\n"));
+            }
+            goto done;
+        }
+    }
 
     /* We need to attach to subdomain request, if the first one is not
      * finished yet. We may not be able to lookup object in AD otherwise. */
@@ -4278,6 +4343,64 @@ static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
     return EOK;
 }
 
+static int nss_check_well_known_sid(struct nss_cmd_ctx *cmdctx)
+{
+    const char *wk_name;
+    const char *wk_dom_name;
+    int ret;
+    char *fq_name = NULL;
+    struct sized_string name;
+    uint8_t *body;
+    size_t blen;
+    struct cli_ctx *cctx;
+    struct nss_ctx *nss_ctx;
+
+    ret = well_known_sid_to_name(cmdctx->secid, &wk_dom_name, &wk_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_ALL, ("SID [%s] is not a Well-Known SID.\n",
+                                 cmdctx->secid));
+        return ret;
+    }
+
+    if (cmdctx->cmd != SSS_NSS_GETNAMEBYSID) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              ("Well-Known SIDs can only be translated to names.\n"));
+        return EINVAL;
+    }
+
+    if (wk_dom_name != NULL) {
+        nss_ctx = talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct nss_ctx);
+        fq_name = sss_tc_fqname2(cmdctx, nss_ctx->global_names,
+                                 wk_dom_name, wk_dom_name, wk_name);
+        if (fq_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, ("sss_tc_fqname2 failed.\n"));
+            return ENOMEM;
+        }
+        to_sized_string(&name, fq_name);
+    } else {
+        to_sized_string(&name, wk_name);
+    }
+
+    cctx = cmdctx->cctx;
+    ret = sss_packet_new(cctx->creq, name.len + 3 * sizeof(uint32_t),
+                         sss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        talloc_free(fq_name);
+        return ENOMEM;
+    }
+
+    sss_packet_get_body(cctx->creq->out, &body, &blen);
+    ((uint32_t *)body)[0] = 1; /* num results */
+    ((uint32_t *)body)[1] = 0; /* reserved */
+    ((uint32_t *)body)[2] = (uint32_t) SSS_ID_TYPE_GID;
+    memcpy(&body[3*sizeof(uint32_t)], name.str, name.len);
+
+    sss_packet_set_error(cctx->creq->out, EOK);
+    sss_cmd_done(cctx, cmdctx);
+    return EOK;
+}
+
 static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
 {
 
@@ -4343,6 +4466,17 @@ static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     if (cmdctx->secid == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
         ret = ENOMEM;
+        goto done;
+    }
+
+    ret = nss_check_well_known_sid(cmdctx);
+    if (ret != ENOENT) {
+        if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_ALL, ("SID [%s] is a Well-Known SID.\n",
+                                         cmdctx->secid));
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, ("nss_check_well_known_sid failed.\n"));
+        }
         goto done;
     }
 

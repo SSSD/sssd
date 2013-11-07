@@ -189,4 +189,39 @@ ldap_schema = ad
         </refsect3>
     </refsect2>
 
+    <refsect2 id='well_known_sids'>
+        <title>Well-Known SIDs</title>
+        <para>
+            SSSD supports to look up the names of Well-Known SIDs, i.e. SIDs
+            with a special hardcoded meaning. Since the generic users and groups
+            related to those Well-Known SIDs have no equivalent in a Linux/UNIX
+            environment no POSIX IDs are available for those objects.
+        </para>
+        <para>
+            The SID name space is organized in authorities which can be seen as
+            different domains. The authorities for the Well-Known SIDs are
+            <itemizedlist>
+                <listitem><para>Null Authority</para></listitem>
+                <listitem><para>World Authority</para></listitem>
+                <listitem><para>Local Authority</para></listitem>
+                <listitem><para>Creator Authority</para></listitem>
+                <listitem><para>NT Authority</para></listitem>
+                <listitem><para>Built-in</para></listitem>
+            </itemizedlist>
+            The capitalized version of these names are used as domain names when
+            returning the fully qualified name of a Well-Known SID.
+        </para>
+        <para>
+            Since some utilities allow to modify SID based access control
+            information with the help of a name instead of using the SID
+            directly SSSD supports to look up the SID by the name as well. To
+            avoid collisions only the fully qualified names are excepted to look
+            up Well-Known SIDs. As a result the domain names <quote>NULL
+            AUTHORITY</quote>, <quote>WORLD AUTHORITY</quote>, <quote> LOCAL
+            AUTHORITY</quote>, <quote>CREATOR AUTHORITY</quote>, <quote>NT
+            AUTHORITY</quote> and <quote>BUILTIN</quote> should not be used as
+            domain names in <filename>sssd.conf</filename>.
+        </para>
+    </refsect2>
+
 </refsect1>
