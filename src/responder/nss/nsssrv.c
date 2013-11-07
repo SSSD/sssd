@@ -553,6 +553,12 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    ret = sss_names_init(nctx, nctx->rctx->cdb, NULL, &nctx->global_names);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_names_init failed.\n"));
+        goto fail;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, ("NSS Initialization complete\n"));
 
     return EOK;
