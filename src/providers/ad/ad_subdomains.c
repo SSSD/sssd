@@ -104,7 +104,7 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
     errno_t ret;
     enum idmap_error_code err;
     struct ldb_message_element *el;
-    char *sid_str;
+    char *sid_str = NULL;
     uint32_t trust_type;
     bool mpg;
 
