@@ -372,6 +372,15 @@ char *
 sss_tc_fqname(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
               struct sss_domain_info *domain, const char *name);
 
+/* Return fully-qualified name according to the fq_fmt. The name is allocated using
+ * talloc on top of mem_ctx. In contrast to sss_tc_fqname() sss_tc_fqname2()
+ * expects the domain and flat domain name as separate arguments.
+ */
+char *
+sss_tc_fqname2(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
+               const char *dom_name, const char *flat_dom_name,
+               const char *name);
+
 /* Return fully-qualified name formatted according to the fq_fmt. The buffer in "str" is
  * "size" bytes long. Returns the number of bytes written on success or a negative
  * value of failure.

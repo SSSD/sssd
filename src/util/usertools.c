@@ -612,6 +612,19 @@ sss_tc_fqname(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
                            safe_flat_name(nctx, domain));
 }
 
+char *
+sss_tc_fqname2(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
+               const char *domain_name, const char *flat_dom_name,
+               const char *name)
+{
+    if (nctx == NULL) return NULL;
+
+    return talloc_asprintf(mem_ctx, nctx->fq_fmt,
+                           safe_fq_str(nctx, FQ_FMT_NAME, name),
+                           safe_fq_str(nctx, FQ_FMT_DOMAIN, domain_name),
+                           safe_fq_str(nctx, FQ_FMT_FLAT_NAME, flat_dom_name));
+}
+
 int
 sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
            struct sss_domain_info *domain, const char *name)
