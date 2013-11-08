@@ -943,7 +943,7 @@ dlopen_tests_LDADD = \
     $(LIBADD_DL) \
     $(CHECK_LIBS)
 
-sysdb_tests_DEPENDENCIES = \
+EXTRA_sysdb_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
 sysdb_tests_SOURCES = \
     src/tests/sysdb-tests.c
@@ -956,7 +956,7 @@ sysdb_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
-sysdb_ssh_tests_DEPENDENCIES = \
+EXTRA_sysdb_ssh_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
 sysdb_ssh_tests_SOURCES = \
     src/tests/sysdb_ssh-tests.c
@@ -1279,7 +1279,7 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/negcache.c \
      src/responder/common/responder_common.c
 
-nss_srv_tests_DEPENDENCIES = \
+EXTRA_nss_srv_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)
 nss_srv_tests_SOURCES = \
      $(TEST_MOCK_RESP_OBJ) \
@@ -1303,8 +1303,6 @@ nss_srv_tests_LDADD = \
     libsss_test_common.la \
     libsss_idmap.la
 
-test_find_uid_DEPENDENCIES = \
-    $(ldblib_LTLIBRARIES)
 test_find_uid_SOURCES = \
     src/tests/cmocka/test_find_uid.c \
     src/util/find_uid.c \
@@ -1339,7 +1337,7 @@ sss_nss_idmap_tests_LDADD = \
     $(CMOCKA_LIBS) \
     libsss_nss_idmap.la
 
-dyndns_tests_DEPENDENCIES = \
+EXTRA_dyndns_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)
 dyndns_tests_SOURCES = \
      $(SSSD_RESOLV_OBJ) \
