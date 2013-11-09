@@ -333,8 +333,7 @@ static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
     return EOK;
 }
 
-static void krb5_auth_store_creds(struct sysdb_ctx *sysdb,
-                                  struct sss_domain_info *domain,
+static void krb5_auth_store_creds(struct sss_domain_info *domain,
                                   struct pam_data *pd)
 {
     const char *password = NULL;
@@ -1125,7 +1124,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
     }
 
     if (state->be_ctx->domain->cache_credentials == TRUE && !res->otp) {
-        krb5_auth_store_creds(state->sysdb, state->domain, pd);
+        krb5_auth_store_creds(state->domain, pd);
     }
 
     state->pam_status = PAM_SUCCESS;
