@@ -39,8 +39,7 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
                     struct sss_domain_info *dom, bool *del_user);
 
 static int
-delete_user(struct sysdb_ctx *sysdb,
-            struct sss_domain_info *domain,
+delete_user(struct sss_domain_info *domain,
             const char *name, uid_t uid);
 
 static int get_pw_name(TALLOC_CTX *mem_ctx,
@@ -91,7 +90,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, dom, name, 0);
+        ret = delete_user(dom, name, 0);
         goto done;
     }
 
@@ -131,7 +130,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, dom, name, uid);
+        ret = delete_user(dom, name, uid);
         goto done;
     }
 
@@ -200,8 +199,7 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
 }
 
 static int
-delete_user(struct sysdb_ctx *sysdb,
-            struct sss_domain_info *domain,
+delete_user(struct sss_domain_info *domain,
             const char *name, uid_t uid)
 {
     int ret = EOK;
@@ -346,7 +344,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, dom, NULL, uid);
+        ret = delete_user(dom, NULL, uid);
         goto done;
     }
 
@@ -1193,7 +1191,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, dom, name, 0);
+        ret = delete_user(dom, name, 0);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not delete user\n"));
             goto fail;
@@ -1237,7 +1235,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     }
 
     if (del_user) {
-        ret = delete_user(sysdb, dom, name, uid);
+        ret = delete_user(dom, name, uid);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not delete user\n"));
             goto fail;
