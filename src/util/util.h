@@ -304,8 +304,6 @@ void sig_term(int sig);
 #include <signal.h>
 void BlockSignals(bool block, int signum);
 void (*CatchSignal(int signum,void (*handler)(int )))(int);
-void CatchChild(void);
-void CatchChildLeaveStatus(void);
 
 /* from memory.c */
 typedef int (void_destructor_fn_t)(void *);
