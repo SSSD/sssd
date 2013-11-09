@@ -39,7 +39,6 @@ bool is_dn(const char *str)
 }
 
 static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
-                                  struct sysdb_ctx *ctx,
                                   struct sss_domain_info *dom,
                                   struct sdap_options *opts,
                                   struct sysdb_attrs *attrs,
@@ -201,7 +200,6 @@ struct netgr_translate_members_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
-    struct sysdb_ctx *sysdb;
 
     struct sysdb_attrs **netgroups;
     size_t count;
@@ -246,7 +244,6 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->opts = opts;
     state->sh = sh;
-    state->sysdb = sysdb;
     state->netgroups = netgroups;
     state->count = count;
     state->dn_list = NULL;
@@ -712,7 +709,7 @@ static void netgr_translate_members_done(struct tevent_req *subreq)
 
     now = time(NULL);
     for (c = 0; c < state->count; c++) {
-        ret = sdap_save_netgroup(state, state->sysdb,
+        ret = sdap_save_netgroup(state,
                                  state->dom,
                                  state->opts,
                                  state->netgroups[c],
