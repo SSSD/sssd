@@ -223,7 +223,7 @@ ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     op_ctx->domain = domain;
     op_ctx->selinux_ctx = selinux_ctx;
 
-    ret = sss_selinux_extract_user(op_ctx, sysdb, domain, username, &op_ctx->user);
+    ret = sss_selinux_extract_user(op_ctx, domain, username, &op_ctx->user);
     if (ret != EOK) {
         goto fail;
     }

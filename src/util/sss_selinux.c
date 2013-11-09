@@ -188,7 +188,6 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
 }
 
 errno_t sss_selinux_extract_user(TALLOC_CTX *mem_ctx,
-                                 struct sysdb_ctx *sysdb,
                                  struct sss_domain_info *domain,
                                  const char *username,
                                  struct sysdb_attrs **_user_attrs)
