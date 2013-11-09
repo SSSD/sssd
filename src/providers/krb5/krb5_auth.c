@@ -253,7 +253,6 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
 
 
 static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
-                                  struct sysdb_ctx *sysdb,
                                   struct sss_domain_info *domain,
                                   struct confdb_ctx *cdb,
                                   struct pam_data *pd, uid_t uid,
@@ -755,7 +754,6 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
             if (dp_opt_get_bool(kr->krb5_ctx->opts,
                                 KRB5_STORE_PASSWORD_IF_OFFLINE)) {
                 krb5_auth_cache_creds(state->kr->krb5_ctx,
-                                      state->domain->sysdb,
                                       state->domain,
                                       state->be_ctx->cdb,
                                       kr->pd, kr->uid,
@@ -1113,7 +1111,6 @@ static void krb5_auth_done(struct tevent_req *subreq)
         if (dp_opt_get_bool(kr->krb5_ctx->opts,
                             KRB5_STORE_PASSWORD_IF_OFFLINE)) {
             krb5_auth_cache_creds(state->kr->krb5_ctx,
-                                  state->domain->sysdb,
                                   state->domain,
                                   state->be_ctx->cdb,
                                   state->pd, state->kr->uid,
