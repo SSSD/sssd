@@ -1226,7 +1226,7 @@ sdap_add_group_member_2307(struct ldb_message_element *sysdb_dns,
 
 static int
 sdap_process_missing_member_2307(struct sdap_process_group_state *state,
-                                 char *member_name, time_t now)
+                                 char *member_name)
 {
     int ret;
     TALLOC_CTX *tmp_ctx;
@@ -1300,10 +1300,8 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
     char *member_name;
     char *userdn;
     int ret;
-    time_t now;
     int i;
 
-    now = time(NULL);
     for (i=0; i < memberel->num_values; i++) {
         member_name = (char *)memberel->values[i].data;
 
@@ -1334,7 +1332,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
             DEBUG(7, ("member #%d (%s): not found in sysdb\n",
                        i, member_name));
 
-            ret = sdap_process_missing_member_2307(state, member_name, now);
+            ret = sdap_process_missing_member_2307(state, member_name);
             if (ret != EOK) {
                 DEBUG(1, ("Error processing missing member #%d (%s):\n",
                           i, member_name));
