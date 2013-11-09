@@ -93,7 +93,7 @@ done:
 }
 
 static errno_t
-sdap_get_members_with_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+sdap_get_members_with_primary_gid(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *domain,
                                   gid_t gid, char ***_localdn, size_t *_ndn)
 {
@@ -149,7 +149,7 @@ sdap_get_members_with_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
 static errno_t
 sdap_dn_by_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_attrs *ldap_attrs,
-                       struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
+                       struct sss_domain_info *domain,
                        struct sdap_options *opts,
                        char ***_dn_list, size_t *_count)
 {
@@ -168,7 +168,7 @@ sdap_dn_by_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_attrs *ldap_attrs,
         return ret;
     }
 
-    ret = sdap_get_members_with_primary_gid(mem_ctx, sysdb, domain, gid,
+    ret = sdap_get_members_with_primary_gid(mem_ctx, domain, gid,
                                             _dn_list, _count);
     if (ret) return ret;
 
@@ -709,7 +709,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
      * are reported with tokenGroups, too
      */
     if (opts->schema_type == SDAP_SCHEMA_AD) {
-        ret = sdap_dn_by_primary_gid(memctx, attrs, ctx, dom, opts,
+        ret = sdap_dn_by_primary_gid(memctx, attrs, dom, opts,
                                      &userdns, &nuserdns);
         if (ret != EOK) {
             goto fail;
