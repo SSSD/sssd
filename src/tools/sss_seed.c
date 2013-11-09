@@ -653,7 +653,6 @@ done:
 
 static int seed_domain_user_info(const char *name,
                                  const char *domain_name,
-                                 struct sysdb_ctx *sysdb,
                                  struct sss_domain_info *domain,
                                  bool *is_cached)
 {
@@ -805,7 +804,7 @@ int main(int argc, const char **argv)
 
     /* get user info from domain */
     ret = seed_domain_user_info(sctx->uctx->name, sctx->uctx->domain_name,
-                                sctx->sysdb, sctx->domain, &sctx->user_cached);
+                                sctx->domain, &sctx->user_cached);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Failed lookup of user [%s] in domain [%s]\n",
                                   sctx->uctx->name, sctx->uctx->domain_name));
