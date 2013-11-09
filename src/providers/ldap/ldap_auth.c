@@ -485,7 +485,6 @@ static int get_user_dn_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req,
 }
 
 static int get_user_dn(TALLOC_CTX *memctx,
-                       struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain,
                        struct sdap_options *opts,
                        const char *username,
@@ -744,7 +743,7 @@ static void auth_connect_done(struct tevent_req *subreq)
                               state->srv, PORT_WORKING);
     }
 
-    ret = get_user_dn(state, state->ctx->be->domain->sysdb, state->ctx->be->domain,
+    ret = get_user_dn(state, state->ctx->be->domain,
                       state->ctx->opts, state->username, &state->dn,
                       &state->pw_expire_type, &state->pw_expire_data);
     if (ret == EOK) {
