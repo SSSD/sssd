@@ -149,7 +149,6 @@ void proxy_pam_handler(struct be_req *req);
 
 /* From proxy_netgroup.c */
 errno_t get_netgroup(struct proxy_id_ctx *ctx,
-                     struct sysdb_ctx *sysdb,
                      struct sss_domain_info *dom,
                      const char *name);
 

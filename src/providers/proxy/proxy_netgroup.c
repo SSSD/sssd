@@ -66,8 +66,7 @@ static errno_t make_netgroup_attr(struct __netgrent netgrent,
     return EOK;
 }
 
-static errno_t save_netgroup(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *domain,
+static errno_t save_netgroup(struct sss_domain_info *domain,
                              const char *name,
                              struct sysdb_attrs *attrs,
                              bool lowercase,
@@ -137,7 +136,6 @@ static errno_t handle_error(enum nss_status status,
 }
 
 errno_t get_netgroup(struct proxy_id_ctx *ctx,
-                     struct sysdb_ctx *sysdb,
                      struct sss_domain_info *dom,
                      const char *name)
 {
@@ -199,7 +197,7 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
         goto done;
     }
 
-    ret = save_netgroup(sysdb, dom, name, attrs,
+    ret = save_netgroup(dom, name, attrs,
                         !dom->case_sensitive,
                         dom->netgroup_timeout);
     if (ret != EOK) {

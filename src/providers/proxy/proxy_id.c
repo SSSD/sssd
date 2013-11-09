@@ -1463,7 +1463,7 @@ void proxy_get_account_info(struct be_req *breq)
                                ENODEV, "Netgroups are not supported");
         }
 
-        ret = get_netgroup(ctx, sysdb, domain, ar->filter_value);
+        ret = get_netgroup(ctx, domain, ar->filter_value);
         break;
 
     case BE_REQ_SERVICES:
