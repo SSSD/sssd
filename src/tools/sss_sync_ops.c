@@ -52,8 +52,7 @@ struct sync_op_res {
 /*
  * Generic modify groups member
  */
-static int mod_groups_member(struct sysdb_ctx *sysdb,
-                             struct sss_domain_info *dom,
+static int mod_groups_member(struct sss_domain_info *dom,
                              char **grouplist,
                              struct ldb_dn *member_dn,
                              int optype)
@@ -90,11 +89,11 @@ done:
     return ret;
 }
 
-#define add_to_groups(sysdb, data, member_dn) \
-    mod_groups_member(sysdb, data->domain, data->addgroups, member_dn, \
+#define add_to_groups(data, member_dn) \
+    mod_groups_member(data->domain, data->addgroups, member_dn, \
                       LDB_FLAG_MOD_ADD)
-#define remove_from_groups(sysdb, data, member_dn) \
-    mod_groups_member(sysdb, data->domain, data->rmgroups, member_dn, \
+#define remove_from_groups(data, member_dn) \
+    mod_groups_member(data->domain, data->rmgroups, member_dn, \
                       LDB_FLAG_MOD_DELETE)
 
 /*
@@ -226,14 +225,14 @@ int usermod(TALLOC_CTX *mem_ctx,
     }
 
     if (data->rmgroups != NULL) {
-        ret = remove_from_groups(sysdb, data, member_dn);
+        ret = remove_from_groups(data, member_dn);
         if (ret) {
             return ret;
         }
     }
 
     if (data->addgroups != NULL) {
-        ret = add_to_groups(sysdb, data, member_dn);
+        ret = add_to_groups(data, member_dn);
         if (ret) {
             return ret;
         }
@@ -281,14 +280,14 @@ int groupmod(TALLOC_CTX *mem_ctx,
     }
 
     if (data->rmgroups != NULL) {
-        ret = remove_from_groups(sysdb, data, member_dn);
+        ret = remove_from_groups(data, member_dn);
         if (ret) {
             return ret;
         }
     }
 
     if (data->addgroups != NULL) {
-        ret = add_to_groups(sysdb, data, member_dn);
+        ret = add_to_groups(data, member_dn);
         if (ret) {
             return ret;
         }
@@ -484,7 +483,7 @@ int useradd(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = add_to_groups(sysdb, data, member_dn);
+        ret = add_to_groups(data, member_dn);
         if (ret) {
             goto done;
         }
