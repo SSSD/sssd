@@ -32,7 +32,6 @@ errno_t sdap_fallback_local_user(TALLOC_CTX *memctx,
                              struct sysdb_attrs ***reply);
 
 int sdap_save_user(TALLOC_CTX *memctx,
-                   struct sysdb_ctx *ctx,
                    struct sdap_options *opts,
                    struct sss_domain_info *dom,
                    struct sysdb_attrs *attrs,

@@ -95,7 +95,6 @@ done:
 
 /* FIXME: support storing additional attributes */
 int sdap_save_user(TALLOC_CTX *memctx,
-                   struct sysdb_ctx *ctx,
                    struct sdap_options *opts,
                    struct sss_domain_info *dom,
                    struct sysdb_attrs *attrs,
@@ -527,8 +526,7 @@ int sdap_save_users(TALLOC_CTX *memctx,
     for (i = 0; i < num_users; i++) {
         usn_value = NULL;
 
-        ret = sdap_save_user(tmpctx, sysdb, opts, dom,
-                             users[i], false,
+        ret = sdap_save_user(tmpctx, opts, dom, users[i], false,
                              &usn_value, now);
 
         /* Do not fail completely on errors.

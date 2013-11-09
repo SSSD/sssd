@@ -2797,9 +2797,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
 
     DEBUG(9, ("Storing the user\n"));
 
-    ret = sdap_save_user(state, state->sysdb,
-                         state->opts, state->dom,
-                         state->orig_user,
+    ret = sdap_save_user(state, state->opts, state->dom, state->orig_user,
                          true, NULL, 0);
     if (ret) {
         goto fail;
