@@ -80,8 +80,7 @@ int userdel(TALLOC_CTX *mem_ctx,
 int usermod(TALLOC_CTX *mem_ctx,
             struct ops_ctx *data);
 
-int groupadd(struct sysdb_ctx *sysdb,
-             struct ops_ctx *data);
+int groupadd(struct ops_ctx *data);
 int groupdel(TALLOC_CTX *mem_ctx,
             struct sysdb_ctx *sysdb,
             struct ops_ctx *data);

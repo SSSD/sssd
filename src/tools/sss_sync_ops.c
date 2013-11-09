@@ -523,8 +523,7 @@ int userdel(TALLOC_CTX *mem_ctx,
 /*
  * Public interface for adding groups
  */
-int groupadd(struct sysdb_ctx *sysdb,
-             struct ops_ctx *data)
+int groupadd(struct ops_ctx *data)
 {
     int ret;
 

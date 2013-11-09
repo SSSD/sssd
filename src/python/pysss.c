@@ -574,7 +574,7 @@ static PyObject *py_sss_groupadd(PySssLocalObject *self,
     in_transaction = true;
 
     /* groupadd */
-    tctx->error = groupadd(tctx->sysdb, tctx->octx);
+    tctx->error = groupadd(tctx->octx);
     if (tctx->error) {
         PyErr_SetSssError(tctx->error);
         goto fail;

@@ -114,7 +114,7 @@ int main(int argc, const char **argv)
     in_transaction = true;
 
     /* groupadd */
-    tctx->error = groupadd(tctx->sysdb, tctx->octx);
+    tctx->error = groupadd(tctx->octx);
     if (tctx->error) {
         goto done;
     }
