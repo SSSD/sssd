@@ -237,12 +237,6 @@ int pidfile(const char *path, const char *name)
     return 0;
 }
 
-static void sig_hup(int sig)
-{
-    /* cycle log/debug files */
-    return;
-}
-
 void sig_term(int sig)
 {
 #if HAVE_GETPGRP
@@ -320,8 +314,6 @@ static void setup_signals(void)
      * these signals masked, we will have problems, as we won't receive them. */
     BlockSignals(false, SIGHUP);
     BlockSignals(false, SIGTERM);
-
-    CatchSignal(SIGHUP, sig_hup);
 
 #ifndef HAVE_PRCTL
         /* If prctl is not defined on the system, try to handle
