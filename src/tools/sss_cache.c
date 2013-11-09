@@ -86,7 +86,7 @@ struct cache_tool_ctx {
 
 errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
 errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx);
-static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+static errno_t invalidate_entry(TALLOC_CTX *ctx,
                                 struct sss_domain_info *domain,
                                 const char *name, int entry_type);
 static bool invalidate_entries(TALLOC_CTX *ctx,
@@ -400,7 +400,7 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
             ERROR("Couldn't invalidate %1$s", type_string);
             iret = false;
         } else {
-            ret = invalidate_entry(ctx, sysdb, dinfo, c_name, entry_type);
+            ret = invalidate_entry(ctx, dinfo, c_name, entry_type);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Couldn't invalidate %s %s", type_string, c_name));
@@ -413,7 +413,7 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
     return iret;
 }
 
-static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
+static errno_t invalidate_entry(TALLOC_CTX *ctx,
                                 struct sss_domain_info *domain,
                                 const char *name, int entry_type)
 {
