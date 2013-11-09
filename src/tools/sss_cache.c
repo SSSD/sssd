@@ -55,7 +55,7 @@ enum sss_cache_entry {
     TYPE_AUTOFSMAP
 };
 
-static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *domain,
                                  const char *sub_filter, const char **attrs,
                                  size_t *msgs_count, struct ldb_message ***msgs);
@@ -91,7 +91,6 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
                                 const char *name, int entry_type);
 static bool invalidate_entries(TALLOC_CTX *ctx,
                                struct sss_domain_info *dinfo,
-                               struct sysdb_ctx *sysdb,
                                enum sss_cache_entry entry_type,
                                const char *filter, const char *name);
 static errno_t update_all_filters(struct cache_tool_ctx *tctx,
@@ -139,19 +138,19 @@ int main(int argc, const char *argv[])
             goto done;
         }
 
-        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_USER,
+        skipped &= !invalidate_entries(tctx, dinfo, TYPE_USER,
                                        tctx->user_filter,
                                        tctx->user_name);
-        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_GROUP,
+        skipped &= !invalidate_entries(tctx, dinfo, TYPE_GROUP,
                                        tctx->group_filter,
                                        tctx->group_name);
-        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_NETGROUP,
+        skipped &= !invalidate_entries(tctx, dinfo, TYPE_NETGROUP,
                                        tctx->netgroup_filter,
                                        tctx->netgroup_name);
-        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_SERVICE,
+        skipped &= !invalidate_entries(tctx, dinfo, TYPE_SERVICE,
                                        tctx->service_filter,
                                        tctx->service_name);
-        skipped &= !invalidate_entries(tctx, dinfo, sysdb, TYPE_AUTOFSMAP,
+        skipped &= !invalidate_entries(tctx, dinfo, TYPE_AUTOFSMAP,
                                        tctx->autofs_filter,
                                        tctx->autofs_name);
 
@@ -337,7 +336,6 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
 
 static bool invalidate_entries(TALLOC_CTX *ctx,
                                struct sss_domain_info *dinfo,
-                               struct sysdb_ctx *sysdb,
                                enum sss_cache_entry entry_type,
                                const char *filter, const char *name)
 {
@@ -374,8 +372,7 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
         break;
     case TYPE_AUTOFSMAP:
         type_string = "autofs map";
-        ret = search_autofsmaps(ctx, sysdb, dinfo,
-                                filter, attrs, &msg_count, &msgs);
+        ret = search_autofsmaps(ctx, dinfo, filter, attrs, &msg_count, &msgs);
         break;
     }
 
@@ -695,7 +692,7 @@ fini:
 }
 
 static errno_t
-search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+search_autofsmaps(TALLOC_CTX *mem_ctx,
                   struct sss_domain_info *domain,
                   const char *sub_filter, const char **attrs,
                   size_t *msgs_count, struct ldb_message ***msgs)
