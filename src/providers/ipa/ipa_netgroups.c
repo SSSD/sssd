@@ -64,7 +64,6 @@ struct ipa_get_netgroups_state {
 };
 
 static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
-                                 struct sysdb_ctx *ctx,
                                  struct sss_domain_info *dom,
                                  struct sdap_options *opts,
                                  struct sysdb_attrs *attrs)
@@ -989,7 +988,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
             }
         }
 
-        ret = ipa_save_netgroup(state, state->sysdb, state->dom,
+        ret = ipa_save_netgroup(state, state->dom,
                                 state->opts, state->netgroups[i]);
         if (ret != EOK) {
             goto done;
