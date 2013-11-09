@@ -202,7 +202,7 @@ int main(int argc, const char **argv)
     in_transaction = true;
 
     /* groupmod */
-    tctx->error = groupmod(tctx, tctx->sysdb, tctx->octx);
+    tctx->error = groupmod(tctx, tctx->octx);
     if (tctx->error) {
         goto done;
     }

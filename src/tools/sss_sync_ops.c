@@ -247,7 +247,6 @@ int usermod(TALLOC_CTX *mem_ctx,
  * Public interface for modifying groups
  */
 int groupmod(TALLOC_CTX *mem_ctx,
-             struct sysdb_ctx *sysdb,
              struct ops_ctx *data)
 {
     struct sysdb_attrs *attrs = NULL;

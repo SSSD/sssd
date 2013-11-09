@@ -717,7 +717,7 @@ static PyObject *py_sss_groupmod(PySssLocalObject *self,
     in_transaction = true;
 
     /* groupmod */
-    tctx->error = groupmod(tctx, tctx->sysdb, tctx->octx);
+    tctx->error = groupmod(tctx, tctx->octx);
     if (tctx->error) {
         PyErr_SetSssError(tctx->error);
         goto fail;

@@ -87,7 +87,6 @@ int groupdel(TALLOC_CTX *mem_ctx,
             struct sysdb_ctx *sysdb,
             struct ops_ctx *data);
 int groupmod(TALLOC_CTX *mem_ctx,
-            struct sysdb_ctx *sysdb,
             struct ops_ctx *data);
 
 int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
