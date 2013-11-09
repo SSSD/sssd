@@ -190,7 +190,6 @@ static int usermod_build_attrs(TALLOC_CTX *mem_ctx,
  * Public interface for modifying users
  */
 int usermod(TALLOC_CTX *mem_ctx,
-            struct sysdb_ctx *sysdb,
             struct ops_ctx *data)
 {
     struct sysdb_attrs *attrs = NULL;

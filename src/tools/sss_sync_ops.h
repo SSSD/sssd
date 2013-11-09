@@ -79,7 +79,6 @@ int userdel(TALLOC_CTX *mem_ctx,
             struct sysdb_ctx *sysdb,
             struct ops_ctx *data);
 int usermod(TALLOC_CTX *mem_ctx,
-            struct sysdb_ctx *sysdb,
             struct ops_ctx *data);
 
 int groupadd(struct sysdb_ctx *sysdb,

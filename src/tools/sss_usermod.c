@@ -224,7 +224,7 @@ int main(int argc, const char **argv)
     in_transaction = true;
 
     /* usermod */
-    tctx->error = usermod(tctx, tctx->sysdb, tctx->octx);
+    tctx->error = usermod(tctx, tctx->octx);
     if (tctx->error) {
         goto done;
     }

@@ -79,7 +79,7 @@ static int kick_user(struct tools_ctx *tctx)
 
     tctx->octx->lock = 1;
 
-    ret = usermod(tctx, tctx->sysdb, tctx->octx);
+    ret = usermod(tctx, tctx->octx);
     if (ret != EOK) {
         return ret;
     }
