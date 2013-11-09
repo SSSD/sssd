@@ -280,8 +280,7 @@ done:
     /* FIXME: support storing additional attributes */
 
 static errno_t
-sdap_store_group_with_gid(struct sysdb_ctx *ctx,
-                          struct sss_domain_info *domain,
+sdap_store_group_with_gid(struct sss_domain_info *domain,
                           const char *name,
                           gid_t gid,
                           struct sysdb_attrs *group_attrs,
@@ -431,7 +430,6 @@ sdap_process_ghost_members(struct sysdb_attrs *attrs,
 }
 
 static int sdap_save_group(TALLOC_CTX *memctx,
-                           struct sysdb_ctx *ctx,
                            struct sdap_options *opts,
                            struct sss_domain_info *dom,
                            struct sysdb_attrs *attrs,
@@ -648,8 +646,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
     DEBUG(SSSDBG_TRACE_FUNC, ("Storing info for group %s\n", group_name));
 
-    ret = sdap_store_group_with_gid(ctx, dom,
-                                    group_name, gid, group_attrs,
+    ret = sdap_store_group_with_gid(dom, group_name, gid, group_attrs,
                                     dom->group_timeout,
                                     posix_group, now);
     if (ret) {
@@ -823,8 +820,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         usn_value = NULL;
 
         /* if 2 pass savemembers = false */
-        ret = sdap_save_group(tmpctx, sysdb,
-                              opts, dom, groups[i],
+        ret = sdap_save_group(tmpctx, opts, dom, groups[i],
                               populate_members, has_nesting,
                               ghosts, &usn_value, now);
 
