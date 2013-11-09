@@ -1210,7 +1210,6 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
 
 static int
 sdap_add_group_member_2307(struct ldb_message_element *sysdb_dns,
-                           struct sss_domain_info *dom,
                            const char *username)
 {
     sysdb_dns->values[sysdb_dns->num_values].data =
@@ -1272,14 +1271,14 @@ sdap_process_missing_member_2307(struct sdap_process_group_state *state,
             return ENOMEM;
         }
 
-        ret = sdap_add_group_member_2307(state->sysdb_dns, state->dom, user_dn);
+        ret = sdap_add_group_member_2307(state->sysdb_dns, user_dn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not add group member %s\n", username));
         }
     } else if (ret == ENOENT || count == 0) {
         /* The entry really does not exist, add a ghost */
         DEBUG(SSSDBG_TRACE_FUNC, ("Adding a ghost entry\n"));
-        ret = sdap_add_group_member_2307(state->ghost_dns, state->dom, member_name);
+        ret = sdap_add_group_member_2307(state->ghost_dns, member_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not add group member %s\n", member_name));
         }
@@ -1325,7 +1324,7 @@ sdap_process_group_members_2307(struct sdap_process_group_state *state,
                 return ENOMEM;
             }
 
-            ret = sdap_add_group_member_2307(state->sysdb_dns, state->dom, userdn);
+            ret = sdap_add_group_member_2307(state->sysdb_dns, userdn);
             if (ret != EOK) {
                 DEBUG(1, ("Could not add member %s into sysdb\n", member_name));
                 goto done;
