@@ -42,8 +42,7 @@ static int
 delete_user(struct sss_domain_info *domain,
             const char *name, uid_t uid);
 
-static int get_pw_name(TALLOC_CTX *mem_ctx,
-                       struct proxy_id_ctx *ctx,
+static int get_pw_name(struct proxy_id_ctx *ctx,
                        struct sss_domain_info *dom,
                        const char *name)
 {
@@ -300,8 +299,7 @@ static int save_user(struct sss_domain_info *domain,
 
 /* =Getpwuid-wrapper======================================================*/
 
-static int get_pw_uid(TALLOC_CTX *mem_ctx,
-                      struct proxy_id_ctx *ctx,
+static int get_pw_uid(struct proxy_id_ctx *ctx,
                       struct sss_domain_info *dom,
                       uid_t uid)
 {
@@ -775,8 +773,7 @@ handle_getgr_result(enum nss_status status, struct group *grp,
     return EOK;
 }
 
-static int get_gr_name(TALLOC_CTX *mem_ctx,
-                       struct proxy_id_ctx *ctx,
+static int get_gr_name(struct proxy_id_ctx *ctx,
                        struct sysdb_ctx *sysdb,
                        struct sss_domain_info *dom,
                        const char *name)
@@ -1401,7 +1398,7 @@ void proxy_get_account_info(struct be_req *breq)
             break;
 
         case BE_FILTER_NAME:
-            ret = get_pw_name(breq, ctx, domain, ar->filter_value);
+            ret = get_pw_name(ctx, domain, ar->filter_value);
             break;
 
         case BE_FILTER_IDNUM:
@@ -1410,7 +1407,7 @@ void proxy_get_account_info(struct be_req *breq)
                 return be_req_terminate(breq, DP_ERR_FATAL,
                                    EINVAL, "Invalid attr type");
             }
-            ret = get_pw_uid(breq, ctx, domain, uid);
+            ret = get_pw_uid(ctx, domain, uid);
             break;
         default:
             return be_req_terminate(breq, DP_ERR_FATAL,
@@ -1424,7 +1421,7 @@ void proxy_get_account_info(struct be_req *breq)
             ret = enum_groups(breq, ctx, sysdb, domain);
             break;
         case BE_FILTER_NAME:
-            ret = get_gr_name(breq, ctx, sysdb, domain, ar->filter_value);
+            ret = get_gr_name(ctx, sysdb, domain, ar->filter_value);
             break;
         case BE_FILTER_IDNUM:
             gid = (gid_t) strtouint32(ar->filter_value, &endptr, 10);
