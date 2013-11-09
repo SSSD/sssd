@@ -237,18 +237,18 @@ int pidfile(const char *path, const char *name)
     return 0;
 }
 
-void sig_term(int sig)
+void orderly_shutdown(int status)
 {
 #if HAVE_GETPGRP
-    static int done_sigterm;
-    if (done_sigterm == 0 && getpgrp() == getpid()) {
+    static int sent_sigterm;
+    if (sent_sigterm == 0 && getpgrp() == getpid()) {
         DEBUG(SSSDBG_FATAL_FAILURE, ("SIGTERM: killing children\n"));
-        done_sigterm = 1;
+        sent_sigterm = 1;
         kill(-getpgrp(), SIGTERM);
     }
 #endif
-    sss_log(SSS_LOG_INFO, "Shutting down");
-    exit(0);
+    if (status == 0) sss_log(SSS_LOG_INFO, "Shutting down");
+    exit(status);
 }
 
 static void default_quit(struct tevent_context *ev,
@@ -258,31 +258,15 @@ static void default_quit(struct tevent_context *ev,
                          void *siginfo,
                          void *private_data)
 {
-#if HAVE_GETPGRP
-    static int done_sigterm;
-    if (done_sigterm == 0 && getpgrp() == getpid()) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("SIGTERM: killing children\n"));
-        done_sigterm = 1;
-        kill(-getpgrp(), SIGTERM);
-    }
-#endif
-    sss_log(SSS_LOG_INFO, "Shutting down");
-    exit(0);
+    orderly_shutdown(0);
 }
 
 #ifndef HAVE_PRCTL
 static void sig_segv_abrt(int sig)
 {
-#if HAVE_GETPGRP
-    static int done;
-    if (done == 0 && getpgrp() == getpid()) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("%s: killing children\n",
-                                     strsignal(sig)));
-        done = 1;
-        kill(-getpgrp(), SIGTERM);
-    }
-#endif  /* HAVE_GETPGRP */
-    exit(1);
+    DEBUG(SSSDBG_FATAL_FAILURE,
+          ("Received signal %s, shutting down\n", strsignal(sig)));
+    orderly_shutdown(1);
 }
 #endif /* HAVE_PRCTL */
 

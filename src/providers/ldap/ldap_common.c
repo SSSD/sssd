@@ -1090,7 +1090,7 @@ static void sdap_finalize(struct tevent_context *ev,
         DEBUG(1, ("remove_krb5_info_files failed.\n"));
     }
 
-    sig_term(signum);
+    orderly_shutdown(0);
 }
 
 errno_t sdap_install_sigterm_handler(TALLOC_CTX *mem_ctx,

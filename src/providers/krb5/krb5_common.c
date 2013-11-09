@@ -887,7 +887,7 @@ void krb5_finalize(struct tevent_context *ev,
         DEBUG(1, ("remove_krb5_info_files failed.\n"));
     }
 
-    sig_term(signum);
+    orderly_shutdown(0);
 }
 
 errno_t krb5_install_offline_callback(struct be_ctx *be_ctx,

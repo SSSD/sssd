@@ -298,7 +298,7 @@ int server_setup(const char *name, int flags,
                  const char *conf_entry,
                  struct main_context **main_ctx);
 void server_loop(struct main_context *main_ctx);
-void sig_term(int sig);
+void orderly_shutdown(int status);
 
 /* from signal.c */
 #include <signal.h>
