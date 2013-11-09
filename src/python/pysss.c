@@ -236,7 +236,7 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
     in_transaction = true;
 
     /* useradd */
-    tctx->error = useradd(tctx, tctx->sysdb, tctx->octx);
+    tctx->error = useradd(tctx, tctx->octx);
     if (tctx->error) {
         PyErr_SetSssError(tctx->error);
         goto fail;

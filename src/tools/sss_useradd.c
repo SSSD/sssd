@@ -187,7 +187,7 @@ int main(int argc, const char **argv)
     in_transaction = true;
 
     /* useradd */
-    tctx->error = useradd(tctx, tctx->sysdb, tctx->octx);
+    tctx->error = useradd(tctx, tctx->octx);
     if (tctx->error) {
         goto done;
     }

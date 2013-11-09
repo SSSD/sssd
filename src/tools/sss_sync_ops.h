@@ -73,7 +73,6 @@ int userdel_defaults(TALLOC_CTX *mem_ctx,
 
 /* synchronous operations */
 int useradd(TALLOC_CTX *mem_ctx,
-            struct sysdb_ctx *sysdb,
             struct ops_ctx *data);
 int userdel(TALLOC_CTX *mem_ctx,
             struct sysdb_ctx *sysdb,

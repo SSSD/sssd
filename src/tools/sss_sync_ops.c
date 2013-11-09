@@ -460,7 +460,6 @@ done:
  * Public interface for adding users
  */
 int useradd(TALLOC_CTX *mem_ctx,
-            struct sysdb_ctx *sysdb,
             struct ops_ctx *data)
 {
     int ret;
