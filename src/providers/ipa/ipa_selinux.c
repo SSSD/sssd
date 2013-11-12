@@ -33,7 +33,6 @@
 #include "providers/ipa/ipa_hbac_rules.h"
 #include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ipa/ipa_access.h"
-#include "providers/ipa/ipa_selinux_common.h"
 #include "providers/ipa/ipa_selinux_maps.h"
 #include "providers/ipa/ipa_subdomains.h"
 
@@ -151,6 +150,52 @@ void ipa_selinux_handler(struct be_req *be_req)
 
 fail:
     be_req_terminate(be_req, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
+}
+
+static errno_t
+ipa_save_user_maps(struct sysdb_ctx *sysdb,
+                   struct sss_domain_info *domain,
+                   size_t map_count,
+                   struct sysdb_attrs **maps)
+{
+    errno_t ret;
+    errno_t sret;
+    bool in_transaction = false;
+    int i;
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto done;
+    }
+    in_transaction = true;
+
+    for (i = 0; i < map_count; i++) {
+        ret = sysdb_store_selinux_usermap(sysdb ,domain, maps[i]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Failed to store user map %d. "
+                                      "Ignoring.\n", i));
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC, ("User map %d processed.\n", i));
+        }
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction!\n"));
+        goto done;
+    }
+    in_transaction = false;
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction"));
+        }
+    }
+    return ret;
 }
 
 static struct ipa_selinux_op_ctx *

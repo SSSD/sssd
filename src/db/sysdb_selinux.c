@@ -24,6 +24,10 @@
 #include "db/sysdb_private.h"
 
 /* Some generic routines */
+enum selinux_entity_type {
+    SELINUX_CONFIG,
+    SELINUX_USER_MAP
+};
 
 static errno_t
 sysdb_add_selinux_entity(struct sysdb_ctx *sysdb,
@@ -240,63 +244,6 @@ errno_t sysdb_delete_usermaps(struct sysdb_ctx *sysdb,
 }
 
 /* --- SYSDB SELinux search routines --- */
-errno_t sysdb_search_selinux_usermap_by_mapname(TALLOC_CTX *mem_ctx,
-                                                struct sysdb_ctx *sysdb,
-                                                struct sss_domain_info *domain,
-                                                const char *name,
-                                                const char **attrs,
-                                                struct ldb_message **_usermap)
-{
-    TALLOC_CTX *tmp_ctx;
-    const char *def_attrs[] = { SYSDB_NAME,
-                                SYSDB_USER_CATEGORY,
-                                SYSDB_HOST_CATEGORY,
-                                SYSDB_ORIG_MEMBER_USER,
-                                SYSDB_ORIG_MEMBER_HOST,
-                                SYSDB_SELINUX_USER,
-                                NULL };
-    struct ldb_message **msgs = NULL;
-    struct ldb_dn *basedn;
-    size_t msgs_count = 0;
-    char *clean_name;
-    int ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    ret = sysdb_dn_sanitize(tmp_ctx, name, &clean_name);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_SEUSERMAP,
-                            clean_name, domain->name);
-    if (!basedn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_search_entry(tmp_ctx, sysdb, basedn, LDB_SCOPE_BASE, NULL,
-                             attrs?attrs:def_attrs, &msgs_count, &msgs);
-    if (ret) {
-        goto done;
-    }
-
-    *_usermap = talloc_steal(mem_ctx, msgs[0]);
-
-done:
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No such entry\n"));
-    }
-    else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
-    }
-    talloc_zfree(tmp_ctx);
-    return ret;
-}
-
 errno_t
 sysdb_get_selinux_usermaps(TALLOC_CTX *mem_ctx,
                            struct sysdb_ctx *sysdb,
