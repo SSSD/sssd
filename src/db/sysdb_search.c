@@ -720,7 +720,11 @@ errno_t sysdb_netgr_to_entries(TALLOC_CTX *mem_ctx,
                                         &tmp_entry[c]->value.triple.username,
                                         &tmp_entry[c]->value.triple.domainname);
                     if (ret != EOK) {
-                        goto done;
+                        DEBUG(SSSDBG_IMPORTANT_INFO,
+                              ("Cannot split netgroup triple [%s], "
+                               "this attribute will be skipped \n",
+                               triple_str));
+                        continue;
                     }
 
                     c++;
