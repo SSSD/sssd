@@ -298,96 +298,87 @@ sdap_get_ad_match_rule_initgroups_recv(struct tevent_req *req)
     return EOK;
 }
 
-struct sdap_ad_tokengroups_initgr_state {
+struct sdap_get_ad_tokengroups_state {
     struct tevent_context *ev;
-    struct sdap_options *opts;
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
-    struct sdap_handle *sh;
+    struct sss_idmap_ctx *idmap_ctx;
     const char *username;
+
+    char **sids;
+    size_t num_sids;
 };
 
-static void
-sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *req);
+static void sdap_get_ad_tokengroups_done(struct tevent_req *subreq);
 
-struct tevent_req *
-sdap_get_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct sdap_options *opts,
-                                        struct sysdb_ctx *sysdb,
-                                        struct sss_domain_info *domain,
-                                        struct sdap_handle *sh,
-                                        const char *name,
-                                        const char *orig_dn,
-                                        int timeout)
+static struct tevent_req *
+sdap_get_ad_tokengroups_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct sdap_options *opts,
+                             struct sdap_handle *sh,
+                             const char *name,
+                             const char *orig_dn,
+                             int timeout)
 {
-    struct tevent_req *req;
-    struct tevent_req *subreq;
-    struct sdap_ad_tokengroups_initgr_state *state;
+    struct sdap_get_ad_tokengroups_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
     const char *attrs[] = {AD_TOKENGROUPS_ATTR, NULL};
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
-                            struct sdap_ad_tokengroups_initgr_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->opts = opts;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->sh = sh;
-    state->username = name;
-
-    subreq = sdap_get_generic_send(
-            state, state->ev, state->opts, state->sh,
-            orig_dn, LDAP_SCOPE_BASE, NULL, attrs,
-            NULL, 0, timeout, false);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        tevent_req_post(req, ev);
-        return req;
+                            struct sdap_get_ad_tokengroups_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        return NULL;
     }
 
-    tevent_req_set_callback(subreq,
-                            sdap_get_ad_tokengroups_initgroups_lookup_done,
-                            req);
+    state->idmap_ctx = opts->idmap_ctx->map;
+    state->ev = ev;
+    state->username = talloc_strdup(state, name);
+    if (state->username == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    subreq = sdap_get_generic_send(state, state->ev, opts, sh, orig_dn,
+                                   LDAP_SCOPE_BASE, NULL, attrs,
+                                   NULL, 0, timeout, false);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_get_ad_tokengroups_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
     return req;
 }
 
-static void
-sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
+static void sdap_get_ad_tokengroups_done(struct tevent_req *subreq)
 {
-    errno_t ret, sret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sdap_get_ad_tokengroups_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct sysdb_attrs **users = NULL;
+    struct ldb_message_element *el = NULL;
     enum idmap_error_code err;
-    size_t user_count, group_count, i;
-    TALLOC_CTX *tmp_ctx;
-    bool in_transaction = false;
     char *sid_str = NULL;
-    gid_t gid;
-    time_t now;
-    struct sss_domain_info *group_domain;
-    struct sysdb_attrs **users;
-    struct ldb_message_element *el;
-    struct ldb_message *msg;
-    struct ldb_dn *group_ldb_dn;
-    const char *group_str_dn;
-    char **ldap_grouplist;
-    char **sysdb_grouplist;
-    char **add_groups;
-    char **del_groups;
-    const char *attrs[] = { SYSDB_NAME, NULL };
-    const char *group_name;
-    struct tevent_req *req =
-            tevent_req_callback_data(subreq, struct tevent_req);
-    struct sdap_ad_tokengroups_initgr_state *state =
-            tevent_req_data(req, struct sdap_ad_tokengroups_initgr_state);
+    size_t num_users;
+    size_t i;
+    errno_t ret;
 
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        ret = ENOMEM;
-        goto done;
-    }
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_get_ad_tokengroups_state);
 
-    ret = sdap_get_generic_recv(subreq, tmp_ctx, &user_count, &users);
+    ret = sdap_get_generic_recv(subreq, tmp_ctx, &num_users, &users);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -395,226 +386,361 @@ sdap_get_ad_tokengroups_initgroups_lookup_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (user_count != 1) {
+    if (num_users != 1) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("More than one result on a base search!\n"));
         ret = EINVAL;
         goto done;
     }
 
-    /* Get the list of group SIDs */
-    ret = sysdb_attrs_get_el_ext(users[0], AD_TOKENGROUPS_ATTR,
-                                 false, &el);
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            DEBUG(SSSDBG_TRACE_LIBS,
-                  ("No tokenGroups entries for [%s]\n",
-                   state->username));
-            /* No groups in LDAP. We need to ensure that the
-             * sysdb matches.
-             */
-            el = talloc_zero(tmp_ctx, struct ldb_message_element);
-            if (!el) {
-                ret = ENOMEM;
-                goto done;
-            }
-            el->num_values = 0;
+    /* get the list of sids from tokengroups */
+    ret = sysdb_attrs_get_el_ext(users[0], AD_TOKENGROUPS_ATTR, false, &el);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_LIBS, ("No tokenGroups entries for [%s]\n",
+                                  state->username));
 
-            /* This will skip the group-processing loop below
-             * and proceed to removing any sysdb groups.
-             */
-        } else {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not read tokenGroups attribute: [%s]\n",
-                   strerror(ret)));
-            goto done;
-        }
+        state->sids = NULL;
+        state->num_sids = 0;
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not read tokenGroups attribute: "
+                                     "[%s]\n", strerror(ret)));
+        goto done;
     }
 
-    /* Process the groups */
-    now = time(NULL);
-
-    ret = sysdb_transaction_start(state->sysdb);
-    if (ret != EOK) goto done;
-    in_transaction = true;
-
-    ldap_grouplist = talloc_array(tmp_ctx, char *, el->num_values + 1);
-    if (!ldap_grouplist) {
+    state->num_sids = 0;
+    state->sids = talloc_zero_array(state, char*, el->num_values);
+    if (state->sids == NULL) {
         ret = ENOMEM;
         goto done;
     }
-    group_count = 0;
 
+    /* convert binary sid to string */
     for (i = 0; i < el->num_values; i++) {
-        /* Get the SID and convert it to a GID */
-
-        err = sss_idmap_bin_sid_to_sid(state->opts->idmap_ctx->map,
-                                        el->values[i].data,
-                                        el->values[i].length,
-                                        &sid_str);
+        err = sss_idmap_bin_sid_to_sid(state->idmap_ctx, el->values[i].data,
+                                       el->values[i].length, &sid_str);
         if (err != IDMAP_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("Could not convert binary SID to string: [%s]. Skipping\n",
                    idmap_error_string(err)));
             continue;
         }
-        DEBUG(SSSDBG_TRACE_LIBS,
-              ("Processing membership SID [%s]\n",
-               sid_str));
-        ret = sdap_idmap_sid_to_unix(state->opts->idmap_ctx, sid_str,
-                                     &gid);
+
+        state->sids[i] = talloc_move(state->sids, &sid_str);
+        state->num_sids++;
+    }
+
+    /* shrink array to final number of elements */
+    state->sids = talloc_realloc(state, state->sids, char*, state->num_sids);
+    if (state->sids == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static errno_t sdap_get_ad_tokengroups_recv(TALLOC_CTX *mem_ctx,
+                                            struct tevent_req *req,
+                                            size_t *_num_sids,
+                                            char ***_sids)
+{
+    struct sdap_get_ad_tokengroups_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_get_ad_tokengroups_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_num_sids != NULL) {
+        *_num_sids = state->num_sids;
+    }
+
+    if (_sids != NULL) {
+        *_sids = talloc_steal(mem_ctx, state->sids);
+    }
+
+    return EOK;
+}
+
+static errno_t
+sdap_ad_tokengroups_update_members(TALLOC_CTX *mem_ctx,
+                                   const char *username,
+                                   struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
+                                   char **ldap_groups)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char **sysdb_groups = NULL;
+    char **add_groups = NULL;
+    char **del_groups = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    /* Get the current sysdb group list for this user so we can update it. */
+    ret = get_sysdb_grouplist_dn(tmp_ctx, sysdb, domain,
+                                 username, &sysdb_groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not get the list of groups for "
+              "[%s] in the sysdb: [%s]\n", username, strerror(ret)));
+        goto done;
+    }
+
+    /* Find the differences between the sysdb and LDAP lists.
+     * Groups in the sysdb only must be removed. */
+    ret = diff_string_lists(tmp_ctx, ldap_groups, sysdb_groups,
+                            &add_groups, &del_groups, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, ("Updating memberships for [%s]\n", username));
+
+    ret = sysdb_update_members_dn(domain->sysdb, domain, username,
+                                  SYSDB_MEMBER_USER,
+                                  (const char *const *) add_groups,
+                                  (const char *const *) del_groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Membership update failed [%d]: %s\n",
+                                     ret, strerror(ret)));
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+struct sdap_ad_tokengroups_initgroups_state {
+    struct sdap_idmap_ctx *idmap_ctx;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+    const char *username;
+};
+
+static void sdap_ad_tokengroups_initgroups_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
+                                    struct tevent_context *ev,
+                                    struct sdap_options *opts,
+                                    struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
+                                    struct sdap_handle *sh,
+                                    const char *name,
+                                    const char *orig_dn,
+                                    int timeout)
+{
+    struct sdap_ad_tokengroups_initgroups_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_ad_tokengroups_initgroups_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        return NULL;
+    }
+
+    state->idmap_ctx = opts->idmap_ctx;
+    state->sysdb = sysdb;
+    state->domain = domain;
+    state->username = talloc_strdup(state, name);
+    if (state->username == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    subreq = sdap_get_ad_tokengroups_send(state, ev, opts, sh, name, orig_dn,
+                                          timeout);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_ad_tokengroups_initgroups_done, req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void sdap_ad_tokengroups_initgroups_done(struct tevent_req *subreq)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sdap_ad_tokengroups_initgroups_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct sss_domain_info *domain = NULL;
+    struct ldb_message *msg = NULL;
+    const char *attrs[] = {SYSDB_NAME, NULL};
+    const char *name = NULL;
+    const char *sid = NULL;
+    char **sids = NULL;
+    size_t num_sids;
+    size_t i;
+    time_t now;
+    gid_t gid;
+    char **groups = NULL;
+    size_t num_groups;
+    errno_t ret, sret;
+    bool in_transaction;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_ad_tokengroups_initgroups_state);
+
+    ret = sdap_get_ad_tokengroups_recv(state, subreq, &num_sids, &sids);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to acquire tokengroups [%d]: %s\n",
+                                    ret, strerror(ret)));
+        goto done;
+    }
+
+    num_groups = 0;
+    groups = talloc_zero_array(tmp_ctx, char*, num_sids + 1);
+    if (groups == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    now = time(NULL);
+    ret = sysdb_transaction_start(state->sysdb);
+    if (ret != EOK) {
+        goto done;
+    }
+    in_transaction = true;
+
+    for (i = 0; i < num_sids; i++) {
+        sid = sids[i];
+        DEBUG(SSSDBG_TRACE_LIBS, ("Processing membership SID [%s]\n", sid));
+
+        ret = sdap_idmap_sid_to_unix(state->idmap_ctx, sid, &gid);
         if (ret == ENOTSUP) {
             DEBUG(SSSDBG_TRACE_FUNC, ("Skipping built-in object.\n"));
             ret = EOK;
             continue;
         } else if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not convert SID to GID: [%s]. Skipping\n",
-                   strerror(ret)));
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not convert SID to GID: [%s]. "
+                                         "Skipping\n", strerror(ret)));
             continue;
         }
 
-        group_domain = find_subdomain_by_sid(get_domains_head(state->domain),
-                                                              sid_str);
-        if (group_domain == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Domain not found for SID %s\n",
-                                         sid_str));
+        domain = find_subdomain_by_sid(get_domains_head(state->domain), sid);
+        if (domain == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Domain not found for SID %s\n", sid));
             continue;
         }
 
-        DEBUG(SSSDBG_TRACE_LIBS,
-              ("Processing membership GID [%"SPRIgid"]\n", gid));
+        DEBUG(SSSDBG_TRACE_LIBS, ("SID [%s] maps to GID [%"SPRIgid"]\n",
+                                  sid, gid));
 
         /* Check whether this GID already exists in the sysdb */
-        ret = sysdb_search_group_by_gid(tmp_ctx, group_domain->sysdb,
-                                        group_domain, gid, attrs, &msg);
+        ret = sysdb_search_group_by_gid(tmp_ctx, domain->sysdb, domain,
+                                        gid, attrs, &msg);
         if (ret == EOK) {
-            group_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-            if (!group_name) {
+            name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+            if (name == NULL) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Could not retrieve group name from sysdb\n"));
                 ret = EINVAL;
                 goto done;
             }
         } else if (ret == ENOENT) {
-            /* This is a new group. For now, we will store it
-             * under the name of its SID. When a direct lookup of
-             * the group or its GID occurs, it will replace this
-             * temporary entry.
-             */
-
-            group_name = sid_str;
-            ret = sysdb_add_incomplete_group(group_domain->sysdb,
-                                             group_domain,
-                                             group_name, gid,
-                                             NULL, sid_str, false, now);
+            /* This is a new group. For now, we will store it under the name
+             * of its SID. When a direct lookup of the group or its GID occurs,
+             * it will replace this temporary entry. */
+            name = sid;
+            ret = sysdb_add_incomplete_group(domain->sysdb, domain, name, gid,
+                                             NULL, sid, false, now);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not create incomplete group: [%s]\n",
-                       strerror(ret)));
+                DEBUG(SSSDBG_MINOR_FAILURE, ("Could not create incomplete "
+                                             "group: [%s]\n", strerror(ret)));
                 goto done;
             }
         } else {
             /* Unexpected error */
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not look up group in sysdb: [%s]\n",
-                   strerror(ret)));
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not look up group in sysdb: "
+                                         "[%s]\n", strerror(ret)));
             goto done;
         }
 
-        group_ldb_dn = sysdb_group_dn(group_domain->sysdb, tmp_ctx,
-                                      group_domain, group_name);
-        if (group_ldb_dn == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb_group_dn() failed\n"));
+        groups[num_groups] = sysdb_group_strdn(tmp_ctx, domain->name, name);
+        if (groups[num_groups] == NULL) {
             ret = ENOMEM;
             goto done;
         }
-
-        group_str_dn = ldb_dn_get_linearized(group_ldb_dn);
-        if (group_str_dn == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("ldb_dn_get_linearized() failed\n"));
-            ret = EINVAL;
-            goto done;
-        }
-
-        ldap_grouplist[group_count] =
-                talloc_strdup(ldap_grouplist, group_str_dn);
-        if (!ldap_grouplist[group_count]) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        talloc_zfree(group_ldb_dn); /* also frees group_str_dn */
-        group_str_dn = NULL;
-
-        group_count++;
-    }
-    ldap_grouplist[group_count] = NULL;
-
-    /* Get the current sysdb group list for this user
-     * so we can update it.
-     */
-    ret = get_sysdb_grouplist_dn(state, state->sysdb, state->domain,
-                                 state->username, &sysdb_grouplist);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not get the list of groups for [%s] in the sysdb: "
-               "[%s]\n",
-               state->username, strerror(ret)));
-        goto done;
+        num_groups++;
     }
 
-    /* Find the differences between the sysdb and LDAP lists
-     * Groups in the sysdb only must be removed.
-     */
-    ret = diff_string_lists(tmp_ctx, ldap_grouplist, sysdb_grouplist,
-                            &add_groups, &del_groups, NULL);
-    if (ret != EOK) goto done;
+    groups[num_groups] = NULL;
 
-    DEBUG(SSSDBG_TRACE_LIBS,
-          ("Updating memberships for [%s]\n", state->username));
-    ret = sysdb_update_members_dn(state->sysdb, state->domain,
-                                  state->username, SYSDB_MEMBER_USER,
-                                  (const char *const *) add_groups,
-                                  (const char *const *) del_groups);
+    ret = sdap_ad_tokengroups_update_members(state, state->username,
+                                             state->sysdb, state->domain,
+                                             groups);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Membership update failed [%d]: %s\n",
-               ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Membership update failed [%d]: %s\n",
+                                     ret, strerror(ret)));
         goto done;
     }
 
     ret = sysdb_transaction_commit(state->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not commit transaction! [%s]\n",
-               strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not commit transaction! [%s]\n",
+                                    strerror(ret)));
         goto done;
     }
     in_transaction = false;
 
 done:
-    sss_idmap_free_sid(state->opts->idmap_ctx->map, sid_str);
+    talloc_free(tmp_ctx);
 
     if (in_transaction) {
         sret = sysdb_transaction_cancel(state->sysdb);
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not cancel transaction! [%s]\n",
-               strerror(sret)));
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Could not cancel transaction! [%s]\n",
+                                     strerror(sret)));
     }
 
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
+    if (ret != EOK) {
         tevent_req_error(req, ret);
+        return;
     }
-    talloc_free(tmp_ctx);
-    return;
+
+    tevent_req_done(req);
 }
 
-errno_t
-sdap_get_ad_tokengroups_initgroups_recv(struct tevent_req *req)
+errno_t sdap_ad_tokengroups_initgroups_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
+
     return EOK;
 }

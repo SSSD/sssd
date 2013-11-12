@@ -2857,13 +2857,13 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             /* Take advantage of AD's tokenGroups mechanism to look up all
              * parent groups in a single request.
              */
-            subreq = sdap_get_ad_tokengroups_initgroups_send(state, state->ev,
-                                                             state->opts,
-                                                             state->sysdb,
-                                                             state->dom,
-                                                             state->sh,
-                                                             cname, orig_dn,
-                                                             state->timeout);
+            subreq = sdap_ad_tokengroups_initgroups_send(state, state->ev,
+                                                         state->opts,
+                                                         state->sysdb,
+                                                         state->dom,
+                                                         state->sh,
+                                                         cname, orig_dn,
+                                                         state->timeout);
         } else if (state->opts->support_matching_rule
                     && dp_opt_get_bool(state->opts->basic,
                                        SDAP_AD_MATCHING_RULE_INITGROUPS)) {
@@ -2952,7 +2952,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     case SDAP_SCHEMA_AD:
         if (state->use_id_mapping
                 && state->opts->dc_functional_level >= DS_BEHAVIOR_WIN2008) {
-            ret = sdap_get_ad_tokengroups_initgroups_recv(subreq);
+            ret = sdap_ad_tokengroups_initgroups_recv(subreq);
         }
         else if (state->opts->support_matching_rule
                 && dp_opt_get_bool(state->opts->basic,
