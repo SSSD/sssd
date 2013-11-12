@@ -294,17 +294,17 @@ sdap_get_ad_match_rule_initgroups_recv(struct tevent_req *req);
 
 
 struct tevent_req *
-sdap_get_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct sdap_options *opts,
-                                        struct sysdb_ctx *sysdb,
-                                        struct sss_domain_info *domain,
-                                        struct sdap_handle *sh,
-                                        const char *name,
-                                        const char *orig_dn,
-                                        int timeout);
+sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
+                                    struct tevent_context *ev,
+                                    struct sdap_options *opts,
+                                    struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
+                                    struct sdap_handle *sh,
+                                    const char *name,
+                                    const char *orig_dn,
+                                    int timeout);
 
 errno_t
-sdap_get_ad_tokengroups_initgroups_recv(struct tevent_req *req);
+sdap_ad_tokengroups_initgroups_recv(struct tevent_req *req);
 
 #endif /* _SDAP_ASYNC_H_ */
