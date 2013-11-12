@@ -82,7 +82,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     hash_key_t key;
     hash_value_t value;
     char *rid_start;
-    struct ldb_result *msg;
+    struct ldb_result *msg = NULL;
     char *user_sid_str = NULL;
     char *primary_group_sid_str = NULL;
 
@@ -153,8 +153,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     ret = sysdb_search_object_by_sid(mem_ctx, user_dom, sid_str, NULL, &msg);
     if (ret == EOK && msg->count == 1) {
         value.ul = ldb_msg_find_attr_as_uint64(msg->msgs[0], SYSDB_UIDNUM, 0);
-        talloc_free(msg);
     }
+    talloc_zfree(msg);
 
     ret = hash_enter(sid_table, &key, &value);
     if (ret != HASH_SUCCESS) {
@@ -187,8 +187,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     ret = sysdb_search_object_by_sid(mem_ctx, user_dom, sid_str, NULL, &msg);
     if (ret == EOK && msg->count == 1) {
         value.ul = ldb_msg_find_attr_as_uint64(msg->msgs[0], SYSDB_GIDNUM, 0);
-        talloc_free(msg);
     }
+    talloc_zfree(msg);
 
     ret = hash_enter(sid_table, &key, &value);
     if (ret != HASH_SUCCESS) {
@@ -217,8 +217,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
         if (ret == EOK && msg->count == 1) {
             value.ul = ldb_msg_find_attr_as_uint64(msg->msgs[0],
                                                    SYSDB_GIDNUM, 0);
-            talloc_free(msg);
         }
+        talloc_zfree(msg);
 
         ret = hash_enter(sid_table, &key, &value);
         if (ret != HASH_SUCCESS) {
@@ -249,8 +249,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
             if (ret == EOK && msg->count == 1 ) {
                 value.ul = ldb_msg_find_attr_as_uint64(msg->msgs[0],
                                                        SYSDB_GIDNUM, 0);
-                talloc_free(msg);
             }
+            talloc_zfree(msg);
         }
 
         ret = hash_enter(sid_table, &key, &value);
