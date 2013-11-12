@@ -171,7 +171,7 @@ ipa_save_user_maps(struct sysdb_ctx *sysdb,
     in_transaction = true;
 
     for (i = 0; i < map_count; i++) {
-        ret = sysdb_store_selinux_usermap(sysdb ,domain, maps[i]);
+        ret = sysdb_store_selinux_usermap(domain, maps[i]);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Failed to store user map %d. "
                                       "Ignoring.\n", i));
@@ -331,14 +331,14 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     }
     in_transaction = true;
 
-    ret = sysdb_delete_usermaps(op_ctx->domain->sysdb, op_ctx->domain);
+    ret = sysdb_delete_usermaps(op_ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Cannot delete existing maps from sysdb\n"));
         goto fail;
     }
 
-    ret = sysdb_store_selinux_config(sysdb, op_ctx->domain,
+    ret = sysdb_store_selinux_config(op_ctx->domain,
                                      default_user, map_order);
     if (ret != EOK) {
         goto fail;
@@ -1031,8 +1031,8 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
                                                   struct ipa_get_selinux_state);
 
     /* read the config entry */
-    ret = sysdb_search_selinux_config(state, state->be_ctx->domain->sysdb,
-                                      state->be_ctx->domain, NULL, &defaults);
+    ret = sysdb_search_selinux_config(state, state->be_ctx->domain,
+                                      NULL, &defaults);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_selinux_config failed [%d]: %s\n",
                                   ret, strerror(ret)));
@@ -1064,8 +1064,7 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
     }
 
     /* read all the SELinux rules */
-    ret = sysdb_get_selinux_usermaps(state, state->be_ctx->domain->sysdb,
-                                     state->be_ctx->domain,
+    ret = sysdb_get_selinux_usermaps(state, state->be_ctx->domain,
                                      attrs, &nmaps, &maps);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_selinux_usermaps failed [%d]: %s\n",

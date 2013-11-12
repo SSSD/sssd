@@ -80,8 +80,7 @@ done:
     return ret;
 }
 
-static errno_t sysdb_store_selinux_entity(struct sysdb_ctx *sysdb,
-                                          struct sss_domain_info *domain,
+static errno_t sysdb_store_selinux_entity(struct sss_domain_info *domain,
                                           struct sysdb_attrs *attrs,
                                           enum selinux_entity_type type)
 {
@@ -94,6 +93,7 @@ static errno_t sysdb_store_selinux_entity(struct sysdb_ctx *sysdb,
     errno_t sret = EOK;
     errno_t ret;
     time_t now;
+    struct sysdb_ctx *sysdb = domain->sysdb;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -178,15 +178,13 @@ done:
     return ret;
 }
 
-errno_t sysdb_store_selinux_usermap(struct sysdb_ctx *sysdb,
-                                    struct sss_domain_info *domain,
+errno_t sysdb_store_selinux_usermap(struct sss_domain_info *domain,
                                     struct sysdb_attrs *attrs)
 {
-    return sysdb_store_selinux_entity(sysdb, domain, attrs, SELINUX_USER_MAP);
+    return sysdb_store_selinux_entity(domain, attrs, SELINUX_USER_MAP);
 }
 
-errno_t sysdb_store_selinux_config(struct sysdb_ctx *sysdb,
-                                   struct sss_domain_info *domain,
+errno_t sysdb_store_selinux_config(struct sss_domain_info *domain,
                                    const char *default_user,
                                    const char *order)
 {
@@ -217,17 +215,17 @@ errno_t sysdb_store_selinux_config(struct sysdb_ctx *sysdb,
         goto done;
     }
 
-    ret = sysdb_store_selinux_entity(sysdb, domain, attrs, SELINUX_CONFIG);
+    ret = sysdb_store_selinux_entity(domain, attrs, SELINUX_CONFIG);
 done:
     talloc_free(attrs);
     return ret;
 }
 
-errno_t sysdb_delete_usermaps(struct sysdb_ctx *sysdb,
-                              struct sss_domain_info *domain)
+errno_t sysdb_delete_usermaps(struct sss_domain_info *domain)
 {
     struct ldb_dn *dn = NULL;
     errno_t ret;
+    struct sysdb_ctx *sysdb = domain->sysdb;
 
     dn = ldb_dn_new_fmt(sysdb, sysdb->ldb,
                         SYSDB_TMPL_SELINUX_BASE, domain->name);
@@ -246,7 +244,6 @@ errno_t sysdb_delete_usermaps(struct sysdb_ctx *sysdb,
 /* --- SYSDB SELinux search routines --- */
 errno_t
 sysdb_get_selinux_usermaps(TALLOC_CTX *mem_ctx,
-                           struct sysdb_ctx *sysdb,
                            struct sss_domain_info *domain,
                            const char **attrs,
                            size_t *count,
@@ -255,6 +252,7 @@ sysdb_get_selinux_usermaps(TALLOC_CTX *mem_ctx,
     errno_t ret;
     char *filter;
     struct ldb_dn *basedn;
+    struct sysdb_ctx *sysdb = domain->sysdb;
 
     basedn = ldb_dn_new_fmt(mem_ctx, sysdb_ctx_get_ldb(sysdb),
                             SYSDB_TMPL_SELINUX_BASE, domain->name);
@@ -284,7 +282,6 @@ sysdb_get_selinux_usermaps(TALLOC_CTX *mem_ctx,
 }
 
 errno_t sysdb_search_selinux_config(TALLOC_CTX *mem_ctx,
-                                    struct sysdb_ctx *sysdb,
                                     struct sss_domain_info *domain,
                                     const char **attrs,
                                     struct ldb_message **_config)
@@ -303,15 +300,15 @@ errno_t sysdb_search_selinux_config(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                             SYSDB_TMPL_SELINUX_BASE, domain->name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sysdb_search_entry(tmp_ctx, sysdb, basedn, LDB_SCOPE_BASE, NULL,
-                             attrs?attrs:def_attrs, &msgs_count, &msgs);
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, basedn, LDB_SCOPE_BASE,
+                             NULL, attrs?attrs:def_attrs, &msgs_count, &msgs);
     if (ret) {
         goto done;
     }
