@@ -94,7 +94,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     const char *dns_service_name;
     const char *sasl_mech;
     struct sdap_service *sdap_service;
-    struct sdap_options *opts;
+    struct sdap_options *opts = NULL;
     int ret;
 
     /* If we're already set up, just return that */
