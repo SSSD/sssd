@@ -18,11 +18,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/* TODO: Support well known SIDs as in samba's
- *        - librpc/idl/security.idl or
- *        - source4/rpc_server/lsa/lsa_lookup.c?
- */
-
 /* TODO: Support of [all] samba's Unix SIDs:
  *         Users:  S-1-22-1-%UID
  *         Groups: S-1-22-2-%GID
@@ -39,8 +34,6 @@
 
 #include "lib/idmap/sss_idmap.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
-
-#define WORLD_SID "S-1-1-0"
 
 #ifdef DEBUG
 #include <syslog.h>
@@ -123,15 +116,6 @@ int cifs_idmap_sid_to_str(void *handle, const struct cifs_sid *csid,
     }
 
     debug("sid: %s", sid);
-
-    if (strcmp(sid, WORLD_SID) == 0) {
-        *name = strdup("\\Everyone");
-        if (!*name) {
-            ctx_set_error(ctx, strerror(ENOMEM));
-            return ENOMEM;
-        }
-        return 0;
-    }
 
     err = sss_nss_getnamebysid(sid, name, &id_type);
     if (err != 0)  {
