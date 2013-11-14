@@ -154,7 +154,8 @@ if HAVE_CMOCKA
         fqnames-tests \
         test_sss_idmap \
         test_utils \
-        ad_access_filter_tests
+        ad_access_filter_tests \
+        test_search_bases
 endif
 
 check_PROGRAMS = \
@@ -1387,6 +1388,30 @@ test_utils_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
+
+test_search_bases_SOURCES = \
+    $(sssd_be_SOURCES) \
+    src/util/sss_ldap.c \
+    src/util/sss_krb5.c \
+    src/util/find_uid.c \
+    src/util/user_info_msg.c \
+    src/tests/cmocka/test_search_bases.c
+test_search_bases_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DUNIT_TESTING
+test_search_bases_LDADD = \
+    $(PAM_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
+    libsss_ldap_common.la \
+    libsss_idmap.la \
+    libsss_krb5_common.la \
     libsss_test_common.la
 
 ad_access_filter_tests_SOURCES = \
