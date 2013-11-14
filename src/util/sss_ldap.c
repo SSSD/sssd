@@ -470,10 +470,13 @@ int sss_ldap_init_recv(struct tevent_req *req, LDAP **ldap, int *sd)
  * _filter will contain combined filters from all possible search bases
  * or NULL if it should be empty
  */
-bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
-                                 const char *dn,
-                                 struct sdap_search_base **search_bases,
-                                 char **_filter)
+
+
+bool sss_ldap_dn_in_search_bases_len(TALLOC_CTX *mem_ctx,
+                                     const char *dn,
+                                     struct sdap_search_base **search_bases,
+                                     char **_filter,
+                                     int *_match_len)
 {
     struct sdap_search_base *base;
     int basedn_len, dn_len;
@@ -484,6 +487,7 @@ bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
     bool backslash_found = false;
     char *filter = NULL;
     bool ret = false;
+    int match_len;
 
     if (dn == NULL) {
         DEBUG(SSSDBG_FUNC_DATA, ("dn is NULL\n"));
@@ -511,6 +515,7 @@ bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
         if (!base_confirmed) {
             continue;
         }
+        match_len = basedn_len;
 
         switch (base->scope) {
         case LDAP_SCOPE_BASE:
@@ -558,6 +563,9 @@ bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
          *  Append filter otherwise.
          */
         ret = true;
+        if (_match_len) {
+            *_match_len = match_len;
+        }
 
         if (base->filter == NULL || _filter == NULL) {
             goto done;
@@ -575,7 +583,8 @@ bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
         if (filter != NULL) {
             *_filter = talloc_asprintf(mem_ctx, "(|%s)", filter);
             if (*_filter == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf_append() failed\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      ("talloc_asprintf_append() failed\n"));
                 ret = false;
                 goto done;
             }
@@ -587,6 +596,15 @@ bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(filter);
     return ret;
+}
+
+bool sss_ldap_dn_in_search_bases(TALLOC_CTX *mem_ctx,
+                                 const char *dn,
+                                 struct sdap_search_base **search_bases,
+                                 char **_filter)
+{
+    return sss_ldap_dn_in_search_bases_len(mem_ctx, dn, search_bases, _filter,
+                                           NULL);
 }
 
 char *sss_ldap_encode_ndr_uint32(TALLOC_CTX *mem_ctx, uint32_t flags)

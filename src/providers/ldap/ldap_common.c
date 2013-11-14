@@ -68,23 +68,40 @@ sdap_domain_get_by_dn(struct sdap_options *opts,
                       const char *dn)
 {
     struct sdap_domain *sditer = NULL;
-    char *dc = NULL;
+    struct sdap_domain *sdmatch = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    int match_len;
+    int best_match_len = 0;
 
-    dc = strstr(dn, "dc=");
-    if (dc == NULL) {
-        dc = strstr(dn, "DC=");
-        if (dc == NULL) {
-            return NULL;
-        }
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return NULL;
     }
 
     DLIST_FOR_EACH(sditer, opts->sdom) {
-        if (strcasecmp(sditer->basedn, dc) == 0) {
-            return sditer;
+        if (sss_ldap_dn_in_search_bases_len(tmp_ctx, dn, sditer->search_bases,
+                                            NULL, &match_len)
+            || sss_ldap_dn_in_search_bases_len(tmp_ctx, dn,
+                   sditer->user_search_bases, NULL, &match_len)
+            || sss_ldap_dn_in_search_bases_len(tmp_ctx, dn,
+                   sditer->group_search_bases, NULL, &match_len)
+            || sss_ldap_dn_in_search_bases_len(tmp_ctx, dn,
+                   sditer->netgroup_search_bases, NULL, &match_len)
+            || sss_ldap_dn_in_search_bases_len(tmp_ctx, dn,
+                   sditer->sudo_search_bases, NULL, &match_len)
+            || sss_ldap_dn_in_search_bases_len(tmp_ctx, dn,
+                   sditer->service_search_bases, NULL, &match_len)
+            || sss_ldap_dn_in_search_bases_len(tmp_ctx, dn,
+                   sditer->autofs_search_bases, NULL, &match_len)) {
+            if (best_match_len < match_len) {
+                /*this is a longer match*/
+                best_match_len = match_len;
+                sdmatch = sditer;
+            }
         }
     }
-
-    return NULL;
+    talloc_free(tmp_ctx);
+    return sdmatch;
 }
 
 errno_t
