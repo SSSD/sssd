@@ -1962,7 +1962,7 @@ static int try_inotify(struct config_file_ctx *file_ctx, const char *filename,
     cb = talloc_zero(file_ctx, struct config_file_callback);
     if(!cb) {
         close(file_ctx->mt_ctx->inotify_fd);
-        return EIO;
+        return ENOMEM;
     }
 
     cb->filename = talloc_strdup(cb, filename);
