@@ -544,7 +544,6 @@ int group_show_recurse(TALLOC_CTX *mem_ctx,
 /*==================Get info about MPG================================= */
 
 static int group_show_mpg(TALLOC_CTX *mem_ctx,
-                          struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain,
                           const char *name,
                           struct group_info **res)
@@ -714,8 +713,7 @@ int main(int argc, const char **argv)
                      tctx->local, pc_recursive, tctx->octx->name, &root);
     /* Also show MPGs */
     if (ret == ENOENT) {
-        ret = group_show_mpg(tctx, tctx->sysdb, tctx->local,
-                             tctx->octx->name, &root);
+        ret = group_show_mpg(tctx, tctx->local, tctx->octx->name, &root);
     }
 
     /* Process result */
