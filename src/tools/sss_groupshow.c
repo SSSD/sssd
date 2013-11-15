@@ -311,7 +311,6 @@ int group_show_recurse(TALLOC_CTX *mem_ctx,
                        struct group_info ***up_members);
 
 static int group_show_trim_memberof(TALLOC_CTX *mem_ctx,
-                                    struct sysdb_ctx *sysdb,
                                     struct sss_domain_info *domain,
                                     const char *name,
                                     const char **memberofs,
@@ -379,7 +378,7 @@ int group_show(TALLOC_CTX *mem_ctx,
         }
 
         /* if not recursive, only show the direct parent */
-        ret = group_show_trim_memberof(mem_ctx, sysdb, domain, root->name,
+        ret = group_show_trim_memberof(mem_ctx, domain, root->name,
                                        root->memberofs, &root->memberofs);
         goto done;
     }
@@ -408,7 +407,6 @@ done:
 /*=========Nonrecursive search should only show direct parent========== */
 
 static int group_show_trim_memberof(TALLOC_CTX *mem_ctx,
-                                    struct sysdb_ctx *sysdb,
                                     struct sss_domain_info *domain,
                                     const char *name,
                                     const char **memberofs,
