@@ -32,6 +32,9 @@ enum sss_authtok_type sss_authtok_get_type(struct sss_auth_token *tok)
 
 size_t sss_authtok_get_size(struct sss_auth_token *tok)
 {
+    if (!tok) {
+        return 0;
+    }
     switch (tok->type) {
     case SSS_AUTHTOK_TYPE_PASSWORD:
     case SSS_AUTHTOK_TYPE_CCFILE:
@@ -45,12 +48,18 @@ size_t sss_authtok_get_size(struct sss_auth_token *tok)
 
 uint8_t *sss_authtok_get_data(struct sss_auth_token *tok)
 {
+    if (!tok) {
+        return NULL;
+    }
     return tok->data;
 }
 
 errno_t sss_authtok_get_password(struct sss_auth_token *tok,
                                  const char **pwd, size_t *len)
 {
+    if (!tok) {
+        return EFAULT;
+    }
     switch (tok->type) {
     case SSS_AUTHTOK_TYPE_EMPTY:
         return ENOENT;
@@ -70,6 +79,9 @@ errno_t sss_authtok_get_password(struct sss_auth_token *tok,
 errno_t sss_authtok_get_ccfile(struct sss_auth_token *tok,
                                const char **ccfile, size_t *len)
 {
+    if (!tok) {
+        return EINVAL;
+    }
     switch (tok->type) {
     case SSS_AUTHTOK_TYPE_EMPTY:
         return ENOENT;
@@ -121,6 +133,9 @@ static errno_t sss_authtok_set_string(struct sss_auth_token *tok,
 
 void sss_authtok_set_empty(struct sss_auth_token *tok)
 {
+    if (!tok) {
+        return;
+    }
     switch (tok->type) {
     case SSS_AUTHTOK_TYPE_EMPTY:
         return;
@@ -174,6 +189,9 @@ errno_t sss_authtok_set(struct sss_auth_token *tok,
 errno_t sss_authtok_copy(struct sss_auth_token *src,
                          struct sss_auth_token *dst)
 {
+    if (!src || !dst) {
+        return EINVAL;
+    }
     sss_authtok_set_empty(dst);
 
     if (src->type == SSS_AUTHTOK_TYPE_EMPTY) {
@@ -205,7 +223,7 @@ struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx)
 
 void sss_authtok_wipe_password(struct sss_auth_token *tok)
 {
-    if (tok->type != SSS_AUTHTOK_TYPE_PASSWORD) {
+    if (!tok || tok->type != SSS_AUTHTOK_TYPE_PASSWORD) {
         return;
     }
 
