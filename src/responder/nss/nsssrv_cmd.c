@@ -284,12 +284,19 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
     }
 
     if (nctx->allowed_shells) {
-        for (i=0; nctx->allowed_shells[i]; i++) {
-            if (strcmp(nctx->allowed_shells[i], user_shell) == 0) {
-                DEBUG(SSSDBG_FUNC_DATA,
-                      "The shell '%s' is allowed but does not exist. "
-                        "Using fallback\n", user_shell);
-                return talloc_strdup(mem_ctx, nctx->shell_fallback);
+        if (strcmp(nctx->allowed_shells[0], "*") == 0) {
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "The shell '%s' is allowed but does not exist. "
+                  "Using fallback\n", user_shell);
+            return talloc_strdup(mem_ctx, nctx->shell_fallback);
+        } else {
+            for (i=0; nctx->allowed_shells[i]; i++) {
+                if (strcmp(nctx->allowed_shells[i], user_shell) == 0) {
+                    DEBUG(SSSDBG_FUNC_DATA,
+                          "The shell '%s' is allowed but does not exist. "
+                          "Using fallback\n", user_shell);
+                    return talloc_strdup(mem_ctx, nctx->shell_fallback);
+                }
             }
         }
     }

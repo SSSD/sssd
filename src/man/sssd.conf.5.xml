@@ -630,6 +630,16 @@ fallback_homedir = /home/%u
                             is used.
                         </para>
                         <para>
+                            The wildcard (*) can be used to allow any shell.
+                        </para>
+                        <para>
+                            The (*) is useful if you want to use
+                            shell_fallback in case that user's shell is not
+                            in <quote>/etc/shells</quote> and maintaining list
+                            of all allowed shells in allowed_shells would be
+                            to much overhead.
+                        </para>
+                        <para>
                             An empty string for shell is passed as-is to libc.
                         </para>
                         <para>
