@@ -907,7 +907,8 @@ libsss_test_common_la_SOURCES = \
     src/tests/leak_check.c \
     src/tests/common.c
 libsss_test_common_la_LIBADD = \
-    $(TALLOC_LIBS)
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS)
 
 if HAVE_CHECK
 libsss_test_common_la_SOURCES += \
