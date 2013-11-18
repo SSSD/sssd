@@ -1841,7 +1841,7 @@ static void sdap_ad_match_rule_members_process(struct tevent_req *subreq)
     struct sysdb_attrs *group = state->groups[0];
     struct ldb_message_element *member_el;
     struct ldb_message_element *orig_dn_el;
-    size_t count;
+    size_t count = 0;
     size_t i;
     hash_table_t *ghosts;
 
