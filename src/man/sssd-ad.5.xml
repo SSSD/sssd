@@ -175,7 +175,7 @@ ldap_id_mapping = False
                             This option specifies LDAP access control
                             filter that the user must match in order
                             to be allowed access. Please note that the
-                            <quote>access_filter</quote> option must be
+                            <quote>access_provider</quote> option must be
                             explicitly set to <quote>ad</quote> in order
                             for this option to have an effect.
                         </para>
