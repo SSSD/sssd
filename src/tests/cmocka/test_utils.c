@@ -658,6 +658,7 @@ int main(int argc, const char *argv[])
 {
     poptContext pc;
     int opt;
+    int rv;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
@@ -712,5 +713,9 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
     test_dom_suite_setup(TESTS_PATH);
 
-    return run_tests(tests);
+    rv = run_tests(tests);
+    if (rv == 0) {
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+    }
+    return rv;
 }
