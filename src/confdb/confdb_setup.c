@@ -155,8 +155,13 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     /* Open config file */
     ret = sss_ini_config_file_open(init_data, config_file);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to open configuration file.\n"));
-        ret = EIO;
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("sss_ini_config_file_open failed: %s [%d]\n", strerror(ret),
+               ret));
+        if (ret == ENOENT) {
+            /* sss specific error denoting missing configuration file */
+            ret = ERR_MISSING_CONF;
+        }
         goto done;
     }
 
