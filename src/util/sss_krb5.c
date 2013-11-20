@@ -575,7 +575,7 @@ errno_t check_fast(const char *str, bool *use_fast)
 
     return EOK;
 #else
-    sss_log(SSS_LOG_ALERT, "This build of sssd done not support FAST. "
+    sss_log(SSS_LOG_ALERT, "This build of sssd does not support FAST. "
                            "Please remove option krb5_use_fast.\n");
     return EINVAL;
 #endif
