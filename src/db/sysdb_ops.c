@@ -1082,6 +1082,7 @@ sysdb_remove_ghostattr_from_groups(struct sss_domain_info *domain,
     struct ldb_dn *tmpdn;
     const char *group_attrs[] = {SYSDB_NAME, SYSDB_GHOST, SYSDB_ORIG_MEMBER, NULL};
     const char *userdn;
+    char *sanitized_name;
     char *filter;
     errno_t ret = EOK;
     size_t group_count = 0;
@@ -1092,7 +1093,13 @@ sysdb_remove_ghostattr_from_groups(struct sss_domain_info *domain,
         return ENOENT;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(|(%s=%s)", SYSDB_GHOST, name);
+    ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(|(%s=%s)",
+                                      SYSDB_GHOST, sanitized_name);
     if (!filter) {
         ret = ENOMEM;
         goto done;
