@@ -2502,6 +2502,7 @@ int sysdb_delete_user(struct sss_domain_info *domain,
     struct ldb_message *msg;
     int ret;
     int i;
+    char *sanitized_name;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -2539,7 +2540,13 @@ int sysdb_delete_user(struct sss_domain_info *domain,
         }
     } else if (ret == ENOENT && name != NULL) {
         /* Perhaps a ghost user? */
-        filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_GHOST, name);
+        ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
+        if (ret != EOK) {
+            goto fail;
+        }
+
+        filter = talloc_asprintf(tmp_ctx, "(%s=%s)",
+                                          SYSDB_GHOST, sanitized_name);
         if (filter == NULL) {
             ret = ENOMEM;
             goto fail;

@@ -3916,6 +3916,10 @@ START_TEST(test_odd_characters)
     fail_unless(ret == EOK, "sysdb_delete_user error [%d][%s]",
                             ret, strerror(ret));
 
+    /* Delete non existing User */
+    ret = sysdb_delete_user(test_ctx->domain, odd_username, 10000);
+    fail_unless(ret == ENOENT, "sysdb_delete_user error [%d][%s]",
+                               ret, strerror(ret));
 
     /* Delete Group */
     ret = sysdb_delete_group(test_ctx->domain, odd_groupname, 20000);
