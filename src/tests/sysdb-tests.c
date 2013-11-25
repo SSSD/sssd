@@ -3900,6 +3900,8 @@ START_TEST(test_odd_characters)
     struct ldb_message *msg;
     const struct ldb_val *val;
     const char odd_username[] = "*(odd)\\user,name";
+    const char odd_username_orig_dn[] =
+        "\\2a\\28odd\\29\\5cuser,name,cn=users,dc=example,dc=com";
     const char odd_groupname[] = "*(odd\\*)\\group,name";
     const char odd_netgroupname[] = "*(odd\\*)\\netgroup,name";
     const char *received_user;
@@ -4008,6 +4010,23 @@ START_TEST(test_odd_characters)
     ret = sysdb_delete_group(test_ctx->sysdb, test_ctx->domain,
                              odd_groupname, 20000);
     fail_unless(ret == EOK, "sysdb_delete_group error [%d][%s]",
+                            ret, strerror(ret));
+
+    /* Add */
+    ret = sysdb_add_user(test_ctx->sysdb,
+                         test_ctx->domain,
+                         odd_username,
+                         10000, 0,
+                         "","","",
+                         odd_username_orig_dn,
+                         NULL, 5400, 0);
+    fail_unless(ret == EOK, "sysdb_add_user error [%d][%s]",
+                            ret, strerror(ret));
+
+    /* Delete User */
+    ret = sysdb_delete_user(test_ctx->sysdb, test_ctx->domain,
+                            odd_username, 10000);
+    fail_unless(ret == EOK, "sysdb_delete_user error [%d][%s]",
                             ret, strerror(ret));
 
     /* ===== Netgroups ===== */
