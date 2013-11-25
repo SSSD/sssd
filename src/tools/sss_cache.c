@@ -63,7 +63,6 @@ static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 struct cache_tool_ctx {
     struct confdb_ctx *confdb;
     struct sss_domain_info *domains;
-    struct sss_names_ctx *nctx;
 
     char *user_filter;
     char *group_filter;
@@ -209,7 +208,7 @@ static errno_t update_filter(struct cache_tool_ctx *tctx,
         return ENOMEM;
     }
 
-    ret = sss_parse_name(tmp_ctx, tctx->nctx, name,
+    ret = sss_parse_name(tmp_ctx, dinfo->names, name,
                          &parsed_domain, &parsed_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("sss_parse_name failed\n"));
@@ -279,17 +278,6 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
                                   struct sss_domain_info *dinfo)
 {
     errno_t ret;
-
-    if (IS_SUBDOMAIN(dinfo)) {
-        ret = sss_names_init(tctx, tctx->confdb, dinfo->parent->name,
-                             &tctx->nctx);
-    } else {
-        ret = sss_names_init(tctx, tctx->confdb, dinfo->name, &tctx->nctx);
-    }
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_names_init() failed\n"));
-        return ret;
-    }
 
     /* Update user filter */
     ret = update_filter(tctx, dinfo, tctx->user_name,
@@ -467,6 +455,7 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
 {
     char *confdb_path;
     int ret;
+    struct sss_domain_info *dinfo;
 
     confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (confdb_path == NULL) {
@@ -501,6 +490,14 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
         SYSDB_VERSION_ERROR(ret);
         if (ret != EOK) {
             DEBUG(1, ("Could not initialize connection to the sysdb\n"));
+            return ret;
+        }
+    }
+
+    for (dinfo = ctx->domains; dinfo; dinfo = get_next_domain(dinfo, false)) {
+        ret = sss_names_init(ctx, ctx->confdb, dinfo->name, &dinfo->names);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("sss_names_init() failed\n"));
             return ret;
         }
     }
