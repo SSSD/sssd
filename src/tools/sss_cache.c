@@ -196,6 +196,8 @@ static errno_t update_filter(struct cache_tool_ctx *tctx,
     TALLOC_CTX *tmp_ctx = NULL;
     char *use_name = NULL;
     char *filter;
+    char *sanitized;
+    char *lc_sanitized;
 
     if (!name || !update) {
         /* Nothing to do */
@@ -212,6 +214,14 @@ static errno_t update_filter(struct cache_tool_ctx *tctx,
                          &parsed_domain, &parsed_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("sss_parse_name failed\n"));
+        goto done;
+    }
+
+    if (parsed_domain != NULL && strcasecmp(dinfo->name, parsed_domain) != 0) {
+        /* We were able to parse the domain from given fqdn, but it
+         * does not match with currently processed domain. */
+        filter = NULL;
+        ret = EOK;
         goto done;
     }
 
@@ -232,41 +242,40 @@ static errno_t update_filter(struct cache_tool_ctx *tctx,
             ret = ENOMEM;
             goto done;
         }
-
-        if (!strcasecmp(dinfo->name, parsed_domain)) {
-            if (fmt) {
-                filter = talloc_asprintf(tmp_ctx, fmt,
-                                         SYSDB_NAME, use_name);
-            } else {
-                filter = talloc_strdup(tmp_ctx, use_name);
-            }
-            if (filter == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
-                ret = ENOMEM;
-                goto done;
-            }
-        } else {
-            /* We were able to parse the domain from given fqdn, but it
-             * does not match with currently processed domain. */
-            filter = NULL;
-        }
-    } else {
-        if (fmt) {
-            filter = talloc_asprintf(tmp_ctx, fmt, SYSDB_NAME, name);
-        } else {
-            filter = talloc_strdup(tmp_ctx, name);
-        }
-        if (filter == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
-    talloc_free(*_filter);
-    *_filter = talloc_steal(tctx, filter);
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, use_name, dinfo,
+                                      &sanitized, &lc_sanitized);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to sanitize the given name.\n"));
+        goto done;
+    }
+
+    if (fmt) {
+        if (!dinfo->case_sensitive && !force_case_sensitivity) {
+            filter = talloc_asprintf(tmp_ctx, "(|(%s=%s)(%s=%s))",
+                                     SYSDB_NAME_ALIAS, lc_sanitized,
+                                     SYSDB_NAME_ALIAS, sanitized);
+        } else {
+            filter = talloc_asprintf(tmp_ctx, fmt, SYSDB_NAME, sanitized);
+        }
+    } else {
+        filter = talloc_strdup(tmp_ctx, sanitized);
+    }
+    if (filter == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
     ret = EOK;
+
 done:
+    if (ret == EOK) {
+        talloc_free(*_filter);
+        *_filter = talloc_steal(tctx, filter);
+    }
+
     talloc_free(tmp_ctx);
     return ret;
 
