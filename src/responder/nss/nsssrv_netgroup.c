@@ -684,7 +684,7 @@ static void nss_cmd_setnetgrent_done(struct tevent_req *req)
             ((uint32_t *)body)[1] = 0; /* reserved */
         }
 
-        sss_cmd_done(cmdctx->cctx, NULL);
+        sss_cmd_done(cmdctx->cctx, cmdctx);
         return;
     }
 
