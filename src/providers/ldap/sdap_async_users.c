@@ -150,8 +150,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
             goto done;
         }
     } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_ALL, ("objectSID: not available for group [%s].\n",
-                                 user_name));
+        DEBUG(SSSDBG_TRACE_ALL, ("objectSID: not available for user\n"));
         sid_str = NULL;
     } else {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Could not identify objectSID: [%s]\n",
