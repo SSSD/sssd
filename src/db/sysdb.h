@@ -274,6 +274,8 @@ int sysdb_attrs_add_uint32(struct sysdb_attrs *attrs,
                            const char *name, uint32_t value);
 int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
                            const char *name, time_t value);
+int sysdb_attrs_add_lc_name_alias(struct sysdb_attrs *attrs,
+                                  const char *value);
 int sysdb_attrs_copy_values(struct sysdb_attrs *src,
                             struct sysdb_attrs *dst,
                             const char *name);
