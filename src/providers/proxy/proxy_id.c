@@ -219,7 +219,6 @@ static int save_user(struct sss_domain_info *domain,
 {
     const char *shell;
     const char *gecos;
-    char *lower;
     struct sysdb_attrs *attrs = NULL;
     errno_t ret;
     const char *cased_alias;
@@ -245,14 +244,7 @@ static int save_user(struct sss_domain_info *domain,
     }
 
     if (lowercase) {
-        lower = sss_tc_utf8_str_tolower(attrs, pwd->pw_name);
-        if (!lower) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
-            talloc_zfree(attrs);
-            return ENOMEM;
-        }
-
-        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lower);
+        ret = sysdb_attrs_add_lc_name_alias(attrs, pwd->pw_name);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
             talloc_zfree(attrs);
@@ -534,7 +526,6 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
 {
     errno_t ret, sret;
     struct sysdb_attrs *attrs = NULL;
-    char *lower;
     const char *cased_alias;
     TALLOC_CTX *tmp_ctx;
     time_t now = time(NULL);
@@ -589,14 +580,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         }
 
         if (dom->case_sensitive == false) {
-            lower = sss_tc_utf8_str_tolower(attrs, grp->gr_name);
-            if (!lower) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
-                ret = ENOMEM;
-                goto done;
-            }
-
-            ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lower);
+            ret = sysdb_attrs_add_lc_name_alias(attrs, grp->gr_name);
             if (ret) {
                 DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
                 ret = ENOMEM;

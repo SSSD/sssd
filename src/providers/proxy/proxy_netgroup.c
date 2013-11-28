@@ -73,17 +73,9 @@ static errno_t save_netgroup(struct sss_domain_info *domain,
                              uint64_t cache_timeout)
 {
     errno_t ret;
-    char *lower;
 
     if (lowercase) {
-        lower = sss_tc_utf8_str_tolower(NULL, name);
-        if (!lower) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot convert name to lowercase\n"));
-            return ENOMEM;
-        }
-
-        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lower);
-        talloc_free(lower);
+        ret = sysdb_attrs_add_lc_name_alias(attrs, name);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
             return ret;
