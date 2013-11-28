@@ -616,6 +616,28 @@ int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
     return ret;
 }
 
+int sysdb_attrs_add_lc_name_alias(struct sysdb_attrs *attrs,
+                                  const char *value)
+{
+    char *lc_str;
+    int ret;
+
+    if (attrs == NULL || value == NULL) {
+        return EINVAL;
+    }
+
+    lc_str = sss_tc_utf8_str_tolower(attrs, value);
+    if (lc_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot convert name to lowercase\n"));
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lc_str);
+    talloc_free(lc_str);
+
+    return ret;
+}
+
 int sysdb_attrs_copy_values(struct sysdb_attrs *src,
                             struct sysdb_attrs *dst,
                             const char *name)

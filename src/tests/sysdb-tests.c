@@ -4332,6 +4332,33 @@ START_TEST(test_sysdb_svc_remove_alias)
 }
 END_TEST
 
+#define LC_NAME_ALIAS_TEST_VAL "TeSt VaLuE"
+#define LC_NAME_ALIAS_CHECK_VAL "test value"
+START_TEST(test_sysdb_attrs_add_lc_name_alias)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    const char *str;
+
+    ret = sysdb_attrs_add_lc_name_alias(NULL, NULL);
+    fail_unless(ret == EINVAL, "EINVAL not returned for NULL input");
+
+    attrs = sysdb_new_attrs(NULL);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_lc_name_alias(attrs, LC_NAME_ALIAS_TEST_VAL);
+    fail_unless(ret == EOK, "sysdb_attrs_add_lc_name_alias failed");
+
+    ret = sysdb_attrs_get_string(attrs, SYSDB_NAME_ALIAS, &str);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string failed");
+    fail_unless(strcmp(str, LC_NAME_ALIAS_CHECK_VAL) == 0,
+                "Unexpected value, expected [%s], got [%s]",
+                LC_NAME_ALIAS_CHECK_VAL, str);
+
+    talloc_free(attrs);
+}
+END_TEST
+
 START_TEST(test_sysdb_has_enumerated)
 {
     errno_t ret;
@@ -5089,6 +5116,8 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_add_services);
     tcase_add_test(tc_sysdb, test_sysdb_store_services);
     tcase_add_test(tc_sysdb, test_sysdb_svc_remove_alias);
+
+    tcase_add_test(tc_sysdb, test_sysdb_attrs_add_lc_name_alias);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
