@@ -481,9 +481,9 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, pwd->pw_name);
+    ret = sysdb_attrs_add_lc_name_alias(attrs, pwd->pw_name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_lc_name_alias failed.\n"));
         goto done;
     }
 

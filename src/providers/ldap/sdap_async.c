@@ -2318,12 +2318,23 @@ sdap_save_all_names(const char *name,
             goto done;
         }
 
-        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, domname);
-        if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to add alias [%s] into the "
-                                      "attribute list\n", aliases[i]));
-            goto done;
+        if (lowercase) {
+            ret = sysdb_attrs_add_lc_name_alias(attrs, domname);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Failed to add lower-cased version "
+                                          "of alias [%s] into the "
+                                          "attribute list\n", aliases[i]));
+                goto done;
+            }
+        } else {
+            ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, domname);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE, ("Failed to add alias [%s] into the "
+                                          "attribute list\n", aliases[i]));
+                goto done;
+            }
         }
+
     }
 
     ret = EOK;
