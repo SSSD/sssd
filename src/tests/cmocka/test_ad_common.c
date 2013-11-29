@@ -159,6 +159,8 @@ void test_conn_list(void **state)
                                                      struct ad_common_test_ctx);
     assert_non_null(test_ctx);
 
+    assert_true(dp_opt_get_bool(test_ctx->ad_ctx->ad_options->basic,
+                                AD_ENABLE_GC));
     conn_list = ad_gc_conn_list(test_ctx, test_ctx->ad_ctx, test_ctx->dom);
     assert_non_null(conn_list);
 
@@ -176,6 +178,24 @@ void test_conn_list(void **state)
     assert_true(conn_list[0] == test_ctx->ad_ctx->gc_ctx);
     assert_false(conn_list[0]->ignore_mark_offline);
     assert_null(conn_list[1]);
+    talloc_free(conn_list);
+
+    dp_opt_set_bool(test_ctx->ad_ctx->ad_options->basic, AD_ENABLE_GC, false);
+    assert_false(dp_opt_get_bool(test_ctx->ad_ctx->ad_options->basic,
+                                 AD_ENABLE_GC));
+
+    conn_list = ad_gc_conn_list(test_ctx, test_ctx->ad_ctx, test_ctx->dom);
+    assert_non_null(conn_list);
+
+    assert_true(conn_list[0] == test_ctx->ad_ctx->ldap_ctx);
+    assert_false(conn_list[0]->ignore_mark_offline);
+    assert_null(conn_list[1]);
+    talloc_free(conn_list);
+
+    conn_list = ad_gc_conn_list(test_ctx, test_ctx->ad_ctx, test_ctx->subdom);
+    assert_non_null(conn_list);
+
+    assert_null(conn_list[0]);
     talloc_free(conn_list);
 }
 
