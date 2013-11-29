@@ -42,6 +42,7 @@ enum ad_basic_opt {
     AD_KRB5_REALM,
     AD_ENABLE_DNS_SITES,
     AD_ACCESS_FILTER,
+    AD_ENABLE_GC,
 
     AD_OPTS_BASIC /* opts counter */
 };

@@ -1125,26 +1125,31 @@ ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
                 struct sss_domain_info *dom)
 {
     struct sdap_id_conn_ctx **clist;
+    int cindex = 0;
 
     clist = talloc_zero_array(mem_ctx, struct sdap_id_conn_ctx *, 3);
     if (clist == NULL) return NULL;
 
     /* Always try GC first */
-    clist[0] = ad_ctx->gc_ctx;
-    if (IS_SUBDOMAIN(dom) == true) {
-        clist[0]->ignore_mark_offline = false;
-        /* Subdomain users are only present in GC. */
-        return clist;
+    if (dp_opt_get_bool(ad_ctx->ad_options->basic, AD_ENABLE_GC)) {
+        clist[cindex] = ad_ctx->gc_ctx;
+        if (IS_SUBDOMAIN(dom) == true) {
+            clist[cindex]->ignore_mark_offline = false;
+            /* Subdomain users are only present in GC. */
+            return clist;
+        }
+        /* fall back to ldap if gc is not available */
+        clist[cindex]->ignore_mark_offline = true;
+        cindex++;
     }
 
-    /* fall back to ldap if gc is not available */
-    clist[0]->ignore_mark_offline = true;
-
-    /* With root domain users we have the option to
-     * fall back to LDAP in case ie POSIX attributes
-     * are used but not replicated to GC
-     */
-    clist[1] = ad_ctx->ldap_ctx;
+    if (IS_SUBDOMAIN(dom) == false) {
+        /* With root domain users we have the option to
+         * fall back to LDAP in case ie POSIX attributes
+         * are used but not replicated to GC
+         */
+        clist[cindex] = ad_ctx->ldap_ctx;
+    }
 
     return clist;
 }
