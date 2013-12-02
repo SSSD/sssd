@@ -131,8 +131,6 @@ struct mt_svc {
     struct tevent_timer *ping_ev;
 
     struct sss_child_ctx *child_ctx;
-
-    struct tevent_timer *sigkill_ev;
 };
 
 struct config_file_callback {
@@ -588,23 +586,37 @@ static int monitor_kill_service (struct mt_svc *svc)
 {
     int ret;
     struct timeval tv;
+    struct tevent_timer *te;
 
     ret = kill(svc->pid, SIGTERM);
-    if (ret != EOK) {
+    if (ret == -1) {
+        ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Sending signal to child (%s:%d) failed! "
-               "Ignore and pretend child is dead.\n",
-               svc->name, svc->pid);
-        talloc_free(svc);
+              "Sending signal to child (%s:%d) failed: [%d]: %s! "
+              "Ignore and pretend child is dead.\n",
+              svc->name, svc->pid, ret, strerror(ret));
+        goto done;
     }
 
     /* Set up a timer to send SIGKILL if this process
      * doesn't exit within sixty seconds
      */
     tv = tevent_timeval_current_ofs(svc->kill_time, 0);
-    svc->sigkill_ev = tevent_add_timer(svc->mt_ctx->ev, svc, tv,
-                                       mt_svc_sigkill, svc);
+    te = tevent_add_timer(svc->mt_ctx->ev, svc, tv, mt_svc_sigkill, svc);
+    if (te == NULL) {
+        /* Nothing much we can do */
+        ret = ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to allocate timed event: mt_svc_sigkill.\n");
+        goto done;
+    }
 
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(svc);
+    }
     return ret;
 }
 
