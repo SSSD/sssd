@@ -25,8 +25,14 @@
 #include <sys/types.h>
 #include <talloc.h>
 
+struct sss_nss_homedir_ctx {
+    const char *username;
+    uint32_t uid;
+    const char *original;
+    const char *domain;
+    const char *flatname;
+};
+
 char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
-                              const char *username, uint32_t uid,
-                              const char *original, const char *domain,
-                              const char *flatname);
+                              struct sss_nss_homedir_ctx *homedir_ctx);
 #endif

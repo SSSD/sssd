@@ -23,9 +23,7 @@
 #include "util/sss_nss.h"
 
 char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
-                              const char *username, uint32_t uid,
-                              const char *original, const char *domain,
-                              const char *flatname)
+                              struct sss_nss_homedir_ctx *homedir_ctx)
 {
     char *copy;
     char *p;
@@ -37,6 +35,11 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
 
     if (template == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing template.\n");
+        return NULL;
+    }
+
+    if (homedir_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing home directory data.\n");
         return NULL;
     }
 
@@ -66,67 +69,71 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
         }
         switch( *n ) {
             case 'u':
-                if (username == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand user name template "
-                                                "because user name is empty.\n");
+                if (homedir_ctx->username == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Cannot expand user name template because user name "
+                          "is empty.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p,
-                                                username);
+                                                homedir_ctx->username);
                 break;
 
             case 'U':
-                if (uid == 0) {
+                if (homedir_ctx->uid == 0) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand uid template "
                                                 "because uid is invalid.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%d", p,
-                                                uid);
+                                                homedir_ctx->uid);
                 break;
 
             case 'd':
-                if (domain == NULL) {
+                if (homedir_ctx->domain == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand domain name "
                                                 "template because domain name "
                                                 "is empty.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p,
-                                                domain);
+                                                homedir_ctx->domain);
                 break;
 
             case 'f':
-                if (domain == NULL || username == NULL) {
+                if (homedir_ctx->domain == NULL
+                        || homedir_ctx->username == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand fully qualified "
                                                 "name template because domain "
                                                 "or user name is empty.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s@%s", p,
-                                                username, domain);
+                                                homedir_ctx->username,
+                                                homedir_ctx->domain);
                 break;
 
             case 'o':
-                if (original == NULL) {
+                if (homedir_ctx->original == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Original home directory for %s is not available, "
-                           "using empty string\n", username);
+                           "using empty string\n", homedir_ctx->username);
                     orig = "";
                 } else {
-                    orig = original;
+                    orig = homedir_ctx->original;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, orig);
                 break;
 
             case 'F':
-                if (flatname == NULL) {
+                if (homedir_ctx->flatname == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand domain name "
                                                 "template because domain flat "
                                                 "name is empty.\n");
                     goto done;
                 }
-                result = talloc_asprintf_append(result, "%s%s", p, flatname);
+                result = talloc_asprintf_append(result, "%s%s", p,
+                                                homedir_ctx->flatname);
                 break;
 
             case '%':
