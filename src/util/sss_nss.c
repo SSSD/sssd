@@ -136,6 +136,17 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                                                 homedir_ctx->flatname);
                 break;
 
+            case 'H':
+                if (homedir_ctx->config_homedir_substr == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Cannot expand home directory substring template "
+                          "substring is empty.\n");
+                    goto done;
+                }
+                result = talloc_asprintf_append(result, "%s%s", p,
+                                           homedir_ctx->config_homedir_substr);
+                break;
+
             case '%':
                 result = talloc_asprintf_append(result, "%s%%", p);
                 break;

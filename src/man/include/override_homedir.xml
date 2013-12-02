@@ -31,6 +31,13 @@
                     </para></listitem>
             </varlistentry>
             <varlistentry>
+                <term>%H</term>
+                <listitem><para>
+                    The value of configure option
+                    <emphasis>homedir_substring</emphasis>.
+                    </para></listitem>
+            </varlistentry>
+            <varlistentry>
                 <term>%%</term>
                 <listitem><para>a literal '%'</para>
                 </listitem>

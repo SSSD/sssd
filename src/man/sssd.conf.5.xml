@@ -475,6 +475,7 @@
                     </listitem>
                 </varlistentry>
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/override_homedir.xml" />
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/homedir_substring.xml" />
                 <varlistentry>
                     <term>fallback_homedir (string)</term>
                     <listitem>

@@ -349,6 +349,7 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                 </varlistentry>
 
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/override_homedir.xml" />
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/homedir_substring.xml" />
 
                 <varlistentry>
                     <term>krb5_use_enterprise_principal (boolean)</term>
