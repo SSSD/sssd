@@ -446,6 +446,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
         homedir_ctx.uid = pwd->pw_uid;
         homedir_ctx.domain = dom->name;
         homedir_ctx.flatname = dom->flat_name;
+        homedir_ctx.config_homedir_substr = dom->homedir_substr;
 
         pwd->pw_dir = expand_homedir_template(pwd, dom->subdomain_homedir,
                                               &homedir_ctx);

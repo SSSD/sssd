@@ -31,6 +31,7 @@ struct sss_nss_homedir_ctx {
     const char *original;
     const char *domain;
     const char *flatname;
+    const char *config_homedir_substr;
 };
 
 char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,

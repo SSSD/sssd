@@ -62,6 +62,7 @@ struct nss_ctx {
 
     char *override_homedir;
     char *fallback_homedir;
+    char *homedir_substr;
     char **allowed_shells;
     char *override_shell;
     char **vetoed_shells;

@@ -291,6 +291,12 @@ static int nss_get_config(struct nss_ctx *nctx,
                             &nctx->default_shell);
     if (ret != EOK) goto done;
 
+    ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                            CONFDB_NSS_HOMEDIR_SUBSTRING,
+                            CONFDB_DEFAULT_HOMEDIR_SUBSTRING,
+                            &nctx->homedir_substr);
+    if (ret != EOK) goto done;
+
     ret = 0;
 done:
     return ret;

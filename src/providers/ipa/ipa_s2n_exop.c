@@ -744,6 +744,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 homedir_ctx.uid = attrs->a.user.pw_uid;
                 homedir_ctx.domain = state->dom->name;
                 homedir_ctx.flatname = state->dom->flat_name;
+                homedir_ctx.config_homedir_substr = state->dom->homedir_substr;
 
                 homedir = expand_homedir_template(state,
                                                   state->dom->subdomain_homedir,

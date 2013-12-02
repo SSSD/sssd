@@ -1118,6 +1118,16 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_NSS_HOMEDIR_SUBSTRING, NULL);
+    if (tmp != NULL) {
+        domain->homedir_substr = talloc_strdup(domain, tmp);
+        if (domain->homedir_substr == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
                                       CONFDB_NSS_OVERRIDE_SHELL, NULL);
     if (tmp != NULL) {
         domain->override_shell = talloc_strdup(domain, tmp);

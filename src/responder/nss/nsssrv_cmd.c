@@ -190,6 +190,13 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    /* Check to see which homedir_prefix to use. */
+    if (dom->homedir_substr != NULL) {
+        homedir_ctx->config_homedir_substr = dom->homedir_substr;
+    } else if (nctx->homedir_substr != NULL) {
+        homedir_ctx->config_homedir_substr = nctx->homedir_substr;
+    }
+
     /* Check whether we are unconditionally overriding the server
      * for home directory locations.
      */
@@ -214,8 +221,8 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
         }
     }
 
-    /* Return the value we got from the provider */
-    return talloc_strdup(mem_ctx, homedir);
+    /* Provider can also return template, try to expand it.*/
+    return expand_homedir_template(mem_ctx, homedir, homedir_ctx);
 }
 
 static const char *get_shell_override(TALLOC_CTX *mem_ctx,
