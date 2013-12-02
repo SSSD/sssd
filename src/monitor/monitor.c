@@ -577,6 +577,9 @@ static void tasks_check_handler(struct tevent_context *ev,
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Killing service [%s], not responding to pings!\n",
                svc->name));
+        sss_log(SSS_LOG_ERR,
+                "Killing service [%s], not responding to pings!\n",
+                svc->name);
 
         /* Kill the service. The SIGCHLD handler will restart it */
         monitor_kill_service(svc);
@@ -655,6 +658,9 @@ static void mt_svc_sigkill(struct tevent_context *ev,
     DEBUG(SSSDBG_FATAL_FAILURE,
           ("[%s][%d] is not responding to SIGTERM. Sending SIGKILL.\n",
            svc->name, svc->pid));
+    sss_log(SSS_LOG_ERR,
+            "[%s][%d] is not responding to SIGTERM. Sending SIGKILL.\n",
+            svc->name, svc->pid);
 
     ret = kill(svc->pid, SIGKILL);
     if (ret != EOK) {
