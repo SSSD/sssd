@@ -353,6 +353,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
     char *upn;
     hash_key_t key;
     hash_value_t value;
+    struct sss_nss_homedir_ctx homedir_ctx;
 
     pwd = talloc_zero(mem_ctx, struct passwd);
     if (pwd == NULL) {
@@ -439,9 +440,15 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
     /* Check if there is a special homedir template for sub-domains. If not a
      * fallback will be added by the NSS responder. */
     if (IS_SUBDOMAIN(dom) && dom->subdomain_homedir) {
+        ZERO_STRUCT(homedir_ctx);
+
+        homedir_ctx.username = lname;
+        homedir_ctx.uid = pwd->pw_uid;
+        homedir_ctx.domain = dom->name;
+        homedir_ctx.flatname = dom->flat_name;
+
         pwd->pw_dir = expand_homedir_template(pwd, dom->subdomain_homedir,
-                                              lname, pwd->pw_uid, NULL,
-                                              dom->name, dom->flat_name);
+                                              &homedir_ctx);
         if (pwd->pw_dir == NULL) {
             ret = ENOMEM;
             goto done;

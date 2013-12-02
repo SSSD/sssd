@@ -172,17 +172,18 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
                                         struct ldb_message *msg,
                                         struct nss_ctx *nctx,
                                         struct sss_domain_info *dom,
-                                        const char *orig_name,
-                                        uint32_t uid)
+                                        struct sss_nss_homedir_ctx *homedir_ctx)
 {
     const char *homedir;
-    char *name;
+    const char *orig_name = homedir_ctx->username;
     errno_t ret;
 
     homedir = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
+    homedir_ctx->original = homedir;
 
     /* Subdomain users store FQDN in their name attribute */
-    ret = sss_parse_name(mem_ctx, dom->names, orig_name, NULL, &name);
+    ret = sss_parse_name_const(mem_ctx, dom->names, orig_name,
+                               NULL, &homedir_ctx->username);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Could not parse [%s] into "
               "name-value components.\n", orig_name);
@@ -194,10 +195,10 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
      */
     if (dom->override_homedir) {
         return expand_homedir_template(mem_ctx, dom->override_homedir,
-                                       name, uid, homedir, dom->name, NULL);
+                                       homedir_ctx);
     } else if (nctx->override_homedir) {
         return expand_homedir_template(mem_ctx, nctx->override_homedir,
-                                       name, uid, homedir, dom->name, NULL);
+                                       homedir_ctx);
     }
 
     if (!homedir || *homedir == '\0') {
@@ -206,12 +207,10 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
          */
         if (dom->fallback_homedir) {
             return expand_homedir_template(mem_ctx, dom->fallback_homedir,
-                                           name, uid, homedir,
-                                           dom->name, NULL);
+                                           homedir_ctx);
         } else if (nctx->fallback_homedir) {
             return expand_homedir_template(mem_ctx, nctx->fallback_homedir,
-                                           name, uid, homedir,
-                                           dom->name, NULL);
+                                           homedir_ctx);
         }
     }
 
@@ -317,6 +316,7 @@ static int fill_pwent(struct sss_packet *packet,
     bool packet_initialized = false;
     int ncret;
     TALLOC_CTX *tmp_ctx = NULL;
+    struct sss_nss_homedir_ctx homedir_ctx;
 
     to_sized_string(&pwfield, nctx->pwfield);
 
@@ -372,7 +372,14 @@ static int fill_pwent(struct sss_packet *packet,
         } else {
             to_sized_string(&gecos, tmpstr);
         }
-        tmpstr = get_homedir_override(tmp_ctx, msg, nctx, dom, name.str, uid);
+
+        ZERO_STRUCT(homedir_ctx);
+
+        homedir_ctx.username = name.str;
+        homedir_ctx.uid = uid;
+        homedir_ctx.domain = dom->name;
+
+        tmpstr = get_homedir_override(tmp_ctx, msg, nctx, dom, &homedir_ctx);
         if (!tmpstr) {
             to_sized_string(&homedir, "/");
         } else {

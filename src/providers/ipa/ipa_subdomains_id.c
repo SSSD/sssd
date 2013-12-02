@@ -366,10 +366,10 @@ get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
                               const char **_homedir)
 {
     errno_t ret;
-    char *name;
-    char *lc_name;
+    const char *name;
     const char *homedir;
     TALLOC_CTX *tmp_ctx;
+    struct sss_nss_homedir_ctx homedir_ctx;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) {
@@ -377,22 +377,27 @@ get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
-    ret = sss_parse_name(tmp_ctx, dom->names, fqname, NULL, &name);
+    ZERO_STRUCT(homedir_ctx);
+
+    homedir_ctx.uid = uid;
+    homedir_ctx.domain = dom->name;
+    homedir_ctx.flatname = dom->flat_name;
+    ret = sss_parse_name_const(tmp_ctx, dom->names, fqname,
+                               NULL, &name);
     if (ret != EOK) {
         goto done;
     }
 
     /* To be compatible with the old winbind based user lookups and IPA
      * clients the user name in the home directory path will be lower-case. */
-    lc_name = sss_tc_utf8_str_tolower(tmp_ctx, name);
-    if (lc_name == NULL) {
-        ret =ENOMEM;
+    homedir_ctx.username = sss_tc_utf8_str_tolower(tmp_ctx, name);
+    if (homedir_ctx.username == NULL) {
+        ret = ENOMEM;
         goto done;
     }
 
-    homedir = expand_homedir_template(tmp_ctx, dom->subdomain_homedir, lc_name,
-                                      uid, NULL, dom->name, dom->flat_name);
-
+    homedir = expand_homedir_template(tmp_ctx, dom->subdomain_homedir,
+                                      &homedir_ctx);
     if (homedir == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "expand_homedir_template failed\n");
         ret = ENOMEM;

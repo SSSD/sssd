@@ -648,6 +648,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     struct resp_attrs *simple_attrs = NULL;
     time_t now;
     uint64_t timeout = 10*60*60; /* FIXME: find a better timeout ! */
+    struct sss_nss_homedir_ctx homedir_ctx;
     const char *homedir = NULL;
     struct sysdb_attrs *user_attrs = NULL;
     struct sysdb_attrs *group_attrs = NULL;
@@ -738,13 +739,15 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     switch (attrs->response_type) {
         case RESP_USER:
             if (state->dom->subdomain_homedir) {
-                homedir =  expand_homedir_template(state,
-                                                   state->dom->subdomain_homedir,
-                                                   attrs->a.user.pw_name,
-                                                   attrs->a.user.pw_uid,
-                                                   NULL,
-                                                   state->dom->name,
-                                                   state->dom->flat_name);
+                ZERO_STRUCT(homedir_ctx);
+                homedir_ctx.username = attrs->a.user.pw_name;
+                homedir_ctx.uid = attrs->a.user.pw_uid;
+                homedir_ctx.domain = state->dom->name;
+                homedir_ctx.flatname = state->dom->flat_name;
+
+                homedir = expand_homedir_template(state,
+                                                  state->dom->subdomain_homedir,
+                                                  &homedir_ctx);
                 if (homedir == NULL) {
                     ret = ENOMEM;
                     goto done;
