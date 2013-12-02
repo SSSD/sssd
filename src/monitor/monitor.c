@@ -716,7 +716,8 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
          * order a service to reload that hasn't started
          * yet.
          */
-        DEBUG(1,("Could not signal service [%s].\n", svc->name));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Could not signal service [%s].\n", svc->name));
         return EIO;
     }
 
@@ -724,10 +725,11 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
                                        MONITOR_PATH,
                                        MONITOR_INTERFACE,
                                        svc_signal);
-    if (!msg) {
-        DEBUG(0,("Out of memory?!\n"));
+    if (msg == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Out of memory trying to allocate memory to invoke: %s\n",
+               svc_signal));
         monitor_kill_service(svc);
-        talloc_free(svc);
         return ENOMEM;
     }
 
