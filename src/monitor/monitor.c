@@ -2641,9 +2641,11 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
 
     tv = tevent_timeval_current_ofs(restart_delay, 0);
     te = tevent_add_timer(svc->mt_ctx->ev, svc, tv, mt_svc_restart, svc);
-    if (!te) {
+    if (te == NULL) {
         /* Nothing much we can do */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to allocate timed event: mt_svc_restart.\n");
+        talloc_free(svc);
         return;
     }
 }
