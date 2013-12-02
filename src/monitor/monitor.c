@@ -701,10 +701,11 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
                                        MONITOR_PATH,
                                        MON_CLI_IFACE,
                                        svc_signal);
-    if (!msg) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
+    if (msg == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Out of memory trying to allocate memory to invoke: %s\n",
+              svc_signal);
         monitor_kill_service(svc);
-        talloc_free(svc);
         return ENOMEM;
     }
 
