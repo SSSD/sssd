@@ -115,6 +115,13 @@ ad_get_dyndns_options(struct be_ctx *be_ctx,
 struct ad_id_ctx *
 ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx);
 
+struct sdap_id_conn_ctx **
+ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
+               struct sss_domain_info *dom);
+
+struct sdap_id_conn_ctx *
+ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom);
+
 /* AD dynamic DNS updates */
 errno_t ad_dyndns_init(struct be_ctx *be_ctx,
                        struct ad_options *ctx);

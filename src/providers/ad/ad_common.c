@@ -1096,3 +1096,55 @@ ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx)
 
     return ad_ctx;
 }
+
+struct sdap_id_conn_ctx *
+ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom)
+{
+    struct sdap_id_conn_ctx *conn;
+    struct sdap_domain *sdom;
+    struct ad_id_ctx *subdom_id_ctx;
+
+    if (IS_SUBDOMAIN(dom)) {
+        sdom = sdap_domain_get(ad_ctx->sdap_id_ctx->opts, dom);
+        if (sdom == NULL || sdom->pvt == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("No ID ctx available for [%s].\n",
+                                        dom->name));
+            return NULL;
+        }
+        subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+        conn = subdom_id_ctx->ldap_ctx;
+    } else {
+        conn = ad_ctx->ldap_ctx;
+    }
+
+    return conn;
+}
+
+struct sdap_id_conn_ctx **
+ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
+                struct sss_domain_info *dom)
+{
+    struct sdap_id_conn_ctx **clist;
+
+    clist = talloc_zero_array(mem_ctx, struct sdap_id_conn_ctx *, 3);
+    if (clist == NULL) return NULL;
+
+    /* Always try GC first */
+    clist[0] = ad_ctx->gc_ctx;
+    if (IS_SUBDOMAIN(dom) == true) {
+        clist[0]->ignore_mark_offline = false;
+        /* Subdomain users are only present in GC. */
+        return clist;
+    }
+
+    /* fall back to ldap if gc is not available */
+    clist[0]->ignore_mark_offline = true;
+
+    /* With root domain users we have the option to
+     * fall back to LDAP in case ie POSIX attributes
+     * are used but not replicated to GC
+     */
+    clist[1] = ad_ctx->ldap_ctx;
+
+    return clist;
+}
