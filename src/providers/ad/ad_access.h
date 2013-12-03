@@ -26,9 +26,7 @@
 struct ad_access_ctx {
     struct dp_option *ad_options;
     struct sdap_access_ctx *sdap_access_ctx;
-
-    struct sdap_id_conn_ctx *ldap_ctx;
-    struct sdap_id_conn_ctx *gc_ctx;
+    struct ad_id_ctx *ad_id_ctx;
 };
 
 void

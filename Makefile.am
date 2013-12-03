@@ -155,6 +155,7 @@ if HAVE_CMOCKA
         test_sss_idmap \
         test_utils \
         ad_access_filter_tests \
+        ad_common_tests \
         test_search_bases
 endif
 
@@ -1420,12 +1421,39 @@ ad_access_filter_tests_SOURCES = \
     src/util/sss_krb5.c \
     src/util/find_uid.c \
     src/util/user_info_msg.c \
+    src/providers/ad/ad_common.c \
     src/tests/cmocka/test_ad_access_filter.c
 ad_access_filter_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS) \
     -DUNIT_TESTING
 ad_access_filter_tests_LDADD = \
+    $(PAM_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
+    libsss_ldap_common.la \
+    libsss_idmap.la \
+    libsss_krb5_common.la \
+    libsss_test_common.la
+
+ad_common_tests_SOURCES = \
+    $(sssd_be_SOURCES) \
+    src/util/sss_ldap.c \
+    src/util/sss_krb5.c \
+    src/util/find_uid.c \
+    src/util/user_info_msg.c \
+    src/tests/cmocka/test_ad_common.c
+ad_common_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS) \
+    -DUNIT_TESTING
+ad_common_tests_LDFLAGS = \
+    -Wl,-wrap,sdap_set_sasl_options
+ad_common_tests_LDADD = \
     $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \

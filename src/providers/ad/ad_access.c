@@ -274,24 +274,10 @@ ad_access_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    state->clist = talloc_zero_array(state, struct sdap_id_conn_ctx *, 3);
+    state->clist = ad_gc_conn_list(state, ctx->ad_id_ctx, domain);
     if (state->clist == NULL) {
         ret = ENOMEM;
         goto done;
-    }
-
-    /* Always try GC first */
-    ctx->gc_ctx->ignore_mark_offline = false;
-    state->clist[0] = ctx->gc_ctx;
-    if (IS_SUBDOMAIN(domain) == false) {
-        /* fall back to ldap if gc is not available */
-        state->clist[0]->ignore_mark_offline = true;
-
-        /* With root domain users we have the option to
-         * fall back to LDAP in case ie POSIX attributes
-         * are used but not replicated to GC
-         */
-        state->clist[1] = ctx->ldap_ctx;
     }
 
     ret = ad_access_step(req, state->clist[state->cindex]);
