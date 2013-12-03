@@ -809,8 +809,6 @@ static void ipa_subdomains_get_conn_done(struct tevent_req *req)
             DEBUG(SSSDBG_MINOR_FAILURE,
                   ("No IPA server is available, cannot get the "
                    "subdomain list while offline\n"));
-
-/* FIXME: return saved results ?? */
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
                   ("Failed to connect to IPA server: [%d](%s)\n",
@@ -1289,6 +1287,12 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
     ret = be_add_offline_cb(ctx, be_ctx, ipa_subdom_offline_cb, ctx, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom offline callback"));
+    }
+
+    ret = sysdb_update_subdomains(be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not load the list of subdomains. "
+              "Users from trusted domains might not be resolved correctly\n"));
     }
 
     return EOK;
