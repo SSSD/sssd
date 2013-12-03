@@ -652,5 +652,12 @@ int ad_subdom_init(struct be_ctx *be_ctx,
         return EFAULT;
     }
 
+    ret = sysdb_update_subdomains(be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not load the list of subdomains. "
+              "Users from trusted domains might not be resolved correctly\n"));
+        /* Ignore this error and try to discover the subdomains later */
+    }
+
     return EOK;
 }
