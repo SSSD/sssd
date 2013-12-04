@@ -10,8 +10,12 @@ search_base[?scope?[filter][?search_base?scope?[filter]]*]
 </programlisting>
     </para>
     <para>
-        The scope can be one of "base", "onelevel" or
-        "subtree". The filter must be a valid LDAP search
+        The scope can be one of "base", "onelevel" or "subtree". The
+        scope functions as specified in section 4.5.1.2 of
+        http://tools.ietf.org/html/rfc4511
+    </para>
+    <para>
+        The filter must be a valid LDAP search
         filter as specified by
         http://www.ietf.org/rfc/rfc2254.txt
     </para>
