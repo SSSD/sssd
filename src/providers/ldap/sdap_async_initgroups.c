@@ -1472,6 +1472,7 @@ struct tevent_req *rfc2307bis_nested_groups_send(
         TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         struct sdap_options *opts, struct sysdb_ctx *sysdb,
         struct sss_domain_info *dom, struct sdap_handle *sh,
+        struct sdap_search_base **search_bases,
         struct sysdb_attrs **groups, size_t num_groups,
         hash_table_t *group_hash, size_t nesting);
 static errno_t rfc2307bis_nested_groups_recv(struct tevent_req *req);
@@ -1699,7 +1700,9 @@ static void sdap_initgr_rfc2307bis_process(struct tevent_req *subreq)
 
     subreq = rfc2307bis_nested_groups_send(state, state->ev, state->opts,
                                            state->sysdb, state->dom,
-                                           state->sh, state->direct_groups,
+                                           state->sh,
+                                           state->search_bases,
+                                           state->direct_groups,
                                            state->num_direct_parents,
                                            state->group_hash, 0);
     if (!subreq) {
@@ -2143,6 +2146,7 @@ struct tevent_req *rfc2307bis_nested_groups_send(
         TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         struct sdap_options *opts, struct sysdb_ctx *sysdb,
         struct sss_domain_info *dom, struct sdap_handle *sh,
+        struct sdap_search_base **search_bases,
         struct sysdb_attrs **groups, size_t num_groups,
         hash_table_t *group_hash, size_t nesting)
 {
@@ -2179,7 +2183,7 @@ struct tevent_req *rfc2307bis_nested_groups_send(
     state->timeout = dp_opt_get_int(state->opts->basic,
                                     SDAP_SEARCH_TIMEOUT);
     state->base_iter = 0;
-    state->search_bases = opts->sdom->group_search_bases;
+    state->search_bases = search_bases;
     if (!state->search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               ("Initgroups nested lookup request "
@@ -2503,6 +2507,7 @@ static void rfc2307bis_nested_groups_process(struct tevent_req *subreq)
     subreq = rfc2307bis_nested_groups_send(
             state, state->ev, state->opts, state->sysdb,
             state->dom, state->sh,
+            state->search_bases,
             ngr->ldap_parents,
             ngr->parents_count,
             state->group_hash,
