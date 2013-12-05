@@ -302,13 +302,17 @@ static void fo_discover_servers_primary_done(struct tevent_req *subreq)
     }
 
     if (state->backup_domain == NULL) {
+        /* if there is no backup domain, we are done */
         DEBUG(SSSDBG_TRACE_FUNC, ("No backup domain specified\n"));
         goto done;
     }
 
-    if (strcasecmp(state->dns_domain, state->backup_domain) == 0) {
-        /* primary domain was unreachable, we will use servers from backup
-         * domain as primary */
+    if (state->dns_domain != NULL
+            && strcasecmp(state->dns_domain, state->backup_domain) == 0) {
+        /* If there was no error and dns_domain is the same as backup domain,
+         * it means that we were unable to resolve SRV in primary domain, but
+         * SRV from backup domain was resolved and those servers are considered
+         * to be primary. We are done. */
         state->backup_servers = NULL;
         state->num_backup_servers = 0;
 
