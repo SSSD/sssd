@@ -289,6 +289,7 @@ enum sdap_group_attrs {
     SDAP_AT_GROUP_OBJECTSID,
     SDAP_AT_GROUP_MODSTAMP,
     SDAP_AT_GROUP_USN,
+    SDAP_AT_GROUP_TYPE,
 
     SDAP_OPTS_GROUP /* attrs counter */
 };

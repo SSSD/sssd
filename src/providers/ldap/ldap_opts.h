@@ -188,6 +188,7 @@ struct sdap_attr_map rfc2307_group_map[] = {
     { "ldap_group_objectsid", NULL, SYSDB_SID, NULL },
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL },
+    { "ldap_group_type", NULL, SYSDB_GROUP_TYPE, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
@@ -242,6 +243,7 @@ struct sdap_attr_map rfc2307bis_group_map[] = {
     { "ldap_group_objectsid", NULL, SYSDB_SID, NULL },
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL },
+    { "ldap_group_type", NULL, SYSDB_GROUP_TYPE, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
@@ -294,6 +296,7 @@ struct sdap_attr_map gen_ad2008r2_group_map[] = {
     { "ldap_group_objectsid", "objectSID", SYSDB_SID, NULL },
     { "ldap_group_modify_timestamp", "whenChanged", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_group_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL },
+    { "ldap_group_type", NULL, SYSDB_GROUP_TYPE, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 

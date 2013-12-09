@@ -849,6 +849,27 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_group_type (integer)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains an integer value
+                            indicating the type of the group and maybe other
+                            flags.
+                        </para>
+                        <para>
+                            This attribute is currently only used by the AD
+                            provider to determine if a group is a domain local
+                            groups and has to be filtered out for trusted
+                            domains.
+                        </para>
+                        <para>
+                            Default: groupType in the AD provider, othewise not
+                            set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_group_nesting_level (integer)</term>
                     <listitem>
                         <para>
