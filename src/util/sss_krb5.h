@@ -160,7 +160,7 @@ sss_krb5_free_keytab_entry_contents(krb5_context context,
 
 #ifdef HAVE_KRB5_TICKET_TIMES
 typedef krb5_ticket_times sss_krb5_ticket_times;
-#elif HAVE_KRB5_TIMES
+#elif defined(HAVE_KRB5_TIMES)
 typedef krb5_times sss_krb5_ticket_times;
 #endif
 

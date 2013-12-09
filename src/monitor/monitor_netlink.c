@@ -80,7 +80,7 @@
 
 #define nlw_handle              nl_sock
 
-#elif HAVE_LIBNL1
+#elif defined(HAVE_LIBNL1)
 
 #define nlw_destroy_handle      nl_handle_destroy
 #define nlw_alloc               nl_handle_alloc
@@ -413,7 +413,7 @@ static int nlw_enable_passcred(struct nlw_handle *nlp)
 {
 #ifdef HAVE_NL_SET_PASSCRED
     return nl_set_passcred(nlp, 1);  /* 1 = enabled */
-#elif HAVE_NL_SOCKET_SET_PASSCRED
+#elif defined(HAVE_NL_SOCKET_SET_PASSCRED)
     return nl_socket_set_passcred(nlp, 1);
 #else
     return EOK;                      /* not available in this version */

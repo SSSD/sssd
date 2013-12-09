@@ -36,7 +36,7 @@ void sss_utf8_free(void *ptr)
 {
     return free(ptr);
 }
-#elif HAVE_GLIB2
+#elif defined(HAVE_GLIB2)
 void sss_utf8_free(void *ptr)
 {
     return g_free(ptr);
@@ -57,7 +57,7 @@ uint8_t *sss_utf8_tolower(const uint8_t *s, size_t len, size_t *_nlen)
     if (_nlen) *_nlen = llen;
     return lower;
 }
-#elif HAVE_GLIB2
+#elif defined(HAVE_GLIB2)
 uint8_t *sss_utf8_tolower(const uint8_t *s, size_t len, size_t *_nlen)
 {
     gchar *glower;
@@ -94,7 +94,7 @@ bool sss_utf8_check(const uint8_t *s, size_t n)
     return false;
 }
 
-#elif HAVE_GLIB2
+#elif defined(HAVE_GLIB2)
 bool sss_utf8_check(const uint8_t *s, size_t n)
 {
     return g_utf8_validate((const gchar *)s, n, NULL);
@@ -141,7 +141,7 @@ errno_t sss_utf8_case_eq(const uint8_t *s1, const uint8_t *s2)
     return ENOMATCH;
 }
 
-#elif HAVE_GLIB2
+#elif defined(HAVE_GLIB2)
 errno_t sss_utf8_case_eq(const uint8_t *s1, const uint8_t *s2)
 {
     gchar *gs1;

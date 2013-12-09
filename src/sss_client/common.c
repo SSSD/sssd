@@ -1022,7 +1022,7 @@ static int sss_mutexattr_setrobust (pthread_mutexattr_t *attr)
 {
 #ifdef HAVE_PTHREAD_MUTEXATTR_SETROBUST
     return pthread_mutexattr_setrobust(attr, PTHREAD_MUTEX_ROBUST);
-#elif  HAVE_PTHREAD_MUTEXATTR_SETROBUST_NP
+#elif defined(HAVE_PTHREAD_MUTEXATTR_SETROBUST_NP)
     return pthread_mutexattr_setrobust_np(attr, PTHREAD_MUTEX_ROBUST_NP);
 #else
 #warning Robust mutexes are not supported on this platform.
@@ -1034,7 +1034,7 @@ static int sss_mutex_consistent(pthread_mutex_t *mtx)
 {
 #ifdef HAVE_PTHREAD_MUTEX_CONSISTENT
     return pthread_mutex_consistent(mtx);
-#elif HAVE_PTHREAD_MUTEX_CONSISTENT_NP
+#elif defined(HAVE_PTHREAD_MUTEX_CONSISTENT_NP)
     return pthread_mutex_consistent_np(mtx);
 #else
 #warning Robust mutexes are not supported on this platform.
