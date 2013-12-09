@@ -70,8 +70,8 @@ if WANT_AUX_INFO
 endif
 if HAVE_GCC
     AM_CFLAGS += -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith \
-                 -Wcast-qual -Wcast-align -Wwrite-strings \
-                 -Werror-implicit-function-declaration \
+                 -Wcast-qual -Wcast-align -Wwrite-strings -Wundef \
+                 -Werror-implicit-function-declaration -Winit-self \
                  -fno-strict-aliasing \
                  -std=gnu99
 endif
