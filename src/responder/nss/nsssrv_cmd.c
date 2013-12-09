@@ -1798,7 +1798,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
     struct dp_callback_ctx *cb_ctx;
 
     while (dom) {
-        while (dom && dom->enumerate == 0) {
+        while (dom && dom->enumerate == false) {
             dom = get_next_domain(dom, true);
         }
 
@@ -3083,7 +3083,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
     struct dp_callback_ctx *cb_ctx;
 
     while (dom) {
-        while (dom && dom->enumerate == 0) {
+        while (dom && dom->enumerate == false) {
             dom = get_next_domain(dom, true);
         }
 
