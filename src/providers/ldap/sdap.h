@@ -394,6 +394,8 @@ struct sdap_domain {
     struct timeval last_enum;
     /* cleanup loop timer */
     struct timeval last_purge;
+
+    void *pvt;
 };
 
 struct sdap_options {

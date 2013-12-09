@@ -188,6 +188,8 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
               struct sss_domain_info *dom, struct be_acct_req *ar)
 {
     struct sdap_id_conn_ctx **clist;
+    struct sdap_domain *sdom;
+    struct ad_id_ctx *subdom_id_ctx;
 
     /* LDAP, GC, sentinel */
     clist = talloc_zero_array(breq, struct sdap_id_conn_ctx *, 3);
@@ -197,8 +199,6 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
     case BE_REQ_USER: /* user */
     case BE_REQ_BY_SECID:   /* by SID */
     case BE_REQ_USER_AND_GROUP: /* get SID */
-    case BE_REQ_GROUP: /* group */
-    case BE_REQ_INITGROUPS: /* init groups for user */
         /* Always try GC first */
         clist[0] = ad_ctx->gc_ctx;
         if (IS_SUBDOMAIN(dom) == true) {
@@ -214,6 +214,22 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
          * are used but not replicated to GC
          */
         clist[1] = ad_ctx->ldap_ctx;
+        break;
+
+    case BE_REQ_GROUP: /* group */
+    case BE_REQ_INITGROUPS: /* init groups for user */
+        if (IS_SUBDOMAIN(dom)) {
+            sdom = sdap_domain_get(ad_ctx->sdap_id_ctx->opts, dom);
+            if (sdom == NULL || sdom->pvt == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, ("No ID ctx available for [%s].\n",
+                                            dom->name));
+                return NULL;
+            }
+            subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+            clist[0] = subdom_id_ctx->ldap_ctx;
+        } else {
+            clist[0] = ad_ctx->ldap_ctx;
+        }
         break;
 
     default:

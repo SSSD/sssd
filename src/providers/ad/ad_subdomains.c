@@ -25,6 +25,7 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ad/ad_subdomains.h"
 #include "providers/ad/ad_domain_info.h"
+#include "providers/ad/ad_srv.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "util/util_sss_idmap.h"
 #include <ctype.h>
@@ -68,6 +69,7 @@ struct ad_subdomains_ctx {
 
     time_t last_refreshed;
     struct tevent_timer *timer_event;
+    struct ad_id_ctx *ad_id_ctx;
 };
 
 struct ad_subdomains_req_ctx {
@@ -86,10 +88,138 @@ struct ad_subdomains_req_ctx {
 };
 
 static errno_t
+ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
+                     struct ad_id_ctx *id_ctx,
+                     struct sss_domain_info *subdom,
+                     struct ad_id_ctx **_subdom_id_ctx)
+{
+    struct ad_options *ad_options;
+    struct ad_id_ctx *ad_id_ctx;
+    const char *gc_service_name;
+    struct ad_srv_plugin_ctx *srv_ctx;
+    char *ad_domain;
+    struct sdap_domain *sdom;
+    errno_t ret;
+    const char *realm;
+    const char *hostname;
+
+    realm = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_KRB5_REALM);
+    hostname = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_HOSTNAME);
+    if (realm == NULL || hostname == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Missing realm or hostname.\n"));
+        return EINVAL;
+    }
+
+    ad_options = ad_create_default_options(id_ctx, realm, hostname);
+    if (ad_options == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize AD options\n"));
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+
+    ad_domain = subdom->name;
+
+    ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, ad_domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD domain\n"));
+        talloc_free(ad_options);
+        return ret;
+    }
+
+    gc_service_name = talloc_asprintf(ad_options, "%s%s", "gc_", subdom->name);
+    if (gc_service_name == NULL) {
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+
+    ret = ad_failover_init(ad_options, be_ctx, NULL, NULL, realm,
+                           subdom->name, gc_service_name,
+                           subdom->name, &ad_options->service);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize AD failover\n"));
+        talloc_free(ad_options);
+        return ret;
+    }
+
+    ad_id_ctx = ad_id_ctx_init(ad_options, be_ctx);
+    if (ad_id_ctx == NULL) {
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+    ad_id_ctx->sdap_id_ctx->opts = ad_options->id;
+    ad_options->id_ctx = ad_id_ctx;
+
+    /* use AD plugin */
+    srv_ctx = ad_srv_plugin_ctx_init(be_ctx, be_ctx->be_res,
+                                     default_host_dbs,
+                                     ad_id_ctx->ad_options->id,
+                                     hostname,
+                                     ad_domain);
+    if (srv_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+        return ENOMEM;
+    }
+    be_fo_set_srv_lookup_plugin(be_ctx, ad_srv_plugin_send,
+                                ad_srv_plugin_recv, srv_ctx, "AD");
+
+    ret = sdap_domain_subdom_add(ad_id_ctx->sdap_id_ctx,
+                                 ad_id_ctx->sdap_id_ctx->opts->sdom,
+                                 subdom->parent);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize sdap domain\n"));
+        talloc_free(ad_options);
+        return ret;
+    }
+
+    sdom = sdap_domain_get(ad_id_ctx->sdap_id_ctx->opts, subdom);
+    if (sdom == NULL) {
+        return EFAULT;
+    }
+
+    ret = sdap_id_setup_tasks(ad_id_ctx->sdap_id_ctx,
+                              ad_id_ctx->ldap_ctx, sdom,
+                              ldap_enumeration_send,
+                              ldap_enumeration_recv);
+    if (ret != EOK) {
+        talloc_free(ad_options);
+        return ret;
+    }
+
+    /* Set up the ID mapping object */
+    ad_id_ctx->sdap_id_ctx->opts->idmap_ctx =
+        id_ctx->sdap_id_ctx->opts->idmap_ctx;
+
+    *_subdom_id_ctx = ad_id_ctx;
+    return EOK;
+}
+
+static errno_t
 ads_store_sdap_subdom(struct ad_subdomains_ctx *ctx,
                       struct sss_domain_info *parent)
 {
-    return sdap_domain_subdom_add(ctx->sdap_id_ctx, ctx->sdom, parent);
+    int ret;
+    struct sdap_domain *sditer;
+    struct ad_id_ctx *subdom_id_ctx;
+
+    ret = sdap_domain_subdom_add(ctx->sdap_id_ctx, ctx->sdom, parent);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_domain_subdom_add failed.\n"));
+        return ret;
+    }
+
+    DLIST_FOR_EACH(sditer, ctx->sdom) {
+        if (IS_SUBDOMAIN(sditer->dom) && sditer->pvt == NULL) {
+            ret = ad_subdom_ad_ctx_new(ctx->be_ctx, ctx->ad_id_ctx,
+                                       sditer->dom, &subdom_id_ctx);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, ("ad_subdom_ad_ctx_new failed.\n"));
+            } else {
+                sditer->pvt = subdom_id_ctx;
+            }
+        }
+    }
+
+    return EOK;
 }
 
 static errno_t
@@ -632,6 +762,7 @@ int ad_subdom_init(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
         return ENOMEM;
     }
+    ctx->ad_id_ctx = id_ctx;
     *ops = &ad_subdomains_ops;
     *pvt_data = ctx;
 
