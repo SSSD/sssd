@@ -209,6 +209,7 @@ struct sdap_attr_map ipa_group_map[] = {
     { "ldap_group_objectsid", "ipaNTSecurityIdentifier", SYSDB_SID_STR, NULL },
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL },
+    { "ldap_group_type", NULL, SYSDB_GROUP_TYPE, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 

@@ -76,6 +76,7 @@
 #define SYSDB_POSIX "isPosix"
 #define SYSDB_USER_CATEGORY "userCategory"
 #define SYSDB_HOST_CATEGORY "hostCategory"
+#define SYSDB_GROUP_TYPE "groupType"
 
 #define SYSDB_GECOS "gecos"
 #define SYSDB_LAST_LOGIN "lastLogin"
