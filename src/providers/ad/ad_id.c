@@ -414,6 +414,7 @@ ad_check_online(struct be_req *be_req)
 }
 
 struct ad_enumeration_state {
+    struct ad_id_ctx *id_ctx;
     struct ldap_enum_ctx *ectx;
     struct sdap_id_op *sdap_op;
     struct tevent_context *ev;
@@ -443,6 +444,7 @@ ad_enumeration_send(TALLOC_CTX *mem_ctx,
 
     ectx = talloc_get_type(pvt, struct ldap_enum_ctx);
     if (ectx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot retrieve ldap_enum_ctx!\n"));
         ret = EFAULT;
         goto fail;
     }
@@ -450,8 +452,10 @@ ad_enumeration_send(TALLOC_CTX *mem_ctx,
     state->ectx = ectx;
     state->ev = ev;
     state->sdom = ectx->sdom;
+    state->id_ctx = talloc_get_type(ectx->pvt, struct ad_id_ctx);
 
-    state->sdap_op = sdap_id_op_create(state, ectx->conn->conn_cache);
+    state->sdap_op = sdap_id_op_create(state,
+                                       state->id_ctx->ldap_ctx->conn_cache);
     if (state->sdap_op == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed.\n"));
         ret = ENOMEM;
@@ -500,7 +504,7 @@ ad_enumeration_conn_done(struct tevent_req *subreq)
     }
 
     subreq = ad_master_domain_send(state, state->ev,
-                                   state->ectx->conn,
+                                   state->id_ctx->ldap_ctx,
                                    state->sdap_op,
                                    state->sdom->dom->name);
     if (subreq == NULL) {
@@ -540,8 +544,8 @@ ad_enumeration_master_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = sdap_dom_enum_send(state, state->ev, state->ectx->ctx,
-                                state->sdom, state->ectx->conn);
+    subreq = sdap_dom_enum_send(state, state->ev, state->id_ctx->sdap_id_ctx,
+                                state->sdom, state->id_ctx->ldap_ctx);
     if (subreq == NULL) {
         /* The ptask API will reschedule the enumeration on its own on
          * failure */

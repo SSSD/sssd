@@ -27,11 +27,12 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_enum.h"
 
-errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
-                               struct sdap_id_conn_ctx *conn,
+errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
+                               struct sdap_options *opts,
                                struct sdap_domain *sdom,
                                be_ptask_send_t send_fn,
-                               be_ptask_recv_t recv_fn)
+                               be_ptask_recv_t recv_fn,
+                               void *pvt)
 {
     errno_t ret;
     time_t first_delay;
@@ -60,17 +61,16 @@ errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
         first_delay = 0;
     }
 
-    period = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    period = dp_opt_get_int(opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
 
     ectx = talloc(sdom, struct ldap_enum_ctx);
     if (ectx == NULL) {
         return ENOMEM;
     }
-    ectx->ctx = ctx;
     ectx->sdom = sdom;
-    ectx->conn = conn;
+    ectx->pvt = pvt;
 
-    ret = be_ptask_create(sdom, ctx->be,
+    ret = be_ptask_create(sdom, be_ctx,
                           period,                   /* period */
                           first_delay,              /* first_delay */
                           5,                        /* enabled delay */
@@ -91,6 +91,7 @@ errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
 
 struct ldap_enumeration_state {
     struct ldap_enum_ctx *ectx;
+    struct sdap_id_ctx *id_ctx;
     struct sss_domain_info *dom;
 };
 
@@ -118,14 +119,16 @@ ldap_enumeration_send(TALLOC_CTX *mem_ctx,
 
     ectx = talloc_get_type(pvt, struct ldap_enum_ctx);
     if (ectx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot retrieve ldap_enum_ctx!\n"));
         ret = EFAULT;
         goto fail;
     }
     state->ectx = ectx;
     state->dom = ectx->sdom->dom;
+    state->id_ctx = talloc_get_type_abort(ectx->pvt, struct sdap_id_ctx);
 
-    subreq = sdap_dom_enum_send(ectx, ev, ectx->ctx, ectx->sdom,
-                                ectx->conn);
+    subreq = sdap_dom_enum_send(ectx, ev, state->id_ctx, ectx->sdom,
+                                state->id_ctx->conn);
     if (subreq == NULL) {
         /* The ptask API will reschedule the enumeration on its own on
          * failure */
