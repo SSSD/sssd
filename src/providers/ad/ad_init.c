@@ -205,11 +205,12 @@ sssm_ad_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = sdap_id_setup_tasks(ad_ctx->sdap_id_ctx,
-                              ad_ctx->sdap_id_ctx->conn,
+    ret = sdap_id_setup_tasks(bectx,
+                              ad_ctx->sdap_id_ctx,
                               ad_ctx->sdap_id_ctx->opts->sdom,
                               ad_enumeration_send,
-                              ad_enumeration_recv);
+                              ad_enumeration_recv,
+                              ad_ctx);
     if (ret != EOK) {
         goto done;
     }

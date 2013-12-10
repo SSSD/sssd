@@ -95,11 +95,12 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
 
 /* Set up enumeration and/or cleanup */
 int ldap_id_setup_tasks(struct sdap_id_ctx *ctx);
-int sdap_id_setup_tasks(struct sdap_id_ctx *ctx,
-                        struct sdap_id_conn_ctx *conn,
+int sdap_id_setup_tasks(struct be_ctx *be_ctx,
+                        struct sdap_id_ctx *ctx,
                         struct sdap_domain *sdom,
                         be_ptask_send_t send_fn,
-                        be_ptask_recv_t recv_fn);
+                        be_ptask_recv_t recv_fn,
+                        void *pvt);
 
 struct tevent_req *
 sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
@@ -177,16 +178,16 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
  * structure that contains the request data
  */
 struct ldap_enum_ctx {
-    struct sdap_id_ctx *ctx;
     struct sdap_domain *sdom;
-    struct sdap_id_conn_ctx *conn;
+    void *pvt;
 };
 
-errno_t ldap_setup_enumeration(struct sdap_id_ctx *ctx,
-                               struct sdap_id_conn_ctx *conn,
+errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
+                               struct sdap_options *opts,
                                struct sdap_domain *sdom,
                                be_ptask_send_t send_fn,
-                               be_ptask_recv_t recv_fn);
+                               be_ptask_recv_t recv_fn,
+                               void *pvt);
 struct tevent_req *
 ldap_enumeration_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
