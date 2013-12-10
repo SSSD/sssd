@@ -20,7 +20,8 @@ then
     case $KRB5_VERSION in
         Kerberos\ 5\ release\ 1.9* | \
         Kerberos\ 5\ release\ 1.10* | \
-        Kerberos\ 5\ release\ 1.11*)
+        Kerberos\ 5\ release\ 1.11* | \
+        Kerberos\ 5\ release\ 1.12*)
             krb5_version_ok=yes
             AC_MSG_RESULT([yes])
             ;;
