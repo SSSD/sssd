@@ -294,6 +294,8 @@ errno_t sysdb_attrs_get_bool(struct sysdb_attrs *attrs, const char *name,
                              bool *value);
 int sysdb_attrs_get_uint16_t(struct sysdb_attrs *attrs, const char *name,
                              uint16_t *value);
+int sysdb_attrs_get_int32_t(struct sysdb_attrs *attrs, const char *name,
+                             int32_t *value);
 int sysdb_attrs_get_uint32_t(struct sysdb_attrs *attrs, const char *name,
                              uint32_t *value);
 
