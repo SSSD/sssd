@@ -1142,6 +1142,7 @@ static errno_t sdap_ad_tokengroups_initgr_posix_recv(struct tevent_req *req)
 
 struct sdap_ad_tokengroups_initgroups_state {
     bool use_id_mapping;
+    struct sss_domain_info *domain;
 };
 
 static void sdap_ad_tokengroups_initgroups_done(struct tevent_req *subreq);
@@ -1172,8 +1173,9 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
     }
 
     state->use_id_mapping = use_id_mapping;
+    state->domain = domain;
 
-    if (state->use_id_mapping) {
+    if (state->use_id_mapping && !IS_SUBDOMAIN(state->domain)) {
         subreq = sdap_ad_tokengroups_initgr_mapping_send(state, ev, opts,
                                                          sysdb, domain, sh,
                                                          name, orig_dn,
@@ -1213,7 +1215,7 @@ static void sdap_ad_tokengroups_initgroups_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ad_tokengroups_initgroups_state);
 
-    if (state->use_id_mapping) {
+    if (state->use_id_mapping && !IS_SUBDOMAIN(state->domain)) {
         ret = sdap_ad_tokengroups_initgr_mapping_recv(subreq);
     } else {
         ret = sdap_ad_tokengroups_initgr_posix_recv(subreq);
