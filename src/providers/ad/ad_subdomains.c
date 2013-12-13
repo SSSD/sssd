@@ -414,6 +414,31 @@ done:
     return ret;
 }
 
+static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *ctx)
+{
+    errno_t ret;
+
+    ret = sysdb_update_subdomains(ctx->be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
+        return ret;
+    }
+
+    ret = sss_write_domain_mappings(ctx->be_ctx->domain, false);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("sss_krb5_write_mappings failed.\n"));
+        /* Just continue */
+    }
+
+    ret = ads_store_sdap_subdom(ctx, ctx->be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ads_store_sdap_subdom failed.\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
 static void ad_subdomains_get_conn_done(struct tevent_req *req);
 static void ad_subdomains_master_dom_done(struct tevent_req *req);
 static errno_t ad_subdomains_get_slave(struct ad_subdomains_req_ctx *ctx);
@@ -619,24 +644,14 @@ static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_LIBS, ("There are %schanges\n",
+                    refresh_has_changes ? "" : "no "));
+
     if (refresh_has_changes) {
-        ret = sysdb_update_subdomains(ctx->sd_ctx->be_ctx->domain);
+        ret = ad_subdom_reinit(ctx->sd_ctx);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not reinitialize subdomains\n"));
             goto done;
-        }
-
-        ret = ads_store_sdap_subdom(ctx->sd_ctx, ctx->sd_ctx->be_ctx->domain);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("ads_store_sdap_subdom failed.\n"));
-            goto done;
-        }
-
-        ret = sss_write_domain_mappings(ctx->sd_ctx->be_ctx->domain, false);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("sss_krb5_write_mappings failed.\n"));
-            /* Just continue */
         }
     }
 
@@ -783,9 +798,9 @@ int ad_subdom_init(struct be_ctx *be_ctx,
         return EFAULT;
     }
 
-    ret = sysdb_update_subdomains(be_ctx->domain);
+    ret = ad_subdom_reinit(ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not load the list of subdomains. "
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not reinitialize subdomains. "
               "Users from trusted domains might not be resolved correctly\n"));
         /* Ignore this error and try to discover the subdomains later */
     }
