@@ -176,8 +176,9 @@ void test_conn_list(void **state)
     assert_non_null(conn_list);
 
     assert_true(conn_list[0] == test_ctx->ad_ctx->gc_ctx);
-    assert_false(conn_list[0]->ignore_mark_offline);
-    assert_null(conn_list[1]);
+    assert_true(conn_list[0]->ignore_mark_offline);
+    assert_true(conn_list[1] == test_ctx->subdom_ad_ctx->ldap_ctx);
+    assert_false(conn_list[1]->ignore_mark_offline);
     talloc_free(conn_list);
 
     dp_opt_set_bool(test_ctx->ad_ctx->ad_options->basic, AD_ENABLE_GC, false);
@@ -195,7 +196,7 @@ void test_conn_list(void **state)
     conn_list = ad_gc_conn_list(test_ctx, test_ctx->ad_ctx, test_ctx->subdom);
     assert_non_null(conn_list);
 
-    assert_null(conn_list[0]);
+    assert_true(conn_list[0] == test_ctx->subdom_ad_ctx->ldap_ctx);
     talloc_free(conn_list);
 }
 

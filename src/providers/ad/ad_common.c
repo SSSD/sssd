@@ -1133,23 +1133,11 @@ ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
     /* Always try GC first */
     if (dp_opt_get_bool(ad_ctx->ad_options->basic, AD_ENABLE_GC)) {
         clist[cindex] = ad_ctx->gc_ctx;
-        if (IS_SUBDOMAIN(dom) == true) {
-            clist[cindex]->ignore_mark_offline = false;
-            /* Subdomain users are only present in GC. */
-            return clist;
-        }
-        /* fall back to ldap if gc is not available */
         clist[cindex]->ignore_mark_offline = true;
         cindex++;
     }
 
-    if (IS_SUBDOMAIN(dom) == false) {
-        /* With root domain users we have the option to
-         * fall back to LDAP in case ie POSIX attributes
-         * are used but not replicated to GC
-         */
-        clist[cindex] = ad_ctx->ldap_ctx;
-    }
+    clist[cindex] = ad_get_dom_ldap_conn(ad_ctx, dom);
 
     return clist;
 }
