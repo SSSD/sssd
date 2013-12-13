@@ -55,3 +55,33 @@ sss_tc_utf8_tolower(TALLOC_CTX *mem_ctx, const uint8_t *s, size_t len, size_t *_
     return ret;
 }
 
+errno_t sss_filter_sanitize_for_dom(TALLOC_CTX *mem_ctx,
+                                    const char *input,
+                                    struct sss_domain_info *dom,
+                                    char **sanitized,
+                                    char **lc_sanitized)
+{
+    int ret;
+
+    ret = sss_filter_sanitize(mem_ctx, input, sanitized);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sss_filter_sanitize failed.\n"));
+        return ret;
+    }
+
+    if (dom->case_sensitive) {
+        *lc_sanitized = talloc_strdup(mem_ctx, *sanitized);
+    } else {
+        *lc_sanitized = sss_tc_utf8_str_tolower(mem_ctx, *sanitized);
+    }
+
+    if (*lc_sanitized == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("%s failed.\n",
+                                              dom->case_sensitive ?
+                                                    "talloc_strdup" :
+                                                    "sss_tc_utf8_str_tolower"));
+        return ENOMEM;
+    }
+
+    return EOK;
+}

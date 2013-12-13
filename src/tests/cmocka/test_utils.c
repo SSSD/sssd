@@ -654,6 +654,41 @@ void test_name_to_well_known_sid(void **state)
     assert_string_equal(sid, "S-1-5-1");
 }
 
+#define TEST_SANITIZE_INPUT "TestUser@Test.Domain"
+#define TEST_SANITIZE_LC_INPUT "testuser@test.domain"
+
+void test_sss_filter_sanitize_for_dom(void **state)
+{
+    struct dom_list_test_ctx *test_ctx;
+    int ret;
+    char *sanitized;
+    char *lc_sanitized;
+    struct sss_domain_info *dom;
+
+    test_ctx = talloc_get_type(*state, struct dom_list_test_ctx);
+    dom = test_ctx->dom_list;
+
+    dom->case_sensitive = true;
+
+    ret = sss_filter_sanitize_for_dom(test_ctx, TEST_SANITIZE_INPUT, dom,
+                                      &sanitized, &lc_sanitized);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sanitized, TEST_SANITIZE_INPUT);
+    assert_string_equal(lc_sanitized, TEST_SANITIZE_INPUT);
+    talloc_free(sanitized);
+    talloc_free(lc_sanitized);
+
+    dom->case_sensitive = false;
+
+    ret = sss_filter_sanitize_for_dom(test_ctx, TEST_SANITIZE_INPUT, dom,
+                                      &sanitized, &lc_sanitized);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(sanitized, TEST_SANITIZE_INPUT);
+    assert_string_equal(lc_sanitized, TEST_SANITIZE_LC_INPUT);
+    talloc_free(sanitized);
+    talloc_free(lc_sanitized);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -688,6 +723,9 @@ int main(int argc, const char *argv[])
 
         unit_test(test_well_known_sid_to_name),
         unit_test(test_name_to_well_known_sid),
+
+        unit_test_setup_teardown(test_sss_filter_sanitize_for_dom,
+                                 setup_dom_list, teardown_dom_list),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
