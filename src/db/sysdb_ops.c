@@ -305,6 +305,7 @@ int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
     struct ldb_dn *basedn;
     size_t msgs_count = 0;
     char *sanitized_name;
+    char *lc_sanitized_name;
     char *filter;
     int ret;
 
@@ -320,13 +321,14 @@ int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, name, domain, &sanitized_name,
+                                      &lc_sanitized_name);
     if (ret != EOK) {
         goto done;
     }
 
-    filter = talloc_asprintf(tmp_ctx, SYSDB_PWNAM_FILTER, sanitized_name,
-                             sanitized_name);
+    filter = talloc_asprintf(tmp_ctx, SYSDB_PWNAM_FILTER, lc_sanitized_name,
+                             sanitized_name, sanitized_name);
     if (!filter) {
         ret = ENOMEM;
         goto done;

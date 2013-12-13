@@ -484,6 +484,12 @@ errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
                             const char *input,
                             char **sanitized);
 
+errno_t sss_filter_sanitize_for_dom(TALLOC_CTX *mem_ctx,
+                                    const char *input,
+                                    struct sss_domain_info *dom,
+                                    char **sanitized,
+                                    char **lc_sanitized);
+
 char *
 sss_escape_ip_address(TALLOC_CTX *mem_ctx, int family, const char *addr);
 

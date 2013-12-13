@@ -38,6 +38,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     char *sanitized_name;
+    char *lc_sanitized_name;
     const char *src_name;
     int ret;
 
@@ -61,13 +62,15 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, src_name, &sanitized_name);
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, src_name, domain,
+                                      &sanitized_name, &lc_sanitized_name);
     if (ret != EOK) {
         goto done;
     }
 
     ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, SYSDB_PWNAM_FILTER,
+                     lc_sanitized_name,
                      sanitized_name, sanitized_name);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
@@ -214,6 +217,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     const char *src_name;
+    char *lc_sanitized_name;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -243,14 +247,15 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, src_name, &sanitized_name);
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, src_name, domain,
+                                      &sanitized_name, &lc_sanitized_name);
     if (ret != EOK) {
         goto done;
     }
 
     ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attrs, fmt_filter,
-                     sanitized_name, sanitized_name);
+                     lc_sanitized_name, sanitized_name, sanitized_name);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -481,6 +486,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     char *sanitized_name;
+    char *lc_sanitized_name;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -495,14 +501,15 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, name, &sanitized_name);
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, name, domain, &sanitized_name,
+                                      &lc_sanitized_name);
     if (ret != EOK) {
         goto done;
     }
 
     ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
                      LDB_SCOPE_SUBTREE, attributes,
-                     SYSDB_PWNAM_FILTER, sanitized_name,
+                     SYSDB_PWNAM_FILTER, lc_sanitized_name, sanitized_name,
                      sanitized_name);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
@@ -785,6 +792,7 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *result;
     char *sanitized_netgroup;
+    char *lc_sanitized_netgroup;
     char *netgroup_dn;
     int lret;
     errno_t ret;
@@ -802,7 +810,9 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, netgroup, &sanitized_netgroup);
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, netgroup, domain,
+                                      &sanitized_netgroup,
+                                      &lc_sanitized_netgroup);
     if (ret != EOK) {
         goto done;
     }
@@ -816,7 +826,7 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
 
     lret = ldb_search(sysdb->ldb, tmp_ctx, &result, base_dn,
                      LDB_SCOPE_SUBTREE, attrs,
-                     SYSDB_NETGR_TRIPLES_FILTER,
+                     SYSDB_NETGR_TRIPLES_FILTER, lc_sanitized_netgroup,
                      sanitized_netgroup, sanitized_netgroup,
                      netgroup_dn);
     ret = sysdb_error_to_errno(lret);
@@ -843,6 +853,7 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
     struct ldb_dn *base_dn;
     struct ldb_result *result;
     char *sanitized_netgroup;
+    char *lc_sanitized_netgroup;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -857,7 +868,9 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_filter_sanitize(tmp_ctx, netgrname, &sanitized_netgroup);
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, netgrname, domain,
+                                      &sanitized_netgroup,
+                                      &lc_sanitized_netgroup);
     if (ret != EOK) {
         goto done;
     }
@@ -865,6 +878,7 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
     ret = ldb_search(sysdb->ldb, tmp_ctx, &result, base_dn,
                      LDB_SCOPE_SUBTREE, attributes,
                      SYSDB_NETGR_FILTER,
+                     lc_sanitized_netgroup,
                      sanitized_netgroup,
                      sanitized_netgroup);
     if (ret) {
