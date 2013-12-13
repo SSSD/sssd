@@ -123,6 +123,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     bool use_id_mapping;
     char *sid_str;
     char *dom_sid_str = NULL;
+    struct sss_domain_info *subdomain;
 
     DEBUG(SSSDBG_TRACE_FUNC, ("Save user\n"));
 
@@ -161,11 +162,12 @@ int sdap_save_user(TALLOC_CTX *memctx,
     /* If this object has a SID available, we will determine the correct
      * domain by its SID. */
     if (sid_str != NULL) {
-        dom = find_subdomain_by_sid(get_domains_head(dom), sid_str);
-        if (dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("SID %s does not belong to any known "
+        subdomain = find_subdomain_by_sid(get_domains_head(dom), sid_str);
+        if (subdomain) {
+            dom = subdomain;
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC, ("SID %s does not belong to any known "
                                       "domain\n", sid_str));
-            return ERR_DOMAIN_NOT_FOUND;
         }
     }
 
