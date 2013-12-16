@@ -21,6 +21,7 @@
 
 #include <ctype.h>
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "providers/ldap/sdap_async_private.h"
 
 #define REALM_SEPARATOR '@'
@@ -2080,6 +2081,205 @@ int sdap_asq_search_recv(struct tevent_req *req,
     *reply_count = state->dreply.reply_count;
     *reply = talloc_steal(mem_ctx, state->dreply.reply);
 
+    return EOK;
+}
+
+/* ==Posix attribute presence test================================= */
+static errno_t sdap_posix_check_next(struct tevent_req *req);
+static void sdap_posix_check_done(struct tevent_req *subreq);
+static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
+                                      struct sdap_msg *msg,
+                                      void *pvt);
+
+struct sdap_posix_check_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sdap_handle *sh;
+    struct sdap_search_base **search_bases;
+    int timeout;
+
+    const char **attrs;
+    const char *filter;
+    size_t base_iter;
+
+    bool has_posix;
+};
+
+struct tevent_req *
+sdap_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
+                      struct sdap_options *opts, struct sdap_handle *sh,
+                      struct sdap_search_base **search_bases,
+                      int timeout)
+{
+    struct tevent_req *req = NULL;
+    struct sdap_posix_check_state *state;
+    errno_t ret;
+
+    req = tevent_req_create(memctx, &state, struct sdap_posix_check_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->ev = ev;
+    state->sh = sh;
+    state->opts = opts;
+    state->search_bases = search_bases;
+    state->timeout = timeout;
+
+    state->attrs = talloc_array(state, const char *, 4);
+    if (state->attrs == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    state->attrs[0] = "objectclass";
+    state->attrs[1] = opts->user_map[SDAP_AT_USER_UID].name;
+    state->attrs[2] = opts->group_map[SDAP_AT_GROUP_GID].name;
+    state->attrs[3] = NULL;
+
+    state->filter = talloc_asprintf(state, "(|(%s=*)(%s=*))",
+                                    opts->user_map[SDAP_AT_USER_UID].name,
+                                    opts->group_map[SDAP_AT_GROUP_GID].name);
+    if (state->filter == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sdap_posix_check_next(req);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static errno_t sdap_posix_check_next(struct tevent_req *req)
+{
+    struct tevent_req *subreq = NULL;
+    struct sdap_posix_check_state *state =
+        tevent_req_data(req, struct sdap_posix_check_state);
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          ("Searching for POSIX attributes with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn));
+
+    subreq = sdap_get_generic_ext_send(state, state->ev, state->opts,
+                                 state->sh,
+                                 state->search_bases[state->base_iter]->basedn,
+                                 LDAP_SCOPE_SUBTREE, state->filter,
+                                 state->attrs, false,
+                                 NULL, NULL, 1, state->timeout,
+                                 false, sdap_posix_check_parse,
+                                 state);
+    if (subreq == NULL) {
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq, sdap_posix_check_done, req);
+
+    return EOK;
+}
+
+static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
+                                      struct sdap_msg *msg,
+                                      void *pvt)
+{
+    struct berval **vals = NULL;
+    struct sdap_posix_check_state *state =
+        talloc_get_type(pvt, struct sdap_posix_check_state);
+    char *dn;
+    char *endptr;
+
+    dn = ldap_get_dn(sh->ldap, msg->msg);
+    if (dn == NULL) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              ("Search did not find any entry with POSIX attributes\n"));
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_LIBS, ("Found [%s] with POSIX attributes\n", dn));
+    ldap_memfree(dn);
+
+    vals = ldap_get_values_len(sh->ldap, msg->msg,
+                               state->opts->user_map[SDAP_AT_USER_UID].name);
+    if (vals == NULL) {
+        vals = ldap_get_values_len(sh->ldap, msg->msg,
+                               state->opts->group_map[SDAP_AT_GROUP_GID].name);
+        if (vals == NULL) {
+            DEBUG(SSSDBG_TRACE_LIBS, ("Entry does not have POSIX attrs?\n"));
+            goto done;
+        }
+    }
+
+    if (vals[0] == NULL) {
+        DEBUG(SSSDBG_TRACE_LIBS, ("No value for POSIX attr\n"));
+        goto done;
+    }
+
+    errno = 0;
+    strtouint32(vals[0]->bv_val, &endptr, 10);
+    if (errno || *endptr || (vals[0]->bv_val == endptr)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("POSIX attribute is not a number: %s\n", vals[0]->bv_val));
+        goto done;
+    }
+
+    state->has_posix = true;
+done:
+    ldap_value_free_len(vals);
+    return EOK;
+}
+
+static void sdap_posix_check_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_posix_check_state *state =
+        tevent_req_data(req, struct sdap_posix_check_state);
+    errno_t ret;
+
+    ret = sdap_get_generic_ext_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("sdap_get_generic_ext_recv failed [%d]: %s\n",
+              ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Positive hit is definitve, no need to search other bases */
+    if (state->has_posix == true) {
+        DEBUG(SSSDBG_FUNC_DATA, ("Server has POSIX attributes\n"));
+        tevent_req_done(req);
+        return;
+    }
+
+    state->base_iter++;
+    if (state->search_bases[state->base_iter]) {
+        /* There are more search bases to try */
+        ret = sdap_posix_check_next(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    }
+
+    /* All bases done! */
+    DEBUG(SSSDBG_TRACE_LIBS, ("Cycled through all bases\n"));
+    tevent_req_done(req);
+}
+
+int sdap_posix_check_recv(struct tevent_req *req,
+                          bool *_has_posix)
+{
+    struct sdap_posix_check_state *state = tevent_req_data(req,
+                                            struct sdap_posix_check_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_has_posix = state->has_posix;
     return EOK;
 }
 

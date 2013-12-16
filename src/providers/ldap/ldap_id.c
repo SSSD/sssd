@@ -50,6 +50,7 @@ struct users_get_state {
 
     char *filter;
     const char **attrs;
+    bool use_id_mapping;
 
     int dp_error;
     int sdap_ret;
@@ -58,6 +59,8 @@ struct users_get_state {
 
 static int users_get_retry(struct tevent_req *req);
 static void users_get_connect_done(struct tevent_req *subreq);
+static void users_get_posix_check_done(struct tevent_req *subreq);
+static void users_get_search(struct tevent_req *req);
 static void users_get_done(struct tevent_req *subreq);
 
 struct tevent_req *users_get_send(TALLOC_CTX *memctx,
@@ -79,7 +82,6 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     uid_t uid;
     enum idmap_error_code err;
     char *sid;
-    bool use_id_mapping;
 
     req = tevent_req_create(memctx, &state, struct users_get_state);
     if (!req) return NULL;
@@ -103,7 +105,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     state->name = name;
     state->filter_type = filter_type;
 
-    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+    state->use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                           ctx->opts->idmap_ctx,
                                                           sdom->dom->name,
                                                           sdom->dom->domain_id);
@@ -116,7 +118,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         }
         break;
     case BE_FILTER_IDNUM:
-        if (use_id_mapping) {
+        if (state->use_id_mapping) {
             /* If we're ID-mapping, we need to use the objectSID
              * in the search filter.
              */
@@ -183,7 +185,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    if (use_id_mapping || filter_type == BE_FILTER_SECID) {
+    if (state->use_id_mapping || filter_type == BE_FILTER_SECID) {
         /* When mapping IDs or looking for SIDs, we don't want to limit
          * ourselves to users with a UID value. But there must be a SID to map
          * from.
@@ -267,6 +269,75 @@ static void users_get_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+
+    /* If POSIX attributes have been requested with an AD server and we
+     * have no idea about POSIX attributes support, run a one-time check
+     */
+    if (state->use_id_mapping == false &&
+            state->ctx->opts->schema_type == SDAP_SCHEMA_AD &&
+            state->ctx->srv_opts &&
+            state->ctx->srv_opts->posix_checked == false) {
+        subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
+                                       sdap_id_op_handle(state->op),
+                                       state->sdom->user_search_bases,
+                                       dp_opt_get_int(state->ctx->opts->basic,
+                                                      SDAP_SEARCH_TIMEOUT));
+        if (subreq == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, users_get_posix_check_done, req);
+        return;
+    }
+
+    users_get_search(req);
+}
+
+static void users_get_posix_check_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    bool has_posix;
+    int dp_error;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct users_get_state *state = tevent_req_data(req,
+                                                    struct users_get_state);
+
+    ret = sdap_posix_check_recv(subreq, &has_posix);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        /* We can only finish the id_op on error as the connection
+         * is re-used by the user search
+         */
+        ret = sdap_id_op_done(state->op, ret, &dp_error);
+        if (dp_error == DP_ERR_OK && ret != EOK) {
+            /* retry */
+            ret = users_get_retry(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+            }
+            return;
+        }
+    }
+
+    state->ctx->srv_opts->posix_checked = true;
+
+    /* If the check ran to completion, we know for certain about the attributes
+     */
+    if (has_posix == false) {
+        state->sdap_ret = ERR_NO_POSIX;
+        tevent_req_done(req);
+        return;
+    }
+
+    users_get_search(req);
+}
+
+static void users_get_search(struct tevent_req *req)
+{
+    struct users_get_state *state = tevent_req_data(req,
+                                                     struct users_get_state);
+    struct tevent_req *subreq;
 
     subreq = sdap_get_users_send(state, state->ev,
                                  state->domain, state->sysdb,
@@ -431,6 +502,7 @@ struct groups_get_state {
 
     char *filter;
     const char **attrs;
+    bool use_id_mapping;
 
     int dp_error;
     int sdap_ret;
@@ -439,6 +511,8 @@ struct groups_get_state {
 
 static int groups_get_retry(struct tevent_req *req);
 static void groups_get_connect_done(struct tevent_req *subreq);
+static void groups_get_posix_check_done(struct tevent_req *subreq);
+static void groups_get_search(struct tevent_req *req);
 static void groups_get_done(struct tevent_req *subreq);
 
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
@@ -460,7 +534,6 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     gid_t gid;
     enum idmap_error_code err;
     char *sid;
-    bool use_id_mapping;
     const char *member_filter[2];
 
     req = tevent_req_create(memctx, &state, struct groups_get_state);
@@ -485,7 +558,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     state->name = name;
     state->filter_type = filter_type;
 
-    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+    state->use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
                                                           ctx->opts->idmap_ctx,
                                                           sdom->dom->name,
                                                           sdom->dom->domain_id);
@@ -500,7 +573,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         }
         break;
     case BE_FILTER_IDNUM:
-        if (use_id_mapping) {
+        if (state->use_id_mapping) {
             /* If we're ID-mapping, we need to use the objectSID
              * in the search filter.
              */
@@ -567,7 +640,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    if (use_id_mapping || filter_type == BE_FILTER_SECID) {
+    if (state->use_id_mapping || filter_type == BE_FILTER_SECID) {
         /* When mapping IDs or looking for SIDs, we don't want to limit
          * ourselves to groups with a GID value
          */
@@ -655,6 +728,75 @@ static void groups_get_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+
+    /* If POSIX attributes have been requested with an AD server and we
+     * have no idea about POSIX attributes support, run a one-time check
+     */
+    if (state->use_id_mapping == false &&
+            state->ctx->opts->schema_type == SDAP_SCHEMA_AD &&
+            state->ctx->srv_opts &&
+            state->ctx->srv_opts->posix_checked == false) {
+        subreq = sdap_posix_check_send(state, state->ev, state->ctx->opts,
+                                       sdap_id_op_handle(state->op),
+                                       state->sdom->user_search_bases,
+                                       dp_opt_get_int(state->ctx->opts->basic,
+                                                      SDAP_SEARCH_TIMEOUT));
+        if (subreq == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, groups_get_posix_check_done, req);
+        return;
+    }
+
+    groups_get_search(req);
+}
+
+static void groups_get_posix_check_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    bool has_posix;
+    int dp_error;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct groups_get_state *state = tevent_req_data(req,
+                                                     struct groups_get_state);
+
+    ret = sdap_posix_check_recv(subreq, &has_posix);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        /* We can only finish the id_op on error as the connection
+         * is re-used by the group search
+         */
+        ret = sdap_id_op_done(state->op, ret, &dp_error);
+        if (dp_error == DP_ERR_OK && ret != EOK) {
+            /* retry */
+            ret = groups_get_retry(req);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+            }
+            return;
+        }
+    }
+
+    state->ctx->srv_opts->posix_checked = true;
+
+    /* If the check ran to completion, we know for certain about the attributes
+     */
+    if (has_posix == false) {
+        state->sdap_ret = ERR_NO_POSIX;
+        tevent_req_done(req);
+        return;
+    }
+
+    groups_get_search(req);
+}
+
+static void groups_get_search(struct tevent_req *req)
+{
+    struct groups_get_state *state = tevent_req_data(req,
+                                                     struct groups_get_state);
+    struct tevent_req *subreq;
 
     subreq = sdap_get_groups_send(state, state->ev,
                                   state->sdom,

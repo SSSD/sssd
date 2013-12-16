@@ -323,7 +323,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = ad_handle_acct_info_send(req, be_req, ar, sdap_id_ctx,
-                                      sdom, clist);
+                                      ad_id_ctx->ad_options, sdom, clist);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto fail;
