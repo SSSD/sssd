@@ -27,6 +27,28 @@
 #include "providers/ldap/sdap_async_enum.h"
 #include "providers/ldap/sdap_idmap.h"
 
+static void
+disable_gc(struct ad_options *ad_options)
+{
+    errno_t ret;
+
+    if (dp_opt_get_bool(ad_options->basic, AD_ENABLE_GC) == false) {
+        return;
+    }
+
+    DEBUG(SSSDBG_IMPORTANT_INFO, ("POSIX attributes were requested "
+          "but are not present on the server side. Global Catalog "
+          "lookups will be disabled\n"));
+
+    ret = dp_opt_set_bool(ad_options->basic,
+                          AD_ENABLE_GC, false);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+                ("Could not turn off GC support\n"));
+        /* Not fatal */
+    }
+}
+
 struct ad_handle_acct_info_state {
     struct be_req *breq;
     struct be_acct_req *ar;
@@ -34,6 +56,7 @@ struct ad_handle_acct_info_state {
     struct sdap_id_conn_ctx **conn;
     struct sdap_domain *sdom;
     size_t cindex;
+    struct ad_options *ad_options;
 
     int dp_error;
     const char *err;
@@ -47,6 +70,7 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
                          struct be_req *breq,
                          struct be_acct_req *ar,
                          struct sdap_id_ctx *ctx,
+                         struct ad_options *ad_options,
                          struct sdap_domain *sdom,
                          struct sdap_id_conn_ctx **conn)
 {
@@ -64,6 +88,7 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
     state->ctx = ctx;
     state->sdom = sdom;
     state->conn = conn;
+    state->ad_options = ad_options;
     state->cindex = 0;
 
     ret = ad_handle_acct_info_step(req);
@@ -137,12 +162,14 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     if (sdap_err == EOK) {
         tevent_req_done(req);
         return;
+    } else if (sdap_err == ERR_NO_POSIX) {
+        disable_gc(state->ad_options);
     } else if (sdap_err != ENOENT) {
         tevent_req_error(req, EIO);
         return;
     }
 
-    /* Ret is only ENOENT now. Try the next connection */
+    /* Ret is only ENOENT or ERR_NO_POSIX now. Try the next connection */
     state->cindex++;
     ret = ad_handle_acct_info_step(req);
     if (ret != EAGAIN) {
@@ -356,7 +383,7 @@ ad_account_info_handler(struct be_req *be_req)
     }
 
     req = ad_handle_acct_info_send(be_req, be_req, ar, sdap_id_ctx,
-                                   sdom, clist);
+                                   ad_ctx->ad_options, sdom, clist);
     if (req == NULL) {
         ret = ENOMEM;
         goto fail;
@@ -611,9 +638,24 @@ ad_enumeration_done(struct tevent_req *subreq)
 
     ret = sdap_dom_enum_ex_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret == ERR_NO_POSIX) {
+        /* Retry enumerating the same domain again, this time w/o
+         * connecting to GC
+         */
+        disable_gc(state->id_ctx->ad_options);
+        ret = ad_enum_sdom(req, state->sditer, state->id_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                ("Could not retry domain %s\n", state->sditer->dom->name));
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        /* Execution will resume in ad_enumeration_done */
+        return;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not enumerate domain %s\n", state->sdom->dom->name));
+              ("Could not enumerate domain %s\n", state->sditer->dom->name));
         tevent_req_error(req, ret);
         return;
     }
