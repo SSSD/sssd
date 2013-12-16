@@ -48,49 +48,56 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           bool purge);
 static errno_t enum_groups_recv(struct tevent_req *req);
 
-/* ==Enumeration-Request==================================================== */
-struct sdap_dom_enum_state {
+/* ==Enumeration-Request-with-connections=================================== */
+struct sdap_dom_enum_ex_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
     struct sdap_domain *sdom;
-    struct sdap_id_conn_ctx *conn;
-    struct sdap_id_op *op;
+
+    struct sdap_id_conn_ctx *user_conn;
+    struct sdap_id_conn_ctx *group_conn;
+    struct sdap_id_conn_ctx *svc_conn;
+    struct sdap_id_op *user_op;
+    struct sdap_id_op *group_op;
+    struct sdap_id_op *svc_op;
 
     bool purge;
 };
 
-static errno_t sdap_dom_enum_retry(struct tevent_req *req);
-static void sdap_dom_enum_conn_done(struct tevent_req *subreq);
-static void sdap_dom_enum_users_done(struct tevent_req *subreq);
-static void sdap_dom_enum_groups_done(struct tevent_req *subreq);
-static void sdap_dom_enum_services_done(struct tevent_req *subreq);
+static errno_t sdap_dom_enum_ex_retry(struct tevent_req *req,
+                                      struct sdap_id_op *op,
+                                      tevent_req_fn tcb);
+static bool sdap_dom_enum_ex_connected(struct tevent_req *subreq);
+static void sdap_dom_enum_ex_get_users(struct tevent_req *subreq);
+static void sdap_dom_enum_ex_users_done(struct tevent_req *subreq);
+static void sdap_dom_enum_ex_get_groups(struct tevent_req *subreq);
+static void sdap_dom_enum_ex_groups_done(struct tevent_req *subreq);
+static void sdap_dom_enum_ex_get_svcs(struct tevent_req *subreq);
+static void sdap_dom_enum_ex_svcs_done(struct tevent_req *subreq);
 
 struct tevent_req *
-sdap_dom_enum_send(TALLOC_CTX *memctx,
-                   struct tevent_context *ev,
-                   struct sdap_id_ctx *ctx,
-                   struct sdap_domain *sdom,
-                   struct sdap_id_conn_ctx *conn)
+sdap_dom_enum_ex_send(TALLOC_CTX *memctx,
+                      struct tevent_context *ev,
+                      struct sdap_id_ctx *ctx,
+                      struct sdap_domain *sdom,
+                      struct sdap_id_conn_ctx *user_conn,
+                      struct sdap_id_conn_ctx *group_conn,
+                      struct sdap_id_conn_ctx *svc_conn)
 {
     struct tevent_req *req;
-    struct sdap_dom_enum_state *state;
+    struct sdap_dom_enum_ex_state *state;
     int t;
     errno_t ret;
 
-    req = tevent_req_create(ctx, &state, struct sdap_dom_enum_state);
-    if (!req) return NULL;
+    req = tevent_req_create(ctx, &state, struct sdap_dom_enum_ex_state);
+    if (req == NULL) return NULL;
 
     state->ev = ev;
     state->ctx = ctx;
     state->sdom = sdom;
-    state->conn = conn;
-    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
-    if (!state->op) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_id_op_create failed\n"));
-        ret = EIO;
-        goto fail;
-    }
-
+    state->user_conn = user_conn;
+    state->group_conn = group_conn;
+    state->svc_conn = svc_conn;
     sdom->last_enum = tevent_timeval_current();
 
     t = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
@@ -98,9 +105,17 @@ sdap_dom_enum_send(TALLOC_CTX *memctx,
         state->purge = true;
     }
 
-    ret = sdap_dom_enum_retry(req);
+    state->user_op = sdap_id_op_create(state, user_conn->conn_cache);
+    if (state->user_op == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_id_op_create failed for users\n"));
+        ret = EIO;
+        goto fail;
+    }
+
+    ret = sdap_dom_enum_ex_retry(req, state->user_op,
+                                 sdap_dom_enum_ex_get_users);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ldap_id_enumerate_retry failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, ("sdap_dom_enum_ex_retry failed\n"));
         goto fail;
     }
 
@@ -112,31 +127,32 @@ fail:
     return req;
 }
 
-static errno_t sdap_dom_enum_retry(struct tevent_req *req)
+static errno_t sdap_dom_enum_ex_retry(struct tevent_req *req,
+                                      struct sdap_id_op *op,
+                                      tevent_req_fn tcb)
 {
-    struct sdap_dom_enum_state *state = tevent_req_data(req,
-                                                   struct sdap_dom_enum_state);
+    struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
+                                                struct sdap_dom_enum_ex_state);
     struct tevent_req *subreq;
     errno_t ret;
 
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
+    subreq = sdap_id_op_connect_send(op, state, &ret);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("sdap_id_op_connect_send failed: %d\n", ret));
         return ret;
     }
 
-    tevent_req_set_callback(subreq, sdap_dom_enum_conn_done, req);
+    tevent_req_set_callback(subreq, tcb, req);
     return EOK;
 }
 
-static void sdap_dom_enum_conn_done(struct tevent_req *subreq)
+static bool sdap_dom_enum_ex_connected(struct tevent_req *subreq)
 {
+    errno_t ret;
+    int dp_error;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_dom_enum_state *state = tevent_req_data(req,
-                                                   struct sdap_dom_enum_state);
-    int ret, dp_error;
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
@@ -151,150 +167,173 @@ static void sdap_dom_enum_conn_done(struct tevent_req *subreq)
                    "LDAP server: (%d)[%s]\n", ret, strerror(ret)));
             tevent_req_error(req, ret);
         }
+        return false;
+    }
+
+    return true;
+}
+
+static void sdap_dom_enum_ex_get_users(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
+                                                struct sdap_dom_enum_ex_state);
+
+    if (sdap_dom_enum_ex_connected(subreq) == false) {
         return;
     }
 
     subreq = enum_users_send(state, state->ev,
                              state->ctx, state->sdom,
-                             state->op, state->purge);
+                             state->user_op, state->purge);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sdap_dom_enum_users_done, req);
+    tevent_req_set_callback(subreq, sdap_dom_enum_ex_users_done, req);
 }
 
-static void sdap_dom_enum_users_done(struct tevent_req *subreq)
+static void sdap_dom_enum_ex_users_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_dom_enum_state *state = tevent_req_data(req,
-                                                   struct sdap_dom_enum_state);
-    uint64_t err = 0;
-    int ret, dp_error = DP_ERR_FATAL;
+    struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
+                                                struct sdap_dom_enum_ex_state);
+    errno_t ret;
+    int dp_error;
 
-    err = enum_users_recv(subreq);
+    ret = enum_users_recv(subreq);
     talloc_zfree(subreq);
-    if (err != EOK && err != ENOENT) {
-        /* We call sdap_id_op_done only on error
-         * as the connection is reused by groups enumeration */
-        ret = sdap_id_op_done(state->op, (int)err, &dp_error);
-        if (dp_error == DP_ERR_OK) {
-            /* retry */
-            ret = sdap_dom_enum_retry(req);
-            if (ret == EOK) {
-                return;
-            }
-
-            dp_error = DP_ERR_FATAL;
-        }
-
-        if (dp_error == DP_ERR_OFFLINE) {
-            tevent_req_done(req);
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  ("User enumeration failed with: (%d)[%s]\n",
-                   ret, strerror(ret)));
+    ret = sdap_id_op_done(state->user_op, ret, &dp_error);
+    if (dp_error == DP_ERR_OK && ret != EOK) {
+        /* retry */
+        ret = sdap_dom_enum_ex_retry(req, state->user_op,
+                                     sdap_dom_enum_ex_get_users);
+        if (ret != EOK) {
             tevent_req_error(req, ret);
+            return;
         }
+        return;
+    }
+
+    state->group_op = sdap_id_op_create(state, state->group_conn->conn_cache);
+    if (state->group_op == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_id_op_create failed for groups\n"));
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    ret = sdap_dom_enum_ex_retry(req, state->group_op,
+                                 sdap_dom_enum_ex_get_groups);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Continues to sdap_dom_enum_ex_get_groups */
+}
+
+static void sdap_dom_enum_ex_get_groups(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
+                                                struct sdap_dom_enum_ex_state);
+
+    if (sdap_dom_enum_ex_connected(subreq) == false) {
         return;
     }
 
     subreq = enum_groups_send(state, state->ev, state->ctx,
                               state->sdom,
-                              state->op, state->purge);
+                              state->group_op, state->purge);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sdap_dom_enum_groups_done, req);
+    tevent_req_set_callback(subreq, sdap_dom_enum_ex_groups_done, req);
 }
 
-static void sdap_dom_enum_groups_done(struct tevent_req *subreq)
+static void sdap_dom_enum_ex_groups_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_dom_enum_state *state = tevent_req_data(req,
-                                                   struct sdap_dom_enum_state);
-    uint64_t err = 0;
-    int ret, dp_error = DP_ERR_FATAL;
+    struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
+                                                struct sdap_dom_enum_ex_state);
+    int ret;
+    int dp_error;
 
-    err = enum_groups_recv(subreq);
+    ret = enum_groups_recv(subreq);
     talloc_zfree(subreq);
-    if (err != EOK && err != ENOENT) {
-        /* We call sdap_id_op_done only on error
-         * as the connection is reused by services enumeration */
-        ret = sdap_id_op_done(state->op, (int)err, &dp_error);
-        if (dp_error == DP_ERR_OK && ret != EOK) {
-            /* retry */
-            ret = sdap_dom_enum_retry(req);
-            if (ret == EOK) {
-                return;
-            }
-
-            dp_error = DP_ERR_FATAL;
-        }
-
+    ret = sdap_id_op_done(state->group_op, ret, &dp_error);
+    if (dp_error == DP_ERR_OK && ret != EOK) {
+        /* retry */
+        ret = sdap_dom_enum_ex_retry(req, state->group_op,
+                                     sdap_dom_enum_ex_get_groups);
         if (ret != EOK) {
-            if (dp_error == DP_ERR_OFFLINE) {
-                tevent_req_done(req);
-            } else {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      ("Group enumeration failed with: (%d)[%s]\n",
-                       ret, strerror(ret)));
-                tevent_req_error(req, ret);
-            }
-
+            tevent_req_error(req, ret);
             return;
         }
+        return;
+    }
+
+
+    state->svc_op = sdap_id_op_create(state, state->svc_conn->conn_cache);
+    if (state->svc_op == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_id_op_create failed for svcs\n"));
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    ret = sdap_dom_enum_ex_retry(req, state->svc_op,
+                                 sdap_dom_enum_ex_get_svcs);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+}
+
+static void sdap_dom_enum_ex_get_svcs(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
+                                                struct sdap_dom_enum_ex_state);
+
+    if (sdap_dom_enum_ex_connected(subreq) == false) {
+        return;
     }
 
     subreq = enum_services_send(state, state->ev, state->ctx,
-                                state->op, state->purge);
+                                state->svc_op, state->purge);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sdap_dom_enum_services_done, req);
+    tevent_req_set_callback(subreq, sdap_dom_enum_ex_svcs_done, req);
 }
 
-static void sdap_dom_enum_services_done(struct tevent_req *subreq)
+static void sdap_dom_enum_ex_svcs_done(struct tevent_req *subreq)
 {
-    errno_t ret;
-    int dp_error = DP_ERR_FATAL;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_dom_enum_state *state = tevent_req_data(req,
-                                                   struct sdap_dom_enum_state);
+    struct sdap_dom_enum_ex_state *state = tevent_req_data(req,
+                                                struct sdap_dom_enum_ex_state);
+    int ret;
+    int dp_error;
 
     ret = enum_services_recv(subreq);
     talloc_zfree(subreq);
-    if (ret == ENOENT) ret = EOK;
-
-    /* All enumerations are complete, so conclude the
-     * id_op
-     */
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
+    ret = sdap_id_op_done(state->svc_op, ret, &dp_error);
     if (dp_error == DP_ERR_OK && ret != EOK) {
         /* retry */
-        ret = sdap_dom_enum_retry(req);
-        if (ret == EOK) {
+        ret = sdap_dom_enum_ex_retry(req, state->user_op,
+                                     sdap_dom_enum_ex_get_svcs);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
             return;
         }
-
-        dp_error = DP_ERR_FATAL;
-    }
-
-    if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            tevent_req_done(req);
-        } else {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Service enumeration failed with: (%d)[%s]\n",
-                   ret, strerror(ret)));
-            tevent_req_error(req, ret);
-        }
-
         return;
     }
 
@@ -323,11 +362,27 @@ static void sdap_dom_enum_services_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-errno_t sdap_dom_enum_recv(struct tevent_req *req)
+errno_t sdap_dom_enum_ex_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
+}
+
+/* ==Enumeration-Request==================================================== */
+struct tevent_req *
+sdap_dom_enum_send(TALLOC_CTX *memctx,
+                   struct tevent_context *ev,
+                   struct sdap_id_ctx *ctx,
+                   struct sdap_domain *sdom,
+                   struct sdap_id_conn_ctx *conn)
+{
+    return sdap_dom_enum_ex_send(memctx, ev, ctx, sdom, conn, conn, conn);
+}
+
+errno_t sdap_dom_enum_recv(struct tevent_req *req)
+{
+    return sdap_dom_enum_ex_recv(req);
 }
 
 /* ==User-Enumeration===================================================== */

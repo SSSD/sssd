@@ -27,6 +27,17 @@
 #define _SDAP_ASYNC_ENUM_H_
 
 struct tevent_req *
+sdap_dom_enum_ex_send(TALLOC_CTX *memctx,
+                      struct tevent_context *ev,
+                      struct sdap_id_ctx *ctx,
+                      struct sdap_domain *sdom,
+                      struct sdap_id_conn_ctx *user_conn,
+                      struct sdap_id_conn_ctx *group_conn,
+                      struct sdap_id_conn_ctx *svc_conn);
+
+errno_t sdap_dom_enum_ex_recv(struct tevent_req *req);
+
+struct tevent_req *
 sdap_dom_enum_send(TALLOC_CTX *memctx,
                    struct tevent_context *ev,
                    struct sdap_id_ctx *ctx,
