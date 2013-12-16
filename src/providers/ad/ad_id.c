@@ -571,19 +571,6 @@ ad_enumeration_done(struct tevent_req *subreq)
         return;
     }
 
-    /* Ok, we've completed an enumeration. Save this to the
-     * sysdb so we can postpone starting up the enumeration
-     * process on the next SSSD service restart (to avoid
-     * slowing down system boot-up
-     */
-    ret = sysdb_set_enumerated(state->sdom->dom->sysdb,
-                               state->sdom->dom, true);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not mark domain as having enumerated.\n"));
-        /* This error is non-fatal, so continue */
-    }
-
     tevent_req_done(req);
 }
 
