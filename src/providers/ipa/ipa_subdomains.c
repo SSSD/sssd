@@ -1076,7 +1076,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
         }
 
         ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
-                                           flat, id);
+                                           flat, id, NULL);
     } else {
         ctx->search_base_iter++;
         ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);

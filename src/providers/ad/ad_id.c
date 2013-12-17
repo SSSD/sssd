@@ -519,9 +519,10 @@ ad_enumeration_master_done(struct tevent_req *subreq)
                                                 struct ad_enumeration_state);
     char *flat_name;
     char *master_sid;
+    char *forest;
 
     ret = ad_master_domain_recv(subreq, state,
-                                &flat_name, &master_sid);
+                                &flat_name, &master_sid, &forest);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot retrieve master domain info\n"));
@@ -530,7 +531,7 @@ ad_enumeration_master_done(struct tevent_req *subreq)
     }
 
     ret = sysdb_master_domain_add_info(state->sdom->dom,
-                                       flat_name, master_sid);
+                                       flat_name, master_sid, forest);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot save master domain info\n"));
         tevent_req_error(req, ret);

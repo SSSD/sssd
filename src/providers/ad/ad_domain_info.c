@@ -42,9 +42,9 @@
 #define MASTER_DOMAIN_SID_FILTER "objectclass=domain"
 
 static errno_t
-netlogon_get_flat_name(TALLOC_CTX *mem_ctx,
-                       struct sysdb_attrs *reply,
-                       char **_flat_name)
+netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
+                         struct sysdb_attrs *reply,
+                         char **_flat_name, char **_forest)
 {
     errno_t ret;
     struct ldb_message_element *el;
@@ -53,6 +53,7 @@ netlogon_get_flat_name(TALLOC_CTX *mem_ctx,
     enum ndr_err_code ndr_err;
     struct netlogon_samlogon_response response;
     const char *flat_name;
+    const char *forest;
 
     ret = sysdb_attrs_get_el(reply, AD_AT_NETLOGON, &el);
     if (ret != EOK) {
@@ -93,11 +94,13 @@ netlogon_get_flat_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* get flat name */
     if (response.data.nt5_ex.domain_name != NULL &&
         *response.data.nt5_ex.domain_name != '\0') {
         flat_name = response.data.nt5_ex.domain_name;
     } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("No netlogon data available\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("No netlogon domain name data available\n"));
         ret = ENOENT;
         goto done;
     }
@@ -108,6 +111,24 @@ netlogon_get_flat_name(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+
+    /* get forest */
+    if (response.data.nt5_ex.forest != NULL &&
+        *response.data.nt5_ex.forest != '\0') {
+        forest = response.data.nt5_ex.forest;
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("No netlogon forest data available\n"));
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_forest = talloc_strdup(mem_ctx, forest);
+    if (*_forest == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
     ret = EOK;
 done:
     talloc_free(ndr_pull);
@@ -125,6 +146,7 @@ struct ad_master_domain_state {
     int base_iter;
 
     char *flat;
+    char *forest;
     char *sid;
 };
 
@@ -339,14 +361,17 @@ ad_master_domain_netlogon_done(struct tevent_req *subreq)
 
     /* Exactly one flat name. Carry on */
 
-    ret = netlogon_get_flat_name(state, reply[0], &state->flat);
+    ret = netlogon_get_domain_info(state, reply[0], &state->flat,
+                                   &state->forest);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not get the flat name\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("Could not get the flat name or forest\n"));
         /* Not fatal. Just quit. */
         goto done;
     }
-
     DEBUG(SSSDBG_TRACE_FUNC, ("Found flat name [%s].\n", state->flat));
+    DEBUG(SSSDBG_TRACE_FUNC, ("Found forest [%s].\n", state->forest));
+
 done:
     tevent_req_done(req);
     return;
@@ -356,7 +381,8 @@ errno_t
 ad_master_domain_recv(struct tevent_req *req,
                       TALLOC_CTX *mem_ctx,
                       char **_flat,
-                      char **_id)
+                      char **_id,
+                      char **_forest)
 {
     struct ad_master_domain_state *state = tevent_req_data(req,
                                               struct ad_master_domain_state);
@@ -365,6 +391,10 @@ ad_master_domain_recv(struct tevent_req *req,
 
     if (_flat) {
         *_flat = talloc_steal(mem_ctx, state->flat);
+    }
+
+    if (_forest) {
+        *_forest = talloc_steal(mem_ctx, state->forest);
     }
 
     if (_id) {

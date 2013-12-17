@@ -213,7 +213,7 @@ static void sdap_access_filter_done(struct tevent_req *subreq)
     ret = sdap_access_filter_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(1, ("Error retrieving access check result.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Error retrieving access check result.\n"));
         tevent_req_error(req, ret);
         return;
     }
