@@ -208,6 +208,7 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
                            SYSDB_SUBDOMAIN_REALM,
                            SYSDB_SUBDOMAIN_FLAT,
                            SYSDB_SUBDOMAIN_ID,
+                           SYSDB_SUBDOMAIN_FOREST,
                            NULL};
 
     tmp_ctx = talloc_new(NULL);
@@ -278,13 +279,27 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
         }
     }
 
+    tmp_str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SUBDOMAIN_FOREST,
+                                          NULL);
+    if (tmp_str != NULL &&
+        (domain->forest == NULL ||
+         strcasecmp(tmp_str, domain->forest) != 0)) {
+        talloc_free(domain->forest);
+        domain->forest = talloc_strdup(domain, tmp_str);
+        if (domain->forest == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
 done:
     talloc_free(tmp_ctx);
     return ret;
 }
 
 errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
-                                     const char *flat, const char *id)
+                                     const char *flat, const char *id,
+                                     const char* forest)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -337,6 +352,24 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
         }
 
         ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_ID, id);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        do_update = true;
+    }
+
+   if (forest != NULL && (domain->forest == NULL ||
+                       strcmp(domain->forest, forest) != 0)) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_FOREST,
+                                LDB_FLAG_MOD_REPLACE, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_FOREST, forest);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;

@@ -85,6 +85,7 @@ struct ad_subdomains_req_ctx {
 
     char *master_sid;
     char *flat_name;
+    char *forest;
 };
 
 static errno_t
@@ -294,7 +295,7 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
 
     /* AD subdomains are currently all mpg and do not enumerate */
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
-                                mpg, false, NULL);
+                                mpg, false, domain->forest);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
         goto done;
@@ -539,7 +540,8 @@ static void ad_subdomains_master_dom_done(struct tevent_req *req)
     ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
 
     ret = ad_master_domain_recv(req, ctx,
-                                &ctx->flat_name, &ctx->master_sid);
+                                &ctx->flat_name, &ctx->master_sid,
+                                &ctx->forest);
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot retrieve master domain info\n"));
@@ -547,7 +549,8 @@ static void ad_subdomains_master_dom_done(struct tevent_req *req)
     }
 
     ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
-                                       ctx->flat_name, ctx->master_sid);
+                                       ctx->flat_name, ctx->master_sid,
+                                       ctx->forest);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot save master domain info\n"));
         goto done;
