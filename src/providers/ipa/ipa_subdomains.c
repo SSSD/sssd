@@ -267,6 +267,35 @@ ipa_ad_subdom_refresh(struct be_ctx *be_ctx,
     return EOK;
 }
 
+static errno_t
+ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
+{
+    errno_t ret;
+
+    ret = sysdb_update_subdomains(ctx->be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
+        return ret;
+    }
+
+    ret = ipa_ad_subdom_refresh(ctx->be_ctx, ctx->id_ctx, ctx->be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ipa_ad_subdom_refresh failed.\n"));
+        return ret;
+    }
+
+    ret = sss_write_domain_mappings(ctx->be_ctx->domain,
+                    dp_opt_get_bool(ctx->id_ctx->ipa_options->basic,
+                    IPA_SERVER_MODE));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+                ("sss_krb5_write_mappings failed.\n"));
+        /* Just continue */
+    }
+
+    return EOK;
+}
+
 static void
 ipa_ad_subdom_remove(struct ipa_subdomains_ctx *ctx,
                      struct sss_domain_info *subdom)
@@ -921,26 +950,10 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     }
 
     if (refresh_has_changes) {
-        ret = sysdb_update_subdomains(domain);
+        ret = ipa_subdom_reinit(ctx->sd_ctx);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, ("Could not reinitialize subdomains\n"));
             goto done;
-        }
-
-        ret = ipa_ad_subdom_refresh(ctx->sd_ctx->be_ctx, ctx->sd_ctx->id_ctx,
-                                    domain);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("ipa_ad_subdom_refresh failed.\n"));
-            goto done;
-        }
-
-        ret = sss_write_domain_mappings(domain,
-                        dp_opt_get_bool(ctx->sd_ctx->id_ctx->ipa_options->basic,
-                        IPA_SERVER_MODE));
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("sss_krb5_write_mappings failed.\n"));
-            /* Just continue */
         }
     }
 
@@ -1289,7 +1302,7 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom offline callback"));
     }
 
-    ret = sysdb_update_subdomains(be_ctx->domain);
+    ret = ipa_subdom_reinit(ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, ("Could not load the list of subdomains. "
               "Users from trusted domains might not be resolved correctly\n"));
