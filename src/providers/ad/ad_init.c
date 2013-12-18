@@ -214,6 +214,8 @@ sssm_ad_id_init(struct be_ctx *bectx,
         goto done;
     }
 
+    ad_ctx->sdap_id_ctx->opts->sdom->pvt = ad_ctx;
+
     /* Set up the ID mapping object */
     ret = sdap_idmap_init(ad_ctx->sdap_id_ctx, ad_ctx->sdap_id_ctx,
                           &ad_ctx->sdap_id_ctx->opts->idmap_ctx);

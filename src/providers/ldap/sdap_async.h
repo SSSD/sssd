@@ -297,6 +297,7 @@ struct tevent_req *
 sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     struct sdap_id_ctx *id_ctx,
+                                    struct sdap_id_conn_ctx *conn,
                                     struct sdap_options *opts,
                                     struct sysdb_ctx *sysdb,
                                     struct sss_domain_info *domain,
