@@ -932,7 +932,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
                              &direct_sysdb_count, &direct_sysdb_groups);
     if (ret == ENOENT) {
         direct_sysdb_count = 0;
-    } else if (ret != EOK && ret != ENOENT) {
+    } else if (ret != EOK) {
         DEBUG(2, ("sysdb_search_entry failed: [%d]: %s\n",
                   ret, strerror(ret)));
         goto done;
