@@ -3352,6 +3352,7 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                      basedn, LDB_SCOPE_SUBTREE, attrs?attrs:def_attrs,
                      SYSDB_SID_FILTER, sid_str);
     if (ret != EOK) {
+        ret = sysdb_error_to_errno(ret);
         DEBUG(SSSDBG_OP_FAILURE, ("ldb_search failed.\n"));
         goto done;
     }
