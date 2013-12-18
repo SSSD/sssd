@@ -52,7 +52,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* If this is a subomain we need to use fully qualified names for the
+    /* If this is a subdomain we need to use fully qualified names for the
      * search as well by default */
     src_name = sss_get_domain_name(tmp_ctx, name, domain);
     if (!src_name) {

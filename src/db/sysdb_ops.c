@@ -170,7 +170,8 @@ int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
             ret = EOK;
         }
         if (ret) {
-            DEBUG(6, ("Search error: %d (%s)\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_TRACE_FUNC, ("Search error: %d (%s)\n",
+                                     ret, strerror(ret)));
         }
         goto done;
     }
@@ -181,7 +182,7 @@ int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
           sizeof(struct ldb_message *), compare_ldb_dn_comp_num);
 
     for (i = 0; i < msgs_count; i++) {
-        DEBUG(9 ,("Trying to delete [%s].\n",
+        DEBUG(SSSDBG_TRACE_ALL, ("Trying to delete [%s].\n",
                   ldb_dn_get_linearized(msgs[i]->dn)));
 
         ret = sysdb_delete_entry(sysdb, msgs[i]->dn, false);
