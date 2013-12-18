@@ -278,12 +278,6 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
         return ret;
     }
 
-    ret = ipa_ad_subdom_refresh(ctx->be_ctx, ctx->id_ctx, ctx->be_ctx->domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ipa_ad_subdom_refresh failed.\n"));
-        return ret;
-    }
-
     ret = sss_write_domain_mappings(ctx->be_ctx->domain,
                     dp_opt_get_bool(ctx->id_ctx->ipa_options->basic,
                     IPA_SERVER_MODE));
@@ -955,6 +949,13 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
             DEBUG(SSSDBG_OP_FAILURE, ("Could not reinitialize subdomains\n"));
             goto done;
         }
+
+        ret = ipa_ad_subdom_refresh(ctx->sd_ctx->be_ctx, ctx->sd_ctx->id_ctx,
+                                    domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("ipa_ad_subdom_refresh failed.\n"));
+            goto done;
+        }
     }
 
     ret = sysdb_master_domain_update(domain);
@@ -1316,6 +1317,7 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
 {
     char *realm;
     char *hostname;
+    errno_t ret;
 
     if (dp_opt_get_bool(id_ctx->ipa_options->basic,
                         IPA_SERVER_MODE) == false) {
@@ -1359,6 +1361,12 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
     id_ctx->server_mode->hostname = hostname;
     id_ctx->server_mode->trusts = NULL;
     id_ctx->server_mode->ext_groups = NULL;
+
+    ret = ipa_ad_subdom_refresh(be_ctx, id_ctx, be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("ipa_ad_subdom_refresh failed.\n"));
+        return ret;
+    }
 
     return EOK;
 }
