@@ -26,6 +26,7 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ad/ad_common.h"
 
 /* ==Group-Parsing Routines=============================================== */
 
@@ -1540,9 +1541,13 @@ struct sdap_get_groups_state {
 
     size_t base_iter;
     struct sdap_search_base **search_bases;
+
+    struct sdap_handle *ldap_sh;
+    struct sdap_id_op *op;
 };
 
 static errno_t sdap_get_groups_next_base(struct tevent_req *req);
+static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq);
 static void sdap_get_groups_process(struct tevent_req *subreq);
 static void sdap_get_groups_done(struct tevent_req *subreq);
 
@@ -1558,7 +1563,9 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
 {
     errno_t ret;
     struct tevent_req *req;
+    struct tevent_req *subreq;
     struct sdap_get_groups_state *state;
+    struct ad_id_ctx *subdom_id_ctx;
 
     req = tevent_req_create(memctx, &state, struct sdap_get_groups_state);
     if (!req) return NULL;
@@ -1586,6 +1593,30 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
         goto done;
     }
 
+    /* With AD by default the Global Catalog is used for lookup. But the GC
+     * group object might not have full group membership data. To make sure we
+     * connect to an LDAP server of the group's domain. */
+    if (state->opts->schema_type == SDAP_SCHEMA_AD && sdom->pvt != NULL) {
+        subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+        state->op = sdap_id_op_create(state, subdom_id_ctx->ldap_ctx->conn_cache);
+        if (!state->op) {
+            DEBUG(2, ("sdap_id_op_create failed\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        subreq = sdap_id_op_connect_send(state->op, state, &ret);
+        if (subreq == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        tevent_req_set_callback(subreq,
+                                sdap_get_groups_ldap_connect_done,
+                                req);
+        return req;
+    }
+
     ret = sdap_get_groups_next_base(req);
 
 done:
@@ -1595,6 +1626,34 @@ done:
     }
 
     return req;
+}
+
+static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_get_groups_state *state;
+    int ret;
+    int dp_error;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_get_groups_state);
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->ldap_sh = sdap_id_op_handle(state->op);
+
+    ret = sdap_get_groups_next_base(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+
+    return;
 }
 
 static errno_t sdap_get_groups_next_base(struct tevent_req *req)
@@ -1617,7 +1676,8 @@ static errno_t sdap_get_groups_next_base(struct tevent_req *req)
            state->search_bases[state->base_iter]->basedn));
 
     subreq = sdap_get_generic_send(
-            state, state->ev, state->opts, state->sh,
+            state, state->ev, state->opts,
+            state->ldap_sh != NULL ? state->ldap_sh : state->sh,
             state->search_bases[state->base_iter]->basedn,
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
