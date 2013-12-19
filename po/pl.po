@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-10-30 23:22+0100\n"
-"PO-Revision-Date: 2013-07-24 17:40+0000\n"
+"POT-Creation-Date: 2013-12-19 18:46+0100\n"
+"PO-Revision-Date: 2013-11-20 12:56+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish (http://www.transifex.com/projects/p/fedora/language/"
 "pl/)\n"
@@ -876,128 +876,132 @@ msgstr "Atrybut UUID grupy"
 msgid "Modification time attribute for groups"
 msgstr "Atrybut czasu modyfikacji grup"
 
-#: src/config/SSSDConfig/__init__.py.in:288
+#: src/config/SSSDConfig/__init__.py.in:287
+msgid "Type of the group and other flags"
+msgstr ""
+
+#: src/config/SSSDConfig/__init__.py.in:289
 msgid "Maximum nesting level SSSd will follow"
 msgstr "Maksymalny poziom zagnieżdżenia, jaki usługa SSSD będzie używała"
 
-#: src/config/SSSDConfig/__init__.py.in:290
+#: src/config/SSSDConfig/__init__.py.in:291
 msgid "Base DN for netgroup lookups"
 msgstr "Podstawowe DN dla wyszukiwania grupy sieciowej"
 
-#: src/config/SSSDConfig/__init__.py.in:291
+#: src/config/SSSDConfig/__init__.py.in:292
 msgid "Objectclass for netgroups"
 msgstr "Klasa obiektów dla grup sieciowych"
 
-#: src/config/SSSDConfig/__init__.py.in:292
+#: src/config/SSSDConfig/__init__.py.in:293
 msgid "Netgroup name"
 msgstr "Nazwa grupy sieciowej"
 
-#: src/config/SSSDConfig/__init__.py.in:293
+#: src/config/SSSDConfig/__init__.py.in:294
 msgid "Netgroups members attribute"
 msgstr "Atrybut elementów grupy sieciowej"
 
-#: src/config/SSSDConfig/__init__.py.in:294
+#: src/config/SSSDConfig/__init__.py.in:295
 msgid "Netgroup triple attribute"
 msgstr "Potrójny atrybut grupy sieciowej"
 
-#: src/config/SSSDConfig/__init__.py.in:295
+#: src/config/SSSDConfig/__init__.py.in:296
 msgid "Netgroup UUID attribute"
 msgstr "Atrybut UUID grupy sieciowej"
 
-#: src/config/SSSDConfig/__init__.py.in:296
+#: src/config/SSSDConfig/__init__.py.in:297
 msgid "Modification time attribute for netgroups"
 msgstr "Atrybut czasu modyfikacji grup sieciowych"
 
-#: src/config/SSSDConfig/__init__.py.in:298
+#: src/config/SSSDConfig/__init__.py.in:299
 msgid "Base DN for service lookups"
 msgstr "Podstawowe DN do wyszukiwania usług"
 
-#: src/config/SSSDConfig/__init__.py.in:299
+#: src/config/SSSDConfig/__init__.py.in:300
 msgid "Objectclass for services"
 msgstr "Klasa obiektów dla usług"
 
-#: src/config/SSSDConfig/__init__.py.in:300
+#: src/config/SSSDConfig/__init__.py.in:301
 msgid "Service name attribute"
 msgstr "Atrybut nazwy usługi"
 
-#: src/config/SSSDConfig/__init__.py.in:301
+#: src/config/SSSDConfig/__init__.py.in:302
 msgid "Service port attribute"
 msgstr "Atrybut portu usługi"
 
-#: src/config/SSSDConfig/__init__.py.in:302
+#: src/config/SSSDConfig/__init__.py.in:303
 msgid "Service protocol attribute"
 msgstr "Atrybut protokołu usługi"
 
-#: src/config/SSSDConfig/__init__.py.in:305
+#: src/config/SSSDConfig/__init__.py.in:306
 msgid "Lower bound for ID-mapping"
 msgstr "Niższa granica dla mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/__init__.py.in:306
+#: src/config/SSSDConfig/__init__.py.in:307
 msgid "Upper bound for ID-mapping"
 msgstr "Wyższa granica dla mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/__init__.py.in:307
+#: src/config/SSSDConfig/__init__.py.in:308
 msgid "Number of IDs for each slice when ID-mapping"
 msgstr ""
 "Liczba identyfikatorów dla każdego kawałka podczas mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/__init__.py.in:308
+#: src/config/SSSDConfig/__init__.py.in:309
 msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr "Używa algorytmu zgodnego z autorid do mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/__init__.py.in:309
+#: src/config/SSSDConfig/__init__.py.in:310
 msgid "Name of the default domain for ID-mapping"
 msgstr "Nazwa domyślnej domeny dla mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/__init__.py.in:310
+#: src/config/SSSDConfig/__init__.py.in:311
 msgid "SID of the default domain for ID-mapping"
 msgstr "SID domyślnej domeny dla mapowania identyfikatorów"
 
-#: src/config/SSSDConfig/__init__.py.in:312
+#: src/config/SSSDConfig/__init__.py.in:313
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
 msgstr "Użycie LDAP_MATCHING_RULE_IN_CHAIN do wyszukiwania grup"
 
-#: src/config/SSSDConfig/__init__.py.in:313
+#: src/config/SSSDConfig/__init__.py.in:314
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr "Użycie LDAP_MATCHING_RULE_IN_CHAIN do wyszukiwania grup inicjacyjnych"
 
-#: src/config/SSSDConfig/__init__.py.in:314
+#: src/config/SSSDConfig/__init__.py.in:315
 msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr "Ustawia dolną granicę dla dozwolonych identyfikatorów z serwera LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:315
+#: src/config/SSSDConfig/__init__.py.in:316
 msgid "Set upper boundary for allowed IDs from the LDAP server"
 msgstr "Ustawia górną granicę dla dozwolonych identyfikatorów z serwera LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:318
+#: src/config/SSSDConfig/__init__.py.in:319
 msgid "Policy to evaluate the password expiration"
 msgstr "Polityka do oszacowania wygaszenia hasła"
 
-#: src/config/SSSDConfig/__init__.py.in:321
+#: src/config/SSSDConfig/__init__.py.in:322
 msgid "LDAP filter to determine access privileges"
 msgstr "Filtr LDAP do określenia uprawnień dostępu"
 
-#: src/config/SSSDConfig/__init__.py.in:322
+#: src/config/SSSDConfig/__init__.py.in:323
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr "Które atrybuty powinny być używane do sprawdzenia, czy konto wygasło"
 
-#: src/config/SSSDConfig/__init__.py.in:323
+#: src/config/SSSDConfig/__init__.py.in:324
 msgid "Which rules should be used to evaluate access control"
 msgstr "Które reguły powinny być używane do sprawdzania kontroli dostępu"
 
-#: src/config/SSSDConfig/__init__.py.in:326
+#: src/config/SSSDConfig/__init__.py.in:327
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "Adres URI serwera LDAP, gdzie zmiany hasła są dozwolone"
 
-#: src/config/SSSDConfig/__init__.py.in:327
+#: src/config/SSSDConfig/__init__.py.in:328
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "Adres URI zapasowego serwera LDAP, gdzie zmiany hasła są dozwolone"
 
-#: src/config/SSSDConfig/__init__.py.in:328
+#: src/config/SSSDConfig/__init__.py.in:329
 msgid "DNS service name for LDAP password change server"
 msgstr "Nazwa usługi DNS serwera zmiany hasła LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:329
+#: src/config/SSSDConfig/__init__.py.in:330
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
@@ -1005,24 +1009,24 @@ msgstr ""
 "Określa, czy zaktualizować atrybut ldap_user_shadow_last_change po zmianie "
 "hasła"
 
-#: src/config/SSSDConfig/__init__.py.in:332
+#: src/config/SSSDConfig/__init__.py.in:333
 msgid "Base DN for sudo rules lookups"
 msgstr "Podstawowe DN dla wyszukiwań reguł sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:333
+#: src/config/SSSDConfig/__init__.py.in:334
 msgid "Automatic full refresh period"
 msgstr "Okres między automatycznymi pełnymi odświeżeniami"
 
-#: src/config/SSSDConfig/__init__.py.in:334
+#: src/config/SSSDConfig/__init__.py.in:335
 msgid "Automatic smart refresh period"
 msgstr "Okres między automatycznymi inteligentnymi odświeżeniami"
 
-#: src/config/SSSDConfig/__init__.py.in:335
+#: src/config/SSSDConfig/__init__.py.in:336
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
 "Określa, czy filtrować reguły według nazwy komputera, adresów IP i sieci"
 
-#: src/config/SSSDConfig/__init__.py.in:336
+#: src/config/SSSDConfig/__init__.py.in:337
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1030,118 +1034,118 @@ msgstr ""
 "Nazwy komputerów i/lub pełne kwalifikowane nazwy domen tego komputera do "
 "filtrowania reguł sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:338
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "Adresy lub sieci IPv4 lub IPv6 tego komputera do filtrowania reguł sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:338
+#: src/config/SSSDConfig/__init__.py.in:339
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 "Określa, czy zawierać reguły zawierające grupy sieciowe w atrybucie komputera"
 
-#: src/config/SSSDConfig/__init__.py.in:339
+#: src/config/SSSDConfig/__init__.py.in:340
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 "Określa, czy zawierać reguły zawierające wyrażenia regularne w atrybucie "
 "komputera"
 
-#: src/config/SSSDConfig/__init__.py.in:340
+#: src/config/SSSDConfig/__init__.py.in:341
 msgid "Object class for sudo rules"
 msgstr "Klasa obiektów dla reguł sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:341
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "Sudo rule name"
 msgstr "Nazwa reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:342
+#: src/config/SSSDConfig/__init__.py.in:343
 msgid "Sudo rule command attribute"
 msgstr "Atrybut polecenia reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:343
+#: src/config/SSSDConfig/__init__.py.in:344
 msgid "Sudo rule host attribute"
 msgstr "Atrybut komputera reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:344
+#: src/config/SSSDConfig/__init__.py.in:345
 msgid "Sudo rule user attribute"
 msgstr "Atrybut użytkownika reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:345
+#: src/config/SSSDConfig/__init__.py.in:346
 msgid "Sudo rule option attribute"
 msgstr "Atrybut opcji reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:346
+#: src/config/SSSDConfig/__init__.py.in:347
 msgid "Sudo rule runasuser attribute"
 msgstr "Atrybut runasuser reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:347
+#: src/config/SSSDConfig/__init__.py.in:348
 msgid "Sudo rule runasgroup attribute"
 msgstr "Atrybut runasgroup reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:348
+#: src/config/SSSDConfig/__init__.py.in:349
 msgid "Sudo rule notbefore attribute"
 msgstr "Atrybut notbefore reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:349
+#: src/config/SSSDConfig/__init__.py.in:350
 msgid "Sudo rule notafter attribute"
 msgstr "Atrybut notafter reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:350
+#: src/config/SSSDConfig/__init__.py.in:351
 msgid "Sudo rule order attribute"
 msgstr "Atrybut kolejności reguły sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:353
+#: src/config/SSSDConfig/__init__.py.in:354
 msgid "Object class for automounter maps"
 msgstr "Klasa obiektów dla map automountera"
 
-#: src/config/SSSDConfig/__init__.py.in:354
+#: src/config/SSSDConfig/__init__.py.in:355
 msgid "Automounter map name attribute"
 msgstr "Atrybut nazwy mapy automountera"
 
-#: src/config/SSSDConfig/__init__.py.in:355
+#: src/config/SSSDConfig/__init__.py.in:356
 msgid "Object class for automounter map entries"
 msgstr "Klasa obiektów dla wpisów map automountera"
 
-#: src/config/SSSDConfig/__init__.py.in:356
+#: src/config/SSSDConfig/__init__.py.in:357
 msgid "Automounter map entry key attribute"
 msgstr "Atrybut klucza wpisu mapy automountera"
 
-#: src/config/SSSDConfig/__init__.py.in:357
+#: src/config/SSSDConfig/__init__.py.in:358
 msgid "Automounter map entry value attribute"
 msgstr "Atrybut wartości wpisu mapy automountera"
 
-#: src/config/SSSDConfig/__init__.py.in:358
+#: src/config/SSSDConfig/__init__.py.in:359
 msgid "Base DN for automounter map lookups"
 msgstr "Podstawowe DN dla wyszukiwań map automountera"
 
-#: src/config/SSSDConfig/__init__.py.in:361
+#: src/config/SSSDConfig/__init__.py.in:362
 msgid "Comma separated list of allowed users"
 msgstr "Lista dozwolonych użytkowników oddzielonych przecinkami"
 
-#: src/config/SSSDConfig/__init__.py.in:362
+#: src/config/SSSDConfig/__init__.py.in:363
 msgid "Comma separated list of prohibited users"
 msgstr "Lista zabronionych użytkowników oddzielonych przecinkami"
 
-#: src/config/SSSDConfig/__init__.py.in:365
+#: src/config/SSSDConfig/__init__.py.in:366
 msgid "Default shell, /bin/bash"
 msgstr "Domyślna powłoka, /bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:366
+#: src/config/SSSDConfig/__init__.py.in:367
 msgid "Base for home directories"
 msgstr "Podstawa katalogów domowych"
 
-#: src/config/SSSDConfig/__init__.py.in:369
+#: src/config/SSSDConfig/__init__.py.in:370
 msgid "The name of the NSS library to use"
 msgstr "Nazwa używanej biblioteki NSS"
 
-#: src/config/SSSDConfig/__init__.py.in:370
+#: src/config/SSSDConfig/__init__.py.in:371
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
 "Określa, czy wyszukiwać kanoniczną nazwę grupy w pamięci podręcznej, jeśli "
 "to możliwe"
 
-#: src/config/SSSDConfig/__init__.py.in:373
+#: src/config/SSSDConfig/__init__.py.in:374
 msgid "PAM stack to use"
 msgstr "Używany stos PAM"
 
@@ -1275,7 +1279,7 @@ msgstr "Hasło wygasło. Proszę je zmienić teraz."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:652
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:528 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_cache.c:534 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr "Poziom debugowania, z jakim uruchomić"
 
@@ -1288,7 +1292,7 @@ msgstr "Domena SSSD do użycia"
 #: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:53
 #: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:663
 #: src/tools/sss_userdel.c:151 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:561
+#: src/tools/sss_cache.c:567
 msgid "Error setting the locale\n"
 msgstr "Błąd podczas ustawiania lokalizacji\n"
 
@@ -1731,74 +1735,74 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Błąd transakcji. Nie można zmodyfikować użytkownika.\n"
 
-#: src/tools/sss_cache.c:171
+#: src/tools/sss_cache.c:170
 msgid "No cache object matched the specified search\n"
 msgstr "Żaden obiekt pamięci podręcznej nie pasuje do podanego wyszukiwania\n"
 
-#: src/tools/sss_cache.c:400
+#: src/tools/sss_cache.c:397
 #, c-format
 msgid "Couldn't invalidate %1$s"
 msgstr "Nie można unieważnić %1$s"
 
-#: src/tools/sss_cache.c:407
+#: src/tools/sss_cache.c:404
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr "Nie można unieważnić %1$s %2$s"
 
-#: src/tools/sss_cache.c:530
+#: src/tools/sss_cache.c:536
 #, fuzzy
 msgid "Invalidate all cached entries except for sudo rules"
 msgstr "Unieważnia wszystkie wpisy w pamięci podręcznej oprócz reguł sudo"
 
-#: src/tools/sss_cache.c:532
+#: src/tools/sss_cache.c:538
 msgid "Invalidate particular user"
 msgstr "Unieważnia podanego użytkownika"
 
-#: src/tools/sss_cache.c:534
+#: src/tools/sss_cache.c:540
 msgid "Invalidate all users"
 msgstr "Unieważnia wszystkich użytkowników"
 
-#: src/tools/sss_cache.c:536
+#: src/tools/sss_cache.c:542
 msgid "Invalidate particular group"
 msgstr "Unieważnia podaną grupę"
 
-#: src/tools/sss_cache.c:538
+#: src/tools/sss_cache.c:544
 msgid "Invalidate all groups"
 msgstr "Unieważnia wszystkie grupy"
 
-#: src/tools/sss_cache.c:540
+#: src/tools/sss_cache.c:546
 msgid "Invalidate particular netgroup"
 msgstr "Unieważnia podaną grupę sieciową"
 
-#: src/tools/sss_cache.c:542
+#: src/tools/sss_cache.c:548
 msgid "Invalidate all netgroups"
 msgstr "Unieważnia wszystkie grupy sieciowe"
 
-#: src/tools/sss_cache.c:544
+#: src/tools/sss_cache.c:550
 msgid "Invalidate particular service"
 msgstr "Unieważnia podaną usługę"
 
-#: src/tools/sss_cache.c:546
+#: src/tools/sss_cache.c:552
 msgid "Invalidate all services"
 msgstr "Unieważnia wszystkie usługi"
 
-#: src/tools/sss_cache.c:549
+#: src/tools/sss_cache.c:555
 msgid "Invalidate particular autofs map"
 msgstr "Unieważnia podaną mapę autofs"
 
-#: src/tools/sss_cache.c:551
+#: src/tools/sss_cache.c:557
 msgid "Invalidate all autofs maps"
 msgstr "Unieważnia wszystkie mapy autofs"
 
-#: src/tools/sss_cache.c:554
+#: src/tools/sss_cache.c:560
 msgid "Only invalidate entries from a particular domain"
 msgstr "Unieważnia wpisy tylko z podanej domeny"
 
-#: src/tools/sss_cache.c:599
+#: src/tools/sss_cache.c:605
 msgid "Please select at least one object to invalidate\n"
 msgstr "Proszę wybrać co najmniej jeden obiekt do unieważnienia\n"
 
-#: src/tools/sss_cache.c:669
+#: src/tools/sss_cache.c:675
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
@@ -1808,7 +1812,7 @@ msgstr ""
 "domeną), należy użyć w pełni kwalifikowanej nazwy zamiast parametru --"
 "domain/-d.\n"
 
-#: src/tools/sss_cache.c:673
+#: src/tools/sss_cache.c:679
 msgid "Could not open available domains\n"
 msgstr "Nie można otworzyć dostępnych domen\n"
 
