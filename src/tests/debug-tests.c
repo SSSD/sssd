@@ -115,70 +115,6 @@ START_TEST(test_debug_convert_old_level_new_format)
 }
 END_TEST
 
-START_TEST(test_debug_get_level_old_format)
-{
-    fail_unless(debug_get_level(0) == SSSDBG_FATAL_FAILURE, "Invalid conversion of 0");
-    fail_unless(debug_get_level(1) == SSSDBG_CRIT_FAILURE, "Invalid conversion of 1");
-    fail_unless(debug_get_level(2) == SSSDBG_OP_FAILURE, "Invalid conversion of 2");
-    fail_unless(debug_get_level(3) == SSSDBG_MINOR_FAILURE, "Invalid conversion of 3");
-    fail_unless(debug_get_level(4) == SSSDBG_CONF_SETTINGS, "Invalid conversion of 4");
-    fail_unless(debug_get_level(5) == SSSDBG_FUNC_DATA, "Invalid conversion of 5");
-    fail_unless(debug_get_level(6) == SSSDBG_TRACE_FUNC, "Invalid conversion of 6");
-    fail_unless(debug_get_level(7) == SSSDBG_TRACE_LIBS, "Invalid conversion of 7");
-    fail_unless(debug_get_level(8) == SSSDBG_TRACE_INTERNAL, "Invalid conversion of 8");
-    fail_unless(debug_get_level(9) == SSSDBG_TRACE_ALL, "Invalid conversion of 9");
-}
-END_TEST
-
-START_TEST(test_debug_get_level_new_format)
-{
-    fail_unless(
-        debug_get_level(SSSDBG_UNRESOLVED) == SSSDBG_FATAL_FAILURE,
-        "Invalid conversion of SSSDBG_UNRESOLVED"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_FATAL_FAILURE) == SSSDBG_FATAL_FAILURE,
-        "Invalid conversion of SSSDBG_FATAL_FAILURE"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_CRIT_FAILURE) == SSSDBG_CRIT_FAILURE,
-        "Invalid conversion of SSSDBG_CRIT_FAILURE"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_OP_FAILURE) == SSSDBG_OP_FAILURE,
-        "Invalid conversion of SSSDBG_OP_FAILURE"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_MINOR_FAILURE) == SSSDBG_MINOR_FAILURE,
-        "Invalid conversion of SSSDBG_MINOR_FAILURE"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_CONF_SETTINGS) == SSSDBG_CONF_SETTINGS,
-        "Invalid conversion of SSSDBG_CONF_SETTINGS"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_FUNC_DATA) == SSSDBG_FUNC_DATA,
-        "Invalid conversion of SSSDBG_FUNC_DATA"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_TRACE_FUNC) == SSSDBG_TRACE_FUNC,
-        "Invalid conversion of SSSDBG_TRACE_FUNC"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_TRACE_LIBS) == SSSDBG_TRACE_LIBS,
-        "Invalid conversion of SSSDBG_TRACE_LIBS"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_TRACE_INTERNAL) == SSSDBG_TRACE_INTERNAL,
-        "Invalid conversion of SSSDBG_TRACE_INTERNAL"
-    );
-    fail_unless(
-        debug_get_level(SSSDBG_TRACE_ALL) == SSSDBG_TRACE_ALL,
-        "Invalid conversion of SSSDBG_TRACE_ALL"
-    );
-}
-END_TEST
-
 int test_helper_debug_check_message(int level)
 {
     TALLOC_CTX *ctx = talloc_new(NULL);
@@ -723,8 +659,6 @@ Suite *debug_suite(void)
 
     tcase_add_test(tc_debug, test_debug_convert_old_level_old_format);
     tcase_add_test(tc_debug, test_debug_convert_old_level_new_format);
-    tcase_add_test(tc_debug, test_debug_get_level_old_format);
-    tcase_add_test(tc_debug, test_debug_get_level_new_format);
     tcase_add_test(tc_debug, test_debug_is_set_single_no_timestamp);
     tcase_add_test(tc_debug, test_debug_is_set_single_timestamp);
     tcase_add_test(tc_debug, test_debug_is_set_single_timestamp_microseconds);
