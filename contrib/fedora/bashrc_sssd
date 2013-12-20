@@ -44,6 +44,7 @@ alias fedconfig='../configure \
                      --enable-pammoddir=/$SSS_LIB/security \
                      --with-krb5-rcache-dir=/var/cache/krb5rcache \
                      --with-initscript=systemd \
+                     --with-syslog=journald \
                      --with-test-dir=/dev/shm \
                      --enable-all-experimental-features \
                      --cache-file=/tmp/fedconfig.cache \
