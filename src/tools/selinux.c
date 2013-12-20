@@ -92,7 +92,7 @@ int reset_selinux_file_context(void)
 
 #ifdef HAVE_SEMANAGE
 /* turn libselinux messages into SSSD DEBUG() calls */
-static void sss_semanage_error_callbackvoid *varg,
+static void sss_semanage_error_callback(void *varg,
                                         semanage_handle_t *handle,
                                         const char *fmt, ...)
 {
@@ -133,7 +133,7 @@ static semanage_handle_t *sss_semanage_init(void)
 
     handle = semanage_handle_create();
     if (!handle) {
-        DEBUG(1, ("Cannot create SELinux management handle\n");
+        DEBUG(1, "Cannot create SELinux management handle\n");
         return NULL;
     }
 

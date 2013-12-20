@@ -126,7 +126,7 @@ errno_t set_debug_file_from_fd(const int fd);
                   newline-terminated message
     \param ... the debug message format arguments
 */
-#define DEBUGlevel, format, ...) do { \
+#define DEBUG(level, format, ...) do { \
     int __debug_macro_newlevel = debug_get_level(level); \
     if (DEBUG_IS_SET(__debug_macro_newlevel)) \
         debug_fn(__FUNCTION__, __debug_macro_newlevel, format, ##__VA_ARGS__); \
@@ -173,7 +173,7 @@ errno_t set_debug_file_from_fd(const int fd);
 #define FLAGS_PID_FILE 0x0004
 
 #ifndef talloc_zfree
-#define talloc_zfree(ptr) do { talloc_free(discard_const(ptr); ptr = NULL; } while(0)
+#define talloc_zfree(ptr) do { talloc_free(discard_const(ptr)); ptr = NULL; } while(0)
 #endif
 
 #ifndef discard_const_p
