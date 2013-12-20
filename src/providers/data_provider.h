@@ -164,7 +164,7 @@
 /* AUTH related common data and functions */
 
 #define DEBUG_PAM_DATA(level, pd) do { \
-    if (DEBUG_IS_SET(debug_get_level(level))) pam_print_data(level, pd); \
+    if (DEBUG_IS_SET(level)) pam_print_data(level, pd); \
 } while(0)
 
 

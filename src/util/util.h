@@ -67,9 +67,8 @@ extern int debug_timestamps;
 extern int debug_microseconds;
 extern int debug_to_file;
 extern const char *debug_log_file;
-void debug_fn(const char *function, int newlevel, const char *format, ...)
+void debug_fn(const char *function, int level, const char *format, ...)
                                 SSS_ATTRIBUTE_PRINTF(3, 4);
-int debug_get_level(int old_level);
 int debug_convert_old_level(int old_level);
 errno_t set_debug_file_from_fd(const int fd);
 
@@ -110,27 +109,18 @@ errno_t set_debug_file_from_fd(const int fd);
     \brief macro to generate debug messages
 
     \param level the debug level, please use one of the SSSDBG_* macros
-      Old format:
-      - 1 is for critical errors users may find it difficult to understand but
-        are still quite clear
-      - 2-4 is for stuff developers are interested in in general, but
-        shouldn't fill the screen with useless low level verbose stuff
-      - 5-6 is for errors you may want to track, but only if you explicitly
-        looking for additional clues
-      - 7-10 is for informational stuff
-
     \param format the debug message format string, should result in a
                   newline-terminated message
     \param ... the debug message format arguments
 */
 #define DEBUG(level, format, ...) do { \
-    int __debug_macro_newlevel = debug_get_level(level); \
-    if (DEBUG_IS_SET(__debug_macro_newlevel)) \
-        debug_fn(__FUNCTION__, __debug_macro_newlevel, format, ##__VA_ARGS__); \
+    int __debug_macro_level = level; \
+    if (DEBUG_IS_SET(__debug_macro_level)) \
+        debug_fn(__FUNCTION__, __debug_macro_level, format, ##__VA_ARGS__); \
 } while (0)
 
 /** \def DEBUG_IS_SET(level)
-    \brief checks whether level (must be in new format) is set in debug_level
+    \brief checks whether level is set in debug_level
 
     \param level the debug level, please use one of the SSSDBG*_ macros
 */

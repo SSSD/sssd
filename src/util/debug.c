@@ -129,7 +129,7 @@ static void debug_printf(const char *format, ...)
     va_end(ap);
 }
 
-void debug_fn(const char *function, int newlevel, const char *format, ...)
+void debug_fn(const char *function, int level, const char *format, ...)
 {
     va_list ap;
     struct timeval tv;
@@ -148,45 +148,21 @@ void debug_fn(const char *function, int newlevel, const char *format, ...)
             debug_printf("(%s:%.6ld %d) [%s] [%s] (%#.4x): ",
                          datetime, tv.tv_usec,
                          year, debug_prg_name,
-                         function, newlevel);
+                         function, level);
         } else {
             debug_printf("(%s %d) [%s] [%s] (%#.4x): ",
                          datetime, year,
-                         debug_prg_name, function, newlevel);
+                         debug_prg_name, function, level);
         }
     } else {
         debug_printf("[%s] [%s] (%#.4x): ",
-                     debug_prg_name, function, newlevel);
+                     debug_prg_name, function, level);
     }
 
     va_start(ap, format);
     debug_vprintf(format, ap);
     va_end(ap);
     debug_fflush();
-}
-
-int debug_get_level(int old_level)
-{
-    if ((old_level != 0) && !(old_level & 0x000F))
-        return old_level;
-
-    if ((old_level > 9) || (old_level < 0))
-        return SSSDBG_FATAL_FAILURE;
-
-    int levels[] = {
-        SSSDBG_FATAL_FAILURE,   /* 0 */
-        SSSDBG_CRIT_FAILURE,
-        SSSDBG_OP_FAILURE,
-        SSSDBG_MINOR_FAILURE,
-        SSSDBG_CONF_SETTINGS,
-        SSSDBG_FUNC_DATA,
-        SSSDBG_TRACE_FUNC,
-        SSSDBG_TRACE_LIBS,
-        SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL        /* 9 */
-    };
-
-    return levels[old_level];
 }
 
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
