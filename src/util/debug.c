@@ -30,6 +30,10 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
+#ifdef WITH_JOURNALD
+#include <systemd/sd-journal.h>
+#endif
+
 #include "util/util.h"
 
 const char *debug_prg_name = "sssd";
@@ -129,6 +133,69 @@ static void debug_printf(const char *format, ...)
     va_end(ap);
 }
 
+#ifdef WITH_JOURNALD
+errno_t journal_send(const char *file,
+        long line,
+        const char *function,
+        int level,
+        const char *format,
+        va_list ap)
+{
+    errno_t ret;
+    int res;
+    char *message = NULL;
+    char *code_file = NULL;
+    char *code_line = NULL;
+    const char *domain;
+
+    /* First, evaluate the message to be sent */
+    ret = vasprintf(&message, format, ap);
+    if (ret == -1) {
+        /* ENOMEM, just return */
+        return ENOMEM;
+    }
+
+    res = asprintf(&code_file, "CODE_FILE=%s", file);
+    if (res == -1) {
+        ret = ENOMEM;
+        goto journal_done;
+    }
+
+    res = asprintf(&code_line, "CODE_LINE=%ld", line);
+    if (res == -1) {
+        ret = ENOMEM;
+        goto journal_done;
+    }
+
+    /* If this log message was sent from a provider,
+     * track the domain.
+     */
+    domain = getenv(SSS_DOM_ENV);
+    if (domain == NULL) {
+        domain = "";
+    }
+
+    /* Send the log message to journald, specifying the
+     * source code location and other tracking data.
+     */
+    res = sd_journal_send_with_location(
+            code_file, code_line, function,
+            "MESSAGE=%s", message,
+            "PRIORITY=%i", LOG_DEBUG,
+            "SSSD_DOMAIN=%s", domain,
+            "SSSD_PRG_NAME=%s", debug_prg_name,
+            "SSSD_DEBUG_LEVEL=%x", level,
+            NULL);
+    ret = -res;
+
+journal_done:
+    free(code_line);
+    free(code_file);
+    free(message);
+    return ret;
+}
+#endif /* WiTH_JOURNALD */
+
 void debug_fn(const char *file,
               long line,
               const char *function,
@@ -136,10 +203,33 @@ void debug_fn(const char *file,
               const char *format, ...)
 {
     va_list ap;
+
+#ifdef WITH_JOURNALD
+    errno_t ret;
     struct timeval tv;
     struct tm *tm;
     char datetime[20];
     int year;
+
+    if (!debug_file) {
+        /* If we are not outputting logs to files, we should be sending them
+         * to journald.
+         * NOTE: on modern systems, this is where stdout/stderr will end up
+         * from system services anyway. The only difference here is that we
+         * can also provide extra structuring data to make it more easily
+         * searchable.
+         */
+        va_start(ap, format);
+        ret = journal_send(file, line, function, level, format, ap);
+        if (ret != EOK) {
+            /* Emergency fallback, send to STDERR */
+            debug_vprintf(format, ap);
+            debug_fflush();
+        }
+        va_end(ap);
+        return;
+    }
+#endif
 
     if (debug_timestamps) {
         gettimeofday(&tv, NULL);
