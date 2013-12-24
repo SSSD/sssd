@@ -26,7 +26,6 @@
 #include <fcntl.h>
 #include <time.h>
 #include "tdb.h"
-#include "responder/common/negcache.h"
 
 #define NC_ENTRY_PREFIX "NCE/"
 #define NC_USER_PREFIX NC_ENTRY_PREFIX"USER"
@@ -583,7 +582,7 @@ done:
     return 0;
 }
 
-int sss_ncache_reset_permament(struct sss_nc_ctx *ctx)
+int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx)
 {
     int ret;
 

@@ -67,7 +67,7 @@ int sss_ncache_set_service_port(struct sss_nc_ctx *ctx, bool permanent,
                                 struct sss_domain_info *dom,
                                 uint16_t port, const char *proto);
 
-int sss_ncache_reset_permament(struct sss_nc_ctx *ctx);
+int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx);
 
 /* Set up the negative cache with values from filter_users and
  * filter_groups in the sssd.conf
