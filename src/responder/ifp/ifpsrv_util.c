@@ -24,6 +24,11 @@
 #include "db/sysdb.h"
 #include "responder/ifp/ifp_private.h"
 
+#define IFP_DEFAULT_ATTRS {SYSDB_NAME, SYSDB_UIDNUM,   \
+                           SYSDB_GIDNUM, SYSDB_GECOS,  \
+                           SYSDB_HOMEDIR, SYSDB_SHELL, \
+                           NULL}
+
 errno_t ifp_req_create(struct sbus_request *dbus_req,
                        struct ifp_ctx *ifp_ctx,
                        struct ifp_req **_ifp_req)
@@ -177,4 +182,145 @@ errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,
     }
 
     return EOK;
+}
+
+static inline bool
+attr_in_list(const char **list, size_t nlist, const char *str)
+{
+    size_t i;
+
+    for (i = 0; i < nlist; i++) {
+        if (strcasecmp(list[i], str) == 0) {
+            break;
+        }
+    }
+
+    return (i < nlist) ? true : false;
+}
+
+const char **
+ifp_parse_attr_list(TALLOC_CTX *mem_ctx, const char *conf_str)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    const char **list = NULL;
+    const char **res = NULL;
+    int list_size;
+    char **conf_list = NULL;
+    int conf_list_size = 0;
+    const char **allow = NULL;
+    const char **deny = NULL;
+    int ai = 0, di = 0, li = 0;
+    int i;
+    const char *defaults[] = IFP_DEFAULT_ATTRS;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return NULL;
+    }
+
+    if (conf_str) {
+        ret = split_on_separator(tmp_ctx, conf_str, ',', true, true,
+                                 &conf_list, &conf_list_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot parse attribute ACL list  %s: %d\n", conf_str, ret);
+            goto done;
+        }
+
+        allow = talloc_zero_array(tmp_ctx, const char *, conf_list_size);
+        deny = talloc_zero_array(tmp_ctx, const char *, conf_list_size);
+        if (allow == NULL || deny == NULL) {
+            goto done;
+        }
+    }
+
+    for (i = 0; i < conf_list_size; i++) {
+        switch (conf_list[i][0]) {
+            case '+':
+                allow[ai] = conf_list[i] + 1;
+                ai++;
+                continue;
+            case '-':
+                deny[di] = conf_list[i] + 1;
+                di++;
+                continue;
+            default:
+                DEBUG(SSSDBG_CRIT_FAILURE, "ACL values must start with "
+                      "either '+' (allow) or '-' (deny), got '%s'\n",
+                      conf_list[i]);
+                goto done;
+        }
+    }
+
+    /* Assume the output will have to hold defauls and all the configured,
+     * values, resize later
+     */
+    list_size = 0;
+    while (defaults[list_size]) {
+        list_size++;
+    }
+    list_size += conf_list_size;
+
+    list = talloc_zero_array(tmp_ctx, const char *, list_size + 1);
+    if (list == NULL) {
+        goto done;
+    }
+
+    /* Start by copying explicitly allowed attributes */
+    for (i = 0; i < ai; i++) {
+        /* if the attribute is explicitly denied, skip it */
+        if (attr_in_list(deny, di, allow[i])) {
+            continue;
+        }
+
+        list[li] = talloc_strdup(list, allow[i]);
+        if (list[li] == NULL) {
+            goto done;
+        }
+        li++;
+
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Added allowed attr %s to whitelist\n", allow[i]);
+    }
+
+    /* Add defaults */
+    for (i = 0; defaults[i]; i++) {
+        /* if the attribute is explicitly denied, skip it */
+        if (attr_in_list(deny, di, defaults[i])) {
+            continue;
+        }
+
+        list[li] = talloc_strdup(list, defaults[i]);
+        if (list[li] == NULL) {
+            goto done;
+        }
+        li++;
+
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Added default attr %s to whitelist\n", defaults[i]);
+    }
+
+    res = talloc_steal(mem_ctx, list);
+done:
+    talloc_free(tmp_ctx);
+    return res;
+}
+
+bool
+ifp_attr_allowed(const char *whitelist[], const char *attr)
+{
+    size_t i;
+
+    if (whitelist == NULL) {
+        return false;
+    }
+
+    for (i = 0; whitelist[i]; i++) {
+        if (strcasecmp(whitelist[i], attr) == 0) {
+            break;
+        }
+    }
+
+    return (whitelist[i]) ? true : false;
 }

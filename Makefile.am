@@ -1719,7 +1719,7 @@ ifp_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
-endif
+endif # BUILD_IFP
 
 endif # HAVE_CMOCKA
 

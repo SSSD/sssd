@@ -96,15 +96,41 @@ static errno_t
 ifp_user_get_attr_unpack_msg(struct ifp_attr_req *attr_req)
 {
     bool parsed;
+    char **attrs;
+    int nattrs;
+    int i, ai;
+    const char **whitelist = attr_req->ireq->ifp_ctx->user_whitelist;
 
     parsed = sbus_request_parse_or_finish(attr_req->ireq->dbus_req,
                                           DBUS_TYPE_STRING, &attr_req->name,
                                           DBUS_TYPE_ARRAY, DBUS_TYPE_STRING,
-                                          &attr_req->attrs,
-                                          &attr_req->nattrs,
+                                          &attrs, &nattrs,
                                           DBUS_TYPE_INVALID);
     if (parsed == false) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not parse arguments\n");
         return EOK; /* handled */
+    }
+
+    /* Copy the attributes to maintain memory hierarchy with talloc */
+    attr_req->attrs = talloc_zero_array(attr_req, const char *, nattrs+1);
+    if (attr_req->attrs == NULL) {
+        return ENOMEM;
+    }
+
+    ai = 0;
+    for (i = 0; i < nattrs; i++) {
+        if (ifp_attr_allowed(whitelist, attrs[i]) == false) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Attribute %s not present in the whitelist, skipping\n",
+                  attrs[i]);
+            continue;
+        }
+
+        attr_req->attrs[ai] = talloc_strdup(attr_req->attrs, attrs[i]);
+        if (attr_req->attrs[ai] == NULL) {
+            return ENOMEM;
+        }
+        ai++;
     }
 
     return EOK;
