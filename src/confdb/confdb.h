@@ -136,6 +136,7 @@
 
 /* InfoPipe */
 #define CONFDB_IFP_CONF_ENTRY "config/ifp"
+#define CONFDB_IFP_USER_ATTR_LIST "user_attributes"
 
 /* Domains */
 #define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"

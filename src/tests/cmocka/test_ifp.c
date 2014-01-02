@@ -206,6 +206,105 @@ void test_el_to_dict(void **state)
     assert_false(dbus_message_iter_next(&iter_dict));
 }
 
+static void assert_string_list_equal(const char **s1,
+                                     const char **s2)
+{
+    int i;
+
+    for (i=0; s1[i]; i++) {
+        assert_non_null(s2[i]);
+        assert_string_equal(s1[i], s2[i]);
+    }
+
+    assert_null(s2[i]);
+}
+
+static void attr_parse_test(const char *expected[], const char *input)
+{
+    const char **res;
+    TALLOC_CTX *test_ctx;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+
+    res = ifp_parse_attr_list(test_ctx, input);
+
+    if (expected) {
+        /* Positive test */
+        assert_non_null(res);
+        assert_string_list_equal(res, expected);
+    } else {
+        /* Negative test */
+        assert_null(res);
+    }
+
+    talloc_free(test_ctx);
+}
+
+void test_attr_acl(void **state)
+{
+    /* Test defaults */
+    const char *exp_defaults[] = { SYSDB_NAME, SYSDB_UIDNUM,
+                                   SYSDB_GIDNUM, SYSDB_GECOS,
+                                   SYSDB_HOMEDIR, SYSDB_SHELL,
+                                   NULL };
+    attr_parse_test(exp_defaults, NULL);
+
+    /* Test adding some attributes to the defaults */
+    const char *exp_add[] = { "telephoneNumber", "streetAddress",
+                              SYSDB_NAME, SYSDB_UIDNUM,
+                              SYSDB_GIDNUM, SYSDB_GECOS,
+                              SYSDB_HOMEDIR, SYSDB_SHELL,
+                              NULL };
+    attr_parse_test(exp_add, "+telephoneNumber, +streetAddress");
+
+    /* Test removing some attributes to the defaults */
+    const char *exp_rm[] = { SYSDB_NAME,
+                             SYSDB_GIDNUM, SYSDB_GECOS,
+                             SYSDB_HOMEDIR,
+                             NULL };
+    attr_parse_test(exp_rm, "-"SYSDB_SHELL ",-"SYSDB_UIDNUM);
+
+    /* Test both add and remove */
+    const char *exp_add_rm[] = { "telephoneNumber",
+                                 SYSDB_NAME, SYSDB_UIDNUM,
+                                 SYSDB_GIDNUM, SYSDB_GECOS,
+                                 SYSDB_HOMEDIR,
+                                 NULL };
+    attr_parse_test(exp_add_rm, "+telephoneNumber, -"SYSDB_SHELL);
+
+    /* Test rm trumps add */
+    const char *exp_add_rm_override[] = { SYSDB_NAME, SYSDB_UIDNUM,
+                                          SYSDB_GIDNUM, SYSDB_GECOS,
+                                          SYSDB_HOMEDIR, SYSDB_SHELL,
+                                          NULL };
+    attr_parse_test(exp_add_rm_override,
+                    "+telephoneNumber, -telephoneNumber, +telephoneNumber");
+
+    /* Remove all */
+    const char *rm_all[] = { NULL };
+    attr_parse_test(rm_all,  "-"SYSDB_NAME ", -"SYSDB_UIDNUM
+                             ", -"SYSDB_GIDNUM ", -"SYSDB_GECOS
+                             ", -"SYSDB_HOMEDIR ", -"SYSDB_SHELL);
+
+    /* Malformed list */
+    attr_parse_test(NULL,  "missing_plus_or_minus");
+}
+
+void test_attr_allowed(void **state)
+{
+    const char *whitelist[] = { "name", "gecos", NULL };
+    const char *emptylist[] = { NULL };
+
+    assert_true(ifp_attr_allowed(whitelist, "name"));
+    assert_true(ifp_attr_allowed(whitelist, "gecos"));
+
+    assert_false(ifp_attr_allowed(whitelist, "password"));
+
+    assert_false(ifp_attr_allowed(emptylist, "name"));
+    assert_false(ifp_attr_allowed(NULL, "name"));
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -221,6 +320,8 @@ int main(int argc, const char *argv[])
         unit_test(ifp_test_req_wrong_uid),
         unit_test(test_path_prefix),
         unit_test(test_el_to_dict),
+        unit_test(test_attr_acl),
+        unit_test(test_attr_allowed),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

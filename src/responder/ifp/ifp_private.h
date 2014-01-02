@@ -43,6 +43,7 @@ struct ifp_ctx {
     int neg_timeout;
 
     struct sysbus_ctx *sysbus;
+    const char **user_whitelist;
 };
 
 /* This is a throwaway method to ease the review of the patch.
@@ -68,4 +69,6 @@ const char *ifp_path_strip_prefix(const char *path, const char *prefix);
 errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,
                                struct ldb_message_element *el);
 
+const char **ifp_parse_attr_list(TALLOC_CTX *mem_ctx, const char *conf_str);
+bool ifp_attr_allowed(const char *whitelist[], const char *attr);
 #endif /* _IFPSRV_PRIVATE_H_ */

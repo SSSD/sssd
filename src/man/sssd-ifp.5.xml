@@ -69,6 +69,68 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>user_attributes (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the comma-separated list of white
+                            or blacklisted attributes.
+                        </para>
+                        <para>
+                            By default, the InfoPipe responder only
+                            allows the default set of POSIX attributes to
+                            be requested. This set is the same as returned by
+                            <citerefentry>
+                                <refentrytitle>getpwnam</refentrytitle>
+                                <manvolnum>3</manvolnum>
+                            </citerefentry>
+                            and includes:
+                            <variablelist>
+                                <varlistentry>
+                                    <term>name</term>
+                                    <listitem><para>user's login name</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>uidNumber</term>
+                                    <listitem><para>user ID</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>gidNumber</term>
+                                    <listitem><para>primary group ID</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>gecos</term>
+                                    <listitem><para>user information, typically full name</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>homeDirectory</term>
+                                    <listitem><para>home directory</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>loginShell</term>
+                                    <listitem><para>user shell</para></listitem>
+                                </varlistentry>
+                            </variablelist>
+                        </para>
+                        <para>
+                            It is possible to add another attribute to
+                            this set by using <quote>+attr_name</quote>
+                            or explicitly remove an attribute using
+                            <quote>-attr_name</quote>. For example, to
+                            allow <quote>telephoneNumber</quote> but deny
+                            <quote>loginShell</quote>, you would use the
+                            following configuration:
+                        <programlisting>
+user_attributes = +telephoneNumber, -loginShell
+                        </programlisting>
+                        </para>
+                        <para>
+                            Default: not set. Only the default set of
+                            POSIX attributes is allowed.
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
     </refsect1>
 

@@ -205,6 +205,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     int ret;
     int max_retries;
     char *uid_str;
+    char *attr_list_str;
 
     ifp_cmds = get_ifp_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
@@ -268,6 +269,22 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     ret = sss_ncache_init(rctx, &ifp_ctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("fatal error initializing negcache\n"));
+        goto fail;
+    }
+
+    ret = confdb_get_string(ifp_ctx->rctx->cdb, ifp_ctx->rctx,
+                            CONFDB_IFP_CONF_ENTRY, CONFDB_IFP_USER_ATTR_LIST,
+                            NULL, &attr_list_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to get allowed UIDs.\n"));
+        goto fail;
+    }
+
+    ifp_ctx->user_whitelist = ifp_parse_attr_list(ifp_ctx, attr_list_str);
+    talloc_free(attr_list_str);
+    if (ifp_ctx->user_whitelist == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              ("Failed to parse the allowed attribute list\n"));
         goto fail;
     }
 
