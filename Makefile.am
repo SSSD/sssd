@@ -165,7 +165,12 @@ if HAVE_CMOCKA
         responder-get-domains-tests \
         sbus-internal-tests \
         test_search_bases
-endif
+
+if BUILD_IFP
+non_interactive_cmocka_based_tests += ifp_tests
+endif   # BUILD_IFP
+
+endif   # HAVE_CMOCKA
 
 check_PROGRAMS = \
     stress-tests \
@@ -788,6 +793,7 @@ sssd_ifp_SOURCES = \
     src/responder/ifp/ifpsrv_cmd.c \
     src/responder/ifp/ifp_iface_generated.c \
     src/responder/ifp/ifp_iface_generated.h \
+    src/responder/ifp/ifpsrv_util.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_ifp_CFLAGS = \
@@ -1619,7 +1625,22 @@ dp_opt_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
+if BUILD_IFP
+ifp_tests_SOURCES = \
+     $(TEST_MOCK_RESP_OBJ) \
+    src/tests/cmocka/test_ifp.c \
+    src/responder/ifp/ifpsrv_cmd.c \
+    src/responder/ifp/ifpsrv_util.c
+ifp_tests_CFLAGS = \
+    $(AM_CFLAGS)
+ifp_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
 endif
+
+endif # HAVE_CMOCKA
 
 noinst_PROGRAMS = pam_test_client
 if BUILD_SUDO
