@@ -61,6 +61,11 @@ static struct data_provider_iface ifp_dp_methods = {
     .getAccountInfo = NULL,
 };
 
+struct infopipe_iface ifp_iface = {
+    { &infopipe_iface_meta, 0 },
+    .Ping = ifp_ping,
+};
+
 struct sss_cmd_table *get_ifp_cmds(void)
 {
     static struct sss_cmd_table ifp_cmds[] = {
@@ -95,6 +100,95 @@ static void ifp_dp_reconnect_init(struct sbus_connection *conn,
     /* Failed to reconnect */
     DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
                                  be_conn->domain->name);
+}
+
+static errno_t
+sysbus_init(TALLOC_CTX *mem_ctx,
+            struct tevent_context *ev,
+            const char *dbus_name,
+            const char *dbus_path,
+            struct sbus_vtable *iface_vtable,
+            void *pvt,
+            struct sysbus_ctx **sysbus)
+{
+    DBusError dbus_error;
+    DBusConnection *conn = NULL;
+    struct sysbus_ctx *system_bus = NULL;
+    struct sbus_interface *sif;
+    errno_t ret;
+
+    system_bus = talloc_zero(mem_ctx, struct sysbus_ctx);
+    if (system_bus == NULL) {
+        return ENOMEM;
+    }
+
+    dbus_error_init(&dbus_error);
+
+    /* Connect to the well-known system bus */
+    conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
+    if (conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to connect to D-BUS system bus.\n"));
+        ret = EIO;
+        goto fail;
+    }
+    dbus_connection_set_exit_on_disconnect(conn, FALSE);
+
+    ret = dbus_bus_request_name(conn, dbus_name,
+                                /* We want exclusive access */
+                                DBUS_NAME_FLAG_DO_NOT_QUEUE,
+                                &dbus_error);
+    if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
+        /* We were unable to register on the system bus */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Unable to request name on the system bus.\n"));
+        ret = EIO;
+        goto fail;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Listening on %s\n", dbus_name);
+
+    /* Integrate with tevent loop */
+    ret = sbus_init_connection(system_bus, ev, conn,
+                               SBUS_CONN_TYPE_SHARED,
+                               &system_bus->conn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not integrate D-BUS into mainloop.\n");
+        goto fail;
+    }
+
+    sif = sbus_new_interface(system_bus->conn,
+                             dbus_path,
+                             iface_vtable,
+                             pvt);
+    if (sif == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not add the sbus interface\n");
+        goto fail;
+    }
+
+    ret = sbus_conn_add_interface(system_bus->conn, sif);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not add the interface\n");
+        goto fail;
+    }
+
+    *sysbus = system_bus;
+    return EOK;
+
+fail:
+    if (dbus_error_is_set(&dbus_error)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "DBus error message: %s\n", dbus_error.message);
+        dbus_error_free(&dbus_error);
+    }
+
+    if (conn) dbus_connection_unref(conn);
+
+    talloc_free(system_bus);
+    return ret;
 }
 
 int ifp_process_init(TALLOC_CTX *mem_ctx,
@@ -158,9 +252,23 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
                             ifp_dp_reconnect_init, iter);
     }
 
+    /* Connect to the D-BUS system bus and set up methods */
+    ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
+                      INFOPIPE_IFACE,
+                      INFOPIPE_PATH,
+                      &ifp_iface.vtable,
+                      ifp_ctx, &ifp_ctx->sysbus);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to connect to the system message bus\n");
+        talloc_free(ifp_ctx);
+        return EIO;
+    }
+
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "schedule_get_domains_tasks failed.\n");
         goto fail;
     }
 

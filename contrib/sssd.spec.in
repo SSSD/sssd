@@ -648,6 +648,8 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING
 %{_libexecdir}/%{servicename}/sssd_ifp
 %{_mandir}/man5/sssd-ifp.5*
+# InfoPipe DBus plumbing
+%{_sysconfdir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 
 %files client -f sssd_client.lang
 %defattr(-,root,root,-)
