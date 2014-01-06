@@ -43,6 +43,7 @@ sssdconfdir = $(sysconfdir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
 dbusintrospectdir = $(datarootdir)/sssd/introspect
+dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 localedir = @localedir@
 nsslibdir = @nsslibdir@
 pamlibdir = @pammoddir@
@@ -685,7 +686,8 @@ include_HEADERS = \
 CODEGEN_XML = \
     $(srcdir)/src/tests/sbus_codegen_tests.xml \
     $(srcdir)/src/monitor/monitor_iface.xml \
-    $(srcdir)/src/providers/data_provider_iface.xml
+    $(srcdir)/src/providers/data_provider_iface.xml \
+    $(srcdir)/src/responder/ifp/ifp_iface.xml
 
 SBUS_CODEGEN = src/sbus/sbus_codegen
 
@@ -807,6 +809,8 @@ if BUILD_IFP
 sssd_ifp_SOURCES = \
     src/responder/ifp/ifpsrv.c \
     src/responder/ifp/ifpsrv_cmd.c \
+    src/responder/ifp/ifp_iface_generated.c \
+    src/responder/ifp/ifp_iface_generated.h \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_ifp_CFLAGS = \
@@ -814,6 +818,8 @@ sssd_ifp_CFLAGS = \
 sssd_ifp_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
+dist_dbuspolicy_DATA = \
+    src/responder/ifp/org.freedesktop.sssd.infopipe.conf
 endif
 
 sssd_be_SOURCES = \
@@ -2266,6 +2272,7 @@ installsssddirs::
     $(DESTDIR)$(pluginpath) \
     $(DESTDIR)$(libdir)/ldb \
     $(DESTDIR)$(dbusintrospectdir) \
+    $(DESTDIR)$(dbuspolicydir) \
     $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(sssdlibdir) \
     $(DESTDIR)$(pkglibdir) \

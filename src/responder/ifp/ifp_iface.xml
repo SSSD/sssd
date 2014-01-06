@@ -1,0 +1,10 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+    <interface name="org.freedesktop.sssd.infopipe">
+        <annotation value="infopipe_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <method name="Ping">
+            <!-- arguments parsed manually -->
+        </method>
+    </interface>
+</node>

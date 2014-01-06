@@ -26,10 +26,24 @@
 
 #include "responder/common/responder.h"
 #include "providers/data_provider.h"
+#include "responder/ifp/ifp_iface_generated.h"
+
+#define INFOPIPE_PATH "/org/freedesktop/sssd/infopipe"
+
+struct sysbus_ctx {
+    struct sbus_connection *conn;
+    char *introspect_xml;
+};
 
 struct ifp_ctx {
     struct resp_ctx *rctx;
     struct sss_names_ctx *snctx;
+
+    struct sysbus_ctx *sysbus;
 };
+
+/* This is a throwaway method to ease the review of the patch.
+ * It will be removed later */
+int ifp_ping(struct sbus_request *dbus_req, void *data);
 
 #endif /* _IFPSRV_PRIVATE_H_ */
