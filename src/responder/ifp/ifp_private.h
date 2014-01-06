@@ -46,4 +46,18 @@ struct ifp_ctx {
  * It will be removed later */
 int ifp_ping(struct sbus_request *dbus_req, void *data);
 
+/* == Utility functions == */
+struct ifp_req {
+    struct sbus_request *dbus_req;
+    struct ifp_ctx *ifp_ctx;
+};
+
+errno_t ifp_req_create(struct sbus_request *dbus_req,
+                       struct ifp_ctx *ifp_ctx,
+                       struct ifp_req **_ifp_req);
+
+const char *ifp_path_strip_prefix(const char *path, const char *prefix);
+errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,
+                               struct ldb_message_element *el);
+
 #endif /* _IFPSRV_PRIVATE_H_ */
