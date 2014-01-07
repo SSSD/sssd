@@ -192,6 +192,8 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         return ret;
     }
 
+    sdom->pvt = ad_id_ctx;
+
     /* Set up the ID mapping object */
     ad_id_ctx->sdap_id_ctx->opts->idmap_ctx =
         id_ctx->sdap_id_ctx->opts->idmap_ctx;
