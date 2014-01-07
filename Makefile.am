@@ -3,6 +3,10 @@ if HAVE_DEVSHM
     extra_distcheck_flags += --with-test-dir=/dev/shm
 endif
 
+if HAVE_SYSTEMD_UNIT
+    extra_distcheck_flags += --with-syslog=journald
+endif
+
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
                             --enable-all-experimental-features \
                             $(extra_distcheck_flags)
@@ -51,6 +55,7 @@ pipepath = @pipepath@
 mcpath = @mcpath@
 initdir = @initdir@
 systemdunitdir = @systemdunitdir@
+systemdconfdir = @systemdconfdir@/sssd.service.d
 logpath = @logpath@
 pubconfpath = @pubconfpath@
 pkgconfigdir = $(libdir)/pkgconfig
@@ -2062,9 +2067,12 @@ endif
 
 dist_init_SCRIPTS =
 dist_systemdunit_DATA =
+dist_systemdconf_DATA =
 if HAVE_SYSTEMD_UNIT
     dist_systemdunit_DATA += \
         src/sysv/systemd/sssd.service
+    dist_systemdconf_DATA += \
+        src/sysv/systemd/journal.conf
 else
 if HAVE_SUSE
     dist_init_SCRIPTS += \
@@ -2162,6 +2170,7 @@ endif
 
 if HAVE_SYSTEMD_UNIT
 	mkdir -p $(DESTDIR)$(systemdunitdir)
+	mkdir -p $(DESTDIR)$(systemdconfdir)
 else
 	mkdir -p $(DESTDIR)$(initdir)
 endif

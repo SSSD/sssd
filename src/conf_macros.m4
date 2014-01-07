@@ -221,6 +221,26 @@ AC_DEFUN([WITH_SYSTEMD_UNIT_DIR],
   AC_SUBST(systemdunitdir)
   ])
 
+dnl A macro to configure the directory to install the systemd unit file
+dnl overrides to
+AC_DEFUN([WITH_SYSTEMD_CONF_DIR],
+  [ AC_ARG_WITH([systemdconfdir],
+                [ AC_HELP_STRING([--with-systemdconfdir=DIR],
+                                 [Directory for systemd service file overrides [Auto]]
+                                ),
+                ],
+               )
+  if test x"$with_systemdconfdir" != x; then
+    systemdconfdir=$with_systemdconfdir
+  else
+    systemdconfdir=$($PKG_CONFIG --variable=systemdsystemconfdir systemd)
+    if test x"$systemdconfdir" = x; then
+      AC_MSG_ERROR([Could not detect systemd config directory])
+    fi
+  fi
+  AC_SUBST(systemdconfdir)
+  ])
+
 AC_DEFUN([WITH_MANPAGES],
   [ AC_ARG_WITH([manpages],
                 [AC_HELP_STRING([--with-manpages],
