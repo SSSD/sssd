@@ -136,7 +136,8 @@ if HAVE_CHECK
         debug-tests \
         ipa_hbac-tests \
         sss_idmap-tests \
-        responder_socket_access-tests
+        responder_socket_access-tests \
+        safe-format-tests
 
 if BUILD_SSH
     non_interactive_check_based_tests += sysdb_ssh-tests
@@ -401,6 +402,7 @@ dist_noinst_HEADERS = \
     src/util/util.h \
     src/util/io.h \
     src/util/util_errors.h \
+    src/util/safe-format-string.h \
     src/util/strtonum.h \
     src/util/sss_endian.h \
     src/util/sss_nss.h \
@@ -573,6 +575,7 @@ libsss_util_la_SOURCES = \
     src/sbus/sssd_dbus_server.c \
     src/util/util.c \
     src/util/memory.c \
+    src/util/safe-format-string.c \
     src/util/server.c \
     src/util/signal.c \
     src/util/usertools.c \
@@ -1175,6 +1178,17 @@ util_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 util_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
+
+safe_format_tests_SOURCES = \
+    src/tests/safe-format-tests.c
+safe_format_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+safe_format_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
