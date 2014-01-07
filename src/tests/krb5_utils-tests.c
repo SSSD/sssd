@@ -91,124 +91,6 @@ static void check_dir(const char *dirname, uid_t uid, gid_t gid, mode_t mode)
                                             mode, (stat_buf.st_mode & ~S_IFMT));
 }
 
-START_TEST(test_pub_ccache_dir)
-{
-    int ret;
-    char *cwd;
-    char *testpath;
-    char *dirname;
-    char *subdirname;
-    char *filename;
-
-    fail_unless(getuid() == 0, "This test must be run as root.");
-
-    cwd = getcwd(NULL, 0);
-    fail_unless(cwd != NULL, "getcwd failed.");
-
-    testpath = talloc_asprintf(tmp_ctx, "%s/%s", cwd, TESTS_PATH);
-    free(cwd);
-    fail_unless(testpath != NULL, "talloc_asprintf failed.");
-    dirname = talloc_asprintf(tmp_ctx, "%s/pub_ccdir", testpath);
-    fail_unless(dirname != NULL, "talloc_asprintf failed.");
-    subdirname = talloc_asprintf(tmp_ctx, "%s/subdir", dirname);
-    fail_unless(subdirname != NULL, "talloc_asprintf failed.");
-    filename = talloc_asprintf(tmp_ctx, "%s/ccfile", subdirname);
-    fail_unless(filename != NULL, "talloc_asprintf failed.");
-
-    ret = chmod(testpath, 0754);
-    fail_unless(ret == EOK, "chmod failed.");
-    ret = sss_krb5_precreate_ccache(filename, NULL, 12345, 12345);
-    fail_unless(ret == EINVAL, "sss_krb5_precreate_ccache does not return EINVAL "
-                               "while x-bit is missing.");
-
-    ret = chmod(testpath, 0755);
-    fail_unless(ret == EOK, "chmod failed.");
-    ret = sss_krb5_precreate_ccache(filename, NULL, 12345, 12345);
-    fail_unless(ret == EOK, "sss_krb5_precreate_ccache failed.");
-
-    check_dir(subdirname, 0, 0, 01777);
-    RMDIR(subdirname);
-    check_dir(dirname, 0, 0, 0755);
-    RMDIR(dirname);
-}
-END_TEST
-
-START_TEST(test_pub_ccache_dir_in_user_dir)
-{
-    int ret;
-    char *cwd;
-    char *dirname;
-    char *subdirname;
-    char *filename;
-
-    fail_unless(getuid() == 0, "This test must be run as root.");
-
-    cwd = getcwd(NULL, 0);
-    fail_unless(cwd != NULL, "getcwd failed.");
-
-    dirname = talloc_asprintf(tmp_ctx, "%s/%s/pub_ccdir", cwd, TESTS_PATH);
-    free(cwd);
-    fail_unless(dirname != NULL, "talloc_asprintf failed.");
-    ret = mkdir(dirname, 0700);
-    fail_unless(ret == EOK, "mkdir failed.\n");
-    ret = chown(dirname, 12345, 12345);
-    fail_unless(ret == EOK, "chown failed.\n");
-    subdirname = talloc_asprintf(tmp_ctx, "%s/subdir", dirname);
-    fail_unless(subdirname != NULL, "talloc_asprintf failed.");
-    filename = talloc_asprintf(tmp_ctx, "%s/ccfile", subdirname);
-    fail_unless(filename != NULL, "talloc_asprintf failed.");
-
-    ret = sss_krb5_precreate_ccache(filename, NULL, 12345, 12345);
-    fail_unless(ret == EINVAL, "Creating public ccache dir in user dir "
-                               "does not failed with EINVAL.");
-
-    RMDIR(dirname);
-}
-END_TEST
-
-START_TEST(test_priv_ccache_dir)
-{
-    int ret;
-    char *cwd;
-    char *testpath;
-    char *dirname;
-    char *subdir;
-    char *filename;
-    uid_t uid = 12345;
-    gid_t gid = 12345;
-
-    fail_unless(getuid() == 0, "This test must be run as root.");
-
-    cwd = getcwd(NULL, 0);
-    fail_unless(cwd != NULL, "getcwd failed.");
-
-    testpath = talloc_asprintf(tmp_ctx, "%s/%s", cwd, TESTS_PATH);
-    free(cwd);
-    fail_unless(testpath != NULL, "talloc_asprintf failed.");
-    dirname = talloc_asprintf(tmp_ctx, "%s/base", testpath);
-    subdir = talloc_asprintf(tmp_ctx, "%s/priv_ccdir", dirname);
-    fail_unless(subdir != NULL, "talloc_asprintf failed.");
-    filename = talloc_asprintf(tmp_ctx, "%s/ccfile", subdir);
-    fail_unless(filename != NULL, "talloc_asprintf failed.");
-
-    ret = chmod(testpath, 0754);
-    fail_unless(ret == EOK, "chmod failed.");
-    ret = sss_krb5_precreate_ccache(filename, NULL, uid, gid);
-    fail_unless(ret == EINVAL, "sss_krb5_precreate_ccache does not return EINVAL "
-                               "while x-bit is missing.");
-
-    ret = chmod(testpath, 0755);
-    fail_unless(ret == EOK, "chmod failed.");
-    ret = sss_krb5_precreate_ccache(filename, NULL, uid, gid);
-    fail_unless(ret == EOK, "sss_krb5_precreate_ccache failed.");
-
-    check_dir(subdir, uid, gid, 0700);
-    RMDIR(subdir);
-    check_dir(dirname, 0, 0, 0755);
-    RMDIR(dirname);
-}
-END_TEST
-
 START_TEST(test_private_ccache_dir_in_user_dir)
 {
     int ret;
@@ -736,10 +618,7 @@ Suite *krb5_utils_suite (void)
     tcase_add_test (tc_create_dir, test_illegal_patterns);
     tcase_add_test (tc_create_dir, test_cc_dir_create);
     if (getuid() == 0) {
-        tcase_add_test (tc_create_dir, test_priv_ccache_dir);
         tcase_add_test (tc_create_dir, test_private_ccache_dir_in_user_dir);
-        tcase_add_test (tc_create_dir, test_pub_ccache_dir);
-        tcase_add_test (tc_create_dir, test_pub_ccache_dir_in_user_dir);
         tcase_add_test (tc_create_dir, test_private_ccache_dir_in_wrong_user_dir);
     } else {
         printf("Run as root to enable more tests.\n");
