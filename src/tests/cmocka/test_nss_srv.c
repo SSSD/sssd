@@ -540,8 +540,8 @@ void test_nss_getpwnam_fqdn(void **state)
  * Check that FQDN processing is able to handle arbitrarily sized
  * delimeter
  */
-static int test_nss_getpwnam_check_resize_fqdn(uint32_t status,
-                                               uint8_t *body, size_t blen)
+static int test_nss_getpwnam_check_fancy_fqdn(uint32_t status,
+                                              uint8_t *body, size_t blen)
 {
     struct passwd pwd;
     errno_t ret;
@@ -555,29 +555,28 @@ static int test_nss_getpwnam_check_resize_fqdn(uint32_t status,
 
     assert_int_equal(pwd.pw_uid, 125);
     assert_int_equal(pwd.pw_gid, 458);
-    assert_string_equal(pwd.pw_name, "testuser_fqdn_resize@@@@@"TEST_DOM_NAME);
+    assert_string_equal(pwd.pw_name, "testuser_fqdn_fancy@@@@@"TEST_DOM_NAME);
     assert_string_equal(pwd.pw_shell, "/bin/sh");
     return EOK;
 }
 
-void test_nss_getpwnam_fqdn_resize(void **state)
+void test_nss_getpwnam_fqdn_fancy(void **state)
 {
     errno_t ret;
 
     /* Prime the cache with a valid user */
     ret = sysdb_add_user(nss_test_ctx->tctx->dom,
-                         "testuser_fqdn_resize", 125, 458, "test user",
+                         "testuser_fqdn_fancy", 125, 458, "test user",
                          "/home/testuser", "/bin/sh", NULL,
                          NULL, 300, 0);
     assert_int_equal(ret, EOK);
 
-    mock_input_user_or_group("testuser_fqdn_resize@"TEST_DOM_NAME);
+    mock_input_user_or_group("testuser_fqdn_fancy@"TEST_DOM_NAME);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
     mock_fill_user();
-    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     /* Query for that user, call a callback when command finishes */
-    set_cmd_cb(test_nss_getpwnam_check_resize_fqdn);
+    set_cmd_cb(test_nss_getpwnam_check_fancy_fqdn);
     nss_test_ctx->cctx->rctx->domains[0].fqnames = true;
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
                           nss_test_ctx->nss_cmds);
@@ -1298,7 +1297,7 @@ void nss_subdom_test_setup(void **state)
     nss_test_ctx->subdom = subdomain;
 }
 
-void nss_fqdn_resize_test_setup(void **state)
+void nss_fqdn_fancy_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "enumerate", "false" },
@@ -1339,8 +1338,8 @@ int main(int argc, const char *argv[])
                                  nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getpwnam_fqdn,
                                  nss_fqdn_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwnam_fqdn_resize,
-                                 nss_fqdn_resize_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwnam_fqdn_fancy,
+                                 nss_fqdn_fancy_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getgrnam_no_members,
                                  nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getgrnam_members,

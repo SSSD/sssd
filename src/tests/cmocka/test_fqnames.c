@@ -76,7 +76,6 @@ void test_default(void **state)
     char *fqdn;
     const int fqdn_size = 255;
     char fqdn_s[fqdn_size];
-    size_t domsize;
 
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
@@ -87,7 +86,6 @@ void test_default(void **state)
                                    "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
                                    "%1$s@%2$s", &test_ctx->nctx);
     assert_int_equal(ret, EOK);
-    assert_int_equal(test_ctx->nctx->fq_flags, FQ_FMT_NAME | FQ_FMT_DOMAIN);
 
     fqdn = sss_tc_fqname(test_ctx, test_ctx->nctx, test_ctx->dom, NAME);
     assert_non_null(fqdn);
@@ -97,9 +95,6 @@ void test_default(void **state)
     ret = sss_fqname(fqdn_s, fqdn_size, test_ctx->nctx, test_ctx->dom, NAME);
     assert_int_equal(ret + 1, sizeof(NAME"@"DOMNAME));
     assert_string_equal(fqdn_s, NAME"@"DOMNAME);
-
-    domsize = sss_fqdom_len(test_ctx->nctx, test_ctx->dom);
-    assert_int_equal(domsize, sizeof(DOMNAME)-1);
 
     talloc_free(test_ctx->nctx);
 }
@@ -113,7 +108,6 @@ void test_all(void **state)
     char *fqdn;
     const int fqdn_size = 255;
     char fqdn_s[fqdn_size];
-    size_t domsize;
 
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
@@ -124,8 +118,6 @@ void test_all(void **state)
                                    "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
                                    "%1$s@%2$s@%3$s", &test_ctx->nctx);
     assert_int_equal(ret, EOK);
-    assert_int_equal(test_ctx->nctx->fq_flags,
-                     FQ_FMT_NAME | FQ_FMT_DOMAIN | FQ_FMT_FLAT_NAME);
 
     fqdn = sss_tc_fqname(test_ctx, test_ctx->nctx, test_ctx->dom, NAME);
     assert_non_null(fqdn);
@@ -135,9 +127,6 @@ void test_all(void **state)
     ret = sss_fqname(fqdn_s, fqdn_size, test_ctx->nctx, test_ctx->dom, NAME);
     assert_int_equal(ret + 1, sizeof(NAME"@"DOMNAME"@"FLATNAME));
     assert_string_equal(fqdn_s, NAME"@"DOMNAME"@"FLATNAME);
-
-    domsize = sss_fqdom_len(test_ctx->nctx, test_ctx->dom);
-    assert_int_equal(domsize, sizeof(DOMNAME)-1 + sizeof(FLATNAME)-1);
 
     talloc_free(test_ctx->nctx);
 }
@@ -151,7 +140,6 @@ void test_flat(void **state)
     char *fqdn;
     const int fqdn_size = 255;
     char fqdn_s[fqdn_size];
-    size_t domsize;
 
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
@@ -162,7 +150,6 @@ void test_flat(void **state)
                                    "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
                                    "%1$s@%3$s", &test_ctx->nctx);
     assert_int_equal(ret, EOK);
-    assert_int_equal(test_ctx->nctx->fq_flags, FQ_FMT_NAME | FQ_FMT_FLAT_NAME);
 
     fqdn = sss_tc_fqname(test_ctx, test_ctx->nctx, test_ctx->dom, NAME);
     assert_non_null(fqdn);
@@ -172,9 +159,6 @@ void test_flat(void **state)
     ret = sss_fqname(fqdn_s, fqdn_size, test_ctx->nctx, test_ctx->dom, NAME);
     assert_int_equal(ret + 1, sizeof(NAME"@"FLATNAME));
     assert_string_equal(fqdn_s, NAME"@"FLATNAME);
-
-    domsize = sss_fqdom_len(test_ctx->nctx, test_ctx->dom);
-    assert_int_equal(domsize, sizeof(FLATNAME)-1);
 
     talloc_free(test_ctx->nctx);
 }
@@ -188,7 +172,6 @@ void test_flat_fallback(void **state)
     char *fqdn;
     const int fqdn_size = 255;
     char fqdn_s[fqdn_size];
-    size_t domsize;
 
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
@@ -199,7 +182,6 @@ void test_flat_fallback(void **state)
                                    "(?P<name>[^@]+)@?(?P<domain>[^@]*$)",
                                    "%1$s@%3$s", &test_ctx->nctx);
     assert_int_equal(ret, EOK);
-    assert_int_equal(test_ctx->nctx->fq_flags, FQ_FMT_NAME | FQ_FMT_FLAT_NAME);
 
     test_ctx->dom->flat_name = NULL;
 
@@ -214,9 +196,6 @@ void test_flat_fallback(void **state)
     ret = sss_fqname(fqdn_s, fqdn_size, test_ctx->nctx, test_ctx->dom, NAME);
     assert_int_equal(ret + 1, sizeof(NAME"@"DOMNAME));
     assert_string_equal(fqdn_s, NAME"@"DOMNAME);
-
-    domsize = sss_fqdom_len(test_ctx->nctx, test_ctx->dom);
-    assert_int_equal(domsize, sizeof(DOMNAME)-1);
 
     talloc_free(test_ctx->nctx);
 }

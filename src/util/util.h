@@ -324,14 +324,9 @@ char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid);
 
 char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name);
 
-#define FQ_FMT_NAME         0x01
-#define FQ_FMT_DOMAIN       0x02
-#define FQ_FMT_FLAT_NAME    0x04
-
 struct sss_names_ctx {
     char *re_pattern;
     char *fq_fmt;
-    uint8_t fq_flags;
 
     pcre *re;
 };
@@ -384,14 +379,13 @@ sss_tc_fqname2(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
 /* Return fully-qualified name formatted according to the fq_fmt. The buffer in "str" is
  * "size" bytes long. Returns the number of bytes written on success or a negative
  * value of failure.
+ *
+ * Pass a zero size to calculate the length that would be needed by the fully-qualified
+ * name.
  */
 int
 sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
            struct sss_domain_info *domain, const char *name);
-
-size_t
-sss_fqdom_len(struct sss_names_ctx *nctx,
-              struct sss_domain_info *domain);
 
 /* Subdomains use fully qualified names in the cache while primary domains use
  * just the name. Return either of these for a specified domain or subdomain

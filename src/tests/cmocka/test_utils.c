@@ -531,8 +531,7 @@ void test_sss_names_init(void **state)
     assert_int_equal(ret, EOK);
     assert_non_null(names_ctx);
     assert_string_equal(names_ctx->re_pattern, GLOBAL_RE_EXPRESSION);
-    assert_string_equal(names_ctx->fq_fmt, GLOBAL_FULL_NAME_FORMAT"%3$s");
-    assert_int_equal(names_ctx->fq_flags, FQ_FMT_NAME|FQ_FMT_DOMAIN);
+    assert_string_equal(names_ctx->fq_fmt, GLOBAL_FULL_NAME_FORMAT);
 
     talloc_free(names_ctx);
 
@@ -541,8 +540,7 @@ void test_sss_names_init(void **state)
     assert_int_equal(ret, EOK);
     assert_non_null(names_ctx);
     assert_string_equal(names_ctx->re_pattern, DOMAIN_RE_EXPRESSION);
-    assert_string_equal(names_ctx->fq_fmt, DOMAIN_FULL_NAME_FORMAT"%2$s");
-    assert_int_equal(names_ctx->fq_flags, FQ_FMT_NAME|FQ_FMT_FLAT_NAME);
+    assert_string_equal(names_ctx->fq_fmt, DOMAIN_FULL_NAME_FORMAT);
 
     talloc_free(names_ctx);
 }

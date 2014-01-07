@@ -298,19 +298,13 @@ static int fill_pwent(struct sss_packet *packet,
     uint32_t uid;
     uint32_t gid;
     size_t rsize, rp, blen;
-    size_t dom_len = 0;
-    int delim = 0;
-    int i, ret, num, t;
+    int fq_len = 0;
+    int i, ret, num;
     bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     const char *domain = dom->name;
     bool packet_initialized = false;
     int ncret;
     TALLOC_CTX *tmp_ctx = NULL;
-
-    if (add_domain) {
-        delim = 1;
-        dom_len = sss_fqdom_len(dom->names, dom);
-    }
 
     to_sized_string(&pwfield, nctx->pwfield);
 
@@ -381,7 +375,17 @@ static int fill_pwent(struct sss_packet *packet,
 
         rsize = 2 * sizeof(uint32_t) + name.len + gecos.len +
                                        homedir.len + shell.len + pwfield.len;
-        if (add_domain) rsize += delim + dom_len;
+
+        if (add_domain) {
+            fq_len = sss_fqname(NULL, 0, dom->names, dom, name.str);
+            if (fq_len >= 0) {
+                fq_len += 1;
+                rsize -= name.len;
+                rsize += fq_len;
+            } else {
+                fq_len = 0;
+            }
+        }
 
         ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
@@ -394,25 +398,8 @@ static int fill_pwent(struct sss_packet *packet,
         SAFEALIGN_SET_UINT32(&body[rp], gid, &rp);
 
         if (add_domain) {
-            ret = sss_fqname((char *) &body[rp], name.len + delim + dom_len,
-                             dom->names, dom, name.str);
-            if (ret >= (name.len + delim + dom_len)) {
-                /* need more space, got creative with the print format ? */
-                t = ret - (name.len + delim + dom_len) + 1;
-                ret = sss_packet_grow(packet, t);
-                if (ret != EOK) {
-                    num = 0;
-                    goto done;
-                }
-                delim += t;
-                sss_packet_get_body(packet, &body, &blen);
-
-                /* retry */
-                ret = sss_fqname((char *) &body[rp], name.len + delim + dom_len,
-                                 dom->names, dom, name.str);
-            }
-
-            if (ret != name.len + delim + dom_len - 1) {
+            ret = sss_fqname((char *) &body[rp], fq_len, dom->names, dom, name.str);
+            if (ret < 0 || ret != fq_len - 1) {
                 DEBUG(1, ("Failed to generate a fully qualified name for user "
                           "[%s] in [%s]! Skipping user.\n", name.str, domain));
                 continue;
@@ -2281,8 +2268,7 @@ static int fill_members(struct sss_packet *packet,
     struct sized_string name;
     TALLOC_CTX *tmp_ctx = NULL;
 
-    size_t delim = 0;
-    size_t dom_len = 0;
+    int nlen = 0;
 
     uint8_t *body;
     size_t blen;
@@ -2319,9 +2305,6 @@ static int fill_members(struct sss_packet *packet,
             }
         }
 
-        delim = 0;
-        dom_len = 0;
-
         ret = parse_member(tmp_ctx, dom, tmpstr, &member_dom, &name, &add_domain);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -2330,44 +2313,33 @@ static int fill_members(struct sss_packet *packet,
         }
 
         if (add_domain) {
-            delim = 1;
-            dom_len = sss_fqdom_len(member_dom->names, member_dom);
+            nlen = sss_fqname(NULL, 0, dom->names, dom, name.str);
+            if (nlen >= 0) {
+                nlen += 1;
+            } else {
+                /* Other failures caught below */
+                nlen = 0;
+            }
+        } else {
+            nlen = name.len;
         }
 
-        ret = sss_packet_grow(packet, name.len + delim + dom_len);
+        ret = sss_packet_grow(packet, nlen);
         if (ret != EOK) {
             goto done;
         }
         sss_packet_get_body(packet, &body, &blen);
 
         if (add_domain) {
-            ret = sss_fqname((char *)&body[rzero + rsize],
-                             name.len + delim + dom_len,
+            ret = sss_fqname((char *)&body[rzero + rsize], nlen,
                              member_dom->names, member_dom, name.str);
-            if (ret >= (name.len + delim + dom_len)) {
-                /* need more space,
-                 * got creative with the print format ? */
-                int t = ret - (name.len + delim + dom_len) + 1;
-                ret = sss_packet_grow(packet, t);
-                if (ret != EOK) {
-                    goto done;
-                }
-                sss_packet_get_body(packet, &body, &blen);
-                delim += t;
-
-                /* retry */
-                ret = sss_fqname((char *)&body[rzero + rsize],
-                                name.len + delim + dom_len,
-                                member_dom->names, member_dom, name.str);
-            }
-
-            if (ret != name.len + delim + dom_len - 1) {
+            if (ret < 0 || ret != nlen - 1) {
                 DEBUG(SSSDBG_OP_FAILURE, ("Failed to generate a fully qualified name"
                                           " for member [%s@%s] of group [%s]!"
                                           " Skipping\n", name.str, domain,
                                           (char *)&body[rzero+STRS_ROFFSET]));
                 /* reclaim space */
-                ret = sss_packet_shrink(packet, name.len + delim + dom_len);
+                ret = sss_packet_shrink(packet, nlen);
                 if (ret != EOK) {
                     goto done;
                 }
@@ -2378,7 +2350,7 @@ static int fill_members(struct sss_packet *packet,
             memcpy(&body[rzero + rsize], name.str, name.len);
         }
 
-        rsize += name.len + delim + dom_len;
+        rsize += nlen;
         memnum++;
     }
 
@@ -2409,19 +2381,13 @@ static int fill_grent(struct sss_packet *packet,
     struct sized_string name;
     struct sized_string pwfield;
     struct sized_string fullname;
-    size_t delim = 0;
-    size_t dom_len = 0;
+    int fq_len = 0;
     int i = 0;
     int ret, num, memnum;
     size_t rzero, rsize;
     bool add_domain = (!IS_SUBDOMAIN(dom) && dom->fqnames);
     const char *domain = dom->name;
     TALLOC_CTX *tmp_ctx = NULL;
-
-    if (add_domain) {
-        delim = 1;
-        dom_len = sss_fqdom_len(dom->names, dom);
-    }
 
     to_sized_string(&pwfield, nctx->pwfield);
 
@@ -2483,7 +2449,18 @@ static int fill_grent(struct sss_packet *packet,
 
         /* fill in gid and name and set pointer for number of members */
         rsize = STRS_ROFFSET + name.len + pwfield.len; /* name\0x\0 */
-        if (add_domain) rsize += delim + dom_len;
+
+        if (add_domain) {
+            fq_len = sss_fqname(NULL, 0, dom->names, dom, name.str);
+            if (fq_len >= 0) {
+                fq_len += 1;
+                rsize -= name.len;
+                rsize += fq_len;
+            } else {
+                /* Other failures caught below */
+                fq_len = 0;
+            }
+        }
 
         ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
@@ -2500,28 +2477,9 @@ static int fill_grent(struct sss_packet *packet,
 
         /*  8-X: sequence of strings (name, passwd, mem..) */
         if (add_domain) {
-            ret = sss_fqname((char *)&body[rzero+STRS_ROFFSET],
-                             name.len + delim + dom_len,
+            ret = sss_fqname((char *)&body[rzero+STRS_ROFFSET], fq_len,
                              dom->names, dom, name.str);
-            if (ret >= (name.len + delim + dom_len)) {
-                /* need more space, got creative with the print format ? */
-                int t = ret - (name.len + delim + dom_len) + 1;
-                ret = sss_packet_grow(packet, t);
-                if (ret != EOK) {
-                    num = 0;
-                    goto done;
-                }
-                sss_packet_get_body(packet, &body, &blen);
-                rsize += t;
-                delim += t;
-
-                /* retry */
-                ret = sss_fqname((char *)&body[rzero+STRS_ROFFSET],
-                                 name.len + delim + dom_len,
-                                 dom->names, dom, name.str);
-            }
-
-            if (ret != name.len + delim + dom_len - 1) {
+            if (ret < 0 || ret != fq_len - 1) {
                 DEBUG(1, ("Failed to generate a fully qualified name for"
                           " group [%s] in [%s]! Skipping\n", name.str, domain));
                 /* reclaim space */

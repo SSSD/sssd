@@ -26,6 +26,7 @@
 
 #include "confdb/confdb.h"
 #include "util/util.h"
+#include "util/safe-format-string.h"
 #include "responder/common/responder.h"
 
 #ifdef HAVE_LIBPCRE_LESSER_THAN_7
@@ -138,18 +139,7 @@ done:
 
 static errno_t sss_fqnames_init(struct sss_names_ctx *nctx, const char *fq_fmt)
 {
-    struct pattern_desc {
-        const char *pattern;
-        const char *desc;
-        int flag;
-    };
-
-    struct pattern_desc fqname_patterns[] = {
-        { "%1$s", "user name", FQ_FMT_NAME },
-        { "%2$s", "domain name", FQ_FMT_DOMAIN },
-        { "%3$s", "domain flat name", FQ_FMT_FLAT_NAME },
-        { NULL, NULL, 0 }
-    };
+    char *fq;
 
     nctx->fq_fmt = talloc_strdup(nctx, fq_fmt);
     if (nctx->fq_fmt == NULL) {
@@ -158,34 +148,20 @@ static errno_t sss_fqnames_init(struct sss_names_ctx *nctx, const char *fq_fmt)
 
     DEBUG(SSSDBG_CONF_SETTINGS, ("Using fq format [%s].\n", nctx->fq_fmt));
 
-    /* Fail if the name specifier is missing and warn if the domain
-     * specifier is missing
-     */
-    if (strstr(fq_fmt, fqname_patterns[0].pattern) == NULL) {
+    /* Fail if the name specifier is missing, or if the format is
+     * invalid */
+    fq = sss_tc_fqname2 (nctx, nctx, "unused.example.com", "unused", "the-test-user");
+    if (fq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("The fq format is invalid [%s]", nctx->fq_fmt));
+        return EINVAL;
+    } else if (strstr (fq, "the-test-user") == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               ("Username pattern not found in [%s]\n", nctx->fq_fmt));
         return ENOENT;
     }
-    nctx->fq_flags = FQ_FMT_NAME;
 
-    for (int i = 1; fqname_patterns[i].pattern; i++) {
-        char *s;
-        s = strstr(fq_fmt, fqname_patterns[i].pattern);
-        if (s == NULL) {
-            /* Append the format specifier */
-            nctx->fq_fmt = talloc_strdup_append(nctx->fq_fmt,
-                                                fqname_patterns[i].pattern);
-            if (nctx->fq_fmt == NULL) {
-                return ENOMEM;
-            }
-            continue;
-        }
-
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Found the pattern for %s\n", fqname_patterns[i].desc));
-        nctx->fq_flags |= fqname_patterns[i].flag;
-    }
-
+    talloc_free (fq);
     return EOK;
 }
 
@@ -568,36 +544,18 @@ sss_get_cased_name_list(TALLOC_CTX *mem_ctx, const char * const *orig,
 }
 
 static inline const char *
-safe_fq_str(struct sss_names_ctx *nctx, uint8_t part, const char *str)
-{
-    return nctx->fq_flags & part ? str : "";
-}
-
-static inline const char *
-safe_flat_name(struct sss_names_ctx *nctx, struct sss_domain_info *domain)
+calc_flat_name(struct sss_domain_info *domain)
 {
     const char *s;
 
-    s = safe_fq_str(nctx, FQ_FMT_FLAT_NAME, domain->flat_name);
+    s = domain->flat_name;
     if (s == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Flat name requested but domain has no"
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Flat name requested but domain has no"
               "flat name set, falling back to domain name\n"));
         s = domain->name;
     }
 
     return s;
-}
-
-static inline size_t
-fq_part_len(struct sss_names_ctx *nctx, struct sss_domain_info *dom,
-            uint8_t part, const char *str)
-{
-    const char *s = str;
-
-    if (part == FQ_FMT_FLAT_NAME) {
-        s = safe_flat_name(nctx, dom);
-    }
-    return nctx->fq_flags & part ? strlen(s) : 0;
 }
 
 char *
@@ -606,10 +564,18 @@ sss_tc_fqname(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
 {
     if (domain == NULL || nctx == NULL) return NULL;
 
-    return talloc_asprintf(mem_ctx, nctx->fq_fmt,
-                           safe_fq_str(nctx, FQ_FMT_NAME, name),
-                           safe_fq_str(nctx, FQ_FMT_DOMAIN, domain->name),
-                           safe_flat_name(nctx, domain));
+    return sss_tc_fqname2 (mem_ctx, nctx, domain->name,
+                           calc_flat_name (domain), name);
+}
+
+static void
+safe_talloc_callback (void *data,
+                      const char *piece,
+                      size_t len)
+{
+    char **output = data;
+    if (*output != NULL)
+        *output = talloc_strndup_append(*output, piece, len);
 }
 
 char *
@@ -617,12 +583,17 @@ sss_tc_fqname2(TALLOC_CTX *mem_ctx, struct sss_names_ctx *nctx,
                const char *domain_name, const char *flat_dom_name,
                const char *name)
 {
+    const char *args[] = { name, domain_name, flat_dom_name, NULL };
+    char *output;
+
     if (nctx == NULL) return NULL;
 
-    return talloc_asprintf(mem_ctx, nctx->fq_fmt,
-                           safe_fq_str(nctx, FQ_FMT_NAME, name),
-                           safe_fq_str(nctx, FQ_FMT_DOMAIN, domain_name),
-                           safe_fq_str(nctx, FQ_FMT_FLAT_NAME, flat_dom_name));
+    output = talloc_strdup(mem_ctx, "");
+    if (safe_format_string_cb(safe_talloc_callback, &output, nctx->fq_fmt, args, 3) < 0)
+        output = NULL;
+    else if (output == NULL)
+        errno = ENOMEM;
+    return output;
 }
 
 int
@@ -631,19 +602,8 @@ sss_fqname(char *str, size_t size, struct sss_names_ctx *nctx,
 {
     if (domain == NULL || nctx == NULL) return -EINVAL;
 
-    return snprintf(str, size, nctx->fq_fmt,
-                    safe_fq_str(nctx, FQ_FMT_NAME, name),
-                    safe_fq_str(nctx, FQ_FMT_DOMAIN, domain->name),
-                    safe_flat_name(nctx, domain));
-}
-
-size_t
-sss_fqdom_len(struct sss_names_ctx *nctx,
-              struct sss_domain_info *domain)
-{
-    size_t len = fq_part_len(nctx, domain, FQ_FMT_DOMAIN, domain->name);
-    len += fq_part_len(nctx, domain, FQ_FMT_FLAT_NAME, domain->flat_name);
-    return len;
+    return safe_format_string(str, size, nctx->fq_fmt,
+                              name, domain->name, calc_flat_name (domain), NULL);
 }
 
 char *
