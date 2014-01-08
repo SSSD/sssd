@@ -32,7 +32,76 @@
 #define CONFDB_SIMPLE_ALLOW_GROUPS "simple_allow_groups"
 #define CONFDB_SIMPLE_DENY_GROUPS "simple_deny_groups"
 
+#define TIMEOUT_OF_REFRESH_FILTER_LISTS 5
+
 static void simple_access_check(struct tevent_req *req);
+static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
+                                         struct be_ctx *be_ctx,
+                                         char **list,
+                                         char ***_out);
+
+static int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
+{
+    struct be_ctx *bectx = ctx->be_ctx;
+    int ret;
+    int i;
+    struct {
+        const char *name;
+        const char *option;
+        char **orig_list;
+        char ***ctx_list;
+    } lists[] = {{"Allow users", CONFDB_SIMPLE_ALLOW_USERS, NULL, NULL},
+                 {"Deny users", CONFDB_SIMPLE_DENY_USERS, NULL, NULL},
+                 {"Allow groups", CONFDB_SIMPLE_ALLOW_GROUPS, NULL, NULL},
+                 {"Deny groups", CONFDB_SIMPLE_DENY_GROUPS, NULL, NULL},
+                 {NULL, NULL, NULL, NULL}};
+
+    lists[0].ctx_list = &ctx->allow_users;
+    lists[1].ctx_list = &ctx->deny_users;
+    lists[2].ctx_list = &ctx->allow_groups;
+    lists[3].ctx_list = &ctx->deny_groups;
+
+    ret = sysdb_master_domain_update(bectx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FUNC_DATA, ("Update of master domain failed [%d]: %s.\n",
+                                 ret, sss_strerror(ret)));
+        goto failed;
+    }
+
+    for (i = 0; lists[i].name != NULL; i++) {
+        ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
+                                        lists[i].option, &lists[i].orig_list);
+        if (ret == ENOENT) {
+            DEBUG(SSSDBG_FUNC_DATA, ("%s list is empty.\n", lists[i].name));
+            *lists[i].ctx_list = NULL;
+            continue;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("confdb_get_string_as_list failed.\n"));
+            goto failed;
+        }
+
+        ret = simple_access_parse_names(ctx, bectx, lists[i].orig_list,
+                                        lists[i].ctx_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to parse %s list [%d]: %s\n",
+                                        lists[i].name, ret, sss_strerror(ret)));
+            goto failed;
+        }
+    }
+
+    if (!ctx->allow_users &&
+            !ctx->allow_groups &&
+            !ctx->deny_users &&
+            !ctx->deny_groups) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("No rules supplied for simple access provider. "
+               "Access will be granted for all users.\n"));
+    }
+    return EOK;
+
+failed:
+    return ret;
+}
 
 void simple_access_handler(struct be_req *be_req)
 {
@@ -40,19 +109,34 @@ void simple_access_handler(struct be_req *be_req)
     struct pam_data *pd;
     struct tevent_req *req;
     struct simple_ctx *ctx;
+    int ret;
+    time_t now;
 
     pd = talloc_get_type(be_req_get_data(be_req), struct pam_data);
 
     pd->pam_status = PAM_SYSTEM_ERR;
 
     if (pd->cmd != SSS_PAM_ACCT_MGMT) {
-        DEBUG(4, ("simple access does not handles pam task %d.\n", pd->cmd));
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              ("simple access does not handle pam task %d.\n", pd->cmd));
         pd->pam_status = PAM_MODULE_UNKNOWN;
         goto done;
     }
 
     ctx = talloc_get_type(be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                           struct simple_ctx);
+
+
+    now = time(NULL);
+    if ((now - ctx->last_refresh_of_filter_lists)
+        > TIMEOUT_OF_REFRESH_FILTER_LISTS) {
+
+        ret = simple_access_obtain_filter_lists(ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to refresh filter lists\n"));
+        }
+        ctx->last_refresh_of_filter_lists = now;
+    }
 
     req = simple_access_check_send(be_req, be_ctx->ev, ctx, pd->user);
     if (!req) {
@@ -176,18 +260,6 @@ int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
 {
     int ret = EINVAL;
     struct simple_ctx *ctx;
-    int i;
-    struct {
-        const char *name;
-        const char *option;
-        char **orig_list;
-        char ***ctx_list;
-    } lists[] = {{"Allow users", CONFDB_SIMPLE_ALLOW_USERS, NULL, NULL},
-                 {"Deny users", CONFDB_SIMPLE_DENY_USERS, NULL, NULL},
-                 {"Allow groups", CONFDB_SIMPLE_ALLOW_GROUPS, NULL, NULL},
-                 {"Deny groups", CONFDB_SIMPLE_DENY_GROUPS, NULL, NULL},
-                 {NULL, NULL, NULL, NULL}};
-
     ctx = talloc_zero(bectx, struct simple_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
@@ -196,39 +268,11 @@ int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
 
     ctx->domain = bectx->domain;
     ctx->be_ctx = bectx;
+    ctx->last_refresh_of_filter_lists = 0;
 
-    lists[0].ctx_list = &ctx->allow_users;
-    lists[1].ctx_list = &ctx->deny_users;
-    lists[2].ctx_list = &ctx->allow_groups;
-    lists[3].ctx_list = &ctx->deny_groups;
-
-    for (i = 0; lists[i].name != NULL; i++) {
-        ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
-                                        lists[i].option, &lists[i].orig_list);
-        if (ret == ENOENT) {
-            DEBUG(SSSDBG_FUNC_DATA, ("%s list is empty.\n", lists[i].name));
-            *lists[i].ctx_list = NULL;
-            continue;
-        } else if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("confdb_get_string_as_list failed.\n"));
-            goto failed;
-        }
-
-        ret = simple_access_parse_names(ctx, bectx, lists[i].orig_list,
-                                        lists[i].ctx_list);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to parse %s list [%d]: %s\n",
-                                        lists[i].name, ret, sss_strerror(ret)));
-            goto failed;
-        }
-    }
-
-    if (!ctx->allow_users &&
-            !ctx->allow_groups &&
-            !ctx->deny_users &&
-            !ctx->deny_groups) {
-        DEBUG(SSSDBG_OP_FAILURE, ("No rules supplied for simple access provider. "
-                                  "Access will be granted for all users.\n"));
+    ret = simple_access_obtain_filter_lists(ctx);
+    if (ret != EOK) {
+        goto failed;
     }
 
     *ops = &simple_access_ops;
@@ -240,3 +284,4 @@ failed:
     talloc_free(ctx);
     return ret;
 }
+

@@ -32,6 +32,8 @@ struct simple_ctx {
     char **deny_users;
     char **allow_groups;
     char **deny_groups;
+
+    time_t last_refresh_of_filter_lists;
 };
 
 struct tevent_req *simple_access_check_send(TALLOC_CTX *mem_ctx,
