@@ -149,6 +149,7 @@ if HAVE_CMOCKA
         nss-srv-tests \
         test-find-uid \
         test-io \
+        test-authtok \
         sss_nss_idmap-tests \
         dyndns-tests \
         fqnames-tests \
@@ -1331,6 +1332,20 @@ test_io_CFLAGS = \
     $(AM_CFLAGS)
 test_io_LDADD = \
     $(CMOCKA_LIBS)
+
+test_authtok_SOURCES = \
+    src/tests/cmocka/test_authtok.c \
+    src/util/authtok.c \
+    src/util/util.c
+test_authtok_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(DHASH_CFLAGS)
+test_authtok_LDADD = \
+    $(TALLOC_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(DHASH_LIBS) \
+    libsss_debug.la
 
 sss_nss_idmap_tests_SOURCES = \
     src/tests/cmocka/sss_nss_idmap-tests.c
