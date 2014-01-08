@@ -140,7 +140,9 @@ static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        if (domain == NULL || strcasecmp(domain, be_ctx->domain->name) == 0) {
+        if (domain == NULL || strcasecmp(domain, be_ctx->domain->name) == 0 ||
+            (be_ctx->domain->flat_name != NULL &&
+             strcasecmp(domain, be_ctx->domain->flat_name) == 0)) {
             /* This object belongs to main SSSD domain. Those users and groups
              * are stored without domain part, so we will strip it off.
              * */
