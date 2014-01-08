@@ -183,7 +183,7 @@ sdap_get_ad_match_rule_members_step(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("LDAP search failed: [%s]\n", strerror(ret)));
+              ("LDAP search failed: [%s]\n", sss_strerror(ret)));
         tevent_req_error(req, ret);
         return;
     }

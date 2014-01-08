@@ -208,7 +208,7 @@ sdap_get_ad_match_rule_initgroups_step(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("LDAP search failed: [%s]\n", strerror(ret)));
+              ("LDAP search failed: [%s]\n", sss_strerror(ret)));
         goto error;
     }
 
@@ -383,7 +383,7 @@ static void sdap_get_ad_tokengroups_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("LDAP search failed: [%s]\n", strerror(ret)));
+              ("LDAP search failed: [%s]\n", sss_strerror(ret)));
         goto done;
     }
 

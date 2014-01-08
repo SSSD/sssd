@@ -855,9 +855,15 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
             }
         } else if (dp_error == DP_ERR_OFFLINE) {
             ret = sdap_access_filter_decide_offline(req);
+        } else if (ret == ERR_INVALID_FILTER) {
+            sss_log(SSS_LOG_ERR,
+                    "Malformed access control filter [%s]\n", state->filter);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                ("Malformed access control filter [%s]\n", state->filter));
+            ret = ERR_ACCESS_DENIED;
         } else {
             DEBUG(1, ("sdap_get_generic_send() returned error [%d][%s]\n",
-                      ret, strerror(ret)));
+                      ret, sss_strerror(ret)));
         }
 
         goto done;

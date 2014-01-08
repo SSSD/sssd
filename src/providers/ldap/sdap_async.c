@@ -1306,9 +1306,9 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
                 sss_log(SSS_LOG_ERR, "LDAP connection error, %s",
                                      sss_ldap_err2string(lret));
             }
-        }
-
-        else {
+        } else if (lret == LDAP_FILTER_ERROR) {
+            ret = ERR_INVALID_FILTER;
+        } else {
             ret = EIO;
         }
         goto done;
@@ -1570,7 +1570,7 @@ static void sdap_get_generic_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(4, ("sdap_get_generic_ext_recv failed [%d]: %s\n",
-                  ret, strerror(ret)));
+                  ret, sss_strerror(ret)));
         tevent_req_error(req, ret);
         return;
     }
@@ -1790,7 +1790,7 @@ static void sdap_x_deref_search_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(4, ("sdap_get_generic_ext_recv failed [%d]: %s\n",
-                  ret, strerror(ret)));
+                  ret, sss_strerror(ret)));
         tevent_req_error(req, ret);
         return;
     }
@@ -2049,7 +2049,7 @@ static void sdap_asq_search_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(4, ("sdap_get_generic_ext_recv failed [%d]: %s\n",
-                  ret, strerror(ret)));
+                  ret, sss_strerror(ret)));
         tevent_req_error(req, ret);
         return;
     }
