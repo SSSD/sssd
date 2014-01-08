@@ -1246,7 +1246,7 @@ errno_t sdap_get_user_primary_name(TALLOC_CTX *memctx,
                                    const char **_user_name)
 {
     return sdap_get_primary_name(memctx,
-                                 opts->group_map[SDAP_AT_USER_NAME].name,
+                                 opts->user_map[SDAP_AT_USER_NAME].name,
                                  attrs, dom, _user_name);
 }
 
