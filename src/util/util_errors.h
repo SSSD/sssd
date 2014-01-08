@@ -73,6 +73,7 @@ enum sssd_errors {
     ERR_NOT_FOUND,
     ERR_DOMAIN_NOT_FOUND,
     ERR_MISSING_CONF,
+    ERR_INVALID_FILTER,
     ERR_LAST            /* ALWAYS LAST */
 };
 
