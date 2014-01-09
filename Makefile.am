@@ -142,7 +142,8 @@ if HAVE_CHECK
         ipa_hbac-tests \
         sss_idmap-tests \
         responder_socket_access-tests \
-        safe-format-tests
+        safe-format-tests \
+        sbus_codegen_tests
 
 if BUILD_SSH
     non_interactive_check_based_tests += sysdb_ssh-tests
@@ -449,6 +450,7 @@ dist_noinst_HEADERS = \
     src/responder/ssh/sshsrv_private.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
+    src/sbus/sssd_dbus_meta.h \
     src/sbus/sssd_dbus_private.h \
     src/db/sysdb.h \
     src/db/sysdb_sudo.h \
@@ -580,6 +582,7 @@ libsss_util_la_SOURCES = \
     src/sbus/sbus_client.c \
     src/sbus/sssd_dbus_common.c \
     src/sbus/sssd_dbus_connection.c \
+    src/sbus/sssd_dbus_meta.c \
     src/sbus/sssd_dbus_server.c \
     src/util/util.c \
     src/util/memory.c \
@@ -656,6 +659,37 @@ include_HEADERS = \
     src/providers/ipa/ipa_hbac.h \
     src/lib/idmap/sss_idmap.h \
     src/sss_client/idmap/sss_nss_idmap.h
+
+####################
+# Sbus Codegen     #
+####################
+
+# Yes, the goal here is that the generated files end up in $(srcdir)
+# not $(builddir). Always use $(srcdir) here.
+CODEGEN_XML = \
+    $(srcdir)/src/tests/sbus_codegen_tests.xml
+
+SBUS_CODEGEN = src/sbus/sbus_codegen
+
+EXTRA_DIST += \
+    $(SBUS_CODEGEN) \
+    $(CODEGEN_XML)
+
+SUFFIXES = .xml _generated.h _generated.c
+
+.xml_generated.h:
+	$(srcdir)/$(SBUS_CODEGEN) --mode=header --output=$@ $<
+.xml_generated.c:
+	$(srcdir)/$(SBUS_CODEGEN) --mode=source --output=$@ $<
+
+# Regenerate when codegen changes
+CODEGEN_CODE = \
+    $(CODEGEN_XML:.xml=_generated.c) \
+    $(CODEGEN_XML:.xml=_generated.h)
+
+$(CODEGEN_CODE): $(SBUS_CODEGEN)
+
+BUILT_SOURCES = $(CODEGEN_CODE)
 
 ####################
 # Program Binaries #
@@ -1297,6 +1331,17 @@ krb5_child_test_LDADD = \
     $(SYSTEMD_LOGIN_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
+
+sbus_codegen_tests_SOURCES = \
+   src/tests/sbus_codegen_tests.c \
+   src/tests/sbus_codegen_tests_generated.c \
+   src/tests/sbus_codegen_tests_generated.h
+sbus_codegen_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+sbus_codegen_tests_LDADD = \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS)
 
 if HAVE_CMOCKA
 
