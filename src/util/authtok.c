@@ -171,7 +171,7 @@ errno_t sss_authtok_set_ccfile(struct sss_auth_token *tok,
 
 errno_t sss_authtok_set(struct sss_auth_token *tok,
                         enum sss_authtok_type type,
-                        uint8_t *data, size_t len)
+                        const uint8_t *data, size_t len)
 {
     switch (type) {
     case SSS_AUTHTOK_TYPE_PASSWORD:

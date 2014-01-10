@@ -95,7 +95,7 @@ static void test_sss_authtok_password(void **state)
 
     len = strlen(data) + 1;
     type = SSS_AUTHTOK_TYPE_PASSWORD;
-    ret = sss_authtok_set(ts->authtoken, type, (uint8_t *)data, len);
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *)data, len);
 
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
@@ -134,7 +134,7 @@ static void test_sss_authtok_ccfile(void **state)
 
     len = strlen(data) + 1;
     type = SSS_AUTHTOK_TYPE_CCFILE;
-    ret = sss_authtok_set(ts->authtoken, type, (uint8_t *)data, len);
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *)data, len);
 
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
@@ -158,7 +158,7 @@ static void test_sss_authtok_ccfile(void **state)
     assert_int_equal(len - 1, ret_len);
 
 
-    ret = sss_authtok_set(ts->authtoken, type, (uint8_t *) data, 0);
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *) data, 0);
 
     assert_int_equal(ret, EOK);
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
@@ -236,7 +236,7 @@ static void test_sss_authtok_wipe_password(void **state)
 
     len = strlen(data) + 1;
     type = SSS_AUTHTOK_TYPE_PASSWORD;
-    ret = sss_authtok_set(ts->authtoken, type, (uint8_t *)data, len);
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *)data, len);
 
     assert_int_equal(ret, EOK);
 
@@ -268,14 +268,14 @@ static void test_sss_authtok_copy(void **state)
 
     len = strlen(data) + 1;
     type = SSS_AUTHTOK_TYPE_EMPTY;
-    ret = sss_authtok_set(ts->authtoken, type, (uint8_t *)data, len);
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *)data, len);
 
     assert_int_equal(ret, EOK);
     assert_int_equal(EOK, sss_authtok_copy(ts->authtoken, dest_authtoken));
     assert_int_equal(type, sss_authtok_get_type(dest_authtoken));
 
     type = SSS_AUTHTOK_TYPE_PASSWORD;
-    ret = sss_authtok_set(ts->authtoken, type, (uint8_t *)data, len);
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *)data, len);
 
     assert_int_equal(ret, EOK);
 

@@ -131,7 +131,7 @@ void sss_authtok_set_empty(struct sss_auth_token *tok);
  * @param tok        A pointer to a sss_auth_token structure to change, also
  *                   used as a memory context to allocate the internal data.
  * @param type       A valid authtok type
- * @param ccfile     A data pointer
+ * @param data       A data pointer
  * @param len        The length of the data
  *
  * @return       EOK on success
@@ -139,7 +139,7 @@ void sss_authtok_set_empty(struct sss_auth_token *tok);
  */
 errno_t sss_authtok_set(struct sss_auth_token *tok,
                         enum sss_authtok_type type,
-                        uint8_t *data, size_t len);
+                        const uint8_t *data, size_t len);
 
 /**
  * @brief Copy an auth token from source to destination
