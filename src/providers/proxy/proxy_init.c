@@ -30,16 +30,20 @@
 static int client_registration(DBusMessage *message,
                                struct sbus_connection *conn);
 
-static struct sbus_method proxy_methods[] = {
-    { DP_METHOD_REGISTER, client_registration },
-    { NULL, NULL }
+static struct data_provider_iface proxy_methods = {
+    { &data_provider_iface_meta, 0 },
+    .RegisterService = client_registration,
+    .pamHandler = NULL,
+    .sudoHandler = NULL,
+    .autofsHandler = NULL,
+    .hostHandler = NULL,
+    .getDomains = NULL,
+    .getAccountInfo = NULL,
 };
 
 struct sbus_interface proxy_interface = {
-    DP_INTERFACE,
     DP_PATH,
-    SBUS_DEFAULT_VTABLE,
-    proxy_methods,
+    &proxy_methods.vtable,
     NULL
 };
 

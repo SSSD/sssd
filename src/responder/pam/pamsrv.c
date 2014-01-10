@@ -47,30 +47,38 @@
 
 #define DEFAULT_PAM_FD_LIMIT 8192
 
-struct sbus_method monitor_pam_methods[] = {
-    { MON_CLI_METHOD_PING, monitor_common_pong },
-    { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
-    { MON_CLI_METHOD_ROTATE, responder_logrotate },
-    { NULL, NULL }
+struct mon_cli_iface monitor_pam_methods = {
+    { &mon_cli_iface_meta, 0 },
+    .ping = monitor_common_pong,
+    .resInit = monitor_common_res_init,
+    .shutDown = NULL,
+    .goOffline = NULL,
+    .resetOffline = NULL,
+    .rotateLogs = responder_logrotate,
+    .clearMemcache = NULL,
+    .clearEnumCache = NULL,
 };
 
 struct sbus_interface monitor_pam_interface = {
-    MONITOR_INTERFACE,
     MONITOR_PATH,
-    SBUS_DEFAULT_VTABLE,
-    monitor_pam_methods,
+    &monitor_pam_methods.vtable,
     NULL
 };
 
-static struct sbus_method pam_dp_methods[] = {
-        { NULL, NULL }
+static struct data_provider_iface pam_dp_methods = {
+    { &data_provider_iface_meta, 0 },
+    .RegisterService = NULL,
+    .pamHandler = NULL,
+    .sudoHandler = NULL,
+    .autofsHandler = NULL,
+    .hostHandler = NULL,
+    .getDomains = NULL,
+    .getAccountInfo = NULL,
 };
 
 struct sbus_interface pam_dp_interface = {
-    DP_INTERFACE,
     DP_PATH,
-    SBUS_DEFAULT_VTABLE,
-    pam_dp_methods,
+    &pam_dp_methods.vtable,
     NULL
 };
 

@@ -32,31 +32,38 @@
 static int autofs_clean_hash_table(DBusMessage *message,
                                    struct sbus_connection *conn);
 
-struct sbus_method monitor_autofs_methods[] = {
-    { MON_CLI_METHOD_PING, monitor_common_pong },
-    { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
-    { MON_CLI_METHOD_ROTATE, responder_logrotate },
-    { MON_CLI_METHOD_CLEAR_ENUM_CACHE, autofs_clean_hash_table },
-    { NULL, NULL }
+struct mon_cli_iface monitor_autofs_methods = {
+    { &mon_cli_iface_meta, 0 },
+    .ping = monitor_common_pong,
+    .resInit = monitor_common_res_init,
+    .shutDown = NULL,
+    .goOffline = NULL,
+    .resetOffline = NULL,
+    .rotateLogs = responder_logrotate,
+    .clearMemcache = NULL,
+    .clearEnumCache = autofs_clean_hash_table,
 };
 
 struct sbus_interface monitor_autofs_interface = {
-    MONITOR_INTERFACE,
     MONITOR_PATH,
-    SBUS_DEFAULT_VTABLE,
-    monitor_autofs_methods,
+    &monitor_autofs_methods.vtable,
     NULL
 };
 
-static struct sbus_method autofs_dp_methods[] = {
-    { NULL, NULL }
+static struct data_provider_iface autofs_dp_methods = {
+    { &data_provider_iface_meta, 0 },
+    .RegisterService = NULL,
+    .pamHandler = NULL,
+    .sudoHandler = NULL,
+    .autofsHandler = NULL,
+    .hostHandler = NULL,
+    .getDomains = NULL,
+    .getAccountInfo = NULL,
 };
 
 struct sbus_interface autofs_dp_interface = {
-    DP_INTERFACE,
     DP_PATH,
-    SBUS_DEFAULT_VTABLE,
-    autofs_dp_methods,
+    &autofs_dp_methods.vtable,
     NULL
 };
 

@@ -21,6 +21,8 @@
 
 #include "sbus/sssd_dbus.h"
 
+#include "monitor/monitor_iface_generated.h"
+
 /*** Monitor ***/
 
 #define MONITOR_VERSION 0x0001

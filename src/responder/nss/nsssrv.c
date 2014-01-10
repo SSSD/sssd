@@ -60,20 +60,21 @@ static int nss_clear_memcache(DBusMessage *message,
 static int nss_clear_netgroup_hash_table(DBusMessage *message,
                                          struct sbus_connection *conn);
 
-struct sbus_method monitor_nss_methods[] = {
-    { MON_CLI_METHOD_PING, monitor_common_pong },
-    { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
-    { MON_CLI_METHOD_ROTATE, responder_logrotate },
-    { MON_CLI_METHOD_CLEAR_MEMCACHE, nss_clear_memcache},
-    { MON_CLI_METHOD_CLEAR_ENUM_CACHE, nss_clear_netgroup_hash_table},
-    { NULL, NULL }
+struct mon_cli_iface monitor_nss_methods = {
+    { &mon_cli_iface_meta, 0 },
+    .ping = monitor_common_pong,
+    .resInit = monitor_common_res_init,
+    .shutDown = NULL,
+    .goOffline = NULL,
+    .resetOffline = NULL,
+    .rotateLogs = responder_logrotate,
+    .clearMemcache = nss_clear_memcache,
+    .clearEnumCache = nss_clear_netgroup_hash_table
 };
 
 struct sbus_interface monitor_nss_interface = {
-    MONITOR_INTERFACE,
     MONITOR_PATH,
-    SBUS_DEFAULT_VTABLE,
-    monitor_nss_methods,
+    &monitor_nss_methods.vtable,
     NULL
 };
 
@@ -372,17 +373,15 @@ static int nss_memcache_initgr_check(DBusMessage *message,
     return EOK;
 }
 
-static struct sbus_method nss_dp_methods[] = {
-    { DP_REV_METHOD_UPDATE_CACHE, nss_update_memcache },
-    { DP_REV_METHOD_INITGR_CHECK, nss_memcache_initgr_check },
-    { NULL, NULL }
+static struct data_provider_rev_iface nss_dp_methods = {
+    { &data_provider_rev_iface_meta, 0 },
+    .updateCache = nss_update_memcache,
+    .initgrCheck = nss_memcache_initgr_check
 };
 
 struct sbus_interface nss_dp_interface = {
-    DP_REV_INTERFACE,
     DP_PATH,
-    SBUS_DEFAULT_VTABLE,
-    nss_dp_methods,
+    &nss_dp_methods.vtable,
     NULL
 };
 

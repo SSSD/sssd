@@ -1,0 +1,41 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+    <interface name="org.freedesktop.sssd.monitor">
+        <annotation value="mon_srv_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <method name="getVersion">
+            <!-- manual argument parsing -->
+        </method>
+        <method name="RegisterService">
+            <!-- manual argument parsing -->
+        </method>
+    </interface>
+
+    <interface name="org.freedesktop.sssd.service">
+        <annotation value="mon_cli_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <method name="ping">
+            <!-- no arguments -->
+        </method>
+        <method name="resInit">
+            <!-- no arguments -->
+        </method>
+        <method name="shutDown">
+            <!-- no arguments -->
+        </method>
+        <method name="goOffline">
+            <!-- no arguments -->
+        </method>
+        <method name="resetOffline">
+            <!-- no arguments -->
+        </method>
+        <method name="rotateLogs">
+            <!-- no arguments -->
+        </method>
+        <method name="clearMemcache">
+            <!-- no arguments -->
+        </method>
+        <method name="clearEnumCache">
+            <!-- no arguments -->
+        </method>
+    </interface>
+</node>

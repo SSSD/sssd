@@ -63,20 +63,21 @@ static int data_provider_reset_offline(DBusMessage *message,
 static int data_provider_logrotate(DBusMessage *message,
                                 struct sbus_connection *conn);
 
-struct sbus_method monitor_be_methods[] = {
-    { MON_CLI_METHOD_PING, monitor_common_pong },
-    { MON_CLI_METHOD_RES_INIT, data_provider_res_init },
-    { MON_CLI_METHOD_OFFLINE, data_provider_go_offline },
-    { MON_CLI_METHOD_RESET_OFFLINE, data_provider_reset_offline },
-    { MON_CLI_METHOD_ROTATE, data_provider_logrotate },
-    { NULL, NULL }
+struct mon_cli_iface monitor_be_methods = {
+    { &mon_cli_iface_meta, 0 },
+    .ping = monitor_common_pong,
+    .resInit = data_provider_res_init,
+    .shutDown = NULL,
+    .goOffline = data_provider_go_offline,
+    .resetOffline = data_provider_reset_offline,
+    .rotateLogs = data_provider_logrotate,
+    .clearMemcache = NULL,
+    .clearEnumCache = NULL,
 };
 
 struct sbus_interface monitor_be_interface = {
-    MONITOR_INTERFACE,
     MONITOR_PATH,
-    SBUS_DEFAULT_VTABLE,
-    monitor_be_methods,
+    &monitor_be_methods.vtable,
     NULL
 };
 
@@ -88,22 +89,20 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
 static int be_host_handler(DBusMessage *message, struct sbus_connection *conn);
 static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn);
 
-struct sbus_method be_methods[] = {
-    { DP_METHOD_REGISTER, client_registration },
-    { DP_METHOD_GETACCTINFO, be_get_account_info },
-    { DP_METHOD_PAMHANDLER, be_pam_handler },
-    { DP_METHOD_SUDOHANDLER, be_sudo_handler },
-    { DP_METHOD_AUTOFSHANDLER, be_autofs_handler },
-    { DP_METHOD_HOSTHANDLER, be_host_handler },
-    { DP_METHOD_GETDOMAINS, be_get_subdomains },
-    { NULL, NULL }
+struct data_provider_iface be_methods = {
+    { &data_provider_iface_meta, 0 },
+    .RegisterService = client_registration,
+    .pamHandler = be_pam_handler,
+    .sudoHandler = be_sudo_handler,
+    .autofsHandler = be_autofs_handler,
+    .hostHandler = be_host_handler,
+    .getDomains = be_get_subdomains,
+    .getAccountInfo = be_get_account_info,
 };
 
 struct sbus_interface be_interface = {
-    DP_INTERFACE,
     DP_PATH,
-    SBUS_DEFAULT_VTABLE,
-    be_methods,
+    &be_methods.vtable,
     NULL
 };
 

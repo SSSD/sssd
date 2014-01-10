@@ -525,17 +525,15 @@ static int add_services_startup_timeout(struct mt_ctx *ctx)
     return EOK;
 }
 
-struct sbus_method monitor_methods[] = {
-    { MON_SRV_METHOD_VERSION, get_monitor_version },
-    { MON_SRV_METHOD_REGISTER, client_registration },
-    { NULL, NULL }
+struct mon_srv_iface monitor_methods = {
+    { &mon_srv_iface_meta, 0 },
+    .getVersion = get_monitor_version,
+    .RegisterService = client_registration,
 };
 
 struct sbus_interface monitor_server_interface = {
-    MON_SRV_INTERFACE,
     MON_SRV_PATH,
-    SBUS_DEFAULT_VTABLE,
-    monitor_methods,
+    &monitor_methods.vtable,
     NULL
 };
 

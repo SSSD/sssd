@@ -42,6 +42,7 @@
 #include "sbus/sbus_client.h"
 #include "sss_client/sss_cli.h"
 #include "util/authtok.h"
+#include "providers/data_provider_iface_generated.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_PIPE "private/sbus-dp"
