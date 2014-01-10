@@ -29,26 +29,9 @@
 
 /*** Monitor SRV Interface ***/
 #define MON_SRV_PATH "/org/freedesktop/sssd/monitor"
-#define MON_SRV_INTERFACE "org.freedesktop.sssd.monitor"
-
-/* Monitor SRV Methods */
-#define MON_SRV_METHOD_VERSION "getVersion"
-#define MON_SRV_METHOD_REGISTER "RegisterService"
 
 /*** Monitor CLI Interface ***/
 #define MONITOR_PATH "/org/freedesktop/sssd/service"
-#define MONITOR_INTERFACE "org.freedesktop.sssd.service"
-
-/* Monitor CLI Methods */
-#define MON_CLI_METHOD_IDENTITY "getIdentity"
-#define MON_CLI_METHOD_PING "ping"
-#define MON_CLI_METHOD_SHUTDOWN "shutDown"
-#define MON_CLI_METHOD_RES_INIT "resInit"
-#define MON_CLI_METHOD_OFFLINE "goOffline" /* Applicable only to providers */
-#define MON_CLI_METHOD_RESET_OFFLINE "resetOffline" /* Applicable only to providers */
-#define MON_CLI_METHOD_ROTATE "rotateLogs"
-#define MON_CLI_METHOD_CLEAR_MEMCACHE "clearMemcache"
-#define MON_CLI_METHOD_CLEAR_ENUM_CACHE "clearEnumCache"
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"
 

@@ -48,22 +48,7 @@
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_PIPE "private/sbus-dp"
 
-#define DP_INTERFACE "org.freedesktop.sssd.dataprovider"
 #define DP_PATH "/org/freedesktop/sssd/dataprovider"
-
-#define DP_METHOD_REGISTER "RegisterService"
-#define DP_METHOD_GETACCTINFO "getAccountInfo"
-#define DP_METHOD_SUDOHANDLER "sudoHandler"
-#define DP_METHOD_AUTOFSHANDLER "autofsHandler"
-#define DP_METHOD_HOSTHANDLER "hostHandler"
-#define DP_METHOD_GETDOMAINS "getDomains"
-
-/* this is a reverse method sent from providers to
- * the nss responder to tell it to update the mmap
- * cache */
-#define DP_REV_INTERFACE "org.freedesktop.sssd.dataprovider_rev"
-#define DP_REV_METHOD_UPDATE_CACHE "updateCache"
-#define DP_REV_METHOD_INITGR_CHECK "initgrCheck"
 
 /**
  * @defgroup pamHandler PAM DBUS request
@@ -124,8 +109,6 @@
  * of the message.
  */
 
-
-#define DP_METHOD_PAMHANDLER "pamHandler"
 
 /**
  * @}
