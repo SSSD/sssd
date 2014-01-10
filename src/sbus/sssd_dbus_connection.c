@@ -25,9 +25,13 @@
 #include "util/util.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sssd_dbus_private.h"
+#include "sbus/sssd_dbus_meta.h"
 
 /* Types */
 struct dbus_ctx_list;
+
+static DBusObjectPathVTable dbus_object_path_vtable =
+    { NULL, sbus_message_handler, NULL, NULL, NULL, NULL };
 
 struct sbus_interface_p {
     struct sbus_interface_p *prev, *next;
@@ -394,6 +398,10 @@ static int sbus_reply_internal_error(DBusMessage *message,
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 }
 
+/* Looks up a vtable func, in a struct derived from struct sbus_vtable */
+#define VTABLE_FUNC(vtable, offset) \
+    (*((void **)((char *)(vtable) + (offset))))
+
 /* messsage_handler
  * Receive messages and process them
  */
@@ -402,24 +410,26 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
                                          void *user_data)
 {
     struct sbus_interface_p *intf_p;
-    const char *method;
+    const char *msg_method;
     const char *path;
     const char *msg_interface;
     DBusMessage *reply = NULL;
-    int i, ret;
-    int found;
+    const struct sbus_method_meta *method;
+    const struct sbus_interface_meta *interface;
+    sbus_msg_handler_fn handler_fn;
+    int ret;
 
     if (!user_data) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
     intf_p = talloc_get_type(user_data, struct sbus_interface_p);
 
-    method = dbus_message_get_member(message);
-    DEBUG(SSSDBG_TRACE_ALL, "Received SBUS method [%s]\n", method);
+    msg_method = dbus_message_get_member(message);
+    DEBUG(SSSDBG_TRACE_ALL, "Received SBUS method [%s]\n", msg_method);
     path = dbus_message_get_path(message);
     msg_interface = dbus_message_get_interface(message);
 
-    if (!method || !path || !msg_interface)
+    if (!msg_method || !path || !msg_interface)
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
     /* Validate the D-BUS path */
@@ -427,26 +437,33 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
     /* Validate the method interface */
-    if (strcmp(msg_interface, intf_p->intf->interface) == 0) {
-        found = 0;
-        for (i = 0; intf_p->intf->methods[i].method != NULL; i++) {
-            if (strcmp(method, intf_p->intf->methods[i].method) == 0) {
-                found = 1;
-                ret = intf_p->intf->methods[i].fn(message, intf_p->conn);
-                if (ret != EOK) {
-                    return sbus_reply_internal_error(message, intf_p->conn);
-                }
-                break;
-            }
-        }
+    interface = intf_p->intf->vtable->meta;
+    if (strcmp(msg_interface, interface->name) == 0) {
+        handler_fn = NULL;
+        method = sbus_meta_find_method(interface, msg_method);
+        if (method && method->vtable_offset)
+            handler_fn = VTABLE_FUNC(intf_p->intf->vtable, method->vtable_offset);
 
-        if (!found) {
+        if (!method) {
             /* Reply DBUS_ERROR_UNKNOWN_METHOD */
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "No matching method found for %s.\n", method);
+                  "No matching method found for %s.\n", msg_method);
             reply = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
             sbus_conn_send_reply(intf_p->conn, reply);
             dbus_message_unref(reply);
+
+        } else if (!handler_fn) {
+            /* Reply DBUS_ERROR_NOT_SUPPORTED */
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "No handler provided found for %s.\n", msg_method);
+            reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, NULL);
+            sbus_conn_send_reply(intf_p->conn, reply);
+            dbus_message_unref(reply);
+
+        } else {
+            ret = handler_fn(message, intf_p->conn);
+            if (ret != EOK)
+                return sbus_reply_internal_error(message, intf_p->conn);
         }
     }
     else {
@@ -454,7 +471,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
          * This is usually only useful for system bus connections
          */
         if (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
-            strcmp(method, DBUS_INTROSPECT_METHOD) == 0)
+            strcmp(msg_method, DBUS_INTROSPECT_METHOD) == 0)
         {
             if (intf_p->intf->introspect_fn) {
                 /* If we have been asked for introspection data and we have
@@ -483,7 +500,7 @@ int sbus_conn_add_interface(struct sbus_connection *conn,
     dbus_bool_t dbret;
     const char *path;
 
-    if (!conn || !intf || !intf->vtable.message_function) {
+    if (!conn || !intf || !intf->vtable || !intf->vtable->meta) {
         return EINVAL;
     }
 
@@ -505,7 +522,7 @@ int sbus_conn_add_interface(struct sbus_connection *conn,
     DLIST_ADD(conn->intf_list, intf_p);
 
     dbret = dbus_connection_register_object_path(conn->dbus.conn,
-                                                 path, &intf->vtable, intf_p);
+                                                 path, &dbus_object_path_vtable, intf_p);
     if (!dbret) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Could not register object path to the connection.\n");
@@ -586,7 +603,7 @@ static void sbus_reconnect(struct tevent_context *ev,
         while (iter) {
             dbret = dbus_connection_register_object_path(conn->dbus.conn,
                                                          iter->intf->path,
-                                                         &iter->intf->vtable,
+                                                         &dbus_object_path_vtable,
                                                          iter);
             if (!dbret) {
                 DEBUG(SSSDBG_FATAL_FAILURE,

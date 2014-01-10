@@ -325,7 +325,11 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_common.c \
     src/responder/common/responder_dp.c \
     src/responder/common/responder_packet.c \
-    src/responder/common/responder_get_domains.c
+    src/responder/common/responder_get_domains.c \
+    src/monitor/monitor_iface_generated.c \
+    src/monitor/monitor_iface_generated.h \
+    src/providers/data_provider_iface_generated.c \
+    src/providers/data_provider_iface_generated.h
 
 SSSD_TOOLS_OBJ = \
     src/tools/sss_sync_ops.c \
@@ -667,7 +671,9 @@ include_HEADERS = \
 # Yes, the goal here is that the generated files end up in $(srcdir)
 # not $(builddir). Always use $(srcdir) here.
 CODEGEN_XML = \
-    $(srcdir)/src/tests/sbus_codegen_tests.xml
+    $(srcdir)/src/tests/sbus_codegen_tests.xml \
+    $(srcdir)/src/monitor/monitor_iface.xml \
+    $(srcdir)/src/providers/data_provider_iface.xml
 
 SBUS_CODEGEN = src/sbus/sbus_codegen
 
@@ -698,7 +704,9 @@ sssd_SOURCES = \
     src/monitor/monitor.c \
     src/monitor/monitor_netlink.c \
     src/confdb/confdb_setup.c \
-    src/util/nscd.c
+    src/util/nscd.c \
+    src/monitor/monitor_iface_generated.c \
+    src/monitor/monitor_iface_generated.h
 sssd_LDADD = \
     $(SSSD_LIBS) \
     $(INOTIFY_LIBS) \
@@ -791,6 +799,10 @@ sssd_be_SOURCES = \
     src/providers/dp_dyndns.c \
     src/providers/dp_ptask.c \
     src/providers/dp_refresh.c \
+    src/monitor/monitor_iface_generated.c \
+    src/monitor/monitor_iface_generated.h \
+    src/providers/data_provider_iface_generated.c \
+    src/providers/data_provider_iface_generated.h \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
     $(LIBADD_DL) \
@@ -1201,6 +1213,10 @@ simple_access_tests_SOURCES = \
     src/providers/data_provider_callbacks.c \
     src/providers/dp_ptask.c \
     src/providers/dp_refresh.c \
+    src/monitor/monitor_iface_generated.c \
+    src/monitor/monitor_iface_generated.h \
+    src/providers/data_provider_iface_generated.c \
+    src/providers/data_provider_iface_generated.h \
     $(SSSD_FAILOVER_OBJ)
 simple_access_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1794,7 +1810,9 @@ libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_id.c \
     src/providers/proxy/proxy_netgroup.c \
     src/providers/proxy/proxy_services.c \
-    src/providers/proxy/proxy_auth.c
+    src/providers/proxy/proxy_auth.c \
+    src/providers/data_provider_iface_generated.c \
+    src/providers/data_provider_iface_generated.h
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_proxy_la_LIBADD = \
@@ -1990,7 +2008,9 @@ ldap_child_LDADD = \
     $(KRB5_LIBS)
 
 proxy_child_SOURCES = \
-    src/providers/proxy/proxy_child.c
+    src/providers/proxy/proxy_child.c \
+    src/providers/data_provider_iface_generated.c \
+    src/providers/data_provider_iface_generated.h
 proxy_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS)

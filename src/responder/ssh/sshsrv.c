@@ -28,30 +28,38 @@
 #include "responder/ssh/sshsrv_private.h"
 #include "providers/data_provider.h"
 
-struct sbus_method monitor_ssh_methods[] = {
-    { MON_CLI_METHOD_PING, monitor_common_pong },
-    { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
-    { MON_CLI_METHOD_ROTATE, responder_logrotate },
-    { NULL, NULL }
+struct mon_cli_iface monitor_ssh_methods = {
+    { &mon_cli_iface_meta, 0 },
+    .ping = monitor_common_pong,
+    .resInit = monitor_common_res_init,
+    .shutDown = NULL,
+    .goOffline = NULL,
+    .resetOffline = NULL,
+    .rotateLogs = responder_logrotate,
+    .clearMemcache = NULL,
+    .clearEnumCache = NULL,
 };
 
 struct sbus_interface monitor_ssh_interface = {
-    MONITOR_INTERFACE,
     MONITOR_PATH,
-    SBUS_DEFAULT_VTABLE,
-    monitor_ssh_methods,
+    &monitor_ssh_methods.vtable,
     NULL
 };
 
-static struct sbus_method ssh_dp_methods[] = {
-    { NULL, NULL }
+static struct data_provider_iface ssh_dp_methods = {
+    { &data_provider_iface_meta, 0 },
+    .RegisterService = NULL,
+    .pamHandler = NULL,
+    .sudoHandler = NULL,
+    .autofsHandler = NULL,
+    .hostHandler = NULL,
+    .getDomains = NULL,
+    .getAccountInfo = NULL,
 };
 
 struct sbus_interface ssh_dp_interface = {
-    DP_INTERFACE,
     DP_PATH,
-    SBUS_DEFAULT_VTABLE,
-    ssh_dp_methods,
+    &ssh_dp_methods.vtable,
     NULL
 };
 

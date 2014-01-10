@@ -74,18 +74,9 @@ struct sbus_vtable {
 #define DBUS_INTROSPECT_INTERFACE "org.freedesktop.DBus.Introspectable"
 #define DBUS_INTROSPECT_METHOD "Introspect"
 
-#define SBUS_DEFAULT_VTABLE { NULL, sbus_message_handler, NULL, NULL, NULL, NULL }
-
-struct sbus_method {
-    const char *method;
-    sbus_msg_handler_fn fn;
-};
-
 struct sbus_interface {
-    const char *interface;
     const char *path;
-    DBusObjectPathVTable vtable;
-    struct sbus_method *methods;
+    struct sbus_vtable *vtable;
     sbus_msg_handler_fn introspect_fn;
 };
 

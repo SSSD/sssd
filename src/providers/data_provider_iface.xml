@@ -1,0 +1,38 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+    <interface name="org.freedesktop.sssd.dataprovider">
+        <annotation value="data_provider_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <method name="RegisterService">
+            <!-- arguments parsed manually -->
+        </method>
+        <method name="pamHandler">
+            <!-- arguments parsed manually -->
+        </method>
+        <method name="sudoHandler">
+            <!-- arguments parsed manually -->
+        </method>
+        <method name="autofsHandler">
+            <!-- arguments parsed manually -->
+        </method>
+        <method name="hostHandler">
+            <!-- arguments parsed manually -->
+        </method>
+        <method name="getDomains">
+            <!-- arguments parsed manually -->
+        </method>
+        <method name="getAccountInfo">
+            <!-- arguments parsed manually -->
+        </method>
+    </interface>
+
+    <interface name="org.freedesktop.sssd.dataprovider_rev">
+        <annotation value="data_provider_rev_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <method name="updateCache">
+            <!-- manual argument parsing -->
+        </method>
+        <method name="initgrCheck">
+            <!-- manual argument parsing -->
+        </method>
+    </interface>
+</node>

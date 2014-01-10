@@ -49,16 +49,20 @@
 
 static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn);
 
-struct sbus_method pc_methods[] = {
-    { DP_METHOD_PAMHANDLER, pc_pam_handler },
-    { NULL, NULL }
+struct data_provider_iface pc_methods = {
+    { &data_provider_iface_meta, 0 },
+    .RegisterService = NULL,
+    .pamHandler = pc_pam_handler,
+    .sudoHandler = NULL,
+    .autofsHandler = NULL,
+    .hostHandler = NULL,
+    .getDomains = NULL,
+    .getAccountInfo = NULL,
 };
 
 struct sbus_interface pc_interface = {
-    DP_INTERFACE,
     DP_PATH,
-    SBUS_DEFAULT_VTABLE,
-    pc_methods,
+    &pc_methods.vtable,
     NULL
 };
 
