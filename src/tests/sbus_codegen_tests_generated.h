@@ -6,6 +6,25 @@
 #include "sbus/sssd_dbus.h"
 
 /* ------------------------------------------------------------------------
+ * DBus Vtable handler structures
+ *
+ * These structures are filled in by implementors of the different
+ * dbus interfaces to handle method calls.
+ *
+ * Handler functions of type sbus_msg_handler_fn accept raw messages,
+ * other handlers will be typed appropriately. If a handler that is
+ * set to NULL is invoked it will result in a
+ * org.freedesktop.DBus.Error.NotSupported error for the caller.
+ */
+
+/* vtable for com.planetexpress.Ship */
+struct com_planetexpress_Ship {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    sbus_msg_handler_fn MoveUniverse;
+    sbus_msg_handler_fn crash_now;
+};
+
+/* ------------------------------------------------------------------------
  * DBus Interface Metadata
  *
  * These structure definitions are filled in with the information about

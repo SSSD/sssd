@@ -42,6 +42,7 @@ struct sbus_method_meta {
     const char *name;
     const struct sbus_arg_meta *in_args;
     const struct sbus_arg_meta *out_args;
+    size_t vtable_offset;
 };
 
 enum {

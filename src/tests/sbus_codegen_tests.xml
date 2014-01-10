@@ -29,6 +29,11 @@
         <signal name="BecameSentient">
             <arg name="gender" type="s"/>
         </signal>
+
+        <!-- A method with a specific c name -->
+        <method name="Crash">
+            <annotation value="crash_now" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        </method>
     </interface>
 
     <!--
