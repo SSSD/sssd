@@ -6,6 +6,27 @@
 #include "sbus/sssd_dbus.h"
 
 /* ------------------------------------------------------------------------
+ * DBus Constants
+ *
+ * Various constants of interface and method names mostly for use by clients
+ */
+
+/* constants for org.freedesktop.sssd.dataprovider */
+#define DATA_PROVIDER_IFACE "org.freedesktop.sssd.dataprovider"
+#define DATA_PROVIDER_IFACE_REGISTERSERVICE "RegisterService"
+#define DATA_PROVIDER_IFACE_PAMHANDLER "pamHandler"
+#define DATA_PROVIDER_IFACE_SUDOHANDLER "sudoHandler"
+#define DATA_PROVIDER_IFACE_AUTOFSHANDLER "autofsHandler"
+#define DATA_PROVIDER_IFACE_HOSTHANDLER "hostHandler"
+#define DATA_PROVIDER_IFACE_GETDOMAINS "getDomains"
+#define DATA_PROVIDER_IFACE_GETACCOUNTINFO "getAccountInfo"
+
+/* constants for org.freedesktop.sssd.dataprovider_rev */
+#define DATA_PROVIDER_REV_IFACE "org.freedesktop.sssd.dataprovider_rev"
+#define DATA_PROVIDER_REV_IFACE_UPDATECACHE "updateCache"
+#define DATA_PROVIDER_REV_IFACE_INITGRCHECK "initgrCheck"
+
+/* ------------------------------------------------------------------------
  * DBus Vtable handler structures
  *
  * These structures are filled in by implementors of the different

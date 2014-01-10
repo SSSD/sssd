@@ -6,6 +6,23 @@
 #include "sbus/sssd_dbus.h"
 
 /* ------------------------------------------------------------------------
+ * DBus Constants
+ *
+ * Various constants of interface and method names mostly for use by clients
+ */
+
+/* constants for com.planetexpress.Ship */
+#define COM_PLANETEXPRESS_SHIP "com.planetexpress.Ship"
+#define COM_PLANETEXPRESS_SHIP_MOVEUNIVERSE "MoveUniverse"
+#define COM_PLANETEXPRESS_SHIP_CRASH_NOW "Crash"
+#define COM_PLANETEXPRESS_SHIP_BECAMESENTIENT "BecameSentient"
+#define COM_PLANETEXPRESS_SHIP_COLOR "Color"
+
+/* constants for com.planetexpress.Pilot */
+#define TEST_PILOT "com.planetexpress.Pilot"
+#define TEST_PILOT_FULLNAME "FullName"
+
+/* ------------------------------------------------------------------------
  * DBus Vtable handler structures
  *
  * These structures are filled in by implementors of the different
