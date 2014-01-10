@@ -144,6 +144,20 @@ START_TEST(test_vtable)
 }
 END_TEST
 
+START_TEST(test_constants)
+{
+    ck_assert_str_eq(COM_PLANETEXPRESS_SHIP, "com.planetexpress.Ship");
+    ck_assert_str_eq(COM_PLANETEXPRESS_SHIP_MOVEUNIVERSE, "MoveUniverse");
+    ck_assert_str_eq(COM_PLANETEXPRESS_SHIP_CRASH_NOW, "Crash");
+    ck_assert_str_eq(COM_PLANETEXPRESS_SHIP_BECAMESENTIENT, "BecameSentient");
+    ck_assert_str_eq(COM_PLANETEXPRESS_SHIP_COLOR, "Color");
+
+    /* constants for com.planetexpress.Pilot */
+    ck_assert_str_eq(TEST_PILOT, "com.planetexpress.Pilot");
+    ck_assert_str_eq(TEST_PILOT_FULLNAME, "FullName");
+}
+END_TEST
+
 Suite *create_suite(void)
 {
     Suite *s = suite_create("sbus_codegen");
@@ -156,6 +170,7 @@ Suite *create_suite(void)
     tcase_add_test(tc, test_properties);
     tcase_add_test(tc, test_signals);
     tcase_add_test(tc, test_vtable);
+    tcase_add_test(tc, test_constants);
 
     /* Add all test cases to the test suite */
     suite_add_tcase(s, tc);

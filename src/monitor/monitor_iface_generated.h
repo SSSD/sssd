@@ -6,6 +6,28 @@
 #include "sbus/sssd_dbus.h"
 
 /* ------------------------------------------------------------------------
+ * DBus Constants
+ *
+ * Various constants of interface and method names mostly for use by clients
+ */
+
+/* constants for org.freedesktop.sssd.monitor */
+#define MON_SRV_IFACE "org.freedesktop.sssd.monitor"
+#define MON_SRV_IFACE_GETVERSION "getVersion"
+#define MON_SRV_IFACE_REGISTERSERVICE "RegisterService"
+
+/* constants for org.freedesktop.sssd.service */
+#define MON_CLI_IFACE "org.freedesktop.sssd.service"
+#define MON_CLI_IFACE_PING "ping"
+#define MON_CLI_IFACE_RESINIT "resInit"
+#define MON_CLI_IFACE_SHUTDOWN "shutDown"
+#define MON_CLI_IFACE_GOOFFLINE "goOffline"
+#define MON_CLI_IFACE_RESETOFFLINE "resetOffline"
+#define MON_CLI_IFACE_ROTATELOGS "rotateLogs"
+#define MON_CLI_IFACE_CLEARMEMCACHE "clearMemcache"
+#define MON_CLI_IFACE_CLEARENUMCACHE "clearEnumCache"
+
+/* ------------------------------------------------------------------------
  * DBus Vtable handler structures
  *
  * These structures are filled in by implementors of the different

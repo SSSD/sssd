@@ -295,6 +295,17 @@ def header_vtable(iface, methods):
 
     out("};")
 
+def header_constants(iface):
+    out("")
+    out("/* constants for %s */", iface.name)
+    out("#define %s \"%s\"", iface.c_name().upper(), iface.name)
+    for meth in iface.methods:
+        out("#define %s \"%s\"", meth.fq_c_name().upper(), meth.name)
+    for sig in iface.signals:
+        out("#define %s \"%s\"", sig.fq_c_name().upper(), sig.name)
+    for prop in iface.properties:
+        out("#define %s \"%s\"", prop.fq_c_name().upper(), prop.name)
+
 def generate_header(ifaces, filename):
     basename = os.path.basename(filename)
     guard = "__%s__" % re.sub(r'([^_A-Z0-9])', "_", basename.upper())
@@ -305,6 +316,16 @@ def generate_header(ifaces, filename):
     out("#define %s", guard)
     out("")
     out("#include \"sbus/sssd_dbus.h\"")
+
+    out("")
+    out("/* ------------------------------------------------------------------------")
+    out(" * DBus Constants")
+    out(" *")
+    out(" * Various constants of interface and method names mostly for use by clients")
+    out(" */")
+
+    for iface in ifaces:
+        header_constants(iface)
 
     out("")
     out("/* ------------------------------------------------------------------------")
