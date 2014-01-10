@@ -26,6 +26,12 @@
         </method>
     </interface>
 
+    <!--
+      this is a reverse method sent from providers to
+      the nss responder to tell it to update the mmap
+      cache
+    -->
+
     <interface name="org.freedesktop.sssd.dataprovider_rev">
         <annotation value="data_provider_rev_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
         <method name="updateCache">

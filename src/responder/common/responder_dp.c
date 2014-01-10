@@ -588,8 +588,8 @@ sss_dp_get_account_msg(void *pvt)
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DP_INTERFACE,
-                                       DP_METHOD_GETACCTINFO);
+                                       DATA_PROVIDER_IFACE,
+                                       DATA_PROVIDER_IFACE_GETACCOUNTINFO);
     if (msg == NULL) {
         talloc_free(filter);
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");

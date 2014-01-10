@@ -119,8 +119,8 @@ int monitor_common_send_id(struct sbus_connection *conn,
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
                                        MON_SRV_PATH,
-                                       MON_SRV_INTERFACE,
-                                       MON_SRV_METHOD_REGISTER);
+                                       MON_SRV_IFACE,
+                                       MON_SRV_IFACE_REGISTERSERVICE);
     if (msg == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?!\n");
         return ENOMEM;

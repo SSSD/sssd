@@ -118,8 +118,8 @@ sss_dp_get_autofs_msg(void *pvt)
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DP_INTERFACE,
-                                       DP_METHOD_AUTOFSHANDLER);
+                                       DATA_PROVIDER_IFACE,
+                                       DATA_PROVIDER_IFACE_AUTOFSHANDLER);
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;

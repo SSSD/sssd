@@ -125,8 +125,8 @@ sss_dp_get_ssh_host_msg(void *pvt)
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DP_INTERFACE,
-                                       DP_METHOD_HOSTHANDLER);
+                                       DATA_PROVIDER_IFACE,
+                                       DATA_PROVIDER_IFACE_HOSTHANDLER);
     if (msg == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         talloc_free(filter);

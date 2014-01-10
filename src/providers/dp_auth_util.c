@@ -377,8 +377,8 @@ int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DP_INTERFACE,
-                                       DP_METHOD_REGISTER);
+                                       DATA_PROVIDER_IFACE,
+                                       DATA_PROVIDER_IFACE_REGISTERSERVICE);
     if (msg == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?!\n");
         return ENOMEM;

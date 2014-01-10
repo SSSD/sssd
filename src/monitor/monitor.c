@@ -734,7 +734,7 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
 
     msg = dbus_message_new_method_call(NULL,
                                        MONITOR_PATH,
-                                       MONITOR_INTERFACE,
+                                       MON_CLI_IFACE,
                                        svc_signal);
     if (!msg) {
         DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
@@ -753,27 +753,27 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
 
 static int service_signal_dns_reload(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_METHOD_RES_INIT);
+    return service_signal(svc, MON_CLI_IFACE_RESINIT);
 }
 static int service_signal_offline(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_METHOD_OFFLINE);
+    return service_signal(svc, MON_CLI_IFACE_GOOFFLINE);
 }
 static int service_signal_reset_offline(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_METHOD_RESET_OFFLINE);
+    return service_signal(svc, MON_CLI_IFACE_RESETOFFLINE);
 }
 static int service_signal_rotate(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_METHOD_ROTATE);
+    return service_signal(svc, MON_CLI_IFACE_ROTATELOGS);
 }
 static int service_signal_clear_memcache(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_METHOD_CLEAR_MEMCACHE);
+    return service_signal(svc, MON_CLI_IFACE_CLEARMEMCACHE);
 }
 static int service_signal_clear_enum_cache(struct mt_svc *svc)
 {
-    return service_signal(svc, MON_CLI_METHOD_CLEAR_ENUM_CACHE);
+    return service_signal(svc, MON_CLI_IFACE_CLEARENUMCACHE);
 }
 
 static int check_domain_ranges(struct sss_domain_info *domains)
@@ -2377,8 +2377,8 @@ static int service_send_ping(struct mt_svc *svc)
      */
     msg = dbus_message_new_method_call(NULL,
                                        MONITOR_PATH,
-                                       MONITOR_INTERFACE,
-                                       MON_CLI_METHOD_PING);
+                                       MON_CLI_IFACE,
+                                       MON_CLI_IFACE_PING);
     if (!msg) {
         DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
         talloc_zfree(svc->conn);
