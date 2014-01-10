@@ -852,7 +852,7 @@ static void acctinfo_initgroups_callback(struct be_req *be_req,
     /* Set up null request */
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
-                                       DP_INTERFACE,
+                                       DP_REV_INTERFACE,
                                        DP_REV_METHOD_INITGR_CHECK);
     if (!msg) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
