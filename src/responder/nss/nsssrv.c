@@ -379,7 +379,7 @@ static struct sbus_method nss_dp_methods[] = {
 };
 
 struct sbus_interface nss_dp_interface = {
-    DP_INTERFACE,
+    DP_REV_INTERFACE,
     DP_PATH,
     SBUS_DEFAULT_VTABLE,
     nss_dp_methods,
