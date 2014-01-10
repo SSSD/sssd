@@ -96,20 +96,20 @@ static void sss_semanage_error_callback(void *varg,
                                         semanage_handle_t *handle,
                                         const char *fmt, ...)
 {
-    int level = -1;
+    int level = SSSDBG_INVALID;
     int ret;
     char * message = NULL;
     va_list ap;
 
     switch (semanage_msg_get_level(handle)) {
         case SEMANAGE_MSG_ERR:
-            level = 1;
+            level = SSSDBG_CRIT_FAILURE;
             break;
         case SEMANAGE_MSG_WARN:
-            level = 4;
+            level = SSSDBG_MINOR_FAILURE;
             break;
         case SEMANAGE_MSG_INFO:
-            level = 6;
+            level = SSSDBG_TRACE_FUNC;
             break;
     }
 
