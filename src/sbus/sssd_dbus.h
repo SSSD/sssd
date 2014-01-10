@@ -55,6 +55,21 @@ enum {
     SBUS_RECONNECT_ERROR
 };
 
+/*
+ * This represents vtable of interface handlers for methods and
+ * properties and so on. The actual vtable structs derive from this struct
+ * (ie: have this struct as their first member).
+ *
+ * The offsets for matching vtable function pointers are in sbus_method_meta
+ * These are used to dynamically dispatch the method invocations.
+ */
+struct sbus_vtable {
+    const struct sbus_interface_meta *meta;
+    int flags; /* unused for now */
+
+    /* derived structs place function pointers here. */
+};
+
 /* Special interface and method for D-BUS introspection */
 #define DBUS_INTROSPECT_INTERFACE "org.freedesktop.DBus.Introspectable"
 #define DBUS_INTROSPECT_METHOD "Introspect"

@@ -659,7 +659,7 @@ SUFFIXES = .xml _generated.h _generated.c
 .xml_generated.h:
 	$(srcdir)/$(SBUS_CODEGEN) --mode=header --output=$@ $<
 .xml_generated.c:
-	$(srcdir)/$(SBUS_CODEGEN) --mode=source --output=$@ $<
+	$(srcdir)/$(SBUS_CODEGEN) --mode=source --include=$(@:.c=.h) --output=$@ $<
 
 # Regenerate when codegen changes
 CODEGEN_CODE = \

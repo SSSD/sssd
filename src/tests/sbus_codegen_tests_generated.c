@@ -3,6 +3,7 @@
 #include "util/util.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sssd_dbus_meta.h"
+#include "sbus_codegen_tests_generated.h"
 
 /* arguments for com.planetexpress.Ship.MoveUniverse */
 const struct sbus_arg_meta com_planetexpress_Ship_MoveUniverse__in[] = {
@@ -23,6 +24,13 @@ const struct sbus_method_meta com_planetexpress_Ship__methods[] = {
         "MoveUniverse", /* name */
         com_planetexpress_Ship_MoveUniverse__in,
         com_planetexpress_Ship_MoveUniverse__out,
+        offsetof(struct com_planetexpress_Ship, MoveUniverse),
+    },
+    {
+        "Crash", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct com_planetexpress_Ship, crash_now),
     },
     { NULL, }
 };

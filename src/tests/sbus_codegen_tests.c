@@ -112,6 +112,38 @@ START_TEST(test_signals)
 }
 END_TEST
 
+static int
+mock_move_universe(DBusMessage *msg, struct sbus_connection *conn)
+{
+    /* not called */
+    return 0;
+}
+
+static int
+mock_crash_now(DBusMessage *msg, struct sbus_connection *conn)
+{
+    /* not called */
+    return 0;
+}
+
+START_TEST(test_vtable)
+{
+    struct com_planetexpress_Ship vtable = {
+        { &com_planetexpress_Ship_meta, 0 },
+        mock_move_universe,
+        mock_crash_now,
+    };
+
+    /*
+     * These are not silly tests:
+     * - Will fail compilation if c-symbol name was not respected
+     * - Will fail if method order was not respected
+     */
+    ck_assert(vtable.crash_now == mock_crash_now);
+    ck_assert(vtable.MoveUniverse == mock_move_universe);
+}
+END_TEST
+
 Suite *create_suite(void)
 {
     Suite *s = suite_create("sbus_codegen");
@@ -123,6 +155,7 @@ Suite *create_suite(void)
     tcase_add_test(tc, test_methods);
     tcase_add_test(tc, test_properties);
     tcase_add_test(tc, test_signals);
+    tcase_add_test(tc, test_vtable);
 
     /* Add all test cases to the test suite */
     suite_add_tcase(s, tc);
