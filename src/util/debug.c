@@ -131,11 +131,12 @@ static void debug_printf(const char *format, ...)
 void debug_fn(const char *function, int newlevel, const char *format, ...)
 {
     va_list ap;
+    struct timeval tv;
+    struct tm *tm;
+    char datetime[20];
+    int year;
+
     if (debug_timestamps) {
-        struct timeval tv;
-        struct tm *tm;
-        char datetime[20];
-        int year;
         gettimeofday(&tv, NULL);
         tm = localtime(&tv.tv_sec);
         year = tm->tm_year + 1900;
@@ -156,6 +157,7 @@ void debug_fn(const char *function, int newlevel, const char *format, ...)
         debug_printf("[%s] [%s] (%#.4x): ",
                      debug_prg_name, function, newlevel);
     }
+
     va_start(ap, format);
     debug_vprintf(format, ap);
     va_end(ap);
