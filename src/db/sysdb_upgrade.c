@@ -374,7 +374,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
     talloc_zfree(ldb);
 
     /* backup*/
-    ret = backup_file(ldb_file, 0);
+    ret = backup_file(ldb_file, SSSDBG_FATAL_FAILURE);
     if (ret != EOK) {
         goto exit;
     }
