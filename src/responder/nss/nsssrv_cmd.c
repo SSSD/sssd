@@ -172,12 +172,23 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
                                         struct ldb_message *msg,
                                         struct nss_ctx *nctx,
                                         struct sss_domain_info *dom,
-                                        const char *name,
+                                        const char *orig_name,
                                         uint32_t uid)
 {
     const char *homedir;
+    char *name;
+    char *domname;
+    errno_t ret;
 
     homedir = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
+
+    /* Subdomain users store FQDN in their name attribute */
+    ret = sss_parse_name(mem_ctx, dom->names, orig_name, &domname, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not parse [%s] into "
+              "name-value components.\n", orig_name));
+        return NULL;
+    }
 
     /* Check whether we are unconditionally overriding the server
      * for home directory locations.
