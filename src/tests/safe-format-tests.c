@@ -22,6 +22,14 @@
 #include <string.h>
 #include <talloc.h>
 
+#ifndef ck_assert_int_ge
+#define ck_assert_int_ge(X, Y) _ck_assert_int(X, >=, Y)
+#endif
+
+#ifndef ck_assert_int_lt
+#define ck_assert_int_lt(X, Y) _ck_assert_int(X, <, Y)
+#endif
+
 typedef struct {
     const char *format;
     const char *args[8];
