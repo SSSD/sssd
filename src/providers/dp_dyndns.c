@@ -332,7 +332,9 @@ nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
 
         /* example: update delete 38.78.16.10.in-addr.arpa. in PTR */
         update_msg = talloc_asprintf_append(update_msg,
-                                            "update delete %s in PTR\n", strptr);
+                                            "update delete %s in PTR\n"
+                                            "send\n",
+                                            strptr);
         talloc_free(strptr);
         if (update_msg == NULL) {
             return NULL;
@@ -361,7 +363,8 @@ nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
 
         /* example: update delete 38.78.16.10.in-addr.arpa. in PTR */
         update_msg = talloc_asprintf_append(update_msg,
-                                            "update add %s %d in PTR %s.\n",
+                                            "update add %s %d in PTR %s.\n"
+                                            "send\n",
                                             strptr, ttl, hostname);
         talloc_free(strptr);
         if (update_msg == NULL) {
@@ -369,7 +372,7 @@ nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
         }
     }
 
-    return talloc_asprintf_append(update_msg, "send\n");
+    return update_msg;
 }
 
 static char *
