@@ -201,6 +201,14 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
                                        name, uid, homedir, dom->name, NULL);
     }
 
+    /* Override home directory location for subdomains.
+     * This option can be overriden by override_homedir.
+     */
+    if (IS_SUBDOMAIN(dom) && dom->subdomain_homedir) {
+        return expand_homedir_template(mem_ctx, dom->subdomain_homedir,
+                                       name, uid, homedir, dom->name, NULL);
+    }
+
     if (!homedir || *homedir == '\0') {
         /* In the case of a NULL or empty homedir, check to see if
          * we have a fallback homedir to use.
