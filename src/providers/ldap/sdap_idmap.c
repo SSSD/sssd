@@ -520,6 +520,11 @@ bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
     int ret;
     TALLOC_CTX *tmp_ctx = NULL;
 
+    if (dp_opt_get_bool(ctx->id_ctx->opts->basic, SDAP_ID_MAPPING)
+        && 0 == strcmp("ldap", ctx->id_ctx->be->bet_info[BET_ID].mod_name)) {
+        return true;
+    }
+
     err = sss_idmap_domain_has_algorithmic_mapping(ctx->map, dom_sid,
                                                    &has_algorithmic_mapping);
     if (err == IDMAP_SUCCESS) {
