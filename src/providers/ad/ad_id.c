@@ -320,7 +320,9 @@ ad_account_info_handler(struct be_req *be_req)
                                   ar->filter_type, ar->filter_value,
                                   ar->domain, &shortcut);
     if (ret != EOK) {
-        goto fail;
+        DEBUG(SSSDBG_TRACE_FUNC,
+              ("Cannot determine the right domain: %s\n", sss_strerror(ret)));
+        shortcut = false;
     }
 
     if (shortcut) {
