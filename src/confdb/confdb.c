@@ -35,6 +35,10 @@
     } \
 } while(0)
 
+/* Warning messages */
+#define SAME_DOMAINS_ERROR_MSG "Domain '%s' is the same as or differs only "\
+                               "in case from domain '%s'.\n"
+
 static char *prepend_cn(char *str, int *slen, const char *comp, int clen)
 {
     char *ret;
@@ -1187,6 +1191,20 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     }
 
     for (i = 0; domlist[i]; i++) {
+        /* check if domain name is really unique */
+        DLIST_FOR_EACH(domain, cdb->doms) {
+            if (strcasecmp(domain->name, domlist[i]) == 0) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      (SAME_DOMAINS_ERROR_MSG, domlist[i], domain->name));
+                sss_log(SSS_LOG_CRIT,
+                        SAME_DOMAINS_ERROR_MSG, domlist[i], domain->name);
+
+                ret = EINVAL;
+                goto done;
+            }
+        }
+
+        domain = NULL;
         ret = confdb_get_domain_internal(cdb, cdb, domlist[i], &domain);
         if (ret) {
             DEBUG(0, ("Error (%d [%s]) retrieving domain [%s], skipping!\n",
