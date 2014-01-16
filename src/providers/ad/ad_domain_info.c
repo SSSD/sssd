@@ -131,7 +131,7 @@ netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
     ret = EOK;
 done:
     talloc_free(ndr_pull);
-    return EOK;
+    return ret;
 }
 
 struct ad_master_domain_state {
