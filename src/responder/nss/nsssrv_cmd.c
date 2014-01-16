@@ -1306,9 +1306,9 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         /* check that the uid is valid for this domain */
         if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
             (dom->id_max && (cmdctx->id > dom->id_max))) {
-            DEBUG(4, ("Uid [%lu] does not exist in domain [%s]! "
+            DEBUG(4, ("Uid [%"PRIu32"] does not exist in domain [%s]! "
                       "(id out of range)\n",
-                      (unsigned long)cmdctx->id, dom->name));
+                      cmdctx->id, dom->name));
             if (cmdctx->check_next) {
                 dom = get_next_domain(dom, true);
                 continue;
@@ -1326,7 +1326,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        DEBUG(4, ("Requesting info for [%d@%s]\n", cmdctx->id, dom->name));
+        DEBUG(4, ("Requesting info for [%"PRIu32"@%s]\n", cmdctx->id, dom->name));
 
         if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
@@ -1376,7 +1376,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         }
 
         /* One result found */
-        DEBUG(6, ("Returning info for uid [%d@%s]\n", cmdctx->id, dom->name));
+        DEBUG(6, ("Returning info for uid [%"PRIu32"@%s]\n", cmdctx->id, dom->name));
 
         ret = EOK;
         goto done;
@@ -1390,11 +1390,11 @@ done:
         err = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
         if (err != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                ("Cannot set negative cache for UID %d\n", cmdctx->id));
+                ("Cannot set negative cache for UID %"PRIu32"\n", cmdctx->id));
         }
     }
 
-    DEBUG(SSSDBG_MINOR_FAILURE, ("No matching domain found for [%d]\n", cmdctx->id));
+    DEBUG(SSSDBG_MINOR_FAILURE, ("No matching domain found for [%"PRIu32"]\n", cmdctx->id));
     return ret;
 }
 
@@ -1451,7 +1451,7 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     }
     SAFEALIGN_COPY_UINT32(&cmdctx->id, body, NULL);
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Running command [%d] with id [%d].\n",
+    DEBUG(SSSDBG_TRACE_FUNC, ("Running command [%d] with id [%"PRIu32"].\n",
                               dctx->cmdctx->cmd, cmdctx->id));
 
     switch(dctx->cmdctx->cmd) {
@@ -1459,8 +1459,8 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         ret = sss_ncache_check_uid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
         if (ret == EEXIST) {
             DEBUG(SSSDBG_TRACE_FUNC,
-                  ("Uid [%lu] does not exist! (negative cache)\n",
-                   (unsigned long)cmdctx->id));
+                  ("Uid [%"PRIu32"] does not exist! (negative cache)\n",
+                   cmdctx->id));
             ret = ENOENT;
             goto done;
         }
@@ -1469,8 +1469,8 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         ret = sss_ncache_check_gid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
         if (ret == EEXIST) {
             DEBUG(SSSDBG_TRACE_FUNC,
-                  ("Gid [%lu] does not exist! (negative cache)\n",
-                   (unsigned long)cmdctx->id));
+                  ("Gid [%"PRIu32"] does not exist! (negative cache)\n",
+                   cmdctx->id));
             ret = ENOENT;
             goto done;
         }
@@ -1483,8 +1483,8 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         if (ret == EEXIST) {
             DEBUG(SSSDBG_TRACE_FUNC,
-                  ("Id [%lu] does not exist! (negative cache)\n",
-                   (unsigned long)cmdctx->id));
+                  ("Id [%"PRIu32"] does not exist! (negative cache)\n",
+                   cmdctx->id));
             ret = ENOENT;
             goto done;
         }
@@ -2772,9 +2772,9 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         /* check that the gid is valid for this domain */
         if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
             (dom->id_max && (cmdctx->id > dom->id_max))) {
-            DEBUG(4, ("Gid [%lu] does not exist in domain [%s]! "
+            DEBUG(4, ("Gid [%"PRIu32"] does not exist in domain [%s]! "
                       "(id out of range)\n",
-                      (unsigned long)cmdctx->id, dom->name));
+                      cmdctx->id, dom->name));
             if (cmdctx->check_next) {
                 dom = get_next_domain(dom, true);
                 continue;
@@ -2792,7 +2792,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        DEBUG(4, ("Requesting info for [%d@%s]\n", cmdctx->id, dom->name));
+        DEBUG(4, ("Requesting info for [%"PRIu32"@%s]\n", cmdctx->id, dom->name));
 
         if (dom->sysdb == NULL) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
@@ -2842,7 +2842,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         }
 
         /* One result found */
-        DEBUG(6, ("Returning info for gid [%d@%s]\n", cmdctx->id, dom->name));
+        DEBUG(6, ("Returning info for gid [%"PRIu32"@%s]\n", cmdctx->id, dom->name));
 
         /* Success. Break from the loop and return EOK */
         ret = EOK;
@@ -2857,11 +2857,11 @@ done:
         err = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
         if (err != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                ("Cannot set negative cache for GID %d\n", cmdctx->id));
+                ("Cannot set negative cache for GID %"PRIu32"\n", cmdctx->id));
         }
     }
 
-    DEBUG(SSSDBG_MINOR_FAILURE, ("No matching domain found for [%d]\n", cmdctx->id));
+    DEBUG(SSSDBG_MINOR_FAILURE, ("No matching domain found for [%"PRIu32"]\n", cmdctx->id));
     return ret;
 }
 
@@ -3762,9 +3762,9 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
                 (dom->id_max && (cmdctx->id > dom->id_max))) {
                 DEBUG(SSSDBG_TRACE_FUNC,
-                      ("Uid [%lu] does not exist in domain [%s]! "
+                      ("Uid [%"PRIu32"] does not exist in domain [%s]! "
                        "(id out of range)\n",
-                       (unsigned long)cmdctx->id, dom->name));
+                       cmdctx->id, dom->name));
                 if (cmdctx->check_next) {
                     dom = get_next_domain(dom, true);
                     continue;
@@ -3792,7 +3792,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         dctx->domain = dom;
 
         if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%d@%s]\n",
+            DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%"PRIu32"@%s]\n",
                                       cmdctx->id, dom->name));
         } else {
             talloc_free(name);
@@ -3985,7 +3985,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
 
         /* One result found */
         if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Returning info for id [%d@%s]\n",
+            DEBUG(SSSDBG_TRACE_FUNC, ("Returning info for id [%"PRIu32"@%s]\n",
                                      cmdctx->id, dom->name));
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, ("Returning info for user/group [%s@%s]\n",
@@ -4004,17 +4004,17 @@ done:
         /* The entry was not found, need to set result in negative cache */
         if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                ("No matching domain found for [%d], fail!\n", cmdctx->id));
+                ("No matching domain found for [%"PRIu32"], fail!\n", cmdctx->id));
             err = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
             if (err != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                    ("Cannot set negative cache for UID %d\n", cmdctx->id));
+                    ("Cannot set negative cache for UID %"PRIu32"\n", cmdctx->id));
             }
 
             err = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
             if (err != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                    ("Cannot set negative cache for GID %d\n", cmdctx->id));
+                    ("Cannot set negative cache for GID %"PRIu32"\n", cmdctx->id));
             }
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE,
