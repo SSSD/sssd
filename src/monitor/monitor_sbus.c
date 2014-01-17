@@ -144,30 +144,12 @@ int monitor_common_send_id(struct sbus_connection *conn,
     return retval;
 }
 
-int monitor_common_pong(DBusMessage *message,
-                        struct sbus_connection *conn)
+int monitor_common_pong(struct sbus_request *dbus_req)
 {
-    DBusMessage *reply;
-    dbus_bool_t ret;
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
+    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
-int monitor_common_res_init(DBusMessage *message,
-                            struct sbus_connection *conn)
+int monitor_common_res_init(struct sbus_request *dbus_req)
 {
     int ret;
 
@@ -177,7 +159,7 @@ int monitor_common_res_init(DBusMessage *message,
     }
 
     /* Send an empty reply to acknowledge receipt */
-    return monitor_common_pong(message, conn);
+    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
 errno_t monitor_common_rotate_logs(struct confdb_ctx *confdb,

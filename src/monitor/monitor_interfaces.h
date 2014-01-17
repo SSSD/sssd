@@ -38,10 +38,8 @@
 int monitor_get_sbus_address(TALLOC_CTX *mem_ctx, char **address);
 int monitor_common_send_id(struct sbus_connection *conn,
                            const char *name, uint16_t version);
-int monitor_common_pong(DBusMessage *message,
-                        struct sbus_connection *conn);
-int monitor_common_res_init(DBusMessage *message,
-                            struct sbus_connection *conn);
+int monitor_common_pong(struct sbus_request *dbus_req);
+int monitor_common_res_init(struct sbus_request *dbus_req);
 int monitor_common_rotate_logs(struct confdb_ctx *confdb,
                                const char *conf_entry);
 

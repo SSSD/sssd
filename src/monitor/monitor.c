@@ -217,28 +217,13 @@ static void network_status_change_cb(void *cb_data)
 
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
-static int get_monitor_version(DBusMessage *message,
-                               struct sbus_connection *conn)
+static int get_monitor_version(struct sbus_request *dbus_req)
 {
     dbus_uint16_t version = MONITOR_VERSION;
-    DBusMessage *reply;
-    dbus_bool_t ret;
 
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-    ret = dbus_message_append_args(reply,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
+    return sbus_request_return_and_finish(dbus_req,
+                                          DBUS_TYPE_UINT16, &version,
+                                          DBUS_TYPE_INVALID);
 }
 
 struct mon_init_conn {
@@ -251,21 +236,19 @@ static int add_svc_conn_spy(struct mt_svc *svc);
 
 /* registers a new client.
  * if operation is successful also sends back the Monitor version */
-static int client_registration(DBusMessage *message,
-                               struct sbus_connection *conn)
+static int client_registration(struct sbus_request *dbus_req)
 {
     dbus_uint16_t version = MONITOR_VERSION;
     struct mon_init_conn *mini;
     struct mt_svc *svc;
     void *data;
-    DBusMessage *reply;
     DBusError dbus_error;
     dbus_uint16_t svc_ver;
     char *svc_name;
     dbus_bool_t dbret;
     int ret;
 
-    data = sbus_conn_get_private_data(conn);
+    data = sbus_conn_get_private_data(dbus_req->conn);
     mini = talloc_get_type(data, struct mon_init_conn);
     if (!mini) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Connection holds no valid init data\n");
@@ -277,7 +260,7 @@ static int client_registration(DBusMessage *message,
 
     dbus_error_init(&dbus_error);
 
-    dbret = dbus_message_get_args(message, &dbus_error,
+    dbret = dbus_message_get_args(dbus_req->message, &dbus_error,
                                   DBUS_TYPE_STRING, &svc_name,
                                   DBUS_TYPE_UINT16, &svc_ver,
                                   DBUS_TYPE_INVALID);
@@ -285,7 +268,8 @@ static int client_registration(DBusMessage *message,
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to parse message, killing connection\n");
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-        sbus_disconnect(conn);
+        sbus_disconnect(dbus_req->conn);
+        sbus_request_finish(dbus_req, NULL);
         /* FIXME: should we just talloc_zfree(conn) ? */
         goto done;
     }
@@ -306,7 +290,8 @@ static int client_registration(DBusMessage *message,
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to find peer [%s] in list of services,"
                   " killing connection!\n", svc_name);
-        sbus_disconnect(conn);
+        sbus_disconnect(dbus_req->conn);
+        sbus_request_finish(dbus_req, NULL);
         /* FIXME: should we just talloc_zfree(conn) ? */
         goto done;
     }
@@ -321,20 +306,9 @@ static int client_registration(DBusMessage *message,
     }
 
     /* reply that all is ok */
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_UINT16, &version,
-                                     DBUS_TYPE_INVALID);
-    if (!dbret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
+    sbus_request_return_and_finish(dbus_req,
+                                   DBUS_TYPE_UINT16, &version,
+                                   DBUS_TYPE_INVALID);
 
 done:
     /* init complete, get rid of temp init context */

@@ -55,10 +55,8 @@
 #define SHELL_REALLOC_INCREMENT 5
 #define SHELL_REALLOC_MAX       50
 
-static int nss_clear_memcache(DBusMessage *message,
-                              struct sbus_connection *conn);
-static int nss_clear_netgroup_hash_table(DBusMessage *message,
-                                         struct sbus_connection *conn);
+static int nss_clear_memcache(struct sbus_request *dbus_req);
+static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req);
 
 struct mon_cli_iface monitor_nss_methods = {
     { &mon_cli_iface_meta, 0 },
@@ -75,15 +73,14 @@ struct mon_cli_iface monitor_nss_methods = {
 struct sbus_interface monitor_nss_interface = {
     MONITOR_PATH,
     &monitor_nss_methods.vtable,
-    NULL
+    NULL,
 };
 
-static int nss_clear_memcache(DBusMessage *message,
-                              struct sbus_connection *conn)
+static int nss_clear_memcache(struct sbus_request *dbus_req)
 {
     errno_t ret;
     int memcache_timeout;
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
                                             struct resp_ctx);
     struct nss_ctx *nctx = (struct nss_ctx*) rctx->pvt_ctx;
 
@@ -134,14 +131,13 @@ static int nss_clear_memcache(DBusMessage *message,
     }
 
 done:
-    return monitor_common_pong(message, conn);
+    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
-static int nss_clear_netgroup_hash_table(DBusMessage *message,
-                                         struct sbus_connection *conn)
+static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req)
 {
     errno_t ret;
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
                                             struct resp_ctx);
     struct nss_ctx *nctx = (struct nss_ctx*) rctx->pvt_ctx;
 
@@ -152,7 +148,7 @@ static int nss_clear_netgroup_hash_table(DBusMessage *message,
         return ret;
     }
 
-    return monitor_common_pong(message, conn);
+    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
 static errno_t nss_get_etc_shells(TALLOC_CTX *mem_ctx, char ***_shells)
@@ -308,10 +304,9 @@ done:
     return ret;
 }
 
-static int nss_update_memcache(DBusMessage *message,
-                               struct sbus_connection *conn)
+static int nss_update_memcache(struct sbus_request *dbus_req)
 {
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
                                             struct resp_ctx);
     struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
 
@@ -321,15 +316,13 @@ static int nss_update_memcache(DBusMessage *message,
     return EOK;
 }
 
-static int nss_memcache_initgr_check(DBusMessage *message,
-                                     struct sbus_connection *conn)
+static int nss_memcache_initgr_check(struct sbus_request *dbus_req)
 {
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
                                             struct resp_ctx);
     struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
     DBusError dbus_error;
     dbus_bool_t dbret;
-    DBusMessage *reply;
     char *user;
     char *domain;
     uint32_t *groups;
@@ -337,7 +330,7 @@ static int nss_memcache_initgr_check(DBusMessage *message,
 
     dbus_error_init(&dbus_error);
 
-    dbret = dbus_message_get_args(message, &dbus_error,
+    dbret = dbus_message_get_args(dbus_req->message, &dbus_error,
                                   DBUS_TYPE_STRING, &user,
                                   DBUS_TYPE_STRING, &domain,
                                   DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32,
@@ -357,20 +350,7 @@ static int nss_memcache_initgr_check(DBusMessage *message,
 
     nss_update_initgr_memcache(nctx, user, domain, gnum, groups);
 
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    dbret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
-    if (!dbret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
+    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
 static struct data_provider_rev_iface nss_dp_methods = {

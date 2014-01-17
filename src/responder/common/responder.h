@@ -207,8 +207,7 @@ struct dp_callback_ctx {
 
 void handle_requests_after_reconnect(struct resp_ctx *rctx);
 
-int responder_logrotate(DBusMessage *message,
-                        struct sbus_connection *conn);
+int responder_logrotate(struct sbus_request *dbus_req);
 
 /* Each responder-specific request must create a constructor
  * function that creates a DBus Message that would be sent to

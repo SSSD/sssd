@@ -96,4 +96,10 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data);
 void sbus_toggle_timeout(DBusTimeout *dbus_timeout, void *data);
 void sbus_remove_timeout(DBusTimeout *dbus_timeout, void *data);
 
+/* =Requests============================================================== */
+
+struct sbus_request *
+sbus_new_request(struct sbus_connection *conn, struct sbus_interface *intf,
+                 DBusMessage *message);
+
 #endif /* _SSSD_DBUS_PRIVATE_H_ */

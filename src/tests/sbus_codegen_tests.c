@@ -113,14 +113,14 @@ START_TEST(test_signals)
 END_TEST
 
 static int
-mock_move_universe(DBusMessage *msg, struct sbus_connection *conn)
+mock_move_universe(struct sbus_request *dbus_req)
 {
     /* not called */
     return 0;
 }
 
 static int
-mock_crash_now(DBusMessage *msg, struct sbus_connection *conn)
+mock_crash_now(struct sbus_request *dbus_req)
 {
     /* not called */
     return 0;
