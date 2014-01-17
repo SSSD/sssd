@@ -24,9 +24,11 @@
 
 struct sbus_connection;
 
-#include "dbus/dbus.h"
+struct sbus_request;
 
-typedef int (*sbus_msg_handler_fn)(DBusMessage *, struct sbus_connection *);
+#include <dbus/dbus.h>
+
+typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req);
 
 /*
  * sbus_conn_destructor_fn
@@ -169,5 +171,79 @@ int sbus_conn_send(struct sbus_connection *conn,
 
 void sbus_conn_send_reply(struct sbus_connection *conn,
                           DBusMessage *reply);
+
+/*
+ * This structure is passed to all dbus method and property
+ * handlers. It is a talloc context which will be valid until
+ * the request is completed with either the sbus_request_complete()
+ * or sbus_request_fail() functions.
+ */
+struct sbus_request {
+    struct sbus_connection *conn;
+    DBusMessage *message;
+    struct sbus_interface *intf;
+    const struct sbus_method_meta *method;
+};
+
+/*
+ * Complete a DBus request, and free the @dbus_req context. The @dbus_req
+ * and associated talloc context are no longer valid after this function
+ * returns.
+ *
+ * If @reply is non-NULL then the reply is sent to the caller. Not sending
+ * a reply when the caller is expecting one is fairly rude behavior.
+ *
+ * The return value is useful for logging, but not much else. In particular
+ * even if this function return !EOK, @dbus_req is still unusable after this
+ * function returns.
+ */
+int sbus_request_finish(struct sbus_request *dbus_req,
+                        DBusMessage *reply);
+
+/*
+ * Return a reply for a DBus method call request. The variable
+ * arguments are (unfortunately) formatted exactly the same as those of the
+ * dbus_message_append_args() function. Documented here:
+ *
+ * http://dbus.freedesktop.org/doc/api/html/group__DBusMessage.html
+ *
+ * Important: don't pass int or bool or such types as
+ * values to this function. That's not portable. Use actual dbus types.
+ * You must also pass pointers as the values:
+ *
+ *    dbus_bool_t val1 = TRUE;
+ *    dbus_int32_t val2 = 5;
+ *    ret = sbus_request_finish(dbus_req,
+ *                              DBUS_TYPE_BOOLEAN, &val1,
+ *                              DBUS_TYPE_INT32, &val2,
+ *                              DBUS_TYPE_INVALID);
+ *
+ * To pass arrays to this function, use the following syntax. Never
+ * pass actual C arrays with [] syntax to this function. The C standard is
+ * rather vague with C arrays and varargs, and it just plain doesn't work.
+ *
+ *    const char *array[] = { "one", "two", "three" };
+ *    int count = 3; // yes, a plain int
+ *    const char **ptr = array;
+ *    ret = sbus_request_finish(dbus_req,
+ *                              DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &ptr, 3,
+ *                              DBUS_TYPE_INVALID);
+ *
+ * The @dbus_req and associated talloc context are no longer valid after this
+ * function returns, even if this function returns an error code.
+ */
+int sbus_request_return_and_finish(struct sbus_request *dbus_req,
+                                   int first_arg_type,
+                                   ...);
+
+/*
+ * Return an error for a DBus method call request. The @error is a normal
+ * DBusError.
+ *
+ * The @dbus_req and associated talloc context are no longer valid after this
+ * function returns, even if this function returns an error code.
+ */
+int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
+                                 const DBusError *error);
 
 #endif /* _SSSD_DBUS_H_*/

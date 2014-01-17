@@ -989,17 +989,16 @@ done:
     return ret;
 }
 
-int responder_logrotate(DBusMessage *message,
-                        struct sbus_connection *conn)
+int responder_logrotate(struct sbus_request *dbus_req)
 {
     errno_t ret;
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(conn),
+    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
                                             struct resp_ctx);
 
     ret = monitor_common_rotate_logs(rctx->cdb, rctx->confdb_service_path);
     if (ret != EOK) return ret;
 
-    return monitor_common_pong(message, conn);
+    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
 void responder_set_fd_limit(rlim_t fd_limit)

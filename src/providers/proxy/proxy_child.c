@@ -47,7 +47,7 @@
 
 #include "providers/dp_backend.h"
 
-static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn);
+static int pc_pam_handler(struct sbus_request *dbus_req);
 
 struct data_provider_iface pc_methods = {
     { &data_provider_iface_meta, 0 },
@@ -310,7 +310,7 @@ fail:
     return ret;
 }
 
-static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn)
+static int pc_pam_handler(struct sbus_request *dbus_req)
 {
     DBusError dbus_error;
     DBusMessage *reply;
@@ -319,7 +319,7 @@ static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     void *user_data;
     struct pam_data *pd = NULL;
 
-    user_data = sbus_conn_get_private_data(conn);
+    user_data = sbus_conn_get_private_data(dbus_req->conn);
     if (!user_data) {
         ret = EINVAL;
         goto done;
@@ -330,7 +330,7 @@ static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn)
         goto done;
     }
 
-    reply = dbus_message_new_method_return(message);
+    reply = dbus_message_new_method_return(dbus_req->message);
     if (!reply) {
         DEBUG(SSSDBG_CRIT_FAILURE, "dbus_message_new_method_return failed, "
                   "cannot send reply.\n");
@@ -340,7 +340,7 @@ static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 
     dbus_error_init(&dbus_error);
 
-    ret = dp_unpack_pam_request(message, pc_ctx, &pd, &dbus_error);
+    ret = dp_unpack_pam_request(dbus_req->message, pc_ctx, &pd, &dbus_error);
     if (!ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,"Failed, to parse message!\n");
         ret = EIO;
@@ -375,14 +375,14 @@ static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn)
         goto done;
     }
 
-    sbus_conn_send_reply(conn, reply);
+    ret = sbus_request_finish(dbus_req, reply);
     dbus_message_unref(reply);
     talloc_free(pd);
 
     /* We'll return the message and let the
      * parent process kill us.
      */
-    return EOK;
+    return ret;
 
 done:
     exit(ret);

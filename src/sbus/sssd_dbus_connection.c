@@ -415,7 +415,9 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
     DBusMessage *reply = NULL;
     const struct sbus_method_meta *method;
     const struct sbus_interface_meta *interface;
-    sbus_msg_handler_fn handler_fn;
+    struct sbus_request *dbus_req = NULL;
+    sbus_msg_handler_fn handler_fn = NULL;
+    DBusHandlerResult result;
     int ret;
 
     if (!user_data) {
@@ -435,10 +437,11 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
     if (strcmp(path, intf_p->intf->path) != 0)
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
+    result = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
     /* Validate the method interface */
     interface = intf_p->intf->vtable->meta;
     if (strcmp(msg_interface, interface->name) == 0) {
-        handler_fn = NULL;
         method = sbus_meta_find_method(interface, msg_method);
         if (method && method->vtable_offset)
             handler_fn = VTABLE_FUNC(intf_p->intf->vtable, method->vtable_offset);
@@ -450,6 +453,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
             reply = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
             sbus_conn_send_reply(intf_p->conn, reply);
             dbus_message_unref(reply);
+            result = DBUS_HANDLER_RESULT_HANDLED;
 
         } else if (!handler_fn) {
             /* Reply DBUS_ERROR_NOT_SUPPORTED */
@@ -458,11 +462,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
             reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, NULL);
             sbus_conn_send_reply(intf_p->conn, reply);
             dbus_message_unref(reply);
-
-        } else {
-            ret = handler_fn(message, intf_p->conn);
-            if (ret != EOK)
-                return sbus_reply_internal_error(message, intf_p->conn);
+            result = DBUS_HANDLER_RESULT_HANDLED;
         }
     }
     else {
@@ -472,21 +472,28 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
         if (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
             strcmp(msg_method, DBUS_INTROSPECT_METHOD) == 0)
         {
-            if (intf_p->intf->introspect_fn) {
-                /* If we have been asked for introspection data and we have
-                 * an introspection function registered, user that.
-                 */
-                ret = intf_p->intf->introspect_fn(message, intf_p->conn);
-                if (ret != EOK) {
-                    return sbus_reply_internal_error(message, intf_p->conn);
-                }
-            }
+            handler_fn = intf_p->intf->introspect_fn;
         }
-        else
-            return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 
-    return DBUS_HANDLER_RESULT_HANDLED;
+    if (handler_fn) {
+        dbus_req = sbus_new_request(intf_p->conn, intf_p->intf, message);
+        if (!dbus_req) {
+            ret = ENOMEM;
+        } else {
+            dbus_req->method = method;
+            ret = handler_fn(dbus_req);
+        }
+        if (ret != EOK) {
+            if (dbus_req)
+                talloc_free(dbus_req);
+            result = sbus_reply_internal_error(message, intf_p->conn);
+        } else {
+            result = DBUS_HANDLER_RESULT_HANDLED;
+        }
+    }
+
+    return result;
 }
 
 /* Adds a new D-BUS path message handler to the connection
@@ -785,4 +792,3 @@ void sbus_conn_send_reply(struct sbus_connection *conn, DBusMessage *reply)
 {
     dbus_connection_send(conn->dbus.conn, reply, NULL);
 }
-
