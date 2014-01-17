@@ -843,8 +843,8 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
         ret = sdap_create_search_base(search_bases, unparsed_base,
                                       LDAP_SCOPE_SUBTREE, old_filter,
                                       &search_bases[0]);
-        if (!search_bases[0]) {
-            ret = ENOMEM;
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, ("Cannot create new sdap search base\n"));
             goto done;
         }
 
