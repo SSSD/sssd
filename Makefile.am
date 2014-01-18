@@ -156,6 +156,7 @@ if HAVE_CMOCKA
         nss-srv-tests \
         test-find-uid \
         test-io \
+        test-negcache \
         test-authtok \
         sss_nss_idmap-tests \
         dyndns-tests \
@@ -1431,6 +1432,22 @@ test_io_CFLAGS = \
     $(AM_CFLAGS)
 test_io_LDADD = \
     $(CMOCKA_LIBS)
+
+EXTRA_test_negcache_DEPENDENCIES = \
+    $(ldblib_LTLIBRARIES)
+test_negcache_SOURCES = \
+    $(SSSD_RESPONDER_OBJ) \
+    src/tests/cmocka/test_negcache.c
+test_negcache_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(DHASH_CFLAGS)
+test_negcache_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    libsss_idmap.la
 
 test_authtok_SOURCES = \
     src/tests/cmocka/test_authtok.c \
