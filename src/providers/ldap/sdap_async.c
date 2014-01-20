@@ -19,6 +19,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
 #include <ctype.h>
 #include "util/util.h"
 #include "util/strtonum.h"
@@ -1825,6 +1826,185 @@ sdap_x_deref_search_recv(struct tevent_req *req,
 
     *reply_count = state->dreply.reply_count;
     *reply = talloc_steal(mem_ctx, state->dreply.reply);
+
+    return EOK;
+}
+
+/* ==Security Descriptor (ACL) search=================================== */
+struct sdap_sd_search_state {
+  LDAPControl **ctrls;
+  struct sdap_options *opts;
+  size_t reply_count;
+  struct sysdb_attrs **reply;
+  struct sdap_reply sreply;
+};
+
+static int sdap_sd_search_create_control(struct sdap_handle *sh,
+					 int val,
+					 LDAPControl **ctrl);
+static int sdap_sd_search_ctrls_destructor(void *ptr);
+static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
+                                          struct sdap_msg *msg,
+                                          void *pvt);
+static void sdap_sd_search_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_sd_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
+                     struct sdap_options *opts, struct sdap_handle *sh,
+                     const char *base_dn, int sd_flags,
+                     const char **attrs, int timeout)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_sd_search_state *state;
+    int ret;
+
+    req = tevent_req_create(memctx, &state, struct sdap_sd_search_state);
+    if (!req) return NULL;
+
+    state->ctrls = talloc_zero_array(state, LDAPControl *, 2);
+    state->opts = opts;
+    if (state->ctrls == NULL) {
+        ret = EIO;
+        goto fail;
+    }
+    talloc_set_destructor((TALLOC_CTX *) state->ctrls,
+                          sdap_sd_search_ctrls_destructor);
+
+    ret = sdap_sd_search_create_control(sh, sd_flags, &state->ctrls[0]);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not create SD control\n");
+        ret = EIO;
+        goto fail;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Searching entry [%s] using SD\n", base_dn);
+    subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
+                                       LDAP_SCOPE_BASE, "(objectclass=*)", attrs,
+                                       false, state->ctrls, NULL, 0, timeout,
+                                       true, sdap_sd_search_parse_entry,
+                                       state);
+    if (!subreq) {
+        ret = EIO;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sdap_sd_search_done, req);
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static int sdap_sd_search_create_control(struct sdap_handle *sh,
+					 int val,
+					 LDAPControl **ctrl)
+{
+    struct berval *sdval;
+    int ret;
+    BerElement *ber = NULL;
+    ber = ber_alloc_t(LBER_USE_DER);
+    if (ber == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ber_alloc_t failed.\n");
+        return ENOMEM;
+    }
+
+    ret = ber_printf(ber, "{i}", val);
+    if (ret == -1) {
+        DEBUG(SSSDBG_OP_FAILURE, "ber_printf failed.\n");
+        ber_free(ber, 1);
+        return EIO;
+    }
+
+    ret = ber_flatten(ber, &sdval);
+    ber_free(ber, 1);
+    if (ret == -1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ber_flatten failed.\n");
+        return EIO;
+    }
+
+    ret = sdap_control_create(sh, LDAP_SERVER_SD_OID, 1, sdval, 1, ctrl);
+    ber_bvfree(sdval);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_control_create failed\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
+                                          struct sdap_msg *msg,
+                                          void *pvt)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    struct sdap_sd_search_state *state =
+                talloc_get_type(pvt, struct sdap_sd_search_state);
+
+    bool disable_range_rtrvl = dp_opt_get_bool(state->opts->basic,
+                                               SDAP_DISABLE_RANGE_RETRIEVAL);
+
+    ret = sdap_parse_entry(state, sh, msg,
+                           NULL, 0,
+                           &attrs, NULL, disable_range_rtrvl);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
+        return ret;
+    }
+
+    ret = add_to_reply(state, &state->sreply, attrs);
+    if (ret != EOK) {
+        talloc_free(attrs);
+        DEBUG(SSSDBG_CRIT_FAILURE, "add_to_reply failed.\n");
+        return ret;
+    }
+
+    /* add_to_reply steals attrs, no need to free them here */
+    return EOK;
+}
+
+static void sdap_sd_search_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+    ret = sdap_get_generic_ext_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sdap_get_generic_ext_recv failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static int sdap_sd_search_ctrls_destructor(void *ptr)
+{
+    LDAPControl **ctrls = talloc_get_type(ptr, LDAPControl *);;
+    if (ctrls && ctrls[0]) {
+        ldap_control_free(ctrls[0]);
+    }
+
+    return 0;
+}
+
+int sdap_sd_search_recv(struct tevent_req *req,
+                        TALLOC_CTX *mem_ctx,
+                        size_t *_reply_count,
+                        struct sysdb_attrs ***_reply)
+{
+    struct sdap_sd_search_state *state = tevent_req_data(req,
+                                            struct sdap_sd_search_state);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_reply_count = state->sreply.reply_count;
+    *_reply = talloc_steal(mem_ctx, state->sreply.reply);
 
     return EOK;
 }

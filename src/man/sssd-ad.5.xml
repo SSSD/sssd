@@ -253,6 +253,70 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_gpo_access_control (string)</term>
+                    <listitem>
+                        <para>
+                            This option specifies the operation mode for
+                            GPO-based access control functionality:
+                            whether it operates in disabled mode, enforcing
+                            mode, or permissive mode. Please note that the
+                            <quote>access_provider</quote> option must be
+                            explicitly set to <quote>ad</quote> in order for
+                            this option to have an effect.
+                        </para>
+                        <para>
+                            GPO-based access control functionality uses GPO
+                            policy settings to determine whether or not a
+                            particular user is allowed to logon to a particular
+                            host.
+                        </para>
+                        <para>
+                            NOTE: If the operation mode is set to enforcing, it
+                            is possible that users that were previously allowed
+                            logon access will now be denied logon access (as
+                            dictated by the GPO policy settings). In order to
+                            facilitate a smooth transition for administrators,
+                            a permissive mode is available that will not enforce
+                            the access control rules, but will evaluate them and
+                            will output a syslog message if access would have
+                            been denied. By examining the logs, administrators
+                            can then make the necessary changes before setting
+                            the mode to enforcing.
+                        </para>
+                        <para>
+                            There are three supported values for this option:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        disabled: GPO-based access control rules
+                                        are neither evaluated nor enforced.
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        enforcing: GPO-based access control
+                                        rules are evaluated and enforced.
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        permissive: GPO-based access control
+                                        rules are evaluated, but not enforced.
+                                        Instead, a syslog message will be
+                                        emitted indicating that the user would
+                                        have been denied access if this option's
+                                        value were set to enforcing.
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            Default: permissive
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>

@@ -44,7 +44,9 @@
 static errno_t
 netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
                          struct sysdb_attrs *reply,
-                         char **_flat_name, char **_forest)
+                         char **_flat_name,
+                         char **_site,
+                         char **_forest)
 {
     errno_t ret;
     struct ldb_message_element *el;
@@ -53,6 +55,7 @@ netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
     enum ndr_err_code ndr_err;
     struct netlogon_samlogon_response response;
     const char *flat_name;
+    const char *site;
     const char *forest;
 
     ret = sysdb_attrs_get_el(reply, AD_AT_NETLOGON, &el);
@@ -129,6 +132,22 @@ netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* get site name */
+    if (response.data.nt5_ex.client_site != NULL
+        && response.data.nt5_ex.client_site[0] != '\0') {
+        site = response.data.nt5_ex.client_site;
+    } else {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_site = talloc_strdup(mem_ctx, site);
+    if (*_site == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     ret = EOK;
 done:
     talloc_free(ndr_pull);
@@ -146,6 +165,7 @@ struct ad_master_domain_state {
     int base_iter;
 
     char *flat;
+    char *site;
     char *forest;
     char *sid;
 };
@@ -362,14 +382,16 @@ ad_master_domain_netlogon_done(struct tevent_req *subreq)
     /* Exactly one flat name. Carry on */
 
     ret = netlogon_get_domain_info(state, reply[0], &state->flat,
-                                   &state->forest);
+                                   &state->site, &state->forest);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not get the flat name or forest\n");
         /* Not fatal. Just quit. */
         goto done;
     }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Found flat name [%s].\n", state->flat);
+    DEBUG(SSSDBG_TRACE_FUNC, "Found site [%s].\n", state->site);
     DEBUG(SSSDBG_TRACE_FUNC, "Found forest [%s].\n", state->forest);
 
 done:
@@ -382,6 +404,7 @@ ad_master_domain_recv(struct tevent_req *req,
                       TALLOC_CTX *mem_ctx,
                       char **_flat,
                       char **_id,
+                      char **_site,
                       char **_forest)
 {
     struct ad_master_domain_state *state = tevent_req_data(req,
@@ -391,6 +414,10 @@ ad_master_domain_recv(struct tevent_req *req,
 
     if (_flat) {
         *_flat = talloc_steal(mem_ctx, state->flat);
+    }
+
+    if (_site) {
+        *_site = talloc_steal(mem_ctx, state->site);
     }
 
     if (_forest) {

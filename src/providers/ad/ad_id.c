@@ -558,7 +558,7 @@ ad_enumeration_master_done(struct tevent_req *subreq)
     char *forest;
 
     ret = ad_master_domain_recv(subreq, state,
-                                &flat_name, &master_sid, &forest);
+                                &flat_name, &master_sid, NULL, &forest);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve master domain info\n");

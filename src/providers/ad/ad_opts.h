@@ -37,6 +37,7 @@ struct dp_option ad_basic_opts[] = {
     { "ad_enable_dns_sites", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ad_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ad_enable_gc", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "ad_gpo_access_control", DP_OPT_STRING, { "permissive" }, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
 

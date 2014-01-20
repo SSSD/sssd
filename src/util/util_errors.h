@@ -80,6 +80,7 @@ enum sssd_errors {
     ERR_INVALID_EXTRA_ATTR,
     ERR_SBUS_GET_SENDER_ERROR,
     ERR_SBUS_NO_SENDER,
+    ERR_NO_SIDS,
     ERR_LAST            /* ALWAYS LAST */
 };
 

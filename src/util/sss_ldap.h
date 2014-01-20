@@ -55,6 +55,20 @@ int sss_ldap_get_diagnostic_msg(TALLOC_CTX *mem_ctx,
 #define LDAP_SERVER_ASQ_OID "1.2.840.113556.1.4.1504"
 #endif /* LDAP_SERVER_ASQ_OID */
 
+#ifndef LDAP_SERVER_SD_OID
+#define LDAP_SERVER_SD_OID "1.2.840.113556.1.4.801"
+#endif /* LDAP_SERVER_SD_OID */
+
+
+/*
+ * The following four flags specify which security descriptor parts to retrieve
+ * during sd_search (see  http://msdn.microsoft.com/en-us/library/aa366987.aspx)
+ */
+#define SECINFO_OWNER ( 0x00000001 )
+#define SECINFO_GROUP ( 0x00000002 )
+#define SECINFO_DACL ( 0x00000004 )
+#define SECINFO_SACL ( 0x00000008 )
+
 int sss_ldap_control_create(const char *oid, int iscritical,
                             struct berval *value, int dupval,
                             LDAPControl **ctrlp);

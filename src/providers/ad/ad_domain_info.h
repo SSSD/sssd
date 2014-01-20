@@ -37,6 +37,7 @@ ad_master_domain_recv(struct tevent_req *req,
                       TALLOC_CTX *mem_ctx,
                       char **_flat,
                       char **_id,
+                      char **_site,
                       char **_forest);
 
 #endif /* _AD_MASTER_DOMAIN_H_ */

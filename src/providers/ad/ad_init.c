@@ -370,6 +370,7 @@ sssm_ad_access_init(struct be_ctx *bectx,
     struct ad_access_ctx *access_ctx;
     struct ad_id_ctx *ad_id_ctx;
     const char *filter;
+    const char *gpo_access_control_mode;
 
     access_ctx = talloc_zero(bectx, struct ad_access_ctx);
     if (!access_ctx) return ENOMEM;
@@ -419,6 +420,23 @@ sssm_ad_access_init(struct be_ctx *bectx,
         access_ctx->sdap_access_ctx->access_rule[2] = LDAP_ACCESS_EMPTY;
     } else {
         access_ctx->sdap_access_ctx->access_rule[1] = LDAP_ACCESS_EMPTY;
+    }
+
+    /* GPO access control mode */
+    gpo_access_control_mode =
+        dp_opt_get_string(access_ctx->ad_options, AD_GPO_ACCESS_CONTROL);
+    if (strcasecmp(gpo_access_control_mode, "disabled") == 0) {
+        access_ctx->gpo_access_control_mode = GPO_ACCESS_CONTROL_DISABLED;
+    } else if (strcasecmp(gpo_access_control_mode, "permissive") == 0) {
+        access_ctx->gpo_access_control_mode = GPO_ACCESS_CONTROL_PERMISSIVE;
+    } else if (strcasecmp(gpo_access_control_mode, "enforcing") == 0) {
+        access_ctx->gpo_access_control_mode = GPO_ACCESS_CONTROL_ENFORCING;
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unrecognized GPO access control mode: %s\n",
+              gpo_access_control_mode);
+        ret = EINVAL;
+        goto fail;
     }
 
     *ops = &ad_access_ops;

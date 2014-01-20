@@ -27,6 +27,12 @@ struct ad_access_ctx {
     struct dp_option *ad_options;
     struct sdap_access_ctx *sdap_access_ctx;
     struct ad_id_ctx *ad_id_ctx;
+    /* supported GPO access control modes */
+    enum gpo_access_control_mode {
+        GPO_ACCESS_CONTROL_DISABLED,
+        GPO_ACCESS_CONTROL_PERMISSIVE,
+        GPO_ACCESS_CONTROL_ENFORCING
+    } gpo_access_control_mode;
 };
 
 void
