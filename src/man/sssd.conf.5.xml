@@ -489,7 +489,7 @@
                         <para>
                             example:
                             <programlisting>
-override_homedir = /home/%u
+fallback_homedir = /home/%u
                             </programlisting>
                         </para>
                         <para>
