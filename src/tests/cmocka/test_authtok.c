@@ -204,7 +204,7 @@ static void test_sss_authtok_empty(void **state)
     assert_int_equal(0, sss_authtok_get_size(ts->authtoken));
     assert_null(sss_authtok_get_data(ts->authtoken));
 
-    ret = sss_authtok_set(ts->authtoken, type, '\0', 0);
+    ret = sss_authtok_set(ts->authtoken, type, (const uint8_t*)"", 0);
     assert_int_equal(ret, EOK);
 
     assert_int_equal(type, sss_authtok_get_type(ts->authtoken));
