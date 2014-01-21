@@ -807,6 +807,7 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
                             int num_groups,
                             bool populate_members,
                             hash_table_t *ghosts,
+                            bool save_orig_member,
                             char **_usn_value)
 {
     TALLOC_CTX *tmpctx;
@@ -864,9 +865,9 @@ static int sdap_save_groups(TALLOC_CTX *memctx,
         usn_value = NULL;
 
         /* if 2 pass savemembers = false */
-        ret = sdap_save_group(tmpctx, sysdb,
-                              opts, dom, groups[i],
-                              populate_members, has_nesting,
+        ret = sdap_save_group(tmpctx, sysdb, opts, dom, groups[i],
+                              populate_members,
+                              has_nesting && save_orig_member,
                               ghosts, &usn_value, now);
 
         /* Do not fail completely on errors.
@@ -1835,7 +1836,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
                   "to allow unrolling of nested groups.\n"));
         ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
                                state->groups, state->count, false,
-                               NULL, NULL);
+                               NULL, true, NULL);
         if (ret) {
             DEBUG(2, ("Failed to store groups.\n"));
             tevent_req_error(req, ret);
@@ -1887,10 +1888,14 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
 
         /* If ignore_group_members is set for the domain, don't update
          * group memberships in the cache.
+         *
+         * If enumeration is on, don't overwrite orig_members as they've been
+         * saved earlier.
          */
         ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
                                state->groups, state->count,
                                !state->dom->ignore_group_members, NULL,
+                               !state->enumeration,
                                &state->higher_usn);
         if (ret) {
             DEBUG(2, ("Failed to store groups.\n"));
@@ -2014,7 +2019,7 @@ static void sdap_ad_match_rule_members_process(struct tevent_req *subreq)
     /* Now save the group, users and ghosts to the cache */
     ret = sdap_save_groups(tmp_ctx, state->sysdb, state->dom,
                            state->opts, state->groups, 1,
-                           false, ghosts, NULL);
+                           false, ghosts, true, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               ("Could not save group to the cache: [%s]\n",
@@ -2090,7 +2095,7 @@ static void sdap_nested_done(struct tevent_req *subreq)
     }
 
     ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                           groups, group_count, false, ghosts,
+                           groups, group_count, false, ghosts, true,
                            &state->higher_usn);
     if (ret != EOK) {
         goto fail;
