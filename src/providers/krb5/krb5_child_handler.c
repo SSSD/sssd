@@ -254,7 +254,10 @@ static void krb5_child_timeout(struct tevent_context *ev,
         return;
     }
 
-    DEBUG(9, ("timeout for child [%d] reached.\n", state->child_pid));
+    DEBUG(SSSDBG_IMPORTANT_INFO,
+          ("Timeout for child [%d] reached. In case KDC is distant or network "
+           "is slow you may consider increasing value of krb5_auth_timeout.\n",
+           state->child_pid));
 
     ret = kill(state->child_pid, SIGKILL);
     if (ret == -1) {
