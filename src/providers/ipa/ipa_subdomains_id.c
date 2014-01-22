@@ -25,6 +25,7 @@
 #include <errno.h>
 
 #include "util/util.h"
+#include "util/sss_nss.h"
 #include "util/strtonum.h"
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
@@ -350,6 +351,185 @@ ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
     return (iter) ? iter->ad_id_ctx : NULL;
 }
 
+static errno_t
+get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
+                              const char *fqname, uint32_t uid,
+                              const char **_homedir)
+{
+    errno_t ret;
+    char *name;
+    const char *homedir;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_parse_name(tmp_ctx, dom->names, fqname, NULL, &name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    homedir = expand_homedir_template(tmp_ctx, dom->subdomain_homedir, name,
+                                      uid, NULL, dom->name, dom->flat_name);
+
+    if (homedir == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, ("expand_homedir_template failed\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (_homedir == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+    *_homedir = talloc_steal(mem_ctx, homedir);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+store_homedir_of_user(struct sss_domain_info *domain,
+                      const char *fqname, const char *homedir)
+{
+    errno_t ret;
+    errno_t sret;
+    TALLOC_CTX *tmp_ctx;
+    bool in_transaction = false;
+    struct sysdb_attrs *attrs;
+    struct sysdb_ctx *sysdb = domain->sysdb;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    attrs = sysdb_new_attrs(tmp_ctx);
+    if (attrs == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_HOMEDIR, homedir);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("Error setting homedir: [%s]\n",
+                                     strerror(ret)));
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        goto done;
+    }
+
+    in_transaction = true;
+
+    ret = sysdb_set_user_attr(domain, fqname, attrs, SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to update homedir information!\n"));
+        goto done;
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Cannot commit sysdb transaction [%d]: %s.\n",
+               ret, strerror(ret)));
+        goto done;
+    }
+
+    in_transaction = false;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction.\n"));
+        }
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
+                        int filter_type, const char *filter_value)
+{
+    errno_t ret;
+    uint32_t uid;
+    const char *fqname;
+    const char *homedir = NULL;
+    struct ldb_result *res;
+
+    if (filter_type == BE_FILTER_NAME) {
+        ret = sysdb_getpwnam(mem_ctx, dom, filter_value, &res);
+    } else if (filter_type == BE_FILTER_IDNUM) {
+        errno = 0;
+        uid = strtouint32(filter_value, NULL, 10);
+        if (errno != 0) {
+            ret = errno;
+            goto done;
+        }
+        ret = sysdb_getpwuid(mem_ctx, dom, uid, &res);
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Unsupported filter type: [%d].\n", filter_type));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Failed to make request to our cache: [%d]: [%s]\n",
+               ret, sss_strerror(ret)));
+        goto done;
+    }
+
+    if (res->count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    /*
+     * Homedir is always overriden by subdomain_homedir even if it was
+     * explicitly set by user.
+     */
+    fqname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
+    if (uid == 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("UID for user [%s] is not known.\n",
+                                  filter_value));
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = get_subdomain_homedir_of_user(mem_ctx, dom, fqname, uid, &homedir);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("get_subdomain_homedir_of_user failed: [%d]: [%s]\n",
+               ret, sss_strerror(ret)));
+        goto done;
+    }
+
+    ret = store_homedir_of_user(dom, fqname, homedir);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("store_homedir_of_user failed: [%d]: [%s]\n",
+               ret, sss_strerror(ret)));
+        goto done;
+    }
+
+done:
+    return ret;
+}
+
 static void
 ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
 {
@@ -365,6 +545,16 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE, ("AD lookup failed: %d\n", ret));
         tevent_req_error(req, ret);
         return;
+    }
+
+    ret = apply_subdomain_homedir(state, state->user_dom,
+                                  state->ar->filter_type,
+                                  state->ar->filter_value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("apply_subdomain_homedir failed: [%d]: [%s].\n",
+               ret, sss_strerror(ret)));
+        goto fail;
     }
 
     if ((state->ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_INITGROUPS) {
