@@ -724,7 +724,7 @@ static void ad_srv_plugin_dcs_done(struct tevent_req *subreq)
                                      state->ctx->be_res,
                                      state->ctx->host_dbs,
                                      state->ctx->opts,
-                                     state->ctx->ad_domain,
+                                     state->discovery_domain,
                                      dcs, num_dcs);
     if (subreq == NULL) {
         ret = ENOMEM;
