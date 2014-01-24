@@ -129,7 +129,19 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             /* Convert the UID to its objectSID */
             err = sss_idmap_unix_to_sid(ctx->opts->idmap_ctx->map,
                                         uid, &sid);
-            if (err != IDMAP_SUCCESS) {
+            if (err == IDMAP_NO_DOMAIN) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("[%s] did not match any configured ID mapping domain\n",
+                       name));
+
+                ret = sysdb_delete_user(state->domain, NULL, uid);
+                if (ret == ENOENT) {
+                    /* Ignore errors to remove users that were not cached previously */
+                    ret = EOK;
+                }
+
+                goto fail;
+            } else if (err != IDMAP_SUCCESS) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Mapping ID [%s] to SID failed: [%s]\n",
                        name, idmap_error_string(err)));
@@ -213,7 +225,11 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     return req;
 
 fail:
-    tevent_req_error(req, ret);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, ev);
     return req;
 }
@@ -494,10 +510,22 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                 goto fail;
             }
 
-            /* Convert the UID to its objectSID */
+            /* Convert the GID to its objectSID */
             err = sss_idmap_unix_to_sid(ctx->opts->idmap_ctx->map,
                                         gid, &sid);
-            if (err != IDMAP_SUCCESS) {
+            if (err == IDMAP_NO_DOMAIN) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("[%s] did not match any configured ID mapping domain\n",
+                       name));
+
+                ret = sysdb_delete_group(state->domain, NULL, gid);
+                if (ret == ENOENT) {
+                    /* Ignore errors to remove users that were not cached previously */
+                    ret = EOK;
+                }
+
+                goto fail;
+            } else if (err != IDMAP_SUCCESS) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       ("Mapping ID [%s] to SID failed: [%s]\n",
                        name, idmap_error_string(err)));
@@ -585,7 +613,11 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     return req;
 
 fail:
-    tevent_req_error(req, ret);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, ev);
     return req;
 }
