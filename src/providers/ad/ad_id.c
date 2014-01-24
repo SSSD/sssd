@@ -386,7 +386,7 @@ ad_account_info_complete(struct tevent_req *req)
             error_text = NULL;
         } else {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Bug: dp_error is OK on failed request"));
+                  ("Bug: dp_error is OK on failed request\n"));
             dp_error = DP_ERR_FATAL;
             error_text = req_error_text;
         }
