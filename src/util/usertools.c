@@ -303,7 +303,7 @@ done:
 
 int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
-                   const char *orig, char **domain, char **name)
+                   const char *orig, char **_domain, char **_name)
 {
     pcre *re = snctx->re;
     const char *result;
@@ -327,31 +327,35 @@ int sss_parse_name(TALLOC_CTX *memctx,
 
     strnum = ret;
 
-    result = NULL;
-    ret = pcre_get_named_substring(re, orig, ovec, strnum, "name", &result);
-    if (ret < 0  || !result) {
-        DEBUG(2, ("Name not found!\n"));
-        return EINVAL;
+    if (_name != NULL) {
+        result = NULL;
+        ret = pcre_get_named_substring(re, orig, ovec, strnum, "name", &result);
+        if (ret < 0  || !result) {
+            DEBUG(2, ("Name not found!\n"));
+            return EINVAL;
+        }
+        *_name = talloc_strdup(memctx, result);
+        pcre_free_substring(result);
+        if (!*_name) return ENOMEM;
     }
-    *name = talloc_strdup(memctx, result);
-    pcre_free_substring(result);
-    if (!*name) return ENOMEM;
 
-
-    result = NULL;
-    ret = pcre_get_named_substring(re, orig, ovec, strnum, "domain", &result);
-    if (ret < 0  || !result) {
-        DEBUG(4, ("Domain not provided!\n"));
-        *domain = NULL;
-    } else {
-        /* ignore "" string */
-        if (*result) {
-            *domain = talloc_strdup(memctx, result);
-            pcre_free_substring(result);
-            if (!*domain) return ENOMEM;
+    if (_domain != NULL) {
+        result = NULL;
+        ret = pcre_get_named_substring(re, orig, ovec, strnum, "domain",
+                                       &result);
+        if (ret < 0  || !result) {
+            DEBUG(4, ("Domain not provided!\n"));
+            *_domain = NULL;
         } else {
-            pcre_free_substring(result);
-            *domain = NULL;
+            /* ignore "" string */
+            if (*result) {
+                *_domain = talloc_strdup(memctx, result);
+                pcre_free_substring(result);
+                if (!*_domain) return ENOMEM;
+            } else {
+                pcre_free_substring(result);
+                *_domain = NULL;
+            }
         }
     }
 

@@ -345,7 +345,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx,
 
 int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
-                   const char *orig, char **domain, char **name);
+                   const char *orig, char **_domain, char **_name);
 
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                                struct sss_domain_info *domains,
