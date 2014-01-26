@@ -349,7 +349,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx,
 
 int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
-                   const char *orig, char **domain, char **name);
+                   const char *orig, char **_domain, char **_name);
 
 char *
 sss_get_cased_name(TALLOC_CTX *mem_ctx, const char *orig_name,
