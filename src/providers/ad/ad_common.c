@@ -353,8 +353,7 @@ static void
 ad_resolve_callback(void *private_data, struct fo_server *server);
 
 static errno_t
-_ad_servers_init(TALLOC_CTX *mem_ctx,
-                 struct ad_service *service,
+_ad_servers_init(struct ad_service *service,
                  struct be_ctx *bectx,
                  const char *fo_service,
                  const char *fo_gc_service,
@@ -468,22 +467,22 @@ done:
 }
 
 static inline errno_t
-ad_primary_servers_init(TALLOC_CTX *mem_ctx, struct ad_service *service,
+ad_primary_servers_init(struct ad_service *service,
                         struct be_ctx *bectx, const char *servers,
                         const char *fo_service, const char *fo_gc_service,
                         const char *ad_domain)
 {
-    return _ad_servers_init(mem_ctx, service, bectx, fo_service,
+    return _ad_servers_init(service, bectx, fo_service,
                             fo_gc_service, servers, ad_domain, true);
 }
 
 static inline errno_t
-ad_backup_servers_init(TALLOC_CTX *mem_ctx, struct ad_service *service,
+ad_backup_servers_init(struct ad_service *service,
                         struct be_ctx *bectx, const char *servers,
                         const char *fo_service, const char *fo_gc_service,
                         const char *ad_domain)
 {
-    return _ad_servers_init(mem_ctx, service, bectx, fo_service,
+    return _ad_servers_init(service, bectx, fo_service,
                             fo_gc_service, servers, ad_domain, false);
 }
 
@@ -603,7 +602,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
         primary_servers = BE_SRV_IDENTIFIER;
     }
 
-    ret = ad_primary_servers_init(mem_ctx, service, bectx,
+    ret = ad_primary_servers_init(service, bectx,
                                   primary_servers, ad_service,
                                   ad_gc_service, ad_domain);
     if (ret != EOK) {
@@ -611,7 +610,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     }
 
     if (backup_servers) {
-        ret = ad_backup_servers_init(mem_ctx, service, bectx,
+        ret = ad_backup_servers_init(service, bectx,
                                      backup_servers, ad_service,
                                      ad_gc_service, ad_domain);
         if (ret != EOK) {

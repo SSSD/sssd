@@ -474,8 +474,7 @@ static errno_t sdap_get_ad_tokengroups_recv(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
-sdap_ad_tokengroups_update_members(TALLOC_CTX *mem_ctx,
-                                   const char *username,
+sdap_ad_tokengroups_update_members(const char *username,
                                    struct sysdb_ctx *sysdb,
                                    struct sss_domain_info *domain,
                                    char **ldap_groups)
@@ -921,7 +920,7 @@ static void sdap_ad_tokengroups_initgr_mapping_done(struct tevent_req *subreq)
 
     groups[num_groups] = NULL;
 
-    ret = sdap_ad_tokengroups_update_members(state, state->username,
+    ret = sdap_ad_tokengroups_update_members(state->username,
                                              state->sysdb, state->domain,
                                              groups);
     if (ret != EOK) {
@@ -1211,7 +1210,7 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
     missing_sids[num_missing_sids] = NULL;
 
     /* update membership of existing groups */
-    ret = sdap_ad_tokengroups_update_members(state, state->username,
+    ret = sdap_ad_tokengroups_update_members(state->username,
                                              state->sysdb, state->domain,
                                              valid_groups);
     if (ret != EOK) {
