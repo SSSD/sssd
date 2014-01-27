@@ -96,13 +96,18 @@ void __wrap_sss_packet_get_body(struct sss_packet *packet,
                                 uint8_t **body, size_t *blen)
 {
     enum sss_test_wrapper_call wtype = sss_mock_type(enum sss_test_wrapper_call);
+    size_t len;
 
     if (wtype == WRAP_CALL_REAL) {
         return __real_sss_packet_get_body(packet, body, blen);
     }
 
     *body = sss_mock_ptr_type(uint8_t *);
-    *blen = strlen((const char *) *body)+1;
+    len = sss_mock_type(size_t);
+    if (len == 0) {
+        len = strlen((const char *) *body)+1;
+    }
+    *blen = len;
     return;
 }
 
@@ -158,11 +163,38 @@ int __wrap_sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
     return ret;
 }
 
+int __real_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid);
+
+int __wrap_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
+{
+    int ret;
+
+    ret = __real_sss_ncache_check_uid(ctx, ttl, uid);
+    if (ret == EEXIST) {
+        nss_test_ctx->ncache_hit = true;
+    }
+    return ret;
+}
+
 /* Mock input from the client library */
 static void mock_input_user_or_group(const char *username)
 {
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, username);
+    will_return(__wrap_sss_packet_get_body, 0);
+}
+
+static void mock_input_id(TALLOC_CTX *mem_ctx, uint32_t id)
+{
+    uint8_t *body;
+
+    body = talloc_zero_array(mem_ctx, uint8_t, 4);
+    if (body == NULL) return;
+
+    SAFEALIGN_SETMEM_UINT32(body, id, NULL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
+    will_return(__wrap_sss_packet_get_body, body);
+    will_return(__wrap_sss_packet_get_body, sizeof(uint32_t));
 }
 
 static void mock_fill_user(void)
@@ -585,6 +617,240 @@ void test_nss_getpwnam_fqdn_fancy(void **state)
     /* Wait until the test finishes with EOK */
     ret = test_ev_loop(nss_test_ctx->tctx);
     assert_int_equal(ret, EOK);
+}
+
+/* Check getting cached and valid id from cache. Account callback will
+ * not be called and test_nss_getpwuid_check will make sure the id is
+ * the same as the test entered before starting
+ */
+static int test_nss_getpwuid_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    struct passwd pwd;
+    errno_t ret;
+
+    assert_int_equal(status, EOK);
+
+    ret = parse_user_packet(body, blen, &pwd);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(pwd.pw_uid, 101);
+    assert_int_equal(pwd.pw_gid, 401);
+    assert_string_equal(pwd.pw_name, "testuser1");
+    assert_string_equal(pwd.pw_shell, "/bin/sh");
+    assert_string_equal(pwd.pw_passwd, "*");
+    return EOK;
+}
+
+void test_nss_getpwuid(void **state)
+{
+    errno_t ret;
+
+    /* Prime the cache with a valid user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "testuser1", 101, 401, "test user1",
+                         "/home/testuser1", "/bin/sh", NULL,
+                         NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    uint32_t id = 101;
+    mock_input_id(nss_test_ctx, id);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID);
+    mock_fill_user();
+
+    /* Query for that id, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwuid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* Test that searching for a nonexistent id yields ENOENT.
+ * Account callback will be called
+ */
+void test_nss_getpwuid_neg(void **state)
+{
+    errno_t ret;
+
+    uint8_t id = 102;
+    mock_input_id(nss_test_ctx, id);
+    mock_account_recv_simple();
+
+    assert_true(nss_test_ctx->ncache_hit == false);
+
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(nss_test_ctx->ncache_hit == false);
+
+    /* Test that subsequent search for a nonexistent id yields
+     * ENOENT and Account callback is not called, on the other hand
+     * the ncache functions will be called
+     */
+    nss_test_ctx->tctx->done = false;
+
+    mock_input_id(nss_test_ctx, id);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    /* Negative cache was hit this time */
+    assert_true(nss_test_ctx->ncache_hit == true);
+}
+
+static int test_nss_getpwuid_search_acct_cb(void *pvt)
+{
+    errno_t ret;
+    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+
+    ret = sysdb_add_user(ctx->tctx->dom,
+                         "exampleuser_search", 107, 987, "example search",
+                         "/home/examplesearch", "/bin/sh", NULL,
+                         NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+static int test_nss_getpwuid_search_check(uint32_t status,
+                                          uint8_t *body, size_t blen)
+{
+    struct passwd pwd;
+    errno_t ret;
+
+    assert_int_equal(status, EOK);
+
+    ret = parse_user_packet(body, blen, &pwd);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(pwd.pw_uid, 107);
+    assert_int_equal(pwd.pw_gid, 987);
+    assert_string_equal(pwd.pw_name, "exampleuser_search");
+    assert_string_equal(pwd.pw_shell, "/bin/sh");
+    return EOK;
+}
+
+void test_nss_getpwuid_search(void **state)
+{
+    errno_t ret;
+    struct ldb_result *res;
+
+    uint8_t id = 107;
+    mock_input_id(nss_test_ctx, id);
+    mock_account_recv(0, 0, NULL, test_nss_getpwuid_search_acct_cb, nss_test_ctx);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID);
+    mock_fill_user();
+    set_cmd_cb(test_nss_getpwuid_search_check);
+
+    ret = sysdb_getpwuid(nss_test_ctx, nss_test_ctx->tctx->dom,
+                         107, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 0);
+
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+
+    /* test_nss_getpwuid_search_check will check the id attributes */
+    ret = sysdb_getpwuid(nss_test_ctx, nss_test_ctx->tctx->dom,
+                         107, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+}
+
+/* Test that searching for an id that is expired in the cache goes to the DP
+ * which updates the record and the NSS responder returns the updated record
+ *
+ * The user's shell attribute is updated.
+ */
+static int test_nss_getpwuid_update_acct_cb(void *pvt)
+{
+    errno_t ret;
+    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+
+    ret = sysdb_store_user(ctx->tctx->dom,
+                           "exampleuser_update", NULL, 109, 11000, "example user",
+                           "/home/exampleuser", "/bin/ksh", NULL,
+                           NULL, NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+static int test_nss_getpwuid_update_check(uint32_t status,
+                                          uint8_t *body, size_t blen)
+{
+    struct passwd pwd;
+    errno_t ret;
+
+    assert_int_equal(status, EOK);
+
+    ret = parse_user_packet(body, blen, &pwd);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(pwd.pw_uid, 109);
+    assert_int_equal(pwd.pw_gid, 11000);
+    assert_string_equal(pwd.pw_name, "exampleuser_update");
+    assert_string_equal(pwd.pw_shell, "/bin/ksh");
+    return EOK;
+}
+
+void test_nss_getpwuid_update(void **state)
+{
+    errno_t ret;
+    struct ldb_result *res;
+    const char *shell;
+
+    /* Prime the cache with a valid but expired user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "exampleuser_update", 109, 11000, "example user",
+                         "/home/exampleuser", "/bin/sh", NULL,
+                         NULL, 1, 1);
+    assert_int_equal(ret, EOK);
+
+    /* Mock client input */
+    uint8_t id = 109;
+    mock_input_id(nss_test_ctx, id);
+    /* Mock client command */
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWUID);
+    /* Call this function when id is updated by the mock DP request */
+    mock_account_recv(0, 0, NULL, test_nss_getpwuid_update_acct_cb, nss_test_ctx);
+    /* Call this function to check what the responder returned to the client */
+    set_cmd_cb(test_nss_getpwuid_update_check);
+    /* Mock output buffer */
+    mock_fill_user();
+
+    /* Fire the command */
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+
+    /* Check the user was updated in the cache */
+    ret = sysdb_getpwuid(nss_test_ctx, nss_test_ctx->tctx->dom,
+                         109, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+
+    shell = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, NULL);
+    assert_string_equal(shell, "/bin/ksh");
 }
 
 /* Testsuite setup and teardown */
@@ -1121,6 +1387,7 @@ void test_nss_well_known_getnamebysid(void **state)
 
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, "S-1-5-32-550");
+    will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     will_return(test_nss_well_known_sid_check, "Print Operators@BUILTIN");
@@ -1141,6 +1408,7 @@ void test_nss_well_known_getnamebysid_special(void **state)
 
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, "S-1-2-0");
+    will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     will_return(test_nss_well_known_sid_check, "LOCAL@LOCAL AUTHORITY");
@@ -1161,6 +1429,7 @@ void test_nss_well_known_getnamebysid_non_existing(void **state)
 
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, "S-1-5-32-123");
+    will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
     will_return(test_nss_well_known_sid_check, NULL);
 
@@ -1180,6 +1449,7 @@ void test_nss_well_known_getidbysid_failure(void **state)
 
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, "S-1-5-32-550");
+    will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETIDBYSID);
     will_return(test_nss_well_known_sid_check, NULL);
 
@@ -1199,6 +1469,7 @@ void test_nss_well_known_getsidbyname(void **state)
 
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, "Cryptographic Operators@BUILTIN");
+    will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     will_return(test_nss_well_known_sid_check, "S-1-5-32-569");
@@ -1219,6 +1490,7 @@ void test_nss_well_known_getsidbyname_nonexisting(void **state)
 
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, "Abc@BUILTIN");
+    will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
     will_return(test_nss_well_known_sid_check, NULL);
 
@@ -1238,6 +1510,7 @@ void test_nss_well_known_getsidbyname_special(void **state)
 
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_WRAPPER);
     will_return(__wrap_sss_packet_get_body, "CREATOR OWNER@CREATOR AUTHORITY");
+    will_return(__wrap_sss_packet_get_body, 0);
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETSIDBYNAME);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
     will_return(test_nss_well_known_sid_check, "S-1-3-0");
@@ -1330,11 +1603,19 @@ int main(int argc, const char *argv[])
     const UnitTest tests[] = {
         unit_test_setup_teardown(test_nss_getpwnam,
                                  nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwuid,
+                                 nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getpwnam_neg,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwuid_neg,
                                  nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getpwnam_search,
                                  nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwuid_search,
+                                 nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getpwnam_update,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwuid_update,
                                  nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getpwnam_fqdn,
                                  nss_fqdn_test_setup, nss_test_teardown),
