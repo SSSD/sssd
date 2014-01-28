@@ -156,7 +156,6 @@ find_subdomain_by_object_name(struct sss_domain_info *domain,
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *dom = NULL;
     char *domainname = NULL;
-    char *name = NULL;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -166,7 +165,7 @@ find_subdomain_by_object_name(struct sss_domain_info *domain,
     }
 
     ret = sss_parse_name(tmp_ctx, domain->names, object_name,
-                         &domainname, &name);
+                         &domainname, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
                                     object_name, ret, sss_strerror(ret));

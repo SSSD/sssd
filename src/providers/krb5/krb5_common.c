@@ -1005,7 +1005,6 @@ errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
     char *uc_dom = NULL;
     char *upn;
     char *name;
-    char *domname;
     TALLOC_CTX *tmp_ctx = NULL;
     errno_t ret;
 
@@ -1035,7 +1034,7 @@ errno_t krb5_get_simple_upn(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
     /* Subdomains already have a fully qualified name, which contains
      * the domain name. We need to replace it with the realm name
      */
-    ret = sss_parse_name(tmp_ctx, dom->names, username, &domname, &name);
+    ret = sss_parse_name(tmp_ctx, dom->names, username, NULL, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not parse [%s] into name and "
