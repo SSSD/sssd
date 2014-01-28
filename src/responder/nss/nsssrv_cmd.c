@@ -177,13 +177,12 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
 {
     const char *homedir;
     char *name;
-    char *domname;
     errno_t ret;
 
     homedir = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
 
     /* Subdomain users store FQDN in their name attribute */
-    ret = sss_parse_name(mem_ctx, dom->names, orig_name, &domname, &name);
+    ret = sss_parse_name(mem_ctx, dom->names, orig_name, NULL, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Could not parse [%s] into "
               "name-value components.\n", orig_name);
