@@ -4449,6 +4449,52 @@ START_TEST(test_sysdb_attrs_add_lc_name_alias)
 }
 END_TEST
 
+START_TEST(test_sysdb_attrs_get_string_array)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    const char **list;
+    const char *attrname = "test_attr";
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message_element *el = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed");
+
+    attrs = sysdb_new_attrs(NULL);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_string(attrs, attrname, "val1");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed");
+    ret = sysdb_attrs_add_string(attrs, attrname, "val2");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed");
+
+    ret = sysdb_attrs_get_el_ext(attrs, attrname, false, &el);
+    fail_unless(ret == EOK, "sysdb_attrs_get_el_ext failed");
+
+    list = sss_ldb_el_to_string_list(tmp_ctx, el);
+    fail_if(list == NULL, ("sss_ldb_el_to_string_list failed\n"));
+
+    ck_assert_str_eq(list[0], "val1");
+    ck_assert_str_eq(list[1], "val2");
+    fail_unless(list[2] == NULL, "Expected terminated list");
+
+    talloc_free(list);
+
+    ret = sysdb_attrs_get_string_array(attrs, attrname, tmp_ctx, &list);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string_array failed");
+
+    /* This test relies on values keeping the same order. It is the case
+     * with LDB, but if we ever switch from LDB, we need to amend the test
+     */
+    ck_assert_str_eq(list[0], "val1");
+    ck_assert_str_eq(list[1], "val2");
+    fail_unless(list[2] == NULL, "Expected terminated list");
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
 START_TEST(test_sysdb_has_enumerated)
 {
     errno_t ret;
@@ -5216,6 +5262,9 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_svc_remove_alias);
 
     tcase_add_test(tc_sysdb, test_sysdb_attrs_add_lc_name_alias);
+
+/* ===== UTIL TESTS ===== */
+    tcase_add_test(tc_sysdb, test_sysdb_attrs_get_string_array);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
