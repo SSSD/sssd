@@ -288,6 +288,8 @@ int sysdb_attrs_steal_string(struct sysdb_attrs *attrs,
                              const char *name, char *str);
 int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
                            const char **string);
+const char **sss_ldb_el_to_string_list(TALLOC_CTX *mem_ctx,
+                                       struct ldb_message_element *el);
 int sysdb_attrs_get_string_array(struct sysdb_attrs *attrs, const char *name,
                                  TALLOC_CTX *mem_ctx, const char ***string);
 errno_t sysdb_attrs_get_bool(struct sysdb_attrs *attrs, const char *name,
