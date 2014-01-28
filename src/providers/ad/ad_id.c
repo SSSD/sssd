@@ -526,6 +526,7 @@ ad_enumeration_master_done(struct tevent_req *subreq)
     char *flat_name;
     char *master_sid;
     char *forest;
+    struct sdap_id_conn_ctx *user_conn;
 
     ret = ad_master_domain_recv(subreq, state,
                                 &flat_name, &master_sid, &forest);
@@ -544,8 +545,21 @@ ad_enumeration_master_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = sdap_dom_enum_send(state, state->ev, state->id_ctx->sdap_id_ctx,
-                                state->sdom, state->id_ctx->ldap_ctx);
+    if (dp_opt_get_bool(state->id_ctx->ad_options->basic, AD_ENABLE_GC)) {
+        user_conn = state->id_ctx->gc_ctx;
+    } else {
+        user_conn = state->id_ctx->ldap_ctx;
+    }
+
+    /* Groups are searched for in LDAP, users in GC. Services (if present,
+     * which is unlikely in AD) from LDAP as well
+     */
+    subreq = sdap_dom_enum_ex_send(state, state->ev,
+                                   state->id_ctx->sdap_id_ctx,
+                                   state->sdom,
+                                   user_conn,                /* Users    */
+                                   state->id_ctx->ldap_ctx,  /* Groups   */
+                                   state->id_ctx->ldap_ctx); /* Services */
     if (subreq == NULL) {
         /* The ptask API will reschedule the enumeration on its own on
          * failure */
@@ -566,7 +580,7 @@ ad_enumeration_done(struct tevent_req *subreq)
     struct ad_enumeration_state *state = tevent_req_data(req,
                                                 struct ad_enumeration_state);
 
-    ret = sdap_dom_enum_recv(subreq);
+    ret = sdap_dom_enum_ex_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
