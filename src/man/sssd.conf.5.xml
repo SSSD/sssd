@@ -1786,7 +1786,8 @@ fallback_homedir = /home/%u
                     <listitem>
                         <para>
                             Use this homedir as default value for all subdomains
-                            within this domain. See <emphasis>override_homedir</emphasis>
+                            within this domain in IPA AD trust.
+                            See <emphasis>override_homedir</emphasis>
                             for info about possible values. In addition to those, the
                             expansion below can only be used with
                             <emphasis>subdomain_homedir</emphasis>.
