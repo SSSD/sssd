@@ -56,6 +56,8 @@ static errno_t sysdb_sudo_convert_time(const char *str, time_t *unix_time)
                              NULL};
 
     for (format = formats; *format != NULL; format++) {
+        /* strptime() may leave some fields uninitialized */
+        memset(&tm, 0, sizeof(struct tm));
         tret = strptime(str, *format, &tm);
         if (tret != NULL && *tret == '\0') {
             *unix_time = mktime(&tm);
