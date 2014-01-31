@@ -154,6 +154,7 @@ if HAVE_CMOCKA
         sss_nss_idmap-tests \
         dyndns-tests \
         fqnames-tests \
+        nestedgroups-tests \
         test_sss_idmap \
         test_utils \
         ad_access_filter_tests \
@@ -1407,6 +1408,19 @@ fqnames_tests_SOURCES = \
 fqnames_tests_CFLAGS = \
     $(AM_CFLAGS)
 fqnames_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
+
+nestedgroups_tests_SOURCES = \
+    $(TEST_MOCK_OBJ) \
+    $(TEST_MOCK_PROVIDER_OBJ) \
+    src/tests/cmocka/test_nested_groups.c \
+    src/providers/ldap/sdap_async_nested_groups.c
+nestedgroups_tests_CFLAGS = \
+    $(AM_CFLAGS)
+nestedgroups_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
