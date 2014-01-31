@@ -1299,6 +1299,17 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/negcache.c \
      src/responder/common/responder_common.c
 
+TEST_MOCK_PROVIDER_OBJ = \
+     src/util/sss_ldap.c \
+     src/providers/data_provider_opts.c \
+     src/providers/ldap/ldap_options.c \
+     src/providers/ldap/sdap_domain.c \
+     src/providers/ldap/sdap.c \
+     src/providers/ldap/sdap_utils.c \
+     src/providers/ldap/sdap_range.c \
+     src/tests/cmocka/common_mock_sdap.c \
+     src/tests/cmocka/common_mock_sysdb_objects.c
+
 EXTRA_nss_srv_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)
 nss_srv_tests_SOURCES = \
