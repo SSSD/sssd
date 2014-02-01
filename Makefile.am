@@ -1876,9 +1876,7 @@ krb5_child_CFLAGS = \
     $(KRB5_CFLAGS)
 krb5_child_LDADD = \
     libsss_debug.la \
-    libsss_child.la \
     $(TALLOC_LIBS) \
-    $(TEVENT_LIBS) \
     $(POPT_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
@@ -1897,11 +1895,8 @@ ldap_child_CFLAGS = \
     $(KRB5_CFLAGS)
 ldap_child_LDADD = \
     libsss_debug.la \
-    libsss_child.la \
     $(TALLOC_LIBS) \
-    $(TEVENT_LIBS) \
     $(POPT_LIBS) \
-    $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS)
 
