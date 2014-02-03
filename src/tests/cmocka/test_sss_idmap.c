@@ -30,11 +30,15 @@
 #define TEST_RANGE_MAX 399999
 #define TEST_DOM_NAME "test.dom"
 #define TEST_DOM_SID "S-1-5-21-123-456-789"
+#define TEST_FIRST_RID 0
+#define TEST_EXT_MAPPING true
 
 #define TEST_2_RANGE_MIN 600000
 #define TEST_2_RANGE_MAX 799999
 #define TEST_2_DOM_NAME "test2.dom"
 #define TEST_2_DOM_SID "S-1-5-21-987-654-321"
+#define TEST_2_FIRST_RID 1000000
+#define TEST_2_EXT_MAPPING true
 
 #define TEST_OFFSET 1000000
 #define TEST_OFFSET_STR "1000000"
@@ -408,6 +412,94 @@ void test_has_algorithmic_by_name(void **state)
     assert_false(use_id_mapping);
 }
 
+void test_sss_idmap_check_collision_ex(void **state)
+{
+    enum idmap_error_code err;
+    struct sss_idmap_range r1 = {TEST_RANGE_MIN, TEST_RANGE_MAX};
+    struct sss_idmap_range r2 = {TEST_2_RANGE_MIN, TEST_2_RANGE_MAX};
+
+    err = sss_idmap_check_collision_ex(TEST_DOM_NAME, TEST_DOM_SID, &r1,
+                                       TEST_FIRST_RID, NULL,
+                                       TEST_EXT_MAPPING,
+                                       TEST_2_DOM_NAME, TEST_2_DOM_SID, &r2,
+                                       TEST_2_FIRST_RID, NULL,
+                                       TEST_2_EXT_MAPPING);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    /* Same name, different SID */
+    err = sss_idmap_check_collision_ex(TEST_DOM_NAME, TEST_DOM_SID, &r1,
+                                       TEST_FIRST_RID, NULL,
+                                       TEST_EXT_MAPPING,
+                                       TEST_DOM_NAME, TEST_2_DOM_SID, &r2,
+                                       TEST_2_FIRST_RID, NULL,
+                                       TEST_2_EXT_MAPPING);
+    assert_int_equal(err, IDMAP_COLLISION);
+
+    /* Same SID, different name */
+    err = sss_idmap_check_collision_ex(TEST_DOM_NAME, TEST_DOM_SID, &r1,
+                                       TEST_FIRST_RID, NULL,
+                                       TEST_EXT_MAPPING,
+                                       TEST_2_DOM_NAME, TEST_DOM_SID, &r2,
+                                       TEST_2_FIRST_RID, NULL,
+                                       TEST_2_EXT_MAPPING);
+    assert_int_equal(err, IDMAP_COLLISION);
+
+    /* Same SID and name, no overlaps */
+    err = sss_idmap_check_collision_ex(TEST_DOM_NAME, TEST_DOM_SID, &r1,
+                                       TEST_FIRST_RID, NULL,
+                                       TEST_EXT_MAPPING,
+                                       TEST_DOM_NAME, TEST_DOM_SID, &r2,
+                                       TEST_2_FIRST_RID, NULL,
+                                       TEST_2_EXT_MAPPING);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    /* Same SID and name, different mappings */
+    err = sss_idmap_check_collision_ex(TEST_DOM_NAME, TEST_DOM_SID, &r1,
+                                       TEST_FIRST_RID, NULL,
+                                       TEST_EXT_MAPPING,
+                                       TEST_DOM_NAME, TEST_DOM_SID, &r2,
+                                       TEST_2_FIRST_RID, NULL,
+                                       !TEST_EXT_MAPPING);
+    assert_int_equal(err, IDMAP_COLLISION);
+
+    /* Same SID and name, Overlapping RID range */
+    err = sss_idmap_check_collision_ex(TEST_DOM_NAME, TEST_DOM_SID, &r1,
+                                       TEST_FIRST_RID, NULL,
+                                       false,
+                                       TEST_DOM_NAME, TEST_DOM_SID, &r2,
+                                       TEST_FIRST_RID, NULL,
+                                       false);
+    assert_int_equal(err, IDMAP_COLLISION);
+
+    /* Different SID and name, Overlapping RID range */
+    err = sss_idmap_check_collision_ex(TEST_DOM_NAME, TEST_DOM_SID, &r1,
+                                       TEST_FIRST_RID, NULL,
+                                       false,
+                                       TEST_2_DOM_NAME, TEST_2_DOM_SID, &r2,
+                                       TEST_FIRST_RID, NULL,
+                                       false);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+
+    /* Overlapping ranges with no external mapping */
+    err = sss_idmap_check_collision_ex(TEST_DOM_NAME, TEST_DOM_SID, &r1,
+                                       TEST_FIRST_RID, NULL,
+                                       false,
+                                       TEST_2_DOM_NAME, TEST_2_DOM_SID, &r1,
+                                       TEST_2_FIRST_RID, NULL,
+                                       false);
+    assert_int_equal(err, IDMAP_COLLISION);
+
+    /* Overlapping ranges with external mapping */
+    err = sss_idmap_check_collision_ex(TEST_DOM_NAME, TEST_DOM_SID, &r1,
+                                       TEST_FIRST_RID, NULL,
+                                       true,
+                                       TEST_2_DOM_NAME, TEST_2_DOM_SID, &r1,
+                                       TEST_2_FIRST_RID, NULL,
+                                       true);
+    assert_int_equal(err, IDMAP_SUCCESS);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -439,6 +531,7 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_has_algorithmic_by_name,
                                  test_sss_idmap_setup_with_both,
                                  test_sss_idmap_teardown),
+        unit_test(test_sss_idmap_check_collision_ex),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
