@@ -380,55 +380,104 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
     return IDMAP_SUCCESS;
 }
 
+enum idmap_error_code sss_idmap_check_collision_ex(const char *o_name,
+                                                const char *o_sid,
+                                                struct sss_idmap_range *o_range,
+                                                uint32_t o_first_rid,
+                                                const char *o_range_id,
+                                                bool o_external_mapping,
+                                                const char *n_name,
+                                                const char *n_sid,
+                                                struct sss_idmap_range *n_range,
+                                                uint32_t n_first_rid,
+                                                const char *n_range_id,
+                                                bool n_external_mapping)
+{
+    bool names_equal;
+    bool sids_equal;
+
+    /* TODO: if both ranges have the same ID check if an update is
+     * needed. */
+
+    /* Check if ID ranges overlap.
+     * ID ranges with external mapping may overlap. */
+    if ((!n_external_mapping && !o_external_mapping)
+        && ((n_range->min >= o_range->min
+                && n_range->min <= o_range->max)
+            || (n_range->max >= o_range->min
+                && n_range->max <= o_range->max))) {
+        return IDMAP_COLLISION;
+    }
+
+    names_equal = (strcasecmp(n_name, o_name) == 0);
+    sids_equal = ((n_sid == NULL && o_sid == NULL)
+                    || (n_sid != NULL && o_sid != NULL
+                        && strcasecmp(n_sid, o_sid) == 0));
+
+    /* check if domain name and SID are consistent */
+    if ((names_equal && !sids_equal) || (!names_equal && sids_equal)) {
+        return IDMAP_COLLISION;
+    }
+
+    /* check if external_mapping is consistent */
+    if (names_equal && sids_equal
+            && n_external_mapping != o_external_mapping) {
+        return IDMAP_COLLISION;
+    }
+
+    /* check if RID ranges overlap */
+    if (names_equal && sids_equal
+            && n_external_mapping == false
+            && n_first_rid >= o_first_rid
+            && n_first_rid <= o_first_rid + (o_range->max - o_range->min)) {
+        return IDMAP_COLLISION;
+    }
+
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code sss_idmap_check_collision(struct sss_idmap_ctx *ctx,
+                                                char *n_name, char *n_sid,
+                                                struct sss_idmap_range *n_range,
+                                                uint32_t n_first_rid,
+                                                char *n_range_id,
+                                                bool n_external_mapping)
+{
+    struct idmap_domain_info *dom;
+    enum idmap_error_code err;
+
+    for (dom = ctx->idmap_domain_info; dom != NULL; dom = dom->next) {
+        err = sss_idmap_check_collision_ex(dom->name, dom->sid, dom->range,
+                                           dom->first_rid, dom->range_id,
+                                           dom->external_mapping,
+                                           n_name, n_sid, n_range, n_first_rid,
+                                           n_range_id, n_external_mapping);
+        if (err != IDMAP_SUCCESS) {
+            return err;
+        }
+    }
+    return IDMAP_SUCCESS;
+}
+
 static enum idmap_error_code dom_check_collision(
                                              struct idmap_domain_info *dom_list,
                                              struct idmap_domain_info *new_dom)
 {
     struct idmap_domain_info *dom;
-    bool names_equal;
-    bool sids_equal;
+    enum idmap_error_code err;
 
     for (dom = dom_list; dom != NULL; dom = dom->next) {
-
-        /* TODO: if both ranges have the same ID check if an update is
-         * needed. */
-
-        /* Check if ID ranges overlap.
-         * ID ranges with external mapping may overlap. */
-        if ((!new_dom->external_mapping && !dom->external_mapping)
-            && ((new_dom->range->min >= dom->range->min
-                    && new_dom->range->min <= dom->range->max)
-                || (new_dom->range->max >= dom->range->min
-                    && new_dom->range->max <= dom->range->max))) {
-            return IDMAP_COLLISION;
-        }
-
-        names_equal = (strcasecmp(new_dom->name, dom->name) == 0);
-        sids_equal = ((new_dom->sid == NULL && dom->sid == NULL)
-                        || (new_dom->sid != NULL && dom->sid != NULL
-                            && strcasecmp(new_dom->sid, dom->sid) == 0));
-
-        /* check if domain name and SID are consistent */
-        if ((names_equal && !sids_equal) || (!names_equal && sids_equal)) {
-            return IDMAP_COLLISION;
-        }
-
-        /* check if external_mapping is consistent */
-        if (names_equal && sids_equal
-                && new_dom->external_mapping != dom->external_mapping) {
-            return IDMAP_COLLISION;
-        }
-
-        /* check if RID ranges overlap */
-        if (names_equal && sids_equal
-                && new_dom->external_mapping == false
-                && new_dom->first_rid >= dom->first_rid
-                && new_dom->first_rid <=
-                    dom->first_rid + (dom->range->max - dom->range->min)) {
-            return IDMAP_COLLISION;
+        err = sss_idmap_check_collision_ex(dom->name, dom->sid, dom->range,
+                                           dom->first_rid, dom->range_id,
+                                           dom->external_mapping,
+                                           new_dom->name, new_dom->sid,
+                                           new_dom->range, new_dom->first_rid,
+                                           new_dom->range_id,
+                                           new_dom->external_mapping);
+        if (err != IDMAP_SUCCESS) {
+            return err;
         }
     }
-
     return IDMAP_SUCCESS;
 }
 

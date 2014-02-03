@@ -289,6 +289,71 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
                                               const char *range_id,
                                               uint32_t rid,
                                               bool external_mapping);
+
+/**
+ * @brief Check if a new range would collide with any existing one
+ *
+ * @param[in] ctx         Idmap context
+ * @param[in] n_name      Zero-terminated string with the domain name the new
+ *                        range should belong to
+ * @param[in] n_sid       Zero-terminated string representation of the domain
+ *                        SID (S-1-15-.....) the new range sould belong to
+ * @param[in] n_range     The new id range
+ * @param[in] n_range_id  unique identifier of the new range, it is needed
+ *                        to allow updates at runtime, may be NULL
+ * @param[in] n_first_rid The RID that should be mapped to the first ID of the
+ *                        new range.
+ * @param[in] n_external_mapping Mapping type of the new range
+ *
+ * @return
+ *  - #IDMAP_COLLISION:     New range collides with existing one
+ */
+enum idmap_error_code sss_idmap_check_collision(struct sss_idmap_ctx *ctx,
+                                                char *n_name, char *n_sid,
+                                                struct sss_idmap_range *n_range,
+                                                uint32_t n_first_rid,
+                                                char *n_range_id,
+                                                bool n_external_mapping);
+
+/**
+ * @brief Check if two ranges would collide
+ *
+ * @param[in] o_name      Zero-terminated string with the domain name the
+ *                        first range should belong to
+ * @param[in] o_sid       Zero-terminated string representation of the domain
+ *                        SID (S-1-15-.....) the first range sould belong to
+ * @param[in] o_range     The first id range
+ * @param[in] o_range_id  unique identifier of the first range, it is needed
+ *                        to allow updates at runtime, may be NULL
+ * @param[in] o_first_rid The RID that should be mapped to the first ID of the
+ *                        first range.
+ * @param[in] o_external_mapping Mapping type of the first range
+ * @param[in] n_name      Zero-terminated string with the domain name the
+ *                        second range should belong to
+ * @param[in] n_sid       Zero-terminated string representation of the domain
+ *                        SID (S-1-15-.....) the second range sould belong to
+ * @param[in] n_range     The second id range
+ * @param[in] n_range_id  unique identifier of the second range, it is needed
+ *                        to allow updates at runtime, may be NULL
+ * @param[in] n_first_rid The RID that should be mapped to the first ID of the
+ *                        second range.
+ * @param[in] n_external_mapping Mapping type of the second range
+ *
+ * @return
+ *  - #IDMAP_COLLISION:     New range collides with existing one
+ */
+enum idmap_error_code sss_idmap_check_collision_ex(const char *o_name,
+                                                const char *o_sid,
+                                                struct sss_idmap_range *o_range,
+                                                uint32_t o_first_rid,
+                                                const char *o_range_id,
+                                                bool o_external_mapping,
+                                                const char *n_name,
+                                                const char *n_sid,
+                                                struct sss_idmap_range *n_range,
+                                                uint32_t n_first_rid,
+                                                const char *n_range_id,
+                                                bool n_external_mapping);
 /**
  * @brief Translate SID to a unix UID or GID
  *
