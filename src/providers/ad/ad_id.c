@@ -634,7 +634,6 @@ ad_enumeration_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct ad_enumeration_state *state = tevent_req_data(req,
                                                 struct ad_enumeration_state);
-    struct ad_id_ctx *subdom_id_ctx;
 
     ret = sdap_dom_enum_ex_recv(subreq);
     talloc_zfree(subreq);
@@ -666,13 +665,6 @@ ad_enumeration_done(struct tevent_req *subreq)
              state->sditer->dom->enumerate == false);
 
     if (state->sditer != NULL) {
-        subdom_id_ctx = talloc_get_type(state->sdom->pvt, struct ad_id_ctx);
-        if (subdom_id_ctx == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot retrieve subdomain ad_id_ctx!\n"));
-            tevent_req_error(req, EFAULT);
-            return;
-        }
-
         ret = ad_enum_sdom(req, state->sditer, state->sditer->pvt);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Could not enumerate domain %s\n",
