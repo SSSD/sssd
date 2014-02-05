@@ -660,7 +660,11 @@ ad_enumeration_done(struct tevent_req *subreq)
         return;
     }
 
-    state->sditer = state->sditer->next;
+    do {
+        state->sditer = state->sditer->next;
+    } while (state->sditer &&
+             state->sditer->dom->enumerate == false);
+
     if (state->sditer != NULL) {
         subdom_id_ctx = talloc_get_type(state->sdom->pvt, struct ad_id_ctx);
         if (subdom_id_ctx == NULL) {
