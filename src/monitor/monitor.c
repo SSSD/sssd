@@ -84,6 +84,11 @@
  */
 #define KRB5_RCACHE_DIR_DISABLE "__LIBKRB5_DEFAULTS__"
 
+/* Warning messages */
+#define CONF_FILE_PERM_ERROR_MSG "Cannot read config file %s. Please check "\
+                                 "if permissions are 0600 and the file is "\
+                                 "owned by root.root."
+
 int cmdline_debug_level;
 int cmdline_debug_timestamps;
 int cmdline_debug_microseconds;
@@ -2816,7 +2821,8 @@ int main(int argc, const char *argv[])
         case EPERM:
         case EACCES:
             DEBUG(SSSDBG_CRIT_FAILURE,
-                 ("Insufficient permissions to read configuration file.\n"));
+                  (CONF_FILE_PERM_ERROR_MSG, config_file));
+            sss_log(SSS_LOG_ALERT, CONF_FILE_PERM_ERROR_MSG, config_file);
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE,
