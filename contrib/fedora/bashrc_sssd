@@ -50,7 +50,7 @@ fedconfig()
         --with-test-dir=/dev/shm \
         --enable-all-experimental-features \
         --cache-file=/tmp/fedconfig.cache \
-        $SSSD_NO_MANPAGES \
+        ${SSSD_NO_MANPAGES-} \
         "$@"
 }
 
@@ -78,7 +78,7 @@ SSS_WARNINGS='-Wall \
 # them. This builds with optimizations turned off and GDB debugging symbols.
 chmake()
 {
-    make V=0 CFLAGS+="-ggdb3 -O0 $SSS_WARNINGS $SSS_WERROR" \
+    make V=0 CFLAGS+="-ggdb3 -O0 $SSS_WARNINGS ${SSS_WERROR-}" \
          -j$PROCESSORS check "$@"
 }
 
