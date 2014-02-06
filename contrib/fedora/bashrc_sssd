@@ -19,45 +19,52 @@ SSS_LIBDIR=$(rpm --eval %{_libdir})
 PROCESSORS=$(/usr/bin/getconf _NPROCESSORS_ONLN)
 
 # Configure invocation for use on Fedora systems, based on the %configure RPM
-# macro from the redhat-rpm-config package. This macro assumes you are building
-# in a parallel build directory beneath the source directory. All other macros
-# in this script will assume that the location is
+# macro from the redhat-rpm-config package. This function assumes you are
+# building in a parallel build directory beneath the source directory. All
+# other functions in this script will assume that the location is
 # /path/to/sssd-source/$SSS_ARCH
-alias fedconfig='../configure \
-                     --build=$SSS_ARCH-unknown-linux-gnu \
-                     --host=$SSS_ARCH-unknown-linux-gnu \
-                     --program-prefix= \
-                     --prefix=/usr \
-                     --exec-prefix=/usr \
-                     --bindir=/usr/bin \
-                     --sbindir=/usr/sbin \
-                     --sysconfdir=/etc \
-                     --datadir=/usr/share \
-                     --includedir=/usr/include \
-                     --libdir=$SSS_LIBDIR \
-                     --libexecdir=/usr/libexec \
-                     --localstatedir=/var \
-                     --sharedstatedir=/var/lib \
-                     --mandir=/usr/share/man \
-                     --infodir=/usr/share/info \
-                     --enable-nsslibdir=/$SSS_LIB \
-                     --enable-pammoddir=/$SSS_LIB/security \
-                     --with-krb5-rcache-dir=/var/cache/krb5rcache \
-                     --with-initscript=systemd \
-                     --with-syslog=journald \
-                     --with-test-dir=/dev/shm \
-                     --enable-all-experimental-features \
-                     --cache-file=/tmp/fedconfig.cache \
-                     $SSSD_NO_MANPAGES'
+fedconfig()
+{
+    ../configure \
+        --build=$SSS_ARCH-unknown-linux-gnu \
+        --host=$SSS_ARCH-unknown-linux-gnu \
+        --program-prefix= \
+        --prefix=/usr \
+        --exec-prefix=/usr \
+        --bindir=/usr/bin \
+        --sbindir=/usr/sbin \
+        --sysconfdir=/etc \
+        --datadir=/usr/share \
+        --includedir=/usr/include \
+        --libdir=$SSS_LIBDIR \
+        --libexecdir=/usr/libexec \
+        --localstatedir=/var \
+        --sharedstatedir=/var/lib \
+        --mandir=/usr/share/man \
+        --infodir=/usr/share/info \
+        --enable-nsslibdir=/$SSS_LIB \
+        --enable-pammoddir=/$SSS_LIB/security \
+        --with-krb5-rcache-dir=/var/cache/krb5rcache \
+        --with-initscript=systemd \
+        --with-syslog=journald \
+        --with-test-dir=/dev/shm \
+        --enable-all-experimental-features \
+        --cache-file=/tmp/fedconfig.cache \
+        $SSSD_NO_MANPAGES \
+        "$@"
+}
 
-# Quick alias to completely purge the current working directory, then recreate
+# Completely purge the current working directory, then recreate
 # and reconfigure it. This is best used when you are making changes to the m4
 # macros or the configure scripts.
-alias reconfig='autoreconf -if \
-                  && rm -Rf $SSS_ARCH/ \
-                  && mkdir $SSS_ARCH/ \
-                  && cd $SSS_ARCH/ \
-                  && fedconfig'
+reconfig()
+{
+    autoreconf -if \
+        && rm -Rf $SSS_ARCH/ \
+        && mkdir $SSS_ARCH/ \
+        && cd $SSS_ARCH/ \
+        && fedconfig "$@"
+}
 
 # Set the list of warnings that you want to detect (and in the case of remake
 # and chmake want to treat as errors)
@@ -69,28 +76,43 @@ SSS_WARNINGS='-Wall \
 
 # Build (or finish building) all objects and then run the build-tests against
 # them. This builds with optimizations turned off and GDB debugging symbols.
-alias chmake='make V=0 CFLAGS+="-ggdb3 -O0 $SSS_WARNINGS $SSS_WERROR" \
-                   -j$PROCESSORS check'
+chmake()
+{
+    make V=0 CFLAGS+="-ggdb3 -O0 $SSS_WARNINGS $SSS_WERROR" \
+         -j$PROCESSORS check "$@"
+}
 
 # Clean the build directory and rebuild all objects, then run the build-tests
 # against them. This builds with optimizations turned off and GDB debugging
 # symbols.
-alias remake='make clean > /dev/null && chmake'
+remake()
+{
+    make clean > /dev/null && chmake "$@"
+}
 
 # Clean the build directory and rebuild all objects, hiding most of the build
 # output except for warnings and errors. This builds with standard CFLAGS.
-alias warn='make clean >/dev/null \
-              && make CFLAGS+="$SSS_WARNINGS" -j$PROCESSORS tests > /dev/null'
+warn()
+{
+    make clean >/dev/null \
+        && make CFLAGS+="$SSS_WARNINGS" -j$PROCESSORS tests > /dev/null "$@"
+}
 
 # Install the built sources to the current system, cleaning up the LDB modules
 # and making sure that the NSS and PAM modules have the right SELinux context.
-alias sssinstall='sudo make -j$PROCESSORS install \
-                    && sudo rm -f $SSS_LIBDIR/ldb/modules/ldb/memberof.la \
-                    && sudo restorecon -v /$SSS_LIB/libnss_sss.so.2 \
-                                          /$SSS_LIB/security/pam_sss.so'
+sssinstall()
+{
+    sudo make -j$PROCESSORS install \
+        && sudo rm -f $SSS_LIBDIR/ldb/modules/ldb/memberof.la \
+        && sudo restorecon -v /$SSS_LIB/libnss_sss.so.2 \
+                              /$SSS_LIB/security/pam_sss.so
+}
 
 # Alias to generate a patch or series of patches that meet SSSD submission
 # guidelines.
 # Usage:
 # genpatch -N (where N is the number of patches to submit)
-alias genpatch='git format-patch -M -C --patience --full-index'
+genpatch()
+{
+    git format-patch -M -C --patience --full-index "$@"
+}
