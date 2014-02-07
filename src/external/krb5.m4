@@ -67,6 +67,8 @@ AC_CHECK_FUNCS([krb5_get_init_creds_opt_alloc krb5_get_error_message \
                 krb5_cc_get_full_name])
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
+CFLAGS="$CFLAGS $KRB5_CFLAGS"
+LIBS="$LIBS $KRB5_LIBS"
 
 if test x$ac_cv_header_krb5_h != xyes -a x$ac_cv_header_krb5_krb5_h != xyes
 then
@@ -93,3 +95,6 @@ AM_CONDITIONAL([BUILD_KRB5_LOCATOR_PLUGIN],
                [test x$have_locate_plugin = xyes -a x$build_locator = xyes])
 AM_COND_IF([BUILD_KRB5_LOCATOR_PLUGIN],
            [AC_DEFINE_UNQUOTED(HAVE_KRB5_LOCATOR_PLUGIN, 1, [Build with krb5 locator plugin])])
+
+CFLAGS=$SAVE_CFLAGS
+LIBS=$SAVE_LIBS
