@@ -1009,6 +1009,7 @@ krb5_utils_tests_SOURCES = \
     $(SSSD_FAILOVER_OBJ)
 krb5_utils_tests_CFLAGS = \
     $(AM_CFLAGS) \
+    $(KRB5_CFLAGS) \
     $(CHECK_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS)
 krb5_utils_tests_LDADD = \
@@ -1285,6 +1286,7 @@ krb5_child_test_SOURCES = \
 krb5_child_test_CFLAGS = \
     $(AM_CFLAGS) \
     -DKRB5_CHILD_DIR=\"$(builddir)\" \
+    $(KRB5_CFLAGS) \
     $(CHECK_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS)
 krb5_child_test_LDADD = \
@@ -1694,6 +1696,9 @@ libsss_ldap_common_la_SOURCES += \
     src/providers/ldap/sdap_async_autofs.c
 endif
 
+libsss_ldap_common_la_CFLAGS = \
+    $(KRB5_CFLAGS)
+
 
 pkglib_LTLIBRARIES += libsss_krb5_common.la
 libsss_krb5_common_la_SOURCES = \
@@ -1709,6 +1714,8 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_init_shared.c
 libsss_krb5_common_la_LDFLAGS = \
     -avoid-version
+libsss_krb5_common_la_CFLAGS = \
+    $(KRB5_CFLAGS)
 
 libsss_ldap_la_SOURCES = \
     src/util/find_uid.c \
@@ -1769,7 +1776,8 @@ libsss_krb5_la_SOURCES = \
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS) \
-    $(DHASH_CFLAGS)
+    $(DHASH_CFLAGS) \
+    $(KRB5_CFLAGS)
 libsss_krb5_la_LIBADD = \
     $(SYSTEMD_LOGIN_LIBS) \
     $(DHASH_LIBS) \
@@ -1981,7 +1989,7 @@ sssd_pac_plugin_la_CFLAGS = \
     $(KRB5_CFLAGS)
 sssd_pac_plugin_la_LIBADD = \
     $(CLIENT_LIBS) \
-    -lkrb5
+    $(KRB5_LIBS)
 sssd_pac_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
