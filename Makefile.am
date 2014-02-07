@@ -150,6 +150,7 @@ if HAVE_CMOCKA
         dyndns-tests \
         fqnames-tests \
         test_sss_idmap \
+        test_ipa_idmap \
         test_utils \
         ad_access_filter_tests \
         ad_common_tests \
@@ -1350,6 +1351,20 @@ test_sss_idmap_SOURCES = \
 test_sss_idmap_CFLAGS = \
     $(AM_CFLAGS)
 test_sss_idmap_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    libsss_idmap.la \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
+
+test_ipa_idmap_SOURCES = \
+    src/tests/cmocka/test_ipa_idmap.c \
+    src/providers/ipa/ipa_idmap.c
+test_ipa_idmap_CFLAGS = \
+    $(AM_CFLAGS)
+test_ipa_idmap_LDFLAGS = \
+    -Wl,-wrap,sysdb_get_ranges
+test_ipa_idmap_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     libsss_idmap.la \
