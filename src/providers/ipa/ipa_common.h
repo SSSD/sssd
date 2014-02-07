@@ -195,6 +195,16 @@ int ipa_sudo_init(struct be_ctx *be_ctx,
                   struct bet_ops **ops,
                   void **pvt_data);
 
+errno_t get_idmap_data_from_range(struct range_info *r, char *domain_name,
+                                  char **_name, char **_sid, uint32_t *_rid,
+                                  struct sss_idmap_range *_range,
+                                  bool *_external_mapping);
+
+errno_t ipa_idmap_get_ranges_from_sysdb(struct sdap_idmap_ctx *idmap_ctx,
+                                        const char *dom_name,
+                                        const char *dom_sid_str,
+                                        bool allow_collisions);
+
 errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
                        struct sdap_id_ctx *id_ctx,
                        struct sdap_idmap_ctx **_idmap_ctx);
