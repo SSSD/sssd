@@ -91,7 +91,8 @@ remake()
 }
 
 # Clean the build directory and rebuild all objects, hiding most of the build
-# output except for warnings and errors. This builds with standard CFLAGS.
+# output except for warnings and errors. This builds with default
+# optimization and without debugging symbols.
 warn()
 {
     make clean >/dev/null \
