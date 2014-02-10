@@ -655,7 +655,7 @@ fill_service(struct sss_packet *packet,
         if (!port) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "No port for service [%s]. Skipping\n", tmpstr);
-
+            continue;
         }
 
         /* Get the service protocol.
