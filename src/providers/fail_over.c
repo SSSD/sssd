@@ -150,6 +150,7 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
     }
 
     ctx->opts->srv_retry_timeout = opts->srv_retry_timeout;
+    ctx->opts->srv_retry_neg_timeout = opts->srv_retry_neg_timeout;
     ctx->opts->retry_timeout = opts->retry_timeout;
     ctx->opts->family_order  = opts->family_order;
     ctx->opts->service_resolv_timeout = opts->service_resolv_timeout;
@@ -265,8 +266,14 @@ get_srv_data_status(struct srv_data *data)
     struct timeval tv;
     time_t timeout;
 
-    timeout = data->meta->service->ctx->opts->srv_retry_timeout;
     gettimeofday(&tv, NULL);
+
+    /* Determine timeout value based on state of previous lookup. */
+    if (data->srv_lookup_status == SRV_RESOLVE_ERROR) {
+        timeout = data->meta->service->ctx->opts->srv_retry_neg_timeout;
+    } else {
+        timeout = data->meta->service->ctx->opts->srv_retry_timeout;
+    }
 
     if (timeout && STATUS_DIFF(data, tv) > timeout) {
         switch(data->srv_lookup_status) {
@@ -280,6 +287,9 @@ get_srv_data_status(struct srv_data *data)
         case SRV_RESOLVE_ERROR:
             data->srv_lookup_status = SRV_NEUTRAL;
             data->last_status_change.tv_sec = 0;
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Changing state of SRV lookup from 'SRV_RESOLVE_ERROR' to "
+                  "'SRV_NEUTRAL'.\n.");
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Unknown state for SRV server!\n");
@@ -1022,7 +1032,7 @@ fo_resolve_service_activate_timeout(struct tevent_req *req,
     tv = tevent_timeval_current();
     tv = tevent_timeval_add(&tv, timeout_seconds, 0);
     state->timeout_handler = tevent_add_timer(ev, state, tv,
-                                           fo_resolve_service_timeout, req);
+                                              fo_resolve_service_timeout, req);
     if (state->timeout_handler == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
         return ENOMEM;

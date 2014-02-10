@@ -71,11 +71,15 @@ struct fo_server;
  * The 'srv_retry_timeout' member specifies how long a SRV lookup
  * is considered valid until we ask the server again.
  *
+ * The 'srv_retry_neg_timeout' member specifies how long a SRV lookup
+ * waits before previously failed lookup is tried again.
+ *
  * The family_order member specifies the order of address families to
  * try when looking up the service.
  */
 struct fo_options {
     time_t srv_retry_timeout;
+    time_t srv_retry_neg_timeout;
     time_t retry_timeout;
     int service_resolv_timeout;
     enum restrict_family family_order;
