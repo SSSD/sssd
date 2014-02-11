@@ -235,7 +235,7 @@ static void sdap_dom_enum_ex_posix_check_done(struct tevent_req *subreq)
 
     ret = sdap_posix_check_recv(subreq, &has_posix);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ERR_NO_POSIX) {
         /* We can only finish the id_op on error as the connection
          * is re-used by the user search
          */
@@ -247,6 +247,16 @@ static void sdap_dom_enum_ex_posix_check_done(struct tevent_req *subreq)
             if (ret != EOK) {
                 tevent_req_error(req, ret);
             }
+            return;
+        } else if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_TRACE_FUNC, ("Backend is offline, retrying later\n"));
+            tevent_req_done(req);
+            return;
+        } else {
+            /* Non-recoverable error */
+            DEBUG(SSSDBG_OP_FAILURE,
+                ("POSIX check failed: %d: %s\n", ret, sss_strerror(ret)));
+            tevent_req_error(req, ret);
             return;
         }
     }
@@ -305,6 +315,16 @@ static void sdap_dom_enum_ex_users_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
+        return;
+    } else if (dp_error == DP_ERR_OFFLINE) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Backend is offline, retrying later\n"));
+        tevent_req_done(req);
+        return;
+    } else if (ret != EOK && ret != ENOENT) {
+        /* Non-recoverable error */
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("User enumeration failed: %d: %s\n", ret, sss_strerror(ret)));
+        tevent_req_error(req, ret);
         return;
     }
 
@@ -367,6 +387,16 @@ static void sdap_dom_enum_ex_groups_done(struct tevent_req *subreq)
             return;
         }
         return;
+    } else if (dp_error == DP_ERR_OFFLINE) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Backend is offline, retrying later\n"));
+        tevent_req_done(req);
+        return;
+    } else if (ret != EOK && ret != ENOENT) {
+        /* Non-recoverable error */
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Group enumeration failed: %d: %s\n", ret, sss_strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
     }
 
 
@@ -425,6 +455,16 @@ static void sdap_dom_enum_ex_svcs_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
+        return;
+    } else if (dp_error == DP_ERR_OFFLINE) {
+        DEBUG(SSSDBG_TRACE_FUNC, ("Backend is offline, retrying later\n"));
+        tevent_req_done(req);
+        return;
+    } else if (ret != EOK && ret != ENOENT) {
+        /* Non-recoverable error */
+        DEBUG(SSSDBG_OP_FAILURE,
+              ("Service enumeration failed: %d: %s\n", ret, sss_strerror(ret)));
+        tevent_req_error(req, ret);
         return;
     }
 
