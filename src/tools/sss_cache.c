@@ -424,6 +424,12 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
         if (ret == EOK) {
             switch (entry_type) {
                 case TYPE_USER:
+                    /* For users, we also need to reset the initgroups
+                     * cache expiry */
+                    ret = sysdb_attrs_add_time_t(sys_attrs,
+                            SYSDB_INITGR_EXPIRE, 1);
+                    if (ret != EOK) return ret;
+
                     ret = sysdb_set_user_attr(sysdb, domain, name, sys_attrs,
                                               SYSDB_MOD_REP);
                     break;
