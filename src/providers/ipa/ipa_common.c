@@ -664,6 +664,33 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                   dp_opt_get_string(ipa_opts->auth, KRB5_REALM)));
     }
 
+    /* If krb5_fast_principal was not set explicitly, default to
+     * host/$client_hostname
+     */
+    value = dp_opt_get_string(ipa_opts->auth, KRB5_FAST_PRINCIPAL);
+    if (value == NULL) {
+        value = talloc_asprintf(ipa_opts->auth, "host/%s",
+                                    dp_opt_get_string(ipa_opts->basic,
+                                                      IPA_HOSTNAME));
+        if (value == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot set %s!\n",
+                     ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->auth, KRB5_FAST_PRINCIPAL,
+                                value);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot set %s!\n",
+                     ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name));
+            goto done;
+        }
+
+        DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+              ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name, value));
+    }
+
     /* Set flag that controls whether we want to write the
      * kdcinfo files at all
      */
