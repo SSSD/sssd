@@ -1794,6 +1794,7 @@ libsss_ipa_la_LIBADD = \
     $(NDR_NBT_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
+    $(SELINUX_LIBS) \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
     libipa_hbac.la \
