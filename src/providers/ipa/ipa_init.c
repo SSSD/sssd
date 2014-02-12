@@ -132,7 +132,7 @@ int common_ipa_init(struct be_ctx *bectx)
                            ipa_backup_servers, ipa_options,
                            &ipa_options->service);
     if (ret != EOK) {
-        DEBUG(0, "Failed to init IPA failover service!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init IPA failover service!\n");
         return ret;
     }
 
@@ -208,7 +208,8 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
              */
             ret = ipa_dyndns_init(sdap_ctx->be, ipa_options);
             if (ret != EOK) {
-                DEBUG(1, "Failure setting up automatic DNS update\n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failure setting up automatic DNS update\n");
                 /* We will continue without DNS updating */
             }
         }
@@ -216,7 +217,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
     ret = setup_tls_config(sdap_ctx->opts->basic);
     if (ret != EOK) {
-        DEBUG(1, "setup_tls_config failed [%d][%s].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "setup_tls_config failed [%d][%s].\n",
                   ret, strerror(ret));
         goto done;
     }
@@ -233,7 +234,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
     ret = sdap_setup_child();
     if (ret != EOK) {
-        DEBUG(1, "setup_child failed [%d][%s].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "setup_child failed [%d][%s].\n",
                   ret, strerror(ret));
         goto done;
     }
@@ -371,7 +372,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
 
     ret = sssm_ipa_id_init(bectx, &id_ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(1, "sssm_ipa_id_init failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ipa_id_init failed.\n");
         goto done;
     }
     ipa_auth_ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
@@ -379,7 +380,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     ret = dp_copy_options(ipa_auth_ctx, ipa_options->basic,
                           IPA_OPTS_BASIC, &ipa_auth_ctx->ipa_options);
     if (ret != EOK) {
-        DEBUG(1, "dp_copy_options failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "dp_copy_options failed.\n");
         goto done;
     }
 
@@ -422,7 +423,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
 
     ret = setup_tls_config(sdap_auth_ctx->opts->basic);
     if (ret != EOK) {
-        DEBUG(1, "setup_tls_config failed [%d][%s].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "setup_tls_config failed [%d][%s].\n",
                   ret, strerror(ret));
         goto done;
     }
@@ -467,13 +468,13 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
 
     ipa_access_ctx = talloc_zero(bectx, struct ipa_access_ctx);
     if (ipa_access_ctx == NULL) {
-        DEBUG(1, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
     ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(1, "sssm_ipa_id_init failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ipa_id_init failed.\n");
         goto done;
     }
     ipa_access_ctx->sdap_ctx = id_ctx->sdap_id_ctx;
@@ -485,7 +486,7 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
     ret = dp_copy_options(ipa_access_ctx, ipa_options->basic,
                           IPA_OPTS_BASIC, &ipa_access_ctx->ipa_options);
     if (ret != EOK) {
-        DEBUG(1, "dp_copy_options failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "dp_copy_options failed.\n");
         goto done;
     }
 

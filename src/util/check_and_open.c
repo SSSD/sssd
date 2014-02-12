@@ -74,7 +74,8 @@ errno_t check_fd(int fd, const int uid, const int gid,
 
     ret = fstat(fd, stat_buf);
     if (ret == -1) {
-        DEBUG(1, "fstat for [%d] failed: [%d][%s].\n", fd, errno,
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fstat for [%d] failed: [%d][%s].\n", fd, errno,
                                                         strerror(errno));
         return errno;
     }
@@ -114,28 +115,29 @@ static errno_t perform_checks(struct stat *stat_buf,
             type_check = S_ISSOCK(stat_buf->st_mode);
             break;
         default:
-            DEBUG(1, "Unsupported file type.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported file type.\n");
             return EINVAL;
     }
 
     if (!type_check) {
-        DEBUG(1, "File is not the right type.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "File is not the right type.\n");
         return EINVAL;
     }
 
     if (mode >= 0 && (stat_buf->st_mode & ~S_IFMT) != mode) {
-        DEBUG(1, "File has the wrong mode [%.7o], expected [%.7o].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "File has the wrong mode [%.7o], expected [%.7o].\n",
                   (stat_buf->st_mode & ~S_IFMT), mode);
         return EINVAL;
     }
 
     if (uid >= 0 && stat_buf->st_uid != uid) {
-        DEBUG(1, "File must be owned by uid [%d].\n", uid);
+        DEBUG(SSSDBG_CRIT_FAILURE, "File must be owned by uid [%d].\n", uid);
         return EINVAL;
     }
 
     if (gid >= 0 && stat_buf->st_gid != gid) {
-        DEBUG(1, "File must be owned by gid [%d].\n", gid);
+        DEBUG(SSSDBG_CRIT_FAILURE, "File must be owned by gid [%d].\n", gid);
         return EINVAL;
     }
 
@@ -151,7 +153,8 @@ errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
 
     *fd = open(filename, O_RDONLY);
     if (*fd == -1) {
-        DEBUG(1, "open [%s] failed: [%d][%s].\n", filename, errno,
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "open [%s] failed: [%d][%s].\n", filename, errno,
                   strerror(errno));
         return errno;
     }
@@ -160,7 +163,7 @@ errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
     if (ret != EOK) {
         close(*fd);
         *fd = -1;
-        DEBUG(1, "check_fd failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "check_fd failed.\n");
         return ret;
     }
 

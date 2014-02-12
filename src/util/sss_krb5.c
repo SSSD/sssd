@@ -94,16 +94,17 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
     const char *realm_patterns[] =   {"%s", "%s",  "%s",      "%s", "%s",
                                       NULL,     NULL};
 
-    DEBUG(5, "trying to select the most appropriate principal from keytab\n");
+    DEBUG(SSSDBG_FUNC_DATA,
+          "trying to select the most appropriate principal from keytab\n");
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
-        DEBUG(1, "talloc_new failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed\n");
         return ENOMEM;
     }
 
     kerr = krb5_init_context(&krb_ctx);
     if (kerr) {
-        DEBUG(2, "Failed to init kerberos context\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to init kerberos context\n");
         ret = EFAULT;
         goto done;
     }
@@ -167,7 +168,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
         if (_principal) {
             kerr = krb5_unparse_name(krb_ctx, client_princ, &principal_string);
             if (kerr) {
-                DEBUG(1, "krb5_unparse_name failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "krb5_unparse_name failed");
                 ret = EFAULT;
                 goto done;
             }
@@ -175,11 +176,11 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             *_principal = talloc_strdup(mem_ctx, principal_string);
             free(principal_string);
             if (!*_principal) {
-                DEBUG(1, "talloc_strdup failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed");
                 ret = ENOMEM;
                 goto done;
             }
-            DEBUG(5, "Selected principal: %s\n", *_principal);
+            DEBUG(SSSDBG_FUNC_DATA, "Selected principal: %s\n", *_principal);
         }
 
         if (_primary) {
@@ -187,7 +188,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
                                                KRB5_PRINCIPAL_UNPARSE_NO_REALM,
                                                &principal_string);
             if (kerr) {
-                DEBUG(1, "krb5_unparse_name failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "krb5_unparse_name failed");
                 ret = EFAULT;
                 goto done;
             }
@@ -195,12 +196,12 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             *_primary = talloc_strdup(mem_ctx, principal_string);
             free(principal_string);
             if (!*_primary) {
-                DEBUG(1, "talloc_strdup failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed");
                 if (_principal) talloc_zfree(*_principal);
                 ret = ENOMEM;
                 goto done;
             }
-            DEBUG(5, "Selected primary: %s\n", *_primary);
+            DEBUG(SSSDBG_FUNC_DATA, "Selected primary: %s\n", *_primary);
         }
 
         if (_realm) {
@@ -210,18 +211,18 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             *_realm = talloc_asprintf(mem_ctx, "%.*s",
                                       realm_len, realm_name);
             if (!*_realm) {
-                DEBUG(1, "talloc_asprintf failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed");
                 if (_principal) talloc_zfree(*_principal);
                 if (_primary) talloc_zfree(*_primary);
                 ret = ENOMEM;
                 goto done;
             }
-            DEBUG(5, "Selected realm: %s\n", *_realm);
+            DEBUG(SSSDBG_FUNC_DATA, "Selected realm: %s\n", *_realm);
         }
 
         ret = EOK;
     } else {
-        DEBUG(3, "No suitable principal found in keytab\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "No suitable principal found in keytab\n");
         ret = ENOENT;
     }
 
@@ -278,7 +279,7 @@ int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
             /* This should never happen. The API docs for this function
              * specify only success for this function
              */
-            DEBUG(1,"Could not free keytab entry contents\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,"Could not free keytab entry contents\n");
             /* This is non-fatal, so we'll continue here */
         }
 
@@ -289,7 +290,7 @@ int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
 
     krberr = krb5_kt_end_seq_get(context, keytab, &cursor);
     if (krberr) {
-        DEBUG(0, "Could not close keytab.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not close keytab.\n");
         sss_log(SSS_LOG_ERR, "Could not close keytab file [%s].",
                              KEYTAB_CLEAN_NAME);
         return EIO;
@@ -347,7 +348,7 @@ static bool match_principal(krb5_context ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
-        DEBUG(1, "talloc_new failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed\n");
         return false;
     }
 
@@ -381,7 +382,8 @@ static bool match_principal(krb5_context ctx,
 
     if (!pattern_realm || (realm_len == strlen(pattern_realm) &&
         strncmp(realm_name, pattern_realm, realm_len) == 0)) {
-        DEBUG(7, "Principal matched to the sample (%s@%s).\n", pattern_primary,
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Principal matched to the sample (%s@%s).\n", pattern_primary,
                                                                 pattern_realm);
         ret = true;
     }
@@ -408,11 +410,12 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
     memset(&cursor, 0, sizeof(cursor));
     kerr = krb5_kt_start_seq_get(ctx, keytab, &cursor);
     if (kerr != 0) {
-        DEBUG(1, "krb5_kt_start_seq_get failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_start_seq_get failed.\n");
         return kerr;
     }
 
-    DEBUG(9, "Trying to find principal %s@%s in keytab.\n", pattern_primary, pattern_realm);
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Trying to find principal %s@%s in keytab.\n", pattern_primary, pattern_realm);
     memset(&entry, 0, sizeof(entry));
     while ((kt_err = krb5_kt_next_entry(ctx, keytab, &entry, &cursor)) == 0) {
         principal_found = match_principal(ctx, entry.principal, pattern_primary, pattern_realm);
@@ -422,7 +425,7 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
 
         kerr = sss_krb5_free_keytab_entry_contents(ctx, &entry);
         if (kerr != 0) {
-            DEBUG(1, "Failed to free keytab entry.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to free keytab entry.\n");
         }
         memset(&entry, 0, sizeof(entry));
     }
@@ -432,7 +435,7 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
      * overwritten by other keytab calls, creating a leak. */
     kerr = krb5_kt_end_seq_get(ctx, keytab, &cursor);
     if (kerr != 0) {
-        DEBUG(1, "krb5_kt_end_seq_get failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_end_seq_get failed.\n");
         goto done;
     }
 
@@ -446,13 +449,13 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
 
     /* check if we got any errors from krb5_kt_next_entry */
     if (kt_err != 0 && kt_err != KRB5_KT_END) {
-        DEBUG(1, "Error while reading keytab.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error while reading keytab.\n");
         goto done;
     }
 
     kerr = krb5_copy_principal(ctx, entry.principal, princ);
     if (kerr != 0) {
-        DEBUG(1, "krb5_copy_principal failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
         goto done;
     }
 
@@ -461,7 +464,7 @@ krb5_error_code find_principal_in_keytab(krb5_context ctx,
 done:
     kerr_d = sss_krb5_free_keytab_entry_contents(ctx, &entry);
     if (kerr_d != 0) {
-        DEBUG(1, "Failed to free keytab entry.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to free keytab entry.\n");
     }
 
     return kerr;
@@ -555,7 +558,8 @@ krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_expire_callback(
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_EXPIRE_CALLBACK
     return krb5_get_init_creds_opt_set_expire_callback(context, opt, cb, data);
 #else
-    DEBUG(5, "krb5_get_init_creds_opt_set_expire_callback not available.\n");
+    DEBUG(SSSDBG_FUNC_DATA,
+          "krb5_get_init_creds_opt_set_expire_callback not available.\n");
     return 0;
 #endif
 }
@@ -590,7 +594,8 @@ krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_fast_ccache_name(
     return krb5_get_init_creds_opt_set_fast_ccache_name(context, opt,
                                                         fast_ccache_name);
 #else
-    DEBUG(5, "krb5_get_init_creds_opt_set_fast_ccache_name not available.\n");
+    DEBUG(SSSDBG_FUNC_DATA,
+          "krb5_get_init_creds_opt_set_fast_ccache_name not available.\n");
     return 0;
 #endif
 }
@@ -603,7 +608,8 @@ krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_fast_flags(
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_FAST_FLAGS
     return krb5_get_init_creds_opt_set_fast_flags(context, opt, flags);
 #else
-    DEBUG(5, "krb5_get_init_creds_opt_set_fast_flags not available.\n");
+    DEBUG(SSSDBG_FUNC_DATA,
+          "krb5_get_init_creds_opt_set_fast_flags not available.\n");
     return 0;
 #endif
 }
@@ -987,7 +993,7 @@ krb5_error_code sss_extract_pac(krb5_context ctx,
 
     ret = unsetenv("_SSS_LOOPS");
     if (ret != EOK) {
-        DEBUG(1, "Failed to unset _SSS_LOOPS, "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to unset _SSS_LOOPS, "
                   "sss_pac_make_request will most certainly fail.\n");
     }
 

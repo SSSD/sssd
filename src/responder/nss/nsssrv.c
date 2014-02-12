@@ -181,13 +181,14 @@ static errno_t nss_get_etc_shells(TALLOC_CTX *mem_ctx, char ***_shells)
             ret = ENOMEM;
             goto done;
         }
-        DEBUG(6, "Found shell %s in /etc/shells\n", shells[i]);
+        DEBUG(SSSDBG_TRACE_FUNC, "Found shell %s in /etc/shells\n", shells[i]);
         i++;
 
         if (i == size) {
             size += SHELL_REALLOC_INCREMENT;
             if (size > SHELL_REALLOC_MAX) {
-                DEBUG(0, "Reached maximum number of shells [%d]. "
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "Reached maximum number of shells [%d]. "
                           "Users may be denied access. "
                           "Please check /etc/shells for sanity\n",
                           SHELL_REALLOC_MAX);
@@ -245,7 +246,8 @@ static int nss_get_config(struct nss_ctx *nctx,
     if (ret != EOK) goto done;
     if (nctx->cache_refresh_percent < 0 ||
         nctx->cache_refresh_percent > 99) {
-        DEBUG(0,"Configuration error: entry_cache_nowait_percentage is "
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Configuration error: entry_cache_nowait_percentage is "
                  "invalid. Disabling feature.\n");
         nctx->cache_refresh_percent = 0;
     }
@@ -393,7 +395,7 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(1, "Reconnected to the Data Provider.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Reconnected to the Data Provider.\n");
 
         /* Identify ourselves to the data provider */
         ret = dp_common_send_id(be_conn->conn,
@@ -407,7 +409,7 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
     }
 
     /* Failed to reconnect */
-    DEBUG(0, "Could not reconnect to %s provider.\n",
+    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
               be_conn->domain->name);
 
     /* FIXME: kill the frontend and let the monitor restart it ? */
@@ -446,14 +448,15 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
 
     nctx = talloc_zero(rctx, struct nss_ctx);
     if (!nctx) {
-        DEBUG(0, "fatal error initializing nss_ctx\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing nss_ctx\n");
         ret = ENOMEM;
         goto fail;
     }
 
     ret = sss_ncache_init(rctx, &nctx->ncache);
     if (ret != EOK) {
-        DEBUG(0, "fatal error initializing negative cache\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "fatal error initializing negative cache\n");
         goto fail;
     }
 
@@ -462,7 +465,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = nss_get_config(nctx, cdb);
     if (ret != EOK) {
-        DEBUG(0, "fatal error getting nss config\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error getting nss config\n");
         goto fail;
     }
 
@@ -472,7 +475,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                          CONFDB_SERVICE_RECON_RETRIES,
                          3, &max_retries);
     if (ret != EOK) {
-        DEBUG(0, "Failed to set up automatic reconnection\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to set up automatic reconnection\n");
         goto fail;
     }
 
@@ -493,7 +497,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     hret = sss_hash_create_ex(nctx, 10, &nctx->netgroups, 0, 0, 0, 0,
                               netgroup_hash_delete_cb, NULL);
     if (hret != HASH_SUCCESS) {
-        DEBUG(0,"Unable to initialize netgroup hash table\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unable to initialize netgroup hash table\n");
         ret = EIO;
         goto fail;
     }
@@ -608,7 +613,8 @@ int main(int argc, const char *argv[])
     ret = die_if_parent_died();
     if (ret != EOK) {
         /* This is not fatal, don't return */
-        DEBUG(2, "Could not set up to exit when parent process does\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not set up to exit when parent process does\n");
     }
 
     ret = nss_process_init(main_ctx,

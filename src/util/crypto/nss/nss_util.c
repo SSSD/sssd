@@ -46,7 +46,8 @@ int nspr_nss_init(void)
 
     sret = NSS_NoDB_Init(NULL);
     if (sret != SECSuccess) {
-        DEBUG(1, "Error initializing connection to NSS [%d]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Error initializing connection to NSS [%d]\n",
                   PR_GetError());
         return EIO;
     }
@@ -64,7 +65,8 @@ int nspr_nss_cleanup(void)
 
     sret = NSS_Shutdown();
     if (sret != SECSuccess) {
-        DEBUG(1, "Error shutting down connection to NSS [%d]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Error shutting down connection to NSS [%d]\n",
                   PR_GetError());
         return EIO;
     }

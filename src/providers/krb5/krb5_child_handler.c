@@ -69,7 +69,8 @@ static int child_io_destructor(void *ptr)
         io->write_to_child_fd = -1;
         if (ret != EOK) {
             ret = errno;
-            DEBUG(1, "close failed [%d][%s].\n", ret, strerror(ret));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "close failed [%d][%s].\n", ret, strerror(ret));
         }
     }
 
@@ -78,7 +79,8 @@ static int child_io_destructor(void *ptr)
         io->read_from_child_fd = -1;
         if (ret != EOK) {
             ret = errno;
-            DEBUG(1, "close failed [%d][%s].\n", ret, strerror(ret));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "close failed [%d][%s].\n", ret, strerror(ret));
         }
     }
 
@@ -136,7 +138,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
 
     keytab = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_KEYTAB);
     if (keytab == NULL) {
-        DEBUG(1, "Missing keytab option.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing keytab option.\n");
         return EINVAL;
     }
 
@@ -164,7 +166,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
 
     buf = talloc(kr, struct io_buffer);
     if (buf == NULL) {
-        DEBUG(1, "talloc failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
         return ENOMEM;
     }
 
@@ -190,7 +192,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
 
     buf->data = talloc_size(kr, buf->size);
     if (buf->data == NULL) {
-        DEBUG(1, "talloc_size failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_size failed.\n");
         talloc_free(buf);
         return ENOMEM;
     }
@@ -261,7 +263,8 @@ static void krb5_child_timeout(struct tevent_context *ev,
 
     ret = kill(state->child_pid, SIGKILL);
     if (ret == -1) {
-        DEBUG(1, "kill failed [%d][%s].\n", errno, strerror(errno));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "kill failed [%d][%s].\n", errno, strerror(errno));
     }
 
     tevent_req_error(req, ETIMEDOUT);
@@ -280,7 +283,7 @@ static errno_t activate_child_timeout_handler(struct tevent_req *req,
     state->timeout_handler = tevent_add_timer(ev, state, tv,
                                            krb5_child_timeout, req);
     if (state->timeout_handler == NULL) {
-        DEBUG(1, "tevent_add_timer failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
         return ENOMEM;
     }
 
@@ -300,13 +303,15 @@ static errno_t fork_child(struct tevent_req *req)
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
         err = errno;
-        DEBUG(1, "pipe failed [%d][%s].\n", errno, strerror(errno));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe failed [%d][%s].\n", errno, strerror(errno));
         return err;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         err = errno;
-        DEBUG(1, "pipe failed [%d][%s].\n", errno, strerror(errno));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe failed [%d][%s].\n", errno, strerror(errno));
         return err;
     }
 
@@ -316,7 +321,7 @@ static errno_t fork_child(struct tevent_req *req)
         if (state->kr->run_as_user) {
             ret = become_user(state->kr->uid, state->kr->gid);
             if (ret != EOK) {
-                DEBUG(1, "become_user failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
                 return ret;
             }
         }
@@ -325,7 +330,7 @@ static errno_t fork_child(struct tevent_req *req)
                          pipefd_to_child, pipefd_from_child,
                          KRB5_CHILD, state->kr->krb5_ctx->child_debug_fd);
         if (err != EOK) {
-            DEBUG(1, "Could not exec KRB5 child: [%d][%s].\n",
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec KRB5 child: [%d][%s].\n",
                       err, strerror(err));
             return err;
         }
@@ -340,19 +345,22 @@ static errno_t fork_child(struct tevent_req *req)
 
         ret = child_handler_setup(state->ev, pid, NULL, NULL, NULL);
         if (ret != EOK) {
-            DEBUG(1, "Could not set up child signal handler\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not set up child signal handler\n");
             return ret;
         }
 
         err = activate_child_timeout_handler(req, state->ev,
                   dp_opt_get_int(state->kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT));
         if (err != EOK) {
-            DEBUG(1, "activate_child_timeout_handler failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "activate_child_timeout_handler failed.\n");
         }
 
     } else { /* error */
         err = errno;
-        DEBUG(1, "fork failed [%d][%s].\n", errno, strerror(errno));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fork failed [%d][%s].\n", errno, strerror(errno));
         return err;
     }
 
@@ -385,7 +393,7 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
 
     state->io = talloc(state, struct io);
     if (state->io == NULL) {
-        DEBUG(1, "talloc failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -395,13 +403,13 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
 
     ret = create_send_buffer(kr, &buf);
     if (ret != EOK) {
-        DEBUG(1, "create_send_buffer failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "create_send_buffer failed.\n");
         goto fail;
     }
 
     ret = fork_child(req);
     if (ret != EOK) {
-        DEBUG(1, "fork_child failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "fork_child failed.\n");
         goto fail;
     }
 

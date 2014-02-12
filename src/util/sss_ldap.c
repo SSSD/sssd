@@ -129,14 +129,14 @@ static struct tevent_req *sdap_async_sys_connect_send(TALLOC_CTX *mem_ctx,
 
     flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) {
-        DEBUG(1, "fcntl F_GETFL failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "fcntl F_GETFL failed.\n");
         return NULL;
     }
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_async_sys_connect_state);
     if (req == NULL) {
-        DEBUG(1, "tevent_req_create failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
 
@@ -147,7 +147,7 @@ static struct tevent_req *sdap_async_sys_connect_send(TALLOC_CTX *mem_ctx,
 
     ret = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     if (ret != EOK) {
-        DEBUG(1, "fcntl F_SETFL failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "fcntl F_SETFL failed.\n");
         goto done;
     }
 
@@ -164,7 +164,7 @@ static struct tevent_req *sdap_async_sys_connect_send(TALLOC_CTX *mem_ctx,
                                        TEVENT_FD_READ | TEVENT_FD_WRITE,
                                        sdap_async_sys_connect_done, req);
             if (state->fde == NULL) {
-                DEBUG(1, "tevent_add_fd failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -173,13 +173,14 @@ static struct tevent_req *sdap_async_sys_connect_send(TALLOC_CTX *mem_ctx,
 
             break;
         default:
-            DEBUG(1, "connect failed [%d][%s].\n", ret, strerror(ret));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "connect failed [%d][%s].\n", ret, strerror(ret));
     }
 
 done:
     fret = fcntl(fd, F_SETFL, flags);
     if (fret != EOK) {
-        DEBUG(1, "fcntl F_SETFL failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "fcntl F_SETFL failed.\n");
     }
 
     if (ret == EOK) {
@@ -210,14 +211,15 @@ static void sdap_async_sys_connect_done(struct tevent_context *ev,
         if (ret == EINPROGRESS || ret == EINTR) {
             return; /* Try again later */
         }
-        DEBUG(1, "connect failed [%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "connect failed [%d][%s].\n", ret, strerror(ret));
     }
 
     talloc_zfree(fde);
 
     fret = fcntl(state->fd, F_SETFL, state->old_flags);
     if (fret != EOK) {
-        DEBUG(1, "fcntl F_SETFL failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "fcntl F_SETFL failed.\n");
     }
 
     if (ret == EOK) {
@@ -245,14 +247,16 @@ static errno_t set_fd_flags_and_opts(int fd)
     flags = fcntl(fd, F_GETFD, 0);
     if (flags == -1) {
         ret = errno;
-        DEBUG(1, "fcntl F_GETFD failed [%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fcntl F_GETFD failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
 
     flags = fcntl(fd, F_SETFD, flags| FD_CLOEXEC);
     if (flags == -1) {
         ret = errno;
-        DEBUG(1, "fcntl F_SETFD failed [%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fcntl F_SETFD failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
 
@@ -261,14 +265,16 @@ static errno_t set_fd_flags_and_opts(int fd)
     ret = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &dummy, sizeof(dummy));
     if (ret != 0) {
         ret = errno;
-        DEBUG(5, "setsockopt SO_KEEPALIVE failed.[%d][%s].\n", ret,
+        DEBUG(SSSDBG_FUNC_DATA,
+              "setsockopt SO_KEEPALIVE failed.[%d][%s].\n", ret,
                   strerror(ret));
     }
 
     ret = setsockopt(fd, SOL_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
     if (ret != 0) {
         ret = errno;
-        DEBUG(5, "setsockopt TCP_NODELAY failed.[%d][%s].\n", ret,
+        DEBUG(SSSDBG_FUNC_DATA,
+              "setsockopt TCP_NODELAY failed.[%d][%s].\n", ret,
                   strerror(ret));
     }
 
@@ -311,7 +317,7 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct sss_ldap_init_state);
     if (req == NULL) {
-        DEBUG(1, "tevent_req_create failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
 
@@ -325,34 +331,37 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
     state->sd = socket(addr->ss_family, SOCK_STREAM, 0);
     if (state->sd == -1) {
         ret = errno;
-        DEBUG(1, "socket failed [%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "socket failed [%d][%s].\n", ret, strerror(ret));
         goto fail;
     }
 
     ret = set_fd_flags_and_opts(state->sd);
     if (ret != EOK) {
-        DEBUG(1, "set_fd_flags_and_opts failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "set_fd_flags_and_opts failed.\n");
         goto fail;
     }
 
-    DEBUG(9, "Using file descriptor [%d] for LDAP connection.\n", state->sd);
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Using file descriptor [%d] for LDAP connection.\n", state->sd);
 
     subreq = sdap_async_sys_connect_send(state, ev, state->sd,
                                          (struct sockaddr *) addr, addr_len);
     if (subreq == NULL) {
         ret = ENOMEM;
-        DEBUG(1, "sdap_async_sys_connect_send failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_async_sys_connect_send failed.\n");
         goto fail;
     }
 
-    DEBUG(6, "Setting %d seconds timeout for connecting\n", timeout);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Setting %d seconds timeout for connecting\n", timeout);
     tv = tevent_timeval_current_ofs(timeout, 0);
 
     state->connect_timeout = tevent_add_timer(ev, subreq, tv,
                                               sdap_async_sys_connect_timeout,
                                               subreq);
     if (state->connect_timeout == NULL) {
-        DEBUG(1, "tevent_add_timer failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -366,14 +375,15 @@ fail:
     }
     tevent_req_error(req, ret);
 #else
-    DEBUG(3, "ldap_init_fd not available, "
+    DEBUG(SSSDBG_MINOR_FAILURE, "ldap_init_fd not available, "
               "will use ldap_initialize with uri [%s].\n", uri);
     state->sd = -1;
     ret = ldap_initialize(&state->ldap, uri);
     if (ret == LDAP_SUCCESS) {
         tevent_req_done(req);
     } else {
-        DEBUG(1, "ldap_initialize failed [%s].\n", sss_ldap_err2string(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "ldap_initialize failed [%s].\n", sss_ldap_err2string(ret));
         if (ret == LDAP_SERVER_DOWN) {
             tevent_req_error(req, ETIMEDOUT);
         } else {
@@ -393,7 +403,7 @@ static void sdap_async_sys_connect_timeout(struct tevent_context *ev,
 {
     struct tevent_req *connection_request;
 
-    DEBUG(4, "The LDAP connection timed out\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "The LDAP connection timed out\n");
 
     connection_request = talloc_get_type(pvt, struct tevent_req);
     tevent_req_error(connection_request, ETIMEDOUT);
@@ -413,7 +423,7 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
     ret = sdap_async_sys_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(1, "sdap_async_sys_connect request failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_async_sys_connect request failed.\n");
         goto fail;
     }
     /* Initialize LDAP handler */
@@ -431,9 +441,9 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
         lret = ldap_install_tls(state->ldap);
         if (lret != LDAP_SUCCESS) {
             if (lret == LDAP_LOCAL_ERROR) {
-                DEBUG(5, "TLS/SSL already in place.\n");
+                DEBUG(SSSDBG_FUNC_DATA, "TLS/SSL already in place.\n");
             } else {
-                DEBUG(1, "ldap_install_tls failed: %s\n",
+                DEBUG(SSSDBG_CRIT_FAILURE, "ldap_install_tls failed: %s\n",
                           sss_ldap_err2string(lret));
                 ret = EIO;
                 goto fail;

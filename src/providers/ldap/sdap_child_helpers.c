@@ -56,14 +56,14 @@ static void sdap_close_fd(int *fd)
     int ret;
 
     if (*fd == -1) {
-        DEBUG(6, "fd already closed\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "fd already closed\n");
         return;
     }
 
     ret = close(*fd);
     if (ret) {
         ret = errno;
-        DEBUG(2, "Closing fd %d, return error %d (%s)\n",
+        DEBUG(SSSDBG_OP_FAILURE, "Closing fd %d, return error %d (%s)\n",
                   *fd, ret, strerror(ret));
     }
 
@@ -91,13 +91,15 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
         err = errno;
-        DEBUG(1, "pipe failed [%d][%s].\n", err, strerror(err));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe failed [%d][%s].\n", err, strerror(err));
         return err;
     }
     ret = pipe(pipefd_to_child);
     if (ret == -1) {
         err = errno;
-        DEBUG(1, "pipe failed [%d][%s].\n", err, strerror(err));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pipe failed [%d][%s].\n", err, strerror(err));
         return err;
     }
 
@@ -126,7 +128,8 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
 
     } else { /* error */
         err = errno;
-        DEBUG(1, "fork failed [%d][%s].\n", err, strerror(err));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fork failed [%d][%s].\n", err, strerror(err));
         return err;
     }
 
@@ -145,7 +148,7 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
 
     buf = talloc(mem_ctx, struct io_buffer);
     if (buf == NULL) {
-        DEBUG(1, "talloc failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
         return ENOMEM;
     }
 
@@ -164,7 +167,7 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
 
     buf->data = talloc_size(buf, buf->size);
     if (buf->data == NULL) {
-        DEBUG(1, "talloc_size failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_size failed.\n");
         talloc_free(buf);
         return ENOMEM;
     }
@@ -227,7 +230,7 @@ static int parse_child_response(TALLOC_CTX *mem_ctx,
 
     ccn = talloc_size(mem_ctx, sizeof(char) * (len + 1));
     if (ccn == NULL) {
-        DEBUG(1, "talloc_size failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_size failed.\n");
         return ENOMEM;
     }
     safealign_memcpy(ccn, buf+p, sizeof(char) * len, &p);
@@ -296,19 +299,19 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
                                      realm_str, princ_str, keytab_name, lifetime,
                                      &buf);
     if (ret != EOK) {
-        DEBUG(1, "create_tgt_req_send_buffer failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "create_tgt_req_send_buffer failed.\n");
         goto fail;
     }
 
     ret = sdap_fork_child(state->ev, state->child);
     if (ret != EOK) {
-        DEBUG(1, "sdap_fork_child failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_fork_child failed.\n");
         goto fail;
     }
 
     ret = set_tgt_child_timeout(req, ev, timeout);
     if (ret != EOK) {
-        DEBUG(1, "activate_child_timeout_handler failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "activate_child_timeout_handler failed.\n");
         goto fail;
     }
 
@@ -394,11 +397,13 @@ int sdap_get_tgt_recv(struct tevent_req *req,
     ret = parse_child_response(mem_ctx, state->buf, state->len,
                                &res, &krberr, &ccn, &expire_time);
     if (ret != EOK) {
-        DEBUG(1, "Cannot parse child response: [%d][%s]\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot parse child response: [%d][%s]\n", ret, strerror(ret));
         return ret;
     }
 
-    DEBUG(6, "Child responded: %d [%s], expired on [%ld]\n", res, ccn, (long)expire_time);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Child responded: %d [%s], expired on [%ld]\n", res, ccn, (long)expire_time);
     *result = res;
     *kerr = krberr;
     *ccname = ccn;
@@ -417,11 +422,13 @@ static void get_tgt_timeout_handler(struct tevent_context *ev,
                                             struct sdap_get_tgt_state);
     int ret;
 
-    DEBUG(9, "timeout for tgt child [%d] reached.\n", state->child->pid);
+    DEBUG(SSSDBG_TRACE_ALL,
+          "timeout for tgt child [%d] reached.\n", state->child->pid);
 
     ret = kill(state->child->pid, SIGKILL);
     if (ret == -1) {
-        DEBUG(1, "kill failed [%d][%s].\n", errno, strerror(errno));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "kill failed [%d][%s].\n", errno, strerror(errno));
     }
 
     tevent_req_error(req, ETIMEDOUT);
@@ -434,13 +441,14 @@ static errno_t set_tgt_child_timeout(struct tevent_req *req,
     struct tevent_timer *te;
     struct timeval tv;
 
-    DEBUG(6, "Setting %d seconds timeout for tgt child\n", timeout);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Setting %d seconds timeout for tgt child\n", timeout);
 
     tv = tevent_timeval_current_ofs(timeout, 0);
 
     te = tevent_add_timer(ev, req, tv, get_tgt_timeout_handler, req);
     if (te == NULL) {
-        DEBUG(1, "tevent_add_timer failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
         return ENOMEM;
     }
 
@@ -458,14 +466,15 @@ int sdap_setup_child(void)
     if (debug_to_file != 0 && ldap_child_debug_fd == -1) {
         ret = open_debug_file_ex(LDAP_CHILD_LOG_FILE, &debug_filep, false);
         if (ret != EOK) {
-            DEBUG(0, "Error setting up logging (%d) [%s]\n",
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) [%s]\n",
                         ret, strerror(ret));
             return ret;
         }
 
         ldap_child_debug_fd = fileno(debug_filep);
         if (ldap_child_debug_fd == -1) {
-            DEBUG(0, "fileno failed [%d][%s]\n", errno, strerror(errno));
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "fileno failed [%d][%s]\n", errno, strerror(errno));
             ret = errno;
             return ret;
         }

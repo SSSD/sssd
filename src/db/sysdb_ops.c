@@ -132,7 +132,7 @@ int sysdb_delete_entry(struct sysdb_ctx *sysdb,
         }
         /* fall through */
     default:
-        DEBUG(1, "LDB Error: %s(%d)\nError Message: [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "LDB Error: %s(%d)\nError Message: [%s]\n",
                   ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb));
         return sysdb_error_to_errno(ret);
     }
@@ -787,7 +787,8 @@ int sysdb_get_new_id(struct sss_domain_info *domain,
     case EOK:
         new_id = get_attr_as_uint32(msgs[0], SYSDB_NEXTID);
         if (new_id == (uint32_t)(-1)) {
-            DEBUG(1, "Invalid Next ID in domain %s\n", domain->name);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Invalid Next ID in domain %s\n", domain->name);
             ret = ERANGE;
             goto done;
         }
@@ -797,7 +798,8 @@ int sysdb_get_new_id(struct sss_domain_info *domain,
         }
 
         if ((domain->id_max != 0) && (new_id > domain->id_max)) {
-            DEBUG(0, "Failed to allocate new id, out of range (%u/%u)\n",
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to allocate new id, out of range (%u/%u)\n",
                       new_id, domain->id_max);
             ret = ERANGE;
             goto done;
@@ -832,7 +834,7 @@ int sysdb_get_new_id(struct sss_domain_info *domain,
                                  SYSDB_GIDNUM, new_id);
     }
     if (!filter) {
-        DEBUG(6, "Error: Out of memory\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: Out of memory\n");
         ret = ENOMEM;
         goto done;
     }
@@ -857,7 +859,8 @@ int sysdb_get_new_id(struct sss_domain_info *domain,
 
         /* check again we are not falling out of range */
         if ((domain->id_max != 0) && (new_id > domain->id_max)) {
-            DEBUG(0, "Failed to allocate new id, out of range (%u/%u)\n",
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to allocate new id, out of range (%u/%u)\n",
                       new_id, domain->id_max);
             ret = ERANGE;
             goto done;
@@ -877,7 +880,7 @@ int sysdb_get_new_id(struct sss_domain_info *domain,
     /* finally store the new next id */
     msg = ldb_msg_new(tmp_ctx);
     if (!msg) {
-        DEBUG(6, "Error: Out of memory\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: Out of memory\n");
         ret = ENOMEM;
         goto done;
     }
@@ -902,7 +905,7 @@ done:
         ldb_transaction_cancel(domain->sysdb->ldb);
     }
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -982,7 +985,7 @@ int sysdb_add_basic_user(struct sss_domain_info *domain,
 
 done:
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -1191,7 +1194,8 @@ int sysdb_add_user(struct sss_domain_info *domain,
 
     if (domain->mpg) {
         if (gid != 0) {
-            DEBUG(0, "Cannot add user with arbitrary GID in MPG domain!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Cannot add user with arbitrary GID in MPG domain!\n");
             return EINVAL;
         }
         gid = uid;
@@ -1312,7 +1316,7 @@ done:
         ret = ldb_transaction_commit(domain->sysdb->ldb);
         ret = sysdb_error_to_errno(ret);
     } else {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
         ldb_transaction_cancel(domain->sysdb->ldb);
     }
     talloc_zfree(tmp_ctx);
@@ -1364,7 +1368,7 @@ int sysdb_add_basic_group(struct sss_domain_info *domain,
 
 done:
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -1475,7 +1479,7 @@ done:
         ret = ldb_transaction_commit(domain->sysdb->ldb);
         ret = sysdb_error_to_errno(ret);
     } else {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
         ldb_transaction_cancel(domain->sysdb->ldb);
     }
     talloc_zfree(tmp_ctx);
@@ -1537,7 +1541,7 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
 
 done:
     if (ret != EOK) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -1581,7 +1585,7 @@ int sysdb_mod_group_member(struct sss_domain_info *domain,
 
 fail:
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(msg);
     return ret;
@@ -1629,7 +1633,7 @@ int sysdb_add_basic_netgroup(struct sss_domain_info *domain,
 
 done:
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(msg);
     return ret;
@@ -1703,7 +1707,7 @@ done:
     }
 
     if (ret != EOK) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
         ldb_transaction_cancel(domain->sysdb->ldb);
     }
     talloc_zfree(tmp_ctx);
@@ -1851,7 +1855,8 @@ int sysdb_store_user(struct sss_domain_info *domain,
                                  SYSDB_MEMBER_USER,
                                  remove_attrs);
         if (ret != EOK) {
-            DEBUG(4, "Could not remove missing attributes\n");
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Could not remove missing attributes\n");
         }
     }
 
@@ -1873,7 +1878,7 @@ fail:
     }
 
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -1970,7 +1975,7 @@ int sysdb_store_group(struct sss_domain_info *domain,
 
 done:
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -2069,13 +2074,13 @@ int sysdb_cache_password(struct sss_domain_info *domain,
 
     ret = s3crypt_gen_salt(tmp_ctx, &salt);
     if (ret) {
-        DEBUG(4, "Failed to generate random salt.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Failed to generate random salt.\n");
         goto fail;
     }
 
     ret = s3crypt_sha512(tmp_ctx, password, salt, &hash);
     if (ret) {
-        DEBUG(4, "Failed to create password hash.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Failed to create password hash.\n");
         goto fail;
     }
 
@@ -2105,7 +2110,7 @@ int sysdb_cache_password(struct sss_domain_info *domain,
 
 fail:
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -2130,11 +2135,11 @@ int sysdb_search_custom(TALLOC_CTX *mem_ctx,
 
     basedn = sysdb_custom_subtree_dn(mem_ctx, domain, subtree_name);
     if (basedn == NULL) {
-        DEBUG(1, "sysdb_custom_subtree_dn failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_custom_subtree_dn failed.\n");
         return ENOMEM;
     }
     if (!ldb_dn_validate(basedn)) {
-        DEBUG(1, "Failed to create DN.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create DN.\n");
         return EINVAL;
     }
 
@@ -2169,12 +2174,12 @@ int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
 
     basedn = sysdb_custom_dn(tmp_ctx, domain, object_name, subtree_name);
     if (basedn == NULL) {
-        DEBUG(1, "sysdb_custom_dn failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_custom_dn failed.\n");
         ret = ENOMEM;
         goto done;
     }
     if (!ldb_dn_validate(basedn)) {
-        DEBUG(1, "Failed to create DN.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create DN.\n");
         ret = EINVAL;
         goto done;
     }
@@ -2186,7 +2191,7 @@ int sysdb_search_custom_by_name(TALLOC_CTX *mem_ctx,
     }
 
     if (count > 1) {
-        DEBUG(1, "More than one result found.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "More than one result found.\n");
         ret = EFAULT;
         goto done;
     }
@@ -2251,7 +2256,7 @@ int sysdb_store_custom(struct sss_domain_info *domain,
 
     msg->dn = sysdb_custom_dn(tmp_ctx, domain, object_name, subtree_name);
     if (!msg->dn) {
-        DEBUG(1, "sysdb_custom_dn failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_custom_dn failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -2283,14 +2288,14 @@ int sysdb_store_custom(struct sss_domain_info *domain,
         ret = ldb_modify(domain->sysdb->ldb, msg);
     }
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, "Failed to store custom entry: %s(%d)[%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to store custom entry: %s(%d)[%s]\n",
                   ldb_strerror(ret), ret, ldb_errstring(domain->sysdb->ldb));
         ret = sysdb_error_to_errno(ret);
     }
 
 done:
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
         ldb_transaction_cancel(domain->sysdb->ldb);
     } else {
         ret = ldb_transaction_commit(domain->sysdb->ldb);
@@ -2321,7 +2326,7 @@ int sysdb_delete_custom(struct sss_domain_info *domain,
 
     dn = sysdb_custom_dn(tmp_ctx, domain, object_name, subtree_name);
     if (dn == NULL) {
-        DEBUG(1, "sysdb_custom_dn failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_custom_dn failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -2335,7 +2340,7 @@ int sysdb_delete_custom(struct sss_domain_info *domain,
         break;
 
     default:
-        DEBUG(1, "LDB Error: %s(%d)\nError Message: [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "LDB Error: %s(%d)\nError Message: [%s]\n",
                   ldb_strerror(ret), ret, ldb_errstring(domain->sysdb->ldb));
         ret = sysdb_error_to_errno(ret);
         break;
@@ -2463,14 +2468,14 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
     basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                             SYSDB_TMPL_USER_BASE, domain->name);
     if (!basedn) {
-        DEBUG(2, "Failed to build base dn\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
         ret = ENOMEM;
         goto fail;
     }
 
     filter = talloc_asprintf(tmp_ctx, "(&(%s)%s)", SYSDB_UC, sub_filter);
     if (!filter) {
-        DEBUG(2, "Failed to build filter\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -2533,7 +2538,8 @@ int sysdb_delete_user(struct sss_domain_info *domain,
             c_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
             c_uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
             if (c_name == NULL || c_uid == 0) {
-                DEBUG(2, "Attribute is missing but this should never happen!\n");
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Attribute is missing but this should never happen!\n");
                 ret = EFAULT;
                 goto fail;
             }
@@ -2596,7 +2602,7 @@ int sysdb_delete_user(struct sss_domain_info *domain,
     return EOK;
 
 fail:
-    DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+    DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -2624,14 +2630,14 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
     basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                             SYSDB_TMPL_GROUP_BASE, domain->name);
     if (!basedn) {
-        DEBUG(2, "Failed to build base dn\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
         ret = ENOMEM;
         goto fail;
     }
 
     filter = talloc_asprintf(tmp_ctx, "(&(%s)%s)", SYSDB_GC, sub_filter);
     if (!filter) {
-        DEBUG(2, "Failed to build filter\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -2691,7 +2697,8 @@ int sysdb_delete_group(struct sss_domain_info *domain,
         c_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
         c_gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
         if (c_name == NULL || c_gid == 0) {
-            DEBUG(2, "Attribute is missing but this should never happen!\n");
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Attribute is missing but this should never happen!\n");
             ret = EFAULT;
             goto fail;
         }
@@ -2711,7 +2718,7 @@ int sysdb_delete_group(struct sss_domain_info *domain,
     return EOK;
 
 fail:
-    DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+    DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -2738,19 +2745,19 @@ int sysdb_search_netgroups(TALLOC_CTX *mem_ctx,
     basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                             SYSDB_TMPL_NETGROUP_BASE, domain->name);
     if (!basedn) {
-        DEBUG(2, "Failed to build base dn\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
         ret = ENOMEM;
         goto fail;
     }
 
     filter = talloc_asprintf(tmp_ctx, "(&(%s)%s)", SYSDB_NC, sub_filter);
     if (!filter) {
-        DEBUG(2, "Failed to build filter\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto fail;
     }
 
-    DEBUG(6, "Search netgroups with filter: %s\n", filter);
+    DEBUG(SSSDBG_TRACE_FUNC, "Search netgroups with filter: %s\n", filter);
 
     ret = sysdb_search_entry(mem_ctx, domain->sysdb, basedn,
                              LDB_SCOPE_SUBTREE, filter, attrs,
@@ -2790,11 +2797,13 @@ int sysdb_delete_netgroup(struct sss_domain_info *domain,
 
     ret = sysdb_search_netgroup_by_name(tmp_ctx, domain, name, NULL, &msg);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(6, "sysdb_search_netgroup_by_name failed: %d (%s)\n",
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "sysdb_search_netgroup_by_name failed: %d (%s)\n",
                    ret, strerror(ret));
         goto done;
     } else if (ret == ENOENT) {
-        DEBUG(6, "Netgroup does not exist, nothing to delete\n");
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Netgroup does not exist, nothing to delete\n");
         ret = EOK;
         goto done;
     }
@@ -2806,7 +2815,7 @@ int sysdb_delete_netgroup(struct sss_domain_info *domain,
 
 done:
     if (ret != EOK) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_free(tmp_ctx);
     return ret;
@@ -2890,7 +2899,8 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
                          CONFDB_DEFAULT_PAM_FAILED_LOGIN_ATTEMPTS,
                          &allowed_failed_login_attempts);
     if (ret != EOK) {
-        DEBUG(1, "Failed to read the number of allowed failed login "
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read the number of allowed failed login "
                   "attempts.\n");
         ret = ERR_INTERNAL;
         goto done;
@@ -2900,11 +2910,12 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
                          CONFDB_DEFAULT_PAM_FAILED_LOGIN_DELAY,
                          &failed_login_delay);
     if (ret != EOK) {
-        DEBUG(1, "Failed to read the failed login delay.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to read the failed login delay.\n");
         ret = ERR_INTERNAL;
         goto done;
     }
-    DEBUG(9, "Failed login attempts [%d], allowed failed login attempts [%d], "
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Failed login attempts [%d], allowed failed login attempts [%d], "
               "failed login delay [%d].\n", *failed_login_attempts,
               allowed_failed_login_attempts, failed_login_delay);
 
@@ -2913,17 +2924,18 @@ errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
             if (failed_login_delay) {
                 end = last_failed_login + (failed_login_delay * 60);
                 if (end < time(NULL)) {
-                    DEBUG(7, "failed_login_delay has passed, "
+                    DEBUG(SSSDBG_TRACE_LIBS, "failed_login_delay has passed, "
                               "resetting failed_login_attempts.\n");
                     *failed_login_attempts = 0;
                 } else {
-                    DEBUG(7, "login delayed until %lld.\n", (long long) end);
+                    DEBUG(SSSDBG_TRACE_LIBS,
+                          "login delayed until %lld.\n", (long long) end);
                     *delayed_until = end;
                     ret = ERR_AUTH_DENIED;
                     goto done;
                 }
             } else {
-                DEBUG(4, "Too many failed logins.\n");
+                DEBUG(SSSDBG_CONF_SETTINGS, "Too many failed logins.\n");
                 ret = ERR_AUTH_DENIED;
                 goto done;
             }
@@ -2963,22 +2975,22 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
     int ret;
 
     if (name == NULL || *name == '\0') {
-        DEBUG(1, "Missing user name.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing user name.\n");
         return EINVAL;
     }
 
     if (cdb == NULL) {
-        DEBUG(1, "Missing config db context.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing config db context.\n");
         return EINVAL;
     }
 
     if (domain->sysdb == NULL) {
-        DEBUG(1, "Missing sysdb db context.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing sysdb db context.\n");
         return EINVAL;
     }
 
     if (!domain->cache_credentials) {
-        DEBUG(3, "Cached credentials not available.\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cached credentials not available.\n");
         return EINVAL;
     }
 
@@ -2996,7 +3008,8 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
 
     ret = sysdb_search_user_by_name(tmp_ctx, domain, name, attrs, &ldb_msg);
     if (ret != EOK) {
-        DEBUG(1, "sysdb_search_user_by_name failed [%d][%s].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb_search_user_by_name failed [%d][%s].\n",
                   ret, strerror(ret));
         if (ret == ENOENT) ret = ERR_ACCOUNT_UNKNOWN;
         goto done;
@@ -3010,16 +3023,17 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
     ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_CRED_TIMEOUT, 0, &cred_expiration);
     if (ret != EOK) {
-        DEBUG(1, "Failed to read expiration time of offline credentials.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read expiration time of offline credentials.\n");
         goto done;
     }
-    DEBUG(9, "Offline credentials expiration is [%d] days.\n",
+    DEBUG(SSSDBG_TRACE_ALL, "Offline credentials expiration is [%d] days.\n",
               cred_expiration);
 
     if (cred_expiration) {
         expire_date = lastLogin + (cred_expiration * 86400);
         if (expire_date < time(NULL)) {
-            DEBUG(4, "Cached user entry is too old.\n");
+            DEBUG(SSSDBG_CONF_SETTINGS, "Cached user entry is too old.\n");
             expire_date = 0;
             ret = ERR_CACHED_CREDS_EXPIRED;
             goto done;
@@ -3031,7 +3045,7 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
     ret = check_failed_login_attempts(cdb, ldb_msg, &failed_login_attempts,
                                       &delayed_until);
     if (ret != EOK) {
-        DEBUG(1, "Failed to check login attempts\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to check login attempts\n");
         goto done;
     }
 
@@ -3039,28 +3053,28 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
 
     userhash = ldb_msg_find_attr_as_string(ldb_msg, SYSDB_CACHEDPWD, NULL);
     if (userhash == NULL || *userhash == '\0') {
-        DEBUG(4, "Cached credentials not available.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Cached credentials not available.\n");
         ret = ERR_NO_CACHED_CREDS;
         goto done;
     }
 
     ret = s3crypt_sha512(tmp_ctx, password, userhash, &comphash);
     if (ret) {
-        DEBUG(4, "Failed to create password hash.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Failed to create password hash.\n");
         ret = ERR_INTERNAL;
         goto done;
     }
 
     update_attrs = sysdb_new_attrs(tmp_ctx);
     if (update_attrs == NULL) {
-        DEBUG(1, "sysdb_new_attrs failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_new_attrs failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     if (strcmp(userhash, comphash) == 0) {
         /* TODO: probable good point for audit logging */
-        DEBUG(4, "Hashes do match!\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Hashes do match!\n");
         authentication_successful = true;
 
         if (just_check) {
@@ -3071,7 +3085,7 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
         ret = sysdb_attrs_add_time_t(update_attrs,
                                      SYSDB_LAST_LOGIN, time(NULL));
         if (ret != EOK) {
-            DEBUG(3, "sysdb_attrs_add_time_t failed, "
+            DEBUG(SSSDBG_MINOR_FAILURE, "sysdb_attrs_add_time_t failed, "
                       "but authentication is successful.\n");
             ret = EOK;
             goto done;
@@ -3080,7 +3094,7 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
         ret = sysdb_attrs_add_uint32(update_attrs,
                                      SYSDB_FAILED_LOGIN_ATTEMPTS, 0U);
         if (ret != EOK) {
-            DEBUG(3, "sysdb_attrs_add_uint32 failed, "
+            DEBUG(SSSDBG_MINOR_FAILURE, "sysdb_attrs_add_uint32 failed, "
                       "but authentication is successful.\n");
             ret = EOK;
             goto done;
@@ -3088,14 +3102,14 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
 
 
     } else {
-        DEBUG(4, "Authentication failed.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Authentication failed.\n");
         authentication_successful = false;
 
         ret = sysdb_attrs_add_time_t(update_attrs,
                                      SYSDB_LAST_FAILED_LOGIN,
                                      time(NULL));
         if (ret != EOK) {
-            DEBUG(3, "sysdb_attrs_add_time_t failed\n.");
+            DEBUG(SSSDBG_MINOR_FAILURE, "sysdb_attrs_add_time_t failed\n.");
             goto done;
         }
 
@@ -3103,7 +3117,7 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
                                      SYSDB_FAILED_LOGIN_ATTEMPTS,
                                      ++failed_login_attempts);
         if (ret != EOK) {
-            DEBUG(3, "sysdb_attrs_add_uint32 failed.\n");
+            DEBUG(SSSDBG_MINOR_FAILURE, "sysdb_attrs_add_uint32 failed.\n");
             goto done;
         }
     }
@@ -3111,7 +3125,8 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
     ret = sysdb_set_user_attr(domain, name, update_attrs,
                               LDB_FLAG_MOD_REPLACE);
     if (ret) {
-        DEBUG(1, "Failed to update Login attempt information!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to update Login attempt information!\n");
     }
 
 done:
@@ -3127,7 +3142,7 @@ done:
         ret = ldb_transaction_commit(domain->sysdb->ldb);
         ret = sysdb_error_to_errno(ret);
         if (ret) {
-            DEBUG(2, "Failed to commit transaction!\n");
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to commit transaction!\n");
         }
     }
     if (authentication_successful) {
@@ -3160,7 +3175,7 @@ static errno_t sysdb_update_members_ex(struct sss_domain_info *domain,
 
     ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
-        DEBUG(0, "Failed to start update transaction\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to start update transaction\n");
         goto done;
     }
 
@@ -3172,7 +3187,8 @@ static errno_t sysdb_update_members_ex(struct sss_domain_info *domain,
             ret = sysdb_add_group_member(domain, add_groups[i],
                                          member, type, is_dn);
             if (ret != EOK) {
-                DEBUG(1, "Could not add member [%s] to group [%s]. "
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Could not add member [%s] to group [%s]. "
                           "Skipping.\n", member, add_groups[i]);
                 /* Continue on, we should try to finish the rest */
             }
@@ -3185,7 +3201,8 @@ static errno_t sysdb_update_members_ex(struct sss_domain_info *domain,
             ret = sysdb_remove_group_member(domain, del_groups[i],
                                             member, type, is_dn);
             if (ret != EOK) {
-                DEBUG(1, "Could not remove member [%s] from group [%s]. "
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Could not remove member [%s] from group [%s]. "
                           "Skipping\n", member, del_groups[i]);
                 /* Continue on, we should try to finish the rest */
             }
@@ -3281,7 +3298,7 @@ errno_t sysdb_remove_attrs(struct sss_domain_info *domain,
         if (strcasecmp(remove_attrs[i], SYSDB_MEMBEROF) == 0) {
             continue;
         }
-        DEBUG(8, "Removing attribute [%s] from [%s]\n",
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Removing attribute [%s] from [%s]\n",
                   remove_attrs[i], name);
         lret = ldb_msg_add_empty(msg, remove_attrs[i],
                                  LDB_FLAG_MOD_DELETE, NULL);

@@ -39,7 +39,7 @@ int get_fd_from_ldap(LDAP *ldap, int *fd)
 
     ret = ldap_get_option(ldap, LDAP_OPT_DESC, fd);
     if (ret != LDAP_OPT_SUCCESS || *fd < 0) {
-        DEBUG(1, "Failed to get fd from ldap!!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to get fd from ldap!!\n");
         *fd = -1;
         return EIO;
     }
@@ -74,9 +74,9 @@ static int remove_connection_callback(TALLOC_CTX *mem_ctx)
 
     lret = ldap_get_option(cb_data->sh->ldap, LDAP_OPT_CONNECT_CB, conncb);
     if (lret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, "Failed to remove connection callback.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to remove connection callback.\n");
     } else {
-        DEBUG(9, "Successfully removed connection callback.\n");
+        DEBUG(SSSDBG_TRACE_ALL, "Successfully removed connection callback.\n");
     }
     return EOK;
 }
@@ -93,27 +93,28 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
                                                    struct ldap_cb_data);
 
     if (cb_data == NULL) {
-        DEBUG(1, "sdap_ldap_connect_callback_add called without "
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_ldap_connect_callback_add called without "
                   "callback data.\n");
         return EINVAL;
     }
 
     ret = ber_sockbuf_ctrl(sb, LBER_SB_OPT_GET_FD, &ber_fd);
     if (ret == -1) {
-        DEBUG(1, "ber_sockbuf_ctrl failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "ber_sockbuf_ctrl failed.\n");
         return EINVAL;
     }
 
     if (DEBUG_IS_SET(SSSDBG_TRACE_LIBS)) {
         char *uri = ldap_url_desc2str(srv);
-        DEBUG(7, "New LDAP connection to [%s] with fd [%d].\n",
+        DEBUG(SSSDBG_TRACE_LIBS, "New LDAP connection to [%s] with fd [%d].\n",
                   uri, ber_fd);
         free(uri);
     }
 
     fd_event_item = talloc_zero(cb_data, struct fd_event_item);
     if (fd_event_item == NULL) {
-        DEBUG(1, "talloc failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
         return ENOMEM;
     }
 
@@ -121,7 +122,7 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
                                        TEVENT_FD_READ, sdap_ldap_result,
                                        cb_data->sh);
     if (fd_event_item->fde == NULL) {
-        DEBUG(1, "tevent_add_fd failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd failed.\n");
         talloc_free(fd_event_item);
         return ENOMEM;
     }
@@ -147,10 +148,10 @@ static void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
 
     ret = ber_sockbuf_ctrl(sb, LBER_SB_OPT_GET_FD, &ber_fd);
     if (ret == -1) {
-        DEBUG(1, "ber_sockbuf_ctrl failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "ber_sockbuf_ctrl failed.\n");
         return;
     }
-    DEBUG(9, "Closing LDAP connection with fd [%d].\n", ber_fd);
+    DEBUG(SSSDBG_TRACE_ALL, "Closing LDAP connection with fd [%d].\n", ber_fd);
 
     DLIST_FOR_EACH(fd_event_item, cb_data->fd_list) {
         if (fd_event_item->fd == ber_fd) {
@@ -158,7 +159,7 @@ static void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
         }
     }
     if (fd_event_item == NULL) {
-        DEBUG(1, "No event for fd [%d] found.\n", ber_fd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "No event for fd [%d] found.\n", ber_fd);
         return;
     }
 
@@ -177,14 +178,15 @@ static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
     int ret;
 
     if (sh->sdap_fd_events) {
-        DEBUG(1, "sdap_install_ldap_callbacks is called with already "
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_install_ldap_callbacks is called with already "
                   "initialized sdap_fd_events.\n");
         return EINVAL;
     }
 
     sh->sdap_fd_events = talloc_zero(sh, struct sdap_fd_events);
     if (!sh->sdap_fd_events) {
-        DEBUG(1, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
@@ -199,7 +201,8 @@ static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
         return ENOMEM;
     }
 
-    DEBUG(8, "Trace: sh[%p], connected[%d], ops[%p], fde[%p], ldap[%p]\n",
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Trace: sh[%p], connected[%d], ops[%p], fde[%p], ldap[%p]\n",
               sh, (int)sh->connected, sh->ops, sh->sdap_fd_events->fde,
               sh->ldap);
 
@@ -218,7 +221,7 @@ errno_t setup_ldap_connection_callbacks(struct sdap_handle *sh,
 
     sh->sdap_fd_events = talloc_zero(sh, struct sdap_fd_events);
     if (sh->sdap_fd_events == NULL) {
-        DEBUG(1, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -226,14 +229,14 @@ errno_t setup_ldap_connection_callbacks(struct sdap_handle *sh,
     sh->sdap_fd_events->conncb = talloc_zero(sh->sdap_fd_events,
                                              struct ldap_conncb);
     if (sh->sdap_fd_events->conncb == NULL) {
-        DEBUG(1, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         ret = ENOMEM;
         goto fail;
     }
 
     cb_data = talloc_zero(sh->sdap_fd_events->conncb, struct ldap_cb_data);
     if (cb_data == NULL) {
-        DEBUG(1, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -247,7 +250,7 @@ errno_t setup_ldap_connection_callbacks(struct sdap_handle *sh,
     ret = ldap_set_option(sh->ldap, LDAP_OPT_CONNECT_CB,
                           sh->sdap_fd_events->conncb);
     if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, "Failed to set connection callback\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set connection callback\n");
         ret = EFAULT;
         goto fail;
     }
@@ -261,7 +264,7 @@ fail:
     talloc_zfree(sh->sdap_fd_events);
     return ret;
 #else
-    DEBUG(9, "LDAP connection callbacks are not supported.\n");
+    DEBUG(SSSDBG_TRACE_ALL, "LDAP connection callbacks are not supported.\n");
     return EOK;
 #endif
 }
@@ -288,13 +291,13 @@ errno_t sdap_call_conn_cb(const char *uri,int fd, struct sdap_handle *sh)
 
     sb = ber_sockbuf_alloc();
     if (sb == NULL) {
-        DEBUG(1, "ber_sockbuf_alloc failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "ber_sockbuf_alloc failed.\n");
         return ENOMEM;
     }
 
     ret = ber_sockbuf_ctrl(sb, LBER_SB_OPT_SET_FD, &fd);
     if (ret != 1) {
-        DEBUG(1, "ber_sockbuf_ctrl failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "ber_sockbuf_ctrl failed.\n");
         return EFAULT;
     }
 
@@ -314,7 +317,7 @@ errno_t sdap_call_conn_cb(const char *uri,int fd, struct sdap_handle *sh)
     ber_sockbuf_free(sb);
     return ret;
 #else
-    DEBUG(9, "LDAP connection callbacks are not supported.\n");
+    DEBUG(SSSDBG_TRACE_ALL, "LDAP connection callbacks are not supported.\n");
     return EOK;
 #endif
 }

@@ -40,7 +40,7 @@ static errno_t make_netgroup_attr(struct __netgrent netgrent,
         ret =sysdb_attrs_add_string(attrs, SYSDB_NETGROUP_MEMBER,
                                     netgrent.val.group);
         if (ret != EOK) {
-            DEBUG(1, "sysdb_attrs_add_string failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_attrs_add_string failed.\n");
             return ret;
         }
     } else if (netgrent.type == triple_val) {
@@ -49,17 +49,18 @@ static errno_t make_netgroup_attr(struct __netgrent netgrent,
                                 get_triple_el(netgrent.val.triple.user),
                                 get_triple_el(netgrent.val.triple.domain));
         if (dummy == NULL) {
-            DEBUG(1, "talloc_asprintf failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
             return ENOMEM;
         }
 
         ret = sysdb_attrs_add_string(attrs, SYSDB_NETGROUP_TRIPLE, dummy);
         if (ret != EOK) {
-            DEBUG(1, "sysdb_attrs_add_string failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_attrs_add_string failed.\n");
             return ret;
         }
     } else {
-        DEBUG(1, "Unknown netgrent entry type [%d].\n", netgrent.type);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unknown netgrent entry type [%d].\n", netgrent.type);
         return EINVAL;
     }
 

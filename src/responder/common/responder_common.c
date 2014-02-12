@@ -59,7 +59,7 @@ static errno_t set_nonblocking(int fd)
     ferr = fcntl(fd, F_SETFL, v | O_NONBLOCK);
     if (ferr < 0) {
         error = errno;
-        DEBUG(0, "Unable to set fd non-blocking: [%d][%s]\n",
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to set fd non-blocking: [%d][%s]\n",
                   error, strerror(error));
         return error;
     }
@@ -80,7 +80,8 @@ static errno_t set_close_on_exec(int fd)
     ferr = fcntl(fd, F_SETFD, v | FD_CLOEXEC);
     if (ferr < 0) {
         error = errno;
-        DEBUG(0, "Unable to set fd close-on-exec: [%d][%s]\n",
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unable to set fd close-on-exec: [%d][%s]\n",
                   error, strerror(error));
         return error;
     }
@@ -119,11 +120,13 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
                      &client_cred_len);
     if (ret != EOK) {
         ret = errno;
-        DEBUG(1, "getsock failed [%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "getsock failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
     if (client_cred_len != sizeof(struct ucred)) {
-        DEBUG(1, "getsockopt returned unexpected message size.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "getsockopt returned unexpected message size.\n");
         return ENOMSG;
     }
 
@@ -131,7 +134,7 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
     cctx->client_egid = client_cred.gid;
     cctx->client_pid = client_cred.pid;
 
-    DEBUG(9, "Client creds: euid[%d] egid[%d] pid[%d].\n",
+    DEBUG(SSSDBG_TRACE_ALL, "Client creds: euid[%d] egid[%d] pid[%d].\n",
               cctx->client_euid, cctx->client_egid, cctx->client_pid);
 #endif
 
@@ -250,7 +253,7 @@ static void client_send(struct cli_ctx *cctx)
         return;
     }
     if (ret != EOK) {
-        DEBUG(0, "Failed to send data, aborting client!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to send data, aborting client!\n");
         talloc_free(cctx);
         return;
     }
@@ -278,7 +281,8 @@ static void client_recv(struct cli_ctx *cctx)
     if (!cctx->creq) {
         cctx->creq = talloc_zero(cctx, struct cli_request);
         if (!cctx->creq) {
-            DEBUG(0, "Failed to alloc request, aborting client!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to alloc request, aborting client!\n");
             talloc_free(cctx);
             return;
         }
@@ -288,7 +292,8 @@ static void client_recv(struct cli_ctx *cctx)
         ret = sss_packet_new(cctx->creq, SSS_PACKET_MAX_RECV_SIZE,
                              0, &cctx->creq->in);
         if (ret != EOK) {
-            DEBUG(0, "Failed to alloc request, aborting client!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to alloc request, aborting client!\n");
             talloc_free(cctx);
             return;
         }
@@ -302,7 +307,8 @@ static void client_recv(struct cli_ctx *cctx)
         /* execute command */
         ret = client_cmd_execute(cctx, cctx->rctx->sss_cmds);
         if (ret != EOK) {
-            DEBUG(0, "Failed to execute request, aborting client!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to execute request, aborting client!\n");
             talloc_free(cctx);
         }
         /* past this point cctx can be freed at any time by callbacks
@@ -314,17 +320,18 @@ static void client_recv(struct cli_ctx *cctx)
         break;
 
     case EINVAL:
-        DEBUG(6, "Invalid data from client, closing connection!\n");
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Invalid data from client, closing connection!\n");
         talloc_free(cctx);
         break;
 
     case ENODATA:
-        DEBUG(5, "Client disconnected!\n");
+        DEBUG(SSSDBG_FUNC_DATA, "Client disconnected!\n");
         talloc_free(cctx);
         break;
 
     default:
-        DEBUG(6, "Failed to read request, aborting client!\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Failed to read request, aborting client!\n");
         talloc_free(cctx);
     }
 
@@ -387,14 +394,16 @@ static void accept_fd_handler(struct tevent_context *ev,
     if (accept_ctx->is_private) {
         ret = stat(rctx->priv_sock_name, &stat_buf);
         if (ret == -1) {
-            DEBUG(1, "stat on privileged pipe failed: [%d][%s].\n", errno,
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "stat on privileged pipe failed: [%d][%s].\n", errno,
                       strerror(errno));
             return;
         }
 
         if ( ! (stat_buf.st_uid == 0 && stat_buf.st_gid == 0 &&
                (stat_buf.st_mode&(S_IFSOCK|S_IRUSR|S_IWUSR)) == stat_buf.st_mode)) {
-            DEBUG(1, "privileged pipe has an illegal status.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "privileged pipe has an illegal status.\n");
     /* TODO: what is the best response to this condition? Terminate? */
             return;
         }
@@ -403,7 +412,8 @@ static void accept_fd_handler(struct tevent_context *ev,
     cctx = talloc_zero(rctx, struct cli_ctx);
     if (!cctx) {
         struct sockaddr_un addr;
-        DEBUG(0, "Out of memory trying to setup client context%s!\n",
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Out of memory trying to setup client context%s!\n",
                   accept_ctx->is_private ? " on privileged pipe": "");
         /* accept and close to signal the client we have a problem */
         memset(&addr, 0, sizeof(addr));
@@ -419,7 +429,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     len = sizeof(cctx->addr);
     cctx->cfd = accept(fd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
-        DEBUG(1, "Accept failed [%s]\n", strerror(errno));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Accept failed [%s]\n", strerror(errno));
         talloc_free(cctx);
         return;
     }
@@ -428,7 +438,7 @@ static void accept_fd_handler(struct tevent_context *ev,
 
     ret = get_client_cred(cctx);
     if (ret != EOK) {
-        DEBUG(2, "get_client_cred failed, "
+        DEBUG(SSSDBG_OP_FAILURE, "get_client_cred failed, "
                   "client cred may not be available.\n");
     }
 
@@ -543,7 +553,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
     /* Set up SBUS connection to the monitor */
     ret = dp_get_sbus_address(be_conn, &be_conn->sbus_address, domain->name);
     if (ret != EOK) {
-        DEBUG(0, "Could not locate DP address.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not locate DP address.\n");
         return ret;
     }
     ret = sbus_client_init(rctx, rctx->ev,
@@ -551,7 +561,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
                            intf, &be_conn->conn,
                            NULL, rctx);
     if (ret != EOK) {
-        DEBUG(0, "Failed to connect to monitor services.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to connect to monitor services.\n");
         return ret;
     }
 
@@ -562,7 +572,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
                             DATA_PROVIDER_VERSION,
                             cli_name);
     if (ret != EOK) {
-        DEBUG(0, "Failed to identify to the DP!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to identify to the DP!\n");
         return ret;
     }
 
@@ -641,11 +651,13 @@ static int set_unix_socket(struct resp_ctx *rctx)
         unlink(rctx->sock_name);
 
         if (bind(rctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            DEBUG(0,"Unable to bind on socket '%s'\n", rctx->sock_name);
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Unable to bind on socket '%s'\n", rctx->sock_name);
             goto failed;
         }
         if (listen(rctx->lfd, 10) != 0) {
-            DEBUG(0,"Unable to listen on socket '%s'\n", rctx->sock_name);
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Unable to listen on socket '%s'\n", rctx->sock_name);
             goto failed;
         }
 
@@ -658,7 +670,7 @@ static int set_unix_socket(struct resp_ctx *rctx)
                                    TEVENT_FD_READ, accept_fd_handler,
                                    accept_ctx);
         if (!rctx->lfde) {
-            DEBUG(0, "Failed to queue handler on pipe\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to queue handler on pipe\n");
             goto failed;
         }
     }
@@ -691,11 +703,13 @@ static int set_unix_socket(struct resp_ctx *rctx)
         unlink(rctx->priv_sock_name);
 
         if (bind(rctx->priv_lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            DEBUG(0,"Unable to bind on socket '%s'\n", rctx->priv_sock_name);
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Unable to bind on socket '%s'\n", rctx->priv_sock_name);
             goto failed;
         }
         if (listen(rctx->priv_lfd, 10) != 0) {
-            DEBUG(0,"Unable to listen on socket '%s'\n", rctx->priv_sock_name);
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Unable to listen on socket '%s'\n", rctx->priv_sock_name);
             goto failed;
         }
 
@@ -708,7 +722,8 @@ static int set_unix_socket(struct resp_ctx *rctx)
                                    TEVENT_FD_READ, accept_fd_handler,
                                    accept_ctx);
         if (!rctx->priv_lfde) {
-            DEBUG(0, "Failed to queue handler on privileged pipe\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to queue handler on privileged pipe\n");
             goto failed;
         }
     }
@@ -759,7 +774,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     rctx = talloc_zero(mem_ctx, struct resp_ctx);
     if (!rctx) {
-        DEBUG(0, "fatal error initializing resp_ctx\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing resp_ctx\n");
         return ENOMEM;
     }
     rctx->ev = ev;
@@ -805,7 +820,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = confdb_get_domains(rctx->cdb, &rctx->domains);
     if (ret != EOK) {
-        DEBUG(0, "fatal error setting up domain map\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up domain map\n");
         goto fail;
     }
 
@@ -823,7 +838,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                            svc_name, svc_version, rctx,
                            &rctx->mon_conn);
     if (ret != EOK) {
-        DEBUG(0, "fatal error setting up message bus\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up message bus\n");
         goto fail;
     }
 
@@ -843,7 +858,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
         ret = sss_dp_init(rctx, dp_intf, cli_name, dom);
         if (ret != EOK) {
-            DEBUG(0, "fatal error setting up backend connector\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "fatal error setting up backend connector\n");
             goto fail;
         }
     }
@@ -851,14 +867,14 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     ret = sysdb_init(rctx, rctx->domains, false);
     if (ret != EOK) {
         SYSDB_VERSION_ERROR_DAEMON(ret);
-        DEBUG(0, "fatal error initializing resp_ctx\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing resp_ctx\n");
         goto fail;
     }
 
     /* after all initializations we are ready to listen on our socket */
     ret = set_unix_socket(rctx);
     if (ret != EOK) {
-        DEBUG(0, "fatal error initializing socket\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing socket\n");
         goto fail;
     }
 

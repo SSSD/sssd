@@ -152,7 +152,7 @@ static void ipa_hbac_check(struct tevent_req *req)
 
     hbac_ctx = talloc_zero(be_req, struct hbac_ctx);
     if (hbac_ctx == NULL) {
-        DEBUG(1, "talloc failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -167,7 +167,7 @@ static void ipa_hbac_check(struct tevent_req *req)
     hbac_ctx->tr_ctx = ipa_access_ctx->tr_ctx;
     hbac_ctx->search_bases = ipa_access_ctx->hbac_search_bases;
     if (hbac_ctx->search_bases == NULL) {
-        DEBUG(1, "No HBAC search base found.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "No HBAC search base found.\n");
         ret = EINVAL;
         goto fail;
     }
@@ -206,7 +206,8 @@ static int hbac_retry(struct hbac_ctx *hbac_ctx)
     struct be_ctx *be_ctx = be_req_get_be_ctx(hbac_ctx->be_req);
 
     offline = be_is_offline(be_ctx);
-    DEBUG(9, "Connection status is [%s].\n", offline ? "offline" : "online");
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Connection status is [%s].\n", offline ? "offline" : "online");
 
     refresh_interval = dp_opt_get_int(hbac_ctx->ipa_options,
                                       IPA_HBAC_REFRESH);
@@ -214,7 +215,7 @@ static int hbac_retry(struct hbac_ctx *hbac_ctx)
     now = time(NULL);
     if (now < access_ctx->last_update + refresh_interval) {
         /* Simulate offline mode and just go to the cache */
-        DEBUG(6, "Performing cached HBAC evaluation\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Performing cached HBAC evaluation\n");
         offline = true;
     }
 
@@ -223,14 +224,15 @@ static int hbac_retry(struct hbac_ctx *hbac_ctx)
             hbac_ctx->sdap_op = sdap_id_op_create(hbac_ctx,
                                           hbac_ctx->sdap_ctx->conn->conn_cache);
             if (hbac_ctx->sdap_op == NULL) {
-                DEBUG(1, "sdap_id_op_create failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_create failed.\n");
                 return EIO;
             }
         }
 
         subreq = sdap_id_op_connect_send(hbac_ctx->sdap_op, hbac_ctx, &ret);
         if (!subreq) {
-            DEBUG(1, "sdap_id_op_connect_send failed: %d(%s).\n", ret, strerror(ret));
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sdap_id_op_connect_send failed: %d(%s).\n", ret, strerror(ret));
             talloc_zfree(hbac_ctx->sdap_op);
             return ret;
         }
@@ -373,7 +375,7 @@ static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
                              hbac_ctx->access_ctx->hostgroup_map,
                              hbac_ctx->access_ctx->host_search_bases);
     if (req == NULL) {
-        DEBUG(1, "Could not get host info\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not get host info\n");
         return ENOMEM;
     }
     tevent_req_set_callback(req, hbac_get_service_info_step, hbac_ctx);
@@ -404,7 +406,7 @@ static void hbac_get_service_info_step(struct tevent_req *req)
                                      hbac_ctx->sdap_ctx->opts,
                                     hbac_ctx->search_bases);
     if (req == NULL) {
-        DEBUG(1,"Could not get service info\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,"Could not get service info\n");
         goto fail;
     }
     tevent_req_set_callback(req, hbac_get_rule_info_step, hbac_ctx);
@@ -438,7 +440,8 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
     hbac_ctx->ipa_host = NULL;
     ipa_hostname = dp_opt_get_cstring(hbac_ctx->ipa_options, IPA_HOSTNAME);
     if (ipa_hostname == NULL) {
-        DEBUG(1, "Missing ipa_hostname, this should never happen.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Missing ipa_hostname, this should never happen.\n");
         goto fail;
     }
 
@@ -447,7 +450,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
                                      SYSDB_FQDN,
                                      &hostname);
         if (ret != EOK) {
-            DEBUG(1, "Could not locate IPA host\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not locate IPA host\n");
             goto fail;
         }
 
@@ -457,7 +460,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
         }
     }
     if (hbac_ctx->ipa_host == NULL) {
-        DEBUG(1, "Could not locate IPA host\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not locate IPA host\n");
         goto fail;
     }
 
@@ -471,7 +474,7 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
                                   hbac_ctx->search_bases,
                                   hbac_ctx->ipa_host);
     if (req == NULL) {
-        DEBUG(1, "Could not get rules\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not get rules\n");
         goto fail;
     }
 
@@ -523,7 +526,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
         ret = sysdb_delete_recursive(domain->sysdb, base_dn, true);
         talloc_free(tmp_ctx);
         if (ret != EOK) {
-            DEBUG(1, "sysdb_delete_recursive failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_delete_recursive failed.\n");
             ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
             return;
         }
@@ -539,7 +542,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
 
     ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
-        DEBUG(0, "Could not start transaction\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not start transaction\n");
         goto fail;
     }
     in_transaction = true;
@@ -552,7 +555,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
                               hbac_ctx->hostgroup_count,
                               hbac_ctx->hostgroups);
     if (ret != EOK) {
-        DEBUG(1, "Error saving hosts: [%d][%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error saving hosts: [%d][%s]\n",
                   ret, strerror(ret));
         goto fail;
     }
@@ -565,7 +568,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
                               hbac_ctx->servicegroup_count,
                               hbac_ctx->servicegroups);
     if (ret != EOK) {
-        DEBUG(1, "Error saving services:  [%d][%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error saving services:  [%d][%s]\n",
                   ret, strerror(ret));
         goto fail;
     }
@@ -576,7 +579,7 @@ static void hbac_sysdb_save(struct tevent_req *req)
                               hbac_ctx->rules,
                               NULL, NULL, 0, NULL);
     if (ret != EOK) {
-        DEBUG(1, "Error saving rules:  [%d][%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error saving rules:  [%d][%s]\n",
                   ret, strerror(ret));
         goto fail;
     }
@@ -606,7 +609,7 @@ fail:
     if (in_transaction) {
         ret = sysdb_transaction_cancel(domain->sysdb);
         if (ret != EOK) {
-            DEBUG(0, "Could not cancel transaction\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Could not cancel transaction\n");
         }
     }
     ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
@@ -625,43 +628,44 @@ void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
     ret = hbac_get_cached_rules(hbac_ctx, be_ctx->domain,
                                 &hbac_ctx->rule_count, &hbac_ctx->rules);
     if (ret != EOK) {
-        DEBUG(1, "Could not retrieve rules from the cache\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not retrieve rules from the cache\n");
         ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
     }
 
     ret = hbac_ctx_to_rules(hbac_ctx, hbac_ctx,
                             &hbac_rules, &eval_req);
     if (ret == EPERM) {
-        DEBUG(1, "DENY rules detected. Denying access to all users\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "DENY rules detected. Denying access to all users\n");
         ipa_access_reply(hbac_ctx, PAM_PERM_DENIED);
         return;
     } else if (ret != EOK) {
-        DEBUG(1, "Could not construct HBAC rules\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not construct HBAC rules\n");
         ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
         return;
     }
 
     result = hbac_evaluate(hbac_rules, eval_req, &info);
     if (result == HBAC_EVAL_ALLOW) {
-        DEBUG(3, "Access granted by HBAC rule [%s]\n",
+        DEBUG(SSSDBG_MINOR_FAILURE, "Access granted by HBAC rule [%s]\n",
                   info->rule_name);
         hbac_free_info(info);
         ipa_access_reply(hbac_ctx, PAM_SUCCESS);
         return;
     } else if (result == HBAC_EVAL_ERROR) {
-        DEBUG(1, "Error [%s] occurred in rule [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error [%s] occurred in rule [%s]\n",
                   hbac_error_string(info->code),
                   info->rule_name);
         hbac_free_info(info);
         ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
         return;
     } else if (result == HBAC_EVAL_OOM) {
-        DEBUG(1, "Insufficient memory\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Insufficient memory\n");
         ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
         return;
     }
 
-    DEBUG(3, "Access denied by HBAC rules\n");
+    DEBUG(SSSDBG_MINOR_FAILURE, "Access denied by HBAC rules\n");
     hbac_free_info(info);
     ipa_access_reply(hbac_ctx, PAM_PERM_DENIED);
 }
@@ -707,7 +711,7 @@ errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
                               HBAC_RULES_SUBDIR, attrs,
                               &rule_count, &msgs);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(1, "Error looking up HBAC rules");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up HBAC rules");
         goto done;
     } if (ret == ENOENT) {
        rule_count = 0;
@@ -715,7 +719,8 @@ errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_msg2attrs(tmp_ctx, rule_count, msgs, &rules);
     if (ret != EOK) {
-        DEBUG(1, "Could not convert ldb message to sysdb_attrs\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not convert ldb message to sysdb_attrs\n");
         goto done;
     }
 

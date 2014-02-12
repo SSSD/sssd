@@ -155,7 +155,8 @@ static bool has_wireless_extension(const char *ifname)
     s = socket(PF_INET, SOCK_DGRAM, 0);
     if (s == -1) {
         ret = errno;
-        DEBUG(2, "Could not open socket: [%d] %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not open socket: [%d] %s\n", ret, strerror(ret));
         return false;
     }
 
@@ -320,7 +321,7 @@ static bool nlw_accept_message(struct nlw_handle *nlp,
     uint32_t local_port;
 
     if (snl == NULL) {
-        DEBUG(3, "Malformed message, skipping\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "Malformed message, skipping\n");
         return false;
     }
 
@@ -338,7 +339,7 @@ static bool nlw_accept_message(struct nlw_handle *nlp,
     }
 
     if (accept_msg == false) {
-        DEBUG(9, "ignoring netlink message from PID %d",
+        DEBUG(SSSDBG_TRACE_ALL, "ignoring netlink message from PID %d",
                   hdr->nlmsg_pid);
     }
 
@@ -394,13 +395,13 @@ static bool nlw_is_link_object(struct nl_object *obj)
 
     filter = rtnl_link_alloc();
     if (!filter) {
-        DEBUG(0, "Allocation error!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Allocation error!\n");
         is_link_object = false;
     }
 
     /* Ensure it's a link object */
     if (!nl_object_match_filter(obj, OBJ_CAST(filter))) {
-        DEBUG(2, "Not a link object\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Not a link object\n");
         is_link_object = false;
     }
 
@@ -438,7 +439,8 @@ static int nlw_group_subscribe(struct nlw_handle *nlp, int group)
                       &group, sizeof(group));
      if (ret < 0) {
          ret = errno;
-         DEBUG(1, "setsockopt failed (%d): %s\n", ret, strerror(ret));
+         DEBUG(SSSDBG_CRIT_FAILURE,
+               "setsockopt failed (%d): %s\n", ret, strerror(ret));
          return ret;
      }
 #endif
@@ -548,7 +550,7 @@ static int nlw_set_callbacks(struct nlw_handle *nlp, void *data)
     ret = nl_cb_set(cb, NL_CB_MSG_IN, NL_CB_CUSTOM, event_msg_recv, data);
 #endif
     if (ret != 0) {
-        DEBUG(1, "Unable to set validation callback\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set validation callback\n");
         return ret;
     }
 
@@ -559,7 +561,7 @@ static int nlw_set_callbacks(struct nlw_handle *nlp, void *data)
     ret = nl_cb_set(cb, NL_CB_VALID, NL_CB_CUSTOM, event_msg_ready, data);
 #endif
     if (ret != 0) {
-        DEBUG(1, "Unable to set receive callback\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set receive callback\n");
         return ret;
     }
 
@@ -715,13 +717,14 @@ static void netlink_fd_handler(struct tevent_context *ev, struct tevent_fd *fde,
     int ret;
 
     if (!nlctx || !nlctx->nlp) {
-        DEBUG(1, "Invalid netlink handle, this is most likely a bug!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid netlink handle, this is most likely a bug!\n");
         return;
     }
 
     ret = nl_recvmsgs_default(nlctx->nlp);
     if (ret != EOK) {
-        DEBUG(1, "Error while reading from netlink fd\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error while reading from netlink fd\n");
         return;
     }
 }
@@ -760,7 +763,7 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     /* Register our custom message validation filter */
     ret = nlw_set_callbacks(nlctx->nlp, nlctx);
     if (ret != 0) {
-        DEBUG(1, "Unable to set callbacks\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set callbacks\n");
         ret = EIO;
         goto fail;
     }
@@ -785,7 +788,7 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     /* Subscribe to the LINK group for internal carrier signals */
     ret = nlw_groups_subscribe(nlctx->nlp, groups);
     if (ret != 0) {
-        DEBUG(1, "Unable to subscribe to netlink monitor\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to subscribe to netlink monitor\n");
         ret = EIO;
         goto fail;
     }
@@ -799,14 +802,15 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     ret = fcntl(nlfd, F_SETFL, flags | O_NONBLOCK);
     if (ret < 0) {
         ret = errno;
-        DEBUG(1, "Cannot set the netlink fd to nonblocking\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot set the netlink fd to nonblocking\n");
         goto fail;
     }
 
     nlctx->tefd = tevent_add_fd(ev, nlctx, nlfd, TEVENT_FD_READ,
                                 netlink_fd_handler, nlctx);
     if (nlctx->tefd == NULL) {
-        DEBUG(1, "tevent_add_fd() failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd() failed\n");
         ret = EIO;
         goto fail;
     }

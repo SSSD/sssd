@@ -390,7 +390,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_getpwnam(tmp_ctx, domain, name, &res);
     if (ret != EOK) {
-        DEBUG(1, "sysdb_getpwnam failed: [%d][%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_getpwnam failed: [%d][%s]\n",
                   ret, strerror(ret));
         goto done;
     }
@@ -403,7 +403,8 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
 
     } else if (res->count != 1) {
         ret = EIO;
-        DEBUG(1, "sysdb_getpwnam returned count: [%d]\n", res->count);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb_getpwnam returned count: [%d]\n", res->count);
         goto done;
     }
 
@@ -909,7 +910,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
     } else if (mtype == SYSDB_MEMBER_GROUP) {
         dn = sysdb_group_strdn(tmp_ctx, dom->name, name);
     } else {
-        DEBUG(1, "Unknown member type\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown member type\n");
         ret = EINVAL;
         goto done;
     }
@@ -939,7 +940,8 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    DEBUG(8, "searching sysdb with filter [%s]\n", member_filter);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "searching sysdb with filter [%s]\n", member_filter);
 
     ret = sysdb_search_entry(tmp_ctx, dom->sysdb, basedn,
                              LDB_SCOPE_SUBTREE, member_filter, group_attrs,
@@ -947,7 +949,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
     if (ret == ENOENT) {
         direct_sysdb_count = 0;
     } else if (ret != EOK) {
-        DEBUG(2, "sysdb_search_entry failed: [%d]: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed: [%d]: %s\n",
                   ret, strerror(ret));
         goto done;
     }
@@ -971,7 +973,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
 
         direct_parents[pi] = talloc_strdup(direct_parents, tmp_str);
         if (!direct_parents[pi]) {
-            DEBUG(1, "A group with no name?\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "A group with no name?\n");
             ret = EIO;
             goto done;
         }

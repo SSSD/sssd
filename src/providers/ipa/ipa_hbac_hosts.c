@@ -63,7 +63,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* First check for host category */
     ret = hbac_get_category(rule_attrs, category_attr, &new_hosts->category);
     if (ret != EOK) {
-        DEBUG(1, "Could not identify host categories\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not identify host categories\n");
         goto done;
     }
     if (new_hosts->category & HBAC_CATEGORY_ALL) {
@@ -75,12 +75,13 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the list of DNs from the member_attr */
     ret = sysdb_attrs_get_el(rule_attrs, member_attr, &el);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(1, "sysdb_attrs_get_el failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_attrs_get_el failed.\n");
         goto done;
     }
     if (ret == ENOENT || el->num_values == 0) {
         el->num_values = 0;
-        DEBUG(4, "No host specified, rule will never apply.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "No host specified, rule will never apply.\n");
     }
 
     /* Assume maximum size; We'll trim it later */
@@ -124,7 +125,8 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
         if (ret == EOK) {
             if (count > 1) {
-                DEBUG(1, "Original DN matched multiple hosts. Skipping \n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Original DN matched multiple hosts. Skipping \n");
                 talloc_zfree(member_dn);
                 continue;
             }
@@ -134,7 +136,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
                                                SYSDB_FQDN,
                                                NULL);
             if (name == NULL) {
-                DEBUG(1, "FQDN is missing!\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "FQDN is missing!\n");
                 ret = EFAULT;
                 goto done;
             }
@@ -145,7 +147,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 ret = ENOMEM;
                 goto done;
             }
-            DEBUG(8, "Added host [%s] to rule [%s]\n",
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Added host [%s] to rule [%s]\n",
                       name, rule_name);
             num_hosts++;
         } else { /* ret == ENOENT */
@@ -160,7 +162,8 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
             if (ret == EOK) {
                 if (count > 1) {
-                    DEBUG(1, "Original DN matched multiple hostgroups. "
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Original DN matched multiple hostgroups. "
                               "Skipping\n");
                     talloc_zfree(member_dn);
                     continue;
@@ -169,7 +172,7 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 /* Original DN matched a single group. Get the groupname */
                 name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
                 if (name == NULL) {
-                    DEBUG(1, "Hostgroup name is missing!\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Hostgroup name is missing!\n");
                     ret = EFAULT;
                     goto done;
                 }
@@ -181,7 +184,8 @@ static errno_t hbac_host_attrs_to_rule(TALLOC_CTX *mem_ctx,
                     goto done;
                 }
 
-                DEBUG(8, "Added hostgroup [%s] to rule [%s]\n",
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "Added hostgroup [%s] to rule [%s]\n",
                           name, rule_name);
                 num_hostgroups++;
             } else { /* ret == ENOENT */
@@ -229,7 +233,8 @@ hbac_thost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                          struct sysdb_attrs *rule_attrs,
                          struct hbac_rule_element **thosts)
 {
-    DEBUG(7, "Processing target hosts for rule [%s]\n", rule_name);
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Processing target hosts for rule [%s]\n", rule_name);
 
     return hbac_host_attrs_to_rule(mem_ctx, domain,
                                    rule_name, rule_attrs,
@@ -311,7 +316,8 @@ hbac_shost_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 ret = ENOMEM;
                 goto done;
             }
-            DEBUG(8, "Added external source host [%s] to rule [%s]\n",
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Added external source host [%s] to rule [%s]\n",
                       shosts->names[idx], rule_name);
         }
         shosts->names[idx] = NULL;

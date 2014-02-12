@@ -142,18 +142,19 @@ void handle_requests_after_reconnect(struct resp_ctx *rctx)
     struct sss_dp_req *sdp_req;
 
     if (!rctx->dp_request_table) {
-        DEBUG(7, "No requests to handle after reconnect\n");
+        DEBUG(SSSDBG_TRACE_LIBS, "No requests to handle after reconnect\n");
         return;
     }
 
     ret = hash_values(rctx->dp_request_table, &count, &values);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, "hash_values failed, "
+        DEBUG(SSSDBG_CRIT_FAILURE, "hash_values failed, "
                   "not all request might be handled after reconnect.\n");
         return;
     }
 
-    DEBUG(7, "Will handle %lu requests after reconnect\n", count);
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Will handle %lu requests after reconnect\n", count);
     for (i=0; i<count; i++) {
         sdp_req = talloc_get_type(values[i].ptr, struct sss_dp_req);
         talloc_free(sdp_req);
@@ -197,7 +198,7 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
                                     DBUS_TYPE_STRING, err_msg,
                                     DBUS_TYPE_INVALID);
         if (!ret) {
-            DEBUG(1,"Failed to parse message\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,"Failed to parse message\n");
             /* FIXME: Destroy this connection ? */
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             err = EIO;
@@ -216,7 +217,7 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
             err = ETIME;
             goto done;
         }
-        DEBUG(0,"The Data Provider returned an error [%s]\n",
+        DEBUG(SSSDBG_FATAL_FAILURE,"The Data Provider returned an error [%s]\n",
                  dbus_message_get_error_name(reply));
         /* Falling through to default intentionally*/
     default:

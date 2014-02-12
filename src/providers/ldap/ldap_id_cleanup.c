@@ -189,7 +189,7 @@ static int cleanup_users(struct sdap_options *opts,
     }
 
     account_cache_expiration = dp_opt_get_int(opts->basic, SDAP_ACCOUNT_CACHE_EXPIRATION);
-    DEBUG(9, "Cache expiration is set to %d days\n",
+    DEBUG(SSSDBG_TRACE_ALL, "Cache expiration is set to %d days\n",
               account_cache_expiration);
 
     if (account_cache_expiration > 0) {
@@ -210,7 +210,7 @@ static int cleanup_users(struct sdap_options *opts,
                                     SYSDB_LAST_LOGIN);
     }
     if (!subfilter) {
-        DEBUG(2, "Failed to build filter\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto done;
     }
@@ -241,7 +241,7 @@ static int cleanup_users(struct sdap_options *opts,
     for (i = 0; i < count; i++) {
         name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
         if (!name) {
-            DEBUG(2, "Entry %s has no Name Attribute ?!?\n",
+            DEBUG(SSSDBG_OP_FAILURE, "Entry %s has no Name Attribute ?!?\n",
                        ldb_dn_get_linearized(msgs[i]->dn));
             ret = EFAULT;
             goto done;
@@ -251,7 +251,8 @@ static int cleanup_users(struct sdap_options *opts,
             ret = cleanup_users_logged_in(uid_table, msgs[i]);
             if (ret == EOK) {
                 /* If the user is logged in, proceed to the next one */
-                DEBUG(5, "User %s is still logged in or a dummy entry, "
+                DEBUG(SSSDBG_FUNC_DATA,
+                      "User %s is still logged in or a dummy entry, "
                           "keeping data\n", name);
                 continue;
             } else if (ret != ENOENT) {
@@ -260,7 +261,7 @@ static int cleanup_users(struct sdap_options *opts,
         }
 
         /* If not logged in or cannot check the table, delete him */
-        DEBUG(9, "About to delete user %s\n", name);
+        DEBUG(SSSDBG_TRACE_ALL, "About to delete user %s\n", name);
         ret = sysdb_delete_user(dom, name, 0);
         if (ret) {
             goto done;
@@ -331,7 +332,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
                                 SYSDB_CACHE_EXPIRE,
                                 SYSDB_CACHE_EXPIRE, (long)now);
     if (!subfilter) {
-        DEBUG(2, "Failed to build filter\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto done;
     }
@@ -373,7 +374,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             subfilter = talloc_asprintf(tmpctx, "(%s=%s)", SYSDB_MEMBEROF, dn);
         }
         if (!subfilter) {
-            DEBUG(2, "Failed to build filter\n");
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
             ret = ENOMEM;
             goto done;
         }
@@ -393,16 +394,16 @@ static int cleanup_groups(TALLOC_CTX *memctx,
 
             name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
             if (!name) {
-                DEBUG(2, "Entry %s has no Name Attribute ?!?\n",
+                DEBUG(SSSDBG_OP_FAILURE, "Entry %s has no Name Attribute ?!?\n",
                           ldb_dn_get_linearized(msgs[i]->dn));
                 ret = EFAULT;
                 goto done;
             }
 
-            DEBUG(8, "About to delete group %s\n", name);
+            DEBUG(SSSDBG_TRACE_INTERNAL, "About to delete group %s\n", name);
             ret = sysdb_delete_group(domain, name, 0);
             if (ret) {
-                DEBUG(2, "Group delete returned %d (%s)\n",
+                DEBUG(SSSDBG_OP_FAILURE, "Group delete returned %d (%s)\n",
                           ret, strerror(ret));
                 goto done;
             }

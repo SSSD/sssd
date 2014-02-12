@@ -75,7 +75,8 @@ errno_t check_order_list_for_duplicates(char **list,
                 cmp = strcasecmp(list[c], list[d]);
             }
             if (cmp == 0) {
-                DEBUG(1, "Duplicate string [%s] found.\n", list[c]);
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Duplicate string [%s] found.\n", list[c]);
                 return EINVAL;
             }
         }
@@ -100,7 +101,8 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     /* If we're already set up, just return that */
     if(bectx->bet_info[BET_ID].mod_name &&
        strcmp("ldap", bectx->bet_info[BET_ID].mod_name) == 0) {
-        DEBUG(8, "Re-using sdap_id_ctx for this provider\n");
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Re-using sdap_id_ctx for this provider\n");
         *ops = bectx->bet_info[BET_ID].bet_ops;
         *pvt_data = bectx->bet_info[BET_ID].pvt_bet_data;
         return EOK;
@@ -142,7 +144,8 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
                                    ctx->be, ctx->conn->service,
                                    &ctx->krb5_service);
             if (ret !=  EOK) {
-                DEBUG(1, "sdap_gssapi_init failed [%d][%s].\n",
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sdap_gssapi_init failed [%d][%s].\n",
                             ret, strerror(ret));
                 goto done;
             }
@@ -151,7 +154,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
 
     ret = setup_tls_config(ctx->opts->basic);
     if (ret != EOK) {
-        DEBUG(1, "setup_tls_config failed [%d][%s].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "setup_tls_config failed [%d][%s].\n",
                   ret, strerror(ret));
         goto done;
     }
@@ -167,7 +170,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
 
     ret = sdap_setup_child();
     if (ret != EOK) {
-        DEBUG(1, "setup_child failed [%d][%s].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "setup_child failed [%d][%s].\n",
                   ret, strerror(ret));
         goto done;
     }
@@ -243,7 +246,7 @@ int sssm_ldap_chpass_init(struct be_ctx *bectx,
 
     ret = sssm_ldap_auth_init(bectx, ops, &data);
     if (ret != EOK) {
-        DEBUG(1, "sssm_ldap_auth_init failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ldap_auth_init failed.\n");
         goto done;
     }
 
@@ -252,21 +255,24 @@ int sssm_ldap_chpass_init(struct be_ctx *bectx,
     dns_service_name = dp_opt_get_string(ctx->opts->basic,
                                          SDAP_CHPASS_DNS_SERVICE_NAME);
     if (dns_service_name) {
-        DEBUG(7, "Service name for chpass discovery set to %s\n",
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Service name for chpass discovery set to %s\n",
                   dns_service_name);
     }
 
     urls = dp_opt_get_string(ctx->opts->basic, SDAP_CHPASS_URI);
     backup_urls = dp_opt_get_string(ctx->opts->basic, SDAP_CHPASS_BACKUP_URI);
     if (!urls && !backup_urls && !dns_service_name) {
-        DEBUG(9, "ldap_chpass_uri and ldap_chpass_dns_service_name not set, "
+        DEBUG(SSSDBG_TRACE_ALL,
+              "ldap_chpass_uri and ldap_chpass_dns_service_name not set, "
                   "using ldap_uri.\n");
         ctx->chpass_service = NULL;
     } else {
         ret = sdap_service_init(ctx, ctx->be, "LDAP_CHPASS", dns_service_name,
                                 urls, backup_urls, &ctx->chpass_service);
         if (ret != EOK) {
-            DEBUG(1, "Failed to initialize failover service!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to initialize failover service!\n");
             goto done;
         }
     }
@@ -304,27 +310,28 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
 
     ret = sssm_ldap_id_init(bectx, ops, (void **)&access_ctx->id_ctx);
     if (ret != EOK) {
-        DEBUG(1, "sssm_ldap_id_init failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ldap_id_init failed.\n");
         goto done;
     }
 
     order = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
                                SDAP_ACCESS_ORDER);
     if (order == NULL) {
-        DEBUG(1, "ldap_access_order not given, using 'filter'.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "ldap_access_order not given, using 'filter'.\n");
         order = "filter";
     }
 
     ret = split_on_separator(access_ctx, order, ',', true, true,
                              &order_list, &order_list_len);
     if (ret != EOK) {
-        DEBUG(1, "split_on_separator failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "split_on_separator failed.\n");
         goto done;
     }
 
     ret = check_order_list_for_duplicates(order_list, false);
     if (ret != EOK) {
-        DEBUG(1, "check_order_list_for_duplicates failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "check_order_list_for_duplicates failed.\n");
         goto done;
     }
 
@@ -346,7 +353,8 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
                 /* It's okay if this is NULL. In that case we will simply act
                  * like the 'deny' provider.
                  */
-                DEBUG(0, "Warning: LDAP access rule 'filter' is set, "
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "Warning: LDAP access rule 'filter' is set, "
                           "but no ldap_access_filter configured. "
                           "All domain users will be denied access.\n");
             } else {
@@ -363,7 +371,8 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
             dummy = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
                                        SDAP_ACCOUNT_EXPIRE_POLICY);
             if (dummy == NULL) {
-                DEBUG(0, "Warning: LDAP access rule 'expire' is set, "
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "Warning: LDAP access rule 'expire' is set, "
                           "but no ldap_account_expire_policy configured. "
                           "All domain users will be denied access.\n");
             } else {
@@ -373,7 +382,8 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_RHDS) != 0 &&
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_IPA) != 0 &&
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_389DS) != 0) {
-                    DEBUG(1, "Unsupported LDAP account expire policy [%s].\n",
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Unsupported LDAP account expire policy [%s].\n",
                               dummy);
                     ret = EINVAL;
                     goto done;
@@ -384,14 +394,15 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
         } else if (strcasecmp(order_list[c], LDAP_ACCESS_HOST_NAME) == 0) {
             access_ctx->access_rule[c] = LDAP_ACCESS_HOST;
         } else {
-            DEBUG(1, "Unexpected access rule name [%s].\n", order_list[c]);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unexpected access rule name [%s].\n", order_list[c]);
             ret = EINVAL;
             goto done;
         }
     }
     access_ctx->access_rule[c] = LDAP_ACCESS_EMPTY;
     if (c == 0) {
-        DEBUG(0, "Warning: access_provider=ldap set, "
+        DEBUG(SSSDBG_FATAL_FAILURE, "Warning: access_provider=ldap set, "
                   "but ldap_access_order is empty. "
                   "All domain users will be denied access.\n");
     }

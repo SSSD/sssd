@@ -273,11 +273,12 @@ static void test_ip_addr(struct tevent_req *req)
                                             &status, NULL, &rhostent);
     talloc_zfree(req);
     if (recv_status != EOK) {
-        DEBUG(2, "resolv_gethostbyname_recv failed: %d\n", recv_status);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "resolv_gethostbyname_recv failed: %d\n", recv_status);
         test_ctx->error = recv_status;
         return;
     }
-    DEBUG(7, "resolv_gethostbyname_recv status: %d\n", status);
+    DEBUG(SSSDBG_TRACE_LIBS, "resolv_gethostbyname_recv status: %d\n", status);
 
     test_ctx->error = ENOENT;
     for (i = 0; rhostent->addr_list[i]; i++) {
@@ -310,7 +311,7 @@ START_TEST(test_resolv_ip_addr)
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_ONLY,
                                     default_host_dbs);
-    DEBUG(7, "Sent resolv_gethostbyname\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
     if (req == NULL) {
         ret = ENOMEM;
     }
@@ -342,11 +343,12 @@ static void test_localhost(struct tevent_req *req)
                                             &status, NULL, &rhostent);
     talloc_zfree(req);
     if (recv_status != EOK) {
-        DEBUG(2, "resolv_gethostbyname_recv failed: %d\n", recv_status);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "resolv_gethostbyname_recv failed: %d\n", recv_status);
         test_ctx->error = recv_status;
         return;
     }
-    DEBUG(7, "resolv_gethostbyname_recv status: %d\n", status);
+    DEBUG(SSSDBG_TRACE_LIBS, "resolv_gethostbyname_recv status: %d\n", status);
 
     test_ctx->error = ENOENT;
     for (i = 0; rhostent->addr_list[i]; i++) {
@@ -379,7 +381,7 @@ START_TEST(test_resolv_localhost)
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
-    DEBUG(7, "Sent resolv_gethostbyname\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
     if (req == NULL) {
         ret = ENOMEM;
     }
@@ -410,12 +412,14 @@ static void test_negative(struct tevent_req *req)
                                              &status, NULL, &hostent);
      talloc_zfree(req);
      if (recv_status == EOK) {
-         DEBUG(7, "resolv_gethostbyname_recv succeeded in a negative test\n");
+         DEBUG(SSSDBG_TRACE_LIBS,
+               "resolv_gethostbyname_recv succeeded in a negative test\n");
          return;
      }
 
      test_ctx->error = status;
-     DEBUG(2, "resolv_gethostbyname_recv status: %d: %s\n", status, resolv_strerror(status));
+     DEBUG(SSSDBG_OP_FAILURE,
+           "resolv_gethostbyname_recv status: %d: %s\n", status, resolv_strerror(status));
 }
 
 START_TEST(test_resolv_negative)
@@ -435,7 +439,7 @@ START_TEST(test_resolv_negative)
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
-    DEBUG(7, "Sent resolv_gethostbyname\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
     if (req == NULL) {
         ret = ENOMEM;
     }
@@ -482,7 +486,7 @@ static void test_internet(struct tevent_req *req)
                 inet_ntop(rhostent->family,
                           rhostent->addr_list[i]->ipaddr,
                           addr_buf, sizeof(addr_buf));
-                DEBUG(2, "Found address %s with TTL %d\n",
+                DEBUG(SSSDBG_OP_FAILURE, "Found address %s with TTL %d\n",
                           addr_buf, rhostent->addr_list[i]->ttl);
             }
         }
@@ -492,7 +496,7 @@ static void test_internet(struct tevent_req *req)
                                          &txt_replies);
         test_ctx->error = (txt_replies == NULL) ? ENOENT : EOK;
         for (txtptr = txt_replies; txtptr != NULL; txtptr = txtptr->next) {
-            DEBUG(2, "TXT Record: %s\n", txtptr->txt);
+            DEBUG(SSSDBG_OP_FAILURE, "TXT Record: %s\n", txtptr->txt);
         }
         break;
     case TESTING_SRV:
@@ -500,7 +504,8 @@ static void test_internet(struct tevent_req *req)
                                          &srv_replies);
         test_ctx->error = (srv_replies == NULL) ? ENOENT : EOK;
         for (srvptr = srv_replies; srvptr != NULL; srvptr = srvptr->next) {
-            DEBUG(2, "SRV Record: %d %d %d %s\n", srvptr->weight,
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "SRV Record: %d %d %d %s\n", srvptr->weight,
                       srvptr->priority, srvptr->port,
                       srvptr->host);
         }
@@ -511,7 +516,7 @@ static void test_internet(struct tevent_req *req)
     }
     talloc_zfree(req);
     fail_if(recv_status != EOK, "The recv function failed: %d", recv_status);
-    DEBUG(7, "recv status: %d\n", status);
+    DEBUG(SSSDBG_TRACE_LIBS, "recv status: %d\n", status);
 
     if (rhostent != NULL) {
         talloc_free(rhostent);
@@ -541,7 +546,7 @@ START_TEST(test_resolv_internet)
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
-    DEBUG(7, "Sent resolv_gethostbyname\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
     if (req == NULL) {
         ret = ENOMEM;
     }
@@ -612,7 +617,7 @@ static void resolv_free_context(struct tevent_context *ev,
                                 struct timeval t, void *ptr)
 {
     struct resolv_ctx *rctx = talloc_get_type(ptr, struct resolv_ctx);
-    DEBUG(7, "freeing the context\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "freeing the context\n");
 
     talloc_free(rctx);
 }
@@ -622,7 +627,7 @@ static void resolv_free_done(struct tevent_context *ev,
                              struct timeval t, void *ptr)
 {
     struct resolv_test_ctx *tctx = talloc_get_type(ptr, struct resolv_test_ctx);
-    DEBUG(7, "marking test as done\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "marking test as done\n");
 
     tctx->error = EOK;
     tctx->done = true;
@@ -646,7 +651,7 @@ START_TEST(test_resolv_free_context)
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
-    DEBUG(7, "Sent resolv_gethostbyname\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
     if (req == NULL) {
         fail("Error calling resolv_gethostbyname_send");
         goto done;
@@ -683,7 +688,7 @@ static void resolv_free_req(struct tevent_context *ev,
                             struct timeval t, void *ptr)
 {
     struct tevent_req *req = talloc_get_type(ptr, struct tevent_req);
-    DEBUG(7, "freeing the request\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "freeing the request\n");
 
     talloc_free(req);
 }
@@ -794,7 +799,7 @@ START_TEST(test_resolv_free_req)
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
-    DEBUG(7, "Sent resolv_gethostbyname\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
     if (req == NULL) {
         fail("Error calling resolv_gethostbyname_send");
         goto done;
@@ -871,7 +876,7 @@ START_TEST(test_resolv_timeout)
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
                                     test_ctx->resolv, hostname, IPV4_FIRST,
                                     default_host_dbs);
-    DEBUG(7, "Sent resolv_gethostbyname\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Sent resolv_gethostbyname\n");
     if (req == NULL) {
         ret = ENOMEM;
     }

@@ -95,13 +95,13 @@ struct setent_step_ctx {
 };
 
 #define NSS_CMD_FATAL_ERROR(cctx) do { \
-    DEBUG(1,"Fatal error, killing connection!\n"); \
+    DEBUG(SSSDBG_CRIT_FAILURE,"Fatal error, killing connection!\n"); \
     talloc_free(cctx); \
     return; \
 } while(0)
 
 #define NSS_CMD_FATAL_ERROR_CODE(cctx, ret) do { \
-    DEBUG(1,"Fatal error, killing connection!\n"); \
+    DEBUG(SSSDBG_CRIT_FAILURE,"Fatal error, killing connection!\n"); \
     talloc_free(cctx); \
     return ret; \
 } while(0)

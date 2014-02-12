@@ -54,7 +54,7 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct krb5_access_state);
     if (req == NULL) {
-        DEBUG(1, "tevent_req_create failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
 
@@ -66,19 +66,19 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
 
     ret = krb5_setup(state, pd, krb5_ctx, &state->kr);
     if (ret != EOK) {
-        DEBUG(1, "krb5_setup failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_setup failed.\n");
         goto done;
     }
 
     if (pd->cmd != SSS_PAM_ACCT_MGMT) {
-        DEBUG(1, "Unexpected pam task.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected pam task.\n");
         ret = EINVAL;
         goto done;
     }
 
     attrs = talloc_array(state, const char *, 5);
     if (attrs == NULL) {
-        DEBUG(1, "talloc_array failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -92,13 +92,15 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
     ret = sysdb_get_user_attr(state, be_ctx->domain, state->pd->user, attrs,
                               &res);
     if (ret) {
-        DEBUG(5, "sysdb search for upn of user [%s] failed.\n", pd->user);
+        DEBUG(SSSDBG_FUNC_DATA,
+              "sysdb search for upn of user [%s] failed.\n", pd->user);
         goto done;
     }
 
     switch (res->count) {
     case 0:
-        DEBUG(5, "No attributes for user [%s] found.\n", pd->user);
+        DEBUG(SSSDBG_FUNC_DATA,
+              "No attributes for user [%s] found.\n", pd->user);
         ret = ENOENT;
         goto done;
         break;
@@ -114,7 +116,8 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
         state->kr->uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM,
                                                      0);
         if (state->kr->uid == 0) {
-            DEBUG(4, "UID for user [%s] not known.\n", pd->user);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "UID for user [%s] not known.\n", pd->user);
             ret = ENOENT;
             goto done;
         }
@@ -122,14 +125,16 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
         state->kr->gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM,
                                                      0);
         if (state->kr->gid == 0) {
-            DEBUG(4, "GID for user [%s] not known.\n", pd->user);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "GID for user [%s] not known.\n", pd->user);
             ret = ENOENT;
             goto done;
         }
 
         break;
     default:
-        DEBUG(1, "User search for [%s] returned > 1 results!\n", pd->user);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "User search for [%s] returned > 1 results!\n", pd->user);
         ret = EINVAL;
         goto done;
         break;
@@ -137,7 +142,7 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
 
     subreq = handle_child_send(state, state->ev, state->kr);
     if (subreq == NULL) {
-        DEBUG(1, "handle_child_send failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "handle_child_send failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -168,12 +173,13 @@ static void krb5_access_done(struct tevent_req *subreq)
     ret = handle_child_recv(subreq, state, &buf, &len);
     talloc_free(subreq);
     if (ret != EOK) {
-        DEBUG(1, "child failed [%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "child failed [%d][%s].\n", ret, strerror(ret));
         goto fail;
     }
 
     if ((size_t) len != sizeof(int32_t)) {
-        DEBUG(1, "message has the wrong size.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "message has the wrong size.\n");
         ret = EINVAL;
         goto fail;
     }

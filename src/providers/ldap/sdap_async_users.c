@@ -273,7 +273,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
     /* check that the uid is valid for this domain */
     if (OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
-            DEBUG(2, "User [%s] filtered out! (uid out of range)\n",
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "User [%s] filtered out! (uid out of range)\n",
                       user_name);
         ret = EINVAL;
         goto done;
@@ -533,9 +534,9 @@ int sdap_save_users(TALLOC_CTX *memctx,
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
         if (ret) {
-            DEBUG(2, "Failed to store user %d. Ignoring.\n", i);
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to store user %d. Ignoring.\n", i);
         } else {
-            DEBUG(9, "User %d processed!\n", i);
+            DEBUG(SSSDBG_TRACE_ALL, "User %d processed!\n", i);
         }
 
         if (usn_value) {

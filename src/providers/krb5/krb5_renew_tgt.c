@@ -68,7 +68,7 @@ static void renew_tgt(struct tevent_context *ev, struct tevent_timer *te,
     req = krb5_auth_send(auth_data, ev, auth_data->be_ctx, auth_data->pd,
                          auth_data->krb5_ctx);
     if (req == NULL) {
-        DEBUG(1, "krb5_auth_send failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth_send failed.\n");
 /* Give back the pam data to the renewal item to be able to retry at the next
  * time the renewals re run. */
         auth_data->renew_data->pd = talloc_steal(auth_data->renew_data,
@@ -92,16 +92,17 @@ static void renew_tgt_done(struct tevent_req *req)
     ret = krb5_auth_recv(req, &pam_status, &dp_err);
     talloc_free(req);
     if (ret) {
-        DEBUG(1, "krb5_auth request failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth request failed.\n");
         if (auth_data->renew_data != NULL) {
-            DEBUG(5, "Giving back pam data.\n");
+            DEBUG(SSSDBG_FUNC_DATA, "Giving back pam data.\n");
             auth_data->renew_data->pd = talloc_steal(auth_data->renew_data,
                                                      auth_data->pd);
         }
     } else {
         switch (pam_status) {
             case PAM_SUCCESS:
-                DEBUG(4, "Successfully renewed TGT for user [%s].\n",
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "Successfully renewed TGT for user [%s].\n",
                           auth_data->pd->user);
 /* In general a successful renewal will update the renewal item and free the
  * old data. But if the TGT has reached the end of his renewable lifetime it
@@ -114,33 +115,36 @@ static void renew_tgt_done(struct tevent_req *req)
                     if (value.type == HASH_VALUE_PTR &&
                         auth_data->renew_data == talloc_get_type(value.ptr,
                                                            struct renew_data)) {
-                        DEBUG(5, "New TGT was not added for renewal, "
+                        DEBUG(SSSDBG_FUNC_DATA,
+                              "New TGT was not added for renewal, "
                                   "removing list entry for user [%s].\n",
                                   auth_data->pd->user);
                         ret = hash_delete(auth_data->table, &auth_data->key);
                         if (ret != HASH_SUCCESS) {
-                            DEBUG(1, "hash_delete failed.\n");
+                            DEBUG(SSSDBG_CRIT_FAILURE, "hash_delete failed.\n");
                         }
                     }
                 }
                 break;
             case PAM_AUTHINFO_UNAVAIL:
             case PAM_AUTHTOK_LOCK_BUSY:
-                DEBUG(4, "Cannot renewed TGT for user [%s] while offline, "
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "Cannot renewed TGT for user [%s] while offline, "
                           "will retry later.\n",
                           auth_data->pd->user);
                 if (auth_data->renew_data != NULL) {
-                    DEBUG(5, "Giving back pam data.\n");
+                    DEBUG(SSSDBG_FUNC_DATA, "Giving back pam data.\n");
                     auth_data->renew_data->pd = talloc_steal(auth_data->renew_data,
                                                              auth_data->pd);
                 }
                 break;
             default:
-                DEBUG(1, "Failed to renew TGT for user [%s].\n",
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to renew TGT for user [%s].\n",
                           auth_data->pd->user);
                 ret = hash_delete(auth_data->table, &auth_data->key);
                 if (ret != HASH_SUCCESS) {
-                    DEBUG(1, "hash_delete failed.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "hash_delete failed.\n");
                 }
         }
     }
@@ -161,7 +165,7 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
 
     ret = hash_entries(renew_tgt_ctx->tgt_table, &count, &entries);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, "hash_entries failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "hash_entries failed.\n");
         return ENOMEM;
     }
 
@@ -169,14 +173,15 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
 
     for (c = 0; c < count; c++) {
         renew_data = talloc_get_type(entries[c].value.ptr, struct renew_data);
-        DEBUG(9, "Checking [%s] for renewal at [%.24s].\n", renew_data->ccfile,
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Checking [%s] for renewal at [%.24s].\n", renew_data->ccfile,
                   ctime(&renew_data->start_renew_at));
         /* If renew_data->pd == NULL a renewal request for this data is
          * currently running so we skip it. */
         if (renew_data->start_renew_at < now && renew_data->pd != NULL) {
             auth_data = talloc_zero(renew_tgt_ctx, struct auth_data);
             if (auth_data == NULL) {
-                DEBUG(1, "talloc_zero failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
             } else {
 /* We need to steal the pam_data here, because a successful renewal of the
  * ticket might add a new renewal item to the list with the same key (upn).
@@ -196,22 +201,24 @@ static errno_t renew_all_tgts(struct renew_tgt_ctx *renew_tgt_ctx)
                 auth_data->key.str = talloc_strdup(auth_data,
                                                    entries[c].key.str);
                 if (auth_data->key.str == NULL) {
-                    DEBUG(1, "talloc_strdup failed.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
                 } else {
                     te = tevent_add_timer(renew_tgt_ctx->ev,
                                           auth_data, tevent_timeval_current(),
                                           renew_tgt, auth_data);
                     if (te == NULL) {
-                        DEBUG(1, "tevent_add_timer failed.\n");
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "tevent_add_timer failed.\n");
                     }
                 }
             }
 
             if (auth_data == NULL || te == NULL) {
-                DEBUG(1, "Failed to renew TGT in [%s].\n", renew_data->ccfile);
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to renew TGT in [%s].\n", renew_data->ccfile);
                 ret = hash_delete(renew_tgt_ctx->tgt_table, &entries[c].key);
                 if (ret != HASH_SUCCESS) {
-                    DEBUG(1, "hash_delete failed.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "hash_delete failed.\n");
                 }
             }
         }
@@ -259,13 +266,13 @@ static void renew_handler(struct renew_tgt_ctx *renew_tgt_ctx)
     int ret;
 
     if (be_is_offline(renew_tgt_ctx->be_ctx)) {
-        DEBUG(4, "Offline, disable renew timer.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Offline, disable renew timer.\n");
         return;
     }
 
     ret = renew_all_tgts(renew_tgt_ctx);
     if (ret != EOK) {
-        DEBUG(1, "renew_all_tgts failed. "
+        DEBUG(SSSDBG_CRIT_FAILURE, "renew_all_tgts failed. "
                   "Disabling automatic TGT renewal\n");
         sss_log(SSS_LOG_ERR, "Disabling automatic TGT renewal.");
         talloc_zfree(renew_tgt_ctx);
@@ -273,11 +280,12 @@ static void renew_handler(struct renew_tgt_ctx *renew_tgt_ctx)
     }
 
     if (renew_tgt_ctx->te != NULL) {
-        DEBUG(7, "There is an active renewal timer, doing nothing.\n");
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "There is an active renewal timer, doing nothing.\n");
         return;
     }
 
-    DEBUG(7, "Adding new renew timer.\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Adding new renew timer.\n");
 
     next = tevent_timeval_current_ofs(renew_tgt_ctx->timer_interval,
                                       0);
@@ -285,7 +293,7 @@ static void renew_handler(struct renew_tgt_ctx *renew_tgt_ctx)
                                          next, renew_tgt_timer_handler,
                                          renew_tgt_ctx);
     if (renew_tgt_ctx->te == NULL) {
-        DEBUG(1, "tevent_add_timer failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
         sss_log(SSS_LOG_ERR, "Disabling automatic TGT renewal.");
         talloc_zfree(renew_tgt_ctx);
     }
@@ -303,7 +311,8 @@ static void renew_del_cb(hash_entry_t *entry, hash_destroy_enum type, void *pvt)
         return;
     }
 
-    DEBUG(1, "Unexpected value type [%d].\n", entry->value.type);
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          "Unexpected value type [%d].\n", entry->value.type);
 }
 
 static errno_t check_ccache_file(struct renew_tgt_ctx *renew_tgt_ctx,
@@ -318,7 +327,8 @@ static errno_t check_ccache_file(struct renew_tgt_ctx *renew_tgt_ctx,
     const char *filename;
 
     if (ccache_file == NULL || upn == NULL || user_name == NULL) {
-        DEBUG(6, "Missing one of the needed attributes: [%s][%s][%s].\n",
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Missing one of the needed attributes: [%s][%s][%s].\n",
                   ccache_file == NULL ? "cache file missing" : ccache_file,
                   upn == NULL ? "principal missing" : upn,
                   user_name == NULL ? "user name missing" : user_name);
@@ -339,12 +349,12 @@ static errno_t check_ccache_file(struct renew_tgt_ctx *renew_tgt_ctx,
         return ret;
     }
 
-    DEBUG(9, "Found ccache file [%s].\n", ccache_file);
+    DEBUG(SSSDBG_TRACE_ALL, "Found ccache file [%s].\n", ccache_file);
 
     memset(&tgtt, 0, sizeof(tgtt));
     ret = get_ccache_file_data(ccache_file, upn, &tgtt);
     if (ret != EOK) {
-        DEBUG(1, "get_ccache_file_data failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "get_ccache_file_data failed.\n");
         return ret;
     }
 
@@ -354,15 +364,17 @@ static errno_t check_ccache_file(struct renew_tgt_ctx *renew_tgt_ctx,
     now = time(NULL);
     if (tgtt.renew_till > tgtt.endtime && tgtt.renew_till > now &&
         tgtt.endtime > now) {
-        DEBUG(7, "Adding [%s] for automatic renewal.\n", ccache_file);
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Adding [%s] for automatic renewal.\n", ccache_file);
         ret = add_tgt_to_renew_table(renew_tgt_ctx->krb5_ctx, ccache_file,
                                      &tgtt, &pd, upn);
         if (ret != EOK) {
-            DEBUG(1, "add_tgt_to_renew_table failed, "
+            DEBUG(SSSDBG_CRIT_FAILURE, "add_tgt_to_renew_table failed, "
                       "automatic renewal not possible.\n");
         }
     } else {
-        DEBUG(9, "TGT in [%s] for [%s] is too old.\n", ccache_file, upn);
+        DEBUG(SSSDBG_TRACE_ALL,
+              "TGT in [%s] for [%s] is too old.\n", ccache_file, upn);
     }
 
     return EOK;
@@ -388,7 +400,7 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(1, "talloc_new failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -403,12 +415,13 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
                              LDB_SCOPE_SUBTREE, ccache_filter, ccache_attrs,
                              &msgs_count, &msgs);
     if (ret != EOK) {
-        DEBUG(1, "sysdb_search_entry failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_entry failed.\n");
         goto done;
     }
 
     if (msgs_count == 0) {
-        DEBUG(9, "No entries with ccache file found in cache.\n");
+        DEBUG(SSSDBG_TRACE_ALL,
+              "No entries with ccache file found in cache.\n");
         ret = EOK;
         goto done;
     }
@@ -418,7 +431,8 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
     for (c = 0; c < msgs_count; c++) {
         user_name = ldb_msg_find_attr_as_string(msgs[c], SYSDB_NAME, NULL);
         if (user_name == NULL) {
-            DEBUG(1, "No user name found, this is a severe error, "
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "No user name found, this is a severe error, "
                       "but we ignore it here.\n");
             continue;
         }
@@ -455,7 +469,8 @@ static errno_t check_ccache_files(struct renew_tgt_ctx *renew_tgt_ctx)
 
         ret = check_ccache_file(renew_tgt_ctx, ccache_file, upn, user_name);
         if (ret != EOK) {
-            DEBUG(5, "Failed to check ccache file [%s].\n", ccache_file);
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "Failed to check ccache file [%s].\n", ccache_file);
         }
     }
 
@@ -475,7 +490,7 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
 
     krb5_ctx->renew_tgt_ctx = talloc_zero(krb5_ctx, struct renew_tgt_ctx);
     if (krb5_ctx->renew_tgt_ctx == NULL) {
-        DEBUG(1, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
@@ -483,7 +498,7 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
                              &krb5_ctx->renew_tgt_ctx->tgt_table, 0, 0, 0, 0,
                              renew_del_cb, NULL);
     if (ret != EOK) {
-        DEBUG(1, "sss_hash_create failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_hash_create failed.\n");
         goto fail;
     }
 
@@ -494,7 +509,8 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
 
     ret = check_ccache_files(krb5_ctx->renew_tgt_ctx);
     if (ret != EOK) {
-        DEBUG(1, "Failed to read ccache files, continuing ...\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read ccache files, continuing ...\n");
     }
 
     next = tevent_timeval_current_ofs(krb5_ctx->renew_tgt_ctx->timer_interval,
@@ -503,26 +519,28 @@ errno_t init_renew_tgt(struct krb5_ctx *krb5_ctx, struct be_ctx *be_ctx,
                                                    next, renew_tgt_timer_handler,
                                                    krb5_ctx->renew_tgt_ctx);
     if (krb5_ctx->renew_tgt_ctx->te == NULL) {
-        DEBUG(1, "tevent_add_timer failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
         ret = ENOMEM;
         goto fail;
     }
 
-    DEBUG(7, "Adding offline callback to remove renewal timer.\n");
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Adding offline callback to remove renewal timer.\n");
     ret = be_add_offline_cb(krb5_ctx->renew_tgt_ctx, be_ctx,
                             renew_tgt_offline_callback, krb5_ctx->renew_tgt_ctx,
                             NULL);
     if (ret != EOK) {
-        DEBUG(1, "Failed to add offline callback.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add offline callback.\n");
         goto fail;
     }
 
-    DEBUG(7, "Adding renewal task to online callbacks.\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Adding renewal task to online callbacks.\n");
     ret = be_add_online_cb(krb5_ctx->renew_tgt_ctx, be_ctx,
                            renew_tgt_online_callback, krb5_ctx->renew_tgt_ctx,
                            NULL);
     if (ret != EOK) {
-        DEBUG(1, "Failed to add renewal task to online callbacks.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to add renewal task to online callbacks.\n");
         goto fail;
     }
 
@@ -543,19 +561,19 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
     struct renew_data *renew_data = NULL;
 
     if (krb5_ctx->renew_tgt_ctx == NULL) {
-        DEBUG(7 ,"Renew context not initialized, "
+        DEBUG(SSSDBG_TRACE_LIBS ,"Renew context not initialized, "
                   "automatic renewal not available.\n");
         return EOK;
     }
 
     if (pd->cmd != SSS_PAM_AUTHENTICATE && pd->cmd != SSS_CMD_RENEW &&
         pd->cmd != SSS_PAM_CHAUTHTOK) {
-        DEBUG(1, "Unexpected pam task [%d].\n", pd->cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected pam task [%d].\n", pd->cmd);
         return EINVAL;
     }
 
     if (upn == NULL) {
-        DEBUG(1, "Missing user principal name.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing user principal name.\n");
         return EINVAL;
     }
 
@@ -566,7 +584,7 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
 
     renew_data = talloc_zero(krb5_ctx->renew_tgt_ctx, struct renew_data);
     if (renew_data == NULL) {
-        DEBUG(1, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -574,7 +592,7 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
     if (ccfile[0] == '/') {
         renew_data->ccfile = talloc_asprintf(renew_data, "FILE:%s", ccfile);
         if (renew_data->ccfile == NULL) {
-            DEBUG(1, "talloc_asprintf failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -589,7 +607,7 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
 
     ret = copy_pam_data(renew_data, pd, &renew_data->pd);
     if (ret != EOK) {
-        DEBUG(1, "copy_pam_data failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "copy_pam_data failed.\n");
         goto done;
     }
 
@@ -597,7 +615,7 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
 
     ret = sss_authtok_set_ccfile(renew_data->pd->authtok, renew_data->ccfile, 0);
     if (ret) {
-        DEBUG(1, "Failed to store ccfile in auth token.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to store ccfile in auth token.\n");
         goto done;
     }
 
@@ -608,12 +626,13 @@ errno_t add_tgt_to_renew_table(struct krb5_ctx *krb5_ctx, const char *ccfile,
 
     ret = hash_enter(krb5_ctx->renew_tgt_ctx->tgt_table, &key, &value);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, "hash_enter failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "hash_enter failed.\n");
         ret = EFAULT;
         goto done;
     }
 
-    DEBUG(7, "Added [%s] for renewal at [%.24s].\n", renew_data->ccfile,
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Added [%s] for renewal at [%.24s].\n", renew_data->ccfile,
                                            ctime(&renew_data->start_renew_at));
 
     ret = EOK;

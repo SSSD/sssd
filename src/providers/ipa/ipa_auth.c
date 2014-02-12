@@ -345,7 +345,7 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
 
     attrs = talloc_array(state, const char *, 2);
     if (attrs == NULL) {
-        DEBUG(1, "talloc_array failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
         state->pd->pam_status = PAM_SYSTEM_ERR;
         dp_err = DP_ERR_OK;
         goto done;
