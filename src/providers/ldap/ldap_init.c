@@ -84,9 +84,9 @@ errno_t check_order_list_for_duplicates(char **list,
     return EOK;
 }
 
-int sssm_ldap_id_init(struct be_ctx *bectx,
-                      struct bet_ops **ops,
-                      void **pvt_data)
+static int ldap_id_init_internal(struct be_ctx *bectx,
+                                 struct bet_ops **ops,
+                                 void **pvt_data)
 {
     struct sdap_id_ctx *ctx = NULL;
     const char *urls;
@@ -160,11 +160,6 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     ret = sdap_idmap_init(ctx, ctx, &ctx->opts->idmap_ctx);
     if (ret != EOK) goto done;
 
-    ret = ldap_id_setup_tasks(ctx);
-    if (ret != EOK) {
-        goto done;
-    }
-
     ret = sdap_setup_child();
     if (ret != EOK) {
         DEBUG(1, ("setup_child failed [%d][%s].\n",
@@ -202,6 +197,39 @@ done:
     return ret;
 }
 
+int sssm_ldap_id_init(struct be_ctx *bectx,
+                      struct bet_ops **ops,
+                      void **pvt_data)
+{
+    int ret;
+    struct sdap_id_ctx *ctx = NULL;
+
+    ret = ldap_id_init_internal(bectx, ops, (void **) &ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("ldap_id_init_internal failed [%d][%s].\n",
+              ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = ldap_id_setup_tasks(ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              ("sdap_id_setup_tasks failed [%d][%s].\n",
+              ret, strerror(ret)));
+        goto done;
+    }
+
+    *pvt_data = ctx;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(ctx);
+    }
+    return ret;
+}
+
 int sssm_ldap_auth_init(struct be_ctx *bectx,
                         struct bet_ops **ops,
                         void **pvt_data)
@@ -211,7 +239,7 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
     struct sdap_auth_ctx *ctx;
     int ret;
 
-    ret = sssm_ldap_id_init(bectx, ops, &data);
+    ret = ldap_id_init_internal(bectx, ops, &data);
     if (ret == EOK) {
         id_ctx = talloc_get_type(data, struct sdap_id_ctx);
 
@@ -302,9 +330,9 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = sssm_ldap_id_init(bectx, ops, (void **)&access_ctx->id_ctx);
+    ret = ldap_id_init_internal(bectx, ops, (void **)&access_ctx->id_ctx);
     if (ret != EOK) {
-        DEBUG(1, ("sssm_ldap_id_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, ("ldap_id_init_internal failed.\n"));
         goto done;
     }
 
@@ -417,7 +445,7 @@ int sssm_ldap_sudo_init(struct be_ctx *be_ctx,
     void *data;
     int ret;
 
-    ret = sssm_ldap_id_init(be_ctx, ops, &data);
+    ret = ldap_id_init_internal(be_ctx, ops, &data);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot init LDAP ID provider [%d]: %s\n",
                                     ret, strerror(ret)));
@@ -447,7 +475,7 @@ int sssm_ldap_autofs_init(struct be_ctx *be_ctx,
     void *data;
     int ret;
 
-    ret = sssm_ldap_id_init(be_ctx, ops, &data);
+    ret = ldap_id_init_internal(be_ctx, ops, &data);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot init LDAP ID provider [%d]: %s\n",
                                     ret, strerror(ret)));
