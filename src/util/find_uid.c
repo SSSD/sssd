@@ -69,10 +69,10 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
 
     ret = snprintf(path, PATHLEN, "/proc/%d/status", pid);
     if (ret < 0) {
-        DEBUG(1, ("snprintf failed"));
+        DEBUG(1, "snprintf failed");
         return EINVAL;
     } else if (ret >= PATHLEN) {
-        DEBUG(1, ("path too long?!?!\n"));
+        DEBUG(1, "path too long?!?!\n");
         return EINVAL;
     }
 
@@ -80,11 +80,11 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
     if (fd == -1) {
         error = errno;
         if (error == ENOENT) {
-            DEBUG(7, ("Proc file [%s] is not available anymore, continuing.\n",
-                      path));
+            DEBUG(7, "Proc file [%s] is not available anymore, continuing.\n",
+                      path);
             return EOK;
         }
-        DEBUG(1, ("open failed [%d][%s].\n", error, strerror(error)));
+        DEBUG(1, "open failed [%d][%s].\n", error, strerror(error));
         return error;
     }
 
@@ -92,17 +92,17 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
     if (ret == -1) {
         error = errno;
         if (error == ENOENT) {
-            DEBUG(7, ("Proc file [%s] is not available anymore, continuing.\n",
-                      path));
+            DEBUG(7, "Proc file [%s] is not available anymore, continuing.\n",
+                      path);
             error = EOK;
             goto fail_fd;
         }
-        DEBUG(1, ("fstat failed [%d][%s].\n", error, strerror(error)));
+        DEBUG(1, "fstat failed [%d][%s].\n", error, strerror(error));
         goto fail_fd;
     }
 
     if (!S_ISREG(stat_buf.st_mode)) {
-        DEBUG(1, ("not a regular file\n"));
+        DEBUG(1, "not a regular file\n");
         error = EINVAL;
         goto fail_fd;
     }
@@ -112,7 +112,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
     if (ret == -1) {
         error = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("read failed [%d][%s].\n", error, strerror(error)));
+              "read failed [%d][%s].\n", error, strerror(error));
         goto fail_fd;
     }
 
@@ -122,7 +122,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
     ret = close(fd);
     if (ret == -1) {
         error = errno;
-        DEBUG(1, ("close failed [%d][%s].\n", error, strerror(error)));
+        DEBUG(1, "close failed [%d][%s].\n", error, strerror(error));
     }
 
     p = strstr(buf, "\nUid:\t");
@@ -130,7 +130,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         p += 6;
         e = strchr(p,'\t');
         if (e == NULL) {
-            DEBUG(1, ("missing delimiter.\n"));
+            DEBUG(1, "missing delimiter.\n");
             return EINVAL;
         } else {
             *e = '\0';
@@ -138,16 +138,16 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         num = (uint32_t) strtoint32(p, &endptr, 10);
         error = errno;
         if (error != 0) {
-            DEBUG(1, ("strtol failed [%s].\n", strerror(error)));
+            DEBUG(1, "strtol failed [%s].\n", strerror(error));
             return error;
         }
         if (*endptr != '\0') {
-            DEBUG(1, ("uid contains extra characters\n"));
+            DEBUG(1, "uid contains extra characters\n");
             return EINVAL;
         }
 
     } else {
-        DEBUG(1, ("format error\n"));
+        DEBUG(1, "format error\n");
         return EINVAL;
     }
 
@@ -175,12 +175,12 @@ static errno_t name_to_pid(const char *name, pid_t *pid)
     }
 
     if (*endptr != '\0') {
-        DEBUG(1, ("pid string contains extra characters.\n"));
+        DEBUG(1, "pid string contains extra characters.\n");
         return EINVAL;
     }
 
     if (num <= 0 || num >= INT_MAX) {
-        DEBUG(1, ("pid out of range.\n"));
+        DEBUG(1, "pid out of range.\n");
         return ERANGE;
     }
 
@@ -209,7 +209,7 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
     proc_dir = opendir("/proc");
     if (proc_dir == NULL) {
         ret = errno;
-        DEBUG(1, ("Cannot open proc dir.\n"));
+        DEBUG(1, "Cannot open proc dir.\n");
         goto done;
     };
 
@@ -218,13 +218,13 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
         if (only_numbers(dirent->d_name) != 0) continue;
         ret = name_to_pid(dirent->d_name, &pid);
         if (ret != EOK) {
-            DEBUG(1, ("name_to_pid failed.\n"));
+            DEBUG(1, "name_to_pid failed.\n");
             goto done;
         }
 
         ret = get_uid_from_pid(pid, &uid);
         if (ret != EOK) {
-            DEBUG(1, ("get_uid_from_pid failed.\n"));
+            DEBUG(1, "get_uid_from_pid failed.\n");
             goto done;
         }
 
@@ -236,7 +236,7 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
 
             ret = hash_enter(table, &key, &value);
             if (ret != HASH_SUCCESS) {
-                DEBUG(1, ("cannot add to table [%s]\n", hash_error_string(ret)));
+                DEBUG(1, "cannot add to table [%s]\n", hash_error_string(ret));
                 ret = ENOMEM;
                 goto done;
             }
@@ -252,14 +252,14 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
     }
     if (errno != 0 && dirent == NULL) {
         ret = errno;
-        DEBUG(1, ("readdir failed.\n"));
+        DEBUG(1, "readdir failed.\n");
         goto done;
     }
 
     ret = closedir(proc_dir);
     proc_dir = NULL;
     if (ret == -1) {
-        DEBUG(1, ("closedir failed, watch out.\n"));
+        DEBUG(1, "closedir failed, watch out.\n");
     }
 
     if (table != NULL) {
@@ -272,7 +272,7 @@ done:
     if (proc_dir != NULL) {
         err = closedir(proc_dir);
         if (err) {
-            DEBUG(1, ("closedir failed, bad dirp?\n"));
+            DEBUG(1, "closedir failed, bad dirp?\n");
         }
     }
     return ret;
@@ -287,7 +287,7 @@ errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table)
                          hash_talloc, hash_talloc_free, mem_ctx,
                          NULL, NULL);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, ("hash_create_ex failed [%s]\n", hash_error_string(ret)));
+        DEBUG(1, "hash_create_ex failed [%s]\n", hash_error_string(ret));
         return ENOMEM;
     }
 
@@ -303,7 +303,7 @@ errno_t check_if_uid_is_active(uid_t uid, bool *result)
 
     ret = get_active_uid_linux(NULL, uid);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(1, ("get_uid_table failed.\n"));
+        DEBUG(1, "get_uid_table failed.\n");
         return ret;
     }
 

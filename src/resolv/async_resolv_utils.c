@@ -50,7 +50,7 @@ resolv_get_domain_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct resolv_get_domain_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -59,8 +59,8 @@ resolv_get_domain_send(TALLOC_CTX *mem_ctx,
         ret = gethostname(system_hostname, HOST_NAME_MAX);
         if (ret) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, ("gethostname() failed: [%d]: %s\n",
-                                        ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "gethostname() failed: [%d]: %s\n",
+                                        ret, strerror(ret));
             goto immediately;
         }
         system_hostname[HOST_NAME_MAX-1] = '\0';
@@ -74,7 +74,7 @@ resolv_get_domain_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Host name is: %s\n", state->hostname));
+    DEBUG(SSSDBG_TRACE_LIBS, "Host name is: %s\n", state->hostname);
 
     subreq = resolv_gethostbyname_send(state, ev, resolv_ctx, state->hostname,
                                        family_order, host_dbs);
@@ -110,13 +110,13 @@ static void resolv_get_domain_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not get fully qualified name for host name %s "
+              "Could not get fully qualified name for host name %s "
                "error [%d]: %s, resolver returned: [%d]: %s\n",
                state->hostname, ret, strerror(ret), resolv_status,
-               resolv_strerror(resolv_status)));
+               resolv_strerror(resolv_status));
         state->fqdn = state->hostname;
     } else {
-        DEBUG(SSSDBG_TRACE_LIBS, ("The FQDN is: %s\n", rhostent->name));
+        DEBUG(SSSDBG_TRACE_LIBS, "The FQDN is: %s\n", rhostent->name);
         state->fqdn = talloc_steal(state, rhostent->name);
         talloc_zfree(rhostent);
     }
@@ -181,7 +181,7 @@ struct tevent_req *resolv_discover_srv_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct resolv_discover_srv_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -239,8 +239,8 @@ static errno_t resolv_discover_srv_next_domain(struct tevent_req *req)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("SRV resolution of service '%s'. Will use DNS "
-          "discovery domain '%s'\n", state->service, domain));
+    DEBUG(SSSDBG_TRACE_FUNC, "SRV resolution of service '%s'. Will use DNS "
+          "discovery domain '%s'\n", state->service, domain);
 
     subreq = resolv_getsrv_send(state, state->ev,
                                 state->resolv_ctx, query);
@@ -275,8 +275,8 @@ static void resolv_discover_srv_done(struct tevent_req *subreq)
     ret = resolv_getsrv_recv(state, subreq, &status, NULL, &state->reply_list);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("SRV query failed [%d]: %s\n",
-                                  status, resolv_strerror(status)));
+        DEBUG(SSSDBG_OP_FAILURE, "SRV query failed [%d]: %s\n",
+                                  status, resolv_strerror(status));
 
         if (status == ARES_ENOTFOUND) {
             /* continue with next discovery domain */

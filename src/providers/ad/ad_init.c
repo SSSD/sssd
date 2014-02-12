@@ -124,8 +124,8 @@ common_ad_init(struct be_ctx *bectx)
                                 &ad_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not parse common options: [%s]\n",
-               strerror(ret)));
+              "Could not parse common options: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
@@ -140,8 +140,8 @@ common_ad_init(struct be_ctx *bectx)
                            &ad_options->service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to init AD failover service: [%s]\n",
-               strerror(ret)));
+              "Failed to init AD failover service: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
@@ -185,15 +185,15 @@ sssm_ad_id_init(struct be_ctx *bectx,
     ret = ad_dyndns_init(ad_ctx->sdap_id_ctx->be, ad_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-             ("Failure setting up automatic DNS update\n"));
+             "Failure setting up automatic DNS update\n");
         /* Continue without DNS updates */
     }
 
     ret = sdap_setup_child();
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("setup_child failed [%d][%s].\n",
-               ret, strerror(ret)));
+              "setup_child failed [%d][%s].\n",
+               ret, strerror(ret));
         goto done;
     }
 
@@ -225,7 +225,7 @@ sssm_ad_id_init(struct be_ctx *bectx,
     ret = setup_tls_config(ad_ctx->sdap_id_ctx->opts->basic);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("setup_tls_config failed [%s]\n", strerror(ret)));
+              "setup_tls_config failed [%s]\n", strerror(ret));
         goto done;
     }
 
@@ -238,7 +238,7 @@ sssm_ad_id_init(struct be_ctx *bectx,
                                          default_host_dbs, ad_options->id,
                                          hostname, ad_domain);
         if (srv_ctx == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
             ret = ENOMEM;
             goto done;
         }
@@ -249,8 +249,8 @@ sssm_ad_id_init(struct be_ctx *bectx,
         /* fall back to standard plugin */
         ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
-                                        "[%d]: %s\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
+                                        "[%d]: %s\n", ret, strerror(ret));
             goto done;
         }
     }
@@ -261,8 +261,8 @@ sssm_ad_id_init(struct be_ctx *bectx,
                             sdap_refresh_netgroups_recv,
                             ad_ctx->sdap_id_ctx);
     if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Periodical refresh of netgroups "
-              "will not work [%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of netgroups "
+              "will not work [%d]: %s\n", ret, strerror(ret));
     }
 
     *ops = &ad_id_ops;
@@ -311,15 +311,15 @@ sssm_ad_auth_init(struct be_ctx *bectx,
                               &krb5_auth_ctx->opts);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not determine Kerberos options\n"));
+              "Could not determine Kerberos options\n");
         goto done;
     }
 
     ret = krb5_child_init(krb5_auth_ctx, bectx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not initialize krb5_child settings: [%s]\n",
-               strerror(ret)));
+              "Could not initialize krb5_child settings: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
@@ -384,8 +384,8 @@ sssm_ad_access_init(struct be_ctx *bectx,
                           &access_ctx->ad_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not initialize access provider options: [%s]\n",
-               strerror(ret)));
+              "Could not initialize access provider options: [%s]\n",
+               strerror(ret));
         goto fail;
     }
 
@@ -448,12 +448,12 @@ int sssm_ad_subdomains_init(struct be_ctx *bectx,
 
     ret = sssm_ad_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ad_id_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ad_id_init failed.\n");
         return ret;
     }
 
     if (ad_options == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Global AD options not available.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Global AD options not available.\n");
         return EINVAL;
     }
 
@@ -461,7 +461,7 @@ int sssm_ad_subdomains_init(struct be_ctx *bectx,
 
     ret = ad_subdom_init(bectx, id_ctx, ad_domain, ops, pvt_data);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("ad_subdom_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "ad_subdom_init failed.\n");
         return ret;
     }
 
@@ -477,18 +477,18 @@ int sssm_ad_sudo_init(struct be_ctx *bectx,
     struct ad_id_ctx *id_ctx;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing AD sudo handler\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing AD sudo handler\n");
 
     ret = sssm_ad_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ad_id_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ad_id_init failed.\n");
         return ret;
     }
 
     return ad_sudo_init(bectx, id_ctx, ops, pvt_data);
 #else
-    DEBUG(SSSDBG_MINOR_FAILURE, ("Sudo init handler called but SSSD is "
-                                 "built without sudo support, ignoring\n"));
+    DEBUG(SSSDBG_MINOR_FAILURE, "Sudo init handler called but SSSD is "
+                                 "built without sudo support, ignoring\n");
     return EOK;
 #endif
 }

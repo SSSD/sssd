@@ -33,7 +33,7 @@ int sss_cmd_send_error(struct cli_ctx *cctx, int err)
                          sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot create new packet: %d\n", ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create new packet: %d\n", ret);
         return ret;
     }
 
@@ -112,7 +112,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
         sss_packet_get_body(cctx->creq->in, &req_body, &req_blen);
         if (req_blen == sizeof(uint32_t)) {
             memcpy(&client_version, req_body, sizeof(uint32_t));
-            DEBUG(5, ("Received client version [%d].\n", client_version));
+            DEBUG(5, "Received client version [%d].\n", client_version);
 
             i=0;
             while(cli_protocol_version[i].version>0) {
@@ -135,7 +135,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
     sss_packet_get_body(cctx->creq->out, &body, &blen);
     ((uint32_t *)body)[0] = cctx->cli_protocol_version!=NULL ?
                                 cctx->cli_protocol_version->version : 0;
-    DEBUG(5, ("Offered version [%d].\n", ((uint32_t *)body)[0]));
+    DEBUG(5, "Offered version [%d].\n", ((uint32_t *)body)[0]);
 
     sss_cmd_done(cctx, NULL);
     return EOK;
@@ -221,8 +221,8 @@ void setent_notify(struct setent_req_list **list, errno_t err)
              * request. Log a bug and continue.
              */
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("BUG: a callback did not free its request. "
-                   "May leak memory\n"));
+                  "BUG: a callback did not free its request. "
+                   "May leak memory\n");
             /* Skip to the next since a memory leak is non-fatal */
             *list = (*list)->next;
         }

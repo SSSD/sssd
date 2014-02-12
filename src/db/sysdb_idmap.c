@@ -37,7 +37,7 @@ sysdb_idmap_dn(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         return NULL;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, (SYSDB_TMPL_IDMAP"\n", clean_sid, domain->name));
+    DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_IDMAP"\n", clean_sid, domain->name);
 
     dn = ldb_dn_new_fmt(mem_ctx, sysdb->ldb, SYSDB_TMPL_IDMAP,
                         clean_sid, domain->name);
@@ -83,7 +83,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
 
@@ -102,8 +102,8 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
     } else if (ret == ENOENT) {
         /* Create a new mapping */
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Adding new ID mapping [%s][%s][%lu]\n",
-               dom_name, dom_sid, (unsigned long)slice_num));
+              "Adding new ID mapping [%s][%s][%lu]\n",
+               dom_name, dom_sid, (unsigned long)slice_num);
 
         /* Add the objectClass */
         lret = ldb_msg_add_empty(update_msg, SYSDB_OBJECTCLASS,
@@ -170,8 +170,8 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
         lret = ldb_add(sysdb->ldb, update_msg);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Failed to add mapping: [%s]\n",
-                   ldb_strerror(lret)));
+                  "Failed to add mapping: [%s]\n",
+                   ldb_strerror(lret));
             ret = sysdb_error_to_errno(lret);
             goto done;
         }
@@ -187,17 +187,17 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
                                              -1);
         if (old_slice == -1) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not identify original slice for SID [%s]\n",
-                   dom_sid));
+                  "Could not identify original slice for SID [%s]\n",
+                   dom_sid);
             ret = ENOENT;
             goto done;
         }
 
         if (slice_num != old_slice) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Detected attempt to change slice value for sid [%s] "
+                  "Detected attempt to change slice value for sid [%s] "
                    "This will break existing users. Refusing to perform.\n",
-                   dom_sid));
+                   dom_sid);
             ret = EINVAL;
             goto done;
         }
@@ -209,8 +209,8 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
         old_name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
         if (!old_name) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not identify original domain name of SID [%s]\n",
-                   dom_sid));
+                  "Could not identify original domain name of SID [%s]\n",
+                   dom_sid);
             ret = ENOENT;
             goto done;
         }
@@ -220,14 +220,14 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
              * make any changes here. Just return success.
              */
             DEBUG(SSSDBG_TRACE_LIBS,
-                  ("No changes needed, canceling transaction\n"));
+                  "No changes needed, canceling transaction\n");
             ret = EOK;
             goto done;
         } else {
             /* The name has changed. Replace it */
             DEBUG(SSSDBG_CONF_SETTINGS,
-                  ("Changing domain name of SID [%s] from [%s] to [%s]\n",
-                   dom_sid, old_name, dom_name));
+                  "Changing domain name of SID [%s] from [%s] to [%s]\n",
+                   dom_sid, old_name, dom_name);
 
             /* Set the new name */
             lret = ldb_msg_add_empty(update_msg, SYSDB_NAME,
@@ -248,8 +248,8 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
         lret = ldb_modify(sysdb->ldb, update_msg);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Failed to update mapping: [%s]\n",
-                   ldb_strerror(lret)));
+                  "Failed to update mapping: [%s]\n",
+                   ldb_strerror(lret));
             ret = sysdb_error_to_errno(lret);
             goto done;
         }
@@ -258,7 +258,7 @@ sysdb_idmap_store_mapping(struct sysdb_ctx *sysdb,
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not commit transaction: [%s]\n", strerror(ret)));
+              "Could not commit transaction: [%s]\n", strerror(ret));
         goto done;
     }
     in_transaction = false;
@@ -268,7 +268,7 @@ done:
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not cancel transaction\n"));
+                  "Could not cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -291,7 +291,7 @@ sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    DEBUG(SSSDBG_TRACE_ALL, (SYSDB_TMPL_IDMAP_BASE"\n", domain->name));
+    DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_IDMAP_BASE"\n", domain->name);
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                              SYSDB_TMPL_IDMAP_BASE, domain->name);
@@ -304,8 +304,8 @@ sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
                      LDB_SCOPE_SUBTREE, attrs, SYSDB_IDMAP_FILTER);
     if (lret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not locate ID mappings: [%s]\n",
-               ldb_strerror(lret)));
+              "Could not locate ID mappings: [%s]\n",
+               ldb_strerror(lret));
         ret = sysdb_error_to_errno(lret);
         goto done;
     }

@@ -71,7 +71,7 @@ static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
     ret = sysdb_msg2attrs(tmp_ctx, count, msgs, &records);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not convert ldb message to sysdb_attrs\n"));
+              "Could not convert ldb message to sysdb_attrs\n");
         goto done;
     }
 
@@ -191,7 +191,7 @@ struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct be_refresh_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -208,8 +208,8 @@ struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
     if (ret == EOK) {
         goto immediately;
     } else if (ret != EAGAIN) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("be_refresh_step() failed [%d]: %s\n",
-                                    ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "be_refresh_step() failed [%d]: %s\n",
+                                    ret, sss_strerror(ret));
         goto immediately;
     }
 
@@ -255,8 +255,8 @@ static errno_t be_refresh_step(struct tevent_req *req)
     ret = state->cb->get_values(state, state->be_ctx->domain, state->period,
                                 &values);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to obtain DN list [%d]: %s\n",
-                                    ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain DN list [%d]: %s\n",
+                                    ret, sss_strerror(ret));
         goto done;
     }
 

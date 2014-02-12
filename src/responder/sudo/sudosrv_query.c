@@ -39,7 +39,7 @@ static int sudosrv_response_append_string(TALLOC_CTX *mem_ctx,
     response_body = talloc_realloc(mem_ctx, response_body, uint8_t,
                                    response_len + (str_len * sizeof(char)));
     if (response_body == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_realloc() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_realloc() failed\n");
         return ENOMEM;
     }
     memcpy(response_body + response_len, str, str_len);
@@ -62,7 +62,7 @@ static int sudosrv_response_append_uint32(TALLOC_CTX *mem_ctx,
     response_body = talloc_realloc(mem_ctx, response_body, uint8_t,
                                    response_len + sizeof(uint32_t));
     if (response_body == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_realloc() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_realloc() failed\n");
         return ENOMEM;
     }
     SAFEALIGN_SET_UINT32(response_body + response_len, number, &response_len);
@@ -88,7 +88,7 @@ static int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -109,7 +109,7 @@ static int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
     /* values */
     for (i = 0; i < values_num; i++) {
         if (strlen((char*)(values[i].data)) != values[i].length) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("value is not a string"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "value is not a string");
             ret = EINVAL;
             goto done;
         }
@@ -147,7 +147,7 @@ static int sudosrv_response_append_rule(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -201,7 +201,7 @@ errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -277,7 +277,7 @@ struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sudosrv_parse_query_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -286,7 +286,7 @@ struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
     /* uid */
 
     if (query_len < sizeof(uid_t)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Query is too small\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Query is too small\n");
         ret = EINVAL;
         goto done;
     }
@@ -298,19 +298,19 @@ struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
     rawname_len = query_len - offset; /* strlen + zero */
 
     if (rawname[rawname_len - 1] != '\0') {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Username is not zero terminated\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Username is not zero terminated\n");
         ret = EINVAL;
         goto done;
     }
 
     if (rawname_len < 2) { /* at least one character and zero */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Query does not contain username\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Query does not contain username\n");
         ret = EINVAL;
         goto done;
     }
 
     if (!sss_utf8_check((uint8_t*)rawname, rawname_len - 1)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Supplied data is not valid UTF-8 string\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Supplied data is not valid UTF-8 string\n");
         ret = EINVAL;
         goto done;
     }
@@ -322,8 +322,8 @@ struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
                                      rctx->default_domain, state->rawname,
                                      &domainname, NULL);
     if (ret == EAGAIN) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Domain [%s] not found, "
-              "sending subdomain request\n", domainname));
+        DEBUG(SSSDBG_TRACE_FUNC, "Domain [%s] not found, "
+              "sending subdomain request\n", domainname);
 
         subreq = sss_dp_get_domains_send(state, rctx, true, domainname);
         if (subreq == NULL) {
@@ -334,7 +334,7 @@ struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
         }
         goto done;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid name received [%s]\n", rawname));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid name received [%s]\n", rawname);
         goto done;
     }
 
@@ -386,7 +386,7 @@ errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (state->rawname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No query specified?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No query specified?!\n");
         return EINVAL;
     }
 
@@ -399,13 +399,13 @@ errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
                                      state->rawname,
                                      &domainname, &username);
     if (ret != EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Unable to parse domain [%d]: %s\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_TRACE_FUNC, "Unable to parse domain [%d]: %s\n",
+                                  ret, strerror(ret));
         return ret;
     }
 
     if (username == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No username specified!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No username specified!\n");
         return EINVAL;
     }
 
@@ -414,8 +414,8 @@ errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
          * so I cannot easily steal it */
         domain = responder_get_domain(state->rctx, domainname);
         if (domain == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Corresponding domain [%s] has not been "
-                                      "found\n", domainname));
+            DEBUG(SSSDBG_OP_FAILURE, "Corresponding domain [%s] has not been "
+                                      "found\n", domainname);
             return ENOENT;
         }
     }

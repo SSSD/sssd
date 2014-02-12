@@ -110,7 +110,7 @@ autofs_orphan_maps(struct autofs_ctx *actx)
     for (i = 0; i < mcount; i++) {
         hret = hash_delete(actx->maps, &maps[i]);
         if (hret != HASH_SUCCESS) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not delete key from hash\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not delete key from hash\n");
             continue;
         }
     }
@@ -139,8 +139,8 @@ get_autofs_map(struct autofs_ctx *actx,
     }
 
     DEBUG(SSSDBG_CRIT_FAILURE,
-          ("Unexpected error reading from autofs map hash [%d][%s]\n",
-          hret, hash_error_string(hret)));
+          "Unexpected error reading from autofs map hash [%d][%s]\n",
+          hret, hash_error_string(hret));
     return EIO;
 }
 
@@ -158,7 +158,7 @@ autofs_map_hash_delete_cb(hash_entry_t *item,
 
     map = talloc_get_type(item->value.ptr, struct autofs_map_ctx);
     if (!map) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Invalid autofs map\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid autofs map\n");
         return;
     }
 
@@ -176,7 +176,7 @@ set_autofs_map(struct autofs_ctx *actx,
     int hret;
 
     if (map->mapname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Missing autofs map name.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing autofs map name.\n");
         return EINVAL;
     }
 
@@ -188,9 +188,9 @@ set_autofs_map(struct autofs_ctx *actx,
     hret = hash_enter(actx->maps, &key, &value);
     if (hret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Unable to add hash table entry for [%s]", key.str));
+              "Unable to add hash table entry for [%s]", key.str);
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Hash error [%d][%s]", hret, hash_error_string(hret)));
+              "Hash error [%d][%s]", hret, hash_error_string(hret));
         return EIO;
     }
     talloc_steal(actx->maps, map);
@@ -208,8 +208,8 @@ autofs_map_hash_remove(TALLOC_CTX *ctx)
             talloc_get_type(ctx, struct autofs_map_ctx);
 
     if (map->map_table == NULL) {
-        DEBUG(SSSDBG_TRACE_LIBS, ("autofs map [%s] was already removed\n",
-              map->mapname));
+        DEBUG(SSSDBG_TRACE_LIBS, "autofs map [%s] was already removed\n",
+              map->mapname);
         return 0;
     }
 
@@ -220,8 +220,8 @@ autofs_map_hash_remove(TALLOC_CTX *ctx)
     hret = hash_delete(map->map_table, &key);
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not remove key from table! [%d][%s]\n",
-              hret, hash_error_string(hret)));
+              "Could not remove key from table! [%d][%s]\n",
+              hret, hash_error_string(hret));
         return -1;
     }
     return 0;
@@ -246,7 +246,7 @@ sss_autofs_cmd_setautomntent(struct cli_ctx *client)
     const char *rawname;
     struct tevent_req *req;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("sss_autofs_cmd_setautomntent\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "sss_autofs_cmd_setautomntent\n");
 
     cmdctx = talloc_zero(client, struct autofs_cmd_ctx);
     if (!cmdctx) {
@@ -270,12 +270,12 @@ sss_autofs_cmd_setautomntent(struct cli_ctx *client)
 
     rawname = (const char *)body;
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Got request for automount map named %s\n", rawname));
+          "Got request for automount map named %s\n", rawname);
 
     req = setautomntent_send(cmdctx, rawname, cmdctx);
     if (!req) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Fatal error calling setautomntent_send\n"));
+              "Fatal error calling setautomntent_send\n");
         ret = EIO;
         goto done;
     }
@@ -296,12 +296,12 @@ static void sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
     uint8_t *body;
     size_t blen;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("setautomntent done\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "setautomntent done\n");
 
     reqret = setautomntent_recv(req);
     talloc_zfree(req);
     if (reqret != EOK && reqret != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("setautomntent_recv failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "setautomntent_recv failed\n");
         autofs_cmd_done(cmdctx, reqret);
         return;
     }
@@ -312,15 +312,15 @@ static void sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
                          &cmdctx->cctx->creq->out);
     if (ret == EOK) {
         if (reqret == ENOENT) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("setautomntent did not find requested map\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "setautomntent did not find requested map\n");
             /* Notify the caller that this entry wasn't found */
             sss_cmd_empty_packet(cmdctx->cctx->creq->out);
         } else {
-            DEBUG(SSSDBG_TRACE_FUNC, ("setautomntent found data\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "setautomntent found data\n");
             packet = cmdctx->cctx->creq->out;
             ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Couldn't grow the packet\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "Couldn't grow the packet\n");
                 talloc_free(cmdctx);
                 return;
             }
@@ -334,7 +334,7 @@ static void sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
         return;
     }
 
-    DEBUG(SSSDBG_CRIT_FAILURE, ("Error creating packet\n"));
+    DEBUG(SSSDBG_CRIT_FAILURE, "Error creating packet\n");
     return;
 }
 
@@ -392,8 +392,8 @@ set_autofs_map_lifetime(uint32_t lifetime,
                           map);
     if (!te) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not set up life timer for autofs maps. "
-               "Entries may become stale.\n"));
+              "Could not set up life timer for autofs maps. "
+               "Entries may become stale.\n");
     }
 }
 
@@ -420,14 +420,14 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state, struct setautomntent_state);
     if (!req) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not create tevent request for setautomntent\n"));
+              "Could not create tevent request for setautomntent\n");
         return NULL;
     }
     state->cmdctx = cmdctx;
 
     dctx = talloc_zero(state, struct autofs_dom_ctx);
     if (!dctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -439,13 +439,13 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
                                      &domname, &state->mapname);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid name received [%s]\n", rawname));
+              "Invalid name received [%s]\n", rawname);
         goto fail;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-         ("Requesting info for automount map [%s] from [%s]\n",
-         state->mapname, domname?domname:"<ALL>"));
+         "Requesting info for automount map [%s] from [%s]\n",
+         state->mapname, domname?domname:"<ALL>");
 
     if (domname) {
         dctx->domain = responder_get_domain(client->rctx, domname);
@@ -483,13 +483,13 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
         if (state->map->ready) {
             if (state->map->found) {
                 DEBUG(SSSDBG_TRACE_LIBS,
-                      ("Map %s is ready to be processed\n", state->mapname));
+                      "Map %s is ready to be processed\n", state->mapname);
                 tevent_req_done(req);
                 tevent_req_post(req, actx->rctx->ev);
                 return req;
             } else {
                 DEBUG(SSSDBG_TRACE_LIBS,
-                      ("Map %s was marked as nonexistent\n", state->mapname));
+                      "Map %s was marked as nonexistent\n", state->mapname);
                 tevent_req_error(req, ENOENT);
                 tevent_req_post(req, actx->rctx->ev);
                 return req;
@@ -500,8 +500,8 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
          * Register for notification when it's ready
          */
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Map %s is being looked up, registering for notification\n",
-               state->mapname));
+              "Map %s is being looked up, registering for notification\n",
+               state->mapname);
         ret = autofs_setent_add_ref(state, state->map, req);
         if (ret != EOK) {
             goto fail;
@@ -509,7 +509,7 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
         /* Will return control below */
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Map %s needs to be looked up\n", state->mapname));
+              "Map %s needs to be looked up\n", state->mapname);
 
         state->map = talloc_zero(actx, struct autofs_map_ctx);
         if (!state->map) {
@@ -563,11 +563,11 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
 
         ret = lookup_automntmap_step(lookup_ctx);
         if (ret == EAGAIN) {
-            DEBUG(SSSDBG_TRACE_INTERNAL, ("lookup_automntmap_step "
-                  "is refreshing the cache, re-entering the mainloop\n"));
+            DEBUG(SSSDBG_TRACE_INTERNAL, "lookup_automntmap_step "
+                  "is refreshing the cache, re-entering the mainloop\n");
             return req;
         } else if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not get data from cache\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not get data from cache\n");
             talloc_free(state->map);
             ret = ENOMEM;
             goto fail;
@@ -578,8 +578,8 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
         return req;
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Unexpected error from get_autofs_map [%d]: %s\n",
-               ret, strerror(ret)));
+              "Unexpected error from get_autofs_map [%d]: %s\n",
+               ret, strerror(ret));
         goto fail;
     }
 
@@ -602,7 +602,7 @@ setautomntent_get_autofs_map(struct autofs_ctx *actx,
         /* Iterate over the hash and remove all maps */
         ret = autofs_orphan_maps(actx);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not remove existing maps from hash\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not remove existing maps from hash\n");
         }
         return ENOENT;
     }
@@ -643,12 +643,12 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("Requesting info for [%s@%s]\n",
-              lookup_ctx->mapname, dom->name));
+        DEBUG(SSSDBG_TRACE_FUNC, "Requesting info for [%s@%s]\n",
+              lookup_ctx->mapname, dom->name);
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Fatal: Sysdb CTX not found for this domain!\n"));
+                  "Fatal: Sysdb CTX not found for this domain!\n");
             return EIO;
         }
 
@@ -657,15 +657,15 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
         ret = sysdb_get_map_byname(dctx, sysdb, dom, lookup_ctx->mapname,
                                    &dctx->map);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not check cache\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not check cache\n");
             return ret;
         } else if (ret == ENOENT) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("No automount map [%s] in cache for domain [%s]\n",
-                   lookup_ctx->mapname, dom->name));
+                  "No automount map [%s] in cache for domain [%s]\n",
+                   lookup_ctx->mapname, dom->name);
             if (!dctx->check_provider) {
                 if (dctx->cmd_ctx->check_next) {
-                    DEBUG(SSSDBG_TRACE_INTERNAL, ("Moving on to next domain\n"));
+                    DEBUG(SSSDBG_TRACE_INTERNAL, "Moving on to next domain\n");
                     dom = get_next_domain(dom, false);
                     continue;
                 }
@@ -676,13 +676,13 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
         ret = get_autofs_map(lookup_ctx->actx, lookup_ctx->mapname, &map);
         if (ret != EOK) {
             /* Something really bad happened! */
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Autofs map entry was lost!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Autofs map entry was lost!\n");
             return ret;
         }
 
         if (dctx->map == NULL && !dctx->check_provider) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Autofs map not found, setting negative cache\n"));
+                  "Autofs map not found, setting negative cache\n");
             map->ready = true;
             map->found = false;
             set_autofs_map_lifetime(lookup_ctx->actx->neg_timeout, lookup_ctx, map);
@@ -693,12 +693,12 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
             ret = lookup_automntmap_update_cache(lookup_ctx);
             if (ret == EAGAIN) {
                 DEBUG(SSSDBG_TRACE_INTERNAL,
-                      ("Looking up automount maps from the DP\n"));
+                      "Looking up automount maps from the DP\n");
                 return EAGAIN;
             } else if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Error looking up automount maps [%d]: %s\n",
-                       ret, strerror(ret)));
+                      "Error looking up automount maps [%d]: %s\n",
+                       ret, strerror(ret));
                 return ret;
             }
         }
@@ -711,8 +711,8 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
                                           &map->entries);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Error looking automount map entries [%d]: %s\n",
-                  ret, strerror(ret)));
+                  "Error looking automount map entries [%d]: %s\n",
+                  ret, strerror(ret));
             map->ready = true;
             map->found = false;
             set_autofs_map_lifetime(lookup_ctx->actx->neg_timeout, lookup_ctx, map);
@@ -722,7 +722,7 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
         map->map = talloc_steal(map, dctx->map);
 
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("setautomntent done for map %s\n", lookup_ctx->mapname));
+              "setautomntent done for map %s\n", lookup_ctx->mapname);
         map->ready = true;
         map->found = true;
         set_autofs_map_lifetime(dom->autofsmap_timeout, lookup_ctx, map);
@@ -778,10 +778,10 @@ lookup_automntmap_update_cache(struct setautomntent_lookup_ctx *lookup_ctx)
         /* if we have any reply let's check cache validity */
         ret = sss_cmd_check_cache(dctx->map, 0, cache_expire);
         if (ret == EOK) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Cached entry is valid, returning..\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Cached entry is valid, returning..\n");
             return EOK;
         } else if (ret != EAGAIN && ret != ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Error checking cache: %d\n", ret));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Error checking cache: %d\n", ret);
             goto error;
         }
     }
@@ -802,7 +802,7 @@ lookup_automntmap_update_cache(struct setautomntent_lookup_ctx *lookup_ctx)
                                  SSS_DP_AUTOFS, lookup_ctx->mapname);
     if (!req) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Out of memory sending data provider request\n"));
+              "Out of memory sending data provider request\n");
         ret = ENOMEM;
         goto error;
     }
@@ -825,7 +825,7 @@ lookup_automntmap_update_cache(struct setautomntent_lookup_ctx *lookup_ctx)
 error:
     ret = autofs_cmd_send_error(lookup_ctx->dctx->cmd_ctx, ret);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Fatal error, killing connection!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Fatal error, killing connection!\n");
         talloc_free(lookup_ctx->cctx);
         return ret;
     }
@@ -850,7 +850,7 @@ static void autofs_dp_send_map_req_done(struct tevent_req *req)
                                  &err_msg);
     talloc_free(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Fatal error, killing connection!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Fatal error, killing connection!\n");
         talloc_free(lookup_ctx->cctx);
         return;
     }
@@ -868,10 +868,10 @@ static void lookup_automntmap_cache_updated(uint16_t err_maj, uint32_t err_min,
 
     if (err_maj) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Unable to get information from Data Provider\n"
+              "Unable to get information from Data Provider\n"
                "Error: %u, %u, %s\n"
                "Will try to return what we have in cache\n",
-               (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+               (unsigned int)err_maj, (unsigned int)err_min, err_msg);
         /* Loop to the next domain if possible */
         if (dctx->cmd_ctx->check_next && get_next_domain(dctx->domain, false)) {
             dctx->domain = get_next_domain(dctx->domain, false);
@@ -921,7 +921,7 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
     size_t c = 0;
     struct tevent_req *req;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("sss_autofs_cmd_getautomntent\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "sss_autofs_cmd_getautomntent\n");
 
     cmdctx = talloc_zero(client, struct autofs_cmd_ctx);
     if (!cmdctx) {
@@ -931,7 +931,7 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
 
     actx = talloc_get_type(client->rctx->pvt_ctx, struct autofs_ctx);
     if (!actx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Missing autofs context\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing autofs context\n");
         return EIO;
     }
 
@@ -963,15 +963,15 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
     SAFEALIGN_COPY_UINT32_CHECK(&cmdctx->max_entries, body+c+namelen+1, blen, &c);
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requested data of map %s cursor %d max entries %d\n",
-           cmdctx->mapname, cmdctx->cursor, cmdctx->max_entries));
+          "Requested data of map %s cursor %d max entries %d\n",
+           cmdctx->mapname, cmdctx->cursor, cmdctx->max_entries);
 
     ret = get_autofs_map(actx, cmdctx->mapname, &map);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Performing implicit setautomntent\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Performing implicit setautomntent\n");
         req = setautomntent_send(cmdctx, cmdctx->mapname, cmdctx);
         if (req == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("setautomntent_send failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "setautomntent_send failed\n");
             ret = EIO;
             goto done;
         }
@@ -981,16 +981,16 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("An unexpected error occurred: [%d][%s]\n",
-              ret, strerror(ret)));
+              "An unexpected error occurred: [%d][%s]\n",
+              ret, strerror(ret));
         goto done;
     }
 
     if (map->ready == false) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Performing implicit setautomntent\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Performing implicit setautomntent\n");
         req = setautomntent_send(cmdctx, cmdctx->mapname, cmdctx);
         if (req == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("setautomntent_send failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "setautomntent_send failed\n");
             ret = EIO;
             goto done;
         }
@@ -999,13 +999,13 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
         ret = EOK;
         goto done;
     } else if (map->found == false) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("negative cache hit\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "negative cache hit\n");
         ret = ENOENT;
         goto done;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("returning entries for [%s]\n", map->mapname));
+          "returning entries for [%s]\n", map->mapname);
 
     ret = getautomntent_process(cmdctx, map, cmdctx->cursor, cmdctx->max_entries);
 
@@ -1027,9 +1027,9 @@ getautomntent_implicit_done(struct tevent_req *req)
     talloc_zfree(req);
     if (ret != EOK) {
         if (ret != ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("setautomntent_recv failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "setautomntent_recv failed\n");
         } else {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("No such map\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "No such map\n");
         }
         goto done;
     }
@@ -1037,13 +1037,13 @@ getautomntent_implicit_done(struct tevent_req *req)
     ret = get_autofs_map(actx, cmdctx->mapname, &map);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Cannot get map after setautomntent succeeded?\n"));
+              "Cannot get map after setautomntent succeeded?\n");
         goto done;
     }
 
     if (map->ready == false) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Map not ready after setautomntent succeeded\n"));
+              "Map not ready after setautomntent succeeded\n");
         goto done;
     }
 
@@ -1077,7 +1077,7 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
 
     if (!map->map || !map->entries || !map->entries[0] ||
         cursor >= map->entry_count) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("No entries found\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "No entries found\n");
         ret = sss_cmd_empty_packet(client->creq->out);
         if (ret != EOK) {
             return autofs_cmd_done(cmdctx, ret);
@@ -1088,7 +1088,7 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
     /* allocate memory for number of entries in the packet */
     ret = sss_packet_grow(client->creq->out, sizeof(uint32_t));
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot grow packet\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot grow packet\n");
         goto done;
     }
 
@@ -1105,7 +1105,7 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
         ret = fill_autofs_entry(entry, client->creq->out, &rp);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Cannot fill entry %d/%d, skipping\n", i, stop));
+                  "Cannot fill entry %d/%d, skipping\n", i, stop);
             continue;
         }
         nentries++;
@@ -1141,7 +1141,7 @@ fill_autofs_entry(struct ldb_message *entry, struct sss_packet *packet, size_t *
     key = ldb_msg_find_attr_as_string(entry, SYSDB_AUTOFS_ENTRY_KEY, NULL);
     value = ldb_msg_find_attr_as_string(entry, SYSDB_AUTOFS_ENTRY_VALUE, NULL);
     if (!key || !value) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Incomplete entry\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Incomplete entry\n");
         return EINVAL;
     }
 
@@ -1151,7 +1151,7 @@ fill_autofs_entry(struct ldb_message *entry, struct sss_packet *packet, size_t *
 
     ret = sss_packet_grow(packet, len);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot grow packet\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot grow packet\n");
         return ret;
     }
 
@@ -1199,7 +1199,7 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
     size_t c = 0;
     struct tevent_req *req;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("sss_autofs_cmd_getautomntbyname\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "sss_autofs_cmd_getautomntbyname\n");
 
     cmdctx = talloc_zero(client, struct autofs_cmd_ctx);
     if (!cmdctx) {
@@ -1209,7 +1209,7 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
 
     actx = talloc_get_type(client->rctx->pvt_ctx, struct autofs_ctx);
     if (!actx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Missing autofs context\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing autofs context\n");
         return EIO;
     }
 
@@ -1263,14 +1263,14 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requested data of map %s key %s\n", cmdctx->mapname, cmdctx->key));
+          "Requested data of map %s key %s\n", cmdctx->mapname, cmdctx->key);
 
     ret = get_autofs_map(actx, cmdctx->mapname, &map);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Performing implicit setautomntent\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Performing implicit setautomntent\n");
         req = setautomntent_send(cmdctx, cmdctx->mapname, cmdctx);
         if (req == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("setautomntent_send failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "setautomntent_send failed\n");
             ret = EIO;
             goto done;
         }
@@ -1280,16 +1280,16 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("An unexpected error occurred: [%d][%s]\n",
-              ret, strerror(ret)));
+              "An unexpected error occurred: [%d][%s]\n",
+              ret, strerror(ret));
         goto done;
     }
 
     if (map->ready == false) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Performing implicit setautomntent\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Performing implicit setautomntent\n");
         req = setautomntent_send(cmdctx, cmdctx->mapname, cmdctx);
         if (req == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("setautomntent_send failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "setautomntent_send failed\n");
             ret = EIO;
             goto done;
         }
@@ -1298,13 +1298,13 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
         ret = EOK;
         goto done;
     } else if (map->found == false) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("negative cache hit\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "negative cache hit\n");
         ret = ENOENT;
         goto done;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("Looking up value for [%s] in [%s]\n", cmdctx->key, map->mapname));
+          "Looking up value for [%s] in [%s]\n", cmdctx->key, map->mapname);
 
     ret = getautomntbyname_process(cmdctx, map, cmdctx->key);
 
@@ -1326,9 +1326,9 @@ getautomntbyname_implicit_done(struct tevent_req *req)
     talloc_zfree(req);
     if (ret != EOK) {
         if (ret != ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("setautomntent_recv failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "setautomntent_recv failed\n");
         } else {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("No such map\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "No such map\n");
         }
         goto done;
     }
@@ -1336,13 +1336,13 @@ getautomntbyname_implicit_done(struct tevent_req *req)
     ret = get_autofs_map(actx, cmdctx->mapname, &map);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Cannot get map after setautomntent succeeded?\n"));
+              "Cannot get map after setautomntent succeeded?\n");
         goto done;
     }
 
     if (map->ready == false) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Map not ready after setautomntent succeeded\n"));
+              "Map not ready after setautomntent succeeded\n");
         goto done;
     }
 
@@ -1376,7 +1376,7 @@ getautomntbyname_process(struct autofs_cmd_ctx *cmdctx,
     }
 
     if (!map->map || !map->entries || !map->entries[0]) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("No entries found\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "No entries found\n");
         ret = sss_cmd_empty_packet(client->creq->out);
         if (ret != EOK) {
             return autofs_cmd_done(cmdctx, ret);
@@ -1388,18 +1388,18 @@ getautomntbyname_process(struct autofs_cmd_ctx *cmdctx,
         k = ldb_msg_find_attr_as_string(map->entries[i],
                                         SYSDB_AUTOFS_ENTRY_KEY, NULL);
         if (!k) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Skipping incomplete entry\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Skipping incomplete entry\n");
             continue;
         }
 
         if (strcmp(k, key) == 0) {
-            DEBUG(SSSDBG_TRACE_INTERNAL, ("Found key [%s]\n", key));
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Found key [%s]\n", key);
             break;
         }
     }
 
     if (i >= map->entry_count) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("No key named [%s] found\n", key));
+        DEBUG(SSSDBG_MINOR_FAILURE, "No key named [%s] found\n", key);
         ret = sss_cmd_empty_packet(client->creq->out);
         if (ret != EOK) {
             return autofs_cmd_done(cmdctx, ret);
@@ -1444,7 +1444,7 @@ sss_autofs_cmd_endautomntent(struct cli_ctx *client)
 {
     errno_t ret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("endautomntent called\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "endautomntent called\n");
 
     /* create response packet */
     ret = sss_packet_new(client->creq, 0,

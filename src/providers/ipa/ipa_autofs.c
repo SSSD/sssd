@@ -44,7 +44,7 @@ int ipa_autofs_init(struct be_ctx *be_ctx,
 {
     int ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing autofs LDAP back end\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs LDAP back end\n");
 
     *ops = &ipa_autofs_ops;
     *pvt_data = id_ctx->sdap_id_ctx;
@@ -52,7 +52,7 @@ int ipa_autofs_init(struct be_ctx *be_ctx,
     ret = ipa_get_autofs_options(id_ctx->ipa_options, be_ctx->cdb,
                                  be_ctx->conf_path, &id_ctx->sdap_id_ctx->opts);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get IPA autofs options\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get IPA autofs options\n");
         return ret;
     }
 

@@ -76,8 +76,8 @@ sdap_get_ad_match_rule_members_send(TALLOC_CTX *mem_ctx,
                                NULL, &state->attrs, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not build attribute map: [%s]\n",
-               strerror(ret)));
+              "Could not build attribute map: [%s]\n",
+               strerror(ret));
         goto immediate;
     }
 
@@ -85,8 +85,8 @@ sdap_get_ad_match_rule_members_send(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_get_string(group, SYSDB_ORIG_DN, &group_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not retrieve originalDN for group: %s\n",
-               strerror(ret)));
+              "Could not retrieve originalDN for group: %s\n",
+               strerror(ret));
         goto immediate;
     }
 
@@ -94,8 +94,8 @@ sdap_get_ad_match_rule_members_send(TALLOC_CTX *mem_ctx,
     ret = sss_filter_sanitize(state, group_dn, &sanitized_group_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not sanitize group DN: %s\n",
-               strerror(ret)));
+              "Could not sanitize group DN: %s\n",
+               strerror(ret));
         goto immediate;
     }
 
@@ -119,8 +119,8 @@ sdap_get_ad_match_rule_members_send(TALLOC_CTX *mem_ctx,
     ret = sdap_get_ad_match_rule_members_next_base(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("sdap_get_ad_match_rule_members_next_base failed: [%s]\n",
-               strerror(ret)));
+              "sdap_get_ad_match_rule_members_next_base failed: [%s]\n",
+               strerror(ret));
         goto immediate;
     }
 
@@ -149,8 +149,8 @@ sdap_get_ad_match_rule_members_next_base(struct tevent_req *req)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Searching for users with base [%s]\n",
-           state->search_bases[state->base_iter]->basedn));
+          "Searching for users with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn);
 
     subreq = sdap_get_generic_send(
             state, state->ev, state->opts, state->sh,
@@ -183,13 +183,13 @@ sdap_get_ad_match_rule_members_step(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("LDAP search failed: [%s]\n", sss_strerror(ret)));
+              "LDAP search failed: [%s]\n", sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Search for users returned %zu results\n", count));
+          "Search for users returned %zu results\n", count);
 
     /* Add this batch of users to the list */
     if (count > 0) {
@@ -225,7 +225,7 @@ sdap_get_ad_match_rule_members_step(struct tevent_req *subreq)
     /* No more search bases. We're done here. */
     if (state->count == 0) {
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("No users matched in any search base\n"));
+              "No users matched in any search base\n");
         tevent_req_error(req, ENOENT);
         return;
     }

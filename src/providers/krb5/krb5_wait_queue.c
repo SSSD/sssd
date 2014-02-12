@@ -47,7 +47,7 @@ static void wait_queue_auth(struct tevent_context *ev, struct tevent_timer *te,
 
     req = krb5_auth_send(qe->be_req, be_ctx->ev, be_ctx, qe->pd, qe->krb5_ctx);
     if (req == NULL) {
-        DEBUG(1, ("krb5_auth_send failed.\n"));
+        DEBUG(1, "krb5_auth_send failed.\n");
     } else {
         tevent_req_set_callback(req, krb5_pam_handler_auth_done, qe->be_req);
     }
@@ -66,7 +66,7 @@ static void wait_queue_del_cb(hash_entry_t *entry, hash_destroy_enum type,
         return;
     }
 
-    DEBUG(1, ("Unexpected value type [%d].\n", entry->value.type));
+    DEBUG(1, "Unexpected value type [%d].\n", entry->value.type);
 }
 
 errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
@@ -83,7 +83,7 @@ errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
                                  &krb5_ctx->wait_queue_hash, 0, 0, 0, 0,
                                  wait_queue_del_cb, NULL);
         if (ret != EOK) {
-            DEBUG(1, ("sss_hash_create failed"));
+            DEBUG(1, "sss_hash_create failed");
             return ret;
         }
     }
@@ -95,7 +95,7 @@ errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
     switch (ret) {
         case HASH_SUCCESS:
             if (value.type != HASH_VALUE_PTR) {
-                DEBUG(1, ("Unexpected hash value type.\n"));
+                DEBUG(1, "Unexpected hash value type.\n");
                 return EINVAL;
             }
 
@@ -103,7 +103,7 @@ errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
 
             queue_entry = talloc_zero(head, struct queue_entry);
             if (queue_entry == NULL) {
-                DEBUG(1, ("talloc_zero failed.\n"));
+                DEBUG(1, "talloc_zero failed.\n");
                 return ENOMEM;
             }
 
@@ -118,21 +118,21 @@ errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
             value.type = HASH_VALUE_PTR;
             head = talloc_zero(krb5_ctx->wait_queue_hash, struct queue_entry);
             if (head == NULL) {
-                DEBUG(1, ("talloc_zero failed.\n"));
+                DEBUG(1, "talloc_zero failed.\n");
                 return ENOMEM;
             }
             value.ptr = head;
 
             ret = hash_enter(krb5_ctx->wait_queue_hash, &key, &value);
             if (ret != HASH_SUCCESS) {
-                DEBUG(1, ("hash_enter failed.\n"));
+                DEBUG(1, "hash_enter failed.\n");
                 talloc_free(head);
                 return EIO;
             }
 
             break;
         default:
-            DEBUG(1, ("hash_lookup failed.\n"));
+            DEBUG(1, "hash_lookup failed.\n");
             return EIO;
     }
 
@@ -154,7 +154,7 @@ void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
     struct be_ctx *be_ctx;
 
     if (krb5_ctx->wait_queue_hash == NULL) {
-        DEBUG(1, ("No wait queue available.\n"));
+        DEBUG(1, "No wait queue available.\n");
         return;
     }
 
@@ -166,14 +166,14 @@ void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
     switch (ret) {
         case HASH_SUCCESS:
             if (value.type != HASH_VALUE_PTR) {
-                DEBUG(1, ("Unexpected hash value type.\n"));
+                DEBUG(1, "Unexpected hash value type.\n");
                 return;
             }
 
             head = talloc_get_type(value.ptr, struct queue_entry);
 
             if (head->next == NULL) {
-                DEBUG(7, ("Wait queue for user [%s] is empty.\n", username));
+                DEBUG(7, "Wait queue for user [%s] is empty.\n", username);
             } else {
                 queue_entry = head->next;
 
@@ -184,7 +184,7 @@ void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
                                       tevent_timeval_current(), wait_queue_auth,
                                       queue_entry);
                 if (te == NULL) {
-                    DEBUG(1, ("tevent_add_timer failed.\n"));
+                    DEBUG(1, "tevent_add_timer failed.\n");
                 } else {
                     return;
                 }
@@ -192,16 +192,16 @@ void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
 
             ret = hash_delete(krb5_ctx->wait_queue_hash, &key);
             if (ret != HASH_SUCCESS) {
-                DEBUG(1, ("Failed to remove wait queue for user [%s].\n",
-                          username));
+                DEBUG(1, "Failed to remove wait queue for user [%s].\n",
+                          username);
             }
 
             break;
         case HASH_ERROR_KEY_NOT_FOUND:
-            DEBUG(1, ("No wait queue for user [%s] found.\n", username));
+            DEBUG(1, "No wait queue for user [%s] found.\n", username);
             break;
         default:
-            DEBUG(1, ("hash_lookup failed.\n"));
+            DEBUG(1, "hash_lookup failed.\n");
     }
 
     return;

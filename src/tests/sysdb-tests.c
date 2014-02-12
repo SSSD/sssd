@@ -99,7 +99,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
         talloc_free(test_ctx);
         return ENOMEM;
     }
-    DEBUG(3, ("CONFDB: %s\n", conf_db));
+    DEBUG(3, "CONFDB: %s\n", conf_db);
 
     /* Connect to the conf db */
     ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
@@ -1808,7 +1808,7 @@ static void cached_authentication_with_expiration(const char *username,
 
     now = time(NULL);
     expected_expire_date = now + (24 * 60 * 60);
-    DEBUG(9, ("Setting SYSDB_LAST_ONLINE_AUTH to [%lld].\n", (long long) now));
+    DEBUG(9, "Setting SYSDB_LAST_ONLINE_AUTH to [%lld].\n", (long long) now);
 
     data->attrs = sysdb_new_attrs(data);
     ret = sysdb_attrs_add_time_t(data->attrs, SYSDB_LAST_ONLINE_AUTH, now);

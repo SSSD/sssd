@@ -31,12 +31,12 @@ errno_t become_user(uid_t uid, gid_t gid)
     int ret;
 
     DEBUG(SSSDBG_FUNC_DATA,
-          ("Trying to become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid));
+          "Trying to become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
 
     /* skip call if we already are the requested user */
     cuid = geteuid();
     if (uid == cuid) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Already user [%"SPRIuid"].\n", uid));
+        DEBUG(SSSDBG_FUNC_DATA, "Already user [%"SPRIuid"].\n", uid);
         return EOK;
     }
 
@@ -45,7 +45,7 @@ errno_t become_user(uid_t uid, gid_t gid)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("setgroups failed [%d][%s].\n", ret, strerror(ret)));
+              "setgroups failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
 
@@ -54,7 +54,7 @@ errno_t become_user(uid_t uid, gid_t gid)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("setresgid failed [%d][%s].\n", ret, strerror(ret)));
+              "setresgid failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
 
@@ -64,7 +64,7 @@ errno_t become_user(uid_t uid, gid_t gid)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("setresuid failed [%d][%s].\n", ret, strerror(ret)));
+              "setresuid failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
 
@@ -91,22 +91,22 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
     int size;
     int ret;
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Switch user to [%d][%d].\n", uid, gid));
+    DEBUG(SSSDBG_FUNC_DATA, "Switch user to [%d][%d].\n", uid, gid);
 
     if (saved_creds) {
         /* save current user credentials */
         size = getgroups(0, NULL);
         if (size == -1) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Getgroups failed! (%d, %s)\n",
-                                        ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Getgroups failed! (%d, %s)\n",
+                                        ret, strerror(ret));
             goto done;
         }
 
         ssc = talloc_size(mem_ctx,
                           (sizeof(struct sss_creds) + size * sizeof(gid_t)));
         if (!ssc) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation failed!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Allocation failed!\n");
             ret = ENOMEM;
             goto done;
         }
@@ -115,8 +115,8 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
         size = getgroups(ssc->num_gids, ssc->gids);
         if (size == -1) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Getgroups failed! (%d, %s)\n",
-                                        ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Getgroups failed! (%d, %s)\n",
+                                        ret, strerror(ret));
             /* free ssc immediately otherwise the code will try to restore
              * wrong creds */
             talloc_zfree(ssc);
@@ -136,7 +136,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
         if (ret == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("setresuid failed [%d][%s].\n", ret, strerror(ret)));
+                  "setresuid failed [%d][%s].\n", ret, strerror(ret));
             goto done;
         }
     }
@@ -150,7 +150,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("setgroups failed [%d][%s].\n", ret, strerror(ret)));
+              "setgroups failed [%d][%s].\n", ret, strerror(ret));
     }
 
     /* change gid now, (leaves saved gid to current, so we can restore) */
@@ -158,7 +158,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("setresgid failed [%d][%s].\n", ret, strerror(ret)));
+              "setresgid failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
 
@@ -168,7 +168,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
         if (ret == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("setresuid failed [%d][%s].\n", ret, strerror(ret)));
+                  "setresuid failed [%d][%s].\n", ret, strerror(ret));
             goto done;
         }
     }

@@ -129,7 +129,7 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
         /* does not exist, allocate new one */
         watch = talloc_zero(conn, struct sbus_watch_ctx);
         if (!watch) {
-            DEBUG(0, ("Out of Memory!\n"));
+            DEBUG(0, "Out of Memory!\n");
             return FALSE;
         }
         watch->conn = conn;
@@ -169,7 +169,7 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
                                watch, fd, event_flags,
                                sbus_watch_handler, watch);
     if (!watch->fde) {
-        DEBUG(0, ("Failed to set up fd event!\n"));
+        DEBUG(0, "Failed to set up fd event!\n");
         talloc_zfree(watch);
         return FALSE;
     }
@@ -177,11 +177,11 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
     DLIST_ADD(conn->watch_list, watch);
     talloc_set_destructor((TALLOC_CTX *)watch, watch_destructor);
 
-    DEBUG(8, ("%p/%p (%d), %s/%s (%s)\n",
+    DEBUG(8, "%p/%p (%d), %s/%s (%s)\n",
               watch, dbus_watch, fd,
               ((flags & DBUS_WATCH_READABLE)?"R":"-"),
               ((flags & DBUS_WATCH_WRITABLE)?"W":"-"),
-              enabled?"enabled":"disabled"));
+              enabled?"enabled":"disabled");
 
     return TRUE;
 }
@@ -205,7 +205,7 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
     watch_data = dbus_watch_get_data(dbus_watch);
     watch = talloc_get_type(watch_data, struct sbus_watch_ctx);
     if (!watch) {
-        DEBUG(2, ("[%p] does not carry watch context?!\n", dbus_watch));
+        DEBUG(2, "[%p] does not carry watch context?!\n", dbus_watch);
         /* abort ? */
         return;
     }
@@ -234,11 +234,11 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
 #endif
     }
     DEBUG(SSSDBG_TRACE_ALL,
-          ("%p/%p (%d), %s/%s (%s)\n",
+          "%p/%p (%d), %s/%s (%s)\n",
            watch, dbus_watch, fd,
            ((flags & DBUS_WATCH_READABLE)?"R":"-"),
            ((flags & DBUS_WATCH_WRITABLE)?"W":"-"),
-           enabled?"enabled":"disabled"));
+           enabled?"enabled":"disabled");
 }
 
 /*
@@ -254,10 +254,10 @@ void sbus_remove_watch(DBusWatch *dbus_watch, void *data)
     watch_data = dbus_watch_get_data(dbus_watch);
     watch = talloc_get_type(watch_data, struct sbus_watch_ctx);
 
-    DEBUG(8, ("%p/%p\n", watch, dbus_watch));
+    DEBUG(8, "%p/%p\n", watch, dbus_watch);
 
     if (!watch) {
-        DEBUG(2, ("DBUS trying to remove unknown watch!\n"));
+        DEBUG(2, "DBUS trying to remove unknown watch!\n");
         return;
     }
 
@@ -313,7 +313,7 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
     struct sbus_timeout_ctx *timeout;
     struct timeval tv;
 
-    DEBUG(8, ("%p\n", dbus_timeout));
+    DEBUG(8, "%p\n", dbus_timeout);
 
     if (!dbus_timeout_get_enabled(dbus_timeout)) {
         return TRUE;
@@ -323,7 +323,7 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
 
     timeout = talloc_zero(conn, struct sbus_timeout_ctx);
     if (!timeout) {
-        DEBUG(0, ("Out of Memory!\n"));
+        DEBUG(0, "Out of Memory!\n");
         return FALSE;
     }
     timeout->dbus_timeout = dbus_timeout;
@@ -332,7 +332,7 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
     timeout->te = tevent_add_timer(conn->ev, timeout, tv,
                                    sbus_timeout_handler, timeout);
     if (!timeout->te) {
-        DEBUG(0, ("Failed to set up timeout event!\n"));
+        DEBUG(0, "Failed to set up timeout event!\n");
         return FALSE;
     }
 
@@ -349,7 +349,7 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
  */
 void sbus_toggle_timeout(DBusTimeout *dbus_timeout, void *data)
 {
-    DEBUG(8, ("%p\n", dbus_timeout));
+    DEBUG(8, "%p\n", dbus_timeout);
 
     if (dbus_timeout_get_enabled(dbus_timeout)) {
         sbus_add_timeout(dbus_timeout, data);
@@ -366,7 +366,7 @@ void sbus_remove_timeout(DBusTimeout *dbus_timeout, void *data)
 {
     void *timeout;
 
-    DEBUG(8, ("%p\n", dbus_timeout));
+    DEBUG(8, "%p\n", dbus_timeout);
 
     timeout = dbus_timeout_get_data(dbus_timeout);
 

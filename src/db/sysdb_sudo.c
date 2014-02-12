@@ -112,8 +112,8 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
         for (i=0; values[i] ; i++) {
             ret = sysdb_sudo_convert_time(values[i], &converted);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format in rule [%s]!\n",
-                      name));
+                DEBUG(SSSDBG_MINOR_FAILURE, "Invalid time format in rule [%s]!\n",
+                      name);
                 goto done;
             }
 
@@ -135,8 +135,8 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
         for (i=0; values[i] ; i++) {
             ret = sysdb_sudo_convert_time(values[i], &converted);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid time format in rule [%s]!\n",
-                      name));
+                DEBUG(SSSDBG_MINOR_FAILURE, "Invalid time format in rule [%s]!\n",
+                      name);
                 goto done;
             }
 
@@ -157,11 +157,11 @@ static errno_t sysdb_sudo_check_time(struct sysdb_attrs *rule,
     }
 
     if (*result) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Rule [%s] matches time restrictions\n",
-                                 name));
+        DEBUG(SSSDBG_TRACE_ALL, "Rule [%s] matches time restrictions\n",
+                                 name);
     } else {
-        DEBUG(SSSDBG_TRACE_ALL, ("Rule [%s] does not match time "
-                                 "restrictions\n", name));
+        DEBUG(SSSDBG_TRACE_ALL, "Rule [%s] does not match time "
+                                 "restrictions\n", name);
     }
 
     ret = EOK;
@@ -333,14 +333,14 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
                                     username, attrs, &msg);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error looking up user %s\n", username));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up user %s\n", username);
         goto done;
     }
 
     if (_uid != NULL) {
         uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
         if (!uid) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("A user with no UID?\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "A user with no UID?\n");
             ret = EIO;
             goto done;
         }
@@ -397,8 +397,8 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
             sysdb_groupnames[num_groups] = NULL;
         } else if (ret != ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Error looking up group [%d]: %s\n",
-                                        ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up group [%d]: %s\n",
+                                        ret, strerror(ret));
             goto done;
         }
     }
@@ -425,27 +425,27 @@ sysdb_save_sudorule(struct sysdb_ctx *sysdb,
 {
     errno_t ret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Adding sudo rule %s\n", rule_name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Adding sudo rule %s\n", rule_name);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS,
                                  SYSDB_SUDO_CACHE_OC);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set rule object class [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set rule object class [%d]: %s\n",
+              ret, strerror(ret));
         return ret;
     }
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, rule_name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set name attribute [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set name attribute [%d]: %s\n",
+              ret, strerror(ret));
         return ret;
     }
 
     ret = sysdb_store_custom(sysdb, domain, rule_name, SUDORULE_SUBDIR, attrs);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_custom failed [%d]: %s\n",
+              ret, strerror(ret));
         return ret;
     }
 
@@ -499,7 +499,7 @@ static errno_t sysdb_sudo_set_refresh_time(struct sysdb_ctx *sysdb,
         }
     } else if (res->count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Got more than one reply for base search!\n"));
+              "Got more than one reply for base search!\n");
         ret = EIO;
         goto done;
     } else {
@@ -571,7 +571,7 @@ static errno_t sysdb_sudo_get_refresh_time(struct sysdb_ctx *sysdb,
         goto done;
     } else if (res->count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Got more than one reply for base search!\n"));
+              "Got more than one reply for base search!\n");
         ret = EIO;
         goto done;
     }
@@ -618,7 +618,7 @@ static errno_t sysdb_sudo_purge_all(struct sysdb_ctx *sysdb,
 
     ret = sysdb_delete_recursive(sysdb, base_dn, true);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_recursive failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_delete_recursive failed.\n");
         goto done;
     }
 
@@ -632,7 +632,7 @@ errno_t sysdb_sudo_purge_byname(struct sysdb_ctx *sysdb,
                                 struct sss_domain_info *domain,
                                 const char *name)
 {
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Deleting sudo rule %s\n", name));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Deleting sudo rule %s\n", name);
     return sysdb_delete_custom(sysdb, domain, name, SUDORULE_SUBDIR);
 }
 
@@ -666,17 +666,17 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
                               SUDORULE_SUBDIR, attrs,
                               &count, &msgs);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No rules matched\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "No rules matched\n");
         ret = EOK;
         goto done;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error looking up SUDO rules"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up SUDO rules");
         goto done;
     }
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -684,21 +684,21 @@ errno_t sysdb_sudo_purge_byfilter(struct sysdb_ctx *sysdb,
     for (i = 0; i < count; i++) {
         name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
         if (name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("A rule without a name?\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "A rule without a name?\n");
             /* skip this one but still delete other entries */
             continue;
         }
 
         ret = sysdb_sudo_purge_byname(sysdb, domain, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not delete rule %s\n", name));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not delete rule %s\n", name);
             goto done;
         }
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -707,7 +707,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
         }
     }
 

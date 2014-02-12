@@ -130,7 +130,7 @@ static struct tevent_req *ad_get_dc_servers_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct ad_get_dc_servers_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -146,8 +146,8 @@ static struct tevent_req *ad_get_dc_servers_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Looking up domain controllers in domain %s\n",
-                              domain));
+    DEBUG(SSSDBG_TRACE_FUNC, "Looking up domain controllers in domain %s\n",
+                              domain);
 
     subreq = fo_discover_srv_send(state, ev, resolv_ctx,
                                   "ldap", FO_PROTO_TCP, domains);
@@ -184,8 +184,8 @@ static void ad_get_dc_servers_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Found %zu domain controllers in domain %s\n",
-                              state->num_servers, domain));
+    DEBUG(SSSDBG_TRACE_FUNC, "Found %zu domain controllers in domain %s\n",
+                              state->num_servers, domain);
 
 done:
     if (ret != EOK) {
@@ -248,7 +248,7 @@ struct tevent_req *ad_get_client_site_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct ad_get_client_site_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -336,8 +336,8 @@ static void ad_get_client_site_connect_done(struct tevent_req *subreq)
     ret = sdap_connect_host_recv(state, subreq, &state->sh);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to connect to domain controller "
-              "[%s:%d]\n", state->dc.host, state->dc.port));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to connect to domain controller "
+              "[%s:%d]\n", state->dc.host, state->dc.port);
 
         ret = ad_get_client_site_next_dc(req);
         if (ret == EOK) {
@@ -404,7 +404,7 @@ static errno_t ad_get_client_site_parse_ndr(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -413,7 +413,7 @@ static errno_t ad_get_client_site_parse_ndr(TALLOC_CTX *mem_ctx,
 
     ndr_pull = ndr_pull_init_blob(&blob, mem_ctx);
     if (ndr_pull == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_init_blob() failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ndr_pull_init_blob() failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -421,15 +421,15 @@ static errno_t ad_get_client_site_parse_ndr(TALLOC_CTX *mem_ctx,
     ndr_err = ndr_pull_netlogon_samlogon_response(ndr_pull, NDR_SCALARS,
                                                   &response);
     if (!NDR_ERR_CODE_IS_SUCCESS(ndr_err)) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_netlogon_samlogon_response() "
-                                  "failed [%d]\n", ndr_err));
+        DEBUG(SSSDBG_OP_FAILURE, "ndr_pull_netlogon_samlogon_response() "
+                                  "failed [%d]\n", ndr_err);
         ret = EBADMSG;
         goto done;
     }
 
     if (!(response.ntver & NETLOGON_NT_VERSION_5EX)) {
-        DEBUG(SSSDBG_OP_FAILURE, ("This NT version does not provide site "
-                                  "information [%x]\n", response.ntver));
+        DEBUG(SSSDBG_OP_FAILURE, "This NT version does not provide site "
+                                  "information [%x]\n", response.ntver);
         ret = EBADMSG;
         goto done;
     }
@@ -487,7 +487,7 @@ static void ad_get_client_site_done(struct tevent_req *subreq)
     /* we're done with this LDAP, close connection */
     talloc_zfree(state->sh);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Unable to get netlogon information\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to get netlogon information\n");
 
         ret = ad_get_client_site_next_dc(req);
         if (ret == EOK) {
@@ -497,23 +497,23 @@ static void ad_get_client_site_done(struct tevent_req *subreq)
     }
 
     if (reply_count == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("No netlogon information retrieved\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "No netlogon information retrieved\n");
         ret = ENOENT;
         goto done;
     }
 
     ret = sysdb_attrs_get_el(reply[0], AD_AT_NETLOGON, &el);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_el() failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el() failed\n");
         goto done;
     }
 
     if (el->num_values == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("netlogon has no value\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "netlogon has no value\n");
         ret = ENOENT;
         goto done;
     } else if (el->num_values > 1) {
-        DEBUG(SSSDBG_OP_FAILURE, ("More than one netlogon value?\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "More than one netlogon value?\n");
         ret = EIO;
         goto done;
     }
@@ -522,13 +522,13 @@ static void ad_get_client_site_done(struct tevent_req *subreq)
                                        el->values[0].length, &state->site,
                                        &state->forest);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Unable to retrieve site name [%d]: %s\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve site name [%d]: %s\n",
+                                  ret, strerror(ret));
         ret = ENOENT;
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Found site: %s\n", state->site));
+    DEBUG(SSSDBG_TRACE_FUNC, "Found site: %s\n", state->site);
 
 done:
     if (ret != EOK) {
@@ -645,7 +645,7 @@ struct tevent_req *ad_srv_plugin_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct ad_srv_plugin_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -680,7 +680,7 @@ struct tevent_req *ad_srv_plugin_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("About to find domain controllers\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "About to find domain controllers\n");
 
     subreq = ad_get_dc_servers_send(state, ev, ctx->be_res->resolv,
                                     state->discovery_domain);
@@ -717,7 +717,7 @@ static void ad_srv_plugin_dcs_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("About to locate suitable site\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "About to locate suitable site\n");
 
     subreq = ad_get_client_site_send(state, state->ev,
                                      state->ctx->be_res,
@@ -784,8 +784,8 @@ static void ad_srv_plugin_site_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("About to discover primary and "
-                              "backup servers\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "About to discover primary and "
+                              "backup servers\n");
 
     subreq = fo_discover_servers_send(state, state->ev,
                                       state->ctx->be_res->resolv,
@@ -830,15 +830,15 @@ static void ad_srv_plugin_servers_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Got %zu primary and %zu backup servers\n",
-          state->num_primary_servers, state->num_backup_servers));
+    DEBUG(SSSDBG_TRACE_FUNC, "Got %zu primary and %zu backup servers\n",
+          state->num_primary_servers, state->num_backup_servers);
 
     ret = ad_sort_servers_by_dns(state, state->discovery_domain,
                                  &state->primary_servers,
                                  state->num_primary_servers);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to sort primary servers by DNS"
-                                     "[%d]: %s\n", ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to sort primary servers by DNS"
+                                     "[%d]: %s\n", ret, sss_strerror(ret));
         /* continue */
     }
 
@@ -846,8 +846,8 @@ static void ad_srv_plugin_servers_done(struct tevent_req *subreq)
                                  &state->backup_servers,
                                  state->num_backup_servers);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to sort backup servers by DNS"
-                                     "[%d]: %s\n", ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to sort backup servers by DNS"
+                                     "[%d]: %s\n", ret, sss_strerror(ret));
         /* continue */
     }
 

@@ -60,7 +60,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     struct ldb_result *cached_pwd = NULL;
     const char *real_name = NULL;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Searching user by name (%s)\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Searching user by name (%s)\n", name);
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -86,7 +86,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     ret = handle_getpw_result(status, pwd, dom, &del_user);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("getpwnam failed [%d]: %s\n", ret, strerror(ret)));
+              "getpwnam failed [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -103,15 +103,15 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
         ret = sysdb_getpwuid(tmpctx, sysdb, dom, uid, &cached_pwd);
         if (ret != EOK) {
             /* Non-fatal, attempt to canonicalize online */
-            DEBUG(SSSDBG_TRACE_FUNC, ("Request to cache failed [%d]: %s\n",
-                  ret, strerror(ret)));
+            DEBUG(SSSDBG_TRACE_FUNC, "Request to cache failed [%d]: %s\n",
+                  ret, strerror(ret));
         }
 
         if (ret == EOK && cached_pwd->count == 1) {
             real_name = ldb_msg_find_attr_as_string(cached_pwd->msgs[0],
                                                     SYSDB_NAME, NULL);
             if (!real_name) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Cached user has no name?\n"));
+                DEBUG(SSSDBG_MINOR_FAILURE, "Cached user has no name?\n");
             }
         }
     }
@@ -123,7 +123,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
         ret = handle_getpw_result(status, pwd, dom, &del_user);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE,
-                ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
+                "getpwuid failed [%d]: %s\n", ret, strerror(ret));
             goto done;
         }
 
@@ -143,8 +143,8 @@ done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("proxy -> getpwnam_r failed for '%s' <%d>: %s\n",
-               name, ret, strerror(ret)));
+              "proxy -> getpwnam_r failed for '%s' <%d>: %s\n",
+               name, ret, strerror(ret));
     }
     return ret;
 }
@@ -163,14 +163,14 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
     switch (status) {
     case NSS_STATUS_NOTFOUND:
 
-        DEBUG(SSSDBG_MINOR_FAILURE, ("User not found.\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "User not found.\n");
         *del_user = true;
         break;
 
     case NSS_STATUS_SUCCESS:
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("User found: (%s, %"SPRIuid", %"SPRIgid")\n",
-              pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
+        DEBUG(SSSDBG_TRACE_FUNC, "User found: (%s, %"SPRIuid", %"SPRIgid")\n",
+              pwd->pw_name, pwd->pw_uid, pwd->pw_gid);
 
         /* uid=0 or gid=0 are invalid values */
         /* also check that the id is in the valid range for this domain */
@@ -178,7 +178,7 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
             OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
 
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("User filtered out! (id out of range)\n"));
+                  "User filtered out! (id out of range)\n");
             *del_user = true;
             break;
         }
@@ -186,12 +186,12 @@ handle_getpw_result(enum nss_status status, struct passwd *pwd,
 
     case NSS_STATUS_UNAVAIL:
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Remote back end is not available. Entering offline mode\n"));
+              "Remote back end is not available. Entering offline mode\n");
         ret = ENXIO;
         break;
 
     default:
-        DEBUG(SSSDBG_OP_FAILURE, ("Unknown return code %d\n", status));
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown return code %d\n", status);
         ret = EIO;
         break;
     }
@@ -207,8 +207,8 @@ delete_user(struct sysdb_ctx *sysdb,
     int ret = EOK;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("User %s does not exist (or is invalid) on remote server,"
-           " deleting!\n", name));
+          "User %s does not exist (or is invalid) on remote server,"
+           " deleting!\n", name);
     ret = sysdb_delete_user(sysdb, domain, name, uid);
     if (ret == ENOENT) {
         ret = EOK;
@@ -242,7 +242,7 @@ static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
     if (lowercase || alias) {
         attrs = sysdb_new_attrs(NULL);
         if (!attrs) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error ?!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
             return ENOMEM;
         }
     }
@@ -250,7 +250,7 @@ static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
     if (lowercase) {
         ret = sysdb_attrs_add_lc_name_alias(attrs, pwd->pw_name);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
             talloc_zfree(attrs);
             return ret;
         }
@@ -265,7 +265,7 @@ static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
 
         ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, cased_alias);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
             talloc_zfree(attrs);
             return ret;
         }
@@ -286,7 +286,7 @@ static int save_user(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                            0);
     talloc_zfree(attrs);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not add user to cache\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not add user to cache\n");
         return ret;
     }
 
@@ -309,7 +309,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     bool del_user = false;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Searching user by uid (%"SPRIuid")\n", uid));
+    DEBUG(SSSDBG_TRACE_FUNC, "Searching user by uid (%"SPRIuid")\n", uid);
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -333,7 +333,7 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     ret = handle_getpw_result(status, pwd, dom, &del_user);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
+              "getpwuid failed [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -349,8 +349,8 @@ done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("proxy -> getpwuid_r failed for '%"SPRIuid"' <%d>: %s\n",
-               uid, ret, strerror(ret)));
+              "proxy -> getpwuid_r failed for '%"SPRIuid"' <%d>: %s\n",
+               uid, ret, strerror(ret));
     }
     return ret;
 }
@@ -373,7 +373,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
     errno_t sret;
     bool again;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Enumerating users\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Enumerating users\n");
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -395,7 +395,7 @@ static int enum_users(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -436,11 +436,11 @@ static int enum_users(TALLOC_CTX *mem_ctx,
             case NSS_STATUS_NOTFOUND:
 
                 /* we are done here */
-                DEBUG(SSSDBG_TRACE_LIBS, ("Enumeration completed.\n"));
+                DEBUG(SSSDBG_TRACE_LIBS, "Enumeration completed.\n");
 
                 ret = sysdb_transaction_commit(sysdb);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
                     goto done;
                 }
                 in_transaction = false;
@@ -449,8 +449,8 @@ static int enum_users(TALLOC_CTX *mem_ctx,
             case NSS_STATUS_SUCCESS:
 
                 DEBUG(SSSDBG_TRACE_LIBS,
-                      ("User found (%s, %"SPRIuid", %"SPRIgid")\n",
-                       pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
+                      "User found (%s, %"SPRIuid", %"SPRIgid")\n",
+                       pwd->pw_name, pwd->pw_uid, pwd->pw_gid);
 
                 /* uid=0 or gid=0 are invalid values */
                 /* also check that the id is in the valid range for this domain
@@ -458,8 +458,8 @@ static int enum_users(TALLOC_CTX *mem_ctx,
                 if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
                     OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
 
-                    DEBUG(SSSDBG_OP_FAILURE, ("User [%s] filtered out! (id out"
-                        " of range)\n", pwd->pw_name));
+                    DEBUG(SSSDBG_OP_FAILURE, "User [%s] filtered out! (id out"
+                        " of range)\n", pwd->pw_name);
 
                     again = true;
                     break;
@@ -470,8 +470,8 @@ static int enum_users(TALLOC_CTX *mem_ctx,
                 if (ret) {
                     /* Do not fail completely on errors.
                      * Just report the failure to save and go on */
-                    DEBUG(SSSDBG_OP_FAILURE, ("Failed to store user %s."
-                                " Ignoring.\n", pwd->pw_name));
+                    DEBUG(SSSDBG_OP_FAILURE, "Failed to store user %s."
+                                " Ignoring.\n", pwd->pw_name);
                 }
                 again = true;
                 break;
@@ -483,8 +483,8 @@ static int enum_users(TALLOC_CTX *mem_ctx,
 
             default:
                 ret = EIO;
-                DEBUG(SSSDBG_OP_FAILURE, ("proxy -> getpwent_r failed (%d)[%s]"
-                            "\n", ret, strerror(ret)));
+                DEBUG(SSSDBG_OP_FAILURE, "proxy -> getpwent_r failed (%d)[%s]"
+                            "\n", ret, strerror(ret));
                 break;
         }
     } while (again);
@@ -494,7 +494,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     ctx->ops.endpwent();
@@ -506,16 +506,16 @@ done:
     do { \
         if (DEBUG_IS_SET(debug_get_level(level))) { \
             if (!grp->gr_mem || !grp->gr_mem[0]) { \
-                DEBUG(level, ("Group %s has no members!\n", \
-                              grp->gr_name)); \
+                DEBUG(level, "Group %s has no members!\n", \
+                              grp->gr_name); \
             } else { \
                 int i = 0; \
                 while (grp->gr_mem[i]) { \
                     /* count */ \
                     i++; \
                 } \
-                DEBUG(level, ("Group %s has %d members!\n", \
-                              grp->gr_name, i)); \
+                DEBUG(level, "Group %s has %d members!\n", \
+                              grp->gr_name, i); \
             } \
         } \
     } while(0)
@@ -546,7 +546,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -554,7 +554,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
     if (grp->gr_mem && grp->gr_mem[0]) {
         attrs = sysdb_new_attrs(tmp_ctx);
         if (!attrs) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error ?!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
             ret = ENOMEM;
             goto done;
         }
@@ -563,14 +563,14 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
                 attrs, SYSDB_MEMBER, dom->name,
                 (const char *const *)grp->gr_mem);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not add group members\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not add group members\n");
             goto done;
         }
 
         /* Create ghost users */
         ret = proxy_process_missing_users(sysdb, dom, attrs, grp, now);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not add missing members\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not add missing members\n");
             goto done;
         }
     }
@@ -579,7 +579,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         if (!attrs) {
             attrs = sysdb_new_attrs(tmp_ctx);
             if (!attrs) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Allocation error ?!\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -588,7 +588,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         if (dom->case_sensitive == false) {
             ret = sysdb_attrs_add_lc_name_alias(attrs, grp->gr_name);
             if (ret) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -603,7 +603,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
 
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, cased_alias);
             if (ret) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -617,15 +617,15 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
                             cache_timeout,
                             now);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not add group to cache\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not add group to cache\n");
         goto done;
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not commit transaction: [%s]\n",
-               strerror(ret)));
+              "Could not commit transaction: [%s]\n",
+               strerror(ret));
         goto done;
     }
     in_transaction = false;
@@ -634,7 +634,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -663,28 +663,28 @@ static errno_t proxy_process_missing_users(struct sysdb_ctx *sysdb,
         if (ret == EOK) {
             /* Member already exists in the cache */
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  ("Member [%s] already cached\n", grp->gr_mem[i]));
+                  "Member [%s] already cached\n", grp->gr_mem[i]);
             /* clean up */
             talloc_zfree(msg);
             continue;
         } else if (ret == ENOENT) {
             /* No entry for this user. Create a ghost user */
             DEBUG(SSSDBG_TRACE_LIBS,
-                  ("Member [%s] not cached, creating ghost user entry\n",
-                   grp->gr_mem[i]));
+                  "Member [%s] not cached, creating ghost user entry\n",
+                   grp->gr_mem[i]);
 
             ret = sysdb_attrs_add_string(group_attrs, SYSDB_GHOST, grp->gr_mem[i]);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Cannot store ghost user entry: [%d]: %s\n",
-                       ret, strerror(ret)));
+                      "Cannot store ghost user entry: [%d]: %s\n",
+                       ret, strerror(ret));
                 goto done;
             }
         } else {
             /* Unexpected error */
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Error searching cache for user [%s]: [%s]\n",
-                   grp->gr_mem[i], strerror(ret)));
+                  "Error searching cache for user [%s]: [%s]\n",
+                   grp->gr_mem[i], strerror(ret));
             goto done;
         }
     }
@@ -728,23 +728,23 @@ handle_getgr_result(enum nss_status status, struct group *grp,
 {
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Buffer too small\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Buffer too small\n");
         return EAGAIN;
 
     case NSS_STATUS_NOTFOUND:
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Group not found.\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Group not found.\n");
         *delete_group = true;
         break;
 
     case NSS_STATUS_SUCCESS:
-        DEBUG(SSSDBG_FUNC_DATA, ("Group found: (%s, %"SPRIgid")\n",
-              grp->gr_name, grp->gr_gid));
+        DEBUG(SSSDBG_FUNC_DATA, "Group found: (%s, %"SPRIgid")\n",
+              grp->gr_name, grp->gr_gid);
 
         /* gid=0 is an invalid value */
         /* also check that the id is in the valid range for this domain */
         if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Group filtered out! (id out of range)\n"));
+                  "Group filtered out! (id out of range)\n");
             *delete_group = true;
             break;
         }
@@ -752,11 +752,11 @@ handle_getgr_result(enum nss_status status, struct group *grp,
 
     case NSS_STATUS_UNAVAIL:
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Remote back end is not available. Entering offline mode\n"));
+              "Remote back end is not available. Entering offline mode\n");
         return ENXIO;
 
     default:
-        DEBUG(SSSDBG_OP_FAILURE, ("Unknown return code %d\n", status));
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown return code %d\n", status);
         return EIO;
     }
 
@@ -780,7 +780,7 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
     struct ldb_result *cached_grp = NULL;
     const char *real_name = NULL;
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Searching group by name (%s)\n", name));
+    DEBUG(SSSDBG_FUNC_DATA, "Searching group by name (%s)\n", name);
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -791,8 +791,8 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
     if (!grp) {
         ret = ENOMEM;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("proxy -> getgrnam_r failed for '%s': [%d] %s\n",
-              name, ret, strerror(ret)));
+              "proxy -> getgrnam_r failed for '%s': [%d] %s\n",
+              name, ret, strerror(ret));
         goto done;
     }
 
@@ -812,7 +812,7 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("getgrnam failed [%d]: %s\n", ret, strerror(ret)));
+              "getgrnam failed [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -823,15 +823,15 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
         ret = sysdb_getgrgid(tmpctx, sysdb, dom, gid, &cached_grp);
         if (ret != EOK) {
             /* Non-fatal, attempt to canonicalize online */
-            DEBUG(SSSDBG_TRACE_FUNC, ("Request to cache failed [%d]: %s\n",
-                  ret, strerror(ret)));
+            DEBUG(SSSDBG_TRACE_FUNC, "Request to cache failed [%d]: %s\n",
+                  ret, strerror(ret));
         }
 
         if (ret == EOK && cached_grp->count == 1) {
             real_name = ldb_msg_find_attr_as_string(cached_grp->msgs[0],
                                                     SYSDB_NAME, NULL);
             if (!real_name) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Cached group has no name?\n"));
+                DEBUG(SSSDBG_MINOR_FAILURE, "Cached group has no name?\n");
             }
         }
     }
@@ -855,7 +855,7 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
 
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                ("getgrgid failed [%d]: %s\n", ret, strerror(ret)));
+                "getgrgid failed [%d]: %s\n", ret, strerror(ret));
             goto done;
         }
 
@@ -864,8 +864,8 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
 
     if (delete_group) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Group %s does not exist (or is invalid) on remote server,"
-               " deleting!\n", name));
+              "Group %s does not exist (or is invalid) on remote server,"
+               " deleting!\n", name);
 
         ret = sysdb_delete_group(sysdb, dom, NULL, gid);
         if (ret == ENOENT) {
@@ -877,7 +877,7 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
     ret = save_group(sysdb, dom, grp, real_name, name, dom->group_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot save group [%d]: %s\n", ret, strerror(ret)));
+              "Cannot save group [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -885,8 +885,8 @@ done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("proxy -> getgrnam_r failed for '%s' <%d>: %s\n",
-              name, ret, strerror(ret)));
+              "proxy -> getgrnam_r failed for '%s' <%d>: %s\n",
+              name, ret, strerror(ret));
     }
     return ret;
 }
@@ -907,7 +907,7 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
     bool delete_group = false;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Searching group by gid (%"SPRIgid")\n", gid));
+    DEBUG(SSSDBG_TRACE_FUNC, "Searching group by gid (%"SPRIgid")\n", gid);
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -936,14 +936,14 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("getgrgid failed [%d]: %s\n", ret, strerror(ret)));
+              "getgrgid failed [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
     if (delete_group) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Group %"SPRIgid" does not exist (or is invalid) on remote "
-               "server, deleting!\n", gid));
+              "Group %"SPRIgid" does not exist (or is invalid) on remote "
+               "server, deleting!\n", gid);
 
         ret = sysdb_delete_group(sysdb, dom, NULL, gid);
         if (ret == ENOENT) {
@@ -955,7 +955,7 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
     ret = save_group(sysdb, dom, grp, grp->gr_name, NULL, dom->group_timeout);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot save user [%d]: %s\n", ret, strerror(ret)));
+              "Cannot save user [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -963,8 +963,8 @@ done:
     talloc_zfree(tmpctx);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("proxy -> getgrgid_r failed for '%"SPRIgid"' <%d>: %s\n",
-               gid, ret, strerror(ret)));
+              "proxy -> getgrgid_r failed for '%"SPRIgid"' <%d>: %s\n",
+               gid, ret, strerror(ret));
     }
     return ret;
 }
@@ -987,7 +987,7 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
     errno_t sret;
     bool again;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Enumerating groups\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Enumerating groups\n");
 
     tmpctx = talloc_new(mem_ctx);
     if (!tmpctx) {
@@ -1009,7 +1009,7 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -1050,11 +1050,11 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
             case NSS_STATUS_NOTFOUND:
 
                 /* we are done here */
-                DEBUG(SSSDBG_TRACE_LIBS, ("Enumeration completed.\n"));
+                DEBUG(SSSDBG_TRACE_LIBS, "Enumeration completed.\n");
 
                 ret = sysdb_transaction_commit(sysdb);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
                     goto done;
                 }
                 in_transaction = false;
@@ -1062,16 +1062,16 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
 
             case NSS_STATUS_SUCCESS:
 
-                DEBUG(SSSDBG_OP_FAILURE, ("Group found (%s, %"SPRIgid")\n",
-                            grp->gr_name, grp->gr_gid));
+                DEBUG(SSSDBG_OP_FAILURE, "Group found (%s, %"SPRIgid")\n",
+                            grp->gr_name, grp->gr_gid);
 
                 /* gid=0 is an invalid value */
                 /* also check that the id is in the valid range for this domain
                  */
                 if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
 
-                    DEBUG(SSSDBG_OP_FAILURE, ("Group [%s] filtered out! (id"
-                        "out of range)\n", grp->gr_name));
+                    DEBUG(SSSDBG_OP_FAILURE, "Group [%s] filtered out! (id"
+                        "out of range)\n", grp->gr_name);
 
                     again = true;
                     break;
@@ -1082,8 +1082,8 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
                 if (ret) {
                     /* Do not fail completely on errors.
                      * Just report the failure to save and go on */
-                    DEBUG(SSSDBG_OP_FAILURE, ("Failed to store group."
-                                "Ignoring\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "Failed to store group."
+                                "Ignoring\n");
                 }
                 again = true;
                 break;
@@ -1095,8 +1095,8 @@ static int enum_groups(TALLOC_CTX *mem_ctx,
 
             default:
                 ret = EIO;
-                DEBUG(SSSDBG_OP_FAILURE, ("proxy -> getgrent_r failed (%d)[%s]"
-                            "\n", ret, strerror(ret)));
+                DEBUG(SSSDBG_OP_FAILURE, "proxy -> getgrent_r failed (%d)[%s]"
+                            "\n", ret, strerror(ret));
                 break;
         }
     } while (again);
@@ -1106,7 +1106,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     ctx->ops.endgrent();
@@ -1161,7 +1161,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto fail;
     }
     in_transaction = true;
@@ -1172,14 +1172,14 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     ret = handle_getpw_result(status, pwd, dom, &del_user);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("getpwnam failed [%d]: %s\n", ret, strerror(ret)));
+              "getpwnam failed [%d]: %s\n", ret, strerror(ret));
         goto fail;
     }
 
     if (del_user) {
         ret = delete_user(sysdb, dom, name, 0);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not delete user\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not delete user\n");
             goto fail;
         }
         goto done;
@@ -1193,15 +1193,15 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
         ret = sysdb_getpwuid(tmpctx, sysdb, dom, uid, &cached_pwd);
         if (ret != EOK) {
             /* Non-fatal, attempt to canonicalize online */
-            DEBUG(SSSDBG_TRACE_FUNC, ("Request to cache failed [%d]: %s\n",
-                  ret, strerror(ret)));
+            DEBUG(SSSDBG_TRACE_FUNC, "Request to cache failed [%d]: %s\n",
+                  ret, strerror(ret));
         }
 
         if (ret == EOK && cached_pwd->count == 1) {
             real_name = ldb_msg_find_attr_as_string(cached_pwd->msgs[0],
                                                     SYSDB_NAME, NULL);
             if (!real_name) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Cached user has no name?\n"));
+                DEBUG(SSSDBG_MINOR_FAILURE, "Cached user has no name?\n");
             }
         }
     }
@@ -1213,7 +1213,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
         ret = handle_getpw_result(status, pwd, dom, &del_user);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE,
-                ("getpwuid failed [%d]: %s\n", ret, strerror(ret)));
+                "getpwuid failed [%d]: %s\n", ret, strerror(ret));
             goto done;
         }
 
@@ -1223,7 +1223,7 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     if (del_user) {
         ret = delete_user(sysdb, dom, name, uid);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not delete user\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not delete user\n");
             goto fail;
         }
         goto done;
@@ -1232,20 +1232,20 @@ static int get_initgr(TALLOC_CTX *mem_ctx,
     ret = save_user(sysdb, dom, !dom->case_sensitive, pwd,
                     real_name, name, dom->user_timeout);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not save user\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not save user\n");
         goto fail;
     }
 
     ret = get_initgr_groups_process(tmpctx, ctx, sysdb, dom, pwd);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not process initgroups\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not process initgroups\n");
         goto fail;
     }
 
 done:
     ret = sysdb_transaction_commit(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to commit transaction\n");
         goto fail;
     }
     in_transaction = false;
@@ -1255,7 +1255,7 @@ fail:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     return ret;
@@ -1317,13 +1317,13 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        DEBUG(SSSDBG_FUNC_DATA, ("The initgroups call returned 'NOTFOUND'. "
+        DEBUG(SSSDBG_FUNC_DATA, "The initgroups call returned 'NOTFOUND'. "
                                  "Assume the user is only member of its "
-                                 "primary group (%"SPRIgid")\n", pwd->pw_gid));
+                                 "primary group (%"SPRIgid")\n", pwd->pw_gid);
         /* fall through */
     case NSS_STATUS_SUCCESS:
-        DEBUG(SSSDBG_CONF_SETTINGS, ("User [%s] appears to be member of %lu"
-                    "groups\n", pwd->pw_name, num_gids));
+        DEBUG(SSSDBG_CONF_SETTINGS, "User [%s] appears to be member of %lu"
+                    "groups\n", pwd->pw_name, num_gids);
 
         now = time(NULL);
         for (i = 0; i < num_gids; i++) {
@@ -1337,8 +1337,8 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
         break;
 
     default:
-        DEBUG(2, ("proxy -> initgroups_dyn failed (%d)[%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(2, "proxy -> initgroups_dyn failed (%d)[%s]\n",
+                  ret, strerror(ret));
         ret = EIO;
         break;
     }
@@ -1496,7 +1496,7 @@ void proxy_get_account_info(struct be_req *breq)
 
     if (ret) {
         if (ret == ENXIO) {
-            DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
+            DEBUG(2, "proxy returned UNAVAIL error, going offline!\n");
             be_mark_offline(be_ctx);
         }
         be_req_terminate(breq, DP_ERR_FATAL, ret, NULL);

@@ -63,8 +63,8 @@ static int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
 
     ret = sysdb_master_domain_update(bectx->domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Update of master domain failed [%d]: %s.\n",
-                                 ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_FUNC_DATA, "Update of master domain failed [%d]: %s.\n",
+                                 ret, sss_strerror(ret));
         goto failed;
     }
 
@@ -72,19 +72,19 @@ static int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
         ret = confdb_get_string_as_list(bectx->cdb, ctx, bectx->conf_path,
                                         lists[i].option, &lists[i].orig_list);
         if (ret == ENOENT) {
-            DEBUG(SSSDBG_FUNC_DATA, ("%s list is empty.\n", lists[i].name));
+            DEBUG(SSSDBG_FUNC_DATA, "%s list is empty.\n", lists[i].name);
             *lists[i].ctx_list = NULL;
             continue;
         } else if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("confdb_get_string_as_list failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "confdb_get_string_as_list failed.\n");
             goto failed;
         }
 
         ret = simple_access_parse_names(ctx, bectx, lists[i].orig_list,
                                         lists[i].ctx_list);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to parse %s list [%d]: %s\n",
-                                        lists[i].name, ret, sss_strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse %s list [%d]: %s\n",
+                                        lists[i].name, ret, sss_strerror(ret));
             goto failed;
         }
     }
@@ -94,8 +94,8 @@ static int simple_access_obtain_filter_lists(struct simple_ctx *ctx)
             !ctx->deny_users &&
             !ctx->deny_groups) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("No rules supplied for simple access provider. "
-               "Access will be granted for all users.\n"));
+              "No rules supplied for simple access provider. "
+               "Access will be granted for all users.\n");
     }
     return EOK;
 
@@ -118,7 +118,7 @@ void simple_access_handler(struct be_req *be_req)
 
     if (pd->cmd != SSS_PAM_ACCT_MGMT) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("simple access does not handle pam task %d.\n", pd->cmd));
+              "simple access does not handle pam task %d.\n", pd->cmd);
         pd->pam_status = PAM_MODULE_UNKNOWN;
         goto done;
     }
@@ -133,7 +133,7 @@ void simple_access_handler(struct be_req *be_req)
 
         ret = simple_access_obtain_filter_lists(ctx);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to refresh filter lists\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to refresh filter lists\n");
         }
         ctx->last_refresh_of_filter_lists = now;
     }
@@ -197,7 +197,7 @@ static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -208,7 +208,7 @@ static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
 
     out = talloc_zero_array(tmp_ctx, char*, size + 1);
     if (out == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero_array() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -219,8 +219,8 @@ static errno_t simple_access_parse_names(TALLOC_CTX *mem_ctx,
         ret = sss_parse_name(tmp_ctx, be_ctx->domain->names, list[i],
                              &domain, &name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to parse name '%s' [%d]: %s\n",
-                                        list[i], ret, sss_strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
+                                        list[i], ret, sss_strerror(ret));
             goto done;
         }
 
@@ -262,7 +262,7 @@ int sssm_simple_access_init(struct be_ctx *bectx, struct bet_ops **ops,
     struct simple_ctx *ctx;
     ctx = talloc_zero(bectx, struct simple_ctx);
     if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 

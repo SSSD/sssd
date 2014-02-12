@@ -92,8 +92,8 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         }
         tmp_str = ldb_msg_find_attr_as_string(res->msgs[c], SYSDB_NAME, NULL);
         if (tmp_str == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("The object [%s] doesn't have a name.\n",
-                                       ldb_dn_get_linearized(res->msgs[c]->dn)));
+            DEBUG(SSSDBG_MINOR_FAILURE, "The object [%s] doesn't have a name.\n",
+                                       ldb_dn_get_linearized(res->msgs[c]->dn));
             ret = EINVAL;
             goto done;
         }
@@ -117,28 +117,28 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         ret = find_attr_as_uint32_t(res->msgs[c], SYSDB_BASE_ID,
                                     &list[c]->base_id);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("find_attr_as_uint32_t failed.\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "find_attr_as_uint32_t failed.\n");
             goto done;
         }
 
         ret = find_attr_as_uint32_t(res->msgs[c], SYSDB_ID_RANGE_SIZE,
                                     &list[c]->id_range_size);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("find_attr_as_uint32_t failed.\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "find_attr_as_uint32_t failed.\n");
             goto done;
         }
 
         ret = find_attr_as_uint32_t(res->msgs[c], SYSDB_BASE_RID,
                                     &list[c]->base_rid);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("find_attr_as_uint32_t failed.\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "find_attr_as_uint32_t failed.\n");
             goto done;
         }
 
         ret = find_attr_as_uint32_t(res->msgs[c], SYSDB_SECONDARY_BASE_RID,
                                     &list[c]->secondary_base_rid);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("find_attr_as_uint32_t failed.\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "find_attr_as_uint32_t failed.\n");
             goto done;
         }
 
@@ -174,9 +174,9 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
     if ((range->trusted_dom_sid == NULL && range->secondary_base_rid == 0) ||
         (range->trusted_dom_sid != NULL && range->secondary_base_rid != 0)) {
 
-        DEBUG(SSSDBG_OP_FAILURE, ("Invalid range, skipping. Expected that "
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid range, skipping. Expected that "
                     "either the secondary base RID or the SID of the trusted "
-                    "domain is set, but not both or none of them.\n"));
+                    "domain is set, but not both or none of them.\n");
         return EOK;
     }
 
@@ -251,7 +251,7 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
 
 done:
     if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -281,20 +281,20 @@ errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
     ret = sysdb_get_ranges(tmp_ctx, sysdb, &cur_range_count,
                                &cur_ranges);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_ranges failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_ranges failed.\n");
         goto done;
     }
 
     keep_range = talloc_zero_array(tmp_ctx, bool, cur_range_count);
     if (keep_range == NULL) {
         ret = ENOMEM;
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero_array failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
         goto done;
     }
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_transaction_start failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_transaction_start failed.\n");
         goto done;
     }
     in_transaction = true;
@@ -313,10 +313,10 @@ errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
         }
 
         if (d == cur_range_count) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Adding range [%s].\n", ranges[c]->name));
+            DEBUG(SSSDBG_TRACE_FUNC, "Adding range [%s].\n", ranges[c]->name);
             ret = sysdb_range_create(sysdb, ranges[c]);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_range_create failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_range_create failed.\n");
                 goto done;
             }
         }
@@ -328,8 +328,8 @@ errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
      */
     for (d = 0; d < cur_range_count; d++) {
         if (!keep_range[d]) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Removing range [%s].\n",
-                                      cur_ranges[d]->name));
+            DEBUG(SSSDBG_TRACE_FUNC, "Removing range [%s].\n",
+                                      cur_ranges[d]->name);
             dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                                 SYSDB_TMPL_RANGE, cur_ranges[d]->name);
             if (dn == NULL) {
@@ -339,7 +339,7 @@ errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
 
             ret = sysdb_delete_entry(sysdb, dn, true);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_entry failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_delete_entry failed.\n");
                 goto done;
             }
         }
@@ -347,7 +347,7 @@ errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -356,7 +356,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);

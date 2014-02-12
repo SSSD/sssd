@@ -40,7 +40,7 @@ static errno_t make_netgroup_attr(struct __netgrent netgrent,
         ret =sysdb_attrs_add_string(attrs, SYSDB_NETGROUP_MEMBER,
                                     netgrent.val.group);
         if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_add_string failed.\n"));
+            DEBUG(1, "sysdb_attrs_add_string failed.\n");
             return ret;
         }
     } else if (netgrent.type == triple_val) {
@@ -49,17 +49,17 @@ static errno_t make_netgroup_attr(struct __netgrent netgrent,
                                 get_triple_el(netgrent.val.triple.user),
                                 get_triple_el(netgrent.val.triple.domain));
         if (dummy == NULL) {
-            DEBUG(1, ("talloc_asprintf failed.\n"));
+            DEBUG(1, "talloc_asprintf failed.\n");
             return ENOMEM;
         }
 
         ret = sysdb_attrs_add_string(attrs, SYSDB_NETGROUP_TRIPLE, dummy);
         if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_add_string failed.\n"));
+            DEBUG(1, "sysdb_attrs_add_string failed.\n");
             return ret;
         }
     } else {
-        DEBUG(1, ("Unknown netgrent entry type [%d].\n", netgrent.type));
+        DEBUG(1, "Unknown netgrent entry type [%d].\n", netgrent.type);
         return EINVAL;
     }
 
@@ -78,7 +78,7 @@ static errno_t save_netgroup(struct sysdb_ctx *sysdb,
     if (lowercase) {
         ret = sysdb_attrs_add_lc_name_alias(attrs, name);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not add name alias\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
             return ret;
         }
     }
@@ -86,7 +86,7 @@ static errno_t save_netgroup(struct sysdb_ctx *sysdb,
     ret = sysdb_add_netgroup(sysdb, domain, name, NULL,
                              attrs, NULL, cache_timeout, 0);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_add_netgroup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_netgroup failed.\n");
         return ret;
     }
 
@@ -100,27 +100,27 @@ static errno_t handle_error(enum nss_status status, struct sysdb_ctx *sysdb,
 
     switch (status) {
     case NSS_STATUS_SUCCESS:
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Netgroup lookup succeeded\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Netgroup lookup succeeded\n");
         ret = EOK;
         break;
 
     case NSS_STATUS_NOTFOUND:
-        DEBUG(SSSDBG_MINOR_FAILURE, ("The netgroup was not found\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "The netgroup was not found\n");
         ret = sysdb_delete_netgroup(sysdb, domain, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot delete netgroup: %d\n", ret));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot delete netgroup: %d\n", ret);
             ret = EIO;
         }
         break;
 
     case NSS_STATUS_UNAVAIL:
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("The proxy target did not respond, going offline\n"));
+              "The proxy target did not respond, going offline\n");
         ret = ENXIO;
         break;
 
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unexpected error looking up netgroup\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected error looking up netgroup\n");
         ret = EIO;
         break;
     }
@@ -144,21 +144,21 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
     status = ctx->ops.setnetgrent(name, &result);
     if (status != NSS_STATUS_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("setnetgrent failed for netgroup [%s].\n", name));
+              "setnetgrent failed for netgroup [%s].\n", name);
         ret = handle_error(status, sysdb, dom, name);
         goto done;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     attrs = sysdb_new_attrs(tmp_ctx);
     if (attrs == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb_new_attrs failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_new_attrs failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -170,15 +170,15 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
             status != NSS_STATUS_NOTFOUND) {
             ret = handle_error(status, sysdb, dom, name);
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("getnetgrent_r failed for netgroup [%s]: [%d][%s].\n",
-                   name, ret, strerror(ret)));
+                  "getnetgrent_r failed for netgroup [%s]: [%d][%s].\n",
+                   name, ret, strerror(ret));
             goto done;
         }
 
         if (status == NSS_STATUS_SUCCESS) {
             ret = make_netgroup_attr(result, attrs);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("make_netgroup_attr failed.\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "make_netgroup_attr failed.\n");
                 goto done;
             }
         }
@@ -186,7 +186,7 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
 
     status = ctx->ops.endnetgrent(&result);
     if (status != NSS_STATUS_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("endnetgrent failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "endnetgrent failed.\n");
         ret = handle_error(status, sysdb, dom, name);
         goto done;
     }
@@ -195,7 +195,7 @@ errno_t get_netgroup(struct proxy_id_ctx *ctx,
                         !dom->case_sensitive,
                         dom->netgroup_timeout);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_add_netgroup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_netgroup failed.\n");
         goto done;
     }
 

@@ -34,7 +34,7 @@ sysdb_update_ssh_host(struct sysdb_ctx *sysdb,
     ret = sysdb_store_custom(sysdb, domain, name, SSH_HOSTS_SUBDIR, attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Error storing host %s [%d]: %s\n", name, ret, strerror(ret)));
+              "Error storing host %s [%d]: %s\n", name, ret, strerror(ret));
         return ret;
     }
 
@@ -58,7 +58,7 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
     struct ldb_message_element *el;
     unsigned int i;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Storing host %s\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Storing host %s\n", name);
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -67,7 +67,7 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
 
@@ -81,14 +81,14 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
     ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS, SYSDB_SSH_HOST_OC);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not set object class [%d]: %s\n", ret, strerror(ret)));
+              "Could not set object class [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not set name attribute [%d]: %s\n", ret, strerror(ret)));
+              "Could not set name attribute [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -109,8 +109,8 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
                                               SYSDB_NAME_ALIAS, &el->values[i]);
                     if (ret != EOK) {
                         DEBUG(SSSDBG_OP_FAILURE,
-                              ("Could not add name alias %s [%d]: %s\n",
-                               el->values[i].data, ret, strerror(ret)));
+                              "Could not add name alias %s [%d]: %s\n",
+                               el->values[i].data, ret, strerror(ret));
                         goto done;
                     }
                 }
@@ -122,8 +122,8 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, alias);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Could not add name alias %s [%d]: %s\n",
-                       alias, ret, strerror(ret)));
+                      "Could not add name alias %s [%d]: %s\n",
+                       alias, ret, strerror(ret));
                 goto done;
             }
         }
@@ -134,8 +134,8 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
         ret = sysdb_attrs_get_el(attrs, SYSDB_SSH_PUBKEY, &el);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Could not get sysdb sshPublicKey [%d]: %s\n",
-                   ret, strerror(ret)));
+                  "Could not get sysdb sshPublicKey [%d]: %s\n",
+                   ret, strerror(ret));
             goto done;
         }
     }
@@ -143,8 +143,8 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not set sysdb lastUpdate [%d]: %s\n",
-               ret, strerror(ret)));
+              "Could not set sysdb lastUpdate [%d]: %s\n",
+               ret, strerror(ret));
         goto done;
     }
 
@@ -155,7 +155,7 @@ sysdb_store_ssh_host(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
 
@@ -167,7 +167,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
 
@@ -188,7 +188,7 @@ sysdb_update_ssh_known_host_expire(struct sysdb_ctx *sysdb,
     struct sysdb_attrs *attrs;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Updating known_hosts expire time of host %s\n", name));
+          "Updating known_hosts expire time of host %s\n", name);
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -205,8 +205,8 @@ sysdb_update_ssh_known_host_expire(struct sysdb_ctx *sysdb,
                                  now + known_hosts_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not set known_hosts expire time [%d]: %s\n",
-               ret, strerror(ret)));
+              "Could not set known_hosts expire time [%d]: %s\n",
+               ret, strerror(ret));
         goto done;
     }
 
@@ -228,7 +228,7 @@ sysdb_delete_ssh_host(struct sysdb_ctx *sysdb,
                       struct sss_domain_info *domain,
                       const char *name)
 {
-    DEBUG(SSSDBG_TRACE_FUNC, ("Deleting host %s\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Deleting host %s\n", name);
     return sysdb_delete_custom(sysdb, domain, name, SSH_HOSTS_SUBDIR);
 }
 
@@ -256,11 +256,11 @@ sysdb_search_ssh_hosts(TALLOC_CTX *mem_ctx,
                               &num_results, &results);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error looking up host [%d]: %s\n",
-               ret, strerror(ret)));
+              "Error looking up host [%d]: %s\n",
+               ret, strerror(ret));
         goto done;
     } if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No such host\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "No such host\n");
         *hosts = NULL;
         *num_hosts = 0;
         goto done;
@@ -310,7 +310,7 @@ sysdb_get_ssh_host(TALLOC_CTX *mem_ctx,
     if (num_hosts > 1) {
         ret = EINVAL;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Found more than one host with name %s\n", name));
+              "Found more than one host with name %s\n", name);
         goto done;
     }
 

@@ -78,22 +78,22 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
     state->retoid = NULL;
     state->retdata = NULL;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Executing extended operation\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Executing extended operation\n");
 
     ret = ldap_extended_operation(state->sh->ldap, EXOP_SID2NAME_OID,
                                   bv, NULL, NULL, &msgid);
     if (ret == -1 || msgid == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("ldap_extended_operation failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_extended_operation failed\n");
         ret = ERR_NETWORK_IO;
         goto fail;
     }
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("ldap_extended_operation sent, msgid = %d\n", msgid));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_extended_operation sent, msgid = %d\n", msgid);
 
     /* FIXME: get timeouts from configuration, for now 10 secs. */
     ret = sdap_op_add(state, ev, state->sh, msgid, ipa_s2n_exop_done, req, 10,
                       &state->op);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set up operation!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         ret = ERR_INTERNAL;
         goto fail;
     }
@@ -128,13 +128,13 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
                             &result, &errmsg, NULL, NULL,
                             NULL, 0);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ldap_parse_result failed (%d)\n", state->op->msgid));
+        DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n", state->op->msgid);
         ret = ERR_NETWORK_IO;
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("ldap_extended_operation result: %s(%d), %s\n",
-            sss_ldap_err2string(result), result, errmsg));
+    DEBUG(SSSDBG_TRACE_FUNC, "ldap_extended_operation result: %s(%d), %s\n",
+            sss_ldap_err2string(result), result, errmsg);
 
     if (result != LDAP_SUCCESS) {
         ret = ERR_NETWORK_IO;
@@ -144,21 +144,21 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     ret = ldap_parse_extended_result(state->sh->ldap, reply->msg,
                                       &retoid, &retdata, 0);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ldap_parse_extendend_result failed (%d)\n", ret));
+        DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_extendend_result failed (%d)\n", ret);
         ret = ERR_NETWORK_IO;
         goto done;
     }
 
     state->retoid = talloc_strdup(state, retoid);
     if (state->retoid == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     state->retdata = talloc(state, struct berval);
     if (state->retdata == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -166,7 +166,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     state->retdata->bv_val = talloc_memdup(state->retdata, retdata->bv_val,
                                            retdata->bv_len);
     if (state->retdata->bv_val == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_memdup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_memdup failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -305,8 +305,8 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
                                                   domain_name,
                                                   req_input->inp.id);
             } else {
-                DEBUG(SSSDBG_OP_FAILURE, ("Unexpected input type [%d].\n",
-                                          req_input->type == REQ_INP_ID));
+                DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
+                                          req_input->type == REQ_INP_ID);
                 ret = EINVAL;
                 goto done;
             }
@@ -321,8 +321,8 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
                                                   domain_name,
                                                   req_input->inp.id);
             } else {
-                DEBUG(SSSDBG_OP_FAILURE, ("Unexpected input type [%d].\n",
-                                          req_input->type == REQ_INP_ID));
+                DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
+                                          req_input->type == REQ_INP_ID);
                 ret = EINVAL;
                 goto done;
             }
@@ -332,8 +332,8 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
             ret = ber_printf(ber, "{ees}", INP_SID, request_type,
                                            req_input->inp.secid);
             } else {
-                DEBUG(SSSDBG_OP_FAILURE, ("Unexpected input type [%d].\n",
-                                          req_input->type == REQ_INP_ID));
+                DEBUG(SSSDBG_OP_FAILURE, "Unexpected input type [%d].\n",
+                                          req_input->type == REQ_INP_ID);
                 ret = EINVAL;
                 goto done;
             }
@@ -429,33 +429,33 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     char *sid_str;
 
     if (retoid == NULL || retdata == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing OID or data.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Missing OID or data.\n");
         return EINVAL;
     }
 
     if (strcmp(retoid, EXOP_SID2NAME_OID) != 0) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Result has wrong OID, expected [%s], got [%s].\n",
-              EXOP_SID2NAME_OID, retoid));
+              "Result has wrong OID, expected [%s], got [%s].\n",
+              EXOP_SID2NAME_OID, retoid);
         return EINVAL;
     }
 
     ber = ber_init(retdata);
     if (ber == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ber_init failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ber_init failed.\n");
         return EINVAL;
     }
 
     tag = ber_scanf(ber, "{e", &type);
     if (tag == LBER_ERROR) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ber_scanf failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
         ret = EINVAL;
         goto done;
     }
 
     attrs = talloc_zero(mem_ctx, struct resp_attrs);
     if (attrs == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -464,7 +464,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
         case RESP_USER:
             tag = ber_scanf(ber, "{aaii}}", &domain_name, &name, &uid, &gid);
             if (tag == LBER_ERROR) {
-                DEBUG(SSSDBG_OP_FAILURE, ("ber_scanf failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
                 ret = EINVAL;
                 goto done;
             }
@@ -476,7 +476,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
              * lowercase the name. */
             attrs->a.user.pw_name = sss_tc_utf8_str_tolower(attrs, name);
             if (attrs->a.user.pw_name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -488,7 +488,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
         case RESP_GROUP:
             tag = ber_scanf(ber, "{aai}}", &domain_name, &name, &gid);
             if (tag == LBER_ERROR) {
-                DEBUG(SSSDBG_OP_FAILURE, ("ber_scanf failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
                 ret = EINVAL;
                 goto done;
             }
@@ -500,7 +500,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
              * lowercase the name. */
             attrs->a.group.gr_name = sss_tc_utf8_str_tolower(attrs, name);
             if (attrs->a.group.gr_name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -511,14 +511,14 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
         case RESP_SID:
             tag = ber_scanf(ber, "a}", &sid_str);
             if (tag == LBER_ERROR) {
-                DEBUG(SSSDBG_OP_FAILURE, ("ber_scanf failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
                 ret = EINVAL;
                 goto done;
             }
 
             attrs->a.sid_str = talloc_strdup(attrs, sid_str);
             if (attrs->a.sid_str == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -526,21 +526,21 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
         case RESP_NAME:
             tag = ber_scanf(ber, "{aa}", &domain_name, &name);
             if (tag == LBER_ERROR) {
-                DEBUG(SSSDBG_OP_FAILURE, ("ber_scanf failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
                 ret = EINVAL;
                 goto done;
             }
 
             attrs->a.name = sss_tc_utf8_str_tolower(attrs, name);
             if (attrs->a.name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sss_tc_utf8_str_tolower failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "sss_tc_utf8_str_tolower failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
             break;
         default:
-            DEBUG(SSSDBG_OP_FAILURE, ("Unexpected response type [%d].\n",
-                                      type));
+            DEBUG(SSSDBG_OP_FAILURE, "Unexpected response type [%d].\n",
+                                      type);
             ret = EINVAL;
             goto done;
     }
@@ -549,7 +549,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     if (type != RESP_SID) {
         attrs->domain_name = talloc_strdup(attrs, domain_name);
         if (attrs->domain_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -619,7 +619,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
 
     subreq = ipa_s2n_exop_send(state, state->ev, state->sh, bv_req);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ipa_s2n_exop_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -659,7 +659,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("s2n exop request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "s2n exop request failed.\n");
         goto done;
     }
 
@@ -667,19 +667,19 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     case REQ_FULL:
         ret = s2n_response_to_attrs(state, retoid, retdata, &attrs);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("s2n_response_to_attrs failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
             goto done;
         }
 
         if (!(strcasecmp(state->dom->name, attrs->domain_name) == 0 ||
               (state->dom->flat_name != NULL &&
                strcasecmp(state->dom->flat_name, attrs->domain_name) == 0))) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Unexpected domain name returned, "
+            DEBUG(SSSDBG_OP_FAILURE, "Unexpected domain name returned, "
                                       "expected [%s] or [%s], got [%s].\n",
                          state->dom->name,
                          state->dom->flat_name == NULL ? "" :
                                                          state->dom->flat_name,
-                         attrs->domain_name));
+                         attrs->domain_name);
             ret = EINVAL;
             goto done;
         }
@@ -702,7 +702,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
         subreq = ipa_s2n_exop_send(state, state->ev, state->sh, bv_req);
         if (subreq == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("ipa_s2n_exop_send failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -713,19 +713,19 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     case REQ_SIMPLE:
         ret = s2n_response_to_attrs(state, retoid, retdata, &simple_attrs);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("s2n_response_to_attrs failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
             goto done;
         }
 
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unexpected request type.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected request type.\n");
         ret = EINVAL;
         goto done;
     }
 
     if (state->attrs == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Missing data of full request.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing data of full request.\n");
         ret = EINVAL;
         goto done;
     } else {
@@ -752,7 +752,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
             user_attrs = sysdb_new_attrs(state);
             if (user_attrs == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -761,7 +761,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             name = sss_tc_fqname(state, state->dom->names, state->dom,
                                  attrs->a.user.pw_name);
             if (!name) {
-                DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "failed to format user name.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -769,7 +769,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             ret = sysdb_attrs_add_lc_name_alias(user_attrs, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("sysdb_attrs_add_lc_name_alias failed.\n"));
+                      "sysdb_attrs_add_lc_name_alias failed.\n");
                 goto done;
             }
 
@@ -781,21 +781,21 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
              * it from there. */
             realm = get_uppercase_realm(state, state->dom->name);
             if (!realm) {
-                DEBUG(SSSDBG_OP_FAILURE, ("failed to get realm.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "failed to get realm.\n");
                 ret = ENOMEM;
                 goto done;
             }
             upn = talloc_asprintf(state, "%s@%s",
                                   attrs->a.user.pw_name, realm);
             if (!upn) {
-                DEBUG(SSSDBG_OP_FAILURE, ("failed to format UPN.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "failed to format UPN.\n");
                 ret = ENOMEM;
                 goto done;
             }
 
             ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
                 goto done;
             }
 
@@ -803,7 +803,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR,
                                              state->req_input->inp.secid);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
                     goto done;
                 }
             }
@@ -812,7 +812,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR,
                                              simple_attrs->a.sid_str);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
                     goto done;
                 }
             }
@@ -833,14 +833,14 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             name = sss_tc_fqname(state, state->dom->names, state->dom,
                                  attrs->a.group.gr_name);
             if (!name) {
-                DEBUG(SSSDBG_OP_FAILURE, ("failed to format user name,\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "failed to format user name,\n");
                 ret = ENOMEM;
                 goto done;
             }
 
             group_attrs = sysdb_new_attrs(state);
             if (group_attrs == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -848,7 +848,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             ret = sysdb_attrs_add_lc_name_alias(group_attrs, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("sysdb_attrs_add_lc_name_alias failed.\n"));
+                      "sysdb_attrs_add_lc_name_alias failed.\n");
                 goto done;
             }
 
@@ -856,7 +856,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 ret = sysdb_attrs_add_string(group_attrs, SYSDB_SID_STR,
                                              state->req_input->inp.secid);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
                     goto done;
                 }
             }
@@ -865,7 +865,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 ret = sysdb_attrs_add_string(group_attrs, SYSDB_SID_STR,
                                              simple_attrs->a.sid_str);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
                     goto done;
                 }
             }
@@ -875,8 +875,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                                     timeout, now);
             break;
         default:
-            DEBUG(SSSDBG_OP_FAILURE, ("Unexpected response type [%d].\n",
-                                      attrs->response_type));
+            DEBUG(SSSDBG_OP_FAILURE, "Unexpected response type [%d].\n",
+                                      attrs->response_type);
             ret = EINVAL;
             goto done;
     }

@@ -95,7 +95,7 @@ static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
     for (i=0; i < num_msg; i++) {
         switch( msgm[i]->msg_style ) {
             case PAM_PROMPT_ECHO_OFF:
-                DEBUG(4, ("Conversation message: [%s]\n", msgm[i]->msg));
+                DEBUG(4, "Conversation message: [%s]\n", msgm[i]->msg);
                 reply[i].resp_retcode = 0;
 
                 ret = sss_authtok_get_password(auth_data->authtok,
@@ -107,8 +107,8 @@ static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
 
                 break;
             default:
-                DEBUG(1, ("Conversation style %d not supported.\n",
-                           msgm[i]->msg_style));
+                DEBUG(1, "Conversation style %d not supported.\n",
+                           msgm[i]->msg_style);
                 goto failed;
         }
     }
@@ -144,7 +144,7 @@ static int proxy_chauthtok_conv(int num_msg, const struct pam_message **msgm,
     for (i=0; i < num_msg; i++) {
         switch( msgm[i]->msg_style ) {
             case PAM_PROMPT_ECHO_OFF:
-                DEBUG(4, ("Conversation message: [%s]\n", msgm[i]->msg));
+                DEBUG(4, "Conversation message: [%s]\n", msgm[i]->msg);
 
                 reply[i].resp_retcode = 0;
                 if (!auth_data->sent_old) {
@@ -170,8 +170,8 @@ static int proxy_chauthtok_conv(int num_msg, const struct pam_message **msgm,
 
                 break;
             default:
-                DEBUG(1, ("Conversation style %d not supported.\n",
-                           msgm[i]->msg_style));
+                DEBUG(1, "Conversation style %d not supported.\n",
+                           msgm[i]->msg_style);
                 goto failed;
         }
     }
@@ -202,18 +202,18 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
     }
     auth_data = talloc_zero(pd, struct authtok_conv);
     if (auth_data == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
     auth_data->authtok = sss_authtok_new(auth_data);
     if (auth_data->authtok == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_authtok_new failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_authtok_new failed.\n");
         ret = ENOMEM;
         goto fail;
     }
     auth_data->newauthtok = sss_authtok_new(auth_data);
     if (auth_data->newauthtok == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_authtok_new failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_authtok_new failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -222,22 +222,22 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
 
     ret = pam_start(pam_target, pd->user, &conv, &pamh);
     if (ret == PAM_SUCCESS) {
-        DEBUG(7, ("Pam transaction started with service name [%s].\n",
-                  pam_target));
+        DEBUG(7, "Pam transaction started with service name [%s].\n",
+                  pam_target);
         ret = pam_set_item(pamh, PAM_TTY, pd->tty);
         if (ret != PAM_SUCCESS) {
-            DEBUG(1, ("Setting PAM_TTY failed: %s.\n",
-                      pam_strerror(pamh, ret)));
+            DEBUG(1, "Setting PAM_TTY failed: %s.\n",
+                      pam_strerror(pamh, ret));
         }
         ret = pam_set_item(pamh, PAM_RUSER, pd->ruser);
         if (ret != PAM_SUCCESS) {
-            DEBUG(1, ("Setting PAM_RUSER failed: %s.\n",
-                      pam_strerror(pamh, ret)));
+            DEBUG(1, "Setting PAM_RUSER failed: %s.\n",
+                      pam_strerror(pamh, ret));
         }
         ret = pam_set_item(pamh, PAM_RHOST, pd->rhost);
         if (ret != PAM_SUCCESS) {
-            DEBUG(1, ("Setting PAM_RHOST failed: %s.\n",
-                      pam_strerror(pamh, ret)));
+            DEBUG(1, "Setting PAM_RHOST failed: %s.\n",
+                      pam_strerror(pamh, ret));
         }
         switch (pd->cmd) {
             case SSS_PAM_AUTHENTICATE:
@@ -275,21 +275,21 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
                 }
                 break;
             default:
-                DEBUG(1, ("unknown PAM call\n"));
+                DEBUG(1, "unknown PAM call\n");
                 pam_status=PAM_ABORT;
         }
 
-        DEBUG(4, ("Pam result: [%d][%s]\n", pam_status,
-                  pam_strerror(pamh, pam_status)));
+        DEBUG(4, "Pam result: [%d][%s]\n", pam_status,
+                  pam_strerror(pamh, pam_status));
 
         ret = pam_end(pamh, pam_status);
         if (ret != PAM_SUCCESS) {
             pamh=NULL;
-            DEBUG(1, ("Cannot terminate pam transaction.\n"));
+            DEBUG(1, "Cannot terminate pam transaction.\n");
         }
 
     } else {
-        DEBUG(1, ("Failed to initialize pam transaction.\n"));
+        DEBUG(1, "Failed to initialize pam transaction.\n");
         pam_status = PAM_SYSTEM_ERR;
     }
 
@@ -323,8 +323,8 @@ static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 
     reply = dbus_message_new_method_return(message);
     if (!reply) {
-        DEBUG(1, ("dbus_message_new_method_return failed, "
-                  "cannot send reply.\n"));
+        DEBUG(1, "dbus_message_new_method_return failed, "
+                  "cannot send reply.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -333,7 +333,7 @@ static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 
     ret = dp_unpack_pam_request(message, pc_ctx, &pd, &dbus_error);
     if (!ret) {
-        DEBUG(1,("Failed, to parse message!\n"));
+        DEBUG(1,"Failed, to parse message!\n");
         ret = EIO;
         goto done;
     }
@@ -346,20 +346,20 @@ static int pc_pam_handler(DBusMessage *message, struct sbus_connection *conn)
         goto done;
     }
 
-    DEBUG(4, ("Got request with the following data\n"));
+    DEBUG(4, "Got request with the following data\n");
     DEBUG_PAM_DATA(4, pd);
 
     ret = call_pam_stack(pc_ctx->pam_target, pd);
     if (ret != EOK) {
-        DEBUG(1, ("call_pam_stack failed.\n"));
+        DEBUG(1, "call_pam_stack failed.\n");
     }
 
-    DEBUG(4, ("Sending result [%d][%s]\n",
-              pd->pam_status, pd->domain));
+    DEBUG(4, "Sending result [%d][%s]\n",
+              pd->pam_status, pd->domain);
 
     ret = dp_pack_pam_response(reply, pd);
     if (!ret) {
-        DEBUG(1, ("Failed to generate dbus reply\n"));
+        DEBUG(1, "Failed to generate dbus reply\n");
         talloc_free(pd);
         dbus_message_unref(reply);
         ret = EIO;
@@ -391,7 +391,7 @@ static int proxy_cli_init(struct pc_ctx *ctx)
                                       PIPE_PATH, PROXY_CHILD_PIPE,
                                       ctx->domain->name);
     if (sbus_address == NULL) {
-        DEBUG(1, ("talloc_asprintf failed.\n"));
+        DEBUG(1, "talloc_asprintf failed.\n");
         return ENOMEM;
     }
 
@@ -399,13 +399,13 @@ static int proxy_cli_init(struct pc_ctx *ctx)
                            &pc_interface, &ctx->conn,
                            NULL, ctx);
     if (ret != EOK) {
-        DEBUG(1, ("sbus_client_init failed.\n"));
+        DEBUG(1, "sbus_client_init failed.\n");
         return ret;
     }
 
     ret = proxy_child_send_id(ctx->conn, DATA_PROVIDER_VERSION, ctx->id);
     if (ret != EOK) {
-        DEBUG(0, ("dp_common_send_id failed.\n"));
+        DEBUG(0, "dp_common_send_id failed.\n");
         return ret;
     }
 
@@ -426,19 +426,19 @@ int proxy_child_send_id(struct sbus_connection *conn,
                                        DP_INTERFACE,
                                        DP_METHOD_REGISTER);
     if (msg == NULL) {
-        DEBUG(0, ("Out of memory?!\n"));
+        DEBUG(0, "Out of memory?!\n");
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Sending ID to Proxy Backend: (%d,%"PRIu32")\n",
-                             version, id));
+    DEBUG(SSSDBG_FUNC_DATA, "Sending ID to Proxy Backend: (%d,%"PRIu32")\n",
+                             version, id);
 
     ret = dbus_message_append_args(msg,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_UINT32, &id,
                                    DBUS_TYPE_INVALID);
     if (!ret) {
-        DEBUG(1, ("Failed to build message\n"));
+        DEBUG(1, "Failed to build message\n");
         return EIO;
     }
 
@@ -457,7 +457,7 @@ int proxy_child_process_init(TALLOC_CTX *mem_ctx, const char *domain,
 
     ctx = talloc_zero(mem_ctx, struct pc_ctx);
     if (!ctx) {
-        DEBUG(0, ("fatal error initializing pc_ctx\n"));
+        DEBUG(0, "fatal error initializing pc_ctx\n");
         return ENOMEM;
     }
     ctx->ev = ev;
@@ -466,19 +466,19 @@ int proxy_child_process_init(TALLOC_CTX *mem_ctx, const char *domain,
     ctx->id = id;
     ctx->conf_path = talloc_asprintf(ctx, CONFDB_DOMAIN_PATH_TMPL, domain);
     if (!ctx->conf_path) {
-        DEBUG(0, ("Out of memory!?\n"));
+        DEBUG(0, "Out of memory!?\n");
         return ENOMEM;
     }
 
     ret = confdb_get_domain(cdb, domain, &ctx->domain);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error retrieving domain configuration\n"));
+        DEBUG(0, "fatal error retrieving domain configuration\n");
         return ret;
     }
 
     ret = proxy_cli_init(ctx);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error setting up server bus\n"));
+        DEBUG(0, "fatal error setting up server bus\n");
         return ret;
     }
 
@@ -551,43 +551,43 @@ int main(int argc, const char *argv[])
 
     ret = server_setup(srv_name, 0, conf_entry, &main_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up mainloop [%d]\n", ret));
+        DEBUG(0, "Could not set up mainloop [%d]\n", ret);
         return 2;
     }
 
     ret = unsetenv("_SSS_LOOPS");
     if (ret != EOK) {
-        DEBUG(1, ("Failed to unset _SSS_LOOPS, "
-                  "pam modules might not work as expected.\n"));
+        DEBUG(1, "Failed to unset _SSS_LOOPS, "
+                  "pam modules might not work as expected.\n");
     }
 
     ret = confdb_get_string(main_ctx->confdb_ctx, main_ctx, conf_entry,
                             CONFDB_PROXY_PAM_TARGET, NULL, &pam_target);
     if (ret != EOK) {
-        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(0, "Error reading from confdb (%d) [%s]\n",
+                  ret, strerror(ret));
         return 4;
     }
     if (pam_target == NULL) {
-        DEBUG(1, ("Missing option proxy_pam_target.\n"));
+        DEBUG(1, "Missing option proxy_pam_target.\n");
         return 4;
     }
 
     ret = die_if_parent_died();
     if (ret != EOK) {
         /* This is not fatal, don't return */
-        DEBUG(2, ("Could not set up to exit when parent process does\n"));
+        DEBUG(2, "Could not set up to exit when parent process does\n");
     }
 
     ret = proxy_child_process_init(main_ctx, domain, main_ctx->event_ctx,
                                    main_ctx->confdb_ctx, pam_target,
                                    (uint32_t)id);
     if (ret != EOK) {
-        DEBUG(0, ("Could not initialize proxy child [%d].\n", ret));
+        DEBUG(0, "Could not initialize proxy child [%d].\n", ret);
         return 3;
     }
 
-    DEBUG(1, ("Proxy child for domain [%s] started!\n", domain));
+    DEBUG(1, "Proxy child for domain [%s] started!\n", domain);
 
     /* loop on main */
     server_loop(main_ctx);

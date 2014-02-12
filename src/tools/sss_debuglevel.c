@@ -111,7 +111,7 @@ int main(int argc, const char **argv)
     }
 
     if (config_file == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
         ret = ENOMEM;
         goto fini;
     }
@@ -128,7 +128,7 @@ int main(int argc, const char **argv)
     ctx = talloc_zero(NULL, struct debuglevel_tool_ctx);
     if (ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not allocate memory for tools context\n"));
+              "Could not allocate memory for tools context\n");
         ret = ENOMEM;
         goto fini;
     }
@@ -163,15 +163,15 @@ errno_t set_debug_level(struct debuglevel_tool_ctx *tool_ctx,
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
 
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
     /* convert debug_to_set to string */
     values[0] = talloc_asprintf(tmp_ctx, "0x%.4x", debug_to_set);
     if (values[0] == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not allocate memory for "
-              "debug_to_set to string conversion\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate memory for "
+              "debug_to_set to string conversion\n");
         ret = ENOMEM;
         goto done;
     }
@@ -193,8 +193,8 @@ errno_t set_debug_level(struct debuglevel_tool_ctx *tool_ctx,
     errno = 0;
     if (utime(config_file, NULL) == -1 ) {
         err = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to change mtime of \"%s\": %s\n",
-              config_file, strerror(err)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to change mtime of \"%s\": %s\n",
+              config_file, strerror(err));
     }
 
     ret = EOK;
@@ -212,14 +212,14 @@ errno_t connect_to_confdb(TALLOC_CTX *ctx, struct confdb_ctx **cdb_ctx)
     confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (confdb_path == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not allocate memory for confdb path\n"));
+              "Could not allocate memory for confdb path\n");
         return ENOMEM;
     }
 
     ret = confdb_init(ctx, cdb_ctx, confdb_path);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not initialize connection to the confdb\n"));
+              "Could not initialize connection to the confdb\n");
     }
 
     talloc_free(confdb_path);
@@ -249,14 +249,14 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
 
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
     /* get domains */
     ret = confdb_get_domains(confdb, &domain_list);
     if (ret != EOK)
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to get domain list\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get domain list\n");
 
     for (domain = domain_list;
          domain;
@@ -269,7 +269,7 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
                             domain_count + known_services_count + 1);
     if (sections == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not allocate memory for sections\n"));
+              "Could not allocate memory for sections\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -277,7 +277,7 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
     for (i = 0; i < known_services_count; i++) {
         sections[i] = talloc_strdup(tmp_ctx, known_services[i]);
         if (sections[i] == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup() failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
             ret = ENOMEM;
             goto fail;
         }
@@ -289,7 +289,7 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
         sections[i] = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
                                       domain->name);
         if (sections[i] == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf() failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
             ret = ENOMEM;
             goto fail;
         }

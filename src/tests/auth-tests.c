@@ -88,7 +88,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         talloc_free(test_ctx);
         return ENOMEM;
     }
-    DEBUG(3, ("CONFDB: %s\n", conf_db));
+    DEBUG(3, "CONFDB: %s\n", conf_db);
 
     /* Connect to the conf db */
     ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);

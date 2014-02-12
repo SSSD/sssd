@@ -41,7 +41,7 @@ static errno_t sdap_sudo_get_usn(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_get_string(attrs, map[SDAP_AT_SUDO_USN].sys_name, &usn);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to retrieve USN value: [%s]\n", strerror(ret)));
+              "Failed to retrieve USN value: [%s]\n", strerror(ret));
 
         return ret;
     }
@@ -70,33 +70,33 @@ sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_get_string(attrs, map[SDAP_AT_SUDO_NAME].sys_name,
                                  &rule_name);
     if (ret == ERANGE) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Warning: found rule that contains none "
-              "or multiple CN values. It will be skipped.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Warning: found rule that contains none "
+              "or multiple CN values. It will be skipped.\n");
         return ret;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not get rule name [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not get rule name [%d]: %s\n",
+              ret, strerror(ret));
         return ret;
     }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
                                  (cache_timeout ? (now + cache_timeout) : 0));
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set sysdb cache expire [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set sysdb cache expire [%d]: %s\n",
+              ret, strerror(ret));
         return ret;
     }
 
     ret = sdap_sudo_get_usn(mem_ctx, attrs, map, rule_name, _usn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not read USN from %s\n", rule_name));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not read USN from %s\n", rule_name);
         *_usn = NULL;
         /* but we will store the rule anyway */
     }
 
     ret = sysdb_save_sudorule(sysdb_ctx, domain, rule_name, attrs);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not save sudorule %s\n", rule_name));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not save sudorule %s\n", rule_name);
         return ret;
     }
 
@@ -123,13 +123,13 @@ sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL)  {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
     ret = sysdb_transaction_start(sysdb_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not start transaction\n");
         goto fail;
     }
     in_transaction = true;
@@ -140,8 +140,8 @@ sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
                                         domain, map, replies[i],
                                         cache_timeout, now, &usn_value);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to save sudo rule, "
-                                        "will continue with next...\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to save sudo rule, "
+                                        "will continue with next...\n");
             continue;
         }
 
@@ -163,7 +163,7 @@ sdap_save_native_sudorule_list(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_commit(sysdb_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto fail;
     }
     in_transaction = false;
@@ -177,7 +177,7 @@ fail:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(sysdb_ctx);
         if (tret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
 

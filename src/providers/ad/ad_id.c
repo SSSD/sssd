@@ -36,15 +36,15 @@ disable_gc(struct ad_options *ad_options)
         return;
     }
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, ("POSIX attributes were requested "
+    DEBUG(SSSDBG_IMPORTANT_INFO, "POSIX attributes were requested "
           "but are not present on the server side. Global Catalog "
-          "lookups will be disabled\n"));
+          "lookups will be disabled\n");
 
     ret = dp_opt_set_bool(ad_options->basic,
                           AD_ENABLE_GC, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-                ("Could not turn off GC support\n"));
+                "Could not turn off GC support\n");
         /* Not fatal */
     }
 }
@@ -292,8 +292,8 @@ static errno_t ad_account_can_shortcut(struct be_ctx *be_ctx,
         /* convert the ID to its SID equivalent */
         err = sss_idmap_unix_to_sid(idmap_ctx->map, id, &sid);
         if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Mapping ID [%s] to SID failed: "
-                  "[%s]\n", filter_value, idmap_error_string(err)));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Mapping ID [%s] to SID failed: "
+                  "[%s]\n", filter_value, idmap_error_string(err));
             ret = EIO;
             goto done;
         }
@@ -303,7 +303,7 @@ static errno_t ad_account_can_shortcut(struct be_ctx *be_ctx,
 
         req_dom = find_subdomain_by_sid(domain, csid);
         if (req_dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Invalid domain\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid domain\n");
             ret = ERR_DOMAIN_NOT_FOUND;
             goto done;
         }
@@ -365,12 +365,12 @@ ad_account_info_handler(struct be_req *be_req)
                                   ar->domain, &shortcut);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Cannot determine the right domain: %s\n", sss_strerror(ret)));
+              "Cannot determine the right domain: %s\n", sss_strerror(ret));
         shortcut = false;
     }
 
     if (shortcut) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("This ID is from different domain\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "This ID is from different domain\n");
         be_req_terminate(be_req, DP_ERR_OK, EOK, NULL);
         return;
     }
@@ -430,7 +430,7 @@ ad_account_info_complete(struct tevent_req *req)
             error_text = NULL;
         } else {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Bug: dp_error is OK on failed request\n"));
+                  "Bug: dp_error is OK on failed request\n");
             dp_error = DP_ERR_FATAL;
             error_text = req_error_text;
         }
@@ -491,7 +491,7 @@ ad_enumeration_send(TALLOC_CTX *mem_ctx,
 
     ectx = talloc_get_type(pvt, struct ldap_enum_ctx);
     if (ectx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot retrieve ldap_enum_ctx!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot retrieve ldap_enum_ctx!\n");
         ret = EFAULT;
         goto fail;
     }
@@ -505,15 +505,15 @@ ad_enumeration_send(TALLOC_CTX *mem_ctx,
     state->sdap_op = sdap_id_op_create(state,
                                        state->id_ctx->ldap_ctx->conn_cache);
     if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
         ret = ENOMEM;
         goto fail;
     }
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
+                                  ret, strerror(ret));
         goto fail;
     }
     tevent_req_set_callback(subreq, ad_enumeration_conn_done, req);
@@ -540,12 +540,12 @@ ad_enumeration_conn_done(struct tevent_req *subreq)
     if (ret != EOK) {
         if (dp_error == DP_ERR_OFFLINE) {
             DEBUG(SSSDBG_TRACE_FUNC,
-                  ("Backend is marked offline, retry later!\n"));
+                  "Backend is marked offline, retry later!\n");
             tevent_req_done(req);
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Domain enumeration failed to connect to " \
-                   "LDAP server: (%d)[%s]\n", ret, strerror(ret)));
+                  "Domain enumeration failed to connect to " \
+                   "LDAP server: (%d)[%s]\n", ret, strerror(ret));
             tevent_req_error(req, ret);
         }
         return;
@@ -556,7 +556,7 @@ ad_enumeration_conn_done(struct tevent_req *subreq)
                                    state->sdap_op,
                                    state->sdom->dom->name);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ad_master_domain_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ad_master_domain_send failed.\n");
         tevent_req_error(req, ret);
         return;
     }
@@ -579,7 +579,7 @@ ad_enumeration_master_done(struct tevent_req *subreq)
                                 &flat_name, &master_sid, &forest);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot retrieve master domain info\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve master domain info\n");
         tevent_req_error(req, ret);
         return;
     }
@@ -587,7 +587,7 @@ ad_enumeration_master_done(struct tevent_req *subreq)
     ret = sysdb_master_domain_add_info(state->sdom->dom,
                                        flat_name, master_sid, forest);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot save master domain info\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info\n");
         tevent_req_error(req, ret);
         return;
     }
@@ -595,7 +595,7 @@ ad_enumeration_master_done(struct tevent_req *subreq)
     ret = ad_enum_sdom(req, state->sdom, state->id_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-                ("Could not enumerate domain %s\n", state->sdom->dom->name));
+                "Could not enumerate domain %s\n", state->sdom->dom->name);
         tevent_req_error(req, ret);
         return;
     }
@@ -632,7 +632,7 @@ ad_enum_sdom(struct tevent_req *req,
         /* The ptask API will reschedule the enumeration on its own on
          * failure */
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Failed to schedule enumeration, retrying later!\n"));
+              "Failed to schedule enumeration, retrying later!\n");
         return ENOMEM;
     }
     tevent_req_set_callback(subreq, ad_enumeration_done, req);
@@ -662,7 +662,7 @@ ad_enumeration_done(struct tevent_req *subreq)
         ret = ad_enum_sdom(req, state->sditer, state->id_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                ("Could not retry domain %s\n", state->sditer->dom->name));
+                "Could not retry domain %s\n", state->sditer->dom->name);
             tevent_req_error(req, ret);
             return;
         }
@@ -671,7 +671,7 @@ ad_enumeration_done(struct tevent_req *subreq)
         return;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not enumerate domain %s\n", state->sditer->dom->name));
+              "Could not enumerate domain %s\n", state->sditer->dom->name);
         tevent_req_error(req, ret);
         return;
     }
@@ -684,8 +684,8 @@ ad_enumeration_done(struct tevent_req *subreq)
     if (state->sditer != NULL) {
         ret = ad_enum_sdom(req, state->sditer, state->sditer->pvt);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not enumerate domain %s\n",
-                  state->sditer->dom->name));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not enumerate domain %s\n",
+                  state->sditer->dom->name);
             tevent_req_error(req, ret);
             return;
         }
@@ -707,9 +707,9 @@ ad_enumeration_done(struct tevent_req *subreq)
             ret = ad_enum_cross_dom_members(state->id_ctx->ad_options->id,
                                             state->sditer->dom);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Could not check cross-domain "
+                DEBUG(SSSDBG_MINOR_FAILURE, "Could not check cross-domain "
                       "memberships for %s, group memberships might be "
-                      "incomplete!\n", state->sdom->dom->name));
+                      "incomplete!\n", state->sdom->dom->name);
                 continue;
             }
         }
@@ -751,7 +751,7 @@ ad_enum_cross_dom_members(struct sdap_options *opts,
 
     ret = sysdb_transaction_start(dom->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -771,10 +771,10 @@ ad_enum_cross_dom_members(struct sdap_options *opts,
     for (i = 0; i < count; i++) {
         ret = ad_group_extra_members(tmp_ctx, msgs[i], dom, &group_only);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to check extra members\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to check extra members\n");
             continue;
         } else if (group_only == NULL) {
-            DEBUG(SSSDBG_TRACE_INTERNAL, ("No extra members\n"));
+            DEBUG(SSSDBG_TRACE_INTERNAL, "No extra members\n");
             continue;
         }
 
@@ -782,8 +782,8 @@ ad_enum_cross_dom_members(struct sdap_options *opts,
         for (mi = 0; group_only[mi]; mi++) {
             ret = ad_group_add_member(opts, dom, msgs[i]->dn, group_only[mi]);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add [%s]: %s\n",
-                      group_only[mi], strerror(ret)));
+                DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add [%s]: %s\n",
+                      group_only[mi], strerror(ret));
                 continue;
             }
         }
@@ -793,7 +793,7 @@ ad_enum_cross_dom_members(struct sdap_options *opts,
 
     ret = sysdb_transaction_commit(dom->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -803,7 +803,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(dom->sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -836,21 +836,21 @@ ad_group_extra_members(TALLOC_CTX *mem_ctx, const struct ldb_message *group,
     m = ldb_msg_find_element(group, SYSDB_MEMBER);
     name = ldb_msg_find_attr_as_string(group, SYSDB_NAME, NULL);
     if (name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("A group with no name!\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "A group with no name!\n");
         ret = EFAULT;
         goto done;
     }
 
     if (om == NULL || om->num_values == 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Group %s has no original members\n", name));
+        DEBUG(SSSDBG_TRACE_FUNC, "Group %s has no original members\n", name);
         ret = EOK;
         goto done;
     }
 
     if (m == NULL || (m->num_values < om->num_values)) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Group %s has %d members but %d original members\n",
-               name, m ? m->num_values : 0, om->num_values));
+              "Group %s has %d members but %d original members\n",
+               name, m ? m->num_values : 0, om->num_values);
 
         /* Get the list of originalDN attributes that are already
          * linked to the group
@@ -859,8 +859,8 @@ ad_group_extra_members(TALLOC_CTX *mem_ctx, const struct ldb_message *group,
                                            &sysdb_odn_list);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Could not retrieve list of original members for %s\n",
-                  name));
+                  "Could not retrieve list of original members for %s\n",
+                  name);
             goto done;
         }
 
@@ -876,7 +876,7 @@ ad_group_extra_members(TALLOC_CTX *mem_ctx, const struct ldb_message *group,
                                 sysdb_odn_list, &group_only, NULL, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Could not compare lists of members for %s\n", name));
+                  "Could not compare lists of members for %s\n", name);
             goto done;
         }
     }
@@ -935,7 +935,7 @@ ad_group_stored_orig_members(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
             goto done;
         }
         oi++;
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Member %s already in sysdb\n", odn));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Member %s already in sysdb\n", odn);
     }
 
     ret = EOK;
@@ -962,7 +962,7 @@ ad_group_add_member(struct sdap_options *opts,
     /* This member would be from a different domain */
     sd = sdap_domain_get_by_dn(opts, member);
     if (sd == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("No matching domain for %s\n", member));
+        DEBUG(SSSDBG_MINOR_FAILURE, "No matching domain for %s\n", member);
         return ENOENT;
     }
 
@@ -986,17 +986,17 @@ ad_group_add_member(struct sdap_options *opts,
                              LDB_SCOPE_SUBTREE, mem_filter, NULL,
                              &msgs_count, &msgs);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No member [%s] in sysdb\n", member));
+        DEBUG(SSSDBG_TRACE_FUNC, "No member [%s] in sysdb\n", member);
         ret = EOK;
         goto done;
     } else if (ret != EOK) {
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("[%s] found in sysdb\n", member));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "[%s] found in sysdb\n", member);
 
     if (msgs_count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-               ("Search by orig DN returned %zd results!\n", msgs_count));
+               "Search by orig DN returned %zd results!\n", msgs_count);
         ret = EFAULT;
         goto done;
     }
@@ -1004,9 +1004,9 @@ ad_group_add_member(struct sdap_options *opts,
     ret = sysdb_mod_group_member(group_domain->sysdb, msgs[0]->dn,
                                  group_dn, SYSDB_MOD_ADD);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not add [%s] as a member of [%s]\n",
+        DEBUG(SSSDBG_OP_FAILURE, "Could not add [%s] as a member of [%s]\n",
               ldb_dn_get_linearized(msgs[0]->dn),
-              ldb_dn_get_linearized(group_dn)));
+              ldb_dn_get_linearized(group_dn));
         goto done;
     }
 

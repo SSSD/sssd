@@ -55,7 +55,7 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
             ret = EOK;
         }
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("No sub-attributes for [%s]\n", attr_desc));
+              "No sub-attributes for [%s]\n", attr_desc);
         goto done;
     }
 
@@ -67,8 +67,8 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
         goto done;
     }
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Base attribute of [%s] is [%s]\n",
-           attr_desc, base));
+          "Base attribute of [%s] is [%s]\n",
+           attr_desc, base);
 
     /* Next, determine if this is a ranged attribute */
     if (strncmp(endptr+1, SDAP_RANGE_STRING, rangestringlen) != 0) {
@@ -82,8 +82,8 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
             ret = EOK;
         }
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("[%s] contains sub-attribute other than a range, returning whole\n",
-               attr_desc));
+              "[%s] contains sub-attribute other than a range, returning whole\n",
+               attr_desc);
         goto done;
     } else if (disable_range_retrieval) {
         /* This is range sub-attribute, but we want to ignore it.
@@ -102,8 +102,8 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
     if (!end_range) {
         ret = EINVAL;
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Cannot find hyphen in [%s]\n",
-               endptr + rangestringlen +1));
+              "Cannot find hyphen in [%s]\n",
+               endptr + rangestringlen +1);
         goto done;
     }
     end_range++; /* advance past the hyphen */
@@ -113,8 +113,8 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
         *base_attr = talloc_steal(mem_ctx, base);
         *range_offset = 0;
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("[%s] contained the last set of values for this attribute\n",
-               attr_desc));
+              "[%s] contained the last set of values for this attribute\n",
+               attr_desc);
         ret = EOK;
         goto done;
     }
@@ -124,16 +124,16 @@ errno_t sdap_parse_range(TALLOC_CTX *mem_ctx,
         *range_offset = 0;
         ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("[%s] did not parse as an unsigned integer: [%s]\n",
-               end_range, strerror(ret)));
+              "[%s] did not parse as an unsigned integer: [%s]\n",
+               end_range, strerror(ret));
         goto done;
     }
     (*range_offset)++;
 
     *base_attr = talloc_steal(mem_ctx, base);
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Parsed range values: [%s][%d]\n",
-           base, *range_offset));
+          "Parsed range values: [%s][%d]\n",
+           base, *range_offset);
 
     ret = EAGAIN;
 done:

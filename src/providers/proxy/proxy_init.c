@@ -125,8 +125,8 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
 
     ctx->handle = dlopen(libpath, RTLD_NOW);
     if (!ctx->handle) {
-        DEBUG(0, ("Unable to load %s module with path, error: %s\n",
-                  libpath, dlerror()));
+        DEBUG(0, "Unable to load %s module with path, error: %s\n",
+                  libpath, dlerror());
         ret = ELIBACC;
         goto done;
     }
@@ -134,7 +134,7 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
     ctx->ops.getpwnam_r = proxy_dlsym(ctx->handle, "_nss_%s_getpwnam_r",
                                       libname);
     if (!ctx->ops.getpwnam_r) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
@@ -142,14 +142,14 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
     ctx->ops.getpwuid_r = proxy_dlsym(ctx->handle, "_nss_%s_getpwuid_r",
                                       libname);
     if (!ctx->ops.getpwuid_r) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
 
     ctx->ops.setpwent = proxy_dlsym(ctx->handle, "_nss_%s_setpwent", libname);
     if (!ctx->ops.setpwent) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
@@ -157,14 +157,14 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
     ctx->ops.getpwent_r = proxy_dlsym(ctx->handle, "_nss_%s_getpwent_r",
                                       libname);
     if (!ctx->ops.getpwent_r) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
 
     ctx->ops.endpwent = proxy_dlsym(ctx->handle, "_nss_%s_endpwent", libname);
     if (!ctx->ops.endpwent) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
@@ -172,7 +172,7 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
     ctx->ops.getgrnam_r = proxy_dlsym(ctx->handle, "_nss_%s_getgrnam_r",
                                       libname);
     if (!ctx->ops.getgrnam_r) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
@@ -180,14 +180,14 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
     ctx->ops.getgrgid_r = proxy_dlsym(ctx->handle, "_nss_%s_getgrgid_r",
                                       libname);
     if (!ctx->ops.getgrgid_r) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
 
     ctx->ops.setgrent = proxy_dlsym(ctx->handle, "_nss_%s_setgrent", libname);
     if (!ctx->ops.setgrent) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
@@ -195,14 +195,14 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
     ctx->ops.getgrent_r = proxy_dlsym(ctx->handle, "_nss_%s_getgrent_r",
                                       libname);
     if (!ctx->ops.getgrent_r) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
 
     ctx->ops.endgrent = proxy_dlsym(ctx->handle, "_nss_%s_endgrent", libname);
     if (!ctx->ops.endgrent) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
+        DEBUG(0, "Failed to load NSS fns, error: %s\n", dlerror());
         ret = ELIBBAD;
         goto done;
     }
@@ -210,34 +210,34 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
     ctx->ops.initgroups_dyn = proxy_dlsym(ctx->handle, "_nss_%s_initgroups_dyn",
                                           libname);
     if (!ctx->ops.initgroups_dyn) {
-        DEBUG(1, ("The '%s' library does not provides the "
+        DEBUG(1, "The '%s' library does not provides the "
                   "_nss_XXX_initgroups_dyn function!\n"
                   "initgroups will be slow as it will require "
-                  "full groups enumeration!\n", libname));
+                  "full groups enumeration!\n", libname);
     }
 
     ctx->ops.setnetgrent = proxy_dlsym(ctx->handle, "_nss_%s_setnetgrent",
                                        libname);
     if (!ctx->ops.setnetgrent) {
-        DEBUG(0, ("Failed to load _nss_%s_setnetgrent, error: %s. "
+        DEBUG(0, "Failed to load _nss_%s_setnetgrent, error: %s. "
                   "The library does not support netgroups.\n", libname,
-                                                               dlerror()));
+                                                               dlerror());
     }
 
     ctx->ops.getnetgrent_r = proxy_dlsym(ctx->handle, "_nss_%s_getnetgrent_r",
                                          libname);
     if (!ctx->ops.getgrent_r) {
-        DEBUG(0, ("Failed to load _nss_%s_getnetgrent_r, error: %s. "
+        DEBUG(0, "Failed to load _nss_%s_getnetgrent_r, error: %s. "
                   "The library does not support netgroups.\n", libname,
-                                                               dlerror()));
+                                                               dlerror());
     }
 
     ctx->ops.endnetgrent = proxy_dlsym(ctx->handle, "_nss_%s_endnetgrent",
                                        libname);
     if (!ctx->ops.endnetgrent) {
-        DEBUG(0, ("Failed to load _nss_%s_endnetgrent, error: %s. "
+        DEBUG(0, "Failed to load _nss_%s_endnetgrent, error: %s. "
                   "The library does not support netgroups.\n", libname,
-                                                               dlerror()));
+                                                               dlerror());
     }
 
     ctx->ops.getservbyname_r = proxy_dlsym(ctx->handle,
@@ -245,10 +245,10 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                                            libname);
     if (!ctx->ops.getservbyname_r) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to load _nss_%s_getservbyname_r, error: %s. "
+              "Failed to load _nss_%s_getservbyname_r, error: %s. "
                "The library does not support services.\n",
                libname,
-               dlerror()));
+               dlerror());
     }
 
     ctx->ops.getservbyport_r = proxy_dlsym(ctx->handle,
@@ -256,10 +256,10 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                                            libname);
     if (!ctx->ops.getservbyport_r) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to load _nss_%s_getservbyport_r, error: %s. "
+              "Failed to load _nss_%s_getservbyport_r, error: %s. "
                "The library does not support services.\n",
                libname,
-               dlerror()));
+               dlerror());
     }
 
     ctx->ops.setservent = proxy_dlsym(ctx->handle,
@@ -267,10 +267,10 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                                       libname);
     if (!ctx->ops.setservent) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to load _nss_%s_setservent, error: %s. "
+              "Failed to load _nss_%s_setservent, error: %s. "
                "The library does not support services.\n",
                libname,
-               dlerror()));
+               dlerror());
     }
 
     ctx->ops.getservent_r = proxy_dlsym(ctx->handle,
@@ -278,10 +278,10 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                                         libname);
     if (!ctx->ops.getservent_r) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to load _nss_%s_getservent_r, error: %s. "
+              "Failed to load _nss_%s_getservent_r, error: %s. "
                "The library does not support services.\n",
                libname,
-               dlerror()));
+               dlerror());
     }
 
     ctx->ops.endservent = proxy_dlsym(ctx->handle,
@@ -289,10 +289,10 @@ int sssm_proxy_id_init(struct be_ctx *bectx,
                                       libname);
     if (!ctx->ops.endservent) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to load _nss_%s_endservent, error: %s. "
+              "Failed to load _nss_%s_endservent, error: %s. "
                "The library does not support services.\n",
                libname,
-               dlerror()));
+               dlerror());
     }
 
     *ops = &proxy_id_ops;
@@ -329,7 +329,7 @@ static int proxy_client_init(struct sbus_connection *conn, void *data)
 
     proxy_cli = talloc_zero(conn, struct proxy_client);
     if (!proxy_cli) {
-        DEBUG(0,("Out of memory?!\n"));
+        DEBUG(0,"Out of memory?!\n");
         talloc_zfree(conn);
         return ENOMEM;
     }
@@ -343,11 +343,11 @@ static int proxy_client_init(struct sbus_connection *conn, void *data)
     proxy_cli->timeout = tevent_add_timer(proxy_auth_ctx->be->ev, proxy_cli,
                                           tv, init_timeout, proxy_cli);
     if (!proxy_cli->timeout) {
-        DEBUG(0,("Out of memory?!\n"));
+        DEBUG(0,"Out of memory?!\n");
         talloc_zfree(conn);
         return ENOMEM;
     }
-    DEBUG(4, ("Set-up proxy client ID timeout [%p]\n", proxy_cli->timeout));
+    DEBUG(4, "Set-up proxy client ID timeout [%p]\n", proxy_cli->timeout);
 
     /* Attach the client context to the connection context, so that it is
      * always available when we need to manage the connection. */
@@ -362,7 +362,7 @@ static void init_timeout(struct tevent_context *ev,
 {
     struct proxy_client *proxy_cli;
 
-    DEBUG(2, ("Client timed out before Identification [%p]!\n", te));
+    DEBUG(2, "Client timed out before Identification [%p]!\n", te);
 
     proxy_cli = talloc_get_type(ptr, struct proxy_client);
 
@@ -396,12 +396,12 @@ static int client_registration(DBusMessage *message,
     data = sbus_conn_get_private_data(conn);
     proxy_cli = talloc_get_type(data, struct proxy_client);
     if (!proxy_cli) {
-        DEBUG(0, ("Connection holds no valid init data\n"));
+        DEBUG(0, "Connection holds no valid init data\n");
         return EINVAL;
     }
 
     /* First thing, cancel the timeout */
-    DEBUG(4, ("Cancel proxy client ID timeout [%p]\n", proxy_cli->timeout));
+    DEBUG(4, "Cancel proxy client ID timeout [%p]\n", proxy_cli->timeout);
     talloc_zfree(proxy_cli->timeout);
 
     dbus_error_init(&dbus_error);
@@ -411,20 +411,20 @@ static int client_registration(DBusMessage *message,
                                   DBUS_TYPE_UINT32, &cli_id,
                                   DBUS_TYPE_INVALID);
     if (!dbret) {
-        DEBUG(1, ("Failed to parse message, killing connection\n"));
+        DEBUG(1, "Failed to parse message, killing connection\n");
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         sbus_disconnect(conn);
         /* FIXME: should we just talloc_zfree(conn) ? */
         return EIO;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Proxy client [%"PRIu32"] connected\n", cli_id));
+    DEBUG(SSSDBG_FUNC_DATA, "Proxy client [%"PRIu32"] connected\n", cli_id);
 
     /* Check the hash table */
     key.type = HASH_KEY_ULONG;
     key.ul = cli_id;
     if (!hash_has_key(proxy_cli->proxy_auth_ctx->request_table, &key)) {
-        DEBUG(1, ("Unknown child ID. Killing the connection\n"));
+        DEBUG(1, "Unknown child ID. Killing the connection\n");
         sbus_disconnect(proxy_cli->conn);
         return EIO;
     }
@@ -432,7 +432,7 @@ static int client_registration(DBusMessage *message,
     /* reply that all is ok */
     reply = dbus_message_new_method_return(message);
     if (!reply) {
-        DEBUG(0, ("Dbus Out of memory!\n"));
+        DEBUG(0, "Dbus Out of memory!\n");
         return ENOMEM;
     }
 
@@ -440,7 +440,7 @@ static int client_registration(DBusMessage *message,
                                      DBUS_TYPE_UINT16, &version,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
-        DEBUG(0, ("Failed to build dbus reply\n"));
+        DEBUG(0, "Failed to build dbus reply\n");
         dbus_message_unref(reply);
         sbus_disconnect(conn);
         return EIO;
@@ -452,7 +452,7 @@ static int client_registration(DBusMessage *message,
 
     hret = hash_lookup(proxy_cli->proxy_auth_ctx->request_table, &key, &value);
     if (hret != HASH_SUCCESS) {
-        DEBUG(1, ("Hash error [%d][%s]\n", hret, hash_error_string(hret)));
+        DEBUG(1, "Hash error [%d][%s]\n", hret, hash_error_string(hret));
         sbus_disconnect(conn);
     }
 
@@ -466,8 +466,8 @@ static int client_registration(DBusMessage *message,
          * the init_req will be NULL below and things will
          * break.
          */
-        DEBUG(1, ("Client connection from a request "
-                  "that's not marked as running\n"));
+        DEBUG(1, "Client connection from a request "
+                  "that's not marked as running\n");
         return EIO;
     }
 
@@ -490,7 +490,7 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
     /* If we're already set up, just return that */
     if(bectx->bet_info[BET_AUTH].mod_name &&
        strcmp("proxy", bectx->bet_info[BET_AUTH].mod_name) == 0) {
-        DEBUG(8, ("Re-using proxy_auth_ctx for this provider\n"));
+        DEBUG(8, "Re-using proxy_auth_ctx for this provider\n");
         *ops = bectx->bet_info[BET_AUTH].bet_ops;
         *pvt_data = bectx->bet_info[BET_AUTH].pvt_bet_data;
         return EOK;
@@ -509,7 +509,7 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
                             &ctx->pam_target);
     if (ret != EOK) goto done;
     if (!ctx->pam_target) {
-        DEBUG(1, ("Missing option proxy_pam_target.\n"));
+        DEBUG(1, "Missing option proxy_pam_target.\n");
         ret = EINVAL;
         goto done;
     }
@@ -517,7 +517,7 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
     sbus_address = talloc_asprintf(ctx, "unix:path=%s/%s_%s", PIPE_PATH,
                                    PROXY_CHILD_PIPE, bectx->domain->name);
     if (sbus_address == NULL) {
-        DEBUG(1, ("talloc_asprintf failed.\n"));
+        DEBUG(1, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -525,7 +525,7 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
     ret = sbus_new_server(ctx, bectx->ev, sbus_address, &proxy_interface,
                           false, &ctx->sbus_srv, proxy_client_init, ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up sbus server.\n"));
+        DEBUG(0, "Could not set up sbus server.\n");
         goto done;
     }
 
@@ -536,7 +536,7 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
     hret = hash_create(ctx->max_children * 2, &ctx->request_table,
                        NULL, NULL);
     if (hret != HASH_SUCCESS) {
-        DEBUG(0, ("Could not initialize request table\n"));
+        DEBUG(0, "Could not initialize request table\n");
         ret = EIO;
         goto done;
     }

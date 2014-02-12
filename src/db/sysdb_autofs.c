@@ -110,7 +110,7 @@ sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Adding autofs map %s\n", autofsmapname));
+    DEBUG(SSSDBG_TRACE_FUNC, "Adding autofs map %s\n", autofsmapname);
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -128,29 +128,29 @@ sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
     ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS,
                                  SYSDB_AUTOFS_MAP_OC);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set map object class [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set map object class [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_AUTOFS_MAP_NAME, autofsmapname);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set map name [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set map name [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set name attribute [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set name attribute [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set sysdb lastUpdate [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set sysdb lastUpdate [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
@@ -158,15 +158,15 @@ sysdb_save_autofsmap(struct sysdb_ctx *sysdb_ctx,
                                  ((cache_timeout) ?
                                   (now + cache_timeout) : 0));
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set sysdb cache expire [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set sysdb cache expire [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_store_custom(sysdb_ctx, domain, name, AUTOFS_MAP_SUBDIR, attrs);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_store_custom failed [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_custom failed [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
@@ -181,7 +181,7 @@ sysdb_delete_autofsmap(struct sysdb_ctx *sysdb_ctx,
                        struct sss_domain_info *domain,
                        const char *name)
 {
-    DEBUG(SSSDBG_TRACE_FUNC, ("Deleting autofs map %s\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Deleting autofs map %s\n", name);
     return sysdb_delete_custom(sysdb_ctx, domain, name, AUTOFS_MAP_SUBDIR);
 }
 
@@ -211,8 +211,8 @@ sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
     ret = sss_filter_sanitize(tmp_ctx, map_name, &safe_map_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Cannot sanitize map [%s] error [%d]: %s\n",
-               map_name, ret, strerror(ret)));
+              "Cannot sanitize map [%s] error [%d]: %s\n",
+               map_name, ret, strerror(ret));
         goto done;
     }
 
@@ -228,17 +228,17 @@ sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error looking up autofs map [%s]", safe_map_name));
+              "Error looking up autofs map [%s]", safe_map_name);
         goto done;
     } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No such map\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "No such map\n");
         *_map = NULL;
         goto done;
     }
 
     if (count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("More than one map named %s\n", safe_map_name));
+              "More than one map named %s\n", safe_map_name);
         goto done;
     }
 
@@ -264,7 +264,7 @@ sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
     const char *name;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Adding autofs entry [%s] - [%s]\n", key, value));
+          "Adding autofs entry [%s] - [%s]\n", key, value);
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -282,22 +282,22 @@ sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
     ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS,
                                  SYSDB_AUTOFS_ENTRY_OC);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set entry object class [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set entry object class [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_AUTOFS_ENTRY_KEY, key);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set entry key [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set entry key [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_AUTOFS_ENTRY_VALUE, value);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set entry key [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set entry key [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
@@ -309,8 +309,8 @@ sysdb_save_autofsentry(struct sysdb_ctx *sysdb_ctx,
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set name attribute [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set name attribute [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
@@ -372,7 +372,7 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
     struct ldb_message **msgs;
     struct ldb_dn *mapdn;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Getting entries for map %s\n", mapname));
+    DEBUG(SSSDBG_TRACE_FUNC, "Getting entries for map %s\n", mapname);
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -395,10 +395,10 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
     ret = sysdb_search_entry(tmp_ctx, sysdb, mapdn, LDB_SCOPE_ONELEVEL,
                              filter, attrs, &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb search failed: %d\n", ret));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb search failed: %d\n", ret);
         goto done;
     } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No entries for the map\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "No entries for the map\n");
         *_count = 0;
         *_entries = NULL;
         goto done;
@@ -407,8 +407,8 @@ sysdb_autofs_entries_by_map(TALLOC_CTX *mem_ctx,
     *_count = count;
     *_entries = talloc_steal(mem_ctx, msgs);
     ret = EOK;
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("found %zu entries for map %s\n",
-                                   count, mapname));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "found %zu entries for map %s\n",
+                                   count, mapname);
 done:
     talloc_free(tmp_ctx);
     return ret;
@@ -477,7 +477,7 @@ sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error looking up autofs maps"));
+              "Error looking up autofs maps");
         goto done;
     } else if (ret == ENOENT) {
         ret = EOK;
@@ -497,7 +497,7 @@ sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -505,21 +505,21 @@ sysdb_invalidate_autofs_maps(struct sysdb_ctx *sysdb,
     for (i = 0; i < count; i++) {
         name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
         if (!name) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("A map with no name?\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "A map with no name?\n");
             continue;
         }
 
         ret = sysdb_set_autofsmap_attr(sysdb, domain, name,
                                        sys_attrs, SYSDB_MOD_REP);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not expire map %s\n", name));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not expire map %s\n", name);
             continue;
         }
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not commit transaction\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -529,7 +529,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);

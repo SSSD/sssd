@@ -78,12 +78,12 @@ errno_t sss_memcache_invalidate(const char *mc_filename)
     if (mc_fd == -1) {
         ret = errno;
         if (ret == ENOENT) {
-            DEBUG(SSSDBG_TRACE_FUNC,("Memory cache file %s "
-                  "does not exist.\n", mc_filename));
+            DEBUG(SSSDBG_TRACE_FUNC,"Memory cache file %s "
+                  "does not exist.\n", mc_filename);
             return EOK;
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to open file %s: %s\n",
-                  mc_filename, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to open file %s: %s\n",
+                  mc_filename, strerror(ret));
             return ret;
         }
     }
@@ -91,17 +91,17 @@ errno_t sss_memcache_invalidate(const char *mc_filename)
     ret = sss_br_lock_file(mc_fd, 0, 1, retries, t);
     if (ret == EACCES) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("File %s already locked by someone else.\n", mc_filename));
+              "File %s already locked by someone else.\n", mc_filename);
         goto done;
     } else if (ret != EOK) {
-       DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to lock file %s.\n", mc_filename));
+       DEBUG(SSSDBG_CRIT_FAILURE, "Failed to lock file %s.\n", mc_filename);
        goto done;
     }
     /* Mark the mc file as recycled. */
     ret = sss_mc_set_recycled(mc_fd);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to mark memory cache file %s "
-              "as recycled.\n", mc_filename));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to mark memory cache file %s "
+              "as recycled.\n", mc_filename);
         goto done;
     }
 
@@ -116,9 +116,9 @@ done:
             pret = unlink(mc_filename);
             if (pret == -1) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Failed to unlink file %s. "
+                      "Failed to unlink file %s. "
                        "Will be unlinked later by sssd_nss.\n",
-                       mc_filename));
+                       mc_filename);
             }
         }
     }
@@ -160,7 +160,7 @@ errno_t sss_memcache_clear_all(void)
 
     ret = clear_fastcache(&sssd_nss_is_off);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to clear caches.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to clear caches.\n");
         return EIO;
     }
     if (!sssd_nss_is_off) {
@@ -168,23 +168,23 @@ errno_t sss_memcache_clear_all(void)
         clear_mc_flag = fopen(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG, "w");
         if (clear_mc_flag == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to create clear_mc_flag file. "
-                   "Memory cache will not be cleared.\n"));
+                  "Failed to create clear_mc_flag file. "
+                   "Memory cache will not be cleared.\n");
             return EIO;
         }
         ret = fclose(clear_mc_flag);
         if (ret != 0) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Unable to close file descriptor: %s\n",
-                   strerror(ret)));
+                  "Unable to close file descriptor: %s\n",
+                   strerror(ret));
             return EIO;
         }
-        DEBUG(SSSDBG_TRACE_FUNC, ("Sending SIGHUP to monitor.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Sending SIGHUP to monitor.\n");
         ret = signal_sssd(SIGHUP);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to send SIGHUP to monitor.\n"));
+                  "Failed to send SIGHUP to monitor.\n");
             return EIO;
         }
     }
@@ -217,7 +217,7 @@ static errno_t sss_mc_refresh_ent(const char *name, enum sss_tools_ent ent)
     }
 
     if (cmd == SSS_CLI_NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Unknown object %d to refresh\n", cmd));
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown object %d to refresh\n", cmd);
         return EINVAL;
     }
 
@@ -261,7 +261,7 @@ errno_t sss_mc_refresh_nested_group(struct tools_ctx *tctx,
     ret = sss_mc_refresh_group(name);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Cannot refresh group %s from memory cache\n", name));
+              "Cannot refresh group %s from memory cache\n", name);
         /* try to carry on */
     }
 
@@ -269,13 +269,13 @@ errno_t sss_mc_refresh_nested_group(struct tools_ctx *tctx,
                                      name, attrs, &msg);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
-               ("Search failed: %s (%d)\n", strerror(ret), ret));
+               "Search failed: %s (%d)\n", strerror(ret), ret);
         return ret;
     }
 
     el = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
     if (!el || el->num_values == 0) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Group %s has no parents\n", name));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Group %s has no parents\n", name);
         talloc_free(msg);
         return EOK;
     }
@@ -286,8 +286,8 @@ errno_t sss_mc_refresh_nested_group(struct tools_ctx *tctx,
                                   (const char *) el->values[i].data,
                                   &parent_name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Malformed DN [%s]? Skipping\n",
-                  (const char *) el->values[i].data));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Malformed DN [%s]? Skipping\n",
+                  (const char *) el->values[i].data);
             talloc_free(parent_name);
             continue;
         }
@@ -296,7 +296,7 @@ errno_t sss_mc_refresh_nested_group(struct tools_ctx *tctx,
         talloc_free(parent_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Cannot refresh group %s from memory cache\n", name));
+                  "Cannot refresh group %s from memory cache\n", name);
             /* try to carry on */
         }
     }
@@ -318,8 +318,8 @@ errno_t sss_mc_refresh_grouplist(struct tools_ctx *tctx,
         ret = sss_mc_refresh_nested_group(tctx, groupnames[i]);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Cannot refresh group %s from memory cache\n",
-                  groupnames[i]));
+                  "Cannot refresh group %s from memory cache\n",
+                  groupnames[i]);
             failed = true;
             continue;
         }

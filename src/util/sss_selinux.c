@@ -66,7 +66,7 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
     errno_t ret;
 
     if (usermap == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("NULL given as usermap! Skipping ...\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "NULL given as usermap! Skipping ...\n");
         return false;
     }
 
@@ -86,14 +86,14 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
     if (user) {
         ret = sysdb_attrs_get_el(user, SYSDB_ORIG_DN, &dn);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("User does not have origDN\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "User does not have origDN\n");
             return false;
         }
         ret = sysdb_attrs_get_el(user, SYSDB_ORIG_MEMBEROF, &memberof);
         if (ret != EOK) {
             DEBUG(SSSDBG_TRACE_ALL,
-                  ("User does not have orig memberof, "
-                   "therefore it can't match to any rule\n"));
+                  "User does not have orig memberof, "
+                   "therefore it can't match to any rule\n");
             return false;
         }
 
@@ -113,7 +113,7 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
 
         if (!matched_category) {
             if (users_el == NULL) {
-                DEBUG(SSSDBG_TRACE_ALL, ("No users specified in the rule!\n"));
+                DEBUG(SSSDBG_TRACE_ALL, "No users specified in the rule!\n");
                 return false;
             } else {
                 matched_name = match_entity(users_el, dn);
@@ -123,7 +123,7 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
                 } else if (matched_group) {
                     priority |= SELINUX_PRIORITY_USER_GROUP;
                 } else {
-                    DEBUG(SSSDBG_TRACE_ALL, ("User did not match\n"));
+                    DEBUG(SSSDBG_TRACE_ALL, "User did not match\n");
                     return false;
                 }
             }
@@ -135,14 +135,14 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
     if (host) {
         ret = sysdb_attrs_get_el(host, SYSDB_ORIG_DN, &dn);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Host does not have origDN\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Host does not have origDN\n");
             return false;
         }
         ret = sysdb_attrs_get_el(host, SYSDB_ORIG_MEMBEROF, &memberof);
         if (ret != EOK) {
             DEBUG(SSSDBG_TRACE_ALL,
-                  ("Host does not have orig memberof, "
-                   "therefore it can't match to any rule\n"));
+                  "Host does not have orig memberof, "
+                   "therefore it can't match to any rule\n");
             return false;
         }
 
@@ -161,7 +161,7 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
         }
         if (!matched_category) {
             if (hosts_el == NULL) {
-                DEBUG(SSSDBG_TRACE_ALL, ("No users specified in the rule!\n"));
+                DEBUG(SSSDBG_TRACE_ALL, "No users specified in the rule!\n");
                 return false;
             } else {
                 matched_name = match_entity(hosts_el, dn);
@@ -171,7 +171,7 @@ bool sss_selinux_match(struct sysdb_attrs *usermap,
                 } else if (matched_group) {
                     priority |= SELINUX_PRIORITY_HOST_GROUP;
                 } else {
-                    DEBUG(SSSDBG_TRACE_ALL, ("Host did not match\n"));
+                    DEBUG(SSSDBG_TRACE_ALL, "Host did not match\n");
                     return false;
                 }
             }
@@ -208,7 +208,7 @@ errno_t sss_selinux_extract_user(TALLOC_CTX *mem_ctx,
 
     attrs = talloc_array(tmp_ctx, const char *, 3);
     if (attrs == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_array failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -219,7 +219,7 @@ errno_t sss_selinux_extract_user(TALLOC_CTX *mem_ctx,
     ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain, username,
                                     attrs, &user_msg);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_name failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_name failed.\n");
         goto done;
     }
 

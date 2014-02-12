@@ -39,7 +39,7 @@ ipa_hbac_save_list(struct sss_domain_info *domain,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed.\n"));
+        DEBUG(1, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -53,7 +53,7 @@ ipa_hbac_save_list(struct sss_domain_info *domain,
 
         ret = sysdb_delete_recursive(domain->sysdb, base_dn, true);
         if (ret != EOK) {
-            DEBUG(1, ("sysdb_delete_recursive failed.\n"));
+            DEBUG(1, "sysdb_delete_recursive failed.\n");
             goto done;
         }
     }
@@ -61,27 +61,27 @@ ipa_hbac_save_list(struct sss_domain_info *domain,
     for (c = 0; c < count; c++) {
         ret = sysdb_attrs_get_el(list[c], naming_attribute, &el);
         if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+            DEBUG(1, "sysdb_attrs_get_el failed.\n");
             goto done;
         }
         if (el->num_values == 0) {
-            DEBUG(1, ("[%s] not found.\n", naming_attribute));
+            DEBUG(1, "[%s] not found.\n", naming_attribute);
             ret = EINVAL;
             goto done;
         }
         object_name = talloc_strndup(tmp_ctx, (const char *)el->values[0].data,
                                      el->values[0].length);
         if (object_name == NULL) {
-            DEBUG(1, ("talloc_strndup failed.\n"));
+            DEBUG(1, "talloc_strndup failed.\n");
             ret = ENOMEM;
             goto done;
         }
-        DEBUG(9, ("Object name: [%s].\n", object_name));
+        DEBUG(9, "Object name: [%s].\n", object_name);
 
         ret = sysdb_store_custom(domain->sysdb, domain,
                                  object_name, subdir, list[c]);
         if (ret != EOK) {
-            DEBUG(1, ("sysdb_store_custom failed.\n"));
+            DEBUG(1, "sysdb_store_custom failed.\n");
             goto done;
         }
     }
@@ -114,7 +114,7 @@ ipa_hbac_sysdb_save(struct sss_domain_info *domain,
     /* Save the entries and groups to the cache */
     ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     };
     in_transaction = true;
@@ -123,8 +123,8 @@ ipa_hbac_sysdb_save(struct sss_domain_info *domain,
     ret = ipa_hbac_save_list(domain, true, primary_subdir,
                              attr_name, primary_count, primary);
     if (ret != EOK) {
-        DEBUG(1, ("Could not save %s. [%d][%s]\n",
-                  primary_subdir, ret, strerror(ret)));
+        DEBUG(1, "Could not save %s. [%d][%s]\n",
+                  primary_subdir, ret, strerror(ret));
         goto done;
     }
 
@@ -133,15 +133,15 @@ ipa_hbac_sysdb_save(struct sss_domain_info *domain,
         ret = ipa_hbac_save_list(domain, true, group_subdir,
                                  groupattr_name, group_count, groups);
         if (ret != EOK) {
-            DEBUG(1, ("Could not save %s. [%d][%s]\n",
-                      group_subdir, ret, strerror(ret)));
+            DEBUG(1, "Could not save %s. [%d][%s]\n",
+                      group_subdir, ret, strerror(ret));
             goto done;
         }
     }
 
     ret = sysdb_transaction_commit(domain->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -150,12 +150,12 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(domain->sysdb);
         if (sret != EOK) {
-            DEBUG(0, ("Could not cancel sysdb transaction\n"));
+            DEBUG(0, "Could not cancel sysdb transaction\n");
         }
     }
 
     if (ret != EOK) {
-        DEBUG(3, ("Error [%d][%s]\n", ret, strerror(ret)));
+        DEBUG(3, "Error [%d][%s]\n", ret, strerror(ret));
     }
     return ret;
 }
@@ -171,7 +171,7 @@ replace_attribute_name(const char *old_name,
     for (i = 0; i < count; i++) {
         ret = sysdb_attrs_replace_name(list[i], old_name, new_name);
         if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_replace_name failed.\n"));
+            DEBUG(1, "sysdb_attrs_replace_name failed.\n");
             return ret;
         }
     }
@@ -236,7 +236,7 @@ hbac_ctx_to_rules(TALLOC_CTX *mem_ctx,
         if (ret == EPERM) {
             goto done;
         } else if (ret != EOK) {
-            DEBUG(1, ("Could not construct rules\n"));
+            DEBUG(1, "Could not construct rules\n");
             goto done;
         }
     }
@@ -245,7 +245,7 @@ hbac_ctx_to_rules(TALLOC_CTX *mem_ctx,
     /* Create the eval request */
     ret = hbac_ctx_to_eval_request(tmp_ctx, hbac_ctx, &new_request);
     if (ret != EOK) {
-        DEBUG(1, ("Could not construct eval request\n"));
+        DEBUG(1, "Could not construct eval request\n");
         goto done;
     }
 
@@ -276,7 +276,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_get_el(hbac_ctx->rules[idx],
                              IPA_CN, &el);
     if (ret != EOK || el->num_values == 0) {
-        DEBUG(4, ("rule has no name, assuming '(none)'.\n"));
+        DEBUG(4, "rule has no name, assuming '(none)'.\n");
         new_rule->name = talloc_strdup(new_rule, "(none)");
     } else {
         new_rule->name = talloc_strndup(new_rule,
@@ -284,7 +284,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
                                         el->values[0].length);
     }
 
-    DEBUG(7, ("Processing rule [%s]\n", new_rule->name));
+    DEBUG(7, "Processing rule [%s]\n", new_rule->name);
 
     ret = sysdb_attrs_get_bool(hbac_ctx->rules[idx], IPA_ENABLED_FLAG,
                                &new_rule->enabled);
@@ -301,7 +301,7 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
     if (ret != EOK) goto done;
 
     if (strcasecmp(rule_type, IPA_HBAC_ALLOW) != 0) {
-        DEBUG(7, ("Rule [%s] is not an ALLOW rule\n", new_rule->name));
+        DEBUG(7, "Rule [%s] is not an ALLOW rule\n", new_rule->name);
         ret = EPERM;
         goto done;
     }
@@ -312,8 +312,8 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
                                   hbac_ctx->rules[idx],
                                   &new_rule->users);
     if (ret != EOK) {
-        DEBUG(1, ("Could not parse users for rule [%s]\n",
-                  new_rule->name));
+        DEBUG(1, "Could not parse users for rule [%s]\n",
+                  new_rule->name);
         goto done;
     }
 
@@ -323,8 +323,8 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
                                      hbac_ctx->rules[idx],
                                      &new_rule->services);
     if (ret != EOK) {
-        DEBUG(1, ("Could not parse services for rule [%s]\n",
-                  new_rule->name));
+        DEBUG(1, "Could not parse services for rule [%s]\n",
+                  new_rule->name);
         goto done;
     }
 
@@ -334,8 +334,8 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
                                    hbac_ctx->rules[idx],
                                    &new_rule->targethosts);
     if (ret != EOK) {
-        DEBUG(1, ("Could not parse target hosts for rule [%s]\n",
-                  new_rule->name));
+        DEBUG(1, "Could not parse target hosts for rule [%s]\n",
+                  new_rule->name);
         goto done;
     }
 
@@ -348,8 +348,8 @@ hbac_attrs_to_rule(TALLOC_CTX *mem_ctx,
                                                    IPA_HBAC_SUPPORT_SRCHOST),
                                    &new_rule->srchosts);
     if (ret != EOK) {
-        DEBUG(1, ("Could not parse source hosts for rule [%s]\n",
-                  new_rule->name));
+        DEBUG(1, "Could not parse source hosts for rule [%s]\n",
+                  new_rule->name);
         goto done;
     }
 
@@ -381,12 +381,12 @@ hbac_get_category(struct sysdb_attrs *attrs,
     if (ret != ENOENT) {
         for (i = 0; categories[i]; i++) {
             if (strcasecmp("all", categories[i]) == 0) {
-                DEBUG(5, ("Category is set to 'all'.\n"));
+                DEBUG(5, "Category is set to 'all'.\n");
                 cats |= HBAC_CATEGORY_ALL;
                 continue;
             }
-            DEBUG(9, ("Unsupported user category [%s].\n",
-                      categories[i]));
+            DEBUG(9, "Unsupported user category [%s].\n",
+                      categories[i]);
         }
     }
 
@@ -450,7 +450,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     if (strcasecmp(pd->domain, domain->name) != 0) {
         user_dom = find_subdomain_by_name(domain, pd->domain, true);
         if (user_dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("find_subdomain_by_name failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "find_subdomain_by_name failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -486,7 +486,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     /* The target host is always the current machine */
     thost = dp_opt_get_cstring(hbac_ctx->ipa_options, IPA_HOSTNAME);
     if (thost == NULL) {
-        DEBUG(1, ("Missing ipa_hostname, this should never happen.\n"));
+        DEBUG(1, "Missing ipa_hostname, this should never happen.\n");
         ret = EINVAL;
         goto done;
     }
@@ -539,18 +539,18 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
     ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
                                     users->name, attrs, &msg);
     if (ret != EOK) {
-        DEBUG(1, ("Could not determine user memberships for [%s]\n",
-                  users->name));
+        DEBUG(1, "Could not determine user memberships for [%s]\n",
+                  users->name);
         goto done;
     }
 
     el = ldb_msg_find_element(msg, SYSDB_ORIG_MEMBEROF);
     if (el == NULL || el->num_values == 0) {
-        DEBUG(7, ("No groups for [%s]\n", users->name));
+        DEBUG(7, "No groups for [%s]\n", users->name);
         ret = create_empty_grouplist(users);
         goto done;
     }
-    DEBUG(7, ("[%d] groups for [%s]\n", el->num_values, users->name));
+    DEBUG(7, "[%d] groups for [%s]\n", el->num_values, users->name);
 
     users->groups = talloc_array(users, const char *, el->num_values + 1);
     if (users->groups == NULL) {
@@ -564,16 +564,16 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
         ret = get_ipa_groupname(users->groups, sysdb, member_dn,
                                 &users->groups[num_groups]);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(3, ("Parse error on [%s]\n", member_dn));
+            DEBUG(3, "Parse error on [%s]\n", member_dn);
             goto done;
         } else if (ret == EOK) {
-            DEBUG(7, ("Added group [%s] for user [%s]\n",
-                      users->groups[num_groups], users->name));
+            DEBUG(7, "Added group [%s] for user [%s]\n",
+                      users->groups[num_groups], users->name);
             num_groups++;
             continue;
         }
         /* Skip entries that are not groups */
-        DEBUG(8, ("Skipping non-group memberOf [%s]\n", member_dn));
+        DEBUG(8, "Skipping non-group memberOf [%s]\n", member_dn);
     }
     users->groups[num_groups] = NULL;
 
@@ -646,7 +646,7 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
     } else if (ret != EOK) {
         goto done;
     } else if (count > 1) {
-        DEBUG(1, ("More than one result for a BASE search!\n"));
+        DEBUG(1, "More than one result for a BASE search!\n");
         ret = EIO;
         goto done;
     }
@@ -754,7 +754,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
     } else if (ret != EOK) {
         goto done;
     } else if (count > 1) {
-        DEBUG(1, ("More than one result for a BASE search!\n"));
+        DEBUG(1, "More than one result for a BASE search!\n");
         ret = EIO;
         goto done;
     }

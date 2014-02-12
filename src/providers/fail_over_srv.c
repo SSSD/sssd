@@ -48,7 +48,7 @@ struct tevent_req *fo_discover_srv_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct fo_discover_srv_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -95,13 +95,13 @@ static void fo_discover_srv_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Got answer. Processing...\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Got answer. Processing...\n");
 
     /* sort and store the answer */
     ret = resolv_sort_srv_reply(&reply_list);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not sort the answers from DNS "
-                                    "[%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not sort the answers from DNS "
+                                    "[%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -110,7 +110,7 @@ static void fo_discover_srv_done(struct tevent_req *subreq)
         state->num_servers++;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Got %zu servers\n", state->num_servers));
+    DEBUG(SSSDBG_TRACE_FUNC, "Got %zu servers\n", state->num_servers);
 
     state->servers = talloc_array(state, struct fo_server_info,
                                   state->num_servers);
@@ -201,7 +201,7 @@ struct tevent_req *fo_discover_servers_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct fo_discover_servers_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -248,7 +248,7 @@ struct tevent_req *fo_discover_servers_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Looking up primary servers\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Looking up primary servers\n");
 
     domains = talloc_zero_array(state, const char *, 3);
     if (domains == NULL) {
@@ -293,8 +293,8 @@ static void fo_discover_servers_primary_done(struct tevent_req *subreq)
                                &state->num_primary_servers);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Unable to retrieve primary servers "
-                                  "[%d]: %s\n", ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve primary servers "
+                                  "[%d]: %s\n", ret, sss_strerror(ret));
         if (ret != ERR_SRV_NOT_FOUND && ret != ERR_SRV_LOOKUP_ERROR) {
             /* abort on system error */
             goto done;
@@ -303,7 +303,7 @@ static void fo_discover_servers_primary_done(struct tevent_req *subreq)
 
     if (state->backup_domain == NULL) {
         /* if there is no backup domain, we are done */
-        DEBUG(SSSDBG_TRACE_FUNC, ("No backup domain specified\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "No backup domain specified\n");
         goto done;
     }
 
@@ -320,7 +320,7 @@ static void fo_discover_servers_primary_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Looking up backup servers\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Looking up backup servers\n");
 
     domains = talloc_zero_array(state, const char *, 2);
     if (domains == NULL) {
@@ -365,8 +365,8 @@ static void fo_discover_servers_backup_done(struct tevent_req *subreq)
                                &state->num_backup_servers);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to retrieve backup servers "
-                                     "[%d]: %s\n", ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to retrieve backup servers "
+                                     "[%d]: %s\n", ret, sss_strerror(ret));
         if (ret == ERR_SRV_NOT_FOUND || ret == ERR_SRV_LOOKUP_ERROR) {
             /* we have successfully fetched primary servers, so we will
              * finish the request normally on non system error */
@@ -495,7 +495,7 @@ struct tevent_req *fo_resolve_srv_dns_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct fo_resolve_srv_dns_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 

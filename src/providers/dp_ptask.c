@@ -60,11 +60,11 @@ static int be_ptask_destructor(void *pvt)
 
     task = talloc_get_type(pvt, struct be_ptask);
     if (task == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("BUG: task is NULL\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "BUG: task is NULL\n");
         return 0;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Terminating periodic task [%s]\n", task->name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Terminating periodic task [%s]\n", task->name);
 
     return 0;
 }
@@ -75,11 +75,11 @@ static void be_ptask_online_cb(void *pvt)
 
     task = talloc_get_type(pvt, struct be_ptask);
     if (task == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("BUG: task is NULL\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "BUG: task is NULL\n");
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Back end is online\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Back end is online\n");
     be_ptask_enable(task);
 }
 
@@ -88,7 +88,7 @@ static void be_ptask_offline_cb(void *pvt)
     struct be_ptask *task = NULL;
     task = talloc_get_type(pvt, struct be_ptask);
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Back end is offline\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Back end is offline\n");
     be_ptask_disable(task);
 }
 
@@ -100,7 +100,7 @@ static void be_ptask_timeout(struct tevent_context *ev,
     struct be_ptask *task = NULL;
     task = talloc_get_type(pvt, struct be_ptask);
 
-    DEBUG(SSSDBG_OP_FAILURE, ("Task [%s]: timed out\n", task->name));
+    DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: timed out\n", task->name);
 
     talloc_zfree(task->req);
     be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
@@ -120,7 +120,7 @@ static void be_ptask_execute(struct tevent_context *ev,
     task->timer = NULL; /* timer is freed by tevent */
 
     if (be_is_offline(task->be_ctx)) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Back end is offline\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Back end is offline\n");
         switch (task->offline) {
         case BE_PTASK_OFFLINE_SKIP:
             be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
@@ -134,16 +134,16 @@ static void be_ptask_execute(struct tevent_context *ev,
         }
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Task [%s]: executing task, timeout %lu "
-                              "seconds\n", task->name, task->timeout));
+    DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: executing task, timeout %lu "
+                              "seconds\n", task->name, task->timeout);
 
     task->last_execution = time(NULL);
 
     task->req = task->send_fn(task, task->ev, task->be_ctx, task, task->pvt);
     if (task->req == NULL) {
         /* skip this iteration and try again later */
-        DEBUG(SSSDBG_OP_FAILURE, ("Task [%s]: failed to execute task, "
-              "will try again later\n", task->name));
+        DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: failed to execute task, "
+              "will try again later\n", task->name);
 
         be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
         return;
@@ -161,8 +161,8 @@ static void be_ptask_execute(struct tevent_context *ev,
              * we need to cancel the request. */
             talloc_zfree(task->req);
 
-            DEBUG(SSSDBG_OP_FAILURE, ("Task [%s]: failed to set timeout, "
-                  "the task will be rescheduled\n", task->name));
+            DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: failed to set timeout, "
+                  "the task will be rescheduled\n", task->name);
 
             be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
         }
@@ -183,14 +183,14 @@ static void be_ptask_done(struct tevent_req *req)
     task->req = NULL;
     switch (ret) {
     case EOK:
-        DEBUG(SSSDBG_TRACE_FUNC, ("Task [%s]: finished successfully\n",
-                                  task->name));
+        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: finished successfully\n",
+                                  task->name);
 
         be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_LAST);
         break;
     default:
-        DEBUG(SSSDBG_OP_FAILURE, ("Task [%s]: failed with [%d]: %s\n",
-                                  task->name, ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: failed with [%d]: %s\n",
+                                  task->name, ret, sss_strerror(ret));
 
         be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
         break;
@@ -204,7 +204,7 @@ static void be_ptask_schedule(struct be_ptask *task,
     struct timeval tv;
 
     if (!task->enabled) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Task [%s]: disabled\n", task->name));
+        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: disabled\n", task->name);
         return;
     }
 
@@ -212,29 +212,29 @@ static void be_ptask_schedule(struct be_ptask *task,
     case BE_PTASK_SCHEDULE_FROM_NOW:
         tv = tevent_timeval_current_ofs(delay, 0);
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("Task [%s]: scheduling task %lu seconds "
-              "from now [%lu]\n", task->name, delay, tv.tv_sec));
+        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: scheduling task %lu seconds "
+              "from now [%lu]\n", task->name, delay, tv.tv_sec);
         break;
     case BE_PTASK_SCHEDULE_FROM_LAST:
         tv = tevent_timeval_set(task->last_execution + delay, 0);
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("Task [%s]: scheduling task %lu seconds "
+        DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: scheduling task %lu seconds "
                                   "from last execution time [%lu]\n",
-                                  task->name, delay, tv.tv_sec));
+                                  task->name, delay, tv.tv_sec);
         break;
     }
 
     if (task->timer != NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Task [%s]: another timer is already "
-                                     "active?\n", task->name));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Task [%s]: another timer is already "
+                                     "active?\n", task->name);
         talloc_zfree(task->timer);
     }
 
     task->timer = tevent_add_timer(task->ev, task, tv, be_ptask_execute, task);
     if (task->timer == NULL) {
         /* nothing we can do about it */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("FATAL: Unable to schedule task [%s]\n",
-                                    task->name));
+        DEBUG(SSSDBG_CRIT_FAILURE, "FATAL: Unable to schedule task [%s]\n",
+                                    task->name);
         be_ptask_disable(task);
     }
 }
@@ -289,20 +289,20 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
         /* install offline and online callbacks */
         ret = be_add_online_cb(task, be_ctx, be_ptask_online_cb, task, NULL);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Unable to install online callback "
-                                      "[%d]: %s", ret, sss_strerror(ret)));
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to install online callback "
+                                      "[%d]: %s", ret, sss_strerror(ret));
             goto done;
         }
 
         ret = be_add_offline_cb(task, be_ctx, be_ptask_offline_cb, task, NULL);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Unable to install offline callback "
-                                      "[%d]: %s", ret, sss_strerror(ret)));
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to install offline callback "
+                                      "[%d]: %s", ret, sss_strerror(ret));
             goto done;
         }
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Periodic task [%s] was created\n", task->name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Periodic task [%s] was created\n", task->name);
 
     be_ptask_schedule(task, first_delay, BE_PTASK_SCHEDULE_FROM_NOW);
 
@@ -323,12 +323,12 @@ done:
 void be_ptask_enable(struct be_ptask *task)
 {
     if (task->enabled) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Task [%s]: already enabled\n",
-                                     task->name));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Task [%s]: already enabled\n",
+                                     task->name);
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Task [%s]: enabling task\n", task->name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: enabling task\n", task->name);
 
     task->enabled = true;
     be_ptask_schedule(task, task->enabled_delay, BE_PTASK_SCHEDULE_FROM_NOW);
@@ -337,7 +337,7 @@ void be_ptask_enable(struct be_ptask *task)
 /* Disable the task, but if a request already in progress, let it finish. */
 void be_ptask_disable(struct be_ptask *task)
 {
-    DEBUG(SSSDBG_TRACE_FUNC, ("Task [%s]: disabling task\n", task->name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: disabling task\n", task->name);
 
     talloc_zfree(task->timer);
     task->enabled = false;
@@ -377,7 +377,7 @@ be_ptask_sync_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct be_ptask_sync_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 

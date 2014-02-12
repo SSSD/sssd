@@ -82,8 +82,8 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
         name = ldb_msg_find_attr_as_string(res->msgs[i], "cn", NULL);
         if (name == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("The object [%s] doesn't have a name\n",
-                   ldb_dn_get_linearized(res->msgs[i]->dn)));
+                  "The object [%s] doesn't have a name\n",
+                   ldb_dn_get_linearized(res->msgs[i]->dn));
             ret = EINVAL;
             goto done;
         }
@@ -113,8 +113,8 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                 /* in theory these may change, but it should never happen */
                 if (strcasecmp(dom->realm, realm) != 0) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
-                          ("Realm name changed from [%s] to [%s]!\n",
-                           dom->realm, realm));
+                          "Realm name changed from [%s] to [%s]!\n",
+                           dom->realm, realm);
                     talloc_zfree(dom->realm);
                     dom->realm = talloc_strdup(dom, realm);
                     if (dom->realm == NULL) {
@@ -124,8 +124,8 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                 }
                 if (strcasecmp(dom->flat_name, flat) != 0) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
-                          ("Flat name changed from [%s] to [%s]!\n",
-                           dom->flat_name, flat));
+                          "Flat name changed from [%s] to [%s]!\n",
+                           dom->flat_name, flat);
                     talloc_zfree(dom->flat_name);
                     dom->flat_name = talloc_strdup(dom, flat);
                     if (dom->flat_name == NULL) {
@@ -135,8 +135,8 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                 }
                 if (strcasecmp(dom->domain_id, id) != 0) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
-                          ("Domain changed from [%s] to [%s]!\n",
-                           dom->domain_id, id));
+                          "Domain changed from [%s] to [%s]!\n",
+                           dom->domain_id, id);
                     talloc_zfree(dom->domain_id);
                     dom->domain_id = talloc_strdup(dom, id);
                     if (dom->domain_id == NULL) {
@@ -147,17 +147,17 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
 
                 if (dom->mpg != mpg) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
-                          ("MPG state change from [%s] to [%s]!\n",
+                          "MPG state change from [%s] to [%s]!\n",
                            dom->mpg ? "true" : "false",
-                           mpg ? "true" : "false"));
+                           mpg ? "true" : "false");
                     dom->mpg = mpg;
                 }
 
                 if (dom->enumerate != enumerate) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
-                          ("MPG state change from [%s] to [%s]!\n",
+                          "MPG state change from [%s] to [%s]!\n",
                            dom->enumerate ? "true" : "false",
-                           enumerate ? "true" : "false"));
+                           enumerate ? "true" : "false");
                     dom->enumerate = enumerate;
                 }
 
@@ -165,8 +165,8 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                         || (dom->forest != NULL && forest != NULL
                             && strcasecmp(dom->forest, forest) != 0)) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
-                          ("Forest changed from [%s] to [%s]!\n",
-                           dom->forest, forest));
+                          "Forest changed from [%s] to [%s]!\n",
+                           dom->forest, forest);
                     talloc_zfree(dom->forest);
                     dom->forest = talloc_strdup(dom, forest);
                     if (dom->forest == NULL) {
@@ -235,8 +235,8 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
     }
 
     if (res->count > 1) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Base search returned [%d] results, "
-                                 "expected 1.\n", res->count));
+        DEBUG(SSSDBG_OP_FAILURE, "Base search returned [%d] results, "
+                                 "expected 1.\n", res->count);
         ret = EINVAL;
         goto done;
     }
@@ -385,9 +385,9 @@ errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
 
     ret = ldb_modify(domain->sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add subdomain attributes to "
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add subdomain attributes to "
                                      "[%s]: [%d][%s]!\n", domain->name, ret,
-                                     ldb_errstring(domain->sysdb->ldb)));
+                                     ldb_errstring(domain->sysdb->ldb));
         ret = sysdb_error_to_errno(ret);
         goto done;
     }
@@ -624,9 +624,9 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
 
     ret = ldb_modify(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add subdomain attributes to "
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add subdomain attributes to "
                                      "[%s]: [%d][%s]!\n", name, ret,
-                                     ldb_errstring(sysdb->ldb)));
+                                     ldb_errstring(sysdb->ldb));
         ret = sysdb_error_to_errno(ret);
         goto done;
     }
@@ -651,7 +651,7 @@ errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Removing sub-domain [%s] from db.\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Removing sub-domain [%s] from db.\n", name);
     dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_DOM_BASE, name);
     if (dn == NULL) {
         ret = ENOMEM;
@@ -660,7 +660,7 @@ errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name)
 
     ret = sysdb_delete_recursive(sysdb, dn, true);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_delete_recursive failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_delete_recursive failed.\n");
         goto done;
     }
 

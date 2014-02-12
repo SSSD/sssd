@@ -60,7 +60,7 @@ static struct crypto_mech_data cmdata[] = {
 static struct crypto_mech_data *get_crypto_mech_data(enum obfmethod meth)
 {
     if (meth >= NUM_OBFMETHODS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unsupported cipher type\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported cipher type\n");
         return NULL;
     }
     return &cmdata[meth];
@@ -122,20 +122,20 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
     }
 
     if (!EVP_EncryptInit_ex(&ctx, mech_props->cipher(), 0, keybuf, ivbuf)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failure to initialize cipher contex\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failure to initialize cipher contex\n");
         ret = EIO;
         goto done;
     }
 
     /* sample data we'll encrypt and decrypt */
     if (!EVP_EncryptUpdate(&ctx, cryptotext, &ctlen, (const unsigned char*)password, plen)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot execute the encryption operation\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot execute the encryption operation\n");
         ret = EIO;
         goto done;
     }
 
     if(!EVP_EncryptFinal_ex(&ctx, cryptotext+ctlen, &digestlen)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot finialize the encryption operation\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot finialize the encryption operation\n");
         ret = EIO;
         goto done;
     }
@@ -160,9 +160,9 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Writing method: %d\n", meth));
+    DEBUG(SSSDBG_TRACE_FUNC, "Writing method: %d\n", meth);
     SAFEALIGN_SET_UINT16(&obfbuf[p], meth, &p);
-    DEBUG(SSSDBG_TRACE_FUNC, ("Writing bufsize: %d\n", result_len));
+    DEBUG(SSSDBG_TRACE_FUNC, "Writing bufsize: %d\n", result_len);
     SAFEALIGN_SET_UINT16(&obfbuf[p], result_len, &p);
     safealign_memcpy(&obfbuf[p], keybuf, mech_props->keylen, &p);
     safealign_memcpy(&obfbuf[p], ivbuf, mech_props->bsize, &p);
@@ -224,9 +224,9 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
 
     /* unpack obfuscation buffer */
     SAFEALIGN_COPY_UINT16_CHECK(&meth, obfbuf+p, obflen, &p);
-    DEBUG(SSSDBG_TRACE_FUNC, ("Read method: %d\n", meth));
+    DEBUG(SSSDBG_TRACE_FUNC, "Read method: %d\n", meth);
     SAFEALIGN_COPY_UINT16_CHECK(&ctsize, obfbuf+p, obflen, &p);
-    DEBUG(SSSDBG_TRACE_FUNC, ("Read bufsize: %d\n", ctsize));
+    DEBUG(SSSDBG_TRACE_FUNC, "Read bufsize: %d\n", ctsize);
 
     mech_props = get_crypto_mech_data(meth);
     if (mech_props == NULL) {
@@ -239,7 +239,7 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
            obfbuf + p + mech_props->keylen + mech_props->bsize + ctsize,
            OBF_BUFFER_SENTINEL_SIZE);
     if (memcmp(sentinel_check, OBF_BUFFER_SENTINEL, OBF_BUFFER_SENTINEL_SIZE) != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Obfuscation buffer seems corrupt, aborting\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Obfuscation buffer seems corrupt, aborting\n");
         ret = EFAULT;
         goto done;
     }

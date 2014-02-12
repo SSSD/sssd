@@ -53,15 +53,15 @@ int dp_get_options(TALLOC_CTX *memctx,
                 ((opts[i].def_val.string != NULL) &&
                  (opts[i].val.string == NULL))) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to retrieve value for option (%s)\n",
-                       opts[i].opt_name));
+                      "Failed to retrieve value for option (%s)\n",
+                       opts[i].opt_name);
                 if (ret == EOK) ret = EINVAL;
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has%s value %s\n",
+            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has%s value %s\n",
                   opts[i].opt_name,
                   opts[i].val.cstring ? "" : " no",
-                  opts[i].val.cstring ? opts[i].val.cstring : ""));
+                  opts[i].val.cstring ? opts[i].val.cstring : "");
             break;
 
         case DP_OPT_BLOB:
@@ -70,8 +70,8 @@ int dp_get_options(TALLOC_CTX *memctx,
                                     NULL, &tmp);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to retrieve value for option (%s)\n",
-                      opts[i].opt_name));
+                      "Failed to retrieve value for option (%s)\n",
+                      opts[i].opt_name);
                 goto done;
             }
 
@@ -86,8 +86,8 @@ int dp_get_options(TALLOC_CTX *memctx,
                 opts[i].val.blob.length = 0;
             }
 
-            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has %s binary value.\n",
-                  opts[i].opt_name, opts[i].val.blob.length?"a":"no"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has %s binary value.\n",
+                  opts[i].opt_name, opts[i].val.blob.length?"a":"no");
             break;
 
         case DP_OPT_NUMBER:
@@ -97,12 +97,12 @@ int dp_get_options(TALLOC_CTX *memctx,
                                  &opts[i].val.number);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to retrieve value for option (%s)\n",
-                      opts[i].opt_name));
+                      "Failed to retrieve value for option (%s)\n",
+                      opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has value %d\n",
-                  opts[i].opt_name, opts[i].val.number));
+            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has value %d\n",
+                  opts[i].opt_name, opts[i].val.number);
             break;
 
         case DP_OPT_BOOL:
@@ -112,12 +112,12 @@ int dp_get_options(TALLOC_CTX *memctx,
                                   &opts[i].val.boolean);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to retrieve value for option (%s)\n",
-                      opts[i].opt_name));
+                      "Failed to retrieve value for option (%s)\n",
+                      opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s is %s\n",
-                  opts[i].opt_name, opts[i].val.boolean?"TRUE":"FALSE"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Option %s is %s\n",
+                  opts[i].opt_name, opts[i].val.boolean?"TRUE":"FALSE");
             break;
         }
     }
@@ -158,14 +158,14 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
             }
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to copy value for option (%s)\n",
-                       opts[i].opt_name));
+                      "Failed to copy value for option (%s)\n",
+                       opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has%s value %s\n",
+            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has%s value %s\n",
                   opts[i].opt_name,
                   opts[i].val.cstring ? "" : " no",
-                  opts[i].val.cstring ? opts[i].val.cstring : ""));
+                  opts[i].val.cstring ? opts[i].val.cstring : "");
             break;
 
         case DP_OPT_BLOB:
@@ -176,12 +176,12 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
             }
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to retrieve value for option (%s)\n",
-                       opts[i].opt_name));
+                      "Failed to retrieve value for option (%s)\n",
+                       opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has %s binary value.\n",
-                  opts[i].opt_name, opts[i].val.blob.length?"a":"no"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has %s binary value.\n",
+                  opts[i].opt_name, opts[i].val.blob.length?"a":"no");
             break;
 
         case DP_OPT_NUMBER:
@@ -192,12 +192,12 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
             }
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to retrieve value for option (%s)\n",
-                      opts[i].opt_name));
+                      "Failed to retrieve value for option (%s)\n",
+                      opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has value %d\n",
-                  opts[i].opt_name, opts[i].val.number));
+            DEBUG(SSSDBG_TRACE_FUNC, "Option %s has value %d\n",
+                  opts[i].opt_name, opts[i].val.number);
             break;
 
         case DP_OPT_BOOL:
@@ -208,12 +208,12 @@ static int dp_copy_options_ex(TALLOC_CTX *memctx,
             }
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to retrieve value for option (%s)\n",
-                       opts[i].opt_name));
+                      "Failed to retrieve value for option (%s)\n",
+                       opts[i].opt_name);
                 goto done;
             }
-            DEBUG(SSSDBG_TRACE_FUNC, ("Option %s is %s\n",
-                  opts[i].opt_name, opts[i].val.boolean?"TRUE":"FALSE"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Option %s is %s\n",
+                  opts[i].opt_name, opts[i].val.boolean?"TRUE":"FALSE");
             break;
         }
     }
@@ -261,10 +261,10 @@ const char *_dp_opt_get_cstring(struct dp_option *opts,
                                 int id, const char *location)
 {
     if (opts[id].type != DP_OPT_STRING) {
-        DEBUG(0, ("[%s] Requested type 'String' for option '%s'"
+        DEBUG(0, "[%s] Requested type 'String' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
-                  dp_opt_type_to_string(opts[id].type)));
+                  dp_opt_type_to_string(opts[id].type));
         return NULL;
     }
     return opts[id].val.cstring;
@@ -274,10 +274,10 @@ char *_dp_opt_get_string(struct dp_option *opts,
                          int id, const char *location)
 {
     if (opts[id].type != DP_OPT_STRING) {
-        DEBUG(0, ("[%s] Requested type 'String' for option '%s'"
+        DEBUG(0, "[%s] Requested type 'String' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
-                  dp_opt_type_to_string(opts[id].type)));
+                  dp_opt_type_to_string(opts[id].type));
         return NULL;
     }
     return opts[id].val.string;
@@ -288,10 +288,10 @@ struct dp_opt_blob _dp_opt_get_blob(struct dp_option *opts,
 {
     struct dp_opt_blob null_blob = { NULL, 0 };
     if (opts[id].type != DP_OPT_BLOB) {
-        DEBUG(0, ("[%s] Requested type 'Blob' for option '%s'"
+        DEBUG(0, "[%s] Requested type 'Blob' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
-                  dp_opt_type_to_string(opts[id].type)));
+                  dp_opt_type_to_string(opts[id].type));
         return null_blob;
     }
     return opts[id].val.blob;
@@ -301,10 +301,10 @@ int _dp_opt_get_int(struct dp_option *opts,
                     int id, const char *location)
 {
     if (opts[id].type != DP_OPT_NUMBER) {
-        DEBUG(0, ("[%s] Requested type 'Number' for option '%s'"
+        DEBUG(0, "[%s] Requested type 'Number' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
-                  dp_opt_type_to_string(opts[id].type)));
+                  dp_opt_type_to_string(opts[id].type));
         return 0;
     }
     return opts[id].val.number;
@@ -314,10 +314,10 @@ bool _dp_opt_get_bool(struct dp_option *opts,
                       int id, const char *location)
 {
     if (opts[id].type != DP_OPT_BOOL) {
-        DEBUG(0, ("[%s] Requested type 'Boolean' for option '%s'"
+        DEBUG(0, "[%s] Requested type 'Boolean' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
-                  dp_opt_type_to_string(opts[id].type)));
+                  dp_opt_type_to_string(opts[id].type));
         return false;
     }
     return opts[id].val.boolean;
@@ -328,10 +328,10 @@ int _dp_opt_set_string(struct dp_option *opts, int id,
                        const char *s, const char *location)
 {
     if (opts[id].type != DP_OPT_STRING) {
-        DEBUG(0, ("[%s] Requested type 'String' for option '%s'"
+        DEBUG(0, "[%s] Requested type 'String' for option '%s'"
                   " but type is '%s'!\n",
                   location, opts[id].opt_name,
-                  dp_opt_type_to_string(opts[id].type)));
+                  dp_opt_type_to_string(opts[id].type));
         return EINVAL;
     }
 
@@ -341,7 +341,7 @@ int _dp_opt_set_string(struct dp_option *opts, int id,
     if (s) {
         opts[id].val.string = talloc_strdup(opts, s);
         if (!opts[id].val.string) {
-            DEBUG(0, ("talloc_strdup() failed!\n"));
+            DEBUG(0, "talloc_strdup() failed!\n");
             return ENOMEM;
         }
     }
@@ -353,10 +353,10 @@ int _dp_opt_set_blob(struct dp_option *opts, int id,
                      struct dp_opt_blob b, const char *location)
 {
     if (opts[id].type != DP_OPT_BLOB) {
-        DEBUG(0, ("[%s] Requested type 'Blob' for option '%s'"
+        DEBUG(0, "[%s] Requested type 'Blob' for option '%s'"
                   " but type is '%s'!\n",
                   location, opts[id].opt_name,
-                  dp_opt_type_to_string(opts[id].type)));
+                  dp_opt_type_to_string(opts[id].type));
         return EINVAL;
     }
 
@@ -367,7 +367,7 @@ int _dp_opt_set_blob(struct dp_option *opts, int id,
     if (b.data) {
         opts[id].val.blob.data = talloc_memdup(opts, b.data, b.length);
         if (!opts[id].val.blob.data) {
-            DEBUG(0, ("talloc_memdup() failed!\n"));
+            DEBUG(0, "talloc_memdup() failed!\n");
             return ENOMEM;
         }
     }
@@ -380,10 +380,10 @@ int _dp_opt_set_int(struct dp_option *opts, int id,
                     int i, const char *location)
 {
     if (opts[id].type != DP_OPT_NUMBER) {
-        DEBUG(0, ("[%s] Requested type 'Number' for option '%s'"
+        DEBUG(0, "[%s] Requested type 'Number' for option '%s'"
                   " but type is '%s'!\n",
                   location, opts[id].opt_name,
-                  dp_opt_type_to_string(opts[id].type)));
+                  dp_opt_type_to_string(opts[id].type));
         return EINVAL;
     }
 
@@ -396,10 +396,10 @@ int _dp_opt_set_bool(struct dp_option *opts, int id,
                      bool b, const char *location)
 {
     if (opts[id].type != DP_OPT_BOOL) {
-        DEBUG(0, ("[%s] Requested type 'Boolean' for option '%s'"
+        DEBUG(0, "[%s] Requested type 'Boolean' for option '%s'"
                   " but type is '%s'!\n",
                   location, opts[id].opt_name,
-                  dp_opt_type_to_string(opts[id].type)));
+                  dp_opt_type_to_string(opts[id].type));
         return EINVAL;
     }
 

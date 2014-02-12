@@ -95,7 +95,7 @@ void setup_simple(void)
 
     conf_db = talloc_asprintf(test_ctx, "%s/%s", TESTS_PATH, TEST_CONF_FILE);
     fail_if(conf_db == NULL, "Out of memory, aborting!");
-    DEBUG(SSSDBG_TRACE_LIBS, ("CONFDB: %s\n", conf_db));
+    DEBUG(SSSDBG_TRACE_LIBS, "CONFDB: %s\n", conf_db);
 
     /* Connect to the conf db */
     ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
@@ -589,16 +589,16 @@ START_TEST(test_provider_init)
     ret = sssm_simple_access_init(test_ctx->be_ctx, &bet_ops, (void**)&ctx);
     fail_if(ret != EOK);
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Checking allow users list\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking allow users list\n");
     check_access_list(ctx->allow_users, correct);
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Checking deny users list\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking deny users list\n");
     check_access_list(ctx->deny_users, correct);
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Checking allow groups list\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking allow groups list\n");
     check_access_list(ctx->allow_groups, correct);
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Checking deny groups list\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking deny groups list\n");
     check_access_list(ctx->deny_groups, correct);
 }
 END_TEST

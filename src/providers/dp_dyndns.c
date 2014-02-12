@@ -120,7 +120,7 @@ sss_iface_addr_list_as_str_list(TALLOC_CTX *mem_ctx,
             break;
 
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
             continue;
         }
 
@@ -154,18 +154,18 @@ ok_for_dns(struct sockaddr *sa)
 
         if (inet_ntop(AF_INET6, addr6, straddr, INET6_ADDRSTRLEN) == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("inet_ntop failed, won't log IP addresses\n"));
+                  "inet_ntop failed, won't log IP addresses\n");
             snprintf(straddr, INET6_ADDRSTRLEN, "unknown");
         }
 
         if (IN6_IS_ADDR_LINKLOCAL(addr6)) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Link local IPv6 address %s\n", straddr));
+            DEBUG(SSSDBG_FUNC_DATA, "Link local IPv6 address %s\n", straddr);
             return false;
         } else if (IN6_IS_ADDR_LOOPBACK(addr6)) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Loopback IPv6 address %s\n", straddr));
+            DEBUG(SSSDBG_FUNC_DATA, "Loopback IPv6 address %s\n", straddr);
             return false;
         } else if (IN6_IS_ADDR_MULTICAST(addr6)) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Multicast IPv6 address %s\n", straddr));
+            DEBUG(SSSDBG_FUNC_DATA, "Multicast IPv6 address %s\n", straddr);
             return false;
         }
         break;
@@ -174,27 +174,27 @@ ok_for_dns(struct sockaddr *sa)
 
         if (inet_ntop(AF_INET, addr, straddr, INET6_ADDRSTRLEN) == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("inet_ntop failed, won't log IP addresses\n"));
+                  "inet_ntop failed, won't log IP addresses\n");
             snprintf(straddr, INET6_ADDRSTRLEN, "unknown");
         }
 
         if (IN_MULTICAST(ntohl(addr->s_addr))) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Multicast IPv4 address %s\n", straddr));
+            DEBUG(SSSDBG_FUNC_DATA, "Multicast IPv4 address %s\n", straddr);
             return false;
         } else if (inet_netof(*addr) == IN_LOOPBACKNET) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Loopback IPv4 address %s\n", straddr));
+            DEBUG(SSSDBG_FUNC_DATA, "Loopback IPv4 address %s\n", straddr);
             return false;
         } else if ((addr->s_addr & htonl(0xffff0000)) == htonl(0xa9fe0000)) {
             /* 169.254.0.0/16 */
-            DEBUG(SSSDBG_FUNC_DATA, ("Link-local IPv4 address %s\n", straddr));
+            DEBUG(SSSDBG_FUNC_DATA, "Link-local IPv4 address %s\n", straddr);
             return false;
         } else if (addr->s_addr == htonl(INADDR_BROADCAST)) {
-            DEBUG(SSSDBG_FUNC_DATA, ("Broadcast IPv4 address %s\n", straddr));
+            DEBUG(SSSDBG_FUNC_DATA, "Broadcast IPv4 address %s\n", straddr);
             return false;
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
         return false;
     }
 
@@ -221,7 +221,7 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not read interfaces [%d][%s]\n", ret, strerror(ret)));
+              "Could not read interfaces [%d][%s]\n", ret, strerror(ret));
         goto done;
     }
 
@@ -298,7 +298,7 @@ nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
             if (ip == NULL) {
                 ret = errno;
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("inet_ntop failed [%d]: %s\n", ret, strerror(ret)));
+                      "inet_ntop failed [%d]: %s\n", ret, strerror(ret));
                 return NULL;
             }
             break;
@@ -310,13 +310,13 @@ nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
             if (ip == NULL) {
                 ret = errno;
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("inet_ntop failed [%d]: %s\n", ret, strerror(ret)));
+                      "inet_ntop failed [%d]: %s\n", ret, strerror(ret));
                 return NULL;
             }
             break;
 
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
             return NULL;
         }
 
@@ -359,7 +359,7 @@ nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
             addr = (uint8_t *) &((struct sockaddr_in6 *) old_record->addr)->sin6_addr;
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
             return NULL;
         }
 
@@ -388,7 +388,7 @@ nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
             addr = (uint8_t *) &((struct sockaddr_in6 *) new_record->addr)->sin6_addr;
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown address family\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
             return NULL;
         }
 
@@ -436,15 +436,15 @@ nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
      */
     if (servername) {
         DEBUG(SSSDBG_FUNC_DATA,
-              ("Creating update message for server [%s] and realm [%s]\n.",
-               servername, realm));
+              "Creating update message for server [%s] and realm [%s]\n.",
+               servername, realm);
 
         /* Add the server, realm and headers */
         update_msg = talloc_asprintf(tmp_ctx, "server %s\n%s",
                                      servername, realm_directive);
     } else {
         DEBUG(SSSDBG_FUNC_DATA,
-              ("Creating update message for realm [%s].\n", realm));
+              "Creating update message for realm [%s].\n", realm);
         /* Add the realm headers */
         update_msg = talloc_asprintf(tmp_ctx, "%s", realm_directive);
     }
@@ -490,7 +490,7 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
 
     if (zone) {
         DEBUG(SSSDBG_FUNC_DATA,
-              ("Setting the zone explicitly to [%s].\n", zone));
+              "Setting the zone explicitly to [%s].\n", zone);
         update_msg = talloc_asprintf_append(update_msg, "zone %s.\n", zone);
         if (update_msg == NULL) {
             ret = ENOMEM;
@@ -506,10 +506,10 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          (" -- Begin nsupdate message -- \n%s",
-           update_msg));
+          " -- Begin nsupdate message -- \n%s",
+           update_msg);
     DEBUG(SSSDBG_TRACE_FUNC,
-          (" -- End nsupdate message -- \n"));
+          " -- End nsupdate message -- \n");
 
     ret = ERR_OK;
     *_update_msg = talloc_steal(mem_ctx, update_msg);
@@ -548,10 +548,10 @@ be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          (" -- Begin nsupdate message -- \n%s",
-           update_msg));
+          " -- Begin nsupdate message -- \n%s",
+           update_msg);
     DEBUG(SSSDBG_TRACE_FUNC,
-          (" -- End nsupdate message -- \n"));
+          " -- End nsupdate message -- \n");
 
     ret = ERR_OK;
     *_update_msg = talloc_steal(mem_ctx, update_msg);
@@ -650,9 +650,9 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not resolve address for this machine, error [%d]: %s, "
+              "Could not resolve address for this machine, error [%d]: %s, "
                "resolver returned: [%d]: %s\n", ret, sss_strerror(ret),
-               resolv_status, resolv_strerror(resolv_status)));
+               resolv_status, resolv_strerror(resolv_status));
         goto done;
     }
 
@@ -665,8 +665,8 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
          * c-ares, but we need to handle it gracefully.
          */
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Lookup of [%s] returned no addresses. Skipping.\n",
-               rhostent->name));
+              "Lookup of [%s] returned no addresses. Skipping.\n",
+               rhostent->name);
         count = 0;
     }
 
@@ -726,8 +726,8 @@ done:
         tevent_req_done(req);
     } else if (ret != EAGAIN) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("nsupdate_get_addrs_done failed: [%d]: [%s]\n",
-               ret, sss_strerror(ret)));
+              "nsupdate_get_addrs_done failed: [%d]: [%s]\n",
+               ret, sss_strerror(ret));
         tevent_req_error(req, ret);
     }
     /* EAGAIN - another lookup in progress */
@@ -803,8 +803,8 @@ nsupdate_child_send(TALLOC_CTX *mem_ctx,
     ret = child_handler_setup(ev, child_pid, nsupdate_child_handler, req,
                               &state->child_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set up child handlers [%d]: %s\n",
-              ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
+              ret, sss_strerror(ret));
         ret = ERR_DYNDNS_FAILED;
         goto done;
     }
@@ -848,7 +848,7 @@ nsupdate_child_timeout(struct tevent_context *ev,
     struct nsupdate_child_state *state =
             tevent_req_data(req, struct nsupdate_child_state);
 
-    DEBUG(SSSDBG_CRIT_FAILURE, ("Timeout reached for dynamic DNS update\n"));
+    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for dynamic DNS update\n");
     child_handler_destroy(state->child_ctx);
     state->child_ctx = NULL;
     state->child_status = ETIMEDOUT;
@@ -867,13 +867,13 @@ nsupdate_child_stdin_done(struct tevent_req *subreq)
     /* Verify that the buffer was sent, then return
      * and wait for the sigchld handler to finish.
      */
-    DEBUG(SSSDBG_TRACE_LIBS, ("Sending nsupdate data complete\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Sending nsupdate data complete\n");
 
     ret = write_pipe_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Sending nsupdate data failed [%d]: %s\n",
-              ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Sending nsupdate data failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ERR_DYNDNS_FAILED);
         return;
     }
@@ -899,15 +899,15 @@ nsupdate_child_handler(int child_status,
 
     if (WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Dynamic DNS child failed with status [%d]\n", child_status));
+              "Dynamic DNS child failed with status [%d]\n", child_status);
         tevent_req_error(req, ERR_DYNDNS_FAILED);
         return;
     }
 
     if (WIFSIGNALED(child_status)) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Dynamic DNS child was terminated by signal [%d]\n",
-               WTERMSIG(child_status)));
+              "Dynamic DNS child was terminated by signal [%d]\n",
+               WTERMSIG(child_status));
         tevent_req_error(req, ERR_DYNDNS_FAILED);
         return;
     }
@@ -964,7 +964,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("pipe failed [%d][%s].\n", ret, strerror(ret)));
+              "pipe failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
 
@@ -976,7 +976,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
         if (ret == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("dup2 failed [%d][%s].\n", ret, strerror(ret)));
+                  "dup2 failed [%d][%s].\n", ret, strerror(ret));
             goto done;
         }
 
@@ -990,7 +990,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
         execv(NSUPDATE_PATH, args);
         /* The child should never end up here */
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("execv failed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "execv failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     } else if (child_pid > 0) { /* parent */
         close(pipefd_to_child[0]);
@@ -1005,7 +1005,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     } else { /* error */
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("fork failed [%d][%s].\n", ret, strerror(ret)));
+              "fork failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
 
@@ -1039,10 +1039,10 @@ be_nsupdate_args(TALLOC_CTX *mem_ctx,
 
     switch (auth_type) {
     case BE_NSUPDATE_AUTH_NONE:
-        DEBUG(SSSDBG_FUNC_DATA, ("nsupdate auth type: none\n"));
+        DEBUG(SSSDBG_FUNC_DATA, "nsupdate auth type: none\n");
         break;
     case BE_NSUPDATE_AUTH_GSS_TSIG:
-        DEBUG(SSSDBG_FUNC_DATA, ("nsupdate auth type: GSS-TSIG\n"));
+        DEBUG(SSSDBG_FUNC_DATA, "nsupdate auth type: GSS-TSIG\n");
         argv[argc] = talloc_strdup(argv, "-g");
         if (argv[argc] == NULL) {
             goto fail;
@@ -1050,12 +1050,12 @@ be_nsupdate_args(TALLOC_CTX *mem_ctx,
         argc++;
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown nsupdate auth type\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown nsupdate auth type\n");
         goto fail;
     }
 
     if (force_tcp) {
-        DEBUG(SSSDBG_FUNC_DATA, ("TCP is set to on\n"));
+        DEBUG(SSSDBG_FUNC_DATA, "TCP is set to on\n");
         argv[argc] = talloc_strdup(argv, "-v");
         if (argv[argc] == NULL) {
             goto fail;
@@ -1082,14 +1082,14 @@ be_nsupdate_done(struct tevent_req *subreq)
     ret = nsupdate_child_recv(subreq, &state->child_status);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("nsupdate child execution failed [%d]: %s\n",
-              ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "nsupdate child execution failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
 
     DEBUG(SSSDBG_FUNC_DATA,
-           ("nsupdate child status: %d\n", state->child_status));
+           "nsupdate child status: %d\n", state->child_status);
     tevent_req_done(req);
 }
 
@@ -1127,13 +1127,13 @@ void be_nsupdate_timer_schedule(struct tevent_context *ev,
     struct timeval tv;
 
     if (ctx->refresh_timer) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Timer already scheduled\n"));
+        DEBUG(SSSDBG_FUNC_DATA, "Timer already scheduled\n");
         return;
     }
 
     refresh = dp_opt_get_int(ctx->opts, DP_OPT_DYNDNS_REFRESH_INTERVAL);
     if (refresh == 0) return;
-    DEBUG(SSSDBG_FUNC_DATA, ("Scheduling timer in %d seconds\n", refresh));
+    DEBUG(SSSDBG_FUNC_DATA, "Scheduling timer in %d seconds\n", refresh);
 
     tv = tevent_timeval_current_ofs(refresh, 0);
     ctx->refresh_timer = tevent_add_timer(ev, ctx, tv,
@@ -1141,7 +1141,7 @@ void be_nsupdate_timer_schedule(struct tevent_context *ev,
 
     if (!ctx->refresh_timer) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-                ("Failed to add dyndns refresh timer event\n"));
+                "Failed to add dyndns refresh timer event\n");
     }
 }
 
@@ -1158,12 +1158,12 @@ be_nsupdate_check(void)
         ret = errno;
         if (ret == ENOENT) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("%s does not exist. Dynamic DNS updates disabled\n",
-                  NSUPDATE_PATH));
+                  "%s does not exist. Dynamic DNS updates disabled\n",
+                  NSUPDATE_PATH);
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Could not set up dynamic DNS updates: [%d][%s]\n",
-                  ret, strerror(ret)));
+                  "Could not set up dynamic DNS updates: [%d][%s]\n",
+                  ret, strerror(ret));
         }
     }
 
@@ -1200,7 +1200,7 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
     ret = dp_get_options(ctx, be_ctx->cdb, be_ctx->conf_path,
                          src_opts, DP_OPT_DYNDNS, &ctx->opts);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot retrieve dynamic DNS options\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve dynamic DNS options\n");
         return ret;
     }
 
@@ -1210,7 +1210,7 @@ be_nsupdate_init(TALLOC_CTX *mem_ctx, struct be_ctx *be_ctx,
     } else if (strcasecmp(strauth, "none") == 0) {
         ctx->auth_type = BE_NSUPDATE_AUTH_NONE;
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, ("Uknown dyndns auth type %s\n", strauth));
+        DEBUG(SSSDBG_OP_FAILURE, "Uknown dyndns auth type %s\n", strauth);
         return EINVAL;
     }
 

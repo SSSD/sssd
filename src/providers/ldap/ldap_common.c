@@ -123,8 +123,8 @@ sdap_domain_add(struct sdap_options *opts,
     ret = domain_to_basedn(sdom, sdom->dom->name, &sdom->basedn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-            ("Cannot convert domain name [%s] to base DN [%d]: %s\n",
-            dom->name, ret, strerror(ret)));
+            "Cannot convert domain name [%s] to base DN [%d]: %s\n",
+            dom->name, ret, strerror(ret));
         goto done;
     }
 
@@ -163,14 +163,14 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
 
         if (sditer == NULL) {
             /* New sdap domain */
-            DEBUG(SSSDBG_TRACE_FUNC, ("subdomain %s is a new one, will "
-                  "create a new sdap domain object\n", dom->name));
+            DEBUG(SSSDBG_TRACE_FUNC, "subdomain %s is a new one, will "
+                  "create a new sdap domain object\n", dom->name);
 
             ret = sdap_domain_add(sdap_id_ctx->opts, dom, &sdom);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                    ("Cannot add new sdap domain for domain %s [%d]: %s\n",
-                    parent->name, ret, strerror(ret)));
+                    "Cannot add new sdap domain for domain %s [%d]: %s\n",
+                    parent->name, ret, strerror(ret));
                 return ret;
             }
         } else {
@@ -188,7 +188,7 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
         ret = sdap_create_search_base(sdom, sdom->basedn, LDAP_SCOPE_SUBTREE,
                                       NULL, &sdom->search_bases[0]);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot create new sdap search base\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot create new sdap search base\n");
             return ret;
         }
 
@@ -272,15 +272,15 @@ int ldap_get_options(TALLOC_CTX *memctx,
                 if (ret != EOK) {
                     goto done;
                 }
-                DEBUG(6, ("Option %s set to %s\n",
+                DEBUG(6, "Option %s set to %s\n",
                           opts->basic[search_base_options[o]].opt_name,
                           dp_opt_get_string(opts->basic,
-                                            search_base_options[o])));
+                                            search_base_options[o]));
             }
         }
     } else {
-        DEBUG(5, ("Search base not set, trying to discover it later when "
-                  "connecting to the LDAP server.\n"));
+        DEBUG(5, "Search base not set, trying to discover it later when "
+                  "connecting to the LDAP server.\n");
     }
 
     /* Default search */
@@ -315,14 +315,14 @@ int ldap_get_options(TALLOC_CTX *memctx,
 
     pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);
     if (pwd_policy == NULL) {
-        DEBUG(1, ("Missing password policy, this may not happen.\n"));
+        DEBUG(1, "Missing password policy, this may not happen.\n");
         ret = EINVAL;
         goto done;
     }
     if (strcasecmp(pwd_policy, PWD_POL_OPT_NONE) != 0 &&
         strcasecmp(pwd_policy, PWD_POL_OPT_SHADOW) != 0 &&
         strcasecmp(pwd_policy, PWD_POL_OPT_MIT) != 0) {
-        DEBUG(1, ("Unsupported password policy [%s].\n", pwd_policy));
+        DEBUG(1, "Unsupported password policy [%s].\n", pwd_policy);
         ret = EINVAL;
         goto done;
     }
@@ -332,8 +332,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
                          CONFDB_PAM_CRED_TIMEOUT, 0,
                          &offline_credentials_expiration);
     if (ret != EOK) {
-        DEBUG(1, ("Cannot get value of %s from confdb \n",
-                  CONFDB_PAM_CRED_TIMEOUT));
+        DEBUG(1, "Cannot get value of %s from confdb \n",
+                  CONFDB_PAM_CRED_TIMEOUT);
         goto done;
     }
 
@@ -349,22 +349,22 @@ int ldap_get_options(TALLOC_CTX *memctx,
      * entries must not be purged from cache.
      */
     if (!offline_credentials_expiration && account_cache_expiration) {
-        DEBUG(1, ("Conflicting values for options %s (unlimited) "
+        DEBUG(1, "Conflicting values for options %s (unlimited) "
                   "and %s (%d)\n",
                   opts->basic[SDAP_ACCOUNT_CACHE_EXPIRATION].opt_name,
                   CONFDB_PAM_CRED_TIMEOUT,
-                  offline_credentials_expiration));
+                  offline_credentials_expiration);
         ret = EINVAL;
         goto done;
     }
     if (offline_credentials_expiration && account_cache_expiration &&
         offline_credentials_expiration > account_cache_expiration) {
-        DEBUG(1, ("Value of %s (now %d) must be larger "
+        DEBUG(1, "Value of %s (now %d) must be larger "
                   "than value of %s (now %d)\n",
                   opts->basic[SDAP_ACCOUNT_CACHE_EXPIRATION].opt_name,
                   account_cache_expiration,
                   CONFDB_PAM_CRED_TIMEOUT,
-                  offline_credentials_expiration));
+                  offline_credentials_expiration);
         ret = EINVAL;
         goto done;
     }
@@ -373,7 +373,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     if (ldap_deref != NULL) {
         ret = deref_string_to_val(ldap_deref, &ldap_deref_val);
         if (ret != EOK) {
-            DEBUG(1, ("Failed to verify ldap_deref option.\n"));
+            DEBUG(1, "Failed to verify ldap_deref option.\n");
             goto done;
         }
     }
@@ -383,8 +383,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
 
     ldap_referrals = dp_opt_get_bool(opts->basic, SDAP_REFERRALS);
     if (ldap_referrals) {
-        DEBUG(1, ("LDAP referrals are not supported, because the LDAP library "
-                  "is too old, see sssd-ldap(5) for details.\n"));
+        DEBUG(1, "LDAP referrals are not supported, because the LDAP library "
+                  "is too old, see sssd-ldap(5) for details.\n");
         ret = dp_opt_set_bool(opts->basic, SDAP_REFERRALS, false);
     }
 #endif
@@ -423,7 +423,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_netgroup_map = netgroup_map;
         default_service_map = service_map;
     } else {
-        DEBUG(0, ("Unrecognized schema type: %s\n", schema));
+        DEBUG(0, "Unrecognized schema type: %s\n", schema);
         ret = EINVAL;
         goto done;
     }
@@ -472,27 +472,27 @@ int ldap_get_options(TALLOC_CTX *memctx,
     /* FIXME - this can be removed in a future version */
     ret = krb5_try_kdcip(cdb, conf_path, opts->basic, SDAP_KRB5_KDC);
     if (ret != EOK) {
-        DEBUG(1, ("sss_krb5_try_kdcip failed.\n"));
+        DEBUG(1, "sss_krb5_try_kdcip failed.\n");
         goto done;
     }
 
     authtok_type = dp_opt_get_string(opts->basic, SDAP_DEFAULT_AUTHTOK_TYPE);
     if (authtok_type != NULL &&
         strcasecmp(authtok_type,"obfuscated_password") == 0) {
-        DEBUG(9, ("Found obfuscated password, "
-                  "trying to convert to cleartext.\n"));
+        DEBUG(9, "Found obfuscated password, "
+                  "trying to convert to cleartext.\n");
 
         authtok_blob = dp_opt_get_blob(opts->basic, SDAP_DEFAULT_AUTHTOK);
         if (authtok_blob.data == NULL || authtok_blob.length == 0) {
-            DEBUG(1, ("Missing obfuscated password string.\n"));
+            DEBUG(1, "Missing obfuscated password string.\n");
             return EINVAL;
         }
 
         ret = sss_password_decrypt(memctx, (char *) authtok_blob.data,
                                    &cleartext);
         if (ret != EOK) {
-            DEBUG(1, ("Cannot convert the obfuscated "
-                      "password back to cleartext\n"));
+            DEBUG(1, "Cannot convert the obfuscated "
+                      "password back to cleartext\n");
             return ret;
         }
 
@@ -501,14 +501,14 @@ int ldap_get_options(TALLOC_CTX *memctx,
         ret = dp_opt_set_blob(opts->basic, SDAP_DEFAULT_AUTHTOK, authtok_blob);
         talloc_free(cleartext);
         if (ret != EOK) {
-            DEBUG(1, ("dp_opt_set_string failed.\n"));
+            DEBUG(1, "dp_opt_set_string failed.\n");
             return ret;
         }
 
         ret = dp_opt_set_string(opts->basic, SDAP_DEFAULT_AUTHTOK_TYPE,
                                 "password");
         if (ret != EOK) {
-            DEBUG(1, ("dp_opt_set_string failed.\n"));
+            DEBUG(1, "dp_opt_set_string failed.\n");
             return ret;
         }
     }
@@ -542,25 +542,25 @@ int ldap_get_sudo_options(TALLOC_CTX *memctx,
             ret = dp_opt_set_string(opts->basic, SDAP_SUDO_SEARCH_BASE,
                                     search_base);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Could not set SUDO search base"
-                      "to default value\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "Could not set SUDO search base"
+                      "to default value\n");
                 return ret;
             }
 
-            DEBUG(SSSDBG_FUNC_DATA, ("Option %s set to %s\n",
+            DEBUG(SSSDBG_FUNC_DATA, "Option %s set to %s\n",
                   opts->basic[SDAP_SUDO_SEARCH_BASE].opt_name,
-                  dp_opt_get_string(opts->basic, SDAP_SUDO_SEARCH_BASE)));
+                  dp_opt_get_string(opts->basic, SDAP_SUDO_SEARCH_BASE));
         }
     } else {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Search base not set, trying to discover it later "
-              "connecting to the LDAP server.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Search base not set, trying to discover it later "
+              "connecting to the LDAP server.\n");
     }
 
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_SUDO_SEARCH_BASE,
                                  &opts->sdom->sudo_search_bases);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not parse SUDO search base\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not parse SUDO search base\n");
         return ret;
     }
 
@@ -570,7 +570,7 @@ int ldap_get_sudo_options(TALLOC_CTX *memctx,
                        SDAP_OPTS_SUDO,
                        &opts->sudorule_map);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not get SUDO attribute map\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not get SUDO attribute map\n");
         return ret;
     }
 
@@ -600,25 +600,25 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
             ret = dp_opt_set_string(opts->basic, SDAP_AUTOFS_SEARCH_BASE,
                                     search_base);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Could not set autofs search base"
-                      "to default value\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "Could not set autofs search base"
+                      "to default value\n");
                 return ret;
             }
 
-            DEBUG(SSSDBG_FUNC_DATA, ("Option %s set to %s\n",
+            DEBUG(SSSDBG_FUNC_DATA, "Option %s set to %s\n",
                   opts->basic[SDAP_AUTOFS_SEARCH_BASE].opt_name,
-                  dp_opt_get_string(opts->basic, SDAP_AUTOFS_SEARCH_BASE)));
+                  dp_opt_get_string(opts->basic, SDAP_AUTOFS_SEARCH_BASE));
         }
     } else {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Search base not set, trying to discover it later "
-              "connecting to the LDAP server.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Search base not set, trying to discover it later "
+              "connecting to the LDAP server.\n");
     }
 
     ret = sdap_parse_search_base(opts, opts->basic,
                                  SDAP_AUTOFS_SEARCH_BASE,
                                  &opts->sdom->autofs_search_bases);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not parse autofs search base\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not parse autofs search base\n");
         return ret;
     }
 
@@ -635,7 +635,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
             default_entry_map = rfc2307bis_autofs_entry_map;
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown LDAP schema!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown LDAP schema!\n");
             return EINVAL;
     }
 
@@ -645,7 +645,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
                        &opts->autofs_mobject_map);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not get autofs map object attribute map\n"));
+              "Could not get autofs map object attribute map\n");
         return ret;
     }
 
@@ -655,7 +655,7 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
                        &opts->autofs_entry_map);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not get autofs entry object attribute map\n"));
+              "Could not get autofs entry object attribute map\n");
         return ret;
     }
 
@@ -698,7 +698,7 @@ errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Unknown search base type: [%d]\n", class));
+              "Unknown search base type: [%d]\n", class);
         class_name = "UNKNOWN";
         /* Non-fatal */
         break;
@@ -759,8 +759,8 @@ sdap_create_search_base(TALLOC_CTX *mem_ctx,
 
     if (!ldb_dn_validate(ldn)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-                ("Invalid base DN [%s]\n",
-                 unparsed_base));
+                "Invalid base DN [%s]\n",
+                 unparsed_base);
         ret = EINVAL;
         goto done;
     }
@@ -816,7 +816,7 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
      */
     if (count > 1 && (count % 3)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Unparseable search base: [%s][%d]\n", unparsed_base, count));
+              "Unparseable search base: [%s][%d]\n", unparsed_base, count);
         ret = EINVAL;
         goto done;
     }
@@ -832,16 +832,16 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                                       LDAP_SCOPE_SUBTREE, old_filter,
                                       &search_bases[0]);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot create new sdap search base\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot create new sdap search base\n");
             goto done;
         }
 
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Search base added: [%s][%s][%s][%s]\n",
+              "Search base added: [%s][%s][%s][%s]\n",
                class_name,
                search_bases[0]->basedn,
                "SUBTREE",
-               search_bases[0]->filter ? search_bases[0]->filter : ""));
+               search_bases[0]->filter ? search_bases[0]->filter : "");
 
         search_bases[1] = NULL;
     } else {
@@ -863,7 +863,7 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
 
             if (split_bases[c][0] == '\0') {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Zero-length search base: [%s]\n", unparsed_base));
+                      "Zero-length search base: [%s]\n", unparsed_base);
                 ret = EINVAL;
                 goto done;
             }
@@ -877,8 +877,8 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
 
             if (!ldb_dn_validate(ldn)) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Invalid base DN [%s]\n",
-                       split_bases[c]));
+                      "Invalid base DN [%s]\n",
+                       split_bases[c]);
                 ret = EINVAL;
                 goto done;
             }
@@ -905,7 +905,7 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                 search_bases[i]->scope = LDAP_SCOPE_BASE;
             } else {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Unknown search scope: [%s]\n", split_bases[c+1]));
+                      "Unknown search scope: [%s]\n", split_bases[c+1]);
                 ret = EINVAL;
                 goto done;
             }
@@ -931,7 +931,7 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
                 tree = ldb_parse_tree(tmp_ctx, filter);
                 if(!tree) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
-                          ("Invalid search filter: [%s]\n", filter));
+                          "Invalid search filter: [%s]\n", filter);
                     ret = EINVAL;
                     goto done;
                 }
@@ -942,11 +942,11 @@ errno_t common_parse_search_base(TALLOC_CTX *mem_ctx,
             }
 
             DEBUG(SSSDBG_CONF_SETTINGS,
-                  ("Search base added: [%s][%s][%s][%s]\n",
+                  "Search base added: [%s][%s][%s][%s]\n",
                    class_name,
                    search_bases[i]->basedn,
                    split_bases[c+1][0] ? split_bases[c+1] : "SUBTREE",
-                   search_bases[i]->filter ? search_bases[i]->filter : ""));
+                   search_bases[i]->filter ? search_bases[i]->filter : "");
 
             i++;
         }
@@ -991,15 +991,15 @@ int sdap_id_setup_tasks(struct be_ctx *be_ctx,
 
     /* set up enumeration task */
     if (sdom->dom->enumerate) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Setting up enumeration for %s\n",
-                                  sdom->dom->name));
+        DEBUG(SSSDBG_TRACE_FUNC, "Setting up enumeration for %s\n",
+                                  sdom->dom->name);
         ret = ldap_setup_enumeration(be_ctx, ctx->opts, sdom,
                                      send_fn, recv_fn, pvt);
     } else {
         /* the enumeration task, runs the cleanup process by itself,
          * but if enumeration is not running we need to schedule it */
-        DEBUG(SSSDBG_TRACE_FUNC, ("Setting up cleanup task for %s\n",
-                                  sdom->dom->name));
+        DEBUG(SSSDBG_TRACE_FUNC, "Setting up cleanup task for %s\n",
+                                  sdom->dom->name);
         ret = ldap_setup_cleanup(ctx, sdom);
     }
 
@@ -1018,7 +1018,7 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed\n"));
+        DEBUG(1, "talloc_new failed\n");
         return;
     }
 
@@ -1032,8 +1032,8 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
 
     srvaddr = fo_get_server_hostent(server);
     if (!srvaddr) {
-        DEBUG(1, ("FATAL: No hostent available for server (%s)\n",
-                  fo_get_server_str_name(server)));
+        DEBUG(1, "FATAL: No hostent available for server (%s)\n",
+                  fo_get_server_str_name(server));
         talloc_free(tmp_ctx);
         return;
     }
@@ -1041,20 +1041,20 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr,
                                            fo_get_server_port(server));
     if (sockaddr == NULL) {
-        DEBUG(1, ("resolv_get_sockaddr_address failed.\n"));
+        DEBUG(1, "resolv_get_sockaddr_address failed.\n");
         talloc_free(tmp_ctx);
         return;
     }
 
     if (fo_is_srv_lookup(server)) {
         if (!tmp) {
-            DEBUG(1, ("Unknown service, using ldap\n"));
+            DEBUG(1, "Unknown service, using ldap\n");
             tmp = SSS_LDAP_SRV_NAME;
         }
 
         srv_name = fo_get_server_name(server);
         if (srv_name == NULL) {
-            DEBUG(1, ("Could not get server host name\n"));
+            DEBUG(1, "Could not get server host name\n");
             talloc_free(tmp_ctx);
             return;
         }
@@ -1067,12 +1067,12 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     }
 
     if (!new_uri) {
-        DEBUG(2, ("Failed to copy URI ...\n"));
+        DEBUG(2, "Failed to copy URI ...\n");
         talloc_free(tmp_ctx);
         return;
     }
 
-    DEBUG(6, ("Constructed uri '%s'\n", new_uri));
+    DEBUG(6, "Constructed uri '%s'\n", new_uri);
 
     /* free old one and replace with new one */
     talloc_zfree(service->uri);
@@ -1094,7 +1094,7 @@ static void sdap_finalize(struct tevent_context *ev,
 
     ret = remove_krb5_info_files(se, realm);
     if (ret != EOK) {
-        DEBUG(1, ("remove_krb5_info_files failed.\n"));
+        DEBUG(1, "remove_krb5_info_files failed.\n");
     }
 
     sig_term(signum);
@@ -1111,14 +1111,14 @@ errno_t sdap_install_sigterm_handler(TALLOC_CTX *mem_ctx,
 
     sig_realm = talloc_strdup(mem_ctx, realm);
     if (sig_realm == NULL) {
-        DEBUG(1, ("talloc_strdup failed!\n"));
+        DEBUG(1, "talloc_strdup failed!\n");
         return ENOMEM;
     }
 
     sige = tevent_add_signal(ev, mem_ctx, SIGTERM, SA_SIGINFO, sdap_finalize,
                              sig_realm);
     if (sige == NULL) {
-        DEBUG(1, ("tevent_add_signal failed.\n"));
+        DEBUG(1, "tevent_add_signal failed.\n");
         talloc_free(sig_realm);
         return ENOMEM;
     }
@@ -1137,21 +1137,21 @@ void sdap_remove_kdcinfo_files_callback(void *pvt)
     ret = be_fo_run_callbacks_at_next_request(ctx->be_ctx,
                                               ctx->kdc_service_name);
     if (ret != EOK) {
-        DEBUG(1, ("be_fo_run_callbacks_at_next_request failed, "
+        DEBUG(1, "be_fo_run_callbacks_at_next_request failed, "
                   "krb5 info files will not be removed, because "
-                  "it is unclear if they will be recreated properly.\n"));
+                  "it is unclear if they will be recreated properly.\n");
         return;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed, cannot remove krb5 info files.\n"));
+        DEBUG(1, "talloc_new failed, cannot remove krb5 info files.\n");
         return;
     }
 
     ret = remove_krb5_info_files(tmp_ctx, ctx->realm);
     if (ret != EOK) {
-        DEBUG(1, ("remove_krb5_info_files failed.\n"));
+        DEBUG(1, "remove_krb5_info_files failed.\n");
     }
 
     talloc_zfree(tmp_ctx);
@@ -1168,7 +1168,7 @@ errno_t sdap_install_offline_callback(TALLOC_CTX *mem_ctx,
 
     ctx = talloc_zero(mem_ctx, struct remove_info_files_ctx);
     if (ctx == NULL) {
-        DEBUG(1, ("talloc_zfree failed.\n"));
+        DEBUG(1, "talloc_zfree failed.\n");
         return ENOMEM;
     }
 
@@ -1176,7 +1176,7 @@ errno_t sdap_install_offline_callback(TALLOC_CTX *mem_ctx,
     ctx->realm = talloc_strdup(ctx, realm);
     ctx->kdc_service_name = talloc_strdup(ctx, service_name);
     if (ctx->realm == NULL || ctx->kdc_service_name == NULL) {
-        DEBUG(1, ("talloc_strdup failed!\n"));
+        DEBUG(1, "talloc_strdup failed!\n");
         ret = ENOMEM;
         goto done;
     }
@@ -1185,7 +1185,7 @@ errno_t sdap_install_offline_callback(TALLOC_CTX *mem_ctx,
                             sdap_remove_kdcinfo_files_callback,
                             ctx, NULL);
     if (ret != EOK) {
-        DEBUG(1, ("be_add_offline_cb failed.\n"));
+        DEBUG(1, "be_add_offline_cb failed.\n");
         goto done;
     }
 
@@ -1227,7 +1227,7 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
         *primary_realm = '\0';
         desired_realm = primary_realm+1;
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("authid contains realm [%s]\n", desired_realm));
+              "authid contains realm [%s]\n", desired_realm);
     } else {
         desired_realm = dp_opt_get_string(id_opts->basic, SDAP_SASL_REALM);
         if (!desired_realm) {
@@ -1236,9 +1236,9 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
         }
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Will look for %s@%s in %s\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Will look for %s@%s in %s\n",
           desired_primary, desired_realm,
-          keytab_path ? keytab_path : "default keytab"));
+          keytab_path ? keytab_path : "default keytab");
 
     ret = select_principal_from_keytab(tmp_ctx,
                                        desired_primary, desired_realm,
@@ -1250,14 +1250,14 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
 
     if (primary_requested && strcmp(desired_primary, sasl_primary) != 0) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-               ("Configured SASL auth ID not found in keytab. "
-                "Requested %s, found %s\n", desired_primary, sasl_primary));
+               "Configured SASL auth ID not found in keytab. "
+                "Requested %s, found %s\n", desired_primary, sasl_primary);
     }
 
     if (realm_requested && strcmp(desired_realm, sasl_realm) != 0) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-               ("Configured SASL realm not found in keytab. "
-                "Requested %s, found %s\n", desired_realm, sasl_realm));
+               "Configured SASL realm not found in keytab. "
+                "Requested %s, found %s\n", desired_realm, sasl_realm);
     }
 
     ret = dp_opt_set_string(id_opts->basic,
@@ -1265,9 +1265,9 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
     if (ret != EOK) {
         goto done;
     }
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
           id_opts->basic[SDAP_SASL_AUTHID].opt_name,
-          dp_opt_get_string(id_opts->basic, SDAP_SASL_AUTHID)));
+          dp_opt_get_string(id_opts->basic, SDAP_SASL_AUTHID));
 
     ret = dp_opt_set_string(id_opts->basic,
                             SDAP_SASL_REALM, sasl_realm);
@@ -1275,9 +1275,9 @@ sdap_set_sasl_options(struct sdap_options *id_opts,
         goto done;
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
           id_opts->basic[SDAP_SASL_REALM].opt_name,
-          dp_opt_get_string(id_opts->basic, SDAP_SASL_REALM)));
+          dp_opt_get_string(id_opts->basic, SDAP_SASL_REALM));
 
     ret = EOK;
 done:
@@ -1295,25 +1295,25 @@ sdap_gssapi_get_default_realm(TALLOC_CTX *mem_ctx)
 
     krberr = krb5_init_context(&context);
     if (krberr) {
-        DEBUG(2, ("Failed to init kerberos context\n"));
+        DEBUG(2, "Failed to init kerberos context\n");
         goto done;
     }
 
     krberr = krb5_get_default_realm(context, &krb5_realm);
     if (krberr) {
-        DEBUG(2, ("Failed to get default realm name: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
+        DEBUG(2, "Failed to get default realm name: %s\n",
+                  sss_krb5_get_error_message(context, krberr));
         goto done;
     }
 
     realm = talloc_strdup(mem_ctx, krb5_realm);
     krb5_free_default_realm(context, krb5_realm);
     if (!realm) {
-        DEBUG(0, ("Out of memory\n"));
+        DEBUG(0, "Out of memory\n");
         goto done;
     }
 
-    DEBUG(7, ("Will use default realm %s\n", realm));
+    DEBUG(7, "Will use default realm %s\n", realm);
 done:
     if (context) krb5_free_context(context);
     return realm;
@@ -1341,10 +1341,10 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
 
     krb5_opt_realm = dp_opt_get_string(opts, SDAP_KRB5_REALM);
     if (krb5_opt_realm == NULL) {
-        DEBUG(2, ("Missing krb5_realm option, will use libkrb default\n"));
+        DEBUG(2, "Missing krb5_realm option, will use libkrb default\n");
         krb5_realm = sdap_gssapi_get_default_realm(tmp_ctx);
         if (krb5_realm == NULL) {
-            DEBUG(0, ("Cannot determine the Kerberos realm, aborting\n"));
+            DEBUG(0, "Cannot determine the Kerberos realm, aborting\n");
             ret = EIO;
             goto done;
         }
@@ -1363,20 +1363,20 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
                                             SDAP_KRB5_USE_KDCINFO),
                             &service);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to init KRB5 failover service!\n"));
+        DEBUG(0, "Failed to init KRB5 failover service!\n");
         goto done;
     }
 
     ret = sdap_install_sigterm_handler(mem_ctx, bectx->ev, krb5_realm);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to install sigterm handler\n"));
+        DEBUG(0, "Failed to install sigterm handler\n");
         goto done;
     }
 
     ret = sdap_install_offline_callback(mem_ctx, bectx,
                                         krb5_realm, SSS_KRB5KDC_FO_SRV);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to install sigterm handler\n"));
+        DEBUG(0, "Failed to install sigterm handler\n");
         goto done;
     }
 
@@ -1418,7 +1418,7 @@ static errno_t _sdap_urls_init(struct be_ctx *ctx,
     /* split server parm into a list */
     ret = split_on_separator(tmp_ctx, urls, ',', true, true, &list, NULL);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to parse server list!\n"));
+        DEBUG(1, "Failed to parse server list!\n");
         goto done;
     }
 
@@ -1427,15 +1427,15 @@ static errno_t _sdap_urls_init(struct be_ctx *ctx,
         if (be_fo_is_srv_identifier(list[i])) {
             if (!primary) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Failed to add server [%s] to failover service: "
+                      "Failed to add server [%s] to failover service: "
                        "SRV resolution only allowed for primary servers!\n",
-                       list[i]));
+                       list[i]);
                 continue;
             }
 
             if (!dns_service_name) {
-                DEBUG(0, ("Missing DNS service name for service [%s].\n",
-                          service_name));
+                DEBUG(0, "Missing DNS service name for service [%s].\n",
+                          service_name);
                 ret = EINVAL;
                 goto done;
             }
@@ -1449,29 +1449,29 @@ static errno_t _sdap_urls_init(struct be_ctx *ctx,
                                        dns_service_name, NULL,
                                        BE_FO_PROTO_TCP, false, srv_user_data);
             if (ret) {
-                DEBUG(0, ("Failed to add server\n"));
+                DEBUG(0, "Failed to add server\n");
                 goto done;
             }
 
-            DEBUG(6, ("Added service lookup\n"));
+            DEBUG(6, "Added service lookup\n");
             continue;
         }
 
         ret = ldap_url_parse(list[i], &lud);
         if (ret != LDAP_SUCCESS) {
-            DEBUG(0, ("Failed to parse ldap URI (%s)!\n", list[i]));
+            DEBUG(0, "Failed to parse ldap URI (%s)!\n", list[i]);
             ret = EINVAL;
             goto done;
         }
 
         if (lud->lud_host == NULL) {
-            DEBUG(2, ("The LDAP URI (%s) did not contain a host name\n",
-                      list[i]));
+            DEBUG(2, "The LDAP URI (%s) did not contain a host name\n",
+                      list[i]);
             ldap_free_urldesc(lud);
             continue;
         }
 
-        DEBUG(6, ("Added URI %s\n", list[i]));
+        DEBUG(6, "Added URI %s\n", list[i]);
 
         talloc_steal(service, list[i]);
 
@@ -1541,7 +1541,7 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
     ret = be_fo_add_service(ctx, service_name, ldap_user_data_cmp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create failover service!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create failover service!\n");
         goto done;
     }
 
@@ -1553,7 +1553,7 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
     if (!urls) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("No primary servers defined, using service discovery\n"));
+              "No primary servers defined, using service discovery\n");
         urls = BE_SRV_IDENTIFIER;
     }
 
@@ -1574,7 +1574,7 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     ret = be_fo_service_add_callback(memctx, ctx, service->name,
                                      sdap_uri_callback, service);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to add failover callback!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add failover callback!\n");
         goto done;
     }
 
@@ -1601,19 +1601,19 @@ errno_t string_to_shadowpw_days(const char *s, long *d)
     errno = 0;
     l = strtol(s, &endptr, 10);
     if (errno != 0) {
-        DEBUG(1, ("strtol failed [%d][%s].\n", errno, strerror(errno)));
+        DEBUG(1, "strtol failed [%d][%s].\n", errno, strerror(errno));
         return errno;
     }
 
     if (*endptr != '\0') {
-        DEBUG(1, ("Input string [%s] is invalid.\n", s));
+        DEBUG(1, "Input string [%s] is invalid.\n", s);
         return EINVAL;
     }
 
     if (l < -1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Input string contains not allowed negative value [%ld].\n",
-               l));
+              "Input string contains not allowed negative value [%ld].\n",
+               l);
         return EINVAL;
     }
 
@@ -1818,8 +1818,8 @@ sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_get_el(sysdb_attrs, sid_attr, &el);
     if (ret != EOK || el->num_values != 1) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("No [%s] attribute while id-mapping. [%d][%s]\n",
-               sid_attr, el->num_values, strerror(ret)));
+              "No [%s] attribute while id-mapping. [%d][%s]\n",
+               sid_attr, el->num_values, strerror(ret));
         return ENOENT;
     }
 
@@ -1829,7 +1829,7 @@ sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
         sid_str = talloc_strndup(mem_ctx, (char *) el->values[0].data,
                                  el->values[0].length);
         if (sid_str == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strndup failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
             return ENOMEM;
         }
     } else {
@@ -1839,8 +1839,8 @@ sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
                                        &sid_str);
         if (err != IDMAP_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not convert SID: [%s]\n",
-                   idmap_error_string(err)));
+                  "Could not convert SID: [%s]\n",
+                   idmap_error_string(err));
             return EIO;
         }
     }

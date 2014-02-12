@@ -92,7 +92,7 @@ int reset_selinux_file_context(void)
 
 #ifdef HAVE_SEMANAGE
 /* turn libselinux messages into SSSD DEBUG() calls */
-static void sss_semanage_error_callback(void *varg,
+static void sss_semanage_error_callbackvoid *varg,
                                         semanage_handle_t *handle,
                                         const char *fmt, ...)
 {
@@ -133,7 +133,7 @@ static semanage_handle_t *sss_semanage_init(void)
 
     handle = semanage_handle_create();
     if (!handle) {
-        DEBUG(1, ("Cannot create SELinux management handle\n"));
+        DEBUG(1, ("Cannot create SELinux management handle\n");
         return NULL;
     }
 
@@ -143,25 +143,25 @@ static semanage_handle_t *sss_semanage_init(void)
 
     ret = semanage_is_managed(handle);
     if (ret != 1) {
-        DEBUG(1, ("SELinux policy not managed\n"));
+        DEBUG(1, "SELinux policy not managed\n");
         goto fail;
     }
 
     ret = semanage_access_check(handle);
     if (ret < SEMANAGE_CAN_READ) {
-        DEBUG(1, ("Cannot read SELinux policy store\n"));
+        DEBUG(1, "Cannot read SELinux policy store\n");
         goto fail;
     }
 
     ret = semanage_connect(handle);
     if (ret != 0) {
-        DEBUG(1, ("Cannot estabilish SELinux management connection\n"));
+        DEBUG(1, "Cannot estabilish SELinux management connection\n");
         goto fail;
     }
 
     ret = semanage_begin_transaction(handle);
     if (ret != 0) {
-        DEBUG(1, ("Cannot begin SELinux transaction\n"));
+        DEBUG(1, "Cannot begin SELinux transaction\n");
         goto fail;
     }
 
@@ -181,35 +181,35 @@ static int sss_semanage_user_add(semanage_handle_t *handle,
 
     ret = semanage_seuser_create(handle, &seuser);
     if (ret != 0) {
-        DEBUG(1, ("Cannot create SELinux login mapping for %s\n", login_name));
+        DEBUG(1, "Cannot create SELinux login mapping for %s\n", login_name);
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_set_name(handle, seuser, login_name);
     if (ret != 0) {
-        DEBUG(1, ("Could not set name for %s\n", login_name));
+        DEBUG(1, "Could not set name for %s\n", login_name);
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_set_mlsrange(handle, seuser, DEFAULT_SERANGE);
     if (ret != 0) {
-        DEBUG(1, ("Could not set serange for %s\n", login_name));
+        DEBUG(1, "Could not set serange for %s\n", login_name);
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_set_sename(handle, seuser, seuser_name);
     if (ret != 0) {
-        DEBUG(1, ("Could not set SELinux user for %s\n", login_name));
+        DEBUG(1, "Could not set SELinux user for %s\n", login_name);
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_modify_local(handle, key, seuser);
     if (ret != 0) {
-        DEBUG(1, ("Could not add login mapping for %s\n", login_name));
+        DEBUG(1, "Could not add login mapping for %s\n", login_name);
         ret = EIO;
         goto done;
     }
@@ -230,28 +230,28 @@ static int sss_semanage_user_mod(semanage_handle_t *handle,
 
     semanage_seuser_query(handle, key, &seuser);
     if (seuser == NULL) {
-        DEBUG(1, ("Could not query seuser for %s\n", login_name));
+        DEBUG(1, "Could not query seuser for %s\n", login_name);
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_set_mlsrange(handle, seuser, DEFAULT_SERANGE);
     if (ret != 0) {
-        DEBUG(1, ("Could not set serange for %s\n", login_name));
+        DEBUG(1, "Could not set serange for %s\n", login_name);
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_set_sename(handle, seuser, seuser_name);
     if (ret != 0) {
-        DEBUG(1, ("Could not set sename for %s\n", login_name));
+        DEBUG(1, "Could not set sename for %s\n", login_name);
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_modify_local(handle, key, seuser);
     if (ret != 0) {
-        DEBUG(1, (("Could not modify login mapping for %s\n"), login_name));
+        DEBUG(1, ("Could not modify login mapping for %s\n"), login_name);
         ret = EIO;
         goto done;
     }
@@ -276,21 +276,21 @@ int set_seuser(const char *login_name, const char *seuser_name)
 
     handle = sss_semanage_init();
     if (!handle) {
-        DEBUG(1, ("Cannot init SELinux management\n"));
+        DEBUG(1, "Cannot init SELinux management\n");
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_key_create(handle, login_name, &key);
     if (ret != 0) {
-        DEBUG(1, ("Cannot create SELinux user key\n"));
+        DEBUG(1, "Cannot create SELinux user key\n");
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_exists(handle, key, &seuser_exists);
     if (ret < 0) {
-        DEBUG(1, ("Cannot verify the SELinux user\n"));
+        DEBUG(1, "Cannot verify the SELinux user\n");
         ret = EIO;
         goto done;
     }
@@ -298,14 +298,14 @@ int set_seuser(const char *login_name, const char *seuser_name)
     if (seuser_exists) {
         ret = sss_semanage_user_mod(handle, key, login_name, seuser_name);
         if (ret != 0) {
-            DEBUG(1, ("Cannot modify SELinux user mapping\n"));
+            DEBUG(1, "Cannot modify SELinux user mapping\n");
             ret = EIO;
             goto done;
         }
     } else {
         ret = sss_semanage_user_add(handle, key, login_name, seuser_name);
         if (ret != 0) {
-            DEBUG(1, ("Cannot add SELinux user mapping\n"));
+            DEBUG(1, "Cannot add SELinux user mapping\n");
             ret = EIO;
             goto done;
         }
@@ -313,7 +313,7 @@ int set_seuser(const char *login_name, const char *seuser_name)
 
     ret = semanage_commit(handle);
     if (ret < 0) {
-        DEBUG(1, ("Cannot commit SELinux transaction\n"));
+        DEBUG(1, "Cannot commit SELinux transaction\n");
         ret = EIO;
         goto done;
     }
@@ -334,56 +334,56 @@ int del_seuser(const char *login_name)
 
     handle = sss_semanage_init();
     if (!handle) {
-        DEBUG(1, ("Cannot init SELinux management\n"));
+        DEBUG(1, "Cannot init SELinux management\n");
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_key_create(handle, login_name, &key);
     if (ret != 0) {
-        DEBUG(1, ("Cannot create SELinux user key\n"));
+        DEBUG(1, "Cannot create SELinux user key\n");
         ret = EIO;
         goto done;
     }
 
     ret = semanage_seuser_exists(handle, key, &exists);
     if (ret < 0) {
-        DEBUG(1, ("Cannot verify the SELinux user\n"));
+        DEBUG(1, "Cannot verify the SELinux user\n");
         ret = EIO;
         goto done;
     }
 
     if (!exists) {
-        DEBUG(5, ("Login mapping for %s is not defined, OK if default mapping "
-                  "was used\n", login_name));
+        DEBUG(5, "Login mapping for %s is not defined, OK if default mapping "
+                  "was used\n", login_name);
         ret = EOK;  /* probably default mapping */
         goto done;
     }
 
     ret = semanage_seuser_exists_local(handle, key, &exists);
     if (ret < 0) {
-        DEBUG(1, ("Cannot verify the SELinux user\n"));
+        DEBUG(1, "Cannot verify the SELinux user\n");
         ret = EIO;
         goto done;
     }
 
     if (!exists) {
-        DEBUG(1, ("Login mapping for %s is defined in policy, "
-                  "cannot be deleted", login_name));
+        DEBUG(1, "Login mapping for %s is defined in policy, "
+                  "cannot be deleted", login_name);
         ret = ENOENT;
         goto done;
     }
 
     ret = semanage_seuser_del_local(handle, key);
     if (ret != 0) {
-        DEBUG(1, ("Could not delete login mapping for %s", login_name));
+        DEBUG(1, "Could not delete login mapping for %s", login_name);
         ret = EIO;
         goto done;
     }
 
     ret = semanage_commit(handle);
     if (ret < 0) {
-        DEBUG(1, ("Cannot commit SELinux transaction\n"));
+        DEBUG(1, "Cannot commit SELinux transaction\n");
         ret = EIO;
         goto done;
     }

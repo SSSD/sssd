@@ -93,7 +93,7 @@ int be_init_failover(struct be_ctx *ctx)
     ret = be_res_init(ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("fatal error initializing resolver context\n"));
+              "fatal error initializing resolver context\n");
         talloc_zfree(ctx->be_fo);
         return ret;
     }
@@ -159,7 +159,7 @@ int be_fo_add_service(struct be_ctx *ctx, const char *service_name,
 
     svc = be_fo_find_svc_data(ctx, service_name);
     if (svc) {
-        DEBUG(6, ("Failover service already initialized!\n"));
+        DEBUG(6, "Failover service already initialized!\n");
         /* we already have a service up and configured,
          * can happen when using both id and auth provider
          */
@@ -171,7 +171,7 @@ int be_fo_add_service(struct be_ctx *ctx, const char *service_name,
     ret = fo_new_service(ctx->be_fo->fo_ctx, service_name, user_data_cmp,
                          &service);
     if (ret != EOK && ret != EEXIST) {
-        DEBUG(1, ("Failed to create failover service!\n"));
+        DEBUG(1, "Failed to create failover service!\n");
         return ret;
     }
 
@@ -241,16 +241,16 @@ void be_fo_set_srv_lookup_plugin(struct be_ctx *ctx,
 {
     bool bret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Trying to set SRV lookup plugin to %s\n",
-                              plugin_name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Trying to set SRV lookup plugin to %s\n",
+                              plugin_name);
 
     bret = fo_set_srv_lookup_plugin(ctx->be_fo->fo_ctx, send_fn, recv_fn, pvt);
     if (bret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("SRV lookup plugin is now %s\n",
-                                  plugin_name));
+        DEBUG(SSSDBG_TRACE_FUNC, "SRV lookup plugin is now %s\n",
+                                  plugin_name);
     } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to set SRV lookup plugin, "
-              "another plugin may be already in place\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to set SRV lookup plugin, "
+              "another plugin may be already in place\n");
     }
 }
 
@@ -266,7 +266,7 @@ errno_t be_fo_set_dns_srv_lookup_plugin(struct be_ctx *be_ctx,
         if (ret != EOK) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("gethostname() failed: [%d]: %s\n", ret, strerror(ret)));
+                  "gethostname() failed: [%d]: %s\n", ret, strerror(ret));
             return ret;
         }
         resolved_hostname[HOST_NAME_MAX-1] = '\0';
@@ -278,7 +278,7 @@ errno_t be_fo_set_dns_srv_lookup_plugin(struct be_ctx *be_ctx,
                                           default_host_dbs, hostname,
                                           be_ctx->domain->name);
     if (srv_ctx == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
         return ENOMEM;
     }
 
@@ -315,7 +315,7 @@ int be_fo_add_srv_server(struct be_ctx *ctx,
                             domain, ctx->domain->name,
                             proto_table[proto], user_data);
     if (ret && ret != EEXIST) {
-        DEBUG(1, ("Failed to add SRV lookup reference to failover service\n"));
+        DEBUG(1, "Failed to add SRV lookup reference to failover service\n");
         return ret;
     }
 
@@ -327,7 +327,7 @@ int be_fo_add_srv_server(struct be_ctx *ctx,
                                     domain, ctx->domain->name,
                                     proto_table[i], user_data);
             if (ret && ret != EEXIST) {
-                DEBUG(1, ("Failed to add SRV lookup reference to failover service\n"));
+                DEBUG(1, "Failed to add SRV lookup reference to failover service\n");
                 return ret;
             }
 
@@ -365,7 +365,7 @@ int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
     ret = fo_add_server(svc->fo_service, server, port,
                         user_data, primary);
     if (ret && ret != EEXIST) {
-        DEBUG(1, ("Failed to add server to failover service\n"));
+        DEBUG(1, "Failed to add server to failover service\n");
         return ret;
     }
 
@@ -414,7 +414,7 @@ be_primary_server_timeout(struct tevent_context *ev,
 
     ctx->bctx->be_fo->primary_server_handler = NULL;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Looking for primary server!\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Looking for primary server!\n");
     subreq = fo_resolve_service_send(ctx->bctx, ctx->ev,
                                      ctx->bctx->be_fo->be_res->resolv,
                                      ctx->bctx->be_fo->fo_ctx,
@@ -436,7 +436,7 @@ static void be_primary_server_done(struct tevent_req *subreq)
 
     resolve_state = talloc_zero(ctx->bctx, struct be_resolve_server_state);
     if (resolve_state == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed\n");
         return;
     }
 
@@ -462,7 +462,7 @@ static void be_primary_server_done(struct tevent_req *subreq)
         ret = be_primary_server_timeout_activate(ctx->bctx, ctx->ev, ctx->bctx,
                                                  ctx->svc, ctx->timeout);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not schedule primary server lookup\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not schedule primary server lookup\n");
         }
     } else if (ret == EOK) {
         be_run_reconnect_cb(ctx->bctx);
@@ -484,8 +484,8 @@ be_primary_server_timeout_activate(TALLOC_CTX *mem_ctx,
     struct be_failover_ctx *fo_ctx = bctx->be_fo;
 
     if (fo_ctx->primary_server_handler != NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("The primary server reconnection "
-                                  "is already scheduled\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "The primary server reconnection "
+                                  "is already scheduled\n");
         return EOK;
     }
 
@@ -504,13 +504,13 @@ be_primary_server_timeout_activate(TALLOC_CTX *mem_ctx,
     fo_ctx->primary_server_handler = tevent_add_timer(ev, bctx, tv,
                                           be_primary_server_timeout, ctx);
     if (fo_ctx->primary_server_handler == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_add_timer failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_timer failed.\n");
         talloc_free(ctx);
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Primary server reactivation timeout set "
-                                  "to %lu seconds\n", timeout_seconds));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Primary server reactivation timeout set "
+                                  "to %lu seconds\n", timeout_seconds);
     return EOK;
 }
 
@@ -590,7 +590,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     return;
 
 fail:
-    DEBUG(SSSDBG_TRACE_LIBS, ("Server resolution failed: %d\n", ret));
+    DEBUG(SSSDBG_TRACE_LIBS, "Server resolution failed: %d\n", ret);
     state->svc->first_resolved = NULL;
     tevent_req_error(req, ret);
 }
@@ -622,17 +622,17 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
             return EFAULT;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Couldn't resolve server (%s), resolver returned (%d)\n",
-              fo_get_server_str_name(state->srv), ret));
+              "Couldn't resolve server (%s), resolver returned (%d)\n",
+              fo_get_server_str_name(state->srv), ret);
 
         state->attempts++;
         if (state->attempts >= 10) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to find a server after 10 attempts\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to find a server after 10 attempts\n");
             return EIO;
         }
 
         /* now try next one */
-        DEBUG(SSSDBG_TRACE_LIBS, ("Trying with the next one!\n"));
+        DEBUG(SSSDBG_TRACE_LIBS, "Trying with the next one!\n");
         subreq = fo_resolve_service_send(state, state->ev,
                                          state->ctx->be_fo->be_res->resolv,
                                          state->ctx->be_fo->fo_ctx,
@@ -650,11 +650,11 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
 
     /* all fine we got the server */
     if (state->svc->first_resolved == NULL || state->first_try == true) {
-        DEBUG(SSSDBG_TRACE_LIBS, ("Saving the first resolved server\n"));
+        DEBUG(SSSDBG_TRACE_LIBS, "Saving the first resolved server\n");
         state->svc->first_resolved = state->srv;
     } else if (state->svc->first_resolved == state->srv) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("The fail over cycled through all available servers\n"));
+              "The fail over cycled through all available servers\n");
         return ENOENT;
     }
 
@@ -664,17 +664,17 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
         srvaddr = fo_get_server_hostent(state->srv);
         if (!srvaddr) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("FATAL: No hostent available for server (%s)\n",
-                  fo_get_server_str_name(state->srv)));
+                  "FATAL: No hostent available for server (%s)\n",
+                  fo_get_server_str_name(state->srv));
             return EFAULT;
         }
 
         inet_ntop(srvaddr->family, srvaddr->addr_list[0]->ipaddr,
                   ipaddr, 128);
 
-        DEBUG(SSSDBG_FUNC_DATA, ("Found address for server %s: [%s] TTL %d\n",
+        DEBUG(SSSDBG_FUNC_DATA, "Found address for server %s: [%s] TTL %d\n",
               fo_get_server_str_name(state->srv), ipaddr,
-              srvaddr->addr_list[0]->ttl));
+              srvaddr->addr_list[0]->ttl);
     }
 
     srv_status_change = fo_get_server_hostname_last_change(state->srv);
@@ -750,14 +750,14 @@ void be_fo_set_port_status(struct be_ctx *ctx,
     be_svc = be_fo_find_svc_data(ctx, service_name);
     if (be_svc == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("No service associated with name %s\n", service_name));
+              "No service associated with name %s\n", service_name);
         return;
     }
 
     if (!fo_svc_has_server(be_svc->fo_service, server)) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("The server %p is not valid anymore, cannot set its status\n",
-               server));
+              "The server %p is not valid anymore, cannot set its status\n",
+               server);
         return;
     }
 
@@ -796,7 +796,7 @@ static errno_t be_res_get_opts(struct be_resolv_ctx *res_ctx,
     }
 
     str_family = dp_opt_get_string(res_ctx->opts, DP_RES_OPT_FAMILY_ORDER);
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Lookup order: %s\n", str_family));
+    DEBUG(SSSDBG_CONF_SETTINGS, "Lookup order: %s\n", str_family);
 
     if (strcasecmp(str_family, "ipv4_first") == 0) {
         res_ctx->family_order = IPV4_FIRST;
@@ -807,8 +807,8 @@ static errno_t be_res_get_opts(struct be_resolv_ctx *res_ctx,
     } else if (strcasecmp(str_family, "ipv6_only") == 0) {
         res_ctx->family_order = IPV6_ONLY;
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, ("Unknown value for option %s: %s\n",
-              dp_res_default_opts[DP_RES_OPT_FAMILY_ORDER].opt_name, str_family));
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown value for option %s: %s\n",
+              dp_res_default_opts[DP_RES_OPT_FAMILY_ORDER].opt_name, str_family);
         return EINVAL;
     }
 

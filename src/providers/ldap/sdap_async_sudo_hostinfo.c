@@ -77,7 +77,7 @@ struct tevent_req * sdap_sudo_get_hostinfo_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_sudo_get_hostinfo_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -93,11 +93,11 @@ struct tevent_req * sdap_sudo_get_hostinfo_send(TALLOC_CTX *mem_ctx,
                                  &state->hostnames, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Unable to parse hostnames [%d]: %s\n", ret, strerror(ret)));
+                  "Unable to parse hostnames [%d]: %s\n", ret, strerror(ret));
             goto done;
         } else {
             DEBUG(SSSDBG_CONF_SETTINGS,
-                  ("Hostnames set to: %s\n", conf_hostnames));
+                  "Hostnames set to: %s\n", conf_hostnames);
         }
     }
 
@@ -106,12 +106,12 @@ struct tevent_req * sdap_sudo_get_hostinfo_send(TALLOC_CTX *mem_ctx,
                                  &state->ip_addr, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Unable to parse IP addresses [%d]: %s\n",
-                   ret, strerror(ret)));
+                  "Unable to parse IP addresses [%d]: %s\n",
+                   ret, strerror(ret));
             goto done;
         } else {
-            DEBUG(SSSDBG_CONF_SETTINGS, ("IP addresses set to: %s\n",
-                  conf_ip_addr));
+            DEBUG(SSSDBG_CONF_SETTINGS, "IP addresses set to: %s\n",
+                  conf_ip_addr);
         }
     }
 
@@ -120,8 +120,8 @@ struct tevent_req * sdap_sudo_get_hostinfo_send(TALLOC_CTX *mem_ctx,
         ret = sdap_sudo_get_ip_addresses(state, &state->ip_addr);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Unable to detect IP addresses [%d]: %s\n",
-                   ret, strerror(ret)));
+                  "Unable to detect IP addresses [%d]: %s\n",
+                   ret, strerror(ret));
         }
     }
 
@@ -162,8 +162,8 @@ static void sdap_sudo_get_hostinfo_done(struct tevent_req *subreq)
     ret = sdap_sudo_get_hostnames_recv(state, subreq, &state->hostnames);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to retrieve hostnames [%d]: %s\n",
-                                    ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve hostnames [%d]: %s\n",
+                                    ret, strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -210,7 +210,7 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -218,8 +218,8 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx,
     ret = getifaddrs(&ifaces);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not read interfaces [%d][%s]\n",
-                                    ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not read interfaces [%d][%s]\n",
+                                    ret, strerror(ret));
         goto done;
     }
 
@@ -305,8 +305,8 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx,
         if (inet_ntop(iface->ifa_addr->sa_family, sinx_addr,
                       ip_addr, INET6_ADDRSTRLEN) == NULL) {
             ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE, ("inet_ntop() failed [%d]: %s\n",
-                                         ret, strerror(ret)));
+            DEBUG(SSSDBG_MINOR_FAILURE, "inet_ntop() failed [%d]: %s\n",
+                                         ret, strerror(ret));
             goto done;
         }
 
@@ -315,8 +315,8 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx,
         if (inet_ntop(iface->ifa_addr->sa_family, sinx_network,
                       network_addr, INET6_ADDRSTRLEN) == NULL) {
             ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE, ("inet_ntop() failed [%d]: %s\n",
-                                         ret, strerror(ret)));
+            DEBUG(SSSDBG_MINOR_FAILURE, "inet_ntop() failed [%d]: %s\n",
+                                         ret, strerror(ret));
             goto done;
         }
 
@@ -342,8 +342,8 @@ static int sdap_sudo_get_ip_addresses(TALLOC_CTX *mem_ctx,
         }
 
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Found IP address: %s in network %s/%d\n",
-               ip_addr, network_addr, netmask));
+              "Found IP address: %s in network %s/%d\n",
+               ip_addr, network_addr, netmask);
     }
 
     if (ip_addr_list) {
@@ -386,7 +386,7 @@ static struct tevent_req *sdap_sudo_get_hostnames_send(TALLOC_CTX *mem_ctx,
     /* hostname, fqdn and NULL */
     state->hostnames = talloc_zero_array(state, char*, 3);
     if (state->hostnames == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero_array() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -397,15 +397,15 @@ static struct tevent_req *sdap_sudo_get_hostnames_send(TALLOC_CTX *mem_ctx,
     ret = gethostname(hostname, HOST_NAME_MAX);
     if (ret != EOK) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to retrieve machine hostname "
-                                    "[%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve machine hostname "
+                                    "[%d]: %s\n", ret, strerror(ret));
         goto done;
     }
     hostname[HOST_NAME_MAX] = '\0';
 
     state->hostnames[0] = talloc_strdup(state->hostnames, hostname);
     if (state->hostnames[0] == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -413,14 +413,14 @@ static struct tevent_req *sdap_sudo_get_hostnames_send(TALLOC_CTX *mem_ctx,
     dot = strchr(hostname, '.');
     if (dot != NULL) {
         /* already a fqdn, determine hostname and finish */
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Found fqdn: %s\n", hostname));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Found fqdn: %s\n", hostname);
 
         *dot = '\0';
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Found hostname: %s\n", hostname));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Found hostname: %s\n", hostname);
 
         state->hostnames[1] = talloc_strdup(state->hostnames, hostname);
         if (state->hostnames[1] == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup() failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
             ret = ENOMEM;
             goto done;
         }
@@ -428,7 +428,7 @@ static struct tevent_req *sdap_sudo_get_hostnames_send(TALLOC_CTX *mem_ctx,
         ret = EOK;
         goto done;
     } else {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Found hostname: %s\n", hostname));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Found hostname: %s\n", hostname);
     }
 
     state->resolv_ctx = be_ctx->be_res->resolv;
@@ -476,30 +476,30 @@ static void sdap_sudo_get_hostnames_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret == ENOENT) {
         /* Empty result, just quit */
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("No hostent found\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "No hostent found\n");
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not resolve fqdn for this machine, error [%d]: %s, "
+              "Could not resolve fqdn for this machine, error [%d]: %s, "
                "resolver returned: [%d]: %s\n", ret, strerror(ret),
-               resolv_status, resolv_strerror(resolv_status)));
+               resolv_status, resolv_strerror(resolv_status));
         tevent_req_error(req, ret);
         return;
     }
 
     /* EOK */
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Found fqdn: %s\n", rhostent->name));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found fqdn: %s\n", rhostent->name);
 
     if (state->hostnames == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("state->hostnames is NULL\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "state->hostnames is NULL\n");
         ret = EINVAL;
         goto done;
     }
 
     state->hostnames[1] = talloc_strdup(state->hostnames, rhostent->name);
     if (state->hostnames[1] == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
         ret = ENOMEM;
         goto done;
     }

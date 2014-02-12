@@ -104,7 +104,7 @@ static void be_run_cb_step(struct tevent_context *ev, struct tevent_timer *te,
                                be_run_cb_step,
                                cb_ctx);
         if (!tev) {
-            DEBUG(0, ("Out of memory. Could not invoke callbacks\n"));
+            DEBUG(0, "Out of memory. Could not invoke callbacks\n");
             goto final;
         }
         return;
@@ -130,7 +130,7 @@ static errno_t be_run_cb(struct be_ctx *be, struct be_cb *cb_list)
 
     cb_ctx = talloc(be, struct be_cb_ctx);
     if (!cb_ctx) {
-        DEBUG(0, ("Out of memory. Could not invoke callbacks\n"));
+        DEBUG(0, "Out of memory. Could not invoke callbacks\n");
         return ENOMEM;
     }
     cb_ctx->be = be;
@@ -142,7 +142,7 @@ static errno_t be_run_cb(struct be_ctx *be, struct be_cb *cb_list)
                           be_run_cb_step,
                           cb_ctx);
     if (!te) {
-        DEBUG(0, ("Out of memory. Could not invoke callbacks\n"));
+        DEBUG(0, "Out of memory. Could not invoke callbacks\n");
         talloc_free(cb_ctx);
         return ENOMEM;
     }
@@ -157,7 +157,7 @@ int be_add_reconnect_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t c
 
     ret = be_add_cb(mem_ctx, ctx, cb, pvt, &ctx->reconnect_cb_list, reconnect_cb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("be_add_cb failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "be_add_cb failed.\n");
         return ret;
     }
 
@@ -170,7 +170,7 @@ void be_run_reconnect_cb(struct be_ctx *be)
     struct be_cb *next_cb;
 
     if (callback) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Reconnecting. Running callbacks.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Reconnecting. Running callbacks.\n");
 
         /**
          * Call the callback: we have to call this right away
@@ -185,7 +185,7 @@ void be_run_reconnect_cb(struct be_ctx *be)
             callback = next_cb;
         } while(callback != NULL);
     } else {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Reconnect call back list is empty, nothing to do.\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Reconnect call back list is empty, nothing to do.\n");
     }
 }
 
@@ -196,7 +196,7 @@ int be_add_online_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t cb,
 
     ret = be_add_cb(mem_ctx, ctx, cb, pvt, &ctx->online_cb_list, online_cb);
     if (ret != EOK) {
-        DEBUG(1, ("be_add_cb failed.\n"));
+        DEBUG(1, "be_add_cb failed.\n");
         return ret;
     }
 
@@ -218,15 +218,15 @@ void be_run_online_cb(struct be_ctx *be) {
         be->run_online_cb = false;
 
         if (be->online_cb_list) {
-            DEBUG(3, ("Going online. Running callbacks.\n"));
+            DEBUG(3, "Going online. Running callbacks.\n");
 
             ret = be_run_cb(be, be->online_cb_list);
             if (ret != EOK) {
-                DEBUG(1, ("be_run_cb failed.\n"));
+                DEBUG(1, "be_run_cb failed.\n");
             }
 
         } else {
-            DEBUG(9, ("Online call back list is empty, nothing to do.\n"));
+            DEBUG(9, "Online call back list is empty, nothing to do.\n");
         }
     }
 }
@@ -244,17 +244,17 @@ void be_run_unconditional_online_cb(struct be_ctx *be)
     int ret;
 
     if (be->unconditional_online_cb_list) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Running unconditional online callbacks.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Running unconditional online callbacks.\n");
 
         ret = be_run_cb(be, be->unconditional_online_cb_list);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("be_run_cb failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "be_run_cb failed.\n");
         }
 
     } else {
         DEBUG(SSSDBG_TRACE_ALL,
-              ("List of unconditional online callbacks is empty, " \
-               "nothing to do.\n"));
+              "List of unconditional online callbacks is empty, " \
+               "nothing to do.\n");
     }
 }
 
@@ -268,14 +268,14 @@ void be_run_offline_cb(struct be_ctx *be) {
     int ret;
 
     if (be->offline_cb_list) {
-        DEBUG(3, ("Going offline. Running callbacks.\n"));
+        DEBUG(3, "Going offline. Running callbacks.\n");
 
         ret = be_run_cb(be, be->offline_cb_list);
         if (ret != EOK) {
-            DEBUG(1, ("be_run_cb failed.\n"));
+            DEBUG(1, "be_run_cb failed.\n");
         }
 
     } else {
-        DEBUG(9, ("Offline call back list is empty, nothing to do.\n"));
+        DEBUG(9, "Offline call back list is empty, nothing to do.\n");
     }
 }

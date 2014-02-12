@@ -47,7 +47,7 @@ struct tevent_req *sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_refresh_netgroups_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -63,11 +63,11 @@ struct tevent_req *sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
 
     ret = sdap_refresh_netgroups_step(req);
     if (ret == EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Nothing to refresh\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Nothing to refresh\n");
         goto immediately;
     } else if (ret != EAGAIN) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_refresh_netgroups_step() failed "
-                                    "[%d]: %s\n", ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_refresh_netgroups_step() failed "
+                                    "[%d]: %s\n", ret, sss_strerror(ret));
         goto immediately;
     }
 
@@ -104,7 +104,7 @@ static errno_t sdap_refresh_netgroups_step(struct tevent_req *req)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Issuing refresh of netgroup %s\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Issuing refresh of netgroup %s\n", name);
 
     subreq = ldap_netgroup_get_send(state, state->ev, state->id_ctx,
                                     state->id_ctx->opts->sdom,
@@ -136,9 +136,9 @@ static void sdap_refresh_netgroups_done(struct tevent_req *subreq)
     ret = ldap_netgroup_get_recv(subreq, &dp_error, &sdap_ret);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to refresh netgroup [dp_error: %d, "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh netgroup [dp_error: %d, "
               "sdap_ret: %d, errno: %d]: %s\n",
-              dp_error, sdap_ret, ret, sss_strerror(ret)));
+              dp_error, sdap_ret, ret, sss_strerror(ret));
         goto done;
     }
 

@@ -59,7 +59,7 @@ errno_t find_or_guess_upn(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
     ret = krb5_get_simple_upn(mem_ctx, krb5_ctx, dom, user,
                               user_dom, _upn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_get_simple_upn failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_get_simple_upn failed.\n");
         return ret;
     }
 
@@ -67,7 +67,7 @@ done:
     if (ret == EOK && upn != NULL) {
         *_upn = talloc_strdup(mem_ctx, upn);
         if (*_upn == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             return ENOMEM;
         }
     }
@@ -96,19 +96,19 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
     ret = sysdb_get_user_attr(tmp_ctx, sysdb, domain, user, attrs, &res);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_user_attr failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_user_attr failed.\n");
         goto done;
     }
 
     if (res->count != 1) {
-        DEBUG(SSSDBG_OP_FAILURE, ("[%d] user objects for name [%s] found, " \
-                                  "expected 1.\n", res->count, user));
+        DEBUG(SSSDBG_OP_FAILURE, "[%d] user objects for name [%s] found, " \
+                                  "expected 1.\n", res->count, user);
         ret = EINVAL;
         goto done;
     }
@@ -116,8 +116,8 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
     cached_upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
 
     if (cached_upn != NULL && strcmp(cached_upn, upn) == 0) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Cached UPN and new one match, "
-                                 "nothing to do.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Cached UPN and new one match, "
+                                 "nothing to do.\n");
         ret = EOK;
         goto done;
     }
@@ -128,35 +128,35 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
 
     if (cached_canonical_upn != NULL
             && strcmp(cached_canonical_upn, upn) == 0) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Cached canonical UPN and new one match, "
-                                 "nothing to do.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Cached canonical UPN and new one match, "
+                                 "nothing to do.\n");
         ret = EOK;
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Replacing canonical UPN [%s] with [%s] " \
+    DEBUG(SSSDBG_TRACE_LIBS, "Replacing canonical UPN [%s] with [%s] " \
                               "for user [%s].\n",
                               cached_canonical_upn == NULL ?
                                                  "empty" : cached_canonical_upn,
-                              upn, user));
+                              upn, user);
 
     new_attrs = sysdb_new_attrs(tmp_ctx);
     if (new_attrs == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     ret = sysdb_attrs_add_string(new_attrs, SYSDB_CANONICAL_UPN, upn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
         goto done;
     }
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Error %d starting transaction (%s)\n", ret, strerror(ret)));
+              "Error %d starting transaction (%s)\n", ret, strerror(ret));
         goto done;
     }
     in_transaction = true;
@@ -165,14 +165,14 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
                                cached_canonical_upn == NULL ? SYSDB_MOD_ADD :
                                                               SYSDB_MOD_REP);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed [%d][%s].\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_entry_attr failed [%d][%s].\n",
+                                  ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to commit transaction!\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to commit transaction!\n");
         goto done;
     }
     in_transaction = false;
@@ -183,7 +183,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
 
@@ -218,7 +218,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
     bool rerun;
 
     if (template == NULL) {
-        DEBUG(1, ("Missing template.\n"));
+        DEBUG(1, "Missing template.\n");
         return NULL;
     }
 
@@ -227,13 +227,13 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
 
     copy = talloc_strdup(tmp_ctx, template);
     if (copy == NULL) {
-        DEBUG(1, ("talloc_strdup failed.\n"));
+        DEBUG(1, "talloc_strdup failed.\n");
         goto done;
     }
 
     result = talloc_strdup(tmp_ctx, "");
     if (result == NULL) {
-        DEBUG(1, ("talloc_strdup failed.\n"));
+        DEBUG(1, "talloc_strdup failed.\n");
         goto done;
     }
 
@@ -242,7 +242,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
         *n = '\0';
         n++;
         if ( *n == '\0' ) {
-            DEBUG(1, ("format error, single %% at the end of the template.\n"));
+            DEBUG(1, "format error, single %% at the end of the template.\n");
             goto done;
         }
 
@@ -253,15 +253,15 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
             switch (action) {
             case 'u':
                 if (kr->pd->user == NULL) {
-                    DEBUG(1, ("Cannot expand user name template "
-                              "because user name is empty.\n"));
+                    DEBUG(1, "Cannot expand user name template "
+                              "because user name is empty.\n");
                     goto done;
                 }
                 name = sss_get_cased_name(tmp_ctx, kr->pd->user,
                                           case_sensitive);
                 if (!name) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
-                          ("sss_get_cased_name failed\n"));
+                          "sss_get_cased_name failed\n");
                     goto done;
                 }
 
@@ -270,8 +270,8 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 break;
             case 'U':
                 if (kr->uid <= 0) {
-                    DEBUG(1, ("Cannot expand uid template "
-                              "because uid is invalid.\n"));
+                    DEBUG(1, "Cannot expand uid template "
+                              "because uid is invalid.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%"SPRIuid, p,
@@ -279,8 +279,8 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 break;
             case 'p':
                 if (kr->upn == NULL) {
-                    DEBUG(1, ("Cannot expand user principal name template "
-                              "because upn is empty.\n"));
+                    DEBUG(1, "Cannot expand user principal name template "
+                              "because upn is empty.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, kr->upn);
@@ -291,15 +291,15 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
             case 'r':
                 dummy = dp_opt_get_string(kr->krb5_ctx->opts, KRB5_REALM);
                 if (dummy == NULL) {
-                    DEBUG(1, ("Missing kerberos realm.\n"));
+                    DEBUG(1, "Missing kerberos realm.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, dummy);
                 break;
             case 'h':
                 if (kr->homedir == NULL) {
-                    DEBUG(1, ("Cannot expand home directory template "
-                              "because the path is not available.\n"));
+                    DEBUG(1, "Cannot expand home directory template "
+                              "because the path is not available.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, kr->homedir);
@@ -309,32 +309,32 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                     cache_dir_tmpl = dp_opt_get_string(kr->krb5_ctx->opts,
                                                        KRB5_CCACHEDIR);
                     if (cache_dir_tmpl == NULL) {
-                        DEBUG(1, ("Missing credential cache directory.\n"));
+                        DEBUG(1, "Missing credential cache directory.\n");
                         goto done;
                     }
 
                     dummy = expand_ccname_template(tmp_ctx, kr, cache_dir_tmpl,
                                                    false, case_sensitive);
                     if (dummy == NULL) {
-                        DEBUG(1, ("Expanding credential cache directory "
-                                  "template failed.\n"));
+                        DEBUG(1, "Expanding credential cache directory "
+                                  "template failed.\n");
                         goto done;
                     }
                     result = talloc_asprintf_append(result, "%s%s", p, dummy);
                     talloc_zfree(dummy);
                 } else {
-                    DEBUG(1, ("'%%d' is not allowed in this template.\n"));
+                    DEBUG(1, "'%%d' is not allowed in this template.\n");
                     goto done;
                 }
                 break;
             case 'P':
                 if (!file_mode) {
-                    DEBUG(1, ("'%%P' is not allowed in this template.\n"));
+                    DEBUG(1, "'%%P' is not allowed in this template.\n");
                     goto done;
                 }
                 if (kr->pd->cli_pid == 0) {
-                    DEBUG(1, ("Cannot expand PID template "
-                              "because PID is not available.\n"));
+                    DEBUG(1, "Cannot expand PID template "
+                              "because PID is not available.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%d", p,
@@ -371,10 +371,10 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                     name = n;
                     n = strchr(name, '}');
                     if (!n) {
-                        DEBUG(SSSDBG_CRIT_FAILURE, (
+                        DEBUG(SSSDBG_CRIT_FAILURE,
                               "Invalid substitution sequence in cache "
                               "template. Missing closing '}' in [%s].\n",
-                              template));
+                              template);
                         goto done;
                     }
                     result = talloc_asprintf_append(result, "%s%%%.*s", p,
@@ -382,13 +382,13 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 }
                 break;
             default:
-                DEBUG(1, ("format error, unknown template [%%%c].\n", *n));
+                DEBUG(1, "format error, unknown template [%%%c].\n", *n);
                 goto done;
             }
         }
 
         if (result == NULL) {
-            DEBUG(1, ("talloc_asprintf_append failed.\n"));
+            DEBUG(1, "talloc_asprintf_append failed.\n");
             goto done;
         }
 
@@ -397,7 +397,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
 
     result = talloc_asprintf_append(result, "%s", p);
     if (result == NULL) {
-        DEBUG(1, ("talloc_asprintf_append failed.\n"));
+        DEBUG(1, "talloc_asprintf_append failed.\n");
         goto done;
     }
 
@@ -413,24 +413,24 @@ static errno_t check_parent_stat(struct stat *parent_stat,
     if (!((parent_stat->st_uid == 0 && parent_stat->st_gid == 0) ||
            parent_stat->st_uid == uid)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Private directory can only be created below a directory "
+              "Private directory can only be created below a directory "
                "belonging to root or to [%"SPRIuid"][%"SPRIgid"].\n",
-               uid, gid));
+               uid, gid);
         return EINVAL;
     }
 
     if (parent_stat->st_uid == uid) {
         if (!(parent_stat->st_mode & S_IXUSR)) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Parent directory does not have the search bit set for "
-                   "the owner.\n"));
+                  "Parent directory does not have the search bit set for "
+                   "the owner.\n");
             return EINVAL;
         }
     } else {
         if (!(parent_stat->st_mode & S_IXOTH)) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Parent directory does not have the search bit set for "
-                   "others.\n"));
+                  "Parent directory does not have the search bit set for "
+                   "others.\n");
             return EINVAL;
         }
     }
@@ -458,7 +458,7 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx,
     if (ret == EOK) {
         if ( !S_ISDIR(parent_stat->st_mode) ) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("[%s] is not a directory.\n", ccdirname));
+                  "[%s] is not a directory.\n", ccdirname);
             return EINVAL;
         }
         return EOK;
@@ -466,8 +466,8 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx,
         if (errno != ENOENT) {
             ret = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("stat for [%s] failed: [%d][%s].\n", ccdirname, ret,
-                   strerror(ret)));
+                  "stat for [%s] failed: [%d][%s].\n", ccdirname, ret,
+                   strerror(ret));
             return ret;
         }
     }
@@ -475,14 +475,14 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx,
     li = talloc_zero(mem_ctx, struct string_list);
     if (li == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("talloc_zero failed.\n"));
+              "talloc_zero failed.\n");
         return ENOMEM;
     }
 
     li->s = talloc_strdup(li, ccdirname);
     if (li->s == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("talloc_strdup failed.\n"));
+              "talloc_strdup failed.\n");
         return ENOMEM;
     }
 
@@ -491,7 +491,7 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx,
     parent = talloc_strdup(mem_ctx, ccdirname);
     if (parent == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("talloc_strdup failed.\n"));
+              "talloc_strdup failed.\n");
         return ENOMEM;
     }
 
@@ -502,8 +502,8 @@ static errno_t find_ccdir_parent_data(TALLOC_CTX *mem_ctx,
         end = strrchr(parent, '/');
         if (end == NULL || end == parent) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Cannot find parent directory of [%s], / is not allowed.\n",
-                   ccdirname));
+                  "Cannot find parent directory of [%s], / is not allowed.\n",
+                   ccdirname);
             ret = EINVAL;
             goto done;
         }
@@ -526,16 +526,16 @@ check_ccache_re(const char *filename, pcre *illegal_re)
                     0, 0, NULL, 0);
     if (ret == 0) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Illegal pattern in ccache directory name [%s].\n", filename));
+              "Illegal pattern in ccache directory name [%s].\n", filename);
         return EINVAL;
     } else if (ret == PCRE_ERROR_NOMATCH) {
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Ccache directory name [%s] does not contain "
-               "illegal patterns.\n", filename));
+              "Ccache directory name [%s] does not contain "
+               "illegal patterns.\n", filename);
         return EOK;
     }
 
-    DEBUG(SSSDBG_CRIT_FAILURE, ("pcre_exec failed [%d].\n", ret));
+    DEBUG(SSSDBG_CRIT_FAILURE, "pcre_exec failed [%d].\n", ret);
     return EFAULT;
 }
 
@@ -554,13 +554,13 @@ create_ccache_dir(const char *ccdirname, pcre *illegal_re,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("talloc_new failed.\n"));
+              "talloc_new failed.\n");
         return ENOMEM;
     }
 
     if (*ccdirname != '/') {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Only absolute paths are allowed, not [%s] .\n", ccdirname));
+              "Only absolute paths are allowed, not [%s] .\n", ccdirname);
         ret = EINVAL;
         goto done;
     }
@@ -576,20 +576,20 @@ create_ccache_dir(const char *ccdirname, pcre *illegal_re,
                                  &missing_parents);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("find_ccdir_parent_data failed.\n"));
+              "find_ccdir_parent_data failed.\n");
         goto done;
     }
 
     ret = check_parent_stat(&parent_stat, uid, gid);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("check_parent_stat failed for directory [%s].\n", ccdirname));
+              "check_parent_stat failed for directory [%s].\n", ccdirname);
         goto done;
     }
 
     DLIST_FOR_EACH(li, missing_parents) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Creating directory [%s].\n", li->s));
+              "Creating directory [%s].\n", li->s);
         new_dir_mode = 0700;
 
         old_umask = umask(0000);
@@ -598,15 +598,15 @@ create_ccache_dir(const char *ccdirname, pcre *illegal_re,
         if (ret != EOK) {
             ret = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("mkdir [%s] failed: [%d][%s].\n", li->s, ret,
-                   strerror(ret)));
+                  "mkdir [%s] failed: [%d][%s].\n", li->s, ret,
+                   strerror(ret));
             goto done;
         }
         ret = chown(li->s, uid, gid);
         if (ret != EOK) {
             ret = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("chown failed [%d][%s].\n", ret, strerror(ret)));
+                  "chown failed [%d][%s].\n", ret, strerror(ret));
             goto done;
         }
     }
@@ -634,14 +634,14 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
 
     kerr = krb5_init_context(&ctx);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_init_context failed.\n"));
+        DEBUG(1, "krb5_init_context failed.\n");
         goto done;
     }
 
     kerr = krb5_parse_name(ctx, client_name, &client_princ);
     if (kerr != 0) {
         KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_parse_name failed.\n");
         goto done;
     }
 
@@ -652,7 +652,7 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
                                   realm_length, realm_name);
     if (server_name == NULL) {
         kerr = KRB5_CC_NOMEM;
-        DEBUG(1, ("talloc_asprintf failed.\n"));
+        DEBUG(1, "talloc_asprintf failed.\n");
         goto done;
     }
 
@@ -660,14 +660,14 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
     talloc_free(server_name);
     if (kerr != 0) {
         KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_parse_name failed.\n");
         goto done;
     }
 
     kerr = krb5_cc_resolve(ctx, ccache_file, &cc);
     if (kerr != 0) {
         KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_resolve failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_resolve failed.\n");
         goto done;
     }
 
@@ -680,7 +680,7 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
     kerr = krb5_cc_retrieve_cred(ctx, cc, 0, &mcred, &cred);
     if (kerr != 0) {
         KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_retrieve_cred failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_retrieve_cred failed.\n");
         goto done;
     }
 
@@ -694,7 +694,7 @@ errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
     kerr = krb5_cc_close(ctx, cc);
     if (kerr != 0) {
         KRB5_DEBUG(SSSDBG_OP_FAILURE, ctx, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_close failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_close failed.\n");
         goto done;
     }
     cc = NULL;
@@ -751,7 +751,7 @@ errno_t sss_krb5_precreate_ccache(const char *ccname, pcre *illegal_re,
 
     ccdirname = talloc_strdup(tmp_ctx, filename);
     if (ccdirname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -762,8 +762,8 @@ errno_t sss_krb5_precreate_ccache(const char *ccname, pcre *illegal_re,
     do {
         end = strrchr(ccdirname, '/');
         if (end == NULL || end == ccdirname) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot find parent directory of [%s], "
-                  "/ is not allowed.\n", ccdirname));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find parent directory of [%s], "
+                  "/ is not allowed.\n", ccdirname);
             ret = EINVAL;
             goto done;
         }
@@ -823,12 +823,12 @@ static errno_t sss_open_ccache_as_user(TALLOC_CTX *mem_ctx,
 
     kerr = krb5_cc_resolve(cc->context, ccname, &cc->ccache);
     if (kerr == KRB5_FCC_NOFILE || cc->ccache == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("ccache %s is missing or empty\n", ccname));
+        DEBUG(SSSDBG_TRACE_FUNC, "ccache %s is missing or empty\n", ccname);
         ret = ERR_NOT_FOUND;
         goto done;
     } else if (kerr != 0) {
         KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_resolve failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_resolve failed.\n");
         ret = ERR_INTERNAL;
         goto done;
     }
@@ -852,7 +852,7 @@ static errno_t sss_destroy_ccache(struct sss_krb5_ccache *cc)
     kerr = krb5_cc_destroy(cc->context, cc->ccache);
     if (kerr) {
         KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_destroy failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_destroy failed.\n");
         ret = EIO;
     } else {
         ret = EOK;
@@ -872,7 +872,7 @@ errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid)
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -904,7 +904,7 @@ errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -916,12 +916,12 @@ errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
     cc_type = krb5_cc_get_type(cc->context, cc->ccache);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("Searching for [%s] in cache of type [%s]\n", principal, cc_type));
+          "Searching for [%s] in cache of type [%s]\n", principal, cc_type);
 
     kerr = krb5_parse_name(cc->context, principal, &kprinc);
     if (kerr != 0) {
         KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_parse_name failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_parse_name failed.\n");
         ret = ERR_INTERNAL;
         goto done;
     }
@@ -929,7 +929,7 @@ errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
     kerr = krb5_cc_get_principal(cc->context, cc->ccache, &ccprinc);
     if (kerr != 0) {
         KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_cc_get_principal failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_get_principal failed.\n");
     }
 
     if (ccprinc) {
@@ -1021,7 +1021,7 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -1032,7 +1032,7 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
 
     tgt_name = talloc_asprintf(tmp_ctx, "krbtgt/%s@%s", realm, realm);
     if (!tgt_name) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -1061,7 +1061,7 @@ errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
                                  KRB5_TC_MATCH_TIMES, &mcred, &cred);
     if (kerr) {
         if (kerr == KRB5_CC_NOTFOUND || kerr == KRB5_FCC_NOFILE) {
-            DEBUG(SSSDBG_TRACE_INTERNAL, ("TGT not found or expired.\n"));
+            DEBUG(SSSDBG_TRACE_INTERNAL, "TGT not found or expired.\n");
             ret = EINVAL;
         } else {
             KRB5_DEBUG(SSSDBG_CRIT_FAILURE, cc->context, kerr);
@@ -1087,7 +1087,7 @@ errno_t get_domain_or_subdomain(struct be_ctx *be_ctx,
         strcasecmp(domain_name, be_ctx->domain->name) != 0) {
         *dom = find_subdomain_by_name(be_ctx->domain, domain_name, true);
         if (*dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("find_subdomain_by_name failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "find_subdomain_by_name failed.\n");
             return ENOMEM;
         }
     } else {

@@ -54,7 +54,7 @@ int main(int argc, const char **argv)
 
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(1, ("set_locale failed (%d): %s\n", ret, strerror(ret)));
+        DEBUG(1, "set_locale failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error setting the locale\n");
         ret = EXIT_FAILURE;
         goto fini;
@@ -79,7 +79,7 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&tctx);
     if (ret != EOK) {
-        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        DEBUG(1, "init_sss_tools failed (%d): %s\n", ret, strerror(ret));
         if (ret == ENOENT) {
             ERROR("Error initializing the tools - no local domain\n");
         } else {
@@ -108,7 +108,7 @@ int main(int argc, const char **argv)
 
     tctx->error = sysdb_transaction_start(tctx->sysdb);
     if (tctx->error != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -121,7 +121,7 @@ int main(int argc, const char **argv)
 
     tctx->error = sysdb_transaction_commit(tctx->sysdb);
     if (tctx->error != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -130,7 +130,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(tctx->sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
 
@@ -146,7 +146,7 @@ done:
                 break;
 
             default:
-                DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
+                DEBUG(1, "sysdb operation failed (%d)[%s]\n", ret, strerror(ret));
                 ERROR("Transaction error. Could not add group.\n");
                 break;
         }

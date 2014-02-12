@@ -57,11 +57,11 @@ static void close_low_fds(void)
         if (fd < 0)
             fd = open("/dev/null", O_WRONLY, 0);
         if (fd < 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Can't open /dev/null\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Can't open /dev/null\n");
             return;
         }
         if (fd != i) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Didn't get file descriptor %d\n",i));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Didn't get file descriptor %d\n",i);
             return;
         }
     }
@@ -101,8 +101,8 @@ void become_daemon(bool Fork)
                     error = errno;
                     if (error != EINTR) {
                         DEBUG(SSSDBG_CRIT_FAILURE,
-                              ("Error [%d][%s] while waiting for child\n",
-                               error, strerror(error)));
+                              "Error [%d][%s] while waiting for child\n",
+                               error, strerror(error));
                         /* Forcibly kill this child */
                         kill(pid, SIGKILL);
                         ret = 1;
@@ -130,8 +130,8 @@ void become_daemon(bool Fork)
     errno = 0;
     if(chdir("/") == -1) {
         ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Cannot change directory (%d [%s])\n",
-                                     ret, strerror(ret)));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot change directory (%d [%s])\n",
+                                     ret, strerror(ret));
         return;
     }
 
@@ -164,7 +164,7 @@ int pidfile(const char *path, const char *name)
         ret = errno;
         if (len == -1) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("read failed [%d][%s].\n", ret, strerror(ret)));
+                  "read failed [%d][%s].\n", ret, strerror(ret));
             close(fd);
             talloc_free(file);
             return EINVAL;
@@ -220,14 +220,14 @@ int pidfile(const char *path, const char *name)
     if (written == -1) {
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("write failed [%d][%s]\n", err, strerror(err)));
+              "write failed [%d][%s]\n", err, strerror(err));
         close(fd);
         return err;
     }
 
     if (written != size) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Wrote %zd bytes expected %zu\n", written, size));
+              "Wrote %zd bytes expected %zu\n", written, size);
         close(fd);
         return EIO;
     }
@@ -248,7 +248,7 @@ void sig_term(int sig)
 #if HAVE_GETPGRP
     static int done_sigterm;
     if (done_sigterm == 0 && getpgrp() == getpid()) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("SIGTERM: killing children\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "SIGTERM: killing children\n");
         done_sigterm = 1;
         kill(-getpgrp(), SIGTERM);
     }
@@ -267,7 +267,7 @@ static void default_quit(struct tevent_context *ev,
 #if HAVE_GETPGRP
     static int done_sigterm;
     if (done_sigterm == 0 && getpgrp() == getpid()) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("SIGTERM: killing children\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "SIGTERM: killing children\n");
         done_sigterm = 1;
         kill(-getpgrp(), SIGTERM);
     }
@@ -282,8 +282,8 @@ static void sig_segv_abrt(int sig)
 #if HAVE_GETPGRP
     static int done;
     if (done == 0 && getpgrp() == getpid()) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("%s: killing children\n",
-                                     strsignal(sig)));
+        DEBUG(SSSDBG_FATAL_FAILURE, "%s: killing children\n",
+                                     strsignal(sig));
         done = 1;
         kill(-getpgrp(), SIGTERM);
     }
@@ -344,8 +344,8 @@ static void server_stdin_handler(struct tevent_context *event_ctx,
 
     errno = 0;
     if (sss_atomic_read_s(0, &c, 1) == 0) {
-    DEBUG(SSSDBG_CRIT_FAILURE, ("%s: EOF on stdin - terminating\n",
-                                binary_name));
+    DEBUG(SSSDBG_CRIT_FAILURE, "%s: EOF on stdin - terminating\n",
+                                binary_name);
 #if HAVE_GETPGRP
         if (getpgrp() == getpid()) {
             kill(-getpgrp(), SIGTERM);
@@ -368,8 +368,8 @@ int die_if_parent_died(void)
     ret = prctl(PR_SET_PDEATHSIG, SIGTERM, 0, 0, 0);
     if (ret != 0) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("prctl failed [%d]: %s",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "prctl failed [%d]: %s",
+                                  ret, strerror(ret));
         return ret;
     }
 #endif
@@ -392,12 +392,12 @@ static void te_server_hup(struct tevent_context *ev,
     struct logrotate_ctx *lctx =
             talloc_get_type(private_data, struct logrotate_ctx);
 
-    DEBUG(SSSDBG_CRIT_FAILURE, ("Received SIGHUP. Rotating logfiles.\n"));
+    DEBUG(SSSDBG_CRIT_FAILURE, "Received SIGHUP. Rotating logfiles.\n");
 
     ret = monitor_common_rotate_logs(lctx->confdb, lctx->confdb_path);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Could not reopen log file [%s]\n",
-                                     strerror(ret)));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not reopen log file [%s]\n",
+                                     strerror(ret));
     }
 }
 
@@ -430,15 +430,15 @@ int server_setup(const char *name, int flags,
     umask(0177);
 
     if (flags & FLAGS_DAEMON) {
-        DEBUG(SSSDBG_IMPORTANT_INFO, ("Becoming a daemon.\n"));
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Becoming a daemon.\n");
         become_daemon(true);
     }
 
     if (flags & FLAGS_PID_FILE) {
         ret = pidfile(PID_PATH, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Error creating pidfile: %s/%s! "
-                  "(%d [%s])\n", PID_PATH, name, ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error creating pidfile: %s/%s! "
+                  "(%d [%s])\n", PID_PATH, name, ret, strerror(ret));
             return ret;
         }
     }
@@ -453,7 +453,7 @@ int server_setup(const char *name, int flags,
     event_ctx = tevent_context_init(talloc_autofree_context());
     if (event_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("The event context initialiaziton failed\n"));
+              "The event context initialiaziton failed\n");
         return 1;
     }
 
@@ -473,7 +473,7 @@ int server_setup(const char *name, int flags,
 
     ctx = talloc(event_ctx, struct main_context);
     if (ctx == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory, aborting!\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, aborting!\n");
         return ENOMEM;
     }
 
@@ -482,13 +482,13 @@ int server_setup(const char *name, int flags,
 
     conf_db = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (conf_db == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory, aborting!\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, aborting!\n");
         return ENOMEM;
     }
 
     ret = confdb_init(ctx, &ctx->confdb_ctx, conf_db);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("The confdb initialization failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "The confdb initialization failed\n");
         return ret;
     }
 
@@ -499,8 +499,8 @@ int server_setup(const char *name, int flags,
                              SSSDBG_DEFAULT,
                              &debug_level);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) "
-                                         "[%s]\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) "
+                                         "[%s]\n", ret, strerror(ret));
             return ret;
         }
 
@@ -514,8 +514,8 @@ int server_setup(const char *name, int flags,
                               SSSDBG_TIMESTAMP_DEFAULT,
                               &dt);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) "
-                                         "[%s]\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) "
+                                         "[%s]\n", ret, strerror(ret));
             return ret;
         }
         if (dt) debug_timestamps = 1;
@@ -529,8 +529,8 @@ int server_setup(const char *name, int flags,
                               SSSDBG_MICROSECONDS_DEFAULT,
                               &dm);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) "
-                                         "[%s]\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) "
+                                         "[%s]\n", ret, strerror(ret));
             return ret;
         }
         if (dm) debug_microseconds = 1;
@@ -543,8 +543,8 @@ int server_setup(const char *name, int flags,
                           CONFDB_SERVICE_DEBUG_TO_FILES,
                           dl, &dl);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) [%s]\n",
-                                     ret, strerror(ret)));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) [%s]\n",
+                                     ret, strerror(ret));
         return ret;
     }
     if (dl) debug_to_file = 1;
@@ -566,15 +566,15 @@ int server_setup(const char *name, int flags,
     if (debug_to_file) {
         ret = open_debug_file();
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Error setting up logging (%d) "
-                                         "[%s]\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) "
+                                         "[%s]\n", ret, strerror(ret));
             return ret;
         }
     }
 
     sss_log(SSS_LOG_INFO, "Starting up");
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("CONFDB: %s\n", conf_db));
+    DEBUG(SSSDBG_TRACE_FUNC, "CONFDB: %s\n", conf_db);
 
     if (flags & FLAGS_INTERACTIVE) {
         /* terminate when stdin goes away */

@@ -54,7 +54,7 @@ int sdap_autofs_init(struct be_ctx *be_ctx,
 {
     int ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing autofs LDAP back end\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing autofs LDAP back end\n");
 
     *ops = &sdap_autofs_ops;
     *pvt_data = id_ctx;
@@ -84,7 +84,7 @@ void sdap_autofs_handler(struct be_req *be_req)
     struct tevent_req *req;
     int ret = EOK;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("sdap autofs handler called\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "sdap autofs handler called\n");
 
     id_ctx = talloc_get_type(be_ctx->bet_info[BET_AUTOFS].pvt_bet_data,
                              struct sdap_id_ctx);
@@ -95,15 +95,15 @@ void sdap_autofs_handler(struct be_req *be_req)
 
     autofs_req = talloc_get_type(be_req_get_data(be_req), struct be_autofs_req);
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Requested refresh for: %s\n",
-          autofs_req->mapname ? autofs_req->mapname : "<ALL>\n"));
+    DEBUG(SSSDBG_FUNC_DATA, "Requested refresh for: %s\n",
+          autofs_req->mapname ? autofs_req->mapname : "<ALL>\n");
 
     if (autofs_req->invalidate) {
         ret = sysdb_invalidate_autofs_maps(id_ctx->be->domain->sysdb,
                                            id_ctx->be->domain);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not invalidate autofs maps, "
-                  "backend might return stale entries\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not invalidate autofs maps, "
+                  "backend might return stale entries\n");
         }
     }
 
@@ -156,7 +156,7 @@ sdap_autofs_get_map_send(TALLOC_CTX *mem_ctx,
 
     state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -219,7 +219,7 @@ sdap_autofs_get_map_connect_done(struct tevent_req *subreq)
                                             state->map_name);
     if (!subreq) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("sdap_autofs_setautomntent_send failed\n"));
+              "sdap_autofs_setautomntent_send failed\n");
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -262,8 +262,8 @@ sdap_autofs_get_map_done(struct tevent_req *subreq)
                                      state->ctx->be->domain, state->map_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE,
-                ("Cannot delete autofs map %s [%d]: %s\n",
-                 state->map_name, ret, strerror(ret)));
+                "Cannot delete autofs map %s [%d]: %s\n",
+                 state->map_name, ret, strerror(ret));
             tevent_req_error(req, ret);
             return;
         }

@@ -121,7 +121,7 @@ unsigned char *sss_base64_decode(TALLOC_CTX *mem_ctx,
 
         *outsize = size;
     } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get decoded data\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get decoded data\n");
     }
     BIO_free_all(b64);
     BIO_free(bmem_out);

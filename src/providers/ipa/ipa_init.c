@@ -96,7 +96,7 @@ static bool srv_in_server_list(const char *servers)
     /* split server parm into a list */
     ret = split_on_separator(tmp_ctx, servers, ',', true, true, &list, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse server list!\n");
         goto done;
     }
 
@@ -132,7 +132,7 @@ int common_ipa_init(struct be_ctx *bectx)
                            ipa_backup_servers, ipa_options,
                            &ipa_options->service);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to init IPA failover service!\n"));
+        DEBUG(0, "Failed to init IPA failover service!\n");
         return ret;
     }
 
@@ -200,7 +200,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
          */
 
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Dynamic DNS updates are on. Checking for nsupdate..\n"));
+              "Dynamic DNS updates are on. Checking for nsupdate..\n");
         ret = be_nsupdate_check();
         if (ret == EOK) {
             /* nsupdate is available. Dynamic updates
@@ -208,7 +208,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
              */
             ret = ipa_dyndns_init(sdap_ctx->be, ipa_options);
             if (ret != EOK) {
-                DEBUG(1, ("Failure setting up automatic DNS update\n"));
+                DEBUG(1, "Failure setting up automatic DNS update\n");
                 /* We will continue without DNS updating */
             }
         }
@@ -216,8 +216,8 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
     ret = setup_tls_config(sdap_ctx->opts->basic);
     if (ret != EOK) {
-        DEBUG(1, ("setup_tls_config failed [%d][%s].\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "setup_tls_config failed [%d][%s].\n",
+                  ret, strerror(ret));
         goto done;
     }
 
@@ -233,8 +233,8 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
     ret = sdap_setup_child();
     if (ret != EOK) {
-        DEBUG(1, ("setup_child failed [%d][%s].\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "setup_child failed [%d][%s].\n",
+                  ret, strerror(ret));
         goto done;
     }
 
@@ -248,7 +248,7 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
         srv_ctx = ipa_srv_plugin_ctx_init(bectx, bectx->be_res->resolv,
                                           hostname, ipa_domain);
         if (srv_ctx == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
             ret = ENOMEM;
             goto done;
         }
@@ -258,8 +258,8 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     } else if (server_mode == true) {
         ipa_servers = dp_opt_get_string(ipa_options->basic, IPA_SERVER);
         if (srv_in_server_list(ipa_servers) == true) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("SRV resolution enabled on the IPA server. "
-                  "Site discovery of trusted AD servers might not work\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "SRV resolution enabled on the IPA server. "
+                  "Site discovery of trusted AD servers might not work\n");
 
             /* If SRV discovery is enabled on the server and
              * dns_discovery_domain is set explicitly, then
@@ -274,18 +274,18 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
                         "It is recommended not to use SRV discovery or the "
                         "dns_discovery_domain option for the IPA domain while "
                         "running on the server itself\n"));
-                DEBUG(SSSDBG_CRIT_FAILURE, ("SRV discovery is enabled on IPA "
+                DEBUG(SSSDBG_CRIT_FAILURE, "SRV discovery is enabled on IPA "
                       "server while using custom dns_discovery_domain. "
                       "DNS discovery of trusted AD domain will likely fail. "
                       "It is recommended not to use SRV discovery or the "
                       "dns_discovery_domain option for the IPA domain while "
-                      "running on the server itself\n"));
+                      "running on the server itself\n");
             }
 
             ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
-                                            "[%d]: %s\n", ret, strerror(ret)));
+                DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
+                                            "[%d]: %s\n", ret, strerror(ret));
                 goto done;
             }
         } else {
@@ -295,21 +295,21 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
             ret = dp_opt_set_string(bectx->be_res->opts, DP_RES_OPT_DNS_DOMAIN,
                                     NULL);
             if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Could not reset the "
+                DEBUG(SSSDBG_MINOR_FAILURE, "Could not reset the "
                     "dns_discovery_domain, trusted AD domains discovery "
                     "might fail. Please remove dns_discovery_domain "
-                    "from the config file and restart the SSSD\n"));
+                    "from the config file and restart the SSSD\n");
             } else {
-                DEBUG(SSSDBG_CONF_SETTINGS, ("The value of dns_discovery_domain "
-                      "will be ignored in ipa_server_mode\n"));
+                DEBUG(SSSDBG_CONF_SETTINGS, "The value of dns_discovery_domain "
+                      "will be ignored in ipa_server_mode\n");
             }
         }
     } else {
         /* fall back to standard plugin on clients. */
         ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
-                                        "[%d]: %s\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
+                                        "[%d]: %s\n", ret, strerror(ret));
             goto done;
         }
     }
@@ -320,8 +320,8 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
                             sdap_refresh_netgroups_recv,
                             sdap_ctx);
     if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Periodical refresh of netgroups "
-              "will not work [%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of netgroups "
+              "will not work [%d]: %s\n", ret, strerror(ret));
     }
 
     *ops = &ipa_id_ops;
@@ -368,7 +368,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
 
     ret = sssm_ipa_id_init(bectx, &id_ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(1, ("sssm_ipa_id_init failed.\n"));
+        DEBUG(1, "sssm_ipa_id_init failed.\n");
         goto done;
     }
     ipa_auth_ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
@@ -376,7 +376,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     ret = dp_copy_options(ipa_auth_ctx, ipa_options->basic,
                           IPA_OPTS_BASIC, &ipa_auth_ctx->ipa_options);
     if (ret != EOK) {
-        DEBUG(1, ("dp_copy_options failed.\n"));
+        DEBUG(1, "dp_copy_options failed.\n");
         goto done;
     }
 
@@ -419,8 +419,8 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
 
     ret = setup_tls_config(sdap_auth_ctx->opts->basic);
     if (ret != EOK) {
-        DEBUG(1, ("setup_tls_config failed [%d][%s].\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "setup_tls_config failed [%d][%s].\n",
+                  ret, strerror(ret));
         goto done;
     }
 
@@ -428,8 +428,8 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     ret = krb5_child_init(krb5_auth_ctx, bectx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not initialize krb5_child settings: [%s]\n",
-               strerror(ret)));
+              "Could not initialize krb5_child settings: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
@@ -464,13 +464,13 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
 
     ipa_access_ctx = talloc_zero(bectx, struct ipa_access_ctx);
     if (ipa_access_ctx == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
+        DEBUG(1, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
     ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(1, ("sssm_ipa_id_init failed.\n"));
+        DEBUG(1, "sssm_ipa_id_init failed.\n");
         goto done;
     }
     ipa_access_ctx->sdap_ctx = id_ctx->sdap_id_ctx;
@@ -482,7 +482,7 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
     ret = dp_copy_options(ipa_access_ctx, ipa_options->basic,
                           IPA_OPTS_BASIC, &ipa_access_ctx->ipa_options);
     if (ret != EOK) {
-        DEBUG(1, ("dp_copy_options failed.\n"));
+        DEBUG(1, "dp_copy_options failed.\n");
         goto done;
     }
 
@@ -516,13 +516,13 @@ int sssm_ipa_selinux_init(struct be_ctx *bectx,
 
     selinux_ctx = talloc_zero(bectx, struct ipa_selinux_ctx);
     if (selinux_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
     ret = sssm_ipa_id_init(bectx, ops, (void **) &selinux_ctx->id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ipa_id_init failed.\n");
         goto done;
     }
 
@@ -553,13 +553,13 @@ int sssm_ipa_hostid_init(struct be_ctx *bectx,
 
     hostid_ctx = talloc_zero(bectx, struct ipa_hostid_ctx);
     if (hostid_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
     ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ipa_id_init failed.\n");
         goto done;
     }
     hostid_ctx->sdap_id_ctx = id_ctx->sdap_id_ctx;
@@ -585,18 +585,18 @@ int sssm_ipa_autofs_init(struct be_ctx *bectx,
     struct ipa_id_ctx *id_ctx;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing IPA autofs handler\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing IPA autofs handler\n");
 
     ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ipa_id_init failed.\n");
         return ret;
     }
 
     return ipa_autofs_init(bectx, id_ctx, ops, pvt_data);
 #else
-    DEBUG(SSSDBG_MINOR_FAILURE, ("Autofs init handler called but SSSD is "
-                                 "built without autofs support, ignoring\n"));
+    DEBUG(SSSDBG_MINOR_FAILURE, "Autofs init handler called but SSSD is "
+                                 "built without autofs support, ignoring\n");
     return EOK;
 #endif
 }
@@ -610,19 +610,19 @@ int sssm_ipa_subdomains_init(struct be_ctx *bectx,
 
     ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ipa_id_init failed.\n");
         return ret;
     }
 
     ret = ipa_subdom_init(bectx, id_ctx, ops, pvt_data);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("ipa_subdom_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_subdom_init failed.\n");
         return ret;
     }
 
     ret = ipa_ad_subdom_init(bectx, id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("ipa_ad_subdom_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_ad_subdom_init failed.\n");
         return ret;
     }
 
@@ -637,18 +637,18 @@ int sssm_ipa_sudo_init(struct be_ctx *bectx,
     struct ipa_id_ctx *id_ctx;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing IPA sudo handler\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing IPA sudo handler\n");
 
     ret = sssm_ipa_id_init(bectx, ops, (void **) &id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sssm_ipa_id_init failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssm_ipa_id_init failed.\n");
         return ret;
     }
 
     return ipa_sudo_init(bectx, id_ctx, ops, pvt_data);
 #else
-    DEBUG(SSSDBG_MINOR_FAILURE, ("Sudo init handler called but SSSD is "
-                                 "built without sudo support, ignoring\n"));
+    DEBUG(SSSDBG_MINOR_FAILURE, "Sudo init handler called but SSSD is "
+                                 "built without sudo support, ignoring\n");
     return EOK;
 #endif
 }

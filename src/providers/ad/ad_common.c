@@ -128,21 +128,21 @@ ad_create_default_options(TALLOC_CTX *mem_ctx,
 
     ad_options->id = ad_create_default_sdap_options(ad_options);
     if (ad_options->id == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize AD LDAP options\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD LDAP options\n");
         talloc_free(ad_options);
         return NULL;
     }
 
     ret = dp_opt_set_string(ad_options->basic, AD_KRB5_REALM, realm);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD domain\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD domain\n");
         talloc_free(ad_options);
         return NULL;
     }
 
     ret = dp_opt_set_string(ad_options->basic, AD_HOSTNAME, hostname);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD domain\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD domain\n");
         talloc_free(ad_options);
         return NULL;
     }
@@ -280,7 +280,7 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
     server = dp_opt_get_string(opts->basic, AD_SERVER);
     if (!server) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("No AD server set, will use service discovery!\n"));
+              "No AD server set, will use service discovery!\n");
     }
 
     /* Set the machine's hostname to the local host name if it
@@ -292,18 +292,18 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
         if (gret != 0) {
             ret = errno;
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("gethostname failed [%s].\n",
-                   strerror(ret)));
+                  "gethostname failed [%s].\n",
+                   strerror(ret));
             goto done;
         }
         hostname[HOST_NAME_MAX] = '\0';
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Setting ad_hostname to [%s].\n", hostname));
+              "Setting ad_hostname to [%s].\n", hostname);
         ret = dp_opt_set_string(opts->basic, AD_HOSTNAME, hostname);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Setting ad_hostname failed [%s].\n",
-                   strerror(ret)));
+                  "Setting ad_hostname failed [%s].\n",
+                   strerror(ret));
             goto done;
         }
     }
@@ -331,13 +331,13 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
                           dom->case_sensitive);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not set domain case-sensitive: [%s]\n",
-               strerror(ret)));
+              "Could not set domain case-sensitive: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Setting domain case-insensitive\n"));
+          "Setting domain case-insensitive\n");
 
     ret = EOK;
     *_opts = opts;
@@ -374,7 +374,7 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
     /* Split the server list */
     ret = split_on_separator(tmp_ctx, servers, ',', true, true, &list, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse server list!\n");
         goto done;
     }
 
@@ -383,9 +383,9 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
         if (be_fo_is_srv_identifier(list[i])) {
             if (!primary) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Failed to add server [%s] to failover service: "
+                      "Failed to add server [%s] to failover service: "
                        "SRV resolution only allowed for primary servers!\n",
-                       list[i]));
+                       list[i]);
                 continue;
             }
 
@@ -401,8 +401,8 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
                                        false, sdata);
             if (ret != EOK) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
-                      ("Failed to add service discovery to failover: [%s]",
-                       strerror(ret)));
+                      "Failed to add service discovery to failover: [%s]",
+                       strerror(ret));
                 goto done;
             }
 
@@ -418,12 +418,12 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
                                        false, sdata);
             if (ret != EOK) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
-                      ("Failed to add service discovery to failover: [%s]",
-                       strerror(ret)));
+                      "Failed to add service discovery to failover: [%s]",
+                       strerror(ret));
                 goto done;
             }
 
-            DEBUG(SSSDBG_CONF_SETTINGS, ("Added service discovery for AD\n"));
+            DEBUG(SSSDBG_CONF_SETTINGS, "Added service discovery for AD\n");
             continue;
         }
 
@@ -443,7 +443,7 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
 
         ret = be_fo_add_server(bectx, fo_gc_service, list[i], 0, sdata, primary);
         if (ret && ret != EEXIST) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add server\n");
             goto done;
         }
 
@@ -456,11 +456,11 @@ _ad_servers_init(TALLOC_CTX *mem_ctx,
 
         ret = be_fo_add_server(bectx, fo_service, list[i], 0, sdata, primary);
         if (ret && ret != EEXIST) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add server\n");
             goto done;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Added failover server %s\n", list[i]));
+        DEBUG(SSSDBG_CONF_SETTINGS, "Added failover server %s\n", list[i]);
     }
 done:
     talloc_free(tmp_ctx);
@@ -494,13 +494,13 @@ static int ad_user_data_cmp(void *ud1, void *ud2)
     sd1 = talloc_get_type(ud1, struct ad_server_data);
     sd2 = talloc_get_type(ud2, struct ad_server_data);
     if (sd1 == NULL || sd2 == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No user data\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "No user data\n");
         return sd1 == sd2 ? 0 : 1;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Comparing %s with %s\n",
+    DEBUG(SSSDBG_TRACE_LIBS, "Comparing %s with %s\n",
           sd1->gc ? "GC" : "LDAP",
-          sd2->gc ? "GC" : "LDAP"));
+          sd2->gc ? "GC" : "LDAP");
 
     if (sd1->gc == sd2->gc) {
         return 0;
@@ -514,11 +514,11 @@ static void ad_online_cb(void *pvt)
     struct ad_service *service = talloc_get_type(pvt, struct ad_service);
 
     if (service == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid private pointer\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid private pointer\n");
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("The AD provider is online\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "The AD provider is online\n");
 }
 
 errno_t
@@ -566,13 +566,13 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
 
     ret = be_fo_add_service(bectx, ad_service, ad_user_data_cmp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create failover service!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create failover service!\n");
         goto done;
     }
 
     ret = be_fo_add_service(bectx, ad_gc_service, ad_user_data_cmp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to create GC failover service!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create GC failover service!\n");
         goto done;
     }
 
@@ -586,7 +586,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     service->gc->kinit_service_name = service->krb5_service->name;
 
     if (!krb5_realm) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No Kerberos realm set\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No Kerberos realm set\n");
         ret = EINVAL;
         goto done;
     }
@@ -599,7 +599,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
 
     if (!primary_servers) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("No primary servers defined, using service discovery\n"));
+              "No primary servers defined, using service discovery\n");
         primary_servers = BE_SRV_IDENTIFIER;
     }
 
@@ -621,7 +621,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
 
     ret = be_add_online_cb(bectx, bectx, ad_online_cb, service, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not set up AD online callback\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up AD online callback\n");
         return ret;
     }
 
@@ -629,7 +629,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                                      ad_resolve_callback, service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to add failover callback! [%s]\n", strerror(ret)));
+              "Failed to add failover callback! [%s]\n", strerror(ret));
         goto done;
     }
 
@@ -637,7 +637,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                                      ad_resolve_callback, service);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to add failover callback! [%s]\n", strerror(ret)));
+              "Failed to add failover callback! [%s]\n", strerror(ret));
         goto done;
     }
 
@@ -667,13 +667,13 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
         return;
     }
 
     sdata = fo_get_server_user_data(server);
     if (fo_is_srv_lookup(server) == false && sdata == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No user data?\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No user data?\n");
         return;
     }
 
@@ -686,37 +686,37 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     srvaddr = fo_get_server_hostent(server);
     if (!srvaddr) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("No hostent available for server (%s)\n",
-               fo_get_server_str_name(server)));
+              "No hostent available for server (%s)\n",
+               fo_get_server_str_name(server));
         ret = EINVAL;
         goto done;
     }
 
     address = resolv_get_string_address(tmp_ctx, srvaddr);
     if (address == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("resolv_get_string_address failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_string_address failed.\n");
         ret = EIO;
         goto done;
     }
 
     srv_name = fo_get_server_name(server);
     if (srv_name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not get server host name\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not get server host name\n");
         ret = EINVAL;
         goto done;
     }
 
     new_uri = talloc_asprintf(service->sdap, "ldap://%s", srv_name);
     if (!new_uri) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to copy URI\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy URI\n");
         ret = ENOMEM;
         goto done;
     }
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Constructed uri '%s'\n", new_uri));
+    DEBUG(SSSDBG_CONF_SETTINGS, "Constructed uri '%s'\n", new_uri);
 
     sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT);
     if (sockaddr == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("resolv_get_sockaddr_address failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_sockaddr_address failed.\n");
         ret = EIO;
         goto done;
     }
@@ -750,15 +750,15 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     }
 
     if (!service->gc->uri) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to append to URI\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to append to URI\n");
         ret = ENOMEM;
         goto done;
     }
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Constructed GC uri '%s'\n", service->gc->uri));
+    DEBUG(SSSDBG_CONF_SETTINGS, "Constructed GC uri '%s'\n", service->gc->uri);
 
     if (service->gc->sockaddr == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-                ("resolv_get_sockaddr_address failed.\n"));
+                "resolv_get_sockaddr_address failed.\n");
         ret = EIO;
         goto done;
     }
@@ -771,7 +771,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
                                             srvaddr->family,
                                             address);
         if (safe_address == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("sss_escape_ip_address failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_escape_ip_address failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -780,7 +780,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
                                 SSS_KRB5KDC_FO_SRV);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                ("write_krb5info_file failed, authentication might fail.\n"));
+                "write_krb5info_file failed, authentication might fail.\n");
         }
     }
 
@@ -788,7 +788,7 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
 done:
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error: [%s]\n", strerror(ret)));
+              "Error: [%s]\n", strerror(ret));
     }
     talloc_free(tmp_ctx);
     return;
@@ -809,7 +809,7 @@ ad_set_ad_id_options(struct ad_options *ad_opts,
                             SDAP_PWD_POLICY,
                             PWD_POL_OPT_MIT);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Could not set password policy\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not set password policy\n");
         goto done;
     }
 
@@ -817,7 +817,7 @@ ad_set_ad_id_options(struct ad_options *ad_opts,
     krb5_realm = dp_opt_get_string(ad_opts->basic, AD_KRB5_REALM);
     if (!krb5_realm) {
         /* Should be impossible, this is set in ad_get_common_options() */
-        DEBUG(SSSDBG_FATAL_FAILURE, ("No Kerberos realm\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "No Kerberos realm\n");
         ret = EINVAL;
         goto done;
     }
@@ -825,9 +825,9 @@ ad_set_ad_id_options(struct ad_options *ad_opts,
     ret = dp_opt_set_string(id_opts->basic, SDAP_KRB5_REALM, krb5_realm);
     if (ret != EOK) goto done;
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Option %s set to %s\n",
+          "Option %s set to %s\n",
            id_opts->basic[SDAP_KRB5_REALM].opt_name,
-           krb5_realm));
+           krb5_realm);
 
     keytab_path = dp_opt_get_string(ad_opts->basic, AD_KEYTAB);
     if (keytab_path) {
@@ -835,9 +835,9 @@ ad_set_ad_id_options(struct ad_options *ad_opts,
                                 keytab_path);
         if (ret != EOK) goto done;
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Option %s set to %s\n",
+              "Option %s set to %s\n",
                id_opts->basic[SDAP_KRB5_KEYTAB].opt_name,
-               keytab_path));
+               keytab_path);
     }
 
     ret = sdap_set_sasl_options(id_opts,
@@ -847,7 +847,7 @@ ad_set_ad_id_options(struct ad_options *ad_opts,
                                                   AD_KRB5_REALM),
                                 keytab_path);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set the SASL-related options\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set the SASL-related options\n");
         goto done;
     }
 
@@ -931,16 +931,16 @@ ad_set_search_bases(struct sdap_options *id_opts)
                     goto done;
                 }
                 DEBUG(SSSDBG_CONF_SETTINGS,
-                      ("Option %s set to %s\n",
+                      "Option %s set to %s\n",
                        id_opts->basic[search_base_options[o]].opt_name,
                        dp_opt_get_string(id_opts->basic,
-                                         search_base_options[o])));
+                                         search_base_options[o]));
             }
         }
     } else {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Search base not set. SSSD will attempt to discover it later, "
-               "when connecting to the LDAP server.\n"));
+              "Search base not set. SSSD will attempt to discover it later, "
+               "when connecting to the LDAP server.\n");
     }
 
     /* Default search */
@@ -998,7 +998,7 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
                          &krb5_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not read Kerberos options from the configuration\n"));
+              "Could not read Kerberos options from the configuration\n");
         goto done;
     }
 
@@ -1008,16 +1008,16 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
     ret = dp_opt_set_string(krb5_options, KRB5_KDC, ad_servers);
     if (ret != EOK) goto done;
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Option %s set to %s\n",
+          "Option %s set to %s\n",
            krb5_options[KRB5_KDC].opt_name,
-           ad_servers));
+           ad_servers);
 
     /* Set krb5 realm */
     /* Set the Kerberos Realm for GSSAPI */
     krb5_realm = dp_opt_get_string(ad_opts->basic, AD_KRB5_REALM);
     if (!krb5_realm) {
         /* Should be impossible, this is set in ad_get_common_options() */
-        DEBUG(SSSDBG_FATAL_FAILURE, ("No Kerberos realm\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "No Kerberos realm\n");
         ret = EINVAL;
         goto done;
     }
@@ -1028,18 +1028,18 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
     ret = dp_opt_set_string(krb5_options, KRB5_REALM, krb5_realm);
     if (ret != EOK) goto done;
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Option %s set to %s\n",
+          "Option %s set to %s\n",
            krb5_options[KRB5_REALM].opt_name,
-           krb5_realm));
+           krb5_realm);
 
     /* Set flag that controls whether we want to write the
      * kdcinfo files at all
      */
     ad_opts->service->krb5_service->write_kdcinfo = \
         dp_opt_get_bool(krb5_options, KRB5_USE_KDCINFO);
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
           krb5_options[KRB5_USE_KDCINFO].opt_name,
-          ad_opts->service->krb5_service->write_kdcinfo ? "true" : "false"));
+          ad_opts->service->krb5_service->write_kdcinfo ? "true" : "false");
 
     *_opts = talloc_steal(mem_ctx, krb5_options);
 
@@ -1059,8 +1059,8 @@ errno_t ad_get_dyndns_options(struct be_ctx *be_ctx,
                            &ad_opts->dyndns_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot initialize AD dyndns opts [%d]: %s\n",
-               ret, sss_strerror(ret)));
+              "Cannot initialize AD dyndns opts [%d]: %s\n",
+               ret, sss_strerror(ret));
         return ret;
     }
 
@@ -1107,8 +1107,8 @@ ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom)
     if (IS_SUBDOMAIN(dom)) {
         sdom = sdap_domain_get(ad_ctx->sdap_id_ctx->opts, dom);
         if (sdom == NULL || sdom->pvt == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("No ID ctx available for [%s].\n",
-                                        dom->name));
+            DEBUG(SSSDBG_CRIT_FAILURE, "No ID ctx available for [%s].\n",
+                                        dom->name);
             return NULL;
         }
         subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);

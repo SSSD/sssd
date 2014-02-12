@@ -508,8 +508,8 @@ errno_t sss_hash_create_ex(TALLOC_CTX *mem_ctx,
         ret = EIO;
     }
 
-    DEBUG(0, ("Could not create hash table: [%d][%s]\n",
-              hret, hash_error_string(hret)));
+    DEBUG(0, "Could not create hash table: [%d][%s]\n",
+              hret, hash_error_string(hret));
 
     talloc_free(internal_ctx);
     return ret;
@@ -633,7 +633,7 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
     char **new_list = NULL;
 
     if (string == NULL || list_p == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing string or list.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Missing string or list.\n");
         return EINVAL;
     }
 
@@ -653,13 +653,13 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
     }
 
     if (new_list == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array/talloc_realloc failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array/talloc_realloc failed.\n");
         return ENOMEM;
     }
 
     new_list[c] = talloc_strdup(new_list, string);
     if (new_list[c] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
         talloc_free(new_list);
         return ENOMEM;
     }

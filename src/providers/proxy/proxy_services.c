@@ -111,7 +111,7 @@ get_serv_byname(struct proxy_id_ctx *ctx,
                                       buffer, BUFLEN, &ret);
     if (status != NSS_STATUS_SUCCESS && status != NSS_STATUS_NOTFOUND) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("getservbyname_r failed for service [%s].\n", name));
+              "getservbyname_r failed for service [%s].\n", name);
         return ret;
     }
 
@@ -165,7 +165,7 @@ get_serv_byport(struct proxy_id_ctx *ctx,
                                       buffer, BUFLEN, &ret);
     if (status != NSS_STATUS_SUCCESS && status != NSS_STATUS_NOTFOUND) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("getservbyport_r failed for service [%s].\n", be_filter));
+              "getservbyport_r failed for service [%s].\n", be_filter);
         return ret;
     }
 
@@ -202,7 +202,7 @@ enum_services(struct proxy_id_ctx *ctx,
     const char **cased_aliases;
     bool again;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Enumerating services\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Enumerating services\n");
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -230,7 +230,7 @@ enum_services(struct proxy_id_ctx *ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -271,11 +271,11 @@ enum_services(struct proxy_id_ctx *ctx,
             case NSS_STATUS_NOTFOUND:
 
                 /* we are done here */
-                DEBUG(SSSDBG_TRACE_FUNC, ("Enumeration completed.\n"));
+                DEBUG(SSSDBG_TRACE_FUNC, "Enumeration completed.\n");
 
                 ret = sysdb_transaction_commit(sysdb);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
                     goto done;
                 }
 
@@ -285,8 +285,8 @@ enum_services(struct proxy_id_ctx *ctx,
             case NSS_STATUS_SUCCESS:
 
                 DEBUG(SSSDBG_TRACE_INTERNAL,
-                        ("Service found (%s, %d/%s)\n",
-                         svc->s_name, svc->s_port, svc->s_proto));
+                        "Service found (%s, %d/%s)\n",
+                         svc->s_name, svc->s_port, svc->s_proto);
 
                 protocols[0] = sss_get_cased_name(protocols, svc->s_proto,
                         dom->case_sensitive);
@@ -303,8 +303,8 @@ enum_services(struct proxy_id_ctx *ctx,
                     /* Do not fail completely on errors.
                      * Just report the failure to save and go on */
                     DEBUG(SSSDBG_OP_FAILURE,
-                            ("Failed to store service [%s]. Ignoring.\n",
-                             strerror(ret)));
+                            "Failed to store service [%s]. Ignoring.\n",
+                             strerror(ret));
                     again = true;
                     break;
                 }
@@ -321,8 +321,8 @@ enum_services(struct proxy_id_ctx *ctx,
                     /* Do not fail completely on errors.
                      * Just report the failure to save and go on */
                     DEBUG(SSSDBG_OP_FAILURE,
-                            ("Failed to store service [%s]. Ignoring.\n",
-                             strerror(ret)));
+                            "Failed to store service [%s]. Ignoring.\n",
+                             strerror(ret));
                 }
                 again = true;
                 break;
@@ -335,8 +335,8 @@ enum_services(struct proxy_id_ctx *ctx,
             default:
                 ret = EIO;
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                        ("proxy -> getservent_r failed (%d)[%s]\n",
-                         ret, strerror(ret)));
+                        "proxy -> getservent_r failed (%d)[%s]\n",
+                         ret, strerror(ret));
                 break;
         }
     } while (again);
@@ -347,8 +347,8 @@ done:
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not cancel transaction! [%s]\n",
-                   strerror(sret)));
+                  "Could not cancel transaction! [%s]\n",
+                   strerror(sret));
         }
     }
     ctx->ops.endservent();

@@ -68,14 +68,14 @@ errno_t pam_initgr_cache_set(struct tevent_context *ev,
     hret = hash_enter(id_table, &key, &val);
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not update initgr cache for [%s]: [%s]\n",
-               name, hash_error_string(hret)));
+              "Could not update initgr cache for [%s]: [%s]\n",
+               name, hash_error_string(hret));
         ret = EIO;
         goto done;
     } else {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("[%s] added to PAM initgroup cache\n",
-               name));
+              "[%s] added to PAM initgroup cache\n",
+               name);
     }
 
     /* Create a timer event to remove the entry from the cache */
@@ -115,13 +115,13 @@ static void pam_initgr_cache_remove(struct tevent_context *ev,
     if (hret != HASH_SUCCESS
             && hret != HASH_ERROR_KEY_NOT_FOUND) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not clear [%s] from initgr cache: [%s]\n",
+              "Could not clear [%s] from initgr cache: [%s]\n",
                table_ctx->name,
-               hash_error_string(hret)));
+               hash_error_string(hret));
     } else {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("[%s] removed from PAM initgroup cache\n",
-               table_ctx->name));
+              "[%s] removed from PAM initgroup cache\n",
+               table_ctx->name);
     }
 
     talloc_free(table_ctx);

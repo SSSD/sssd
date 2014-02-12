@@ -206,8 +206,8 @@ int confdb_add_param(struct confdb_ctx *cdb,
 done:
     talloc_free(tmp_ctx);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to add [%s] to [%s], error [%d] (%s)\n",
-                  attribute, section, ret, strerror(ret)));
+        DEBUG(1, "Failed to add [%s] to [%s], error [%d] (%s)\n",
+                  attribute, section, ret, strerror(ret));
     }
     return ret;
 }
@@ -282,8 +282,8 @@ int confdb_get_param(struct confdb_ctx *cdb,
 done:
     talloc_free(tmp_ctx);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to get [%s] from [%s], error [%d] (%s)\n",
-                  attribute, section, ret, strerror(ret)));
+        DEBUG(1, "Failed to get [%s] from [%s], error [%d] (%s)\n",
+                  attribute, section, ret, strerror(ret));
     }
     return ret;
 }
@@ -325,7 +325,7 @@ int confdb_set_bool(struct confdb_ctx *cdb,
     lret = ldb_msg_add_empty(msg, attribute, LDB_FLAG_MOD_REPLACE, NULL);
     if (lret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("ldb_msg_add_empty failed: [%s]\n", ldb_strerror(lret)));
+              "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(lret));
         ret = EIO;
         goto done;
     }
@@ -337,7 +337,7 @@ int confdb_set_bool(struct confdb_ctx *cdb,
     }
     if (lret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("ldb_msg_add_string failed: [%s]\n", ldb_strerror(lret)));
+              "ldb_msg_add_string failed: [%s]\n", ldb_strerror(lret));
         ret = EIO;
         goto done;
     }
@@ -346,7 +346,7 @@ int confdb_set_bool(struct confdb_ctx *cdb,
     lret = ldb_modify(cdb->ldb, msg);
     if (lret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("ldb_modify failed: [%s]\n", ldb_strerror(lret)));
+              "ldb_modify failed: [%s]\n", ldb_strerror(lret));
         ret = EIO;
         goto done;
     }
@@ -357,8 +357,8 @@ done:
     talloc_free(tmp_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to set [%s] from [%s], error [%d] (%s)\n",
-               attribute, section, ret, strerror(ret)));
+              "Failed to set [%s] from [%s], error [%d] (%s)\n",
+               attribute, section, ret, strerror(ret));
     }
     return ret;
 }
@@ -407,8 +407,8 @@ int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 
 failed:
     talloc_free(values);
-    DEBUG(1, ("Failed to get [%s] from [%s], error [%d] (%s)\n",
-              attribute, section, ret, strerror(ret)));
+    DEBUG(1, "Failed to get [%s] from [%s], error [%d] (%s)\n",
+              attribute, section, ret, strerror(ret));
     return ret;
 }
 
@@ -462,8 +462,8 @@ int confdb_get_int(struct confdb_ctx *cdb,
 
 failed:
     talloc_free(tmp_ctx);
-    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)\n",
-              attribute, section, ret, strerror(ret)));
+    DEBUG(1, "Failed to read [%s] from [%s], error [%d] (%s)\n",
+              attribute, section, ret, strerror(ret));
     return ret;
 }
 
@@ -512,8 +512,8 @@ long confdb_get_long(struct confdb_ctx *cdb,
 
 failed:
     talloc_free(tmp_ctx);
-    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)\n",
-              attribute, section, ret, strerror(ret)));
+    DEBUG(1, "Failed to read [%s] from [%s], error [%d] (%s)\n",
+              attribute, section, ret, strerror(ret));
     return ret;
 }
 
@@ -552,7 +552,7 @@ int confdb_get_bool(struct confdb_ctx *cdb,
 
         } else {
 
-            DEBUG(2, ("Value is not a boolean!\n"));
+            DEBUG(2, "Value is not a boolean!\n");
             ret = EINVAL;
             goto failed;
         }
@@ -568,8 +568,8 @@ int confdb_get_bool(struct confdb_ctx *cdb,
 
 failed:
     talloc_free(tmp_ctx);
-    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)\n",
-              attribute, section, ret, strerror(ret)));
+    DEBUG(1, "Failed to read [%s] from [%s], error [%d] (%s)\n",
+              attribute, section, ret, strerror(ret));
     return ret;
 }
 
@@ -604,8 +604,8 @@ int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 done:
     talloc_free(values);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(2, ("Failed to get [%s] from [%s], error [%d] (%s)\n",
-                  attribute, section, ret, strerror(ret)));
+        DEBUG(2, "Failed to get [%s] from [%s], error [%d] (%s)\n",
+                  attribute, section, ret, strerror(ret));
     }
     return ret;
 }
@@ -643,7 +643,7 @@ int confdb_init(TALLOC_CTX *mem_ctx,
 
     ret = ldb_set_debug(cdb->ldb, ldb_debug_messages, NULL);
     if (ret != LDB_SUCCESS) {
-        DEBUG(0,("Could not set up debug fn.\n"));
+        DEBUG(0,"Could not set up debug fn.\n");
         talloc_free(cdb);
         return EIO;
     }
@@ -653,8 +653,8 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
     umask(old_umask);
     if (ret != LDB_SUCCESS) {
-        DEBUG(0, ("Unable to open config database [%s]\n",
-                  confdb_location));
+        DEBUG(0, "Unable to open config database [%s]\n",
+                  confdb_location);
         talloc_free(cdb);
         return EIO;
     }
@@ -780,7 +780,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     if (res->count != 1) {
-        DEBUG(0, ("Unknown domain [%s]\n", name));
+        DEBUG(0, "Unknown domain [%s]\n", name);
         ret = ENOENT;
         goto done;
     }
@@ -793,7 +793,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0], "cn", NULL);
     if (!tmp) {
-        DEBUG(0, ("Invalid configuration entry, fatal error!\n"));
+        DEBUG(0, "Invalid configuration entry, fatal error!\n");
         ret = EINVAL;
         goto done;
     }
@@ -815,15 +815,15 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
     else {
-        DEBUG(0, ("Domain [%s] does not specify an ID provider, disabling!\n",
-                  domain->name));
+        DEBUG(0, "Domain [%s] does not specify an ID provider, disabling!\n",
+                  domain->name);
         ret = EINVAL;
         goto done;
     }
 
     if (strcasecmp(domain->provider, "files") == 0) {
         /* The files provider is not valid anymore */
-        DEBUG(0, ("The \"files\" provider is invalid\n"));
+        DEBUG(0, "The \"files\" provider is invalid\n");
         ret = EINVAL;
         goto done;
     }
@@ -837,7 +837,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                           CONFDB_DOMAIN_AUTH_PROVIDER,
                                           NULL);
         if (tmp && strcasecmp(tmp, "local") != 0) {
-            DEBUG(0, ("Local ID provider does not support [%s] as an AUTH provider.\n", tmp));
+            DEBUG(0, "Local ID provider does not support [%s] as an AUTH provider.\n", tmp);
             ret = EINVAL;
             goto done;
         }
@@ -846,7 +846,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                           CONFDB_DOMAIN_ACCESS_PROVIDER,
                                           NULL);
         if (tmp && strcasecmp(tmp, "permit") != 0) {
-            DEBUG(0, ("Local ID provider does not support [%s] as an ACCESS provider.\n", tmp));
+            DEBUG(0, "Local ID provider does not support [%s] as an ACCESS provider.\n", tmp);
             ret = EINVAL;
             goto done;
         }
@@ -855,7 +855,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                           CONFDB_DOMAIN_CHPASS_PROVIDER,
                                           NULL);
         if (tmp && strcasecmp(tmp, "local") != 0) {
-            DEBUG(0, ("Local ID provider does not support [%s] as a CHPASS provider.\n", tmp));
+            DEBUG(0, "Local ID provider does not support [%s] as a CHPASS provider.\n", tmp);
             ret = EINVAL;
             goto done;
         }
@@ -873,27 +873,27 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
      * superceeded. */
     val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_DOMAIN_ENUMERATE, 0);
     if (val > 0) { /* ok there was a number in here */
-        DEBUG(0, ("Warning: enumeration parameter in %s still uses integers! "
+        DEBUG(0, "Warning: enumeration parameter in %s still uses integers! "
                   "Enumeration is now a boolean and takes true/false values. "
-                  "Interpreting as true\n", domain->name));
+                  "Interpreting as true\n", domain->name);
         domain->enumerate = true;
     } else { /* assume the new format */
         ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
                                 CONFDB_DOMAIN_ENUMERATE, 0);
         if(ret != EOK) {
-            DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_ENUMERATE));
+            DEBUG(0, "Invalid value for %s\n", CONFDB_DOMAIN_ENUMERATE);
             goto done;
         }
     }
     if (!domain->enumerate) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No enumeration for [%s]!\n", domain->name));
+        DEBUG(SSSDBG_TRACE_FUNC, "No enumeration for [%s]!\n", domain->name);
     }
 
     /* Determine if user/group names will be Fully Qualified
      * in NSS interfaces */
     ret = get_entry_as_bool(res->msgs[0], &domain->fqnames, CONFDB_DOMAIN_FQ, 0);
     if(ret != EOK) {
-        DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_FQ));
+        DEBUG(0, "Invalid value for %s\n", CONFDB_DOMAIN_FQ);
         goto done;
     }
 
@@ -901,8 +901,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                             CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS, 0);
     if(ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for %s\n",
-               CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS));
+              "Invalid value for %s\n",
+               CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS);
         goto done;
     }
 
@@ -910,7 +910,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               CONFDB_DOMAIN_MINID,
                               confdb_get_min_id(domain));
     if (ret != EOK) {
-        DEBUG(0, ("Invalid value for minId\n"));
+        DEBUG(0, "Invalid value for minId\n");
         ret = EINVAL;
         goto done;
     }
@@ -918,13 +918,13 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_max,
                               CONFDB_DOMAIN_MAXID, 0);
     if (ret != EOK) {
-        DEBUG(0, ("Invalid value for maxId\n"));
+        DEBUG(0, "Invalid value for maxId\n");
         ret = EINVAL;
         goto done;
     }
 
     if (domain->id_max && (domain->id_max < domain->id_min)) {
-        DEBUG(0, ("Invalid domain range\n"));
+        DEBUG(0, "Invalid domain range\n");
         ret = EINVAL;
         goto done;
     }
@@ -933,14 +933,14 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     ret = get_entry_as_bool(res->msgs[0], &domain->cache_credentials,
                             CONFDB_DOMAIN_CACHE_CREDS, 0);
     if(ret != EOK) {
-        DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_CACHE_CREDS));
+        DEBUG(0, "Invalid value for %s\n", CONFDB_DOMAIN_CACHE_CREDS);
         goto done;
     }
 
     ret = get_entry_as_bool(res->msgs[0], &domain->legacy_passwords,
                             CONFDB_DOMAIN_LEGACY_PASS, 0);
     if(ret != EOK) {
-        DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_LEGACY_PASS));
+        DEBUG(0, "Invalid value for %s\n", CONFDB_DOMAIN_LEGACY_PASS);
         goto done;
     }
 
@@ -949,8 +949,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT, 5400);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for [%s]\n",
-                CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT));
+              "Invalid value for [%s]\n",
+                CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -960,8 +960,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               entry_cache_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for [%s]\n",
-               CONFDB_DOMAIN_USER_CACHE_TIMEOUT));
+              "Invalid value for [%s]\n",
+               CONFDB_DOMAIN_USER_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -971,8 +971,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               entry_cache_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for [%s]\n",
-               CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT));
+              "Invalid value for [%s]\n",
+               CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -982,8 +982,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               entry_cache_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for [%s]\n",
-               CONFDB_DOMAIN_NETGROUP_CACHE_TIMEOUT));
+              "Invalid value for [%s]\n",
+               CONFDB_DOMAIN_NETGROUP_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -993,8 +993,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               entry_cache_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for [%s]\n",
-               CONFDB_DOMAIN_SERVICE_CACHE_TIMEOUT));
+              "Invalid value for [%s]\n",
+               CONFDB_DOMAIN_SERVICE_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1004,8 +1004,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               entry_cache_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for [%s]\n",
-               CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT));
+              "Invalid value for [%s]\n",
+               CONFDB_DOMAIN_AUTOFS_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1015,8 +1015,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               entry_cache_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for [%s]\n",
-               CONFDB_DOMAIN_SUDO_CACHE_TIMEOUT));
+              "Invalid value for [%s]\n",
+               CONFDB_DOMAIN_SUDO_CACHE_TIMEOUT);
         goto done;
     }
 
@@ -1026,8 +1026,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               0);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for [%s]\n",
-               CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL));
+              "Invalid value for [%s]\n",
+               CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL);
         goto done;
     }
 
@@ -1044,15 +1044,15 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                              CONFDB_PAM_PWD_EXPIRATION_WARNING,
                              -1, &val);
         if (ret != EOK) {
-            DEBUG(1, ("Failed to read PAM expiration warning, not fatal.\n"));
+            DEBUG(1, "Failed to read PAM expiration warning, not fatal.\n");
             val = -1;
         }
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("pwd_expiration_warning is %d\n", val));
+    DEBUG(SSSDBG_TRACE_LIBS, "pwd_expiration_warning is %d\n", val);
     if (val >= 0) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Setting domain password expiration warning to %d days\n", val));
+              "Setting domain password expiration warning to %d days\n", val);
         /* The value is in days, transform it to seconds */
         domain->pwd_expiration_warning = val * 24 * 3600;
     }
@@ -1060,7 +1060,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     ret = get_entry_as_uint32(res->msgs[0], &domain->override_gid,
                               CONFDB_DOMAIN_OVERRIDE_GID, 0);
     if (ret != EOK) {
-        DEBUG(0, ("Invalid value for [%s]\n", CONFDB_DOMAIN_OVERRIDE_GID));
+        DEBUG(0, "Invalid value for [%s]\n", CONFDB_DOMAIN_OVERRIDE_GID);
         goto done;
     }
 
@@ -1118,13 +1118,13 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     ret = get_entry_as_bool(res->msgs[0], &domain->case_sensitive,
                             CONFDB_DOMAIN_CASE_SENSITIVE, true);
     if(ret != EOK) {
-        DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_CASE_SENSITIVE));
+        DEBUG(0, "Invalid value for %s\n", CONFDB_DOMAIN_CASE_SENSITIVE);
         goto done;
     }
     if (domain->case_sensitive == false &&
         strcasecmp(domain->provider, "local") == 0) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-             ("Local ID provider does not support the case insensitive flag\n"));
+             "Local ID provider does not support the case insensitive flag\n");
         ret = EINVAL;
         goto done;
     }
@@ -1137,7 +1137,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                  &domain->sd_enumerate, NULL);
         if (ret != 0) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Cannot parse %s\n", CONFDB_SUBDOMAIN_ENUMERATE));
+                  "Cannot parse %s\n", CONFDB_SUBDOMAIN_ENUMERATE);
             goto done;
         }
     }
@@ -1146,7 +1146,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                               CONFDB_DOMAIN_SUBDOMAIN_REFRESH, 14400);
     if (ret != EOK || domain->subdomain_refresh_interval == 0) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid value for [%s]\n", CONFDB_DOMAIN_SUBDOMAIN_REFRESH));
+              "Invalid value for [%s]\n", CONFDB_DOMAIN_SUBDOMAIN_REFRESH);
         goto done;
     }
 
@@ -1178,19 +1178,19 @@ int confdb_get_domains(struct confdb_ctx *cdb,
                                     CONFDB_MONITOR_ACTIVE_DOMAINS,
                                     &domlist);
     if (ret == ENOENT) {
-        DEBUG(0, ("No domains configured, fatal error!\n"));
+        DEBUG(0, "No domains configured, fatal error!\n");
         goto done;
     }
     if (ret != EOK ) {
-        DEBUG(0, ("Fatal error retrieving domains list!\n"));
+        DEBUG(0, "Fatal error retrieving domains list!\n");
         goto done;
     }
 
     for (i = 0; domlist[i]; i++) {
         ret = confdb_get_domain_internal(cdb, cdb, domlist[i], &domain);
         if (ret) {
-            DEBUG(0, ("Error (%d [%s]) retrieving domain [%s], skipping!\n",
-                      ret, strerror(ret), domlist[i]));
+            DEBUG(0, "Error (%d [%s]) retrieving domain [%s], skipping!\n",
+                      ret, strerror(ret), domlist[i]);
             continue;
         }
 
@@ -1198,7 +1198,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     }
 
     if (cdb->doms == NULL) {
-        DEBUG(0, ("No properly configured domains, fatal error!\n"));
+        DEBUG(0, "No properly configured domains, fatal error!\n");
         ret = ENOENT;
         goto done;
     }

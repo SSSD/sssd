@@ -80,7 +80,7 @@ static void authenticate_user(struct tevent_context *ev,
     keysize = keyctl_read_alloc(pd->key_serial, (void **)&password);
     if (keysize == -1) {
         ret = errno;
-        DEBUG(1, ("keyctl_read failed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(1, "keyctl_read failed [%d][%s].\n", ret, strerror(ret));
         return;
     }
 
@@ -88,22 +88,22 @@ static void authenticate_user(struct tevent_context *ev,
     safezero(password, keysize);
     free(password);
     if (ret) {
-        DEBUG(1, ("failed to set password in auth token [%d][%s].\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "failed to set password in auth token [%d][%s].\n",
+                  ret, strerror(ret));
         return;
     }
 
     keyrevoke = keyctl_revoke(pd->key_serial);
     if (keyrevoke == -1) {
         ret = errno;
-        DEBUG(1, ("keyctl_revoke failed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(1, "keyctl_revoke failed [%d][%s].\n", ret, strerror(ret));
     }
 #endif
 
     req = krb5_auth_send(auth_data, ev, auth_data->be_ctx, auth_data->pd,
                          auth_data->krb5_ctx);
     if (req == NULL) {
-        DEBUG(1, ("krb5_auth_send failed.\n"));
+        DEBUG(1, "krb5_auth_send failed.\n");
         talloc_free(auth_data);
         return;
     }
@@ -121,14 +121,14 @@ static void authenticate_user_done(struct tevent_req *req) {
     ret = krb5_auth_recv(req, &pam_status, &dp_err);
     talloc_free(req);
     if (ret) {
-        DEBUG(1, ("krb5_auth request failed.\n"));
+        DEBUG(1, "krb5_auth request failed.\n");
     } else {
         if (pam_status == PAM_SUCCESS) {
-            DEBUG(4, ("Successfully authenticated user [%s].\n",
-                      auth_data->pd->user));
+            DEBUG(4, "Successfully authenticated user [%s].\n",
+                      auth_data->pd->user);
         } else {
-            DEBUG(1, ("Failed to authenticate user [%s].\n",
-                      auth_data->pd->user));
+            DEBUG(1, "Failed to authenticate user [%s].\n",
+                      auth_data->pd->user);
         }
     }
 
@@ -150,13 +150,13 @@ static errno_t authenticate_stored_users(
 
     ret = get_uid_table(deferred_auth_ctx, &uid_table);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, ("get_uid_table failed.\n"));
+        DEBUG(1, "get_uid_table failed.\n");
         return ret;
     }
 
     iter = new_hash_iter_context(deferred_auth_ctx->user_table);
     if (iter == NULL) {
-        DEBUG(1, ("new_hash_iter_context failed.\n"));
+        DEBUG(1, "new_hash_iter_context failed.\n");
         return EINVAL;
     }
 
@@ -168,13 +168,13 @@ static errno_t authenticate_stored_users(
         ret = hash_lookup(uid_table, &key, &value);
 
         if (ret == HASH_SUCCESS) {
-            DEBUG(1, ("User [%s] is still logged in, "
-                      "trying online authentication.\n", pd->user));
+            DEBUG(1, "User [%s] is still logged in, "
+                      "trying online authentication.\n", pd->user);
 
             auth_data = talloc_zero(deferred_auth_ctx->be_ctx,
                                     struct auth_data);
             if (auth_data == NULL) {
-                DEBUG(1, ("talloc_zero failed.\n"));
+                DEBUG(1, "talloc_zero failed.\n");
             } else {
                 auth_data->pd = talloc_steal(auth_data, pd);
                 auth_data->krb5_ctx = deferred_auth_ctx->krb5_ctx;
@@ -184,20 +184,20 @@ static errno_t authenticate_stored_users(
                                       auth_data, tevent_timeval_current(),
                                       authenticate_user, auth_data);
                 if (te == NULL) {
-                    DEBUG(1, ("tevent_add_timer failed.\n"));
+                    DEBUG(1, "tevent_add_timer failed.\n");
                 }
             }
         } else {
-            DEBUG(1, ("User [%s] is not logged in anymore, "
-                      "discarding online authentication.\n", pd->user));
+            DEBUG(1, "User [%s] is not logged in anymore, "
+                      "discarding online authentication.\n", pd->user);
             talloc_free(pd);
         }
 
         ret = hash_delete(deferred_auth_ctx->user_table,
                           &entry->key);
         if (ret != HASH_SUCCESS) {
-            DEBUG(1, ("hash_delete failed [%s].\n",
-                      hash_error_string(ret)));
+            DEBUG(1, "hash_delete failed [%s].\n",
+                      hash_error_string(ret));
         }
     }
 
@@ -213,15 +213,15 @@ static void delayed_online_authentication_callback(void *private_data)
     int ret;
 
     if (deferred_auth_ctx->user_table == NULL) {
-        DEBUG(1, ("Delayed online authentication activated, "
-                  "but user table does not exists.\n"));
+        DEBUG(1, "Delayed online authentication activated, "
+                  "but user table does not exists.\n");
         return;
     }
 
-    DEBUG(5, ("Backend is online, starting delayed online authentication.\n"));
+    DEBUG(5, "Backend is online, starting delayed online authentication.\n");
     ret = authenticate_stored_users(deferred_auth_ctx);
     if (ret != EOK) {
-        DEBUG(1, ("authenticate_stored_users failed.\n"));
+        DEBUG(1, "authenticate_stored_users failed.\n");
     }
 
     return;
@@ -237,23 +237,23 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
     struct pam_data *new_pd;
 
     if (krb5_ctx->deferred_auth_ctx == NULL) {
-        DEBUG(1, ("Missing context for delayed online authentication.\n"));
+        DEBUG(1, "Missing context for delayed online authentication.\n");
         return EINVAL;
     }
 
     if (krb5_ctx->deferred_auth_ctx->user_table == NULL) {
-        DEBUG(1, ("user_table not available.\n"));
+        DEBUG(1, "user_table not available.\n");
         return EINVAL;
     }
 
     if (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
-        DEBUG(1, ("Invalid authtok for user [%s].\n", pd->user));
+        DEBUG(1, "Invalid authtok for user [%s].\n", pd->user);
         return EINVAL;
     }
 
     ret = copy_pam_data(krb5_ctx->deferred_auth_ctx, pd, &new_pd);
     if (ret != EOK) {
-        DEBUG(1, ("copy_pam_data failed\n"));
+        DEBUG(1, "copy_pam_data failed\n");
         return ENOMEM;
     }
 
@@ -264,7 +264,7 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
 
     ret = sss_authtok_get_password(new_pd->authtok, &password, &len);
     if (ret) {
-        DEBUG(1, ("Failed to get password [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(1, "Failed to get password [%d][%s].\n", ret, strerror(ret));
         sss_authtok_set_empty(new_pd->authtok);
         talloc_free(new_pd);
         return ret;
@@ -274,14 +274,14 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
                                  KEY_SPEC_SESSION_KEYRING);
     if (new_pd->key_serial == -1) {
         ret = errno;
-        DEBUG(1, ("add_key failed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(1, "add_key failed [%d][%s].\n", ret, strerror(ret));
         sss_authtok_set_empty(new_pd->authtok);
         talloc_free(new_pd);
         return ret;
     }
     DEBUG(SSSDBG_TRACE_ALL,
-          ("Saved authtok of user [%s] with serial [%"SPRIkey_ser"].\n",
-              new_pd->user, new_pd->key_serial));
+          "Saved authtok of user [%s] with serial [%"SPRIkey_ser"].\n",
+              new_pd->user, new_pd->key_serial);
     sss_authtok_set_empty(new_pd->authtok);
 #endif
 
@@ -293,15 +293,15 @@ errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
     ret = hash_enter(krb5_ctx->deferred_auth_ctx->user_table,
                      &key, &value);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, ("Cannot add user [%s] to table [%s], "
+        DEBUG(1, "Cannot add user [%s] to table [%s], "
                   "delayed online authentication not possible.\n",
-                  pd->user, hash_error_string(ret)));
+                  pd->user, hash_error_string(ret));
         talloc_free(new_pd);
         return ENOMEM;
     }
 
-    DEBUG(9, ("Added user [%s] successfully to "
-              "delayed online authentication.\n", pd->user));
+    DEBUG(9, "Added user [%s] successfully to "
+              "delayed online authentication.\n", pd->user);
 
     return EOK;
 }
@@ -316,24 +316,24 @@ errno_t init_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
     ret = get_uid_table(krb5_ctx, &tmp_table);
     if (ret != EOK) {
         if (ret == ENOSYS) {
-            DEBUG(0, ("Delayed online auth was requested "
-                      "on an unsupported system.\n"));
+            DEBUG(0, "Delayed online auth was requested "
+                      "on an unsupported system.\n");
         } else {
-            DEBUG(0, ("Delayed online auth was requested "
-                      "but initialisation failed.\n"));
+            DEBUG(0, "Delayed online auth was requested "
+                      "but initialisation failed.\n");
         }
         return ret;
     }
     ret = hash_destroy(tmp_table);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, ("hash_destroy failed [%s].\n", hash_error_string(ret)));
+        DEBUG(1, "hash_destroy failed [%s].\n", hash_error_string(ret));
         return EFAULT;
     }
 
     krb5_ctx->deferred_auth_ctx = talloc_zero(krb5_ctx,
                                           struct deferred_auth_ctx);
     if (krb5_ctx->deferred_auth_ctx == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
+        DEBUG(1, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
@@ -343,7 +343,7 @@ errno_t init_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
                          krb5_ctx->deferred_auth_ctx,
                          NULL, NULL);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, ("hash_create_ex failed [%s]\n", hash_error_string(ret)));
+        DEBUG(1, "hash_create_ex failed [%s]\n", hash_error_string(ret));
         ret = ENOMEM;
         goto fail;
     }
@@ -356,7 +356,7 @@ errno_t init_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
                            delayed_online_authentication_callback,
                            krb5_ctx->deferred_auth_ctx, NULL);
     if (ret != EOK) {
-        DEBUG(1, ("be_add_online_cb failed.\n"));
+        DEBUG(1, "be_add_online_cb failed.\n");
         goto fail;
     }
 

@@ -73,20 +73,20 @@ int ipa_get_options(TALLOC_CTX *memctx,
 
     server = dp_opt_get_string(opts->basic, IPA_SERVER);
     if (!server) {
-        DEBUG(1, ("No ipa server set, will use service discovery!\n"));
+        DEBUG(1, "No ipa server set, will use service discovery!\n");
     }
 
     ipa_hostname = dp_opt_get_string(opts->basic, IPA_HOSTNAME);
     if (ipa_hostname == NULL) {
         ret = gethostname(hostname, HOST_NAME_MAX);
         if (ret != EOK) {
-            DEBUG(1, ("gethostname failed [%d][%s].\n", errno,
-                      strerror(errno)));
+            DEBUG(1, "gethostname failed [%d][%s].\n", errno,
+                      strerror(errno));
             ret = errno;
             goto done;
         }
         hostname[HOST_NAME_MAX] = '\0';
-        DEBUG(9, ("Setting ipa_hostname to [%s].\n", hostname));
+        DEBUG(9, "Setting ipa_hostname to [%s].\n", hostname);
         ret = dp_opt_set_string(opts->basic, IPA_HOSTNAME, hostname);
         if (ret != EOK) {
             goto done;
@@ -150,7 +150,7 @@ static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
         break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Unknown search base type: [%d]\n", class));
+              "Unknown search base type: [%d]\n", class);
         class_name = "UNKNOWN";
         /* Non-fatal */
         break;
@@ -224,9 +224,9 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(6, "Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_SEARCH_BASE].opt_name,
-                  dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE)));
+                  dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE));
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_SEARCH_BASE,
@@ -238,7 +238,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         realm = dp_opt_get_string(ipa_opts->basic, IPA_KRB5_REALM);
         value = talloc_strdup(tmpctx, realm);
         if (value == NULL) {
-            DEBUG(1, ("talloc_strdup failed.\n"));
+            DEBUG(1, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -247,9 +247,9 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         if (ret != EOK) {
             goto done;
         }
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(6, "Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_KRB5_REALM].opt_name,
-                  dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM)));
+                  dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM));
     }
 
     ret = sdap_set_sasl_options(ipa_opts->id,
@@ -260,7 +260,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                                 dp_opt_get_string(ipa_opts->id->basic,
                                                   SDAP_KRB5_KEYTAB));
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set the SASL-related options\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set the SASL-related options\n");
         goto done;
     }
 
@@ -277,10 +277,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(6, "Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_USER_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
-                                    SDAP_USER_SEARCH_BASE)));
+                                    SDAP_USER_SEARCH_BASE));
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_USER_SEARCH_BASE,
@@ -296,10 +296,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(6, "Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
-                                    SDAP_GROUP_SEARCH_BASE)));
+                                    SDAP_GROUP_SEARCH_BASE));
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_GROUP_SEARCH_BASE,
@@ -334,10 +334,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         }
 #endif
 
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(6, "Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_SUDO_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
-                                    SDAP_SUDO_SEARCH_BASE)));
+                                    SDAP_SUDO_SEARCH_BASE));
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_SUDO_SEARCH_BASE,
@@ -357,10 +357,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(6, "Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_NETGROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
-                                    SDAP_NETGROUP_SEARCH_BASE)));
+                                    SDAP_NETGROUP_SEARCH_BASE));
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_NETGROUP_SEARCH_BASE,
@@ -376,10 +376,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+        DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
                   ipa_opts->basic[IPA_HOST_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->basic,
-                                    IPA_HOST_SEARCH_BASE)));
+                                    IPA_HOST_SEARCH_BASE));
     }
     ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
                                 IPA_HOST_SEARCH_BASE,
@@ -399,10 +399,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(6, "Option %s set to %s\n",
                   ipa_opts->basic[IPA_HBAC_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->basic,
-                                    IPA_HBAC_SEARCH_BASE)));
+                                    IPA_HBAC_SEARCH_BASE));
     }
     ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
                                 IPA_HBAC_SEARCH_BASE,
@@ -422,10 +422,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+        DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
                   ipa_opts->basic[IPA_SELINUX_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->basic,
-                                    IPA_SELINUX_SEARCH_BASE)));
+                                    IPA_SELINUX_SEARCH_BASE));
     }
     ret = ipa_parse_search_base(ipa_opts->basic, ipa_opts->basic,
                                 IPA_SELINUX_SEARCH_BASE,
@@ -436,7 +436,7 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     if (value != NULL) {
         ret = deref_string_to_val(value, &i);
         if (ret != EOK) {
-            DEBUG(1, ("Failed to verify ldap_deref option.\n"));
+            DEBUG(1, "Failed to verify ldap_deref option.\n");
             goto done;
         }
     }
@@ -450,10 +450,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(6, "Option %s set to %s\n",
                   ipa_opts->id->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
-                                    SDAP_GROUP_SEARCH_BASE)));
+                                    SDAP_GROUP_SEARCH_BASE));
     }
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_SERVICE_SEARCH_BASE,
@@ -473,10 +473,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+        DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
                   ipa_opts->basic[IPA_SUBDOMAINS_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->basic,
-                                    IPA_SUBDOMAINS_SEARCH_BASE)));
+                                    IPA_SUBDOMAINS_SEARCH_BASE));
     }
     ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
                                 IPA_SUBDOMAINS_SEARCH_BASE,
@@ -496,10 +496,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+        DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
                   ipa_opts->basic[IPA_MASTER_DOMAIN_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->basic,
-                                    IPA_MASTER_DOMAIN_SEARCH_BASE)));
+                                    IPA_MASTER_DOMAIN_SEARCH_BASE));
     }
     ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
                                 IPA_MASTER_DOMAIN_SEARCH_BASE,
@@ -519,10 +519,10 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+        DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
                   ipa_opts->basic[IPA_RANGES_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->basic,
-                                    IPA_RANGES_SEARCH_BASE)));
+                                    IPA_RANGES_SEARCH_BASE));
     }
     ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
                                 IPA_RANGES_SEARCH_BASE,
@@ -638,7 +638,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     /* FIXME - this can be removed in a future version */
     ret = krb5_try_kdcip(cdb, conf_path, ipa_opts->auth, KRB5_KDC);
     if (ret != EOK) {
-        DEBUG(1, ("sss_krb5_try_kdcip failed.\n"));
+        DEBUG(1, "sss_krb5_try_kdcip failed.\n");
         goto done;
     }
 
@@ -651,7 +651,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
         }
         copy = talloc_strdup(ipa_opts->auth, value);
         if (copy == NULL) {
-            DEBUG(1, ("talloc_strdup failed.\n"));
+            DEBUG(1, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -659,9 +659,9 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
         if (ret != EOK) {
             goto done;
         }
-        DEBUG(6, ("Option %s set to %s\n",
+        DEBUG(6, "Option %s set to %s\n",
                   ipa_opts->auth[KRB5_REALM].opt_name,
-                  dp_opt_get_string(ipa_opts->auth, KRB5_REALM)));
+                  dp_opt_get_string(ipa_opts->auth, KRB5_REALM));
     }
 
     /* If krb5_fast_principal was not set explicitly, default to
@@ -675,8 +675,8 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                                     dp_opt_get_string(ipa_opts->auth,
                                                       KRB5_REALM));
         if (value == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot set %s!\n",
-                     ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set %s!\n",
+                     ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name);
             ret = ENOMEM;
             goto done;
         }
@@ -684,13 +684,13 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
         ret = dp_opt_set_string(ipa_opts->auth, KRB5_FAST_PRINCIPAL,
                                 value);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot set %s!\n",
-                     ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set %s!\n",
+                     ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name);
             goto done;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
-              ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name, value));
+        DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
+              ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name, value);
     }
 
     /* Set flag that controls whether we want to write the
@@ -698,9 +698,9 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
      */
     ipa_opts->service->krb5_service->write_kdcinfo = \
         dp_opt_get_bool(ipa_opts->auth, KRB5_USE_KDCINFO);
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Option %s set to %s\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
           ipa_opts->auth[KRB5_USE_KDCINFO].opt_name,
-          ipa_opts->service->krb5_service->write_kdcinfo ? "true" : "false"));
+          ipa_opts->service->krb5_service->write_kdcinfo ? "true" : "false");
 
     *_opts = ipa_opts->auth;
     ret = EOK;
@@ -727,53 +727,53 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed\n"));
+        DEBUG(1, "talloc_new failed\n");
         return;
     }
 
     service = talloc_get_type(private_data, struct ipa_service);
     if (!service) {
-        DEBUG(1, ("FATAL: Bad private_data\n"));
+        DEBUG(1, "FATAL: Bad private_data\n");
         talloc_free(tmp_ctx);
         return;
     }
 
     srvaddr = fo_get_server_hostent(server);
     if (!srvaddr) {
-        DEBUG(1, ("FATAL: No hostent available for server (%s)\n",
-                  fo_get_server_str_name(server)));
+        DEBUG(1, "FATAL: No hostent available for server (%s)\n",
+                  fo_get_server_str_name(server));
         talloc_free(tmp_ctx);
         return;
     }
 
     sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT);
     if (sockaddr == NULL) {
-        DEBUG(1, ("resolv_get_sockaddr_address failed.\n"));
+        DEBUG(1, "resolv_get_sockaddr_address failed.\n");
         talloc_free(tmp_ctx);
         return;
     }
 
     address = resolv_get_string_address(tmp_ctx, srvaddr);
     if (address == NULL) {
-        DEBUG(1, ("resolv_get_string_address failed.\n"));
+        DEBUG(1, "resolv_get_string_address failed.\n");
         talloc_free(tmp_ctx);
         return;
     }
 
     srv_name = fo_get_server_name(server);
     if (srv_name == NULL) {
-        DEBUG(1, ("Could not get server host name\n"));
+        DEBUG(1, "Could not get server host name\n");
         talloc_free(tmp_ctx);
         return;
     }
 
     new_uri = talloc_asprintf(service, "ldap://%s", srv_name);
     if (!new_uri) {
-        DEBUG(2, ("Failed to copy URI ...\n"));
+        DEBUG(2, "Failed to copy URI ...\n");
         talloc_free(tmp_ctx);
         return;
     }
-    DEBUG(6, ("Constructed uri '%s'\n", new_uri));
+    DEBUG(6, "Constructed uri '%s'\n", new_uri);
 
     /* free old one and replace with new one */
     talloc_zfree(service->sdap->uri);
@@ -786,7 +786,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
                                              srvaddr->family,
                                              address);
         if (safe_address == NULL) {
-            DEBUG(1, ("sss_escape_ip_address failed.\n"));
+            DEBUG(1, "sss_escape_ip_address failed.\n");
             talloc_free(tmp_ctx);
             return;
         }
@@ -794,7 +794,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         ret = write_krb5info_file(service->krb5_service->realm, safe_address,
                                   SSS_KRB5KDC_FO_SRV);
         if (ret != EOK) {
-            DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
+            DEBUG(2, "write_krb5info_file failed, authentication might fail.\n");
         }
     }
 
@@ -821,7 +821,7 @@ static errno_t _ipa_servers_init(struct be_ctx *ctx,
     /* split server parm into a list */
     ret = split_on_separator(tmp_ctx, servers, ',', true, true, &list, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to parse server list!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse server list!\n");
         goto done;
     }
 
@@ -833,9 +833,9 @@ static errno_t _ipa_servers_init(struct be_ctx *ctx,
         if (be_fo_is_srv_identifier(list[i])) {
             if (!primary) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Failed to add server [%s] to failover service: "
+                      "Failed to add server [%s] to failover service: "
                        "SRV resolution only allowed for primary servers!\n",
-                       list[i]));
+                       list[i]);
                 continue;
             }
 
@@ -843,11 +843,11 @@ static errno_t _ipa_servers_init(struct be_ctx *ctx,
             ret = be_fo_add_srv_server(ctx, "IPA", "ldap", ipa_domain,
                                        BE_FO_PROTO_TCP, false, NULL);
             if (ret) {
-                DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+                DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add server\n");
                 goto done;
             }
 
-            DEBUG(SSSDBG_TRACE_FUNC, ("Added service lookup for service IPA\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Added service lookup for service IPA\n");
             continue;
         }
 
@@ -860,11 +860,11 @@ static errno_t _ipa_servers_init(struct be_ctx *ctx,
 
         ret = be_fo_add_server(ctx, "IPA", list[i], 0, NULL, primary);
         if (ret && ret != EEXIST) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to add server\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add server\n");
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("Added Server %s\n", list[i]));
+        DEBUG(SSSDBG_TRACE_FUNC, "Added Server %s\n", list[i]);
     }
 
 done:
@@ -925,7 +925,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
     ret = be_fo_add_service(ctx, "IPA", ipa_user_data_cmp);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to create failover service!\n"));
+        DEBUG(1, "Failed to create failover service!\n");
         goto done;
     }
 
@@ -944,7 +944,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
     realm = dp_opt_get_string(options->basic, IPA_KRB5_REALM);
     if (!realm) {
-        DEBUG(1, ("No Kerberos realm set\n"));
+        DEBUG(1, "No Kerberos realm set\n");
         ret = EINVAL;
         goto done;
     }
@@ -957,7 +957,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
     if (!primary_servers) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("No primary servers defined, using service discovery\n"));
+              "No primary servers defined, using service discovery\n");
         primary_servers = BE_SRV_IDENTIFIER;
     }
 
@@ -976,7 +976,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     ret = be_fo_service_add_callback(memctx, ctx, "IPA",
                                      ipa_resolve_callback, service);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to add failover callback!\n"));
+        DEBUG(1, "Failed to add failover callback!\n");
         goto done;
     }
 
@@ -1031,17 +1031,17 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_LIBS, ("Option %s set to %s\n",
+        DEBUG(SSSDBG_TRACE_LIBS, "Option %s set to %s\n",
               ipa_opts->id->basic[SDAP_AUTOFS_SEARCH_BASE].opt_name,
               dp_opt_get_string(ipa_opts->id->basic,
-                                SDAP_AUTOFS_SEARCH_BASE)));
+                                SDAP_AUTOFS_SEARCH_BASE));
     }
 
     ret = sdap_parse_search_base(ipa_opts->id, ipa_opts->id->basic,
                                  SDAP_AUTOFS_SEARCH_BASE,
                                  &ipa_opts->id->sdom->autofs_search_bases);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not parse autofs search base\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not parse autofs search base\n");
         goto done;
     }
 
@@ -1051,7 +1051,7 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
                        &ipa_opts->id->autofs_mobject_map);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not get autofs map object attribute map\n"));
+              "Could not get autofs map object attribute map\n");
         goto done;
     }
 
@@ -1061,7 +1061,7 @@ int ipa_get_autofs_options(struct ipa_options *ipa_opts,
                        &ipa_opts->id->autofs_entry_map);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not get autofs entry object attribute map\n"));
+              "Could not get autofs entry object attribute map\n");
         goto done;
     }
 
@@ -1083,14 +1083,14 @@ errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
     ret = be_nsupdate_init(ctx, be_ctx, ipa_dyndns_opts, &ctx->dyndns_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot initialize IPA dyndns opts [%d]: %s\n",
-               ret, sss_strerror(ret)));
+              "Cannot initialize IPA dyndns opts [%d]: %s\n",
+               ret, sss_strerror(ret));
         return ret;
     }
 
     if (ctx->basic == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("IPA basic options not (yet) "
-              "initialized, cannot copy legacy options\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "IPA basic options not (yet) "
+              "initialized, cannot copy legacy options\n");
         return EOK;
     }
 
@@ -1098,8 +1098,8 @@ errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
     ret = confdb_get_string(be_ctx->cdb, ctx, be_ctx->conf_path,
                             "ipa_dyndns_update", NULL, &val);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot get the value of %s\n",
-              "ipa_dyndns_update"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get the value of %s\n",
+              "ipa_dyndns_update");
         /* Not fatal */
     } else if (ret == EOK && val) {
         if (strcasecmp(val, "FALSE") == 0) {
@@ -1108,20 +1108,20 @@ errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
             update = true;
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("ipa_dyndns_update value is not a boolean!\n"));
+                  "ipa_dyndns_update value is not a boolean!\n");
             talloc_free(val);
             return EINVAL;
         }
 
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Deprecation warning: The option %s is "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Deprecation warning: The option %s is "
               "deprecated and should not be used in favor of %s\n",
-              "ipa_dyndns_update", "dyndns_update"));
+              "ipa_dyndns_update", "dyndns_update");
 
         ret = dp_opt_set_bool(ctx->dyndns_ctx->opts,
                               DP_OPT_DYNDNS_UPDATE, update);
         talloc_free(val);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot set option value\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot set option value\n");
             return ret;
         }
     }
@@ -1129,17 +1129,17 @@ errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
     ret = confdb_get_int(be_ctx->cdb, be_ctx->conf_path,
                          "ipa_dyndns_ttl", -1, &ttl);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot get the value of %s\n",
-              "ipa_dyndns_ttl"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get the value of %s\n",
+              "ipa_dyndns_ttl");
         /* Not fatal */
     } else if (ret == EOK && ttl != -1) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Deprecation warning: The option %s is "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Deprecation warning: The option %s is "
               "deprecated and should not be used in favor of %s\n",
-              "ipa_dyndns_ttl", "dyndns_ttl"));
+              "ipa_dyndns_ttl", "dyndns_ttl");
 
         ret = dp_opt_set_int(ctx->dyndns_ctx->opts, DP_OPT_DYNDNS_TTL, ttl);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot set option value\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot set option value\n");
             return ret;
         }
     }
@@ -1148,18 +1148,18 @@ errno_t ipa_get_dyndns_options(struct be_ctx *be_ctx,
     ret = confdb_get_string(be_ctx->cdb, ctx, be_ctx->conf_path,
                             "ipa_dyndns_iface", NULL, &val);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot get the value of %s\n",
-              "ipa_dyndns_iface"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get the value of %s\n",
+              "ipa_dyndns_iface");
         /* Not fatal */
     } else if (ret == EOK && val) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Deprecation warning: The option %s is "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Deprecation warning: The option %s is "
               "deprecated and should not be used in favor of %s\n",
-              "ipa_dyndns_iface", "dyndns_iface"));
+              "ipa_dyndns_iface", "dyndns_iface");
 
         ret = dp_opt_set_string(ctx->dyndns_ctx->opts,
                                 DP_OPT_DYNDNS_IFACE, val);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot set option value\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot set option value\n");
             return ret;
         }
     }

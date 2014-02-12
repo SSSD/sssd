@@ -40,8 +40,8 @@ int backup_file(const char *src_file, int dbglvl)
     src_fd = open(src_file, O_RDONLY);
     if (src_fd < 0) {
         ret = errno;
-        DEBUG(dbglvl, ("Error (%d [%s]) opening source file %s\n",
-                       ret, strerror(ret), src_file));
+        DEBUG(dbglvl, "Error (%d [%s]) opening source file %s\n",
+                       ret, strerror(ret), src_file);
         goto done;
     }
 
@@ -70,14 +70,14 @@ int backup_file(const char *src_file, int dbglvl)
         if (dst_fd >= 0) break;
 
         if (ret != EEXIST) {
-            DEBUG(dbglvl, ("Error (%d [%s]) opening destination file %s\n",
-                           ret, strerror(ret), dst_file));
+            DEBUG(dbglvl, "Error (%d [%s]) opening destination file %s\n",
+                           ret, strerror(ret), dst_file);
             goto done;
         }
     }
     if (ret != 0) {
-        DEBUG(dbglvl, ("Error (%d [%s]) opening destination file %s\n",
-                       ret, strerror(ret), dst_file));
+        DEBUG(dbglvl, "Error (%d [%s]) opening destination file %s\n",
+                       ret, strerror(ret), dst_file);
         goto done;
     }
 
@@ -87,8 +87,8 @@ int backup_file(const char *src_file, int dbglvl)
         numread = sss_atomic_read_s(src_fd, buf, BUFFER_SIZE);
         if (numread < 0) {
             ret = errno;
-            DEBUG(dbglvl, ("Error (%d [%s]) reading from source %s\n",
-                           ret, strerror(ret), src_file));
+            DEBUG(dbglvl, "Error (%d [%s]) reading from source %s\n",
+                           ret, strerror(ret), src_file);
             goto done;
         }
         if (numread == 0) break;
@@ -97,14 +97,14 @@ int backup_file(const char *src_file, int dbglvl)
         written = sss_atomic_write_s(dst_fd, buf, numread);
         if (written == -1) {
             ret = errno;
-            DEBUG(dbglvl, ("Error (%d [%s]) writing to destination %s\n",
-                            ret, strerror(ret), dst_file));
+            DEBUG(dbglvl, "Error (%d [%s]) writing to destination %s\n",
+                            ret, strerror(ret), dst_file);
             goto done;
         }
 
         if (written != numread) {
-            DEBUG(dbglvl, ("Wrote %zd bytes expected %zd bytes\n",
-                  written, numread));
+            DEBUG(dbglvl, "Wrote %zd bytes expected %zd bytes\n",
+                  written, numread);
             ret = EIO;
             goto done;
         }

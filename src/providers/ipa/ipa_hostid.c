@@ -110,7 +110,7 @@ ipa_host_info_complete(struct be_req *breq, int dp_error,
             error_text = NULL;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Bug: dp_error is OK on failed request"));
+                  "Bug: dp_error is OK on failed request");
             dp_error = DP_ERR_FATAL;
             error_text = default_error_text;
         }
@@ -167,7 +167,7 @@ hosts_get_send(TALLOC_CTX *memctx,
 
     state->op = sdap_id_op_create(state, ctx->conn->conn_cache);
     if (!state->op) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -270,7 +270,7 @@ hosts_get_done(struct tevent_req *subreq)
 
     if (state->count == 0) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("No host with name [%s] found.\n", state->name));
+              "No host with name [%s] found.\n", state->name);
 
         ret = sysdb_delete_ssh_host(state->domain->sysdb, state->domain,
                                     state->name);
@@ -284,7 +284,7 @@ hosts_get_done(struct tevent_req *subreq)
 
     if (state->count > 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Found more than one host with name [%s].\n", state->name));
+              "Found more than one host with name [%s].\n", state->name);
         ret = EINVAL;
         goto done;
     }

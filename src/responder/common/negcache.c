@@ -81,7 +81,7 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str, int ttl)
     char *ep;
     int ret;
 
-    DEBUG(8, ("Checking negative cache for [%s]\n", str));
+    DEBUG(8, "Checking negative cache for [%s]\n", str);
 
     data.dptr = NULL;
 
@@ -156,13 +156,13 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx,
     ret = string_to_tdb_data(timest, &data);
     if (ret != EOK) goto done;
 
-    DEBUG(6, ("Adding [%s] to negative cache%s\n",
-              str, permanent?" permanently":""));
+    DEBUG(6, "Adding [%s] to negative cache%s\n",
+              str, permanent?" permanently":"");
 
     ret = tdb_store(ctx->tdb, key, data, TDB_REPLACE);
     if (ret != 0) {
-        DEBUG(1, ("Negative cache failed to set entry: [%s]\n",
-                  tdb_errorstr(ctx->tdb)));
+        DEBUG(1, "Negative cache failed to set entry: [%s]\n",
+                  tdb_errorstr(ctx->tdb));
         ret = EFAULT;
     }
 
@@ -630,23 +630,23 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                              filter_list[i],
                                              &domainname, &name);
             if (ret != EOK) {
-                DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
-                         filter_list[i], ret));
+                DEBUG(1, "Invalid name in filterUsers list: [%s] (%d)\n",
+                         filter_list[i], ret);
                 continue;
             }
 
             if (domainname && strcmp(domainname, dom->name)) {
-                DEBUG(1, ("Mismatch between domain name (%s) and name "
+                DEBUG(1, "Mismatch between domain name (%s) and name "
                           "set in FQN  (%s), skipping user %s\n",
-                          dom->name, domainname, name));
+                          dom->name, domainname, name);
                 continue;
             }
 
             ret = sss_ncache_set_user(ncache, true, dom, name);
             if (ret != EOK) {
-                DEBUG(1, ("Failed to store permanent user filter for [%s]"
+                DEBUG(1, "Failed to store permanent user filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret)));
+                          ret, strerror(ret));
                 continue;
             }
         }
@@ -676,33 +676,33 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                          rctx->default_domain, filter_list[i],
                                          &domainname, &name);
         if (ret != EOK) {
-            DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
-                     filter_list[i], ret));
+            DEBUG(1, "Invalid name in filterUsers list: [%s] (%d)\n",
+                     filter_list[i], ret);
             continue;
         }
         if (domainname) {
             dom = responder_get_domain(rctx, domainname);
             if (!dom) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Invalid domain name [%s]\n", domainname));
+                      "Invalid domain name [%s]\n", domainname);
                 continue;
             }
 
             ret = sss_ncache_set_user(ncache, true, dom, name);
             if (ret != EOK) {
-                DEBUG(1, ("Failed to store permanent user filter for [%s]"
+                DEBUG(1, "Failed to store permanent user filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret)));
+                          ret, strerror(ret));
                 continue;
             }
         } else {
             for (dom = domain_list; dom; dom = get_next_domain(dom, false)) {
                 ret = sss_ncache_set_user(ncache, true, dom, name);
                 if (ret != EOK) {
-                   DEBUG(1, ("Failed to store permanent user filter for"
+                   DEBUG(1, "Failed to store permanent user filter for"
                              " [%s:%s] (%d [%s])\n",
                              dom->name, filter_list[i],
-                             ret, strerror(ret)));
+                             ret, strerror(ret));
                     continue;
                 }
             }
@@ -728,23 +728,23 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             ret = sss_parse_name(tmpctx, dom->names, filter_list[i],
                                  &domainname, &name);
             if (ret != EOK) {
-                DEBUG(1, ("Invalid name in filterGroups list: [%s] (%d)\n",
-                         filter_list[i], ret));
+                DEBUG(1, "Invalid name in filterGroups list: [%s] (%d)\n",
+                         filter_list[i], ret);
                 continue;
             }
 
             if (domainname && strcmp(domainname, dom->name)) {
-                DEBUG(1, ("Mismatch betwen domain name (%s) and name "
+                DEBUG(1, "Mismatch betwen domain name (%s) and name "
                           "set in FQN  (%s), skipping group %s\n",
-                          dom->name, domainname, name));
+                          dom->name, domainname, name);
                 continue;
             }
 
             ret = sss_ncache_set_group(ncache, true, dom, name);
             if (ret != EOK) {
-                DEBUG(1, ("Failed to store permanent group filter for [%s]"
+                DEBUG(1, "Failed to store permanent group filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret)));
+                          ret, strerror(ret));
                 continue;
             }
         }
@@ -774,33 +774,33 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                          rctx->default_domain, filter_list[i],
                                          &domainname, &name);
         if (ret != EOK) {
-            DEBUG(1, ("Invalid name in filterGroups list: [%s] (%d)\n",
-                     filter_list[i], ret));
+            DEBUG(1, "Invalid name in filterGroups list: [%s] (%d)\n",
+                     filter_list[i], ret);
             continue;
         }
         if (domainname) {
             dom = responder_get_domain(rctx, domainname);
             if (!dom) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Invalid domain name [%s]\n", domainname));
+                      "Invalid domain name [%s]\n", domainname);
                 continue;
             }
 
             ret = sss_ncache_set_group(ncache, true, dom, name);
             if (ret != EOK) {
-                DEBUG(1, ("Failed to store permanent group filter for"
+                DEBUG(1, "Failed to store permanent group filter for"
                           " [%s] (%d [%s])\n", filter_list[i],
-                          ret, strerror(ret)));
+                          ret, strerror(ret));
                 continue;
             }
         } else {
             for (dom = domain_list; dom; dom = get_next_domain(dom, false)) {
                 ret = sss_ncache_set_group(ncache, true, dom, name);
                 if (ret != EOK) {
-                   DEBUG(1, ("Failed to store permanent group filter for"
+                   DEBUG(1, "Failed to store permanent group filter for"
                              " [%s:%s] (%d [%s])\n",
                              dom->name, filter_list[i],
-                             ret, strerror(ret)));
+                             ret, strerror(ret));
                     continue;
                 }
             }

@@ -53,7 +53,7 @@ int main(int argc, const char **argv)
     ret = set_locale();
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("set_locale() failed (%d): %s\n", ret, strerror(ret)));
+              "set_locale() failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error setting the locale\n");
         ret = EXIT_FAILURE;
         goto fini;
@@ -88,7 +88,7 @@ int main(int argc, const char **argv)
                           pc_user, pc_domain, NULL, &ent);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));
+              "sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error looking up public keys\n");
         ret = EXIT_FAILURE;
         goto fini;
@@ -99,8 +99,8 @@ int main(int argc, const char **argv)
         ret = sss_ssh_format_pubkey(mem_ctx, &ent->pubkeys[i], &repr);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("sss_ssh_format_pubkey() failed (%d): %s\n",
-                    ret, strerror(ret)));
+                  "sss_ssh_format_pubkey() failed (%d): %s\n",
+                    ret, strerror(ret));
             continue;
         }
 

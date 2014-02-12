@@ -75,15 +75,15 @@ struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
 
     ret = sdap_reinit_clear_usn(state->sysdb, state->domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to clear USN attributes [%d]: %s\n",
-                                    ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to clear USN attributes [%d]: %s\n",
+                                    ret, strerror(ret));
         goto immediately;
     }
 
     subreq = sdap_dom_enum_send(id_ctx, be_ctx->ev, id_ctx,
                                 id_ctx->opts->sdom, id_ctx->conn);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to issue enumeration request\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to issue enumeration request\n");
         ret = ENOMEM;
         goto immediately;
     }
@@ -115,8 +115,8 @@ static void sdap_delete_msgs_usn(struct sysdb_ctx *sysdb,
     for (i = 0; i < msgs_num; i++) {
         ret = sysdb_set_entry_attr(sysdb, msgs[i]->dn, &usn_el, SYSDB_MOD_DEL);
         if (ret) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Failed to clean USN on entry: [%s]\n",
-                                      ldb_dn_get_linearized(msgs[i]->dn)));
+            DEBUG(SSSDBG_TRACE_FUNC, "Failed to clean USN on entry: [%s]\n",
+                                      ldb_dn_get_linearized(msgs[i]->dn));
         }
     }
 }
@@ -134,7 +134,7 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -169,7 +169,7 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
                                 "", attrs, &msgs_num, &msgs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot search services [%d]: %s\n", ret, strerror(ret)));
+              "Cannot search services [%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -181,14 +181,14 @@ static errno_t sdap_reinit_clear_usn(struct sysdb_ctx *sysdb,
     if (ret == EOK) {
         in_transaction = false;
     } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not commit transaction\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not commit transaction\n");
     }
 
 done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
         }
     }
 
@@ -209,8 +209,8 @@ static void sdap_reinit_cleanup_done(struct tevent_req *subreq)
     ret = sdap_dom_enum_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Domain enumeration failed [%d]: %s\n",
-                                    ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Domain enumeration failed [%d]: %s\n",
+                                    ret, strerror(ret));
         goto fail;
     }
 
@@ -221,8 +221,8 @@ static void sdap_reinit_cleanup_done(struct tevent_req *subreq)
      */
     ret = sysdb_set_enumerated(state->sysdb, state->domain, true);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not mark domain as having "
-                                     "enumerated.\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not mark domain as having "
+                                     "enumerated.\n");
         /* This error is non-fatal, so continue */
     }
 
@@ -248,8 +248,8 @@ static void sdap_delete_msgs_dn(struct sysdb_ctx *sysdb,
     for (i = 0; i < msgs_num; i++) {
         ret = sysdb_delete_entry(sysdb, msgs[i]->dn, true);
         if (ret) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Failed to delete entry: [%s]\n",
-                                      ldb_dn_get_linearized(msgs[i]->dn)));
+            DEBUG(SSSDBG_TRACE_FUNC, "Failed to delete entry: [%s]\n",
+                                      ldb_dn_get_linearized(msgs[i]->dn));
         }
     }
 }
@@ -267,7 +267,7 @@ static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -308,14 +308,14 @@ static errno_t sdap_reinit_delete_records(struct sysdb_ctx *sysdb,
     if (ret == EOK) {
         in_transaction = false;
     } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not commit transaction\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not commit transaction\n");
     }
 
 done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
         }
     }
 

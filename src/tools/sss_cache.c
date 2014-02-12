@@ -107,7 +107,7 @@ int main(int argc, const char *argv[])
     ret = init_context(argc, argv, &tctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error initializing context for the application\n"));
+              "Error initializing context for the application\n");
         goto done;
     }
 
@@ -119,7 +119,7 @@ int main(int argc, const char *argv[])
             ret = sysdb_update_subdomains(dinfo);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Failed to update subdomains for domain %s.\n", dinfo->name));
+                      "Failed to update subdomains for domain %s.\n", dinfo->name);
             }
         }
 
@@ -127,14 +127,14 @@ int main(int argc, const char *argv[])
         /* Update filters for each domain */
         ret = update_all_filters(tctx, dinfo);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to update filters.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to update filters.\n");
             goto done;
         }
 
         ret = sysdb_transaction_start(sysdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not start the transaction!\n"));
+                  "Could not start the transaction!\n");
             goto done;
         }
 
@@ -157,11 +157,11 @@ int main(int argc, const char *argv[])
         ret = sysdb_transaction_commit(sysdb);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not commit the transaction!\n"));
+                  "Could not commit the transaction!\n");
             ret = sysdb_transaction_cancel(sysdb);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to cancel transaction\n"));
+                      "Failed to cancel transaction\n");
             }
         }
     }
@@ -173,7 +173,7 @@ int main(int argc, const char *argv[])
     } else {
         ret = sss_memcache_clear_all();
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to clear memory cache.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to clear memory cache.\n");
             goto done;
         }
     }
@@ -206,14 +206,14 @@ static errno_t update_filter(struct cache_tool_ctx *tctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory.\n");
         return ENOMEM;
     }
 
     ret = sss_parse_name(tmp_ctx, dinfo->names, name,
                          &parsed_domain, &parsed_name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_parse_name failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_parse_name failed\n");
         goto done;
     }
 
@@ -228,7 +228,7 @@ static errno_t update_filter(struct cache_tool_ctx *tctx,
     if (!dinfo->case_sensitive && !force_case_sensitivity) {
         use_name = sss_tc_utf8_str_tolower(tmp_ctx, parsed_name);
         if (!use_name) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
             ret = ENOMEM;
             goto done;
         }
@@ -247,7 +247,7 @@ static errno_t update_filter(struct cache_tool_ctx *tctx,
     ret = sss_filter_sanitize_for_dom(tmp_ctx, use_name, dinfo,
                                       &sanitized, &lc_sanitized);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to sanitize the given name.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to sanitize the given name.\n");
         goto done;
     }
 
@@ -263,7 +263,7 @@ static errno_t update_filter(struct cache_tool_ctx *tctx,
         filter = talloc_strdup(tmp_ctx, sanitized);
     }
     if (filter == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
         ret = ENOMEM;
         goto done;
     }
@@ -378,12 +378,12 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
 
     if (ret != EOK) {
         if (ret == ENOENT) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("'%s' %s: Not found in domain '%s'\n",
-                  type_string, name ? name : "", dinfo->name));
+            DEBUG(SSSDBG_TRACE_FUNC, "'%s' %s: Not found in domain '%s'\n",
+                  type_string, name ? name : "", dinfo->name);
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Searching for %s in domain %s with filter %s failed\n",
-                   type_string, dinfo->name, filter));
+                  "Searching for %s in domain %s with filter %s failed\n",
+                   type_string, dinfo->name, filter);
         }
         return false;
     }
@@ -393,14 +393,14 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
         c_name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
         if (c_name == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Something bad happened, can't find attribute %s", SYSDB_NAME));
+                  "Something bad happened, can't find attribute %s", SYSDB_NAME);
             ERROR("Couldn't invalidate %1$s", type_string);
             iret = false;
         } else {
             ret = invalidate_entry(ctx, sysdb, dinfo, c_name, entry_type);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Couldn't invalidate %s %s", type_string, c_name));
+                      "Couldn't invalidate %s %s", type_string, c_name);
                 ERROR("Couldn't invalidate %1$s %2$s", type_string, c_name);
                 iret = false;
             }
@@ -453,14 +453,14 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                     return EINVAL;
             }
             if (ret != EOK) {
-                DEBUG(3, ("Could not set entry attributes\n"));
+                DEBUG(3, "Could not set entry attributes\n");
             }
         } else {
-            DEBUG(3, ("Could not add expiration time to attributes\n"));
+            DEBUG(3, "Could not add expiration time to attributes\n");
         }
         talloc_zfree(sys_attrs);
     } else {
-        DEBUG(3, ("Could not create sysdb attributes\n"));
+        DEBUG(3, "Could not create sysdb attributes\n");
         ret = ENOMEM;
     }
     return ret;
@@ -481,7 +481,7 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
     ret = confdb_init(ctx, &ctx->confdb, confdb_path);
     talloc_free(confdb_path);
     if (ret != EOK) {
-        DEBUG(1, ("Could not initialize connection to the confdb\n"));
+        DEBUG(1, "Could not initialize connection to the confdb\n");
         return ret;
     }
 
@@ -490,21 +490,21 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
                                domain, DB_PATH, &ctx->domains);
         if (ret != EOK) {
             SYSDB_VERSION_ERROR(ret);
-            DEBUG(1, ("Could not initialize connection to the sysdb\n"));
+            DEBUG(1, "Could not initialize connection to the sysdb\n");
             return ret;
         }
 
     } else {
         ret = confdb_get_domains(ctx->confdb, &ctx->domains);
         if (ret != EOK) {
-            DEBUG(1, ("Could not initialize domains\n"));
+            DEBUG(1, "Could not initialize domains\n");
             return ret;
         }
 
         ret = sysdb_init(ctx, ctx->domains, false);
         SYSDB_VERSION_ERROR(ret);
         if (ret != EOK) {
-            DEBUG(1, ("Could not initialize connection to the sysdb\n"));
+            DEBUG(1, "Could not initialize connection to the sysdb\n");
             return ret;
         }
     }
@@ -512,7 +512,7 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
     for (dinfo = ctx->domains; dinfo; dinfo = get_next_domain(dinfo, false)) {
         ret = sss_names_init(ctx, ctx->confdb, dinfo->name, &dinfo->names);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("sss_names_init() failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_names_init() failed\n");
             return ret;
         }
     }
@@ -569,7 +569,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(1, ("set_locale failed (%d): %s\n", ret, strerror(ret)));
+        DEBUG(1, "set_locale failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error setting the locale\n");
         goto fini;
     }
@@ -616,7 +616,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 
     ctx = talloc_zero(NULL, struct cache_tool_ctx);
     if (ctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for tools context\n"));
+        DEBUG(1, "Could not allocate memory for tools context\n");
         ret = ENOMEM;
         goto fini;
     }
@@ -670,7 +670,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
          (user && !ctx->user_name) || (group && !ctx->group_name) ||
          (netgroup && !ctx->netgroup_name) || (map && !ctx->autofs_name) ||
          (service && !ctx->service_name)) {
-        DEBUG(1, ("Construction of filters failed\n"));
+        DEBUG(1, "Construction of filters failed\n");
         ret = ENOMEM;
         goto fini;
     }
@@ -685,7 +685,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
             ERROR("Could not open available domains\n");
         }
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Initialization of sysdb connections failed\n"));
+              "Initialization of sysdb connections failed\n");
         goto fini;
     }
 

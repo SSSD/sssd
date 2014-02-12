@@ -84,7 +84,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         goto fail;
     }
     name = (const char *)el->values[0].data;
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Storing netgroup %s\n", name));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Storing netgroup %s\n", name);
 
     netgroup_attrs = sysdb_new_attrs(mem_ctx);
     if (!netgroup_attrs) {
@@ -97,10 +97,10 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("Original DN is not available for [%s].\n", name));
+        DEBUG(7, "Original DN is not available for [%s].\n", name);
     } else {
-        DEBUG(7, ("Adding original DN [%s] to attributes of [%s].\n",
-                  el->values[0].data, name));
+        DEBUG(7, "Adding original DN [%s] to attributes of [%s].\n",
+                  el->values[0].data, name);
         ret = sysdb_attrs_add_string(netgroup_attrs, SYSDB_ORIG_DN,
                                      (const char *)el->values[0].data);
         if (ret) {
@@ -113,7 +113,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("No netgroup triples for netgroup [%s].\n", name));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "No netgroup triples for netgroup [%s].\n", name);
         ret = sysdb_attrs_get_el(netgroup_attrs, SYSDB_NETGROUP_TRIPLE, &el);
         if (ret != EOK) {
             goto fail;
@@ -136,10 +136,10 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("No original members for netgroup [%s]\n", name));
+        DEBUG(7, "No original members for netgroup [%s]\n", name);
 
     } else {
-        DEBUG(7, ("Adding original members to netgroup [%s]\n", name));
+        DEBUG(7, "Adding original members to netgroup [%s]\n", name);
         for(c = 0; c < el->num_values; c++) {
             ret = sysdb_attrs_add_string(netgroup_attrs,
                        opts->netgroup_map[IPA_AT_NETGROUP_MEMBER].sys_name,
@@ -156,10 +156,10 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("No members for netgroup [%s]\n", name));
+        DEBUG(7, "No members for netgroup [%s]\n", name);
 
     } else {
-        DEBUG(7, ("Adding members to netgroup [%s]\n", name));
+        DEBUG(7, "Adding members to netgroup [%s]\n", name);
         for(c = 0; c < el->num_values; c++) {
             ret = sysdb_attrs_add_string(netgroup_attrs, SYSDB_NETGROUP_MEMBER,
                                          (const char*)el->values[c].data);
@@ -169,7 +169,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         }
     }
 
-    DEBUG(6, ("Storing info for netgroup %s\n", name));
+    DEBUG(6, "Storing info for netgroup %s\n", name);
 
     ret = sysdb_add_netgroup(ctx, dom, name, NULL, netgroup_attrs, NULL,
                              dom->netgroup_timeout, 0);
@@ -178,7 +178,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    DEBUG(2, ("Failed to save netgroup %s\n", name));
+    DEBUG(2, "Failed to save netgroup %s\n", name);
     return ret;
 }
 
@@ -217,7 +217,7 @@ struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
 
     if (!ipa_options->id->sdom->netgroup_search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Netgroup lookup request without a search base\n"));
+              "Netgroup lookup request without a search base\n");
         ret = EINVAL;
         goto done;
     }
@@ -260,8 +260,8 @@ static errno_t ipa_netgr_next_base(struct tevent_req *req)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-            ("Searching for netgroups with base [%s]\n",
-             netgr_bases[state->netgr_base_iter]->basedn));
+            "Searching for netgroups with base [%s]\n",
+             netgr_bases[state->netgr_base_iter]->basedn);
 
     subreq = sdap_get_generic_send(
             state, state->ev, state->opts, state->sh,
@@ -313,8 +313,8 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Search for netgroups, returned %zu results.\n",
-                              netgroups_count));
+    DEBUG(SSSDBG_TRACE_FUNC, "Search for netgroups, returned %zu results.\n",
+                              netgroups_count);
 
     if (netgroups_count == 0) {
         /* No netgroups found in this search */
@@ -573,8 +573,8 @@ static void ipa_netgr_members_process(struct tevent_req *subreq)
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Found %zu members in current search base\n",
-                                  count));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found %zu members in current search base\n",
+                                  count);
 
     next_call = NULL;
     /* While processing a batch of entities from one search base,
@@ -610,8 +610,8 @@ static void ipa_netgr_members_process(struct tevent_req *subreq)
         table = state->new_hosts;
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Invalid entity type given for processing: %d\n",
-               state->current_entity));
+              "Invalid entity type given for processing: %d\n",
+               state->current_entity);
         ret = EINVAL;
         goto fail;
     }
@@ -866,7 +866,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
     hash_iterate(state->new_netgroups, extract_netgroups, state);
     for (i = 0; i < state->netgroups_count; i++) {
         /* load all its member netgroups, translate */
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Extracting netgroup members of netgroup %d\n", i));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Extracting netgroup members of netgroup %d\n", i);
         ret = sysdb_attrs_get_string_array(state->netgroups[i],
                                            SYSDB_ORIG_NETGROUP_MEMBER,
                                            state, &members);
@@ -899,10 +899,10 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
             }
             talloc_zfree(members);
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Extracted %d netgroup members\n", j));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Extracted %d netgroup members\n", j);
 
         /* Load all UIDs */
-        DEBUG(SSSDBG_TRACE_ALL, ("Extracting user members of netgroup %d\n", i));
+        DEBUG(SSSDBG_TRACE_ALL, "Extracting user members of netgroup %d\n", i);
         ret = extract_members(state, state->netgroups[i],
                               SYSDB_ORIG_MEMBER_USER,
                               state->new_users,
@@ -910,9 +910,9 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         if (ret != EOK) {
             goto done;
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Extracted %d user members\n", uids_count));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Extracted %d user members\n", uids_count);
 
-        DEBUG(SSSDBG_TRACE_ALL, ("Extracting host members of netgroup %d\n", i));
+        DEBUG(SSSDBG_TRACE_ALL, "Extracting host members of netgroup %d\n", i);
         ret = extract_members(state, state->netgroups[i],
                               SYSDB_ORIG_MEMBER_HOST,
                               state->new_hosts,
@@ -920,7 +920,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         if (ret != EOK) {
             goto done;
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Extracted %d host members\n", hosts_count));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Extracted %d host members\n", hosts_count);
 
         ret = sysdb_attrs_get_el(state->netgroups[i],
                                  SYSDB_ORIG_NETGROUP_EXTERNAL_HOST,
@@ -964,8 +964,8 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
                 hosts = dash;
             }
 
-            DEBUG(SSSDBG_TRACE_INTERNAL, ("Putting together triples of "
-                                          "netgroup %d\n", i));
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Putting together triples of "
+                                          "netgroup %d\n", i);
             for (j = 0; j < uids_count; j++) {
                 for (k = 0; k < hosts_count; k++) {
                     triple = talloc_asprintf(state, "(%s,%s,%s)",

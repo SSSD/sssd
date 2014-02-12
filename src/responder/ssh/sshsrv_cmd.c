@@ -62,8 +62,8 @@ sss_ssh_cmd_get_user_pubkeys(struct cli_ctx *cctx)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requesting SSH user public keys for [%s] from [%s]\n",
-           cmd_ctx->name, cmd_ctx->domname ? cmd_ctx->domname : "<ALL>"));
+          "Requesting SSH user public keys for [%s] from [%s]\n",
+           cmd_ctx->name, cmd_ctx->domname ? cmd_ctx->domname : "<ALL>");
 
     if (strcmp(cmd_ctx->name, "root") == 0) {
         ret = ENOENT;
@@ -112,9 +112,9 @@ sss_ssh_cmd_get_host_pubkeys(struct cli_ctx *cctx)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requesting SSH host public keys for [%s][%s] from [%s]\n",
+          "Requesting SSH host public keys for [%s][%s] from [%s]\n",
            cmd_ctx->name, cmd_ctx->alias ? cmd_ctx->alias : "",
-           cmd_ctx->domname ? cmd_ctx->domname : "<ALL>"));
+           cmd_ctx->domname ? cmd_ctx->domname : "<ALL>");
 
     if (cmd_ctx->domname) {
         cmd_ctx->domain = responder_get_domain(cctx->rctx, cmd_ctx->domname);
@@ -150,7 +150,7 @@ ssh_dp_send_req_done(struct tevent_req *req)
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Fatal error, killing connection!\n"));
+              "Fatal error, killing connection!\n");
         talloc_free(cb_ctx->cctx);
         return;
     }
@@ -180,7 +180,7 @@ ssh_user_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
 
     if (!cmd_ctx->domain) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("No matching domain found for [%s], fail!\n", cmd_ctx->name));
+              "No matching domain found for [%s], fail!\n", cmd_ctx->name);
         return ENOENT;
     }
 
@@ -191,7 +191,7 @@ ssh_user_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
                                       cmd_ctx->name, 0, NULL);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Out of memory sending data provider request\n"));
+                  "Out of memory sending data provider request\n");
             return ENOMEM;
         }
 
@@ -224,13 +224,13 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
     struct ldb_result *res;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requesting SSH user public keys for [%s@%s]\n",
-           cmd_ctx->name, cmd_ctx->domain->name));
+          "Requesting SSH user public keys for [%s@%s]\n",
+           cmd_ctx->name, cmd_ctx->domain->name);
 
     sysdb = cmd_ctx->domain->sysdb;
     if (sysdb == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Fatal: Sysdb CTX not found for this domain!\n"));
+              "Fatal: Sysdb CTX not found for this domain!\n");
         return EFAULT;
     }
 
@@ -238,14 +238,14 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
                               cmd_ctx->name, attrs, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to make request to our cache!\n"));
+              "Failed to make request to our cache!\n");
         return EIO;
     }
 
     if (res->count > 1) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-            ("User search by name (%s) returned > 1 results!\n",
-             cmd_ctx->name));
+            "User search by name (%s) returned > 1 results!\n",
+             cmd_ctx->name);
         return EINVAL;
     }
 
@@ -257,7 +257,7 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
         }
 
         DEBUG(SSSDBG_OP_FAILURE,
-              ("No attributes for user [%s] found.\n", cmd_ctx->name));
+              "No attributes for user [%s] found.\n", cmd_ctx->name);
 
         return ENOENT;
     }
@@ -279,9 +279,9 @@ ssh_user_pubkeys_search_dp_callback(uint16_t err_maj,
 
     if (err_maj) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Unable to get information from Data Provider\n"
+              "Unable to get information from Data Provider\n"
                "Error: %u, %u, %s\n",
-               (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+               (unsigned int)err_maj, (unsigned int)err_min, err_msg);
     }
 
     ret = ssh_user_pubkeys_search_next(cmd_ctx);
@@ -304,7 +304,7 @@ ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
 
     if (!cmd_ctx->domain) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("No matching domain found for [%s], fail!\n", cmd_ctx->name));
+              "No matching domain found for [%s], fail!\n", cmd_ctx->name);
         return ENOENT;
     }
 
@@ -315,7 +315,7 @@ ssh_host_pubkeys_search(struct ssh_cmd_ctx *cmd_ctx)
                                        cmd_ctx->name, cmd_ctx->alias);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Out of memory sending data provider request\n"));
+                  "Out of memory sending data provider request\n");
             return ENOMEM;
         }
 
@@ -347,13 +347,13 @@ ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
     const char *attrs[] = { SYSDB_NAME, SYSDB_SSH_PUBKEY, NULL };
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requesting SSH host public keys for [%s@%s]\n",
-           cmd_ctx->name, cmd_ctx->domain->name));
+          "Requesting SSH host public keys for [%s@%s]\n",
+           cmd_ctx->name, cmd_ctx->domain->name);
 
     sysdb = cmd_ctx->domain->sysdb;
     if (sysdb == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Fatal: Sysdb CTX not found for this domain!\n"));
+              "Fatal: Sysdb CTX not found for this domain!\n");
         return EFAULT;
     }
 
@@ -361,7 +361,7 @@ ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
                              cmd_ctx->name, attrs, &cmd_ctx->result);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to make request to our cache!\n"));
+              "Failed to make request to our cache!\n");
         return EIO;
     }
 
@@ -373,7 +373,7 @@ ssh_host_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
         }
 
         DEBUG(SSSDBG_OP_FAILURE,
-              ("No attributes for host [%s] found.\n", cmd_ctx->name));
+              "No attributes for host [%s] found.\n", cmd_ctx->name);
 
         return ENOENT;
     }
@@ -392,9 +392,9 @@ ssh_host_pubkeys_search_dp_callback(uint16_t err_maj,
 
     if (err_maj) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Unable to get information from Data Provider\n"
+              "Unable to get information from Data Provider\n"
                "Error: %u, %u, %s\n",
-               (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+               (unsigned int)err_maj, (unsigned int)err_min, err_msg);
     }
 
     ret = ssh_host_pubkeys_search_next(cmd_ctx);
@@ -495,8 +495,8 @@ ssh_host_pubkeys_format_known_host_hashed(TALLOC_CTX *mem_ctx,
                                 hash);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("sss_hmac_sha1() failed (%d): %s\n",
-                       ret, strerror(ret)));
+                      "sss_hmac_sha1() failed (%d): %s\n",
+                       ret, strerror(ret));
                 result = NULL;
                 goto done;
             }
@@ -594,7 +594,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Fatal: Sysdb CTX not found for this domain!\n"));
+                  "Fatal: Sysdb CTX not found for this domain!\n");
             ret = EFAULT;
             goto done;
         }
@@ -604,7 +604,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         if (ret != EOK) {
             if (ret != ENOENT) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Host search failed for domain [%s]\n", dom->name));
+                      "Host search failed for domain [%s]\n", dom->name);
             }
             continue;
         }
@@ -613,7 +613,7 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
             ret = sss_ssh_make_ent(tmp_ctx, hosts[i], &ent);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Failed to get SSH host public keys\n"));
+                      "Failed to get SSH host public keys\n");
                 continue;
             }
 
@@ -624,8 +624,8 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
             }
             if (!entstr) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Failed to format known_hosts data for [%s]\n",
-                       ent->name));
+                      "Failed to format known_hosts data for [%s]\n",
+                       ent->name);
                 continue;
             }
 
@@ -685,20 +685,20 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
 
     SAFEALIGN_COPY_UINT32_CHECK(&flags, body+c, body_len, &c);
     if (flags & ~(uint32_t)SSS_SSH_REQ_MASK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid flags received [0x%x]\n", flags));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid flags received [0x%x]\n", flags);
         return EINVAL;
     }
 
     SAFEALIGN_COPY_UINT32_CHECK(&name_len, body+c, body_len, &c);
     if (name_len == 0 || name_len > body_len - c) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid name length\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid name length\n");
         return EINVAL;
     }
 
     name = (char *)(body+c);
     if (!sss_utf8_check((const uint8_t *)name, name_len-1) ||
             name[name_len-1] != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Name is not valid UTF-8 string\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Name is not valid UTF-8 string\n");
         return EINVAL;
     }
     c += name_len;
@@ -706,14 +706,14 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     if (flags & SSS_SSH_REQ_ALIAS) {
         SAFEALIGN_COPY_UINT32_CHECK(&alias_len, body+c, body_len, &c);
         if (alias_len == 0 || alias_len > body_len - c) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid alias length\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid alias length\n");
             return EINVAL;
         }
 
         alias = (char *)(body+c);
         if (!sss_utf8_check((const uint8_t *)alias, alias_len-1) ||
                 alias[alias_len-1] != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Alias is not valid UTF-8 string\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Alias is not valid UTF-8 string\n");
             return EINVAL;
         }
         c += alias_len;
@@ -723,7 +723,7 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
         SAFEALIGN_COPY_UINT32_CHECK(&domain_len, body+c, body_len, &c);
         if (domain_len > 0) {
             if (domain_len > body_len - c) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid domain length\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "Invalid domain length\n");
                 return EINVAL;
             }
 
@@ -731,21 +731,21 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
             if (!sss_utf8_check((const uint8_t *)domain, domain_len-1) ||
                     domain[domain_len-1] != 0) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Domain is not valid UTF-8 string\n"));
+                      "Domain is not valid UTF-8 string\n");
                 return EINVAL;
             }
             c += domain_len;
         }
 
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Requested domain [%s]\n", domain ? domain : "<ALL>"));
+              "Requested domain [%s]\n", domain ? domain : "<ALL>");
     } else {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Splitting domain from name [%s]\n", name));
+        DEBUG(SSSDBG_TRACE_FUNC, "Splitting domain from name [%s]\n", name);
 
         ret = sss_parse_name(cmd_ctx, ssh_ctx->snctx, name,
                              &cmd_ctx->domname, &cmd_ctx->name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Invalid name received [%s]\n", name));
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid name received [%s]\n", name);
             return ENOENT;
         }
 
@@ -754,7 +754,7 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
 
     if (cmd_ctx->is_user && cmd_ctx->domname == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Parsing name [%s][%s]\n", name, domain ? domain : "<ALL>"));
+              "Parsing name [%s][%s]\n", name, domain ? domain : "<ALL>");
 
         ret = sss_parse_name_for_domains(cmd_ctx, cctx->rctx->domains,
                                          domain, name,
@@ -762,7 +762,7 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
                                          &cmd_ctx->name);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Invalid name received [%s]\n", name));
+                  "Invalid name received [%s]\n", name);
             return ENOENT;
         }
     } else {
@@ -830,8 +830,8 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     name = ldb_msg_find_attr_as_string(cmd_ctx->result, SYSDB_NAME, NULL);
     if (!name) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Got unnamed result for [%s@%s]\n",
-               cmd_ctx->name, cmd_ctx->domain->name));
+              "Got unnamed result for [%s@%s]\n",
+               cmd_ctx->name, cmd_ctx->domain->name);
         return ENOENT;
     }
 
@@ -928,7 +928,7 @@ ssh_cmd_done(struct ssh_cmd_ctx *cmd_ctx,
     }
 
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Fatal error, killing connection!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Fatal error, killing connection!\n");
         talloc_free(cmd_ctx->cctx);
         return EFAULT;
     }

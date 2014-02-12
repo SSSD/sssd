@@ -43,22 +43,22 @@ sdap_idmap_get_configured_external_range(struct sdap_idmap_ctx *idmap_ctx,
 
     int_id = dp_opt_get_int(id_ctx->opts->basic, SDAP_MIN_ID);
     if (int_id < 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("ldap_min_id must be greater than 0.\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, "ldap_min_id must be greater than 0.\n");
         return EINVAL;
     }
     min = int_id;
 
     int_id = dp_opt_get_int(id_ctx->opts->basic, SDAP_MAX_ID);
     if (int_id < 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("ldap_max_id must be greater than 0.\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, "ldap_max_id must be greater than 0.\n");
         return EINVAL;
     }
     max = int_id;
 
     if ((min == 0 && max != 0) || (min != 0 && max == 0)) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Both ldap_min_id and ldap_max_id " \
+        DEBUG(SSSDBG_CONF_SETTINGS, "Both ldap_min_id and ldap_max_id " \
                                      "either must be 0 (not set) " \
-                                     "or positive integers.\n"));
+                                     "or positive integers.\n");
         return EINVAL;
     }
 
@@ -88,7 +88,7 @@ sdap_idmap_add_configured_external_range(struct sdap_idmap_ctx *idmap_ctx)
     ret = sdap_idmap_get_configured_external_range(idmap_ctx, &range);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("sdap_idmap_get_configured_external_range failed.\n"));
+              "sdap_idmap_get_configured_external_range failed.\n");
         return ret;
     }
 
@@ -99,8 +99,8 @@ sdap_idmap_add_configured_external_range(struct sdap_idmap_ctx *idmap_ctx)
                                   NULL, 0, true);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not add domain [%s] to the map: [%d]\n",
-               id_ctx->be->domain->name, err));
+              "Could not add domain [%s] to the map: [%d]\n",
+               id_ctx->be->domain->name, err);
         return EIO;
     }
 
@@ -118,7 +118,7 @@ errno_t sdap_idmap_find_new_domain(struct sdap_idmap_ctx *idmap_ctx,
                                 -1);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not add new domain [%s]\n", dom_name));
+              "Could not add new domain [%s]\n", dom_name);
         return ret;
     }
 
@@ -171,17 +171,17 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
             || (idmap_upper-idmap_lower) < rangesize)
     {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Invalid settings for range selection: "
+              "Invalid settings for range selection: "
                "[%"SPRIid"][%"SPRIid"][%"SPRIid"]\n",
-               idmap_lower, idmap_upper, rangesize));
+               idmap_lower, idmap_upper, rangesize);
         ret = EINVAL;
         goto done;
     }
 
     if (((idmap_upper - idmap_lower) % rangesize) != 0) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Range size does not divide evenly. Uppermost range will "
-               "not be used\n"));
+              "Range size does not divide evenly. Uppermost range will "
+               "not be used\n");
     }
 
     /* Initialize the map */
@@ -190,8 +190,8 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
                          &idmap_ctx->map);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not initialize the ID map: [%s]\n",
-               idmap_error_string(err)));
+              "Could not initialize the ID map: [%s]\n",
+               idmap_error_string(err));
         if (err == IDMAP_OUT_OF_MEMORY) {
             ret = ENOMEM;
         } else {
@@ -206,7 +206,7 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     err |= sss_idmap_ctx_set_rangesize(idmap_ctx->map, rangesize);
     if (err != IDMAP_SUCCESS) {
         /* This should never happen */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sss_idmap_ctx corrupted\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_idmap_ctx corrupted\n");
         return EIO;
     }
 
@@ -217,7 +217,7 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
         ret = sdap_idmap_add_configured_external_range(idmap_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("sdap_idmap_add_configured_external_range failed.\n"));
+                  "sdap_idmap_add_configured_external_range failed.\n");
             goto done;
         }
     }
@@ -226,14 +226,14 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     ret = sysdb_idmap_get_mappings(tmp_ctx, sysdb, id_ctx->be->domain, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not read ID mappings from the cache: [%s]\n",
-               strerror(ret)));
+              "Could not read ID mappings from the cache: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
     if (ret == EOK && res->count > 0) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("Initializing [%d] domains for ID-mapping\n", res->count));
+              "Initializing [%d] domains for ID-mapping\n", res->count);
 
         for (i = 0; i < res->count; i++) {
             dom_name = ldb_msg_find_attr_as_string(res->msgs[i],
@@ -267,9 +267,9 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
                                         sid_str, slice_num);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Could not add domain [%s][%s][%"SPRIid"] "
+                      "Could not add domain [%s][%s][%"SPRIid"] "
                        "to ID map: [%s]\n",
-                       dom_name, sid_str, slice_num, strerror(ret)));
+                       dom_name, sid_str, slice_num, strerror(ret));
                 goto done;
             }
         }
@@ -294,18 +294,18 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
                                         sid_str, 0);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Could not add domain [%s][%s][%u] to ID map: [%s]\n",
-                       dom_name, sid_str, 0, strerror(ret)));
+                      "Could not add domain [%s][%s][%u] to ID map: [%s]\n",
+                       dom_name, sid_str, 0, strerror(ret));
                 goto done;
             }
         } else {
             if (dp_opt_get_bool(idmap_ctx->id_ctx->opts->basic, SDAP_IDMAP_AUTORID_COMPAT)) {
                 /* In autorid compatibility mode, we MUST have a slice 0 */
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("WARNING: Autorid compatibility mode selected, "
+                      "WARNING: Autorid compatibility mode selected, "
                        "but %s is not set. UID/GID values may differ "
                        "between clients.\n",
-                       idmap_ctx->id_ctx->opts->basic[SDAP_IDMAP_DEFAULT_DOMAIN_SID].opt_name));
+                       idmap_ctx->id_ctx->opts->basic[SDAP_IDMAP_DEFAULT_DOMAIN_SID].opt_name);
             }
             /* Otherwise, we'll just fall back to hash values as they are seen */
         }
@@ -334,7 +334,7 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
     ret = sss_idmap_ctx_get_upper(idmap_ctx->map, &idmap_upper);
     if (ret != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to get upper bound of available ID range.\n"));
+              "Failed to get upper bound of available ID range.\n");
         ret = EIO;
         goto done;
     }
@@ -344,19 +344,19 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
         ret = sss_idmap_calculate_range(idmap_ctx->map, dom_sid, &slice, &range);
         if (ret != IDMAP_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to calculate range for domain [%s]: [%d]\n", dom_name,
-                   ret));
+                  "Failed to calculate range for domain [%s]: [%d]\n", dom_name,
+                   ret);
             ret = EIO;
             goto done;
         }
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Adding domain [%s] as slice [%"SPRIid"]\n", dom_sid, slice));
+              "Adding domain [%s] as slice [%"SPRIid"]\n", dom_sid, slice);
 
         if (range.max > idmap_upper) {
             /* This should never happen */
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("BUG: Range maximum exceeds the global maximum: "
-                   "%u > %"SPRIid"\n", range.max, idmap_upper));
+                  "BUG: Range maximum exceeds the global maximum: "
+                   "%u > %"SPRIid"\n", range.max, idmap_upper);
             ret = EINVAL;
             goto done;
         }
@@ -364,7 +364,7 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
         ret = sdap_idmap_get_configured_external_range(idmap_ctx, &range);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("sdap_idmap_get_configured_external_range failed.\n"));
+                  "sdap_idmap_get_configured_external_range failed.\n");
             return ret;
         }
     }
@@ -374,8 +374,8 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
                                   NULL, 0, external_mapping);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not add domain [%s] to the map: [%d]\n",
-               dom_name, err));
+              "Could not add domain [%s] to the map: [%d]\n",
+               dom_name, err);
         ret = EIO;
         goto done;
     }
@@ -388,7 +388,7 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
                                         dom_name, dom_sid,
                                         slice);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_idmap_store_mapping failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_idmap_store_mapping failed.\n");
             goto done;
         }
     }
@@ -467,14 +467,14 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
                                                  &dom_sid_str);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not parse domain SID from [%s]\n", sid_str));
+                  "Could not parse domain SID from [%s]\n", sid_str);
             goto done;
         }
 
         ret = idmap_ctx->find_new_domain(idmap_ctx, dom_sid_str, dom_sid_str);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not add new domain for sid [%s]\n", sid_str));
+                  "Could not add new domain for sid [%s]\n", sid_str);
             goto done;
         }
 
@@ -484,23 +484,23 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
                                     (uint32_t *)id);
         if (err != IDMAP_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not convert objectSID [%s] to a UNIX ID\n",
-                   sid_str));
+                  "Could not convert objectSID [%s] to a UNIX ID\n",
+                   sid_str);
             ret = EIO;
             goto done;
         }
         break;
     case IDMAP_BUILTIN_SID:
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Object SID [%s] is a built-in one.\n", sid_str));
+              "Object SID [%s] is a built-in one.\n", sid_str);
         /* ENOTSUP indicates built-in SID */
         ret = ENOTSUP;
         goto done;
         break;
     default:
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not convert objectSID [%s] to a UNIX ID\n",
-               sid_str));
+              "Could not convert objectSID [%s] to a UNIX ID\n",
+               sid_str);
         ret = EIO;
         goto done;
     }
@@ -561,7 +561,7 @@ bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
     } else {
         tmp_ctx = talloc_new(NULL);
         if (tmp_ctx == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
             return false;
         }
 
@@ -569,7 +569,7 @@ bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
                                                  &new_dom_sid);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not parse domain SID from [%s]\n", dom_sid));
+                  "Could not parse domain SID from [%s]\n", dom_sid);
             talloc_free(tmp_ctx);
             return false;
         }
@@ -579,7 +579,7 @@ bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
     talloc_free(tmp_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not add new domain for sid [%s]\n", dom_sid));
+              "Could not add new domain for sid [%s]\n", dom_sid);
         return false;
     }
 

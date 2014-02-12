@@ -72,7 +72,7 @@ void teardown_dom_list(void **state)
     struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
                                                       struct dom_list_test_ctx);
     if (test_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
         return;
     }
 

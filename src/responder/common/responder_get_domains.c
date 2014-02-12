@@ -97,13 +97,13 @@ sss_dp_get_domains_msg(void *pvt)
                                        DP_INTERFACE,
                                        DP_METHOD_GETDOMAINS);
     if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Sending get domains request for [%s][%sforced][%s]\n",
-           info->dom->name, info->force ? "" : "not ", info->hint));
+          "Sending get domains request for [%s][%sforced][%s]\n",
+           info->dom->name, info->force ? "" : "not ", info->hint);
 
     /* Send the hint argument to provider as well. This will
      * be useful for some cases of transitional trust where
@@ -114,7 +114,7 @@ sss_dp_get_domains_msg(void *pvt)
                                      DBUS_TYPE_STRING, &info->hint,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
-        DEBUG(SSSDBG_OP_FAILURE ,("Failed to build message\n"));
+        DEBUG(SSSDBG_OP_FAILURE ,"Failed to build message\n");
         dbus_message_unref(msg);
         return NULL;
     }
@@ -163,7 +163,7 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
     }
 
     if (rctx->domains == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No domains configured.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No domains configured.\n");
         ret = EINVAL;
         goto immediately;
     }
@@ -172,11 +172,11 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
         ret = check_last_request(rctx, hint);
         if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_FUNC,
-                  ("Last call was too recent, nothing to do!\n"));
+                  "Last call was too recent, nothing to do!\n");
             goto immediately;
         } else if (ret != EAGAIN) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("check_domain_request failed with [%d][%s]\n",
-                                      ret, strerror(ret)));
+            DEBUG(SSSDBG_TRACE_FUNC, "check_domain_request failed with [%d][%s]\n",
+                                      ret, strerror(ret));
             goto immediately;
         }
     }
@@ -246,8 +246,8 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
 
     ret = process_subdomains(state->dom);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("process_subdomains failed, "
-                                  "trying next domain.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "process_subdomains failed, "
+                                  "trying next domain.\n");
         goto fail;
     }
 
@@ -289,8 +289,8 @@ process_subdomains(struct sss_domain_info *domain)
         domain->domain_id == NULL) {
         ret = sysdb_master_domain_update(domain);
         if (ret != EOK) {
-                DEBUG(SSSDBG_FUNC_DATA, ("sysdb_master_domain_get_info " \
-                                         "failed.\n"));
+                DEBUG(SSSDBG_FUNC_DATA, "sysdb_master_domain_get_info " \
+                                         "failed.\n");
                 goto done;
         }
     }
@@ -300,7 +300,7 @@ process_subdomains(struct sss_domain_info *domain)
      */
     ret = sysdb_update_subdomains(domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FUNC_DATA, ("sysdb_update_subdomains failed.\n"));
+        DEBUG(SSSDBG_FUNC_DATA, "sysdb_update_subdomains failed.\n");
         goto done;
     }
 
@@ -315,8 +315,8 @@ process_subdomains(struct sss_domain_info *domain)
 
 done:
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to update sub-domains "
-                                  "of domain [%s].\n", domain->name));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to update sub-domains "
+                                  "of domain [%s].\n", domain->name);
     }
 
     return ret;
@@ -337,8 +337,8 @@ static void set_time_of_last_request(struct resp_ctx *rctx)
     ret = gettimeofday(&rctx->get_domains_last_call, NULL);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_TRACE_FUNC, ("gettimeofday failed [%d][%s].\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_TRACE_FUNC, "gettimeofday failed [%d][%s].\n",
+                                  ret, strerror(ret));
     }
 }
 
@@ -380,7 +380,7 @@ static void get_domains_at_startup_done(struct tevent_req *req)
     ret = sss_dp_get_domains_recv(req);
     talloc_free(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_dp_get_domains request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sss_dp_get_domains request failed.\n");
     }
 
     return;
@@ -397,7 +397,7 @@ static void get_domains_at_startup(struct tevent_context *ev,
 
     req = sss_dp_get_domains_send(rctx, rctx, true, NULL);
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_dp_get_domains_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sss_dp_get_domains_send failed.\n");
         return;
     }
 
@@ -413,7 +413,7 @@ errno_t schedule_get_domains_task(TALLOC_CTX *mem_ctx,
 
     imm = tevent_create_immediate(mem_ctx);
     if (imm == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("tevent_create_immediate failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "tevent_create_immediate failed.\n");
         return ENOMEM;
     }
 

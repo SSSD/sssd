@@ -59,7 +59,7 @@ static int is_logged_in(TALLOC_CTX *mem_ctx, uid_t uid)
     ret = get_uid_table(mem_ctx, &uid_table);
     if (ret == ENOSYS) return ret;
     if (ret != EOK) {
-        DEBUG(1, ("Cannot initialize hash table.\n"));
+        DEBUG(1, "Cannot initialize hash table.\n");
         return ret;
     }
 
@@ -98,7 +98,7 @@ static int kick_user(struct tools_ctx *tctx)
         if (pid == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("fork failed [%d]: %s\n", ret, strerror(ret)));
+                  "fork failed [%d]: %s\n", ret, strerror(ret));
             return ret;
         }
 
@@ -109,7 +109,7 @@ static int kick_user(struct tools_ctx *tctx)
             }
         }
         if (child_pid == -1) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("waitpid failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "waitpid failed\n");
             return errno;
         }
     }
@@ -147,7 +147,7 @@ int main(int argc, const char **argv)
 
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(1, ("set_locale failed (%d): %s\n", ret, strerror(ret)));
+        DEBUG(1, "set_locale failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error setting the locale\n");
         ret = EXIT_FAILURE;
         goto fini;
@@ -191,7 +191,7 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&tctx);
     if (ret != EOK) {
-        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        DEBUG(1, "init_sss_tools failed (%d): %s\n", ret, strerror(ret));
         if (ret == ENOENT) {
             ERROR("Error initializing the tools - no local domain\n");
         } else {
@@ -316,7 +316,7 @@ int main(int argc, const char **argv)
 
 done:
     if (ret) {
-        DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
+        DEBUG(1, "sysdb operation failed (%d)[%s]\n", ret, strerror(ret));
         switch (ret) {
             case ENOENT:
                 ERROR("No such user in local domain. "

@@ -34,12 +34,12 @@ int ad_sudo_init(struct be_ctx *be_ctx,
     struct ad_options *ad_options;
     struct sdap_options *ldap_options;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing sudo AD back end\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing sudo AD back end\n");
 
     ret = sdap_sudo_init(be_ctx, id_ctx->sdap_id_ctx, ops, pvt_data);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize LDAP SUDO [%d]: %s\n",
-                                 ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize LDAP SUDO [%d]: %s\n",
+                                 ret, strerror(ret));
         return ret;
     }
 

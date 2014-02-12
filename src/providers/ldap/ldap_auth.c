@@ -62,13 +62,13 @@ static errno_t add_expired_warning(struct pam_data *pd, long exp_time)
     uint32_t *data;
 
     if (exp_time < 0 || exp_time > UINT32_MAX) {
-        DEBUG(1, ("Time to expire out of range.\n"));
+        DEBUG(1, "Time to expire out of range.\n");
         return EINVAL;
     }
 
     data = talloc_array(pd, uint32_t, 2);
     if (data == NULL) {
-        DEBUG(1, ("talloc_size failed.\n"));
+        DEBUG(1, "talloc_size failed.\n");
         return ENOMEM;
     }
 
@@ -78,7 +78,7 @@ static errno_t add_expired_warning(struct pam_data *pd, long exp_time)
     ret = pam_add_response(pd, SSS_PAM_USER_INFO, 2 * sizeof(uint32_t),
                            (uint8_t *) data);
     if (ret != EOK) {
-        DEBUG(1, ("pam_add_response failed.\n"));
+        DEBUG(1, "pam_add_response failed.\n");
     }
 
     return EOK;
@@ -98,30 +98,30 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
 
     end = strptime(expire_date, "%Y%m%d%H%M%SZ", &tm);
     if (end == NULL) {
-        DEBUG(1, ("Kerberos expire date [%s] invalid.\n", expire_date));
+        DEBUG(1, "Kerberos expire date [%s] invalid.\n", expire_date);
         return EINVAL;
     }
     if (*end != '\0') {
-        DEBUG(1, ("Kerberos expire date [%s] contains extra characters.\n",
-                  expire_date));
+        DEBUG(1, "Kerberos expire date [%s] contains extra characters.\n",
+                  expire_date);
         return EINVAL;
     }
 
     expire_time = mktime(&tm);
     if (expire_time == -1) {
-        DEBUG(1, ("mktime failed to convert [%s].\n", expire_date));
+        DEBUG(1, "mktime failed to convert [%s].\n", expire_date);
         return EINVAL;
     }
 
     tzset();
     expire_time -= timezone;
     DEBUG(SSSDBG_TRACE_ALL,
-          ("Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
+          "Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
            "daylight [%d] now [%ld] expire_time [%ld].\n", tzname[0],
-           tzname[1], timezone, daylight, now, expire_time));
+           tzname[1], timezone, daylight, now, expire_time);
 
     if (difftime(now, expire_time) > 0.0) {
-        DEBUG(4, ("Kerberos password expired.\n"));
+        DEBUG(4, "Kerberos password expired.\n");
         ret = ERR_PASSWORD_EXPIRED;
     } else {
         if (pwd_exp_warning >= 0) {
@@ -134,7 +134,7 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
             expiration_warning == 0)) {
             ret = add_expired_warning(pd, (long) difftime(expire_time, now));
             if (ret != EOK) {
-                DEBUG(1, ("add_expired_warning failed.\n"));
+                DEBUG(1, "add_expired_warning failed.\n");
             }
         }
         ret = EOK;
@@ -152,14 +152,14 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
     int ret;
 
     if (spwd->sp_lstchg <= 0) {
-        DEBUG(4, ("Last change day is not set, new password needed.\n"));
+        DEBUG(4, "Last change day is not set, new password needed.\n");
         return ERR_PASSWORD_EXPIRED;
     }
 
     today = (long) (now / (60 * 60 *24));
     password_age = today - spwd->sp_lstchg;
     if (password_age < 0) {
-        DEBUG(2, ("The last password change time is in the future!.\n"));
+        DEBUG(2, "The last password change time is in the future!.\n");
         return EOK;
     }
 
@@ -167,12 +167,12 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
         (spwd->sp_max != -1 && spwd->sp_inact != -1 &&
          password_age > spwd->sp_max + spwd->sp_inact))
     {
-        DEBUG(4, ("Account expired.\n"));
+        DEBUG(4, "Account expired.\n");
         return ERR_ACCOUNT_EXPIRED;
     }
 
     if (spwd->sp_max != -1 && password_age > spwd->sp_max) {
-        DEBUG(4, ("Password expired.\n"));
+        DEBUG(4, "Password expired.\n");
         return ERR_PASSWORD_EXPIRED;
     }
 
@@ -188,7 +188,7 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
 
         ret = add_expired_warning(pd, exp);
         if (ret != EOK) {
-            DEBUG(1, ("add_expired_warning failed.\n"));
+            DEBUG(1, "add_expired_warning failed.\n");
         }
     }
 
@@ -211,7 +211,7 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
 
         data = talloc_size(pd, 2* sizeof(uint32_t));
         if (data == NULL) {
-            DEBUG(1, ("talloc_size failed.\n"));
+            DEBUG(1, "talloc_size failed.\n");
             return ENOMEM;
         }
 
@@ -235,7 +235,7 @@ static errno_t check_pwexpire_ldap(struct pam_data *pd,
         ret = pam_add_response(pd, SSS_PAM_USER_INFO, 2* sizeof(uint32_t),
                                (uint8_t*)data);
         if (ret != EOK) {
-            DEBUG(1, ("pam_add_response failed.\n"));
+            DEBUG(1, "pam_add_response failed.\n");
         }
     }
 
@@ -259,23 +259,23 @@ static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
 
     pwd_policy = dp_opt_get_string(opts, SDAP_PWD_POLICY);
     if (pwd_policy == NULL) {
-        DEBUG(1, ("Missing password policy.\n"));
+        DEBUG(1, "Missing password policy.\n");
         return EINVAL;
     }
 
     if (strcasecmp(pwd_policy, PWD_POL_OPT_NONE) == 0) {
-        DEBUG(9, ("No password policy requested.\n"));
+        DEBUG(9, "No password policy requested.\n");
         return EOK;
     } else if (strcasecmp(pwd_policy, PWD_POL_OPT_MIT) == 0) {
         mark = ldb_msg_find_attr_as_string(msg, SYSDB_KRBPW_LASTCHANGE, NULL);
         if (mark != NULL) {
-            DEBUG(9, ("Found Kerberos password expiration attributes.\n"));
+            DEBUG(9, "Found Kerberos password expiration attributes.\n");
             val = ldb_msg_find_attr_as_string(msg, SYSDB_KRBPW_EXPIRATION,
                                               NULL);
             if (val != NULL) {
                 *data = talloc_strdup(mem_ctx, val);
                 if (*data == NULL) {
-                    DEBUG(1, ("talloc_strdup failed.\n"));
+                    DEBUG(1, "talloc_strdup failed.\n");
                     return ENOMEM;
                 }
                 *type = PWEXPIRE_KERBEROS;
@@ -283,18 +283,18 @@ static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
                 return EOK;
             }
         } else {
-            DEBUG(1, ("No Kerberos password expiration attributes found, "
+            DEBUG(1, "No Kerberos password expiration attributes found, "
                       "but MIT Kerberos password policy was requested. "
-                      "Access will be denied.\n"));
+                      "Access will be denied.\n");
             return EACCES;
         }
     } else if (strcasecmp(pwd_policy, PWD_POL_OPT_SHADOW) == 0) {
         mark = ldb_msg_find_attr_as_string(msg, SYSDB_SHADOWPW_LASTCHANGE, NULL);
         if (mark != NULL) {
-            DEBUG(9, ("Found shadow password expiration attributes.\n"));
+            DEBUG(9, "Found shadow password expiration attributes.\n");
             spwd = talloc_zero(mem_ctx, struct spwd);
             if (spwd == NULL) {
-                DEBUG(1, ("talloc failed.\n"));
+                DEBUG(1, "talloc failed.\n");
                 return ENOMEM;
             }
 
@@ -327,14 +327,14 @@ static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
 
             return EOK;
         } else {
-            DEBUG(1, ("No shadow password attributes found, "
+            DEBUG(1, "No shadow password attributes found, "
                       "but shadow password policy was requested. "
-                      "Access will be denied.\n"));
+                      "Access will be denied.\n");
             return EACCES;
         }
     }
 
-    DEBUG(9, ("No password expiration attributes found.\n"));
+    DEBUG(9, "No password expiration attributes found.\n");
     return EOK;
 
 shadow_fail:
@@ -382,7 +382,7 @@ static struct tevent_req *get_user_dn_send(TALLOC_CTX *memctx,
                              opts->user_map[SDAP_OC_USER].name);
     talloc_zfree(clean_name);
     if (filter == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build the base filter\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build the base filter\n");
         ret = ENOMEM;
         goto done;
     }
@@ -434,17 +434,17 @@ static void get_user_dn_done(struct tevent_req *subreq)
     ret = sdap_search_user_recv(state, subreq, NULL, &users, &count);
     talloc_zfree(subreq);
     if (ret && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to retrieve users\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve users\n");
         tevent_req_error(req, ret);
         return;
     }
 
     if (count == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("No such user\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "No such user\n");
         tevent_req_error(req, ENOMEM);
         return;
     } else if (count > 1) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Multiple users matched\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Multiple users matched\n");
         tevent_req_error(req, EIO);
         return;
     }
@@ -453,7 +453,7 @@ static void get_user_dn_done(struct tevent_req *subreq)
     ret = sysdb_attrs_get_el_ext(users[0], SYSDB_ORIG_DN, false, &el);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("originalDN is not available for [%s].\n", state->username));
+              "originalDN is not available for [%s].\n", state->username);
         tevent_req_error(req, ret);
         return;
     }
@@ -464,8 +464,8 @@ static void get_user_dn_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Found originalDN [%s] for [%s]\n",
-          state->orig_dn, state->username));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Found originalDN [%s] for [%s]\n",
+          state->orig_dn, state->username);
     tevent_req_done(req);
 }
 
@@ -556,13 +556,13 @@ static int get_user_dn(TALLOC_CTX *memctx,
                                                   &pw_expire_type,
                                                   &pw_expire_data);
         if (ret != EOK) {
-            DEBUG(1, ("find_password_expiration_attributes failed.\n"));
+            DEBUG(1, "find_password_expiration_attributes failed.\n");
         }
         break;
 
     default:
-        DEBUG(1, ("User search by name (%s) returned > 1 results!\n",
-                  username));
+        DEBUG(1, "User search by name (%s) returned > 1 results!\n",
+                  username);
         ret = EFAULT;
         break;
     }
@@ -661,7 +661,7 @@ static struct tevent_req *auth_get_server(struct tevent_req *req)
                                       state->sdap_service->name,
                                       state->srv == NULL ? true : false);
     if (!next_req) {
-        DEBUG(1, ("be_resolve_server_send failed.\n"));
+        DEBUG(1, "be_resolve_server_send failed.\n");
         return NULL;
     }
 
@@ -689,8 +689,8 @@ static void auth_resolve_done(struct tevent_req *subreq)
 
     /* Determine whether we need to use TLS */
     if (sdap_is_secure_uri(state->ctx->service->uri)) {
-        DEBUG(8, ("[%s] is a secure channel. No need to run START_TLS\n",
-                  state->ctx->service->uri));
+        DEBUG(8, "[%s] is a secure channel. No need to run START_TLS\n",
+                  state->ctx->service->uri);
         use_tls = false;
     } else {
 
@@ -816,8 +816,8 @@ static void auth_bind_user_done(struct tevent_req *subreq)
     ret = sdap_auth_recv(subreq, state, &ppolicy);
     talloc_zfree(subreq);
     if (ppolicy != NULL) {
-        DEBUG(9,("Found ppolicy data, "
-                 "assuming LDAP password policies are active.\n"));
+        DEBUG(9,"Found ppolicy data, "
+                 "assuming LDAP password policies are active.\n");
         state->pw_expire_type = PWEXPIRE_LDAP_PASSWORD_POLICY;
         state->pw_expire_data = ppolicy;
     }
@@ -894,7 +894,7 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
 
     if (be_is_offline(ctx->be)) {
-        DEBUG(4, ("Backend is marked offline, retry later!\n"));
+        DEBUG(4, "Backend is marked offline, retry later!\n");
         pd->pam_status = PAM_AUTHINFO_UNAVAIL;
         dp_err = DP_ERR_OFFLINE;
         goto done;
@@ -902,18 +902,18 @@ void sdap_pam_chpass_handler(struct be_req *breq)
 
     if ((pd->priv == 1) && (pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) &&
         (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD)) {
-        DEBUG(4, ("Password reset by root is not supported.\n"));
+        DEBUG(4, "Password reset by root is not supported.\n");
         pd->pam_status = PAM_PERM_DENIED;
         dp_err = DP_ERR_OK;
         goto done;
     }
 
-    DEBUG(2, ("starting password change request for user [%s].\n", pd->user));
+    DEBUG(2, "starting password change request for user [%s].\n", pd->user);
 
     pd->pam_status = PAM_SYSTEM_ERR;
 
     if (pd->cmd != SSS_PAM_CHAUTHTOK && pd->cmd != SSS_PAM_CHAUTHTOK_PRELIM) {
-        DEBUG(2, ("chpass target was called by wrong pam command.\n"));
+        DEBUG(2, "chpass target was called by wrong pam command.\n");
         goto done;
     }
 
@@ -955,8 +955,8 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
     talloc_zfree(req);
     if ((ret == EOK || ret == ERR_PASSWORD_EXPIRED) &&
         state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
-        DEBUG(9, ("Initial authentication for change password operation "
-                  "successful.\n"));
+        DEBUG(9, "Initial authentication for change password operation "
+                  "successful.\n");
         state->pd->pam_status = PAM_SUCCESS;
         dp_err = DP_ERR_OK;
         goto done;
@@ -972,8 +972,8 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
                                           be_ctx->domain->pwd_expiration_warning);
 
             if (ret == ERR_PASSWORD_EXPIRED) {
-                DEBUG(1, ("LDAP provider cannot change kerberos "
-                          "passwords.\n"));
+                DEBUG(1, "LDAP provider cannot change kerberos "
+                          "passwords.\n");
                 state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
@@ -982,7 +982,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
         case PWEXPIRE_NONE:
             break;
         default:
-            DEBUG(1, ("Unknow pasword expiration type.\n"));
+            DEBUG(1, "Unknow pasword expiration type.\n");
                 state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
         }
@@ -991,10 +991,10 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
     switch (ret) {
     case EOK:
     case ERR_PASSWORD_EXPIRED:
-        DEBUG(7, ("user [%s] successfully authenticated.\n", state->dn));
+        DEBUG(7, "user [%s] successfully authenticated.\n", state->dn);
         if (pw_expire_type == PWEXPIRE_SHADOW) {
 /* TODO: implement async ldap modify request */
-            DEBUG(1, ("Changing shadow password attributes not implemented.\n"));
+            DEBUG(1, "Changing shadow password attributes not implemented.\n");
             state->pd->pam_status = PAM_MODULE_UNKNOWN;
             goto done;
         } else {
@@ -1018,7 +1018,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
                                                   state->sh, state->dn,
                                                   password, new_password);
             if (!subreq) {
-                DEBUG(2, ("Failed to change password for %s\n", state->username));
+                DEBUG(2, "Failed to change password for %s\n", state->username);
                 goto done;
             }
             tevent_req_set_callback(subreq, sdap_pam_chpass_done, state);
@@ -1032,12 +1032,12 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
                                           &msg_len, &msg);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("pack_user_info_chpass_error failed.\n"));
+                  "pack_user_info_chpass_error failed.\n");
         } else {
             ret = pam_add_response(state->pd, SSS_PAM_USER_INFO, msg_len,
                                     msg);
             if (ret != EOK) {
-               DEBUG(SSSDBG_CRIT_FAILURE, ("pam_add_response failed.\n"));
+               DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
             }
         }
 
@@ -1092,12 +1092,12 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
         ret = pack_user_info_chpass_error(state->pd, user_error_message,
                                             &msg_len, &msg);
         if (ret != EOK) {
-            DEBUG(1, ("pack_user_info_chpass_error failed.\n"));
+            DEBUG(1, "pack_user_info_chpass_error failed.\n");
         } else {
             ret = pam_add_response(state->pd, SSS_PAM_USER_INFO, msg_len,
                                     msg);
             if (ret != EOK) {
-                DEBUG(1, ("pam_add_response failed.\n"));
+                DEBUG(1, "pam_add_response failed.\n");
             }
         }
     }
@@ -1166,7 +1166,7 @@ void sdap_pam_auth_handler(struct be_req *breq)
     pd = talloc_get_type(be_req_get_data(breq), struct pam_data);
 
     if (be_is_offline(ctx->be)) {
-        DEBUG(4, ("Backend is marked offline, retry later!\n"));
+        DEBUG(4, "Backend is marked offline, retry later!\n");
         pd->pam_status = PAM_AUTHINFO_UNAVAIL;
         dp_err = DP_ERR_OFFLINE;
         goto done;
@@ -1231,7 +1231,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         case PWEXPIRE_SHADOW:
             ret = check_pwexpire_shadow(pw_expire_data, time(NULL), state->pd);
             if (ret != EOK) {
-                DEBUG(1, ("check_pwexpire_shadow failed.\n"));
+                DEBUG(1, "check_pwexpire_shadow failed.\n");
                 state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
@@ -1241,7 +1241,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
                                           state->pd,
                                           be_ctx->domain->pwd_expiration_warning);
             if (ret != EOK) {
-                DEBUG(1, ("check_pwexpire_kerberos failed.\n"));
+                DEBUG(1, "check_pwexpire_kerberos failed.\n");
                 state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
@@ -1250,7 +1250,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
             ret = check_pwexpire_ldap(state->pd, pw_expire_data,
                                       be_ctx->domain->pwd_expiration_warning);
             if (ret != EOK) {
-                DEBUG(1, ("check_pwexpire_ldap failed.\n"));
+                DEBUG(1, "check_pwexpire_ldap failed.\n");
                 state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
@@ -1258,7 +1258,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         case PWEXPIRE_NONE:
             break;
         default:
-            DEBUG(1, ("Unknow pasword expiration type.\n"));
+            DEBUG(1, "Unknow pasword expiration type.\n");
                 state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
         }
@@ -1305,11 +1305,11 @@ static void sdap_pam_auth_done(struct tevent_req *req)
 
         /* password caching failures are not fatal errors */
         if (ret != EOK) {
-            DEBUG(2, ("Failed to cache password for %s\n",
-                      state->pd->user));
+            DEBUG(2, "Failed to cache password for %s\n",
+                      state->pd->user);
         } else {
-            DEBUG(4, ("Password successfully cached for %s\n",
-                      state->pd->user));
+            DEBUG(4, "Password successfully cached for %s\n",
+                      state->pd->user);
         }
     }
 

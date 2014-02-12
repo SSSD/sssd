@@ -49,7 +49,7 @@ int flush_nscd_cache(enum nscd_db flush_db)
             break;
 
         default:
-            DEBUG(1, ("Unknown nscd database\n"));
+            DEBUG(1, "Unknown nscd database\n");
             ret = EINVAL;
             goto done;
     }
@@ -59,10 +59,10 @@ int flush_nscd_cache(enum nscd_db flush_db)
     case 0:
         execl(NSCD_PATH, "nscd", NSCD_RELOAD_ARG, service, NULL);
         /* if this returns it is an error */
-        DEBUG(1, ("execl(3) failed: %d(%s)\n", errno, strerror(errno)));
+        DEBUG(1, "execl(3) failed: %d(%s)\n", errno, strerror(errno));
         exit(errno);
     case -1:
-        DEBUG(1, ("fork failed\n"));
+        DEBUG(1, "fork failed\n");
         ret = EFAULT;
         break;
     default:
@@ -76,11 +76,11 @@ int flush_nscd_cache(enum nscd_db flush_db)
                 if (ret > 0) {
                     /* The flush fails if nscd is not running, so do not care
                     * about the return code */
-                    DEBUG(8, ("Error flushing cache, is nscd running?\n"));
+                    DEBUG(8, "Error flushing cache, is nscd running?\n");
                 }
             }
         } else {
-            DEBUG(5, ("Failed to wait for children %d\n", nscd_pid));
+            DEBUG(5, "Failed to wait for children %d\n", nscd_pid);
             ret = EIO;
         }
     }
@@ -140,8 +140,8 @@ errno_t sss_nscd_parse_conf(const char *conf_path)
 
     fp = fopen(conf_path, "r");
     if (fp == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Couldn't open NSCD configuration "
-                    "file [%s]\n", NSCD_CONF_PATH));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Couldn't open NSCD configuration "
+                    "file [%s]\n", NSCD_CONF_PATH);
         return ENOENT;
     }
 
@@ -196,9 +196,9 @@ errno_t sss_nscd_parse_conf(const char *conf_path)
 
     ret = ferror(fp);
     if (ret) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Reading NSCD configuration file [%s] "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Reading NSCD configuration file [%s] "
               "ended with failure [%d]: %s.\n",
-              NSCD_CONF_PATH, ret, strerror(ret)));
+              NSCD_CONF_PATH, ret, strerror(ret));
         ret = ENOENT;
         goto done;
     }

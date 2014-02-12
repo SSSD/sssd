@@ -52,7 +52,7 @@ errno_t sysdb_ldb_connect(TALLOC_CTX *mem_ctx, const char *filename,
 
     mod_path = getenv(LDB_MODULES_PATH);
     if (mod_path != NULL) {
-        DEBUG(9, ("Setting ldb module path to [%s].\n", mod_path));
+        DEBUG(9, "Setting ldb module path to [%s].\n", mod_path);
         ldb_set_modules_dir(ldb, mod_path);
     }
 
@@ -667,7 +667,7 @@ int sysdb_attrs_add_lc_name_alias(struct sysdb_attrs *attrs,
 
     lc_str = sss_tc_utf8_str_tolower(attrs, value);
     if (lc_str == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot convert name to lowercase\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase\n");
         return ENOMEM;
     }
 
@@ -726,21 +726,21 @@ int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
     }
     el->values = vals;
 
-    DEBUG(9, ("Adding %d members to existing %d ones\n",
-              num, el->num_values));
+    DEBUG(9, "Adding %d members to existing %d ones\n",
+              num, el->num_values);
 
     for (i = 0, j = el->num_values; i < num; i++) {
 
         member = sysdb_user_strdn(el->values, domain, list[i]);
         if (!member) {
-            DEBUG(4, ("Failed to get user dn for [%s]\n", list[i]));
+            DEBUG(4, "Failed to get user dn for [%s]\n", list[i]);
             continue;
         }
         el->values[j].data = (uint8_t *)member;
         el->values[j].length = strlen(member);
         j++;
 
-        DEBUG(7, ("    member #%d: [%s]\n", i, member));
+        DEBUG(7, "    member #%d: [%s]\n", i, member);
     }
     el->num_values = j;
 
@@ -814,8 +814,8 @@ int sysdb_error_to_errno(int ldberr)
         return EINVAL;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("LDB returned unexpected error: [%s]\n",
-               ldb_strerror(ldberr)));
+              "LDB returned unexpected error: [%s]\n",
+               ldb_strerror(ldberr));
         return EFAULT;
     }
 }
@@ -828,7 +828,7 @@ int sysdb_transaction_start(struct sysdb_ctx *sysdb)
 
     ret = ldb_transaction_start(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to start ldb transaction! (%d)\n", ret));
+        DEBUG(1, "Failed to start ldb transaction! (%d)\n", ret);
     }
     return sysdb_error_to_errno(ret);
 }
@@ -839,7 +839,7 @@ int sysdb_transaction_commit(struct sysdb_ctx *sysdb)
 
     ret = ldb_transaction_commit(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to commit ldb transaction! (%d)\n", ret));
+        DEBUG(1, "Failed to commit ldb transaction! (%d)\n", ret);
     }
     return sysdb_error_to_errno(ret);
 }
@@ -850,7 +850,7 @@ int sysdb_transaction_cancel(struct sysdb_ctx *sysdb)
 
     ret = ldb_transaction_cancel(sysdb->ldb);
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to cancel ldb transaction! (%d)\n", ret));
+        DEBUG(1, "Failed to cancel ldb transaction! (%d)\n", ret);
     }
     return sysdb_error_to_errno(ret);
 }
@@ -911,10 +911,10 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
     /* do a synchronous add */
     ret = ldb_add(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to initialize DB (%d, [%s]) "
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to initialize DB (%d, [%s]) "
                                      "for domain %s!\n",
                                      ret, ldb_errstring(sysdb->ldb),
-                                     domain_name));
+                                     domain_name);
         ret = EIO;
         goto done;
     }
@@ -941,10 +941,10 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
     /* do a synchronous add */
     ret = ldb_add(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to initialize DB (%d, [%s]) "
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to initialize DB (%d, [%s]) "
                                      "for domain %s!\n",
                                      ret, ldb_errstring(sysdb->ldb),
-                                     domain_name));
+                                     domain_name);
         ret = EIO;
         goto done;
     }
@@ -971,10 +971,10 @@ errno_t sysdb_domain_create(struct sysdb_ctx *sysdb, const char *domain_name)
     /* do a synchronous add */
     ret = ldb_add(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to initialize DB (%d, [%s]) for "
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to initialize DB (%d, [%s]) for "
                                      "domain %s!\n",
                                      ret, ldb_errstring(sysdb->ldb),
-                                     domain_name));
+                                     domain_name);
         ret = EIO;
         goto done;
     }
@@ -1046,11 +1046,11 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         goto done;
     }
-    DEBUG(5, ("DB File for %s: %s\n", domain->name, sysdb->ldb_file));
+    DEBUG(5, "DB File for %s: %s\n", domain->name, sysdb->ldb_file);
 
     ret = sysdb_ldb_connect(sysdb, sysdb->ldb_file, &sysdb->ldb);
     if (ret != EOK) {
-        DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+        DEBUG(1, "sysdb_ldb_connect failed.\n");
         goto done;
     }
 
@@ -1105,14 +1105,14 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
 
         if (!allow_upgrade) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Wrong DB version (got %s expected %s)\n",
-                   version, SYSDB_VERSION));
+                  "Wrong DB version (got %s expected %s)\n",
+                   version, SYSDB_VERSION);
             ret = sysdb_version_check(SYSDB_VERSION, version);
             goto done;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Upgrading DB [%s] from version: %s\n",
-                  domain->name, version));
+        DEBUG(SSSDBG_CONF_SETTINGS, "Upgrading DB [%s] from version: %s\n",
+                  domain->name, version);
 
         if (strcmp(version, SYSDB_VERSION_0_3) == 0) {
             ret = sysdb_upgrade_03(sysdb, &version);
@@ -1212,13 +1212,13 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
             talloc_zfree(sysdb->ldb);
             ret = sysdb_ldb_connect(sysdb, sysdb->ldb_file, &sysdb->ldb);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb_ldb_connect failed.\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
             }
             goto done;
         }
 
-        DEBUG(0,("Unknown DB version [%s], expected [%s] for domain %s!\n",
-                 version?version:"not found", SYSDB_VERSION, domain->name));
+        DEBUG(0,"Unknown DB version [%s], expected [%s] for domain %s!\n",
+                 version?version:"not found", SYSDB_VERSION, domain->name);
         ret = sysdb_version_check(SYSDB_VERSION, version);
         goto done;
     }
@@ -1229,8 +1229,8 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     while ((ldif = ldb_ldif_read_string(sysdb->ldb, &base_ldif))) {
         ret = ldb_add(sysdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
-            DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
-                      ret, ldb_errstring(sysdb->ldb), domain->name));
+            DEBUG(0, "Failed to initialize DB (%d, [%s]) for domain %s!\n",
+                      ret, ldb_errstring(sysdb->ldb), domain->name);
             ret = EIO;
             goto done;
         }
@@ -1251,7 +1251,7 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     talloc_zfree(sysdb->ldb);
     ret = sysdb_ldb_connect(sysdb, sysdb->ldb_file, &sysdb->ldb);
     if (ret != EOK) {
-        DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+        DEBUG(1, "sysdb_ldb_connect failed.\n");
     }
 
 done:
@@ -1328,7 +1328,7 @@ int sysdb_attrs_replace_name(struct sysdb_attrs *attrs, const char *oldname,
             e = &(attrs->a[i]);
         }
         if (strcasecmp(newname, attrs->a[i].name) == 0) {
-            DEBUG(3, ("New attribute name [%s] already exists.\n", newname));
+            DEBUG(3, "New attribute name [%s] already exists.\n", newname);
             return EEXIST;
         }
     }
@@ -1336,7 +1336,7 @@ int sysdb_attrs_replace_name(struct sysdb_attrs *attrs, const char *oldname,
     if (e != NULL) {
         dummy = talloc_strdup(attrs, newname);
         if (dummy == NULL) {
-            DEBUG(1, ("talloc_strdup failed.\n"));
+            DEBUG(1, "talloc_strdup failed.\n");
             return ENOMEM;
         }
 
@@ -1458,7 +1458,7 @@ errno_t sysdb_get_bool(struct sysdb_ctx *sysdb,
         goto done;
     } else if (res->count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Got more than one reply for base search!\n"));
+              "Got more than one reply for base search!\n");
         ret = EIO;
         goto done;
     }
@@ -1515,7 +1515,7 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
         }
     } else if (res->count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Got more than one reply for base search!\n"));
+              "Got more than one reply for base search!\n");
         ret = EIO;
         goto done;
     } else {
@@ -1641,7 +1641,7 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
         goto done;
     }
     if (orig_dn_el->num_values == 0) {
-        DEBUG(1, ("Original DN is not available.\n"));
+        DEBUG(1, "Original DN is not available.\n");
         ret = EINVAL;
         goto done;
     } else if (orig_dn_el->num_values == 1) {
@@ -1650,26 +1650,26 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
                             &rdn_attr,
                             &rdn_val);
         if (ret != EOK) {
-            DEBUG(1, ("Could not get rdn from [%s]\n",
-                      (const char *) orig_dn_el->values[0].data));
+            DEBUG(1, "Could not get rdn from [%s]\n",
+                      (const char *) orig_dn_el->values[0].data);
             goto done;
         }
     } else {
-        DEBUG(1, ("Should not have more than one origDN\n"));
+        DEBUG(1, "Should not have more than one origDN\n");
         ret = EINVAL;
         goto done;
     }
 
     /* First check whether the attribute name matches */
-    DEBUG(8, ("Comparing attribute names [%s] and [%s]\n",
-              rdn_attr, ldap_attr));
+    DEBUG(8, "Comparing attribute names [%s] and [%s]\n",
+              rdn_attr, ldap_attr);
     if (strcasecmp(rdn_attr, ldap_attr) != 0) {
         /* Multiple entries, and the RDN attribute doesn't match.
          * We have no way of resolving this deterministically,
          * so we'll use the first value as a fallback.
          */
-        DEBUG(3, ("The entry has multiple names and the RDN attribute does "
-                  "not match. Will use the first value as fallback.\n"));
+        DEBUG(3, "The entry has multiple names and the RDN attribute does "
+                  "not match. Will use the first value as fallback.\n");
         *_primary = (const char *)sysdb_name_el->values[0].data;
         ret = EOK;
         goto done;
@@ -1690,7 +1690,7 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
          * throw up our hands. There's no deterministic way to
          * decide which name is correct.
          */
-        DEBUG(1, ("Cannot save entry. Unable to determine groupname\n"));
+        DEBUG(1, "Cannot save entry. Unable to determine groupname\n");
         ret = EINVAL;
         goto done;
     }
@@ -1699,8 +1699,8 @@ errno_t sysdb_attrs_primary_name(struct sysdb_ctx *sysdb,
 
 done:
     if (ret != EOK) {
-        DEBUG(1, ("Could not determine primary name: [%d][%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "Could not determine primary name: [%d][%s]\n",
+                  ret, strerror(ret));
     }
     talloc_free(tmp_ctx);
     return ret;
@@ -1753,7 +1753,7 @@ errno_t sysdb_attrs_get_aliases(TALLOC_CTX *mem_ctx,
 
     if (lowercase) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Domain is case-insensitive; will add lowercased aliases\n"));
+              "Domain is case-insensitive; will add lowercased aliases\n");
     }
 
     ai = 0;
@@ -1831,7 +1831,7 @@ errno_t sysdb_attrs_primary_name_list(struct sysdb_ctx *sysdb,
                                        ldap_attr,
                                        &name);
         if (ret != EOK) {
-            DEBUG(1, ("Could not determine primary name\n"));
+            DEBUG(1, "Could not determine primary name\n");
             /* Skip and continue. Don't advance 'j' */
             continue;
         }
@@ -1877,7 +1877,7 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_getpwnam(tmp_ctx, sysdb, domain, name, &res);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot canonicalize username\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot canonicalize username\n");
         goto done;
     }
 
@@ -1887,14 +1887,14 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
         goto done;
     } else if (res->count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("sysdb_getpwnam returned count: [%d]\n", res->count));
+              "sysdb_getpwnam returned count: [%d]\n", res->count);
         ret = EIO;
         goto done;
     }
 
     cname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     if (!cname) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("A user with no name?\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "A user with no name?\n");
         ret = ENOENT;
         goto done;
     }
@@ -1915,14 +1915,14 @@ errno_t sysdb_msg2attrs(TALLOC_CTX *mem_ctx, size_t count,
 
     a = talloc_array(mem_ctx, struct sysdb_attrs *, count);
     if (a == NULL) {
-        DEBUG(1, ("talloc_array failed.\n"));
+        DEBUG(1, "talloc_array failed.\n");
         return ENOMEM;
     }
 
     for (i = 0; i < count; i++) {
         a[i] = talloc(a, struct sysdb_attrs);
         if (a[i] == NULL) {
-            DEBUG(1, ("talloc failed.\n"));
+            DEBUG(1, "talloc failed.\n");
             talloc_free(a);
             return ENOMEM;
         }

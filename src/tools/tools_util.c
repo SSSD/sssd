@@ -49,14 +49,14 @@ static int setup_db(struct tools_ctx *ctx)
     /* Connect to the conf db */
     ret = confdb_init(ctx, &ctx->confdb, confdb_path);
     if (ret != EOK) {
-        DEBUG(1, ("Could not initialize connection to the confdb\n"));
+        DEBUG(1, "Could not initialize connection to the confdb\n");
         return ret;
     }
 
     ret = sssd_domain_init(ctx, ctx->confdb, "local", DB_PATH, &ctx->local);
     if (ret != EOK) {
         SYSDB_VERSION_ERROR(ret);
-        DEBUG(1, ("Could not initialize connection to the sysdb\n"));
+        DEBUG(1, "Could not initialize connection to the sysdb\n");
         return ret;
     }
     ctx->sysdb = ctx->local->sysdb;
@@ -144,8 +144,8 @@ int parse_group_name_domain(struct tools_ctx *tctx,
     for (i = 0; groups[i]; ++i) {
         ret = sss_parse_name(tctx, tctx->snctx, groups[i], &domain, &name);
         if (ret != EOK) {
-            DEBUG(1, ("Invalid name in group list, skipping: [%s] (%d)\n",
-                       groups[i], ret));
+            DEBUG(1, "Invalid name in group list, skipping: [%s] (%d)\n",
+                       groups[i], ret);
             continue;
         }
 
@@ -180,23 +180,23 @@ int parse_name_domain(struct tools_ctx *tctx,
 
     ret = sss_parse_name(tctx, tctx->snctx, fullname, &domain, &tctx->octx->name);
     if (ret != EOK) {
-        DEBUG(0, ("Cannot parse full name\n"));
+        DEBUG(0, "Cannot parse full name\n");
         return ret;
     }
-    DEBUG(5, ("Parsed username: %s\n", tctx->octx->name));
+    DEBUG(5, "Parsed username: %s\n", tctx->octx->name);
 
     if (domain) {
-        DEBUG(5, ("Parsed domain: %s\n", domain));
+        DEBUG(5, "Parsed domain: %s\n", domain);
         /* only the local domain, whatever named is allowed in tools */
         if (strcasecmp(domain, tctx->local->name) != 0) {
-            DEBUG(1, ("Invalid domain %s specified in FQDN\n", domain));
+            DEBUG(1, "Invalid domain %s specified in FQDN\n", domain);
             return EINVAL;
         }
     } else {
         if (tctx->local->fqnames) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Name '%s' does not seem to be FQDN "
-                   "('%s = TRUE' is set)\n", fullname, CONFDB_DOMAIN_FQ));
+                  "Name '%s' does not seem to be FQDN "
+                   "('%s = TRUE' is set)\n", fullname, CONFDB_DOMAIN_FQ);
             ERROR("Name '%1$s' does not seem to be FQDN "
                   "('%2$s = TRUE' is set)\n", fullname, CONFDB_DOMAIN_FQ);
             return EINVAL;
@@ -227,7 +227,7 @@ int check_group_names(struct tools_ctx *tctx,
                                   grouplist[i],
                                   groupinfo);
         if (ret) {
-            DEBUG(6, ("Cannot find group %s, ret: %d\n", grouplist[i], ret));
+            DEBUG(6, "Cannot find group %s, ret: %d\n", grouplist[i], ret);
             break;
         }
     }
@@ -280,26 +280,26 @@ int init_sss_tools(struct tools_ctx **_tctx)
 
     tctx = talloc_zero(NULL, struct tools_ctx);
     if (tctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for tools context\n"));
+        DEBUG(1, "Could not allocate memory for tools context\n");
         return ENOMEM;
     }
 
     /* Connect to the database */
     ret = setup_db(tctx);
     if (ret != EOK) {
-        DEBUG(1, ("Could not set up database\n"));
+        DEBUG(1, "Could not set up database\n");
         goto fini;
     }
 
     ret = sss_names_init(tctx, tctx->confdb, tctx->local->name, &tctx->snctx);
     if (ret != EOK) {
-        DEBUG(1, ("Could not set up parsing\n"));
+        DEBUG(1, "Could not set up parsing\n");
         goto fini;
     }
 
     tctx->octx = talloc_zero(tctx, struct ops_ctx);
     if (!tctx->octx) {
-        DEBUG(1, ("Could not allocate memory for data context\n"));
+        DEBUG(1, "Could not allocate memory for data context\n");
         ERROR("Out of memory\n");
         ret = ENOMEM;
         goto fini;
@@ -328,7 +328,7 @@ static int is_owner(uid_t uid, const char *path)
     ret = stat(path, &statres);
     if (ret != 0) {
         ret = errno;
-        DEBUG(1, ("Cannot stat %s: [%d][%s]\n", path, ret, strerror(ret)));
+        DEBUG(1, "Cannot stat %s: [%d][%s]\n", path, ret, strerror(ret));
         return ret;
     }
 
@@ -361,8 +361,8 @@ static int remove_mail_spool(TALLOC_CTX *mem_ctx,
                 break;
             case -1:
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("%s not owned by %"SPRIuid", not removing\n",
-                          spool_file, uid));
+                      "%s not owned by %"SPRIuid", not removing\n",
+                          spool_file, uid);
                 ret = EACCES;
                 /* FALLTHROUGH */
             default:
@@ -373,8 +373,8 @@ static int remove_mail_spool(TALLOC_CTX *mem_ctx,
     ret = unlink(spool_file);
     if (ret != 0) {
         ret = errno;
-        DEBUG(1, ("Cannot remove() the spool file %s: [%d][%s]\n",
-                   spool_file, ret, strerror(ret)));
+        DEBUG(1, "Cannot remove() the spool file %s: [%d][%s]\n",
+                   spool_file, ret, strerror(ret));
         goto fail;
     }
 
@@ -393,20 +393,20 @@ int remove_homedir(TALLOC_CTX *mem_ctx,
 
     ret = remove_mail_spool(mem_ctx, maildir, username, uid, force);
     if (ret != EOK) {
-        DEBUG(1, ("Cannot remove user's mail spool\n"));
+        DEBUG(1, "Cannot remove user's mail spool\n");
         /* Should this be fatal? I don't think so. Maybe convert to ERROR? */
     }
 
     if (force == false && is_owner(uid, homedir) == -1) {
-        DEBUG(1, ("Not removing home dir - not owned by user\n"));
+        DEBUG(1, "Not removing home dir - not owned by user\n");
         return EPERM;
     }
 
     /* Remove the tree */
     ret = remove_tree(homedir);
     if (ret != EOK) {
-        DEBUG(1, ("Cannot remove homedir %s: %d\n",
-                  homedir, ret));
+        DEBUG(1, "Cannot remove homedir %s: %d\n",
+                  homedir, ret);
         return ret;
     }
 
@@ -437,32 +437,32 @@ int create_mail_spool(TALLOC_CTX *mem_ctx,
     fd = open(spool_file, O_CREAT | O_WRONLY | O_EXCL, 0);
     if (fd < 0) {
         ret = errno;
-        DEBUG(1, ("Cannot open() the spool file: [%d][%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "Cannot open() the spool file: [%d][%s]\n",
+                  ret, strerror(ret));
         goto fail;
     }
 
     ret = fchmod(fd, 0600);
     if (ret != 0) {
         ret = errno;
-        DEBUG(1, ("Cannot fchmod() the spool file: [%d][%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "Cannot fchmod() the spool file: [%d][%s]\n",
+                  ret, strerror(ret));
         goto fail;
     }
 
     ret = fchown(fd, uid, gid);
     if (ret != 0) {
         ret = errno;
-        DEBUG(1, ("Cannot fchown() the spool file: [%d][%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "Cannot fchown() the spool file: [%d][%s]\n",
+                  ret, strerror(ret));
         goto fail;
     }
 
     ret = fsync(fd);
     if (ret != 0) {
         ret = errno;
-        DEBUG(1, ("Cannot fsync() the spool file: [%d][%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "Cannot fsync() the spool file: [%d][%s]\n",
+                  ret, strerror(ret));
     }
 
 fail:
@@ -470,8 +470,8 @@ fail:
         ret = close(fd);
         if (ret != 0) {
             ret = errno;
-            DEBUG(1, ("Cannot close() the spool file: [%d][%s]\n",
-                      ret, strerror(ret)));
+            DEBUG(1, "Cannot close() the spool file: [%d][%s]\n",
+                      ret, strerror(ret));
         }
     }
 
@@ -492,8 +492,8 @@ int create_homedir(const char *skeldir,
 
     ret = copy_tree(skeldir, homedir, 0777 & ~default_umask, uid, gid);
     if (ret != EOK) {
-        DEBUG(1, ("Cannot populate user's home directory: [%d][%s].\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "Cannot populate user's home directory: [%d][%s].\n",
+                  ret, strerror(ret));
         goto done;
     }
 
@@ -535,7 +535,7 @@ int run_userdel_cmd(struct tools_ctx *tctx)
         if (pid == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("fork failed [%d]: %s\n", ret, strerror(ret)));
+                  "fork failed [%d]: %s\n", ret, strerror(ret));
             goto done;
         }
 
@@ -543,28 +543,28 @@ int run_userdel_cmd(struct tools_ctx *tctx)
             if (WIFEXITED(status)) {
                 ret = WEXITSTATUS(status);
                 if (ret != 0) {
-                    DEBUG(5, ("command [%s] returned nonzero status %d.\n",
-                              userdel_cmd, ret));
+                    DEBUG(5, "command [%s] returned nonzero status %d.\n",
+                              userdel_cmd, ret);
                     ret = EOK;  /* Ignore return code of the command */
                     goto done;
                 }
             } else if (WIFSIGNALED(status)) {
-                DEBUG(5, ("command [%s] was terminated by signal %d.\n",
-                          userdel_cmd, WTERMSIG(status)));
+                DEBUG(5, "command [%s] was terminated by signal %d.\n",
+                          userdel_cmd, WTERMSIG(status));
                 ret = EIO;
                 goto done;
             } else if (WIFSTOPPED(status)) {
-                DEBUG(5, ("command [%s] was stopped by signal %d.\n",
-                          userdel_cmd, WSTOPSIG(status)));
+                DEBUG(5, "command [%s] was stopped by signal %d.\n",
+                          userdel_cmd, WSTOPSIG(status));
                 continue;
             } else {
-                DEBUG(1, ("Unknown status from WAITPID\n"));
+                DEBUG(1, "Unknown status from WAITPID\n");
                 ret = EIO;
                 goto done;
             }
         }
         if (child_pid == -1) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("waitpid failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "waitpid failed\n");
             ret = errno;
             goto done;
         }
@@ -605,8 +605,8 @@ static errno_t get_sssd_pid(pid_t *out_pid)
     pid_file = fopen(SSSD_PIDFILE, "r");
     if (pid_file == NULL) {
         ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Unable to open pid file \"%s\": %s\n",
-              SSSD_PIDFILE, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to open pid file \"%s\": %s\n",
+              SSSD_PIDFILE, strerror(ret));
         goto done;
     }
 
@@ -616,17 +616,17 @@ static errno_t get_sssd_pid(pid_t *out_pid)
         /* eof not reached */
         ret = ferror(pid_file);
         if (ret != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to read from file \"%s\": %s\n",
-                  SSSD_PIDFILE, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to read from file \"%s\": %s\n",
+                  SSSD_PIDFILE, strerror(ret));
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("File \"%s\" contains invalid pid.\n",
-                  SSSD_PIDFILE));
+            DEBUG(SSSDBG_CRIT_FAILURE, "File \"%s\" contains invalid pid.\n",
+                  SSSD_PIDFILE);
         }
         goto done;
     }
     if (fsize == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("File \"%s\" contains no pid.\n",
-              SSSD_PIDFILE));
+        DEBUG(SSSDBG_CRIT_FAILURE, "File \"%s\" contains no pid.\n",
+              SSSD_PIDFILE);
         ret = EINVAL;
         goto done;
     }
@@ -635,7 +635,7 @@ static errno_t get_sssd_pid(pid_t *out_pid)
     *out_pid = parse_pid(pid_str);
     if (*out_pid == 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("File \"%s\" contains invalid pid.\n", SSSD_PIDFILE));
+              "File \"%s\" contains invalid pid.\n", SSSD_PIDFILE);
         ret = EINVAL;
         goto done;
     }
@@ -662,8 +662,8 @@ errno_t signal_sssd(int signum)
     if (kill(pid, signum) != 0) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not send signal %d to process %d: %s\n",
-              signum, pid, strerror(errno)));
+              "Could not send signal %d to process %d: %s\n",
+              signum, pid, strerror(errno));
         return ret;
     }
 

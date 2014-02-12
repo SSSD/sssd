@@ -105,20 +105,20 @@ static void  sss_mc_save_corrupted(struct sss_mc_ctx *mc_ctx)
 
     if (mc_ctx == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Cannot store uninitialized cache. Nothing to do.\n"));
+              "Cannot store uninitialized cache. Nothing to do.\n");
         return;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory.\n");
         return;
     }
 
     file = talloc_asprintf(tmp_ctx, "%s_%s",
                            mc_ctx->file, "corrupted");
     if (file == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory.\n");
         goto done;
     }
 
@@ -127,8 +127,8 @@ static void  sss_mc_save_corrupted(struct sss_mc_ctx *mc_ctx)
     if (fd == -1) {
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to open file '%s' [%d]: %s\n",
-               file, err, strerror(err)));
+              "Failed to open file '%s' [%d]: %s\n",
+               file, err, strerror(err));
         goto done;
     }
 
@@ -137,11 +137,11 @@ static void  sss_mc_save_corrupted(struct sss_mc_ctx *mc_ctx)
         if (written == -1) {
             err = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("write() failed [%d]: %s\n", err, strerror(err)));
+                  "write() failed [%d]: %s\n", err, strerror(err));
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("write() returned %zd (expected (%zd))\n",
-                   written, mc_ctx->mmap_size));
+                  "write() returned %zd (expected (%zd))\n",
+                   written, mc_ctx->mmap_size);
         }
         goto done;
     }
@@ -156,8 +156,8 @@ done:
             if (err != 0) {
                 err = errno;
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to remove file '%s': %s.\n", file,
-                       strerror(err)));
+                      "Failed to remove file '%s': %s.\n", file,
+                       strerror(err));
             }
         }
     }
@@ -193,7 +193,7 @@ static void sss_mc_add_rec_to_chain(struct sss_mc_ctx *mcc,
     do {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Corrupted fastcache. Slot number too big.\n"));
+                  "Corrupted fastcache. Slot number too big.\n");
             sss_mmap_cache_reset(mcc);
             return;
         }
@@ -225,7 +225,7 @@ sss_mc_get_next_slot_with_hash(struct sss_mc_ctx *mcc,
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Corrupted fastcache. Slot number too big.\n"));
+                  "Corrupted fastcache. Slot number too big.\n");
             sss_mmap_cache_reset(mcc);
             return EINVAL;
         }
@@ -271,7 +271,7 @@ static errno_t sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
 
     if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Corrupted fastcache. Slot number too big.\n"));
+              "Corrupted fastcache. Slot number too big.\n");
         sss_mmap_cache_reset(mcc);
         return EINVAL;
     }
@@ -289,7 +289,7 @@ static errno_t sss_mc_rm_rec_from_chain(struct sss_mc_ctx *mcc,
         while (slot != MC_INVALID_VAL) {
             if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
-                      ("Corrupted fastcache. Slot number too big.\n"));
+                      "Corrupted fastcache. Slot number too big.\n");
                 sss_mmap_cache_reset(mcc);
                 return EINVAL;
             }
@@ -401,7 +401,7 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
         while (slot != MC_INVALID_VAL32 && self != rec) {
             if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
-                      ("Corrupted fastcache. Slot number too big.\n"));
+                      "Corrupted fastcache. Slot number too big.\n");
                 sss_mmap_cache_reset(mcc);
                 return false;
             }
@@ -419,7 +419,7 @@ static bool sss_mc_is_valid_rec(struct sss_mc_ctx *mcc, struct sss_mc_rec *rec)
         while (slot != MC_INVALID_VAL32 && self != rec) {
             if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
-                      ("Corrupted fastcache. Slot number too big.\n"));
+                      "Corrupted fastcache. Slot number too big.\n");
                 sss_mmap_cache_reset(mcc);
                 return false;
             }
@@ -538,7 +538,7 @@ static errno_t sss_mc_get_strs_offset(struct sss_mc_ctx *mcc,
         *_offset = offsetof(struct sss_mc_grp_data, strs);
         return EOK;
     default:
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Unknown memory cache type.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unknown memory cache type.\n");
         return EINVAL;
     }
 }
@@ -555,7 +555,7 @@ static errno_t sss_mc_get_strs_len(struct sss_mc_ctx *mcc,
         *_len = ((struct sss_mc_grp_data *)&rec->data)->strs_len;
         return EOK;
     default:
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Unknown memory cache type.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unknown memory cache type.\n");
         return EINVAL;
     }
 }
@@ -591,7 +591,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Corrupted fastcache. Slot number too big.\n"));
+                  "Corrupted fastcache. Slot number too big.\n");
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             return NULL;
@@ -608,7 +608,7 @@ static struct sss_mc_rec *sss_mc_find_record(struct sss_mc_ctx *mcc,
             || (name_ptr + key->len) > (strs_offset + strs_len)
             || (uint8_t *)rec->data + strs_offset + strs_len > max_addr) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Corrupted fastcache. name_ptr value is %u.\n", name_ptr));
+                  "Corrupted fastcache. name_ptr value is %u.\n", name_ptr);
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             return NULL;
@@ -664,7 +664,7 @@ static errno_t sss_mc_get_record(struct sss_mc_ctx **_mcc,
     if (ret != EOK) {
         if (ret == EFAULT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Fatal internal mmap cache error, invalidating cache!\n"));
+                  "Fatal internal mmap cache error, invalidating cache!\n");
             (void)sss_mmap_cache_reinit(talloc_parent(mcc), -1, -1, _mcc);
         }
         return ret;
@@ -847,7 +847,7 @@ errno_t sss_mmap_cache_pw_invalidate_uid(struct sss_mc_ctx *mcc, uid_t uid)
 
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Corrupted fastcache.\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted fastcache.\n");
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
@@ -986,7 +986,7 @@ errno_t sss_mmap_cache_gr_invalidate_gid(struct sss_mc_ctx *mcc, gid_t gid)
 
     while (slot != MC_INVALID_VAL) {
         if (!MC_SLOT_WITHIN_BOUNDS(slot, mcc->dt_size)) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Corrupted fastcache.\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Corrupted fastcache.\n");
             sss_mc_save_corrupted(mcc);
             sss_mmap_cache_reset(mcc);
             ret = ENOENT;
@@ -1073,29 +1073,29 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
         ret = sss_br_lock_file(ofd, 0, 1, retries, t);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Failed to lock file %s.\n", mc_ctx->file));
+                  "Failed to lock file %s.\n", mc_ctx->file);
         }
         ret = sss_mc_set_recycled(ofd);
         if (ret) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to mark mmap file %s as"
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to mark mmap file %s as"
                                          " recycled: %d(%s)\n",
-                                         mc_ctx->file, ret, strerror(ret)));
+                                         mc_ctx->file, ret, strerror(ret));
         }
 
         close(ofd);
     } else if (errno != ENOENT) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to open old memory cache file %s: %d(%s).\n",
-               mc_ctx->file, ret, strerror(ret)));
+              "Failed to open old memory cache file %s: %d(%s).\n",
+               mc_ctx->file, ret, strerror(ret));
     }
 
     errno = 0;
     ret = unlink(mc_ctx->file);
     if (ret == -1 && errno != ENOENT) {
         ret = errno;
-        DEBUG(SSSDBG_TRACE_FUNC, ("Failed to rm mmap file %s: %d(%s)\n",
-                                  mc_ctx->file, ret, strerror(ret)));
+        DEBUG(SSSDBG_TRACE_FUNC, "Failed to rm mmap file %s: %d(%s)\n",
+                                  mc_ctx->file, ret, strerror(ret));
     }
 
     /* temporarily relax umask as we need the file to be readable
@@ -1107,15 +1107,15 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
     umask(old_mask);
     if (mc_ctx->fd == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to open mmap file %s: %d(%s)\n",
-                                    mc_ctx->file, ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to open mmap file %s: %d(%s)\n",
+                                    mc_ctx->file, ret, strerror(ret));
         return ret;
     }
 
     ret = sss_br_lock_file(mc_ctx->fd, 0, 1, retries, t);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to lock file %s.\n", mc_ctx->file));
+              "Failed to lock file %s.\n", mc_ctx->file);
         close(mc_ctx->fd);
         mc_ctx->fd = -1;
 
@@ -1126,8 +1126,8 @@ static errno_t sss_mc_create_file(struct sss_mc_ctx *mc_ctx)
         uret = unlink(mc_ctx->file);
         if (uret == -1) {
             uret = errno;
-            DEBUG(SSSDBG_TRACE_FUNC, ("Failed to rm mmap file %s: %d(%s)\n",
-                                    mc_ctx->file, uret, strerror(uret)));
+            DEBUG(SSSDBG_TRACE_FUNC, "Failed to rm mmap file %s: %d(%s)\n",
+                                    mc_ctx->file, uret, strerror(uret));
         }
 
         return ret;
@@ -1173,8 +1173,8 @@ static int mc_ctx_destructor(struct sss_mc_ctx *mc_ctx)
         if (ret == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to unmap old memory cache file."
-                   "[%d]: %s\n", ret, strerror(ret)));
+                  "Failed to unmap old memory cache file."
+                   "[%d]: %s\n", ret, strerror(ret));
         }
     }
 
@@ -1183,8 +1183,8 @@ static int mc_ctx_destructor(struct sss_mc_ctx *mc_ctx)
         if (ret == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to close old memory cache file."
-                   "[%d]: %s\n", ret, strerror(ret)));
+                  "Failed to close old memory cache file."
+                   "[%d]: %s\n", ret, strerror(ret));
         }
     }
 
@@ -1261,8 +1261,8 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
     ret = ftruncate(mc_ctx->fd, mc_ctx->mmap_size);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to resize file %s: %d(%s)\n",
-                                    mc_ctx->file, ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resize file %s: %d(%s)\n",
+                                    mc_ctx->file, ret, strerror(ret));
         goto done;
     }
 
@@ -1271,9 +1271,9 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
                              MAP_SHARED, mc_ctx->fd, 0);
     if (mc_ctx->mmap_base == MAP_FAILED) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to mmap file %s(%zu): %d(%s)\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to mmap file %s(%zu): %d(%s)\n",
                                     mc_ctx->file, mc_ctx->mmap_size,
-                                    ret, strerror(ret)));
+                                    ret, strerror(ret));
         goto done;
     }
 
@@ -1304,8 +1304,8 @@ done:
             dret = unlink(mc_ctx->file);
             if (dret == -1) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to rm mmap file %s: %d(%s)\n", mc_ctx->file,
-                       dret, strerror(dret)));
+                      "Failed to rm mmap file %s: %d(%s)\n", mc_ctx->file,
+                       dret, strerror(dret));
             }
         }
 
@@ -1326,19 +1326,19 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
 
     if (mc_ctx == NULL || (*mc_ctx) == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Unable to re-init unitialized memory cache.\n"));
+              "Unable to re-init unitialized memory cache.\n");
         return EINVAL;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory.\n");
         return ENOMEM;
     }
 
     name = talloc_strdup(tmp_ctx, (*mc_ctx)->name);
     if (name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -1360,7 +1360,7 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
 
     ret = sss_mmap_cache_init(mem_ctx, name, type, n_elem, timeout, mc_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to re-initialize mmap cache.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to re-initialize mmap cache.\n");
         goto done;
     }
 
@@ -1375,7 +1375,7 @@ void sss_mmap_cache_reset(struct sss_mc_ctx *mc_ctx)
 {
     if (mc_ctx == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Fastcache not initialized. Nothing to do.\n"));
+              "Fastcache not initialized. Nothing to do.\n");
         return;
     }
 

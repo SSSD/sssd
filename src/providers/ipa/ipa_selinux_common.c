@@ -39,7 +39,7 @@ errno_t ipa_save_user_maps(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -47,16 +47,16 @@ errno_t ipa_save_user_maps(struct sysdb_ctx *sysdb,
     for (i = 0; i < map_count; i++) {
         ret = sysdb_store_selinux_usermap(sysdb, domain, maps[i]);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to store user map %d. "
-                                      "Ignoring.\n", i));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to store user map %d. "
+                                      "Ignoring.\n", i);
         } else {
-            DEBUG(SSSDBG_TRACE_FUNC, ("User map %d processed.\n", i));
+            DEBUG(SSSDBG_TRACE_FUNC, "User map %d processed.\n", i);
         }
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction!\n");
         goto done;
     }
     in_transaction = false;
@@ -66,7 +66,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction");
         }
     }
     return ret;

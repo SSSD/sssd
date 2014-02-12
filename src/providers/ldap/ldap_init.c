@@ -75,7 +75,7 @@ errno_t check_order_list_for_duplicates(char **list,
                 cmp = strcasecmp(list[c], list[d]);
             }
             if (cmp == 0) {
-                DEBUG(1, ("Duplicate string [%s] found.\n", list[c]));
+                DEBUG(1, "Duplicate string [%s] found.\n", list[c]);
                 return EINVAL;
             }
         }
@@ -100,7 +100,7 @@ static int ldap_id_init_internal(struct be_ctx *bectx,
     /* If we're already set up, just return that */
     if(bectx->bet_info[BET_ID].mod_name &&
        strcmp("ldap", bectx->bet_info[BET_ID].mod_name) == 0) {
-        DEBUG(8, ("Re-using sdap_id_ctx for this provider\n"));
+        DEBUG(8, "Re-using sdap_id_ctx for this provider\n");
         *ops = bectx->bet_info[BET_ID].bet_ops;
         *pvt_data = bectx->bet_info[BET_ID].pvt_bet_data;
         return EOK;
@@ -115,7 +115,7 @@ static int ldap_id_init_internal(struct be_ctx *bectx,
     dns_service_name = dp_opt_get_string(opts->basic,
                                          SDAP_DNS_SERVICE_NAME);
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Service name for discovery set to %s\n", dns_service_name));
+          "Service name for discovery set to %s\n", dns_service_name);
 
     urls = dp_opt_get_string(opts->basic, SDAP_URI);
     backup_urls = dp_opt_get_string(opts->basic, SDAP_BACKUP_URI);
@@ -124,7 +124,7 @@ static int ldap_id_init_internal(struct be_ctx *bectx,
                             dns_service_name, urls, backup_urls,
                             &sdap_service);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to initialize failover service!\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize failover service!\n");
         goto done;
     }
 
@@ -142,8 +142,8 @@ static int ldap_id_init_internal(struct be_ctx *bectx,
                                    ctx->be, ctx->conn->service,
                                    &ctx->krb5_service);
             if (ret !=  EOK) {
-                DEBUG(1, ("sdap_gssapi_init failed [%d][%s].\n",
-                            ret, strerror(ret)));
+                DEBUG(1, "sdap_gssapi_init failed [%d][%s].\n",
+                            ret, strerror(ret));
                 goto done;
             }
         }
@@ -151,8 +151,8 @@ static int ldap_id_init_internal(struct be_ctx *bectx,
 
     ret = setup_tls_config(ctx->opts->basic);
     if (ret != EOK) {
-        DEBUG(1, ("setup_tls_config failed [%d][%s].\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "setup_tls_config failed [%d][%s].\n",
+                  ret, strerror(ret));
         goto done;
     }
 
@@ -162,16 +162,16 @@ static int ldap_id_init_internal(struct be_ctx *bectx,
 
     ret = sdap_setup_child();
     if (ret != EOK) {
-        DEBUG(1, ("setup_child failed [%d][%s].\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "setup_child failed [%d][%s].\n",
+                  ret, strerror(ret));
         goto done;
     }
 
     /* setup SRV lookup plugin */
     ret = be_fo_set_dns_srv_lookup_plugin(bectx, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set SRV lookup plugin "
-                                    "[%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
+                                    "[%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -181,8 +181,8 @@ static int ldap_id_init_internal(struct be_ctx *bectx,
                             sdap_refresh_netgroups_recv,
                             ctx);
     if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Periodical refresh of netgroups "
-              "will not work [%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of netgroups "
+              "will not work [%d]: %s\n", ret, strerror(ret));
     }
 
     *ops = &sdap_id_ops;
@@ -207,16 +207,16 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     ret = ldap_id_init_internal(bectx, ops, (void **) &ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("ldap_id_init_internal failed [%d][%s].\n",
-              ret, strerror(ret)));
+              "ldap_id_init_internal failed [%d][%s].\n",
+              ret, strerror(ret));
         goto done;
     }
 
     ret = ldap_id_setup_tasks(ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("sdap_id_setup_tasks failed [%d][%s].\n",
-              ret, strerror(ret)));
+              "sdap_id_setup_tasks failed [%d][%s].\n",
+              ret, strerror(ret));
         goto done;
     }
 
@@ -271,7 +271,7 @@ int sssm_ldap_chpass_init(struct be_ctx *bectx,
 
     ret = sssm_ldap_auth_init(bectx, ops, &data);
     if (ret != EOK) {
-        DEBUG(1, ("sssm_ldap_auth_init failed.\n"));
+        DEBUG(1, "sssm_ldap_auth_init failed.\n");
         goto done;
     }
 
@@ -280,21 +280,21 @@ int sssm_ldap_chpass_init(struct be_ctx *bectx,
     dns_service_name = dp_opt_get_string(ctx->opts->basic,
                                          SDAP_CHPASS_DNS_SERVICE_NAME);
     if (dns_service_name) {
-        DEBUG(7, ("Service name for chpass discovery set to %s\n",
-                  dns_service_name));
+        DEBUG(7, "Service name for chpass discovery set to %s\n",
+                  dns_service_name);
     }
 
     urls = dp_opt_get_string(ctx->opts->basic, SDAP_CHPASS_URI);
     backup_urls = dp_opt_get_string(ctx->opts->basic, SDAP_CHPASS_BACKUP_URI);
     if (!urls && !backup_urls && !dns_service_name) {
-        DEBUG(9, ("ldap_chpass_uri and ldap_chpass_dns_service_name not set, "
-                  "using ldap_uri.\n"));
+        DEBUG(9, "ldap_chpass_uri and ldap_chpass_dns_service_name not set, "
+                  "using ldap_uri.\n");
         ctx->chpass_service = NULL;
     } else {
         ret = sdap_service_init(ctx, ctx->be, "LDAP_CHPASS", dns_service_name,
                                 urls, backup_urls, &ctx->chpass_service);
         if (ret != EOK) {
-            DEBUG(1, ("Failed to initialize failover service!\n"));
+            DEBUG(1, "Failed to initialize failover service!\n");
             goto done;
         }
     }
@@ -332,34 +332,34 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
 
     ret = ldap_id_init_internal(bectx, ops, (void **)&access_ctx->id_ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("ldap_id_init_internal failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_id_init_internal failed.\n");
         goto done;
     }
 
     order = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
                                SDAP_ACCESS_ORDER);
     if (order == NULL) {
-        DEBUG(1, ("ldap_access_order not given, using 'filter'.\n"));
+        DEBUG(1, "ldap_access_order not given, using 'filter'.\n");
         order = "filter";
     }
 
     ret = split_on_separator(access_ctx, order, ',', true, true,
                              &order_list, &order_list_len);
     if (ret != EOK) {
-        DEBUG(1, ("split_on_separator failed.\n"));
+        DEBUG(1, "split_on_separator failed.\n");
         goto done;
     }
 
     ret = check_order_list_for_duplicates(order_list, false);
     if (ret != EOK) {
-        DEBUG(1, ("check_order_list_for_duplicates failed.\n"));
+        DEBUG(1, "check_order_list_for_duplicates failed.\n");
         goto done;
     }
 
     if (order_list_len > LDAP_ACCESS_LAST) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Currently only [%d] different access rules are supported.\n",
-               LDAP_ACCESS_LAST));
+              "Currently only [%d] different access rules are supported.\n",
+               LDAP_ACCESS_LAST);
         ret = EINVAL;
         goto done;
     }
@@ -374,9 +374,9 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
                 /* It's okay if this is NULL. In that case we will simply act
                  * like the 'deny' provider.
                  */
-                DEBUG(0, ("Warning: LDAP access rule 'filter' is set, "
+                DEBUG(0, "Warning: LDAP access rule 'filter' is set, "
                           "but no ldap_access_filter configured. "
-                          "All domain users will be denied access.\n"));
+                          "All domain users will be denied access.\n");
             } else {
                 access_ctx->filter = sdap_get_access_filter(access_ctx,
                                                             filter);
@@ -391,9 +391,9 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
             dummy = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
                                        SDAP_ACCOUNT_EXPIRE_POLICY);
             if (dummy == NULL) {
-                DEBUG(0, ("Warning: LDAP access rule 'expire' is set, "
+                DEBUG(0, "Warning: LDAP access rule 'expire' is set, "
                           "but no ldap_account_expire_policy configured. "
-                          "All domain users will be denied access.\n"));
+                          "All domain users will be denied access.\n");
             } else {
                 if (strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_SHADOW) != 0 &&
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_AD) != 0 &&
@@ -401,8 +401,8 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_RHDS) != 0 &&
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_IPA) != 0 &&
                     strcasecmp(dummy, LDAP_ACCOUNT_EXPIRE_389DS) != 0) {
-                    DEBUG(1, ("Unsupported LDAP account expire policy [%s].\n",
-                              dummy));
+                    DEBUG(1, "Unsupported LDAP account expire policy [%s].\n",
+                              dummy);
                     ret = EINVAL;
                     goto done;
                 }
@@ -412,16 +412,16 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
         } else if (strcasecmp(order_list[c], LDAP_ACCESS_HOST_NAME) == 0) {
             access_ctx->access_rule[c] = LDAP_ACCESS_HOST;
         } else {
-            DEBUG(1, ("Unexpected access rule name [%s].\n", order_list[c]));
+            DEBUG(1, "Unexpected access rule name [%s].\n", order_list[c]);
             ret = EINVAL;
             goto done;
         }
     }
     access_ctx->access_rule[c] = LDAP_ACCESS_EMPTY;
     if (c == 0) {
-        DEBUG(0, ("Warning: access_provider=ldap set, "
+        DEBUG(0, "Warning: access_provider=ldap set, "
                   "but ldap_access_order is empty. "
-                  "All domain users will be denied access.\n"));
+                  "All domain users will be denied access.\n");
     }
 
     *ops = &sdap_access_ops;
@@ -447,21 +447,21 @@ int sssm_ldap_sudo_init(struct be_ctx *be_ctx,
 
     ret = ldap_id_init_internal(be_ctx, ops, &data);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot init LDAP ID provider [%d]: %s\n",
-                                    ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot init LDAP ID provider [%d]: %s\n",
+                                    ret, strerror(ret));
         return ret;
     }
 
     id_ctx = talloc_get_type(data, struct sdap_id_ctx);
     if (!id_ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No ID provider?\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No ID provider?\n");
         return EIO;
     }
 
     return sdap_sudo_init(be_ctx, id_ctx, ops, pvt_data);
 #else
-    DEBUG(SSSDBG_MINOR_FAILURE, ("Sudo init handler called but SSSD is "
-                                 "built without sudo support, ignoring\n"));
+    DEBUG(SSSDBG_MINOR_FAILURE, "Sudo init handler called but SSSD is "
+                                 "built without sudo support, ignoring\n");
     return EOK;
 #endif
 }
@@ -477,21 +477,21 @@ int sssm_ldap_autofs_init(struct be_ctx *be_ctx,
 
     ret = ldap_id_init_internal(be_ctx, ops, &data);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot init LDAP ID provider [%d]: %s\n",
-                                    ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot init LDAP ID provider [%d]: %s\n",
+                                    ret, strerror(ret));
         return ret;
     }
 
     id_ctx = talloc_get_type(data, struct sdap_id_ctx);
     if (!id_ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No ID provider?\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No ID provider?\n");
         return EIO;
     }
 
     return sdap_autofs_init(be_ctx, id_ctx, ops, pvt_data);
 #else
-    DEBUG(SSSDBG_MINOR_FAILURE, ("Autofs init handler called but SSSD is "
-                                 "built without autofs support, ignoring\n"));
+    DEBUG(SSSDBG_MINOR_FAILURE, "Autofs init handler called but SSSD is "
+                                 "built without autofs support, ignoring\n");
     return EOK;
 #endif
 }

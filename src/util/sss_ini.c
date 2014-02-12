@@ -193,7 +193,7 @@ void sss_ini_config_print_errors(char **error_list)
     }
 
     while (error_list[count]) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("%s\n", error_list[count]));
+        DEBUG(SSSDBG_CRIT_FAILURE, "%s\n", error_list[count]);
         count++;
     }
 #endif
@@ -215,7 +215,7 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
     ret = ini_config_create(&(init_data->sssd_config));
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-                ("Failed to create config object. Error %d.\n", ret));
+                "Failed to create config object. Error %d.\n", ret);
         return ret;
     }
 
@@ -228,12 +228,12 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
 
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-                ("Failed to parse configuration. Error %d.\n", ret));
+                "Failed to parse configuration. Error %d.\n", ret);
 
         if (ini_config_error_count(init_data->sssd_config)) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                    ("Errors detected while parsing: %s\n",
-                     ini_config_get_filename(init_data->file)));
+                    "Errors detected while parsing: %s\n",
+                     ini_config_get_filename(init_data->file));
 
             ini_config_get_errors(init_data->sssd_config,
                                   &init_data->error_list);
@@ -259,8 +259,8 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
 
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-                ("Parse error reading configuration file [%s]\n",
-                 config_file));
+                "Parse error reading configuration file [%s]\n",
+                 config_file);
 
         print_file_parsing_errors(stderr, init_data->error_list);
 
@@ -382,7 +382,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
     for (i = 0; i < section_count; i++) {
         const char *rdn = NULL;
         DEBUG(SSSDBG_TRACE_FUNC,
-                ("Processing config section [%s]\n", sections[i]));
+                "Processing config section [%s]\n", sections[i]);
         ret = parse_section(tmp_ctx, sections[i], &sec_dn, &rdn);
         if (ret != EOK) {
             goto error;
@@ -409,7 +409,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
         for (j = 0; j < attr_count; j++) {
             DEBUG(SSSDBG_TRACE_FUNC,
-                    ("Processing attribute [%s]\n", attrs[j]));
+                    "Processing attribute [%s]\n", attrs[j]);
             ret = sss_ini_get_config_obj(sections[i], attrs[j],
                                          init_data->sssd_config,
                                          INI_GET_FIRST_VALUE, &obj);
@@ -419,14 +419,14 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
             if (ret != EOK) goto error;
             if (value && value[0] == '\0') {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                        ("Attribute '%s' has empty value, ignoring\n",
-                         attrs[j]));
+                        "Attribute '%s' has empty value, ignoring\n",
+                         attrs[j]);
                 continue;
             }
 
             ldif_attr = talloc_asprintf(tmp_ctx,
                                         "%s: %s\n", attrs[j], value);
-            DEBUG(SSSDBG_TRACE_ALL, ("%s", ldif_attr));
+            DEBUG(SSSDBG_TRACE_ALL, "%s", ldif_attr);
 
             attr_len = strlen(ldif_attr);
 
@@ -456,7 +456,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         dn[dn_size-1] = '\n';
         dn[dn_size] = '\0';
 
-        DEBUG(SSSDBG_TRACE_ALL, ("Section dn\n%s", dn));
+        DEBUG(SSSDBG_TRACE_ALL, "Section dn\n%s", dn);
 
         tmp_ldif = talloc_realloc(mem_ctx, ldif, char,
                                   ldif_len+dn_size+1);
