@@ -389,7 +389,7 @@ nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
 #ifdef HAVE_NSUPDATE_REALM
     realm_directive = talloc_asprintf(tmp_ctx, "realm %s\n", realm);
 #else
-    realm_directive = talloc_asprintf(tmp_ctx, "");
+    realm_directive = talloc_asprintf(tmp_ctx, "\n");
 #endif
     if (!realm_directive) {
         goto fail;
