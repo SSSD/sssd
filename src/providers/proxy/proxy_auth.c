@@ -64,7 +64,7 @@ void proxy_pam_handler(struct be_req *req)
             be_req_terminate(req, DP_ERR_OK, EOK, NULL);
             return;
         default:
-            DEBUG(1, "Unsupported PAM task.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported PAM task.\n");
             pd->pam_status = PAM_MODULE_UNKNOWN;
             be_req_terminate(req, DP_ERR_OK, EINVAL, "Unsupported PAM task");
             return;
@@ -102,13 +102,15 @@ static int proxy_child_destructor(TALLOC_CTX *ctx)
     hash_key_t key;
     int hret;
 
-    DEBUG(8, "Removing proxy child id [%d]\n", child_ctx->id);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Removing proxy child id [%d]\n", child_ctx->id);
     key.type = HASH_KEY_ULONG;
     key.ul = child_ctx->id;
     hret = hash_delete(child_ctx->auth_ctx->request_table, &key);
     if (!(hret == HASH_SUCCESS ||
           hret == HASH_ERROR_KEY_NOT_FOUND)) {
-        DEBUG(1, "Hash error [%d][%s]\n", hret, hash_error_string(hret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Hash error [%d][%s]\n", hret, hash_error_string(hret));
         /* Nothing we can do about this, so just continue */
     }
     return 0;
@@ -132,7 +134,7 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct proxy_child_ctx);
     if (req == NULL) {
-        DEBUG(1, "Could not send PAM request to child\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not send PAM request to child\n");
         return NULL;
     }
 
@@ -156,7 +158,7 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
 
         if (auth_ctx->next_id == first) {
             /* We've looped through all possible integers! */
-            DEBUG(0, "Serious error: queue is too long!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Serious error: queue is too long!\n");
             talloc_zfree(req);
             return NULL;
         }
@@ -171,7 +173,7 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
     hret = hash_enter(auth_ctx->request_table,
                       &key, &value);
     if (hret != HASH_SUCCESS) {
-        DEBUG(1, "Could not add request to the queue\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not add request to the queue\n");
         talloc_zfree(req);
         return NULL;
     }
@@ -187,7 +189,7 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
         auth_ctx->running++;
         subreq = proxy_child_init_send(auth_ctx, state, auth_ctx);
         if (!subreq) {
-            DEBUG(1, "Could not fork child process\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not fork child process\n");
             auth_ctx->running--;
             talloc_zfree(req);
             return NULL;
@@ -200,7 +202,8 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
         /* If there was no available slot, it will be queued
          * until a slot is available
          */
-        DEBUG(8, "All available child slots are full, queuing request\n");
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "All available child slots are full, queuing request\n");
     }
     return req;
 }
@@ -234,7 +237,7 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct pc_init_ctx);
     if (req == NULL) {
-        DEBUG(1, "Could not create tevent_req\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not create tevent_req\n");
         return NULL;
     }
 
@@ -248,16 +251,18 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
             auth_ctx->be->domain->name,
             child_ctx->id);
     if (state->command == NULL) {
-        DEBUG(1, "talloc_asprintf failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         return NULL;
     }
 
-    DEBUG(7, "Starting proxy child with args [%s]\n", state->command);
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Starting proxy child with args [%s]\n", state->command);
 
     pid = fork();
     if (pid < 0) {
         ret = errno;
-        DEBUG(1, "fork failed [%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fork failed [%d][%s].\n", ret, strerror(ret));
         talloc_zfree(req);
         return NULL;
     }
@@ -267,7 +272,8 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
         execvp(proxy_child_args[0], proxy_child_args);
 
         ret = errno;
-        DEBUG(0, "Could not start proxy child [%s]: [%d][%s].\n",
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Could not start proxy child [%s]: [%d][%s].\n",
                   state->command, ret, strerror(ret));
 
         _exit(1);
@@ -282,7 +288,7 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
                                         SIGCHLD, SA_SIGINFO,
                                         pc_init_sig_handler, req);
         if (state->sige == NULL) {
-            DEBUG(1, "tevent_add_signal failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_signal failed.\n");
             talloc_zfree(req);
             return NULL;
         }
@@ -322,42 +328,50 @@ static void pc_init_sig_handler(struct tevent_context *ev,
     struct pc_init_ctx *init_ctx;
 
     if (count <= 0) {
-        DEBUG(0, "SIGCHLD handler called with invalid child count\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "SIGCHLD handler called with invalid child count\n");
         return;
     }
 
     req = talloc_get_type(pvt, struct tevent_req);
     init_ctx = tevent_req_data(req, struct pc_init_ctx);
 
-    DEBUG(7, "Waiting for child [%d].\n", init_ctx->pid);
+    DEBUG(SSSDBG_TRACE_LIBS, "Waiting for child [%d].\n", init_ctx->pid);
 
     errno = 0;
     ret = waitpid(init_ctx->pid, &child_status, WNOHANG);
 
     if (ret == -1) {
         ret = errno;
-        DEBUG(1, "waitpid failed [%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "waitpid failed [%d][%s].\n", ret, strerror(ret));
     } else if (ret == 0) {
-        DEBUG(1, "waitpid did not find a child with changed status.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "waitpid did not find a child with changed status.\n");
     } else {
         if (WIFEXITED(child_status)) {
-            DEBUG(4, "child [%d] exited with status [%d].\n", ret,
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "child [%d] exited with status [%d].\n", ret,
                       WEXITSTATUS(child_status));
             tevent_req_error(req, EIO);
         } else if (WIFSIGNALED(child_status)) {
-            DEBUG(4, "child [%d] was terminate by signal [%d].\n", ret,
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "child [%d] was terminate by signal [%d].\n", ret,
                       WTERMSIG(child_status));
             tevent_req_error(req, EIO);
         } else {
             if (WIFSTOPPED(child_status)) {
-                DEBUG(1, "child [%d] was stopped by signal [%d].\n", ret,
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "child [%d] was stopped by signal [%d].\n", ret,
                           WSTOPSIG(child_status));
             }
             if (WIFCONTINUED(child_status)) {
-                DEBUG(1, "child [%d] was resumed by delivery of SIGCONT.\n",
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "child [%d] was resumed by delivery of SIGCONT.\n",
                           ret);
             }
-            DEBUG(1, "Child is still running, no new child is started.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Child is still running, no new child is started.\n");
             return;
         }
     }
@@ -369,7 +383,7 @@ static void pc_init_timeout(struct tevent_context *ev,
 {
     struct tevent_req *req;
 
-    DEBUG(2, "Client timed out before Identification!\n");
+    DEBUG(SSSDBG_OP_FAILURE, "Client timed out before Identification!\n");
     req = talloc_get_type(ptr, struct tevent_req);
     tevent_req_error(req, ETIMEDOUT);
 }
@@ -421,7 +435,7 @@ static void proxy_child_init_done(struct tevent_req *subreq) {
     ret = proxy_child_init_recv(subreq, &child_ctx->pid, &child_ctx->conn);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(6, "Proxy child init failed [%d]\n", ret);
+        DEBUG(SSSDBG_TRACE_FUNC, "Proxy child init failed [%d]\n", ret);
         tevent_req_error(req, ret);
         return;
     }
@@ -431,7 +445,7 @@ static void proxy_child_init_done(struct tevent_req *subreq) {
                                  child_ctx->conn, child_ctx->pd,
                                  child_ctx->pid);
     if (!subreq) {
-        DEBUG(1,"Could not start PAM conversation\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,"Could not start PAM conversation\n");
         tevent_req_error(req, EIO);
         return;
     }
@@ -443,7 +457,7 @@ static void proxy_child_init_done(struct tevent_req *subreq) {
      */
     sig_ctx = talloc_zero(child_ctx->auth_ctx, struct proxy_child_sig_ctx);
     if(sig_ctx == NULL) {
-        DEBUG(1, "tevent_add_signal failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_signal failed.\n");
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -456,7 +470,7 @@ static void proxy_child_init_done(struct tevent_req *subreq) {
                              proxy_child_sig_handler,
                              sig_ctx);
     if (sige == NULL) {
-        DEBUG(1, "tevent_add_signal failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_signal failed.\n");
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -485,44 +499,52 @@ static void proxy_child_sig_handler(struct tevent_context *ev,
     struct tevent_immediate *imm2;
 
     if (count <= 0) {
-        DEBUG(0, "SIGCHLD handler called with invalid child count\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "SIGCHLD handler called with invalid child count\n");
         return;
     }
 
     sig_ctx = talloc_get_type(pvt, struct proxy_child_sig_ctx);
-    DEBUG(7, "Waiting for child [%d].\n", sig_ctx->pid);
+    DEBUG(SSSDBG_TRACE_LIBS, "Waiting for child [%d].\n", sig_ctx->pid);
 
     errno = 0;
     ret = waitpid(sig_ctx->pid, &child_status, WNOHANG);
 
     if (ret == -1) {
         ret = errno;
-        DEBUG(1, "waitpid failed [%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "waitpid failed [%d][%s].\n", ret, strerror(ret));
     } else if (ret == 0) {
-        DEBUG(1, "waitpid did not found a child with changed status.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "waitpid did not found a child with changed status.\n");
     } else {
         if (WIFEXITED(child_status)) {
-            DEBUG(4, "child [%d] exited with status [%d].\n", ret,
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "child [%d] exited with status [%d].\n", ret,
                       WEXITSTATUS(child_status));
         } else if (WIFSIGNALED(child_status)) {
-            DEBUG(4, "child [%d] was terminated by signal [%d].\n", ret,
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "child [%d] was terminated by signal [%d].\n", ret,
                       WTERMSIG(child_status));
         } else {
             if (WIFSTOPPED(child_status)) {
-                DEBUG(1, "child [%d] was stopped by signal [%d].\n", ret,
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "child [%d] was stopped by signal [%d].\n", ret,
                           WSTOPSIG(child_status));
             }
             if (WIFCONTINUED(child_status)) {
-                DEBUG(1, "child [%d] was resumed by delivery of SIGCONT.\n",
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "child [%d] was resumed by delivery of SIGCONT.\n",
                           ret);
             }
-            DEBUG(1, "Child is still running, no new child is started.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Child is still running, no new child is started.\n");
             return;
         }
 
         imm = tevent_create_immediate(ev);
         if (imm == NULL) {
-            DEBUG(1, "tevent_create_immediate failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "tevent_create_immediate failed.\n");
             return;
         }
 
@@ -532,7 +554,7 @@ static void proxy_child_sig_handler(struct tevent_context *ev,
         /* schedule another immediate timer to delete the sigchld handler */
         imm2 = tevent_create_immediate(ev);
         if (imm2 == NULL) {
-            DEBUG(1, "tevent_create_immediate failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "tevent_create_immediate failed.\n");
             return;
         }
 
@@ -583,17 +605,17 @@ static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
                                        DP_INTERFACE,
                                        DP_METHOD_PAMHANDLER);
     if (msg == NULL) {
-        DEBUG(1, "dbus_message_new_method_call failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "dbus_message_new_method_call failed.\n");
         talloc_zfree(req);
         return NULL;
     }
 
-    DEBUG(4, "Sending request with the following data:\n");
-    DEBUG_PAM_DATA(4, pd);
+    DEBUG(SSSDBG_CONF_SETTINGS, "Sending request with the following data:\n");
+    DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
 
     dp_ret = dp_pack_pam_request(msg, pd);
     if (!dp_ret) {
-        DEBUG(1, "Failed to build message\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
         dbus_message_unref(msg);
         talloc_zfree(req);
         return NULL;
@@ -620,7 +642,7 @@ static void proxy_pam_conv_reply(DBusPendingCall *pending, void *ptr)
     int type;
     int ret;
 
-    DEBUG(8, "Handling pam conversation reply\n");
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Handling pam conversation reply\n");
 
     req = talloc_get_type(ptr, struct tevent_req);
     state = tevent_req_data(req, struct proxy_conv_ctx);
@@ -630,7 +652,8 @@ static void proxy_pam_conv_reply(DBusPendingCall *pending, void *ptr)
     reply = dbus_pending_call_steal_reply(pending);
     dbus_pending_call_unref(pending);
     if (reply == NULL) {
-        DEBUG(0, "Severe error. A reply callback was called but no reply was"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Severe error. A reply callback was called but no reply was"
                   "received and no timeout occurred\n");
         state->pd->pam_status = PAM_SYSTEM_ERR;
         tevent_req_error(req, EIO);
@@ -641,23 +664,23 @@ static void proxy_pam_conv_reply(DBusPendingCall *pending, void *ptr)
         case DBUS_MESSAGE_TYPE_METHOD_RETURN:
             ret = dp_unpack_pam_response(reply, state->pd, &dbus_error);
             if (!ret) {
-                DEBUG(0, "Failed to parse reply.\n");
+                DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse reply.\n");
                 state->pd->pam_status = PAM_SYSTEM_ERR;
                 dbus_message_unref(reply);
                 tevent_req_error(req, EIO);
                 return;
             }
-            DEBUG(4, "received: [%d][%s]\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "received: [%d][%s]\n",
                       state->pd->pam_status,
                       state->pd->domain);
             break;
         case DBUS_MESSAGE_TYPE_ERROR:
-            DEBUG(0, "Reply error [%s].\n",
+            DEBUG(SSSDBG_FATAL_FAILURE, "Reply error [%s].\n",
                     dbus_message_get_error_name(reply));
             state->pd->pam_status = PAM_SYSTEM_ERR;
             break;
         default:
-            DEBUG(0, "Default... what now?.\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Default... what now?.\n");
             state->pd->pam_status = PAM_SYSTEM_ERR;
     }
     dbus_message_unref(reply);
@@ -686,7 +709,7 @@ static void proxy_pam_conv_done(struct tevent_req *subreq)
     ret = proxy_pam_conv_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(6, "Proxy PAM conversation failed [%d]\n", ret);
+        DEBUG(SSSDBG_TRACE_FUNC, "Proxy PAM conversation failed [%d]\n", ret);
         tevent_req_error(req, ret);
         return;
     }
@@ -725,7 +748,7 @@ static void proxy_child_done(struct tevent_req *req)
     client_ctx->auth_ctx->running--;
     imm = tevent_create_immediate(be_ctx->ev);
     if (imm == NULL) {
-        DEBUG(1, "tevent_create_immediate failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_create_immediate failed.\n");
         /* We'll still finish the current request, but we're
          * likely to have problems if there are queued events
          * if we've gotten into this state.
@@ -753,7 +776,7 @@ static void proxy_child_done(struct tevent_req *req)
         ret = sss_authtok_get_password(pd->authtok, &password, NULL);
         if (ret) {
             /* password caching failures are not fatal errors */
-            DEBUG(2, "Failed to cache password\n");
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to cache password\n");
             goto done;
         }
 
@@ -763,7 +786,7 @@ static void proxy_child_done(struct tevent_req *req)
         /* password caching failures are not fatal errors */
         /* so we just log it any return */
         if (ret != EOK) {
-            DEBUG(2, "Failed to cache password (%d)[%s]!?\n",
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to cache password (%d)[%s]!?\n",
                       ret, strerror(ret));
         }
     }
@@ -808,7 +831,7 @@ static void run_proxy_child_queue(struct tevent_context *ev,
         auth_ctx->running++;
         subreq = proxy_child_init_send(auth_ctx, state, auth_ctx);
         if (!subreq) {
-            DEBUG(1, "Could not fork child process\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not fork child process\n");
             auth_ctx->running--;
             talloc_zfree(req);
             return;

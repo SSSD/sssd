@@ -255,7 +255,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
     krberr = krb5_parse_name(context, full_princ, &kprinc);
     if (krberr) {
-        DEBUG(2, "Unable to build principal: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to build principal: %s\n",
                   sss_krb5_get_error_message(context, krberr));
         goto done;
     }
@@ -405,7 +405,7 @@ static int prepare_response(TALLOC_CTX *mem_ctx,
     }
 
     if (ret != EOK) {
-        DEBUG(1, "pack_buffer failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "pack_buffer failed\n");
         return ret;
     }
 
@@ -485,13 +485,13 @@ int main(int argc, const char *argv[])
 
     buf = talloc_size(main_ctx, sizeof(uint8_t)*IN_BUF_SIZE);
     if (buf == NULL) {
-        DEBUG(1, "talloc_size failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_size failed.\n");
         goto fail;
     }
 
     ibuf = talloc_zero(main_ctx, struct input_buffer);
     if (ibuf == NULL) {
-        DEBUG(1, "talloc_size failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_size failed.\n");
         goto fail;
     }
 
@@ -509,7 +509,8 @@ int main(int argc, const char *argv[])
 
     ret = unpack_buffer(buf, len, ibuf);
     if (ret != EOK) {
-        DEBUG(1, "unpack_buffer failed.[%d][%s].\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "unpack_buffer failed.[%d][%s].\n", ret, strerror(ret));
         goto fail;
     }
 

@@ -611,7 +611,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     /* Terminate the search filter */
     state->filter = talloc_asprintf_append_buffer(state->filter, ")");
     if (!state->filter) {
-        DEBUG(2, "Failed to build base filter\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build base filter\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -679,7 +679,7 @@ static void enum_users_done(struct tevent_req *subreq)
         }
     }
 
-    DEBUG(4, "Users higher USN value: [%s]\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Users higher USN value: [%s]\n",
               state->ctx->srv_opts->max_user_value);
 
     tevent_req_done(req);
@@ -848,7 +848,7 @@ static void enum_groups_done(struct tevent_req *subreq)
         }
     }
 
-    DEBUG(4, "Groups higher USN value: [%s]\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Groups higher USN value: [%s]\n",
               state->ctx->srv_opts->max_group_value);
 
     tevent_req_done(req);

@@ -252,7 +252,7 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
     if (nctx->vetoed_shells) {
         for (i=0; nctx->vetoed_shells[i]; i++) {
             if (strcmp(nctx->vetoed_shells[i], user_shell) == 0) {
-                DEBUG(5, "The shell '%s' is vetoed. "
+                DEBUG(SSSDBG_FUNC_DATA, "The shell '%s' is vetoed. "
                          "Using fallback\n", user_shell);
                 return talloc_strdup(mem_ctx, nctx->shell_fallback);
             }
@@ -262,14 +262,14 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
     if (nctx->etc_shells) {
         for (i=0; nctx->etc_shells[i]; i++) {
             if (strcmp(user_shell, nctx->etc_shells[i]) == 0) {
-                DEBUG(9, "Shell %s found in /etc/shells\n",
+                DEBUG(SSSDBG_TRACE_ALL, "Shell %s found in /etc/shells\n",
                         nctx->etc_shells[i]);
                 break;
             }
         }
 
         if (nctx->etc_shells[i]) {
-            DEBUG(9, "Using original shell '%s'\n", user_shell);
+            DEBUG(SSSDBG_TRACE_ALL, "Using original shell '%s'\n", user_shell);
             return talloc_strdup(mem_ctx, user_shell);
         }
     }
@@ -277,14 +277,16 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
     if (nctx->allowed_shells) {
         for (i=0; nctx->allowed_shells[i]; i++) {
             if (strcmp(nctx->allowed_shells[i], user_shell) == 0) {
-                DEBUG(5, "The shell '%s' is allowed but does not exist. "
+                DEBUG(SSSDBG_FUNC_DATA,
+                      "The shell '%s' is allowed but does not exist. "
                         "Using fallback\n", user_shell);
                 return talloc_strdup(mem_ctx, nctx->shell_fallback);
             }
         }
     }
 
-    DEBUG(5, "The shell '%s' is not allowed and does not exist.\n",
+    DEBUG(SSSDBG_FUNC_DATA,
+          "The shell '%s' is not allowed and does not exist.\n",
               user_shell);
     return talloc_strdup(mem_ctx, NOLOGIN_SHELL);
 }
@@ -424,7 +426,8 @@ static int fill_pwent(struct sss_packet *packet,
             }
 
             if (ret != name.len + delim + dom_len - 1) {
-                DEBUG(1, "Failed to generate a fully qualified name for user "
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to generate a fully qualified name for user "
                           "[%s] in [%s]! Skipping user.\n", name.str, domain);
                 continue;
             }
@@ -451,7 +454,8 @@ static int fill_pwent(struct sss_packet *packet,
                                           uid, gid,
                                           &gecos, &homedir, &shell);
             if (ret != EOK && ret != ENOMEM) {
-                DEBUG(1, "Failed to store user %s(%s) in mmap cache!",
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to store user %s(%s) in mmap cache!",
                           name.str, domain);
             }
         }
@@ -526,7 +530,8 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
      */
     if ((req_type == SSS_DP_USER || req_type == SSS_DP_NETGR) &&
             (res->count > 1)) {
-        DEBUG(1, "getpwXXX call returned more than one result!"
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "getpwXXX call returned more than one result!"
                   " DB Corrupted?\n");
         return ENOENT;
     }
@@ -760,22 +765,26 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             return ENOENT;
         }
 
-        DEBUG(4, "Requesting info for [%s@%s]\n", name, dom->name);
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Requesting info for [%s@%s]\n", name, dom->name);
 
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
-            DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Fatal: Sysdb CTX not found for this domain!\n");
             return EIO;
         }
 
         ret = sysdb_getpwnam(cmdctx, sysdb, dom, name, &dctx->res);
         if (ret != EOK) {
-            DEBUG(1, "Failed to make request to our cache!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to make request to our cache!\n");
             return EIO;
         }
 
         if (dctx->res->count > 1) {
-            DEBUG(0, "getpwnam call returned more than one result !?!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "getpwnam call returned more than one result !?!\n");
             return ENOENT;
         }
 
@@ -793,7 +802,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
                 if (dom) continue;
             }
 
-            DEBUG(2, "No results for getpwnam call\n");
+            DEBUG(SSSDBG_OP_FAILURE, "No results for getpwnam call\n");
 
             /* User not found in ldb -> delete user from memory cache. */
             ret = delete_entry_from_memcache(dctx->domain, name,
@@ -822,7 +831,8 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         }
 
         /* One result found */
-        DEBUG(6, "Returning info for user [%s@%s]\n", name, dom->name);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Returning info for user [%s@%s]\n", name, dom->name);
 
         return EOK;
     }
@@ -852,7 +862,8 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
     bool check_subdomains;
 
     if (err_maj) {
-        DEBUG(2, "Unable to get information from Data Provider\n"
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to get information from Data Provider\n"
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg);
@@ -1083,7 +1094,7 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
         goto done;
     }
 
-    DEBUG(4, "Requesting info for [%s] from [%s]\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for [%s] from [%s]\n",
               cmdctx->name, domname?domname:"<ALL>");
 
     if (domname) {
@@ -1255,7 +1266,8 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         /* check that the uid is valid for this domain */
         if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
             (dom->id_max && (cmdctx->id > dom->id_max))) {
-            DEBUG(4, "Uid [%lu] does not exist in domain [%s]! "
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Uid [%lu] does not exist in domain [%s]! "
                       "(id out of range)\n",
                       (unsigned long)cmdctx->id, dom->name);
             if (cmdctx->check_next) {
@@ -1275,24 +1287,28 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        DEBUG(4, "Requesting info for [%d@%s]\n", cmdctx->id, dom->name);
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Requesting info for [%d@%s]\n", cmdctx->id, dom->name);
 
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
-            DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Fatal: Sysdb CTX not found for this domain!\n");
             ret = EIO;
             goto done;
         }
 
         ret = sysdb_getpwuid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
-            DEBUG(1, "Failed to make request to our cache!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to make request to our cache!\n");
             ret = EIO;
             goto done;
         }
 
         if (dctx->res->count > 1) {
-            DEBUG(0, "getpwuid call returned more than one result !?!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "getpwuid call returned more than one result !?!\n");
             ret = ENOENT;
             goto done;
         }
@@ -1326,7 +1342,8 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         }
 
         /* One result found */
-        DEBUG(6, "Returning info for uid [%d@%s]\n", cmdctx->id, dom->name);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Returning info for uid [%d@%s]\n", cmdctx->id, dom->name);
 
         ret = EOK;
         goto done;
@@ -1592,7 +1609,8 @@ static int nss_cmd_setpwent(struct cli_ctx *cctx)
 
     req = nss_cmd_setpwent_send(cmdctx, cctx);
     if (!req) {
-        DEBUG(0, "Fatal error calling nss_cmd_setpwent_send\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal error calling nss_cmd_setpwent_send\n");
         ret = EIO;
         goto done;
     }
@@ -1613,7 +1631,7 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
     struct setent_step_ctx *step_ctx;
 
-    DEBUG(4, "Received setpwent request\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Received setpwent request\n");
     nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
 
     /* Reset the read pointers */
@@ -1622,7 +1640,8 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct setent_ctx);
     if (!req) {
-        DEBUG(0, "Could not create tevent request for setpwent\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Could not create tevent request for setpwent\n");
         return NULL;
     }
 
@@ -1642,7 +1661,7 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
     state->dctx->domain = dom;
 
     if (state->dctx->domain == NULL) {
-        DEBUG(2, "Enumeration disabled on all domains!\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Enumeration disabled on all domains!\n");
         ret = ENOENT;
         goto error;
     }
@@ -1763,11 +1782,13 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        DEBUG(6, "Requesting info for domain [%s]\n", dom->name);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Requesting info for domain [%s]\n", dom->name);
 
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
-            DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Fatal: Sysdb CTX not found for this domain!\n");
             return EIO;
         }
 
@@ -1805,14 +1826,16 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
 
         ret = sysdb_enumpwent(dctx, sysdb, dom, &res);
         if (ret != EOK) {
-            DEBUG(1, "Enum from cache failed, skipping domain [%s]\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Enum from cache failed, skipping domain [%s]\n",
                       dom->name);
             dom = get_next_domain(dom, true);
             continue;
         }
 
         if (res->count == 0) {
-            DEBUG(4, "Domain [%s] has no users, skipping.\n", dom->name);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Domain [%s] has no users, skipping.\n", dom->name);
             dom = get_next_domain(dom, true);
             continue;
         }
@@ -1847,7 +1870,8 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
     te = tevent_add_timer(rctx->ev, nctx->pctx, tv,
                           setpwent_result_timeout, nctx);
     if (!te) {
-        DEBUG(0, "Could not set up life timer for setpwent result object. "
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Could not set up life timer for setpwent result object. "
                   "Entries may become stale.\n");
     }
 
@@ -1868,7 +1892,8 @@ static void setpwent_result_timeout(struct tevent_context *ev,
 {
     struct nss_ctx *nctx = talloc_get_type(pvt, struct nss_ctx);
 
-    DEBUG(1, "setpwent result object has expired. Cleaning up.\n");
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          "setpwent result object has expired. Cleaning up.\n");
 
     /* Free the passwd enumeration context.
      * If additional getpwent requests come in, they will invoke
@@ -1885,7 +1910,8 @@ static void nss_cmd_setpwent_dp_callback(uint16_t err_maj, uint32_t err_min,
     int ret;
 
     if (err_maj) {
-        DEBUG(2, "Unable to get information from Data Provider\n"
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to get information from Data Provider\n"
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg);
@@ -1934,7 +1960,7 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
     struct nss_cmd_ctx *cmdctx;
     struct tevent_req *req;
 
-    DEBUG(4, "Requesting info for all accounts\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for all accounts\n");
 
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
@@ -2066,7 +2092,8 @@ static void nss_cmd_implicit_setpwent_done(struct tevent_req *req)
      * later.
      */
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(0, "Implicit setpwent failed with unexpected error [%d][%s]\n",
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Implicit setpwent failed with unexpected error [%d][%s]\n",
                   ret, strerror(ret));
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
@@ -2077,7 +2104,8 @@ static void nss_cmd_implicit_setpwent_done(struct tevent_req *req)
 
     ret = nss_cmd_getpwent_immediate(cmdctx);
     if (ret != EOK) {
-        DEBUG(0, "Immediate retrieval failed with unexpected error "
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Immediate retrieval failed with unexpected error "
                   "[%d][%s]\n", ret, strerror(ret));
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
@@ -2088,7 +2116,7 @@ static int nss_cmd_endpwent(struct cli_ctx *cctx)
     struct nss_ctx *nctx;
     int ret;
 
-    DEBUG(4, "Terminating request info for all accounts\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Terminating request info for all accounts\n");
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -2395,7 +2423,7 @@ static int fill_grent(struct sss_packet *packet,
         /* new group */
         if (!ldb_msg_check_string_attribute(msg, "objectClass",
                                             SYSDB_GROUP_CLASS)) {
-            DEBUG(1, "Wrong object (%s) found on stack!\n",
+            DEBUG(SSSDBG_CRIT_FAILURE, "Wrong object (%s) found on stack!\n",
                       ldb_dn_get_linearized(msg->dn));
             continue;
         }
@@ -2408,7 +2436,8 @@ static int fill_grent(struct sss_packet *packet,
         orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
         gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
         if (!orig_name || !gid) {
-            DEBUG(2, "Incomplete group object for %s[%llu]! Skipping\n",
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Incomplete group object for %s[%llu]! Skipping\n",
                       orig_name?orig_name:"<NULL>", (unsigned long long int)gid);
             continue;
         }
@@ -2473,7 +2502,8 @@ static int fill_grent(struct sss_packet *packet,
             }
 
             if (ret != name.len + delim + dom_len - 1) {
-                DEBUG(1, "Failed to generate a fully qualified name for"
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to generate a fully qualified name for"
                           " group [%s] in [%s]! Skipping\n", name.str, domain);
                 /* reclaim space */
                 ret = sss_packet_shrink(packet, rsize);
@@ -2653,22 +2683,26 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             return ENOENT;
         }
 
-        DEBUG(4, "Requesting info for [%s@%s]\n", name, dom->name);
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Requesting info for [%s@%s]\n", name, dom->name);
 
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
-            DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Fatal: Sysdb CTX not found for this domain!\n");
             return EIO;
         }
 
         ret = sysdb_getgrnam(cmdctx, sysdb, dom, name, &dctx->res);
         if (ret != EOK) {
-            DEBUG(1, "Failed to make request to our cache!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to make request to our cache!\n");
             return EIO;
         }
 
         if (dctx->res->count > 1) {
-            DEBUG(0, "getgrnam call returned more than one result !?!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "getgrnam call returned more than one result !?!\n");
             return ENOENT;
         }
 
@@ -2686,7 +2720,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
                 if (dom) continue;
             }
 
-            DEBUG(2, "No results for getgrnam call\n");
+            DEBUG(SSSDBG_OP_FAILURE, "No results for getgrnam call\n");
 
             /* Group not found in ldb -> delete group from memory cache. */
             ret = delete_entry_from_memcache(dctx->domain, name,
@@ -2716,7 +2750,8 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         }
 
         /* One result found */
-        DEBUG(6, "Returning info for group [%s@%s]\n", name, dom->name);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Returning info for group [%s@%s]\n", name, dom->name);
 
         return EOK;
     }
@@ -2756,7 +2791,8 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         /* check that the gid is valid for this domain */
         if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
             (dom->id_max && (cmdctx->id > dom->id_max))) {
-            DEBUG(4, "Gid [%lu] does not exist in domain [%s]! "
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Gid [%lu] does not exist in domain [%s]! "
                       "(id out of range)\n",
                       (unsigned long)cmdctx->id, dom->name);
             if (cmdctx->check_next) {
@@ -2776,24 +2812,28 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        DEBUG(4, "Requesting info for [%d@%s]\n", cmdctx->id, dom->name);
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Requesting info for [%d@%s]\n", cmdctx->id, dom->name);
 
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
-            DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Fatal: Sysdb CTX not found for this domain!\n");
             ret = EIO;
             goto done;
         }
 
         ret = sysdb_getgrgid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
-            DEBUG(1, "Failed to make request to our cache!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to make request to our cache!\n");
             ret = EIO;
             goto done;
         }
 
         if (dctx->res->count > 1) {
-            DEBUG(0, "getgrgid call returned more than one result !?!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "getgrgid call returned more than one result !?!\n");
             ret = ENOENT;
             goto done;
         }
@@ -2827,7 +2867,8 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         }
 
         /* One result found */
-        DEBUG(6, "Returning info for gid [%d@%s]\n", cmdctx->id, dom->name);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Returning info for gid [%d@%s]\n", cmdctx->id, dom->name);
 
         /* Success. Break from the loop and return EOK */
         ret = EOK;
@@ -2883,7 +2924,8 @@ static int nss_cmd_setgrent(struct cli_ctx *cctx)
 
     req = nss_cmd_setgrent_send(cmdctx, cctx);
     if (!req) {
-        DEBUG(0, "Fatal error calling nss_cmd_setgrent_send\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal error calling nss_cmd_setgrent_send\n");
         ret = EIO;
         goto done;
     }
@@ -2904,7 +2946,7 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
     struct setent_step_ctx *step_ctx;
 
-    DEBUG(4, "Received setgrent request\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Received setgrent request\n");
     nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
 
     /* Reset the read pointers */
@@ -2913,7 +2955,8 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct setent_ctx);
     if (!req) {
-        DEBUG(0, "Could not create tevent request for setgrent\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Could not create tevent request for setgrent\n");
         return NULL;
     }
 
@@ -2933,7 +2976,7 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
     state->dctx->domain = dom;
 
     if (state->dctx->domain == NULL) {
-        DEBUG(2, "Enumeration disabled on all domains!\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Enumeration disabled on all domains!\n");
         ret = ENOENT;
         goto error;
     }
@@ -3054,11 +3097,13 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        DEBUG(6, "Requesting info for domain [%s]\n", dom->name);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Requesting info for domain [%s]\n", dom->name);
 
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
-            DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Fatal: Sysdb CTX not found for this domain!\n");
             return EIO;
         }
 
@@ -3096,14 +3141,16 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
 
         ret = sysdb_enumgrent(dctx, sysdb, dom, &res);
         if (ret != EOK) {
-            DEBUG(1, "Enum from cache failed, skipping domain [%s]\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Enum from cache failed, skipping domain [%s]\n",
                       dom->name);
             dom = get_next_domain(dom, true);
             continue;
         }
 
         if (res->count == 0) {
-            DEBUG(4, "Domain [%s] has no groups, skipping.\n", dom->name);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Domain [%s] has no groups, skipping.\n", dom->name);
             dom = get_next_domain(dom, true);
             continue;
         }
@@ -3138,7 +3185,8 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
     te = tevent_add_timer(rctx->ev, nctx->gctx, tv,
                           setgrent_result_timeout, nctx);
     if (!te) {
-        DEBUG(0, "Could not set up life timer for setgrent result object. "
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Could not set up life timer for setgrent result object. "
                   "Entries may become stale.\n");
     }
 
@@ -3160,7 +3208,8 @@ static void setgrent_result_timeout(struct tevent_context *ev,
 {
     struct nss_ctx *nctx = talloc_get_type(pvt, struct nss_ctx);
 
-    DEBUG(1, "setgrent result object has expired. Cleaning up.\n");
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          "setgrent result object has expired. Cleaning up.\n");
 
     /* Free the group enumeration context.
      * If additional getgrent requests come in, they will invoke
@@ -3177,7 +3226,8 @@ static void nss_cmd_setgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
     int ret;
 
     if (err_maj) {
-        DEBUG(2, "Unable to get information from Data Provider\n"
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to get information from Data Provider\n"
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg);
@@ -3304,7 +3354,7 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
     struct nss_cmd_ctx *cmdctx;
     struct tevent_req *req;
 
-    DEBUG(4, "Requesting info for all groups\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for all groups\n");
 
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
@@ -3350,7 +3400,8 @@ static void nss_cmd_implicit_setgrent_done(struct tevent_req *req)
      * later.
      */
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(0, "Implicit setgrent failed with unexpected error [%d][%s]\n",
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Implicit setgrent failed with unexpected error [%d][%s]\n",
                   ret, strerror(ret));
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
@@ -3361,7 +3412,8 @@ static void nss_cmd_implicit_setgrent_done(struct tevent_req *req)
 
     ret = nss_cmd_getgrent_immediate(cmdctx);
     if (ret != EOK) {
-        DEBUG(0, "Immediate retrieval failed with unexpected error "
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Immediate retrieval failed with unexpected error "
                   "[%d][%s]\n", ret, strerror(ret));
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
@@ -3372,7 +3424,7 @@ static int nss_cmd_endgrent(struct cli_ctx *cctx)
     struct nss_ctx *nctx;
     int ret;
 
-    DEBUG(4, "Terminating request info for all groups\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Terminating request info for all groups\n");
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -3547,7 +3599,8 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
                 skipped++;
                 continue;
             } else {
-                DEBUG(1, "Incomplete group object for initgroups! Aborting\n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Incomplete group object for initgroups! Aborting\n");
                 return EFAULT;
             }
         }
@@ -3657,17 +3710,20 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             return ENOENT;
         }
 
-        DEBUG(4, "Requesting info for [%s@%s]\n", name, dom->name);
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Requesting info for [%s@%s]\n", name, dom->name);
 
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
-            DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Fatal: Sysdb CTX not found for this domain!\n");
             return EIO;
         }
 
         ret = sysdb_initgroups(cmdctx, sysdb, dom, name, &dctx->res);
         if (ret != EOK) {
-            DEBUG(1, "Failed to make request to our cache! [%d][%s]\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to make request to our cache! [%d][%s]\n",
                       ret, strerror(ret));
             return EIO;
         }
@@ -3686,7 +3742,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
                 if (dom) continue;
             }
 
-            DEBUG(2, "No results for initgroups call\n");
+            DEBUG(SSSDBG_OP_FAILURE, "No results for initgroups call\n");
 
             return ENOENT;
         }
@@ -3706,7 +3762,8 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             }
         }
 
-        DEBUG(6, "Initgroups for [%s@%s] completed\n", name, dom->name);
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Initgroups for [%s@%s] completed\n", name, dom->name);
         return EOK;
     }
 
@@ -4046,7 +4103,7 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
     }
 
     if (dctx->res->count == 0 && !dctx->check_provider) {
-        DEBUG(2, "No results for getbysid call.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "No results for getbysid call.\n");
 
         /* set negative cache only if not result of cache check */
         ret = sss_ncache_set_sid(nctx->ncache, false, cmdctx->secid);
@@ -4386,7 +4443,7 @@ static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         goto done;
     }
 
-    DEBUG(4, "Requesting info for [%s] from [%s]\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for [%s] from [%s]\n",
               cmdctx->secid, dctx->domain->name);
 
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);

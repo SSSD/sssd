@@ -58,7 +58,8 @@ static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
 
     /* Sanity-check of message validity */
     if (msg == NULL) {
-        DEBUG(0, "Severe error. A reply callback was called but no reply was"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Severe error. A reply callback was called but no reply was"
                   "received and no timeout occurred\n");
         preq->pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
@@ -69,18 +70,19 @@ static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
         case DBUS_MESSAGE_TYPE_METHOD_RETURN:
             ret = dp_unpack_pam_response(msg, preq->pd, &dbus_error);
             if (!ret) {
-                DEBUG(0, "Failed to parse reply.\n");
+                DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse reply.\n");
                 preq->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-            DEBUG(4, "received: [%d][%s]\n", preq->pd->pam_status, preq->pd->domain);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "received: [%d][%s]\n", preq->pd->pam_status, preq->pd->domain);
             break;
         case DBUS_MESSAGE_TYPE_ERROR:
-            DEBUG(0, "Reply error.\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Reply error.\n");
             preq->pd->pam_status = PAM_SYSTEM_ERR;
             break;
         default:
-            DEBUG(0, "Default... what now?.\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "Default... what now?.\n");
             preq->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
@@ -129,17 +131,17 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
                                        DP_INTERFACE,
                                        DP_METHOD_PAMHANDLER);
     if (msg == NULL) {
-        DEBUG(0,"Out of memory?!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
         return ENOMEM;
     }
 
 
-    DEBUG(4, "Sending request with the following data:\n");
-    DEBUG_PAM_DATA(4, pd);
+    DEBUG(SSSDBG_CONF_SETTINGS, "Sending request with the following data:\n");
+    DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
 
     ret = dp_pack_pam_request(msg, pd);
     if (!ret) {
-        DEBUG(1,"Failed to build message\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,"Failed to build message\n");
         return EIO;
     }
 

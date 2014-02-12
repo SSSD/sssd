@@ -95,7 +95,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
-        DEBUG(2, "sdap_id_op_create failed\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -210,7 +210,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
     talloc_zfree(clean_name);
     if (!state->filter) {
-        DEBUG(2, "Failed to build the base filter\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build the base filter\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -551,7 +551,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
-        DEBUG(2, "sdap_id_op_create failed\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -666,7 +666,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
     talloc_zfree(clean_name);
     if (!state->filter) {
-        DEBUG(2, "Failed to build filter\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -960,7 +960,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
-        DEBUG(2, "sdap_id_op_create failed\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -1134,7 +1134,7 @@ void sdap_do_online_check(struct be_req *be_req, struct sdap_id_ctx *ctx)
                                 be_ctx, ctx->conn->service, false,
                                 CON_TLS_DFL, false);
     if (req == NULL) {
-        DEBUG(1, "sdap_cli_connect_send failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_cli_connect_send failed.\n");
         ret = EIO;
         goto fail;
     }

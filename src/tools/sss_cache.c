@@ -453,14 +453,15 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx, struct sysdb_ctx *sysdb,
                     return EINVAL;
             }
             if (ret != EOK) {
-                DEBUG(3, "Could not set entry attributes\n");
+                DEBUG(SSSDBG_MINOR_FAILURE, "Could not set entry attributes\n");
             }
         } else {
-            DEBUG(3, "Could not add expiration time to attributes\n");
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not add expiration time to attributes\n");
         }
         talloc_zfree(sys_attrs);
     } else {
-        DEBUG(3, "Could not create sysdb attributes\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not create sysdb attributes\n");
         ret = ENOMEM;
     }
     return ret;
@@ -481,7 +482,8 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
     ret = confdb_init(ctx, &ctx->confdb, confdb_path);
     talloc_free(confdb_path);
     if (ret != EOK) {
-        DEBUG(1, "Could not initialize connection to the confdb\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not initialize connection to the confdb\n");
         return ret;
     }
 
@@ -490,21 +492,23 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
                                domain, DB_PATH, &ctx->domains);
         if (ret != EOK) {
             SYSDB_VERSION_ERROR(ret);
-            DEBUG(1, "Could not initialize connection to the sysdb\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not initialize connection to the sysdb\n");
             return ret;
         }
 
     } else {
         ret = confdb_get_domains(ctx->confdb, &ctx->domains);
         if (ret != EOK) {
-            DEBUG(1, "Could not initialize domains\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not initialize domains\n");
             return ret;
         }
 
         ret = sysdb_init(ctx, ctx->domains, false);
         SYSDB_VERSION_ERROR(ret);
         if (ret != EOK) {
-            DEBUG(1, "Could not initialize connection to the sysdb\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not initialize connection to the sysdb\n");
             return ret;
         }
     }
@@ -569,7 +573,8 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(1, "set_locale failed (%d): %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "set_locale failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error setting the locale\n");
         goto fini;
     }
@@ -616,7 +621,8 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
 
     ctx = talloc_zero(NULL, struct cache_tool_ctx);
     if (ctx == NULL) {
-        DEBUG(1, "Could not allocate memory for tools context\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not allocate memory for tools context\n");
         ret = ENOMEM;
         goto fini;
     }
@@ -670,7 +676,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
          (user && !ctx->user_name) || (group && !ctx->group_name) ||
          (netgroup && !ctx->netgroup_name) || (map && !ctx->autofs_name) ||
          (service && !ctx->service_name)) {
-        DEBUG(1, "Construction of filters failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Construction of filters failed\n");
         ret = ENOMEM;
         goto fini;
     }

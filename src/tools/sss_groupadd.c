@@ -54,7 +54,8 @@ int main(int argc, const char **argv)
 
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(1, "set_locale failed (%d): %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "set_locale failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error setting the locale\n");
         ret = EXIT_FAILURE;
         goto fini;
@@ -79,7 +80,8 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&tctx);
     if (ret != EOK) {
-        DEBUG(1, "init_sss_tools failed (%d): %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "init_sss_tools failed (%d): %s\n", ret, strerror(ret));
         if (ret == ENOENT) {
             ERROR("Error initializing the tools - no local domain\n");
         } else {
@@ -146,7 +148,8 @@ done:
                 break;
 
             default:
-                DEBUG(1, "sysdb operation failed (%d)[%s]\n", ret, strerror(ret));
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sysdb operation failed (%d)[%s]\n", ret, strerror(ret));
                 ERROR("Transaction error. Could not add group.\n");
                 break;
         }

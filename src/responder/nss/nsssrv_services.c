@@ -635,7 +635,7 @@ fill_service(struct sss_packet *packet,
         /* new service */
         if (!ldb_msg_check_string_attribute(msg, "objectClass",
                                             SYSDB_SVC_CLASS)) {
-            DEBUG(1, "Wrong object (%s) found on stack!\n",
+            DEBUG(SSSDBG_CRIT_FAILURE, "Wrong object (%s) found on stack!\n",
                       ldb_dn_get_linearized(msg->dn));
             continue;
         }

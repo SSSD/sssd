@@ -159,7 +159,7 @@ int be_fo_add_service(struct be_ctx *ctx, const char *service_name,
 
     svc = be_fo_find_svc_data(ctx, service_name);
     if (svc) {
-        DEBUG(6, "Failover service already initialized!\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Failover service already initialized!\n");
         /* we already have a service up and configured,
          * can happen when using both id and auth provider
          */
@@ -171,7 +171,7 @@ int be_fo_add_service(struct be_ctx *ctx, const char *service_name,
     ret = fo_new_service(ctx->be_fo->fo_ctx, service_name, user_data_cmp,
                          &service);
     if (ret != EOK && ret != EEXIST) {
-        DEBUG(1, "Failed to create failover service!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create failover service!\n");
         return ret;
     }
 
@@ -315,7 +315,8 @@ int be_fo_add_srv_server(struct be_ctx *ctx,
                             domain, ctx->domain->name,
                             proto_table[proto], user_data);
     if (ret && ret != EEXIST) {
-        DEBUG(1, "Failed to add SRV lookup reference to failover service\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to add SRV lookup reference to failover service\n");
         return ret;
     }
 
@@ -327,7 +328,8 @@ int be_fo_add_srv_server(struct be_ctx *ctx,
                                     domain, ctx->domain->name,
                                     proto_table[i], user_data);
             if (ret && ret != EEXIST) {
-                DEBUG(1, "Failed to add SRV lookup reference to failover service\n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to add SRV lookup reference to failover service\n");
                 return ret;
             }
 
@@ -365,7 +367,8 @@ int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
     ret = fo_add_server(svc->fo_service, server, port,
                         user_data, primary);
     if (ret && ret != EEXIST) {
-        DEBUG(1, "Failed to add server to failover service\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to add server to failover service\n");
         return ret;
     }
 

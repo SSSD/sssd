@@ -68,7 +68,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     const char **memberof_list;
 
     if (ipa_host == NULL) {
-        DEBUG(1, "Missing host\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing host\n");
         return NULL;
     }
 
@@ -77,7 +77,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_attrs_get_string(ipa_host, SYSDB_ORIG_DN, &host_dn);
     if (ret != EOK) {
-        DEBUG(1, "Could not identify IPA hostname\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not identify IPA hostname\n");
         goto error;
     }
 
@@ -86,7 +86,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_hbac_rule_state);
     if (req == NULL) {
-        DEBUG(1, "tevent_req_create failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
 
@@ -144,7 +144,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_get_string_array(ipa_host, SYSDB_ORIG_MEMBEROF,
                                        tmp_ctx, &memberof_list);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(1, "Could not identify ");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not identify ");
     } if (ret == ENOENT) {
         /* This host is not a member of any hostgroups */
         memberof_list = talloc_array(tmp_ctx, const char *, 1);
@@ -262,7 +262,7 @@ ipa_hbac_rule_info_done(struct tevent_req *subreq)
                                 &rule_count,
                                 &rules);
     if (ret != EOK) {
-        DEBUG(3, "Could not retrieve HBAC rules\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not retrieve HBAC rules\n");
         goto fail;
     }
 
@@ -293,7 +293,7 @@ ipa_hbac_rule_info_done(struct tevent_req *subreq)
     } else if (ret != EOK) {
         goto fail;
     } else if (ret == EOK && state->rule_count == 0) {
-        DEBUG(3, "No rules apply to this host\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "No rules apply to this host\n");
         tevent_req_error(req, ENOENT);
         return;
     }

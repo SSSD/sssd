@@ -220,7 +220,8 @@ int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
                             NAME_DOMAIN_PATTERN_OPTIONS,
                             &errval, &errstr, &errpos, NULL);
     if (!ctx->re) {
-        DEBUG(1, "Invalid Regular Expression pattern at position %d."
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid Regular Expression pattern at position %d."
                   " (Error: %d [%s])\n", errpos, errval, errstr);
         ret = EFAULT;
         goto done;
@@ -286,9 +287,11 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         }
 #ifdef HAVE_LIBPCRE_LESSER_THAN_7
     } else {
-        DEBUG(2, "This binary was build with a version of libpcre that does "
+        DEBUG(SSSDBG_OP_FAILURE,
+              "This binary was build with a version of libpcre that does "
                   "not support non-unique named subpatterns.\n");
-        DEBUG(2, "Please make sure that your pattern [%s] only contains "
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Please make sure that your pattern [%s] only contains "
                   "subpatterns with a unique name and uses "
                   "the Python syntax (?P<name>).\n", re_pattern);
 #endif
@@ -341,7 +344,8 @@ int sss_parse_name(TALLOC_CTX *memctx,
     }
 
     if (ret == 0) {
-        DEBUG(1, "Too many matches, the pattern is invalid.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Too many matches, the pattern is invalid.\n");
     }
 
     strnum = ret;
@@ -350,7 +354,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
         result = NULL;
         ret = pcre_get_named_substring(re, orig, ovec, strnum, "name", &result);
         if (ret < 0  || !result) {
-            DEBUG(2, "Name not found!\n");
+            DEBUG(SSSDBG_OP_FAILURE, "Name not found!\n");
             return EINVAL;
         }
         *_name = talloc_strdup(memctx, result);
@@ -363,7 +367,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
         ret = pcre_get_named_substring(re, orig, ovec, strnum, "domain",
                                        &result);
         if (ret < 0  || !result) {
-            DEBUG(4, "Domain not provided!\n");
+            DEBUG(SSSDBG_CONF_SETTINGS, "Domain not provided!\n");
             *_domain = NULL;
         } else {
             /* ignore "" string */

@@ -140,12 +140,12 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
 
     ctx = talloc_zero(mem_ctx, struct fo_ctx);
     if (ctx == NULL) {
-        DEBUG(1, "No memory\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "No memory\n");
         return NULL;
     }
     ctx->opts = talloc_zero(ctx, struct fo_options);
     if (ctx->opts == NULL) {
-        DEBUG(1, "No memory\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "No memory\n");
         return NULL;
     }
 
@@ -223,7 +223,7 @@ collapse_srv_lookup(struct fo_server **_server)
 
     server = *_server;
     meta = server->srv_data->meta;
-    DEBUG(4, "Need to refresh SRV lookup for domain %s\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Need to refresh SRV lookup for domain %s\n",
               meta->srv_data->dns_domain);
 
     if (server != meta) {
@@ -282,7 +282,7 @@ get_srv_data_status(struct srv_data *data)
             data->last_status_change.tv_sec = 0;
             break;
         default:
-            DEBUG(1, "Unknown state for SRV server!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown state for SRV server!\n");
         }
     }
 
@@ -292,7 +292,7 @@ get_srv_data_status(struct srv_data *data)
 static void
 set_srv_data_status(struct srv_data *data, enum srv_lookup_status status)
 {
-    DEBUG(4, "Marking SRV lookup of service '%s' as '%s'\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Marking SRV lookup of service '%s' as '%s'\n",
               data->meta->service->name, str_srv_data_status(status));
 
     gettimeofday(&data->last_status_change, NULL);
@@ -312,14 +312,15 @@ get_server_status(struct fo_server *server)
     if (server->common == NULL)
         return SERVER_NAME_RESOLVED;
 
-    DEBUG(7, "Status of server '%s' is '%s'\n", SERVER_NAME(server),
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Status of server '%s' is '%s'\n", SERVER_NAME(server),
               str_server_status(server->common->server_status));
 
     timeout = server->service->ctx->opts->retry_timeout;
     gettimeofday(&tv, NULL);
     if (timeout != 0 && server->common->server_status == SERVER_NOT_WORKING) {
         if (STATUS_DIFF(server->common, tv) > timeout) {
-            DEBUG(4, "Reseting the server status of '%s'\n",
+            DEBUG(SSSDBG_CONF_SETTINGS, "Reseting the server status of '%s'\n",
                       SERVER_NAME(server));
             server->common->server_status = SERVER_NAME_NOT_RESOLVED;
             server->common->last_status_change.tv_sec = tv.tv_sec;
@@ -328,7 +329,8 @@ get_server_status(struct fo_server *server)
 
     if (server->common->rhostent && STATUS_DIFF(server->common, tv) >
         server->common->rhostent->addr_list[0]->ttl) {
-        DEBUG(4, "Hostname resolution expired, resetting the server "
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Hostname resolution expired, resetting the server "
                   "status of '%s'\n", SERVER_NAME(server));
         fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
     }
@@ -346,14 +348,16 @@ get_port_status(struct fo_server *server)
     struct timeval tv;
     time_t timeout;
 
-    DEBUG(7, "Port status of port %d for server '%s' is '%s'\n", server->port,
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Port status of port %d for server '%s' is '%s'\n", server->port,
               SERVER_NAME(server), str_port_status(server->port_status));
 
     timeout = server->service->ctx->opts->retry_timeout;
     if (timeout != 0 && server->port_status == PORT_NOT_WORKING) {
         gettimeofday(&tv, NULL);
         if (STATUS_DIFF(server, tv) > timeout) {
-            DEBUG(4, "Reseting the status of port %d for server '%s'\n",
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Reseting the status of port %d for server '%s'\n",
                       server->port, SERVER_NAME(server));
             server->port_status = PORT_NEUTRAL;
             server->last_status_change.tv_sec = tv.tv_sec;
@@ -401,7 +405,7 @@ fo_new_service(struct fo_ctx *ctx, const char *name,
     DEBUG(SSSDBG_TRACE_FUNC, "Creating new service '%s'\n", name);
     ret = fo_get_service(ctx, name, &service);
     if (ret == EOK) {
-        DEBUG(5, "Service '%s' already exists\n", name);
+        DEBUG(SSSDBG_FUNC_DATA, "Service '%s' already exists\n", name);
         if (_service) {
                 *_service = service;
         }
@@ -473,7 +477,8 @@ static int server_common_destructor(void *memptr)
 
     common = talloc_get_type(memptr, struct server_common);
     if (common->request_list) {
-        DEBUG(1, "BUG: pending requests still associated with this server\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "BUG: pending requests still associated with this server\n");
         return -1;
     }
     DLIST_REMOVE(common->ctx->server_common_list, common);
@@ -879,7 +884,7 @@ set_lookup_hook(struct fo_server *server, struct tevent_req *req)
 
     request = talloc(req, struct resolve_service_request);
     if (request == NULL) {
-        DEBUG(1, "No memory\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "No memory\n");
         talloc_free(request);
         return ENOMEM;
     }
@@ -936,7 +941,8 @@ fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct tevent_req *subreq;
     struct resolve_service_state *state;
 
-    DEBUG(4, "Trying to resolve service '%s'\n", service->name);
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Trying to resolve service '%s'\n", service->name);
     req = tevent_req_create(mem_ctx, &state, struct resolve_service_state);
     if (req == NULL)
         return NULL;
@@ -947,7 +953,8 @@ fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 
     ret = get_first_server_entity(service, &server);
     if (ret != EOK) {
-        DEBUG(1, "No available servers for service '%s'\n", service->name);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "No available servers for service '%s'\n", service->name);
         goto done;
     }
 
@@ -1105,7 +1112,7 @@ fo_resolve_service_done(struct tevent_req *subreq)
                                     &common->rhostent);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(1, "Failed to resolve server '%s': %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to resolve server '%s': %s\n",
                   common->name,
                   resolv_strerror(resolv_status));
         /* If the resolver failed to resolve a hostname but did not
@@ -1234,7 +1241,8 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         tevent_req_post(req, state->ev);
         return req;
     default:
-        DEBUG(1, "Unexpected status %d for a SRV server\n", status);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unexpected status %d for a SRV server\n", status);
         ret = EIO;
         goto done;
     }
@@ -1385,7 +1393,7 @@ static void
 set_server_common_status(struct server_common *common,
                          enum server_status status)
 {
-    DEBUG(4, "Marking server '%s' as '%s'\n", common->name,
+    DEBUG(SSSDBG_CONF_SETTINGS, "Marking server '%s' as '%s'\n", common->name,
               str_server_status(status));
 
     common->server_status = status;
@@ -1396,7 +1404,8 @@ void
 fo_set_server_status(struct fo_server *server, enum server_status status)
 {
     if (server->common == NULL) {
-        DEBUG(1, "Bug: Trying to set server status of a name-less server\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Bug: Trying to set server status of a name-less server\n");
         return;
     }
 
@@ -1408,7 +1417,8 @@ fo_set_port_status(struct fo_server *server, enum port_status status)
 {
     struct fo_server *siter;
 
-    DEBUG(4, "Marking port %d of server '%s' as '%s'\n", server->port,
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Marking port %d of server '%s' as '%s'\n", server->port,
               SERVER_NAME(server), str_port_status(status));
 
     server->port_status = status;
@@ -1440,7 +1450,7 @@ void fo_try_next_server(struct fo_service *service)
     struct fo_server *server;
 
     if (!service) {
-        DEBUG(1, "Bug: No service supplied\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No service supplied\n");
         return;
     }
 
@@ -1493,7 +1503,8 @@ struct resolv_hostent *
 fo_get_server_hostent(struct fo_server *server)
 {
     if (server->common == NULL) {
-        DEBUG(1, "Bug: Trying to get hostent from a name-less server\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Bug: Trying to get hostent from a name-less server\n");
         return NULL;
     }
 

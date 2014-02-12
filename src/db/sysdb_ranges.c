@@ -251,7 +251,7 @@ errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range)
 
 done:
     if (ret) {
-        DEBUG(6, "Error: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;

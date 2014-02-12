@@ -174,7 +174,8 @@ errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *src,
 
 failed:
     talloc_free(pd);
-    DEBUG(1, "copy_pam_data failed: (%d) %s.\n", ret, strerror(ret));
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          "copy_pam_data failed: (%d) %s.\n", ret, strerror(ret));
     return ret;
 }
 

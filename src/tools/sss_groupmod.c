@@ -61,7 +61,8 @@ int main(int argc, const char **argv)
 
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(1, "set_locale failed (%d): %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "set_locale failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error setting the locale\n");
         ret = EXIT_FAILURE;
         goto fini;
@@ -106,7 +107,8 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&tctx);
     if (ret != EOK) {
-        DEBUG(1, "init_sss_tools failed (%d): %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "init_sss_tools failed (%d): %s\n", ret, strerror(ret));
         if (ret == ENOENT) {
             ERROR("Error initializing the tools - no local domain\n");
         } else {
@@ -137,7 +139,8 @@ int main(int argc, const char **argv)
     if (addgroups) {
         ret = parse_groups(tctx, addgroups, &tctx->octx->addgroups);
         if (ret != EOK) {
-            DEBUG(1, "Cannot parse groups to add the group to\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot parse groups to add the group to\n");
             ERROR("Internal error while parsing parameters\n");
             ret = EXIT_FAILURE;
             goto fini;
@@ -145,7 +148,8 @@ int main(int argc, const char **argv)
 
         ret = parse_group_name_domain(tctx, tctx->octx->addgroups);
         if (ret != EOK) {
-            DEBUG(1, "Cannot parse FQDN groups to add the group to\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot parse FQDN groups to add the group to\n");
             ERROR("Member groups must be in the same domain as parent group\n");
             ret = EXIT_FAILURE;
             goto fini;
@@ -164,7 +168,8 @@ int main(int argc, const char **argv)
     if (rmgroups) {
         ret = parse_groups(tctx, rmgroups, &tctx->octx->rmgroups);
         if (ret != EOK) {
-            DEBUG(1, "Cannot parse groups to remove the group from\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot parse groups to remove the group from\n");
             ERROR("Internal error while parsing parameters\n");
             ret = EXIT_FAILURE;
             goto fini;
@@ -172,7 +177,8 @@ int main(int argc, const char **argv)
 
         ret = parse_group_name_domain(tctx, tctx->octx->rmgroups);
         if (ret != EOK) {
-            DEBUG(1, "Cannot parse FQDN groups to remove the group from\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot parse FQDN groups to remove the group from\n");
             ERROR("Member groups must be in the same domain as parent group\n");
             ret = EXIT_FAILURE;
             goto fini;
@@ -244,7 +250,8 @@ done:
     }
     if (tctx->error) {
         ret = tctx->error;
-        DEBUG(1, "sysdb operation failed (%d)[%s]\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb operation failed (%d)[%s]\n", ret, strerror(ret));
         switch (ret) {
             case ENOENT:
                 ERROR("Could not modify group - check if member group names are correct\n");

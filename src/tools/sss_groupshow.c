@@ -80,7 +80,7 @@ static int parse_memberofs(struct ldb_context *ldb,
         if (gi->memberofs[i] == NULL) {
             return ENOMEM;
         }
-        DEBUG(6, "memberof value: %s\n", gi->memberofs[i]);
+        DEBUG(SSSDBG_TRACE_FUNC, "memberof value: %s\n", gi->memberofs[i]);
     }
     gi->memberofs[el->num_values] = NULL;
 
@@ -140,7 +140,7 @@ static int parse_members(TALLOC_CTX *mem_ctx,
                 ret = ENOMEM;
                 goto fail;
             }
-            DEBUG(6, "User member %s\n", um[um_index]);
+            DEBUG(SSSDBG_TRACE_FUNC, "User member %s\n", um[um_index]);
             um_index++;
         } else if (ldb_dn_compare_base(parent_dn, group_basedn) == 0) {
             gm[gm_index] = rdn_as_string(mem_ctx, dn);
@@ -149,14 +149,15 @@ static int parse_members(TALLOC_CTX *mem_ctx,
                 goto fail;
             }
             if (parent_name && strcmp(gm[gm_index], parent_name) == 0) {
-                DEBUG(6, "Skipping circular nesting for group %s\n",
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "Skipping circular nesting for group %s\n",
                           gm[gm_index]);
                 continue;
             }
-            DEBUG(6, "Group member %s\n", gm[gm_index]);
+            DEBUG(SSSDBG_TRACE_FUNC, "Group member %s\n", gm[gm_index]);
             gm_index++;
         } else {
-            DEBUG(2, "Group member not a user nor group: %s\n",
+            DEBUG(SSSDBG_OP_FAILURE, "Group member not a user nor group: %s\n",
                         ldb_dn_get_linearized(dn));
             ret = EIO;
             goto fail;
@@ -216,7 +217,8 @@ static int process_group(TALLOC_CTX *mem_ctx,
     struct group_info *gi = NULL;
     const char **user_members;
 
-    DEBUG(6, "Found entry %s\n", ldb_dn_get_linearized(msg->dn));
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Found entry %s\n", ldb_dn_get_linearized(msg->dn));
 
     gi = talloc_zero(mem_ctx, struct group_info);
     if (!gi) {
@@ -232,7 +234,7 @@ static int process_group(TALLOC_CTX *mem_ctx,
     gi->gid = ldb_msg_find_attr_as_uint64(msg,
                                           SYSDB_GIDNUM, 0);
     if (gi->gid == 0 || gi->name == NULL) {
-        DEBUG(3, "No name or no GID?\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "No name or no GID?\n");
         ret = EIO;
         goto done;
     }
@@ -335,7 +337,8 @@ int group_show(TALLOC_CTX *mem_ctx,
     /* First, search for the root group */
     ret = sysdb_search_group_by_name(mem_ctx, sysdb, domain, name, attrs, &msg);
     if (ret) {
-        DEBUG(2, "Search failed: %s (%d)\n", strerror(ret), ret);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Search failed: %s (%d)\n", strerror(ret), ret);
         goto done;
     }
 
@@ -343,7 +346,7 @@ int group_show(TALLOC_CTX *mem_ctx,
                         msg, domain, NULL, &root,
                         &group_members, &nmembers);
     if (ret != EOK) {
-        DEBUG(2, "Group processing failed: %s (%d)\n",
+        DEBUG(SSSDBG_OP_FAILURE, "Group processing failed: %s (%d)\n",
                    strerror(ret), ret);
         goto done;
     }
@@ -393,7 +396,8 @@ int group_show(TALLOC_CTX *mem_ctx,
                              group_members, nmembers,
                              &root->group_members);
     if (ret) {
-        DEBUG(2, "Recursive search failed: %s (%d)\n", strerror(ret), ret);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Recursive search failed: %s (%d)\n", strerror(ret), ret);
         goto done;
     }
 
@@ -448,7 +452,7 @@ static int group_show_trim_memberof(TALLOC_CTX *mem_ctx,
             name = ldb_msg_find_attr_as_string(msgs[0],
                                                SYSDB_NAME, NULL);
             if (!name) {
-                DEBUG(2, "Entry %s has no Name Attribute ?!?\n",
+                DEBUG(SSSDBG_OP_FAILURE, "Entry %s has no Name Attribute ?!?\n",
                       ldb_dn_get_linearized(msgs[0]->dn));
                 return EFAULT;
             }
@@ -509,7 +513,8 @@ int group_show_recurse(TALLOC_CTX *mem_ctx,
         ret = sysdb_search_group_by_name(mem_ctx, sysdb, domain,
                                          group_members[i], attrs, &msg);
         if (ret) {
-            DEBUG(2, "Search failed: %s (%d)\n", strerror(ret), ret);
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Search failed: %s (%d)\n", strerror(ret), ret);
             return EIO;
         }
 
@@ -517,7 +522,7 @@ int group_show_recurse(TALLOC_CTX *mem_ctx,
                             msg, domain, parent->name,
                             &groups[i], &new_group_members, &new_nmembers);
         if (ret != EOK) {
-            DEBUG(2, "Group processing failed: %s (%d)\n",
+            DEBUG(SSSDBG_OP_FAILURE, "Group processing failed: %s (%d)\n",
                       strerror(ret), ret);
             return ret;
         }
@@ -529,7 +534,7 @@ int group_show_recurse(TALLOC_CTX *mem_ctx,
                                      new_group_members, new_nmembers,
                                      &parent->group_members);
             if (ret != EOK) {
-                DEBUG(2, "Recursive search failed: %s (%d)\n",
+                DEBUG(SSSDBG_OP_FAILURE, "Recursive search failed: %s (%d)\n",
                           strerror(ret), ret);
                 return ret;
             }
@@ -562,7 +567,8 @@ static int group_show_mpg(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_search_user_by_name(info, sysdb, domain, name, attrs, &msg);
     if (ret) {
-        DEBUG(2, "Search failed: %s (%d)\n", strerror(ret), ret);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Search failed: %s (%d)\n", strerror(ret), ret);
         goto fail;
     }
 
@@ -571,7 +577,7 @@ static int group_show_mpg(TALLOC_CTX *mem_ctx,
                                                            SYSDB_NAME, NULL));
     info->gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
     if (info->gid == 0 || info->name == NULL) {
-        DEBUG(3, "No name or no GID?\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "No name or no GID?\n");
         ret = EIO;
         goto fail;
     }
@@ -659,7 +665,8 @@ int main(int argc, const char **argv)
 
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(1, "set_locale failed (%d): %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "set_locale failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error setting the locale\n");
         ret = EXIT_FAILURE;
         goto fini;
@@ -691,7 +698,8 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&tctx);
     if (ret != EOK) {
-        DEBUG(1, "init_sss_tools failed (%d): %s\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "init_sss_tools failed (%d): %s\n", ret, strerror(ret));
         if (ret == ENOENT) {
             ERROR("Error initializing the tools - no local domain\n");
         } else {
@@ -720,7 +728,8 @@ int main(int argc, const char **argv)
 
     /* Process result */
     if (ret) {
-        DEBUG(1, "sysdb operation failed (%d)[%s]\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb operation failed (%d)[%s]\n", ret, strerror(ret));
         switch (ret) {
             case ENOENT:
                 ERROR("No such group in local domain. "

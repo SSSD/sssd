@@ -91,7 +91,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_access_req_ctx);
     if (req == NULL) {
-        DEBUG(1, "tevent_req_create failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
 
@@ -103,10 +103,12 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     state->conn = conn;
     state->current_rule = 0;
 
-    DEBUG(6, "Performing access check for user [%s]\n", pd->user);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Performing access check for user [%s]\n", pd->user);
 
     if (access_ctx->access_rule[0] == LDAP_ACCESS_EMPTY) {
-        DEBUG(3, "No access rules defined, access denied.\n");
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "No access rules defined, access denied.\n");
         ret = ERR_ACCESS_DENIED;
         goto done;
     }
@@ -130,7 +132,8 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
         }
 
         if (res->count != 1) {
-            DEBUG(1, "Invalid response from sysdb_get_user_attr\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Invalid response from sysdb_get_user_attr\n");
             ret = EINVAL;
             goto done;
         }
@@ -173,7 +176,7 @@ static errno_t check_next_rule(struct sdap_access_req_ctx *state,
                                              state->pd->user,
                                              state->user_entry);
             if (subreq == NULL) {
-                DEBUG(1, "sdap_access_filter_send failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "sdap_access_filter_send failed.\n");
                 return ENOMEM;
             }
 
@@ -194,7 +197,8 @@ static errno_t check_next_rule(struct sdap_access_req_ctx *state,
             break;
 
         default:
-            DEBUG(1, "Unexpected access rule type. Access denied.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unexpected access rule type. Access denied.\n");
             ret = ERR_ACCESS_DENIED;
         }
 
@@ -252,17 +256,18 @@ static errno_t sdap_account_expired_shadow(struct pam_data *pd,
     long sp_expire;
     long today;
 
-    DEBUG(6, "Performing access shadow check for user [%s]\n", pd->user);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Performing access shadow check for user [%s]\n", pd->user);
 
     val = ldb_msg_find_attr_as_string(user_entry, SYSDB_SHADOWPW_EXPIRE, NULL);
     if (val == NULL) {
-        DEBUG(3, "Shadow expire attribute not found. "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Shadow expire attribute not found. "
                   "Access will be granted.\n");
         return EOK;
     }
     ret = string_to_shadowpw_days(val, &sp_expire);
     if (ret != EOK) {
-        DEBUG(1, "Failed to retrieve shadow expire date.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to retrieve shadow expire date.\n");
         return ret;
     }
 
@@ -273,7 +278,7 @@ static errno_t sdap_account_expired_shadow(struct pam_data *pd,
                                sizeof(SHADOW_EXPIRE_MSG),
                                (const uint8_t *) SHADOW_EXPIRE_MSG);
         if (ret != EOK) {
-            DEBUG(1, "pam_add_response failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
         }
 
         return ERR_ACCOUNT_EXPIRED;
@@ -301,7 +306,8 @@ static bool ad_account_expired(uint64_t expiration_time)
     now = time(NULL);
     if (now == ((time_t) -1)) {
         err = errno;
-        DEBUG(1, "time failed [%d][%s].\n", err, strerror(err));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "time failed [%d][%s].\n", err, strerror(err));
         return true;
     }
 
@@ -322,11 +328,12 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
     uint64_t expiration_time;
     int ret;
 
-    DEBUG(6, "Performing AD access check for user [%s]\n", pd->user);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Performing AD access check for user [%s]\n", pd->user);
 
     uac = ldb_msg_find_attr_as_uint(user_entry, SYSDB_AD_USER_ACCOUNT_CONTROL,
                                     0);
-    DEBUG(9, "User account control for user [%s] is [%X].\n",
+    DEBUG(SSSDBG_TRACE_ALL, "User account control for user [%s] is [%X].\n",
               pd->user, uac);
 
     expiration_time = ldb_msg_find_attr_as_uint64(user_entry,
@@ -341,7 +348,7 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
                                sizeof(AD_DISABLE_MESSAGE),
                                (const uint8_t *) AD_DISABLE_MESSAGE);
         if (ret != EOK) {
-            DEBUG(1, "pam_add_response failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
         }
 
         return ERR_ACCESS_DENIED;
@@ -352,7 +359,7 @@ static errno_t sdap_account_expired_ad(struct pam_data *pd,
                                sizeof(AD_EXPIRED_MESSAGE),
                                (const uint8_t *) AD_EXPIRED_MESSAGE);
         if (ret != EOK) {
-            DEBUG(1, "pam_add_response failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
         }
 
         return ERR_ACCOUNT_EXPIRED;
@@ -369,10 +376,11 @@ static errno_t sdap_account_expired_rhds(struct pam_data *pd,
     bool locked;
     int ret;
 
-    DEBUG(6, "Performing RHDS access check for user [%s]\n", pd->user);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Performing RHDS access check for user [%s]\n", pd->user);
 
     locked = ldb_msg_find_attr_as_bool(user_entry, SYSDB_NS_ACCOUNT_LOCK, false);
-    DEBUG(9, "Account for user [%s] is%s locked.\n", pd->user,
+    DEBUG(SSSDBG_TRACE_ALL, "Account for user [%s] is%s locked.\n", pd->user,
               locked ? "" : " not" );
 
     if (locked) {
@@ -380,7 +388,7 @@ static errno_t sdap_account_expired_rhds(struct pam_data *pd,
                                sizeof(RHDS_LOCK_MSG),
                                (const uint8_t *) RHDS_LOCK_MSG);
         if (ret != EOK) {
-            DEBUG(1, "pam_add_response failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
         }
 
         return ERR_ACCESS_DENIED;
@@ -401,7 +409,8 @@ static bool nds_check_expired(const char *exp_time_str)
     time_t now;
 
     if (exp_time_str == NULL) {
-        DEBUG(9, "ndsLoginExpirationTime is not set, access granted.\n");
+        DEBUG(SSSDBG_TRACE_ALL,
+              "ndsLoginExpirationTime is not set, access granted.\n");
         return false;
     }
 
@@ -409,18 +418,21 @@ static bool nds_check_expired(const char *exp_time_str)
 
     end = strptime(exp_time_str, "%Y%m%d%H%M%SZ", &tm);
     if (end == NULL) {
-        DEBUG(1, "NDS expire date [%s] invalid.\n", exp_time_str);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "NDS expire date [%s] invalid.\n", exp_time_str);
         return true;
     }
     if (*end != '\0') {
-        DEBUG(1, "NDS expire date [%s] contains extra characters.\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "NDS expire date [%s] contains extra characters.\n",
                   exp_time_str);
         return true;
     }
 
     expire_time = mktime(&tm);
     if (expire_time == -1) {
-        DEBUG(1, "mktime failed to convert [%s].\n", exp_time_str);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "mktime failed to convert [%s].\n", exp_time_str);
         return true;
     }
 
@@ -433,7 +445,7 @@ static bool nds_check_expired(const char *exp_time_str)
            tzname[1], timezone, daylight, now, expire_time);
 
     if (difftime(now, expire_time) > 0.0) {
-        DEBUG(4, "NDS account expired.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "NDS account expired.\n");
         return true;
     }
 
@@ -453,7 +465,8 @@ static bool nds_check_time_map(const struct ldb_val *time_map)
     uint8_t mask = 0;
 
     if (time_map == NULL) {
-        DEBUG(9, "loginAllowedTimeMap is missing, access granted.\n");
+        DEBUG(SSSDBG_TRACE_ALL,
+              "loginAllowedTimeMap is missing, access granted.\n");
         return false;
     }
 
@@ -490,7 +503,7 @@ static bool nds_check_time_map(const struct ldb_val *time_map)
     }
 
     if (time_map->data[q.quot] & mask) {
-        DEBUG(4, "Access allowed by time map.\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Access allowed by time map.\n");
         return false;
     }
 
@@ -505,11 +518,12 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
     const char *exp_time_str;
     const struct ldb_val *time_map;
 
-    DEBUG(6, "Performing NDS access check for user [%s]\n", pd->user);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Performing NDS access check for user [%s]\n", pd->user);
 
     locked = ldb_msg_find_attr_as_bool(user_entry, SYSDB_NDS_LOGIN_DISABLED,
                                        false);
-    DEBUG(9, "Account for user [%s] is%s disabled.\n", pd->user,
+    DEBUG(SSSDBG_TRACE_ALL, "Account for user [%s] is%s disabled.\n", pd->user,
               locked ? "" : " not");
 
     if (locked) {
@@ -517,7 +531,7 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
                                sizeof(NDS_DISABLE_MSG),
                                (const uint8_t *) NDS_DISABLE_MSG);
         if (ret != EOK) {
-            DEBUG(1, "pam_add_response failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
         }
 
         return ERR_ACCESS_DENIED;
@@ -528,7 +542,8 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
                                                 NULL);
         locked = nds_check_expired(exp_time_str);
 
-        DEBUG(9, "Account for user [%s] is%s expired.\n", pd->user,
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Account for user [%s] is%s expired.\n", pd->user,
                   locked ? "" : " not");
 
         if (locked) {
@@ -536,7 +551,7 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
                                    sizeof(NDS_EXPIRED_MSG),
                                    (const uint8_t *) NDS_EXPIRED_MSG);
             if (ret != EOK) {
-                DEBUG(1, "pam_add_response failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
             }
 
             return ERR_ACCESS_DENIED;
@@ -547,7 +562,8 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
 
             locked = nds_check_time_map(time_map);
 
-            DEBUG(9, "Account for user [%s] is%s locked at this time.\n",
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Account for user [%s] is%s locked at this time.\n",
                       pd->user, locked ? "" : " not");
 
             if (locked) {
@@ -555,7 +571,7 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
                                        sizeof(NDS_TIME_MAP_MSG),
                                        (const uint8_t *) NDS_TIME_MAP_MSG);
                 if (ret != EOK) {
-                    DEBUG(1, "pam_add_response failed.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
                 }
 
                 return ERR_ACCESS_DENIED;
@@ -577,33 +593,38 @@ static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
     expire = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
                                 SDAP_ACCOUNT_EXPIRE_POLICY);
     if (expire == NULL) {
-        DEBUG(1, "Missing account expire policy. Access denied\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Missing account expire policy. Access denied\n");
         return ERR_ACCESS_DENIED;
     } else {
         if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_SHADOW) == 0) {
             ret = sdap_account_expired_shadow(pd, user_entry);
             if (ret != EOK) {
-                DEBUG(1, "sdap_account_expired_shadow failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sdap_account_expired_shadow failed.\n");
             }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_AD) == 0) {
             ret = sdap_account_expired_ad(pd, user_entry);
             if (ret != EOK) {
-                DEBUG(1, "sdap_account_expired_ad failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "sdap_account_expired_ad failed.\n");
             }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_RHDS) == 0 ||
                    strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_IPA) == 0 ||
                    strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_389DS) == 0) {
             ret = sdap_account_expired_rhds(pd, user_entry);
             if (ret != EOK) {
-                DEBUG(1, "sdap_account_expired_rhds failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sdap_account_expired_rhds failed.\n");
             }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_NDS) == 0) {
             ret = sdap_account_expired_nds(pd, user_entry);
             if (ret != EOK) {
-                DEBUG(1, "sdap_account_expired_nds failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sdap_account_expired_nds failed.\n");
             }
         } else {
-            DEBUG(1, "Unsupported LDAP account expire policy [%s]. "
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unsupported LDAP account expire policy [%s]. "
                       "Access denied.\n", expire);
             ret = ERR_ACCESS_DENIED;
         }
@@ -654,7 +675,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
 
     if (access_ctx->filter == NULL || *access_ctx->filter == '\0') {
         /* If no filter is set, default to restrictive */
-        DEBUG(6, "No filter set. Access is denied.\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "No filter set. Access is denied.\n");
         ret = ERR_ACCESS_DENIED;
         goto done;
     }
@@ -667,7 +688,8 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     state->access_ctx = access_ctx;
     state->domain = domain;
 
-    DEBUG(6, "Performing access filter check for user [%s]\n", username);
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Performing access filter check for user [%s]\n", username);
 
     state->cached_access = ldb_msg_find_attr_as_bool(user_entry,
                                                      SYSDB_LDAP_ACCESS_FILTER,
@@ -682,7 +704,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     /* Perform online operation */
     basedn = ldb_msg_find_attr_as_string(user_entry, SYSDB_ORIG_DN, NULL);
     if (basedn == NULL) {
-        DEBUG(1,"Could not find originalDN for user [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,"Could not find originalDN for user [%s]\n",
                  state->username);
         ret = EINVAL;
         goto done;
@@ -690,7 +712,8 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
 
     state->basedn = talloc_strdup(state, basedn);
     if (state->basedn == NULL) {
-        DEBUG(1, "Could not allocate memory for originalDN\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not allocate memory for originalDN\n");
         ret = ENOMEM;
         goto done;
     }
@@ -718,18 +741,18 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
         state->opts->user_map[SDAP_OC_USER].name,
         state->access_ctx->filter);
     if (state->filter == NULL) {
-        DEBUG(0, "Could not construct access filter\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not construct access filter\n");
         ret = ENOMEM;
         goto done;
     }
     talloc_zfree(clean_username);
 
-    DEBUG(6, "Checking filter against LDAP\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking filter against LDAP\n");
 
     state->sdap_op = sdap_id_op_create(state,
                                        state->conn->conn_cache);
     if (!state->sdap_op) {
-        DEBUG(2, "sdap_id_op_create failed\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -757,10 +780,10 @@ static errno_t sdap_access_filter_decide_offline(struct tevent_req *req)
             tevent_req_data(req, struct sdap_access_filter_req_ctx);
 
     if (state->cached_access) {
-        DEBUG(6, "Access granted by cached credentials\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Access granted by cached credentials\n");
         return EOK;
     } else {
-        DEBUG(6, "Access denied by cached credentials\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Access denied by cached credentials\n");
         return ERR_ACCESS_DENIED;
     }
 }
@@ -774,7 +797,8 @@ static int sdap_access_filter_retry(struct tevent_req *req)
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (!subreq) {
-        DEBUG(2, "sdap_id_op_connect_send failed: %d (%s)\n", ret, strerror(ret));
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sdap_id_op_connect_send failed: %d (%s)\n", ret, strerror(ret));
         return ret;
     }
 
@@ -821,7 +845,7 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
                                                   SDAP_SEARCH_TIMEOUT),
                                    false);
     if (subreq == NULL) {
-        DEBUG(1, "Could not start LDAP communication\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not start LDAP communication\n");
         tevent_req_error(req, EIO);
         return;
     }
@@ -862,7 +886,8 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
                 "Malformed access control filter [%s]\n", state->filter);
             ret = ERR_ACCESS_DENIED;
         } else {
-            DEBUG(1, "sdap_get_generic_send() returned error [%d][%s]\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sdap_get_generic_send() returned error [%d][%s]\n",
                       ret, sss_strerror(ret));
         }
 
@@ -875,12 +900,13 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
      * Anything else is an error
      */
     if (num_results < 1) {
-        DEBUG(4, "User [%s] was not found with the specified filter. "
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "User [%s] was not found with the specified filter. "
                   "Denying access.\n", state->username);
         found = false;
     }
     else if (results == NULL) {
-        DEBUG(1, "num_results > 0, but results is NULL\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "num_results > 0, but results is NULL\n");
         ret = ERR_INTERNAL;
         goto done;
     }
@@ -888,7 +914,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         /* It should not be possible to get more than one reply
          * here, since we're doing a base-scoped search
          */
-        DEBUG(1, "Received multiple replies\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Received multiple replies\n");
         ret = ERR_INTERNAL;
         goto done;
     }
@@ -900,21 +926,21 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         /* Save "allow" to the cache for future offline
          :q* access checks.
          */
-        DEBUG(6, "Access granted by online lookup\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Access granted by online lookup\n");
         ret = EOK;
     }
     else {
         /* Save "disallow" to the cache for future offline
          * access checks.
          */
-        DEBUG(6, "Access denied by online lookup\n");
+        DEBUG(SSSDBG_TRACE_FUNC, "Access denied by online lookup\n");
         ret = ERR_ACCESS_DENIED;
     }
 
     attrs = sysdb_new_attrs(state);
     if (attrs == NULL) {
         ret = ENOMEM;
-        DEBUG(1, "Could not set up attrs\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
         goto done;
     }
 
@@ -924,7 +950,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         /* Failing to save to the cache is non-fatal.
          * Just return the result.
          */
-        DEBUG(1, "Could not set up attrs\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
         goto done;
     }
 
@@ -934,7 +960,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         /* Failing to save to the cache is non-fatal.
          * Just return the result.
          */
-        DEBUG(1, "Failed to set user access attribute\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set user access attribute\n");
         goto done;
     }
 
@@ -971,13 +997,14 @@ static errno_t sdap_access_service(struct pam_data *pd,
 
     el = ldb_msg_find_element(user_entry, SYSDB_AUTHORIZED_SERVICE);
     if (!el || el->num_values == 0) {
-        DEBUG(1, "Missing authorized services. Access denied\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Missing authorized services. Access denied\n");
 
         tret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                sizeof(AUTHR_SRV_MISSING_MSG),
                                (const uint8_t *) AUTHR_SRV_MISSING_MSG);
         if (tret != EOK) {
-            DEBUG(1, "pam_add_response failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
         }
 
         return ERR_ACCESS_DENIED;
@@ -990,13 +1017,13 @@ static errno_t sdap_access_service(struct pam_data *pd,
         if (service[0] == '!' &&
                 strcasecmp(pd->service, service+1) == 0) {
             /* This service is explicitly denied */
-            DEBUG(4, "Access denied by [%s]\n", service);
+            DEBUG(SSSDBG_CONF_SETTINGS, "Access denied by [%s]\n", service);
 
             tret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                    sizeof(AUTHR_SRV_DENY_MSG),
                                    (const uint8_t *) AUTHR_SRV_DENY_MSG);
             if (tret != EOK) {
-                DEBUG(1, "pam_add_response failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
             }
 
             /* A denial trumps all. Break here */
@@ -1004,14 +1031,14 @@ static errno_t sdap_access_service(struct pam_data *pd,
 
         } else if (strcasecmp(pd->service, service) == 0) {
             /* This service is explicitly allowed */
-            DEBUG(4, "Access granted for [%s]\n", service);
+            DEBUG(SSSDBG_CONF_SETTINGS, "Access granted for [%s]\n", service);
             /* We still need to loop through to make sure
              * that it's not also explicitly denied
              */
             ret = EOK;
         } else if (strcmp("*", service) == 0) {
             /* This user has access to all services */
-            DEBUG(4, "Access granted to all services\n");
+            DEBUG(SSSDBG_CONF_SETTINGS, "Access granted to all services\n");
             /* We still need to loop through to make sure
              * that it's not also explicitly denied
              */
@@ -1020,13 +1047,13 @@ static errno_t sdap_access_service(struct pam_data *pd,
     }
 
     if (ret == ENOENT) {
-        DEBUG(4, "No matching service rule found\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "No matching service rule found\n");
 
         tret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                sizeof(AUTHR_SRV_NO_MATCH_MSG),
                                (const uint8_t *) AUTHR_SRV_NO_MATCH_MSG);
         if (tret != EOK) {
-            DEBUG(1, "pam_add_response failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
         }
 
         ret = ERR_ACCESS_DENIED;
@@ -1045,12 +1072,13 @@ static errno_t sdap_access_host(struct ldb_message *user_entry)
 
     el = ldb_msg_find_element(user_entry, SYSDB_AUTHORIZED_HOST);
     if (!el || el->num_values == 0) {
-        DEBUG(1, "Missing hosts. Access denied\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing hosts. Access denied\n");
         return ERR_ACCESS_DENIED;
     }
 
     if (gethostname(hostname, sizeof(hostname)) == -1) {
-        DEBUG(1, "Unable to get system hostname. Access denied\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to get system hostname. Access denied\n");
         return ERR_ACCESS_DENIED;
     }
 
@@ -1067,20 +1095,20 @@ static errno_t sdap_access_host(struct ldb_message *user_entry)
         if (host[0] == '!' &&
                 strcasecmp(hostname, host+1) == 0) {
             /* This host is explicitly denied */
-            DEBUG(4, "Access denied by [%s]\n", host);
+            DEBUG(SSSDBG_CONF_SETTINGS, "Access denied by [%s]\n", host);
             /* A denial trumps all. Break here */
             return ERR_ACCESS_DENIED;
 
         } else if (strcasecmp(hostname, host) == 0) {
             /* This host is explicitly allowed */
-            DEBUG(4, "Access granted for [%s]\n", host);
+            DEBUG(SSSDBG_CONF_SETTINGS, "Access granted for [%s]\n", host);
             /* We still need to loop through to make sure
              * that it's not also explicitly denied
              */
             ret = EOK;
         } else if (strcmp("*", host) == 0) {
             /* This user has access to all hosts */
-            DEBUG(4, "Access granted to all hosts\n");
+            DEBUG(SSSDBG_CONF_SETTINGS, "Access granted to all hosts\n");
             /* We still need to loop through to make sure
              * that it's not also explicitly denied
              */
@@ -1089,7 +1117,7 @@ static errno_t sdap_access_host(struct ldb_message *user_entry)
     }
 
     if (ret == ENOENT) {
-        DEBUG(4, "No matching host rule found\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "No matching host rule found\n");
         ret = ERR_ACCESS_DENIED;
     }
 

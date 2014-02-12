@@ -80,13 +80,13 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
             continue;
         } else if (ret == ENOENT) {
             missing[mi] = talloc_steal(missing, tmp_name);
-            DEBUG(7, "Group #%d [%s][%s] is not cached, " \
+            DEBUG(SSSDBG_TRACE_LIBS, "Group #%d [%s][%s] is not cached, " \
                       "need to add a fake entry\n",
                       i, groupnames[i], missing[mi]);
             mi++;
             continue;
         } else if (ret != ENOENT) {
-            DEBUG(1, "search for group failed [%d]: %s\n",
+            DEBUG(SSSDBG_CRIT_FAILURE, "search for group failed [%d]: %s\n",
                       ret, strerror(ret));
             goto done;
         }
@@ -180,7 +180,8 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                         gid = 0;
                         posix = false;
                     } else if (ret) {
-                        DEBUG(1, "The GID attribute is malformed\n");
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "The GID attribute is malformed\n");
                         goto done;
                     }
                 }
@@ -189,7 +190,8 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                              SYSDB_ORIG_DN,
                                              &original_dn);
                 if (ret) {
-                    DEBUG(5, "The group has no name original DN\n");
+                    DEBUG(SSSDBG_FUNC_DATA,
+                          "The group has no name original DN\n");
                     original_dn = NULL;
                 }
 
@@ -206,7 +208,8 @@ static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
         }
 
         if (ai == ldap_groups_count) {
-            DEBUG(2, "Group %s not present in LDAP\n", missing[i]);
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Group %s not present in LDAP\n", missing[i]);
             ret = EINVAL;
             goto done;
         }
@@ -263,7 +266,8 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
                 opts->group_map[SDAP_AT_GROUP_NAME].name,
                 &ldap_grouplist);
         if (ret != EOK) {
-            DEBUG(1, "sysdb_attrs_primary_name_list failed [%d]: %s\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sysdb_attrs_primary_name_list failed [%d]: %s\n",
                       ret, strerror(ret));
             goto done;
         }
@@ -278,7 +282,7 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to start transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -291,24 +295,24 @@ int sdap_initgr_common_store(struct sysdb_ctx *sysdb,
                                          add_groups, ldap_groups,
                                          ldap_groups_count);
         if (ret != EOK) {
-            DEBUG(1, "Adding incomplete users failed\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Adding incomplete users failed\n");
             goto done;
         }
     }
 
-    DEBUG(8, "Updating memberships for %s\n", name);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Updating memberships for %s\n", name);
     ret = sysdb_update_members(sysdb, domain, name, type,
                                (const char *const *) add_groups,
                                (const char *const *) del_groups);
     if (ret != EOK) {
-        DEBUG(1, "Membership update failed [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Membership update failed [%d]: %s\n",
                   ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to commit transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -318,7 +322,7 @@ done:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(sysdb);
         if (tret != EOK) {
-            DEBUG(1, "Failed to cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     talloc_zfree(tmp_ctx);
@@ -589,7 +593,8 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
                                             opts->group_map[SDAP_AT_GROUP_NAME].name,
                                             &groupnamelist);
         if (ret != EOK) {
-            DEBUG(3, "sysdb_attrs_primary_name_list failed [%d]: %s\n",
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "sysdb_attrs_primary_name_list failed [%d]: %s\n",
                     ret, strerror(ret));
             goto done;
         }
@@ -597,7 +602,7 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to start transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -605,14 +610,14 @@ sdap_nested_groups_store(struct sysdb_ctx *sysdb,
     ret = sdap_add_incomplete_groups(sysdb, domain, opts, groupnamelist,
                                      groups, count);
     if (ret != EOK) {
-        DEBUG(6, "Could not add incomplete groups [%d]: %s\n",
+        DEBUG(SSSDBG_TRACE_FUNC, "Could not add incomplete groups [%d]: %s\n",
                    ret, strerror(ret));
         goto done;
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to commit transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -622,7 +627,7 @@ done:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(sysdb);
         if (tret != EOK) {
-            DEBUG(1, "Failed to cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
 
@@ -751,7 +756,7 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
 
     ret = sysdb_attrs_get_el(state->user, SYSDB_MEMBEROF, &state->memberof);
     if (ret || !state->memberof || state->memberof->num_values == 0) {
-        DEBUG(4, "User entry lacks original memberof ?\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "User entry lacks original memberof ?\n");
         /* We can't find any groups for this user, so we'll
          * have to assume there aren't any. Just return
          * success here.
@@ -1003,7 +1008,7 @@ static void sdap_initgr_nested_store(struct tevent_req *req)
 
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to start transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto fail;
     }
     in_transaction = true;
@@ -1011,7 +1016,7 @@ static void sdap_initgr_nested_store(struct tevent_req *req)
     /* save the groups if they are not already */
     ret = sdap_initgr_store_groups(state);
     if (ret != EOK) {
-        DEBUG(3, "Could not save groups [%d]: %s\n",
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not save groups [%d]: %s\n",
                   ret, strerror(ret));
         goto fail;
     }
@@ -1019,7 +1024,8 @@ static void sdap_initgr_nested_store(struct tevent_req *req)
     /* save the group memberships */
     ret = sdap_initgr_store_group_memberships(state);
     if (ret != EOK) {
-        DEBUG(3, "Could not save group memberships [%d]: %s\n",
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not save group memberships [%d]: %s\n",
                   ret, strerror(ret));
         goto fail;
     }
@@ -1027,14 +1033,15 @@ static void sdap_initgr_nested_store(struct tevent_req *req)
     /* save the user memberships */
     ret = sdap_initgr_store_user_memberships(state);
     if (ret != EOK) {
-        DEBUG(3, "Could not save user memberships [%d]: %s\n",
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not save user memberships [%d]: %s\n",
                   ret, strerror(ret));
         goto fail;
     }
 
     ret = sysdb_transaction_commit(state->sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to commit transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto fail;
     }
     in_transaction = false;
@@ -1046,7 +1053,7 @@ fail:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(state->sysdb);
         if (tret != EOK) {
-            DEBUG(1, "Failed to cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     tevent_req_error(req, ret);
@@ -1102,7 +1109,8 @@ sdap_initgr_store_group_memberships(struct sdap_initgr_nested_state *state)
                                                      state->groups_cur,
                                                      &miter);
         if (ret) {
-            DEBUG(3, "Could not compute memberships for group %d [%d]: %s\n",
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not compute memberships for group %d [%d]: %s\n",
                       i, ret, strerror(ret));
             goto done;
         }
@@ -1112,7 +1120,7 @@ sdap_initgr_store_group_memberships(struct sdap_initgr_nested_state *state)
 
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to start transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -1123,14 +1131,14 @@ sdap_initgr_store_group_memberships(struct sdap_initgr_nested_state *state)
                                    (const char *const *) miter->add,
                                    (const char *const *) miter->del);
         if (ret != EOK) {
-            DEBUG(3, "Failed to update memberships\n");
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to update memberships\n");
             goto done;
         }
     }
 
     ret = sysdb_transaction_commit(state->sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to commit transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -1140,7 +1148,7 @@ done:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(state->sysdb);
         if (tret != EOK) {
-            DEBUG(1, "Failed to cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -1175,7 +1183,7 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     /* Get direct LDAP parents */
     ret = sysdb_attrs_get_string(state->user, SYSDB_ORIG_DN, &orig_dn);
     if (ret != EOK) {
-        DEBUG(2, "The user has no original DN\n");
+        DEBUG(SSSDBG_OP_FAILURE, "The user has no original DN\n");
         goto done;
     }
 
@@ -1190,7 +1198,8 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
     for (i=0; i < state->groups_cur ; i++) {
         ret = sysdb_attrs_get_el(state->groups[i], SYSDB_MEMBER, &el);
         if (ret) {
-            DEBUG(3, "A group with no members during initgroups?\n");
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "A group with no members during initgroups?\n");
             goto done;
         }
 
@@ -1204,7 +1213,8 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
         }
     }
 
-    DEBUG(7, "The user %s is a direct member of %d LDAP groups\n",
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "The user %s is a direct member of %d LDAP groups\n",
               state->username, nparents);
 
     if (nparents == 0) {
@@ -1216,7 +1226,8 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
                                             state->opts->group_map[SDAP_AT_GROUP_NAME].name,
                                             &ldap_parent_name_list);
         if (ret != EOK) {
-            DEBUG(1, "sysdb_attrs_primary_name_list failed [%d]: %s\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sysdb_attrs_primary_name_list failed [%d]: %s\n",
                       ret, strerror(ret));
             goto done;
         }
@@ -1226,7 +1237,8 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
                                    SYSDB_MEMBER_USER,
                                    state->username, &sysdb_parent_name_list);
     if (ret) {
-        DEBUG(1, "Could not get direct sysdb parents for %s: %d [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not get direct sysdb parents for %s: %d [%s]\n",
                    state->username, ret, strerror(ret));
         goto done;
     }
@@ -1240,18 +1252,20 @@ sdap_initgr_store_user_memberships(struct sdap_initgr_nested_state *state)
 
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to start transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
 
-    DEBUG(8, "Updating memberships for %s\n", state->username);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Updating memberships for %s\n", state->username);
     ret = sysdb_update_members(state->sysdb, state->dom,
                                state->username, SYSDB_MEMBER_USER,
                                (const char *const *) add_groups,
                                (const char *const *) del_groups);
     if (ret != EOK) {
-        DEBUG(1, "Could not update sysdb memberships for %s: %d [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not update sysdb memberships for %s: %d [%s]\n",
                   state->username, ret, strerror(ret));
         goto done;
     }
@@ -1267,7 +1281,7 @@ done:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(state->sysdb);
         if (tret != EOK) {
-            DEBUG(1, "Failed to cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     talloc_zfree(tmp_ctx);
@@ -1312,7 +1326,8 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
                                    SYSDB_MEMBER_GROUP,
                                    group_name, &sysdb_parents_names_list);
     if (ret) {
-        DEBUG(1, "Could not get direct sysdb parents for %s: %d [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not get direct sysdb parents for %s: %d [%s]\n",
                    group_name, ret, strerror(ret));
         goto done;
     }
@@ -1325,11 +1340,12 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
                                                 &ldap_parentlist,
                                                 &parents_count);
     if (ret != EOK) {
-        DEBUG(1, "Cannot get parent groups for %s [%d]: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get parent groups for %s [%d]: %s\n",
                   group_name, ret, strerror(ret));
         goto done;
     }
-    DEBUG(7, "The group %s is a direct member of %d LDAP groups\n",
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "The group %s is a direct member of %d LDAP groups\n",
                group_name, parents_count);
 
     if (parents_count > 0) {
@@ -1339,7 +1355,8 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
                                             opts->group_map[SDAP_AT_GROUP_NAME].name,
                                             &ldap_parent_names_list);
         if (ret != EOK) {
-            DEBUG(1, "sysdb_attrs_primary_name_list failed [%d]: %s\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sysdb_attrs_primary_name_list failed [%d]: %s\n",
                         ret, strerror(ret));
             goto done;
         }
@@ -1348,7 +1365,8 @@ sdap_initgr_nested_get_membership_diff(TALLOC_CTX *mem_ctx,
     ret = build_membership_diff(tmp_ctx, group_name, ldap_parent_names_list,
                                 sysdb_parents_names_list, &mdiff);
     if (ret != EOK) {
-        DEBUG(3, "Could not build membership diff for %s [%d]: %s\n",
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not build membership diff for %s [%d]: %s\n",
                   group_name, ret, strerror(ret));
         goto done;
     }
@@ -1389,10 +1407,11 @@ static int sdap_initgr_nested_get_direct_parents(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_attrs_get_string(attrs, SYSDB_ORIG_DN, &orig_dn);
     if (ret != EOK) {
-        DEBUG(3, "Missing originalDN\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "Missing originalDN\n");
         goto done;
     }
-    DEBUG(9, "Looking up direct parents for group [%s]\n", orig_dn);
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Looking up direct parents for group [%s]\n", orig_dn);
 
     /* FIXME - Filter only parents from full set to avoid searching
      * through all members of huge groups. That requires asking for memberOf
@@ -1403,7 +1422,8 @@ static int sdap_initgr_nested_get_direct_parents(TALLOC_CTX *mem_ctx,
     for (i=0; i < ngroups; i++) {
         ret = sysdb_attrs_get_el(groups[i], SYSDB_MEMBER, &member);
         if (ret) {
-            DEBUG(7, "A group with no members during initgroups?\n");
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "A group with no members during initgroups?\n");
             continue;
         }
 
@@ -1418,7 +1438,8 @@ static int sdap_initgr_nested_get_direct_parents(TALLOC_CTX *mem_ctx,
     }
     direct_groups[ndirect] = NULL;
 
-    DEBUG(9, "The group [%s] has %d direct parents\n", orig_dn, ndirect);
+    DEBUG(SSSDBG_TRACE_ALL,
+          "The group [%s] has %d direct parents\n", orig_dn, ndirect);
 
     *_direct_parents = talloc_steal(mem_ctx, direct_groups);
     *_ndirect = ndirect;
@@ -1736,7 +1757,7 @@ static void sdap_initgr_rfc2307bis_done(struct tevent_req *subreq)
 
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to start transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto fail;
     }
     in_transaction = true;
@@ -1744,27 +1765,30 @@ static void sdap_initgr_rfc2307bis_done(struct tevent_req *subreq)
     /* save the groups if they are not cached */
     ret = save_rfc2307bis_groups(state);
     if (ret != EOK) {
-        DEBUG(3, "Could not save groups memberships [%d]", ret);
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not save groups memberships [%d]", ret);
         goto fail;
     }
 
     /* save the group membership */
     ret = save_rfc2307bis_group_memberships(state);
     if (ret != EOK) {
-        DEBUG(3, "Could not save group memberships [%d]", ret);
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not save group memberships [%d]", ret);
         goto fail;
     }
 
     /* save the user memberships */
     ret = save_rfc2307bis_user_memberships(state);
     if (ret != EOK) {
-        DEBUG(3, "Could not save user memberships [%d]", ret);
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not save user memberships [%d]", ret);
         goto fail;
     }
 
     ret = sysdb_transaction_commit(state->sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to commit transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto fail;
     }
     in_transaction = false;
@@ -1776,7 +1800,7 @@ fail:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(state->sysdb);
         if (tret != EOK) {
-            DEBUG(1, "Failed to cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     tevent_req_error(req, ret);
@@ -1837,7 +1861,7 @@ save_rfc2307bis_groups(struct sdap_initgr_rfc2307bis_state *state)
     ret = sdap_nested_groups_store(state->sysdb, state->dom, state->opts,
                                    groups, count);
     if (ret != EOK) {
-        DEBUG(3, "Could not save groups [%d]: %s\n",
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not save groups [%d]: %s\n",
                   ret, strerror(ret));
         goto done;
     }
@@ -1891,7 +1915,7 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
 
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to start transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -1930,14 +1954,14 @@ save_rfc2307bis_group_memberships(struct sdap_initgr_rfc2307bis_state *state)
                                   (const char *const *) add,
                                   (const char *const *) iter->del);
         if (ret != EOK) {
-            DEBUG(3, "Failed to update memberships\n");
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to update memberships\n");
             goto done;
         }
     }
 
     ret = sysdb_transaction_commit(state->sysdb);
     if (ret != EOK) {
-        DEBUG(1, "Failed to commit transaction\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -1947,7 +1971,7 @@ done:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(state->sysdb);
         if (tret != EOK) {
-            DEBUG(1, "Failed to cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -1981,7 +2005,8 @@ rfc2307bis_group_memberships_build(hash_entry_t *item, void *user_data)
                                    SYSDB_MEMBER_GROUP,
                                    group_name, &sysdb_parents_names_list);
     if (ret) {
-        DEBUG(1, "Could not get direct sysdb parents for %s: %d [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not get direct sysdb parents for %s: %d [%s]\n",
                   group_name, ret, strerror(ret));
         goto done;
     }
@@ -1999,7 +2024,8 @@ rfc2307bis_group_memberships_build(hash_entry_t *item, void *user_data)
     ret = build_membership_diff(tmp_ctx, group_name, ldap_parents_names_list,
                                 sysdb_parents_names_list, &mdiff);
     if (ret != EOK) {
-        DEBUG(3, "Could not build membership diff for %s [%d]: %s\n",
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not build membership diff for %s [%d]: %s\n",
                   group_name, ret, strerror(ret));
         goto done;
     }
@@ -2030,7 +2056,7 @@ errno_t save_rfc2307bis_user_memberships(
         return ENOMEM;
     }
 
-    DEBUG(7, "Save parent groups to sysdb\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "Save parent groups to sysdb\n");
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
@@ -2042,7 +2068,8 @@ errno_t save_rfc2307bis_user_memberships(
                                    SYSDB_MEMBER_USER,
                                    state->name, &sysdb_parent_name_list);
     if (ret) {
-        DEBUG(1, "Could not get direct sysdb parents for %s: %d [%s]\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not get direct sysdb parents for %s: %d [%s]\n",
                    state->name, ret, strerror(ret));
         goto error;
     }
@@ -2086,7 +2113,7 @@ errno_t save_rfc2307bis_user_memberships(
         goto error;
     }
 
-    DEBUG(8, "Updating memberships for %s\n", state->name);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Updating memberships for %s\n", state->name);
     ret = sysdb_update_members(state->sysdb, state->dom,
                                state->name, SYSDB_MEMBER_USER,
                                (const char *const *)add_groups,
@@ -2109,7 +2136,7 @@ error:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(state->sysdb);
         if (tret != EOK) {
-            DEBUG(1, "Failed to cancel transaction\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -2537,7 +2564,7 @@ static void rfc2307bis_nested_groups_done(struct tevent_req *subreq)
     ret = rfc2307bis_nested_groups_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(6, "rfc2307bis_nested failed [%d][%s]\n",
+        DEBUG(SSSDBG_TRACE_FUNC, "rfc2307bis_nested failed [%d][%s]\n",
                   ret, strerror(ret));
         tevent_req_error(req, ret);
         return;
@@ -2611,7 +2638,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     char *clean_name;
     bool use_id_mapping;
 
-    DEBUG(9, "Retrieving info for initgroups call\n");
+    DEBUG(SSSDBG_TRACE_ALL, "Retrieving info for initgroups call\n");
 
     req = tevent_req_create(memctx, &state, struct sdap_get_initgr_state);
     if (!req) return NULL;
@@ -2754,7 +2781,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     size_t dn_len;
     size_t c = 0;
 
-    DEBUG(9, "Receiving info for the user\n");
+    DEBUG(SSSDBG_TRACE_ALL, "Receiving info for the user\n");
 
     ret = sdap_get_generic_recv(subreq, state, &count, &usr_attrs);
     talloc_zfree(subreq);
@@ -2844,7 +2871,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
     }
     in_transaction = true;
 
-    DEBUG(9, "Storing the user\n");
+    DEBUG(SSSDBG_TRACE_ALL, "Storing the user\n");
 
     ret = sdap_save_user(state, state->sysdb,
                          state->opts, state->dom,
@@ -2854,7 +2881,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         goto fail;
     }
 
-    DEBUG(9, "Commit change\n");
+    DEBUG(SSSDBG_TRACE_ALL, "Commit change\n");
 
     ret = sysdb_transaction_commit(state->sysdb);
     if (ret) {
@@ -2871,7 +2898,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(9, "Process user's groups\n");
+    DEBUG(SSSDBG_TRACE_ALL, "Process user's groups\n");
 
     switch (state->opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
@@ -2980,7 +3007,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     char *group_sid_str;
     struct sdap_options *opts = state->opts;
 
-    DEBUG(9, "Initgroups done\n");
+    DEBUG(SSSDBG_TRACE_ALL, "Initgroups done\n");
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -3019,7 +3046,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
     talloc_zfree(subreq);
     if (ret) {
-        DEBUG(9, "Error in initgroups: [%d][%s]\n",
+        DEBUG(SSSDBG_TRACE_ALL, "Error in initgroups: [%d][%s]\n",
                   ret, strerror(ret));
         goto fail;
     }
@@ -3083,7 +3110,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         ret = sysdb_attrs_get_uint32_t(state->orig_user, SYSDB_GIDNUM,
                                        &primary_gid);
         if (ret != EOK) {
-            DEBUG(6, "Could not find user's primary GID\n");
+            DEBUG(SSSDBG_TRACE_FUNC, "Could not find user's primary GID\n");
             goto fail;
         }
     }

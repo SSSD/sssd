@@ -81,7 +81,8 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, "Original mod-Timestamp is not available for [%s].\n",
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Original mod-Timestamp is not available for [%s].\n",
                   name);
     } else {
         ret = sysdb_attrs_add_string(netgroup_attrs,
@@ -119,12 +120,12 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    DEBUG(6, "Storing info for netgroup %s\n", name);
+    DEBUG(SSSDBG_TRACE_FUNC, "Storing info for netgroup %s\n", name);
 
     ret = sdap_save_all_names(name, attrs, dom,
                               netgroup_attrs);
     if (ret != EOK) {
-        DEBUG(1, "Failed to save netgroup names\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to save netgroup names\n");
         goto fail;
     }
 
@@ -149,7 +150,7 @@ static errno_t sdap_save_netgroup(TALLOC_CTX *memctx,
     return EOK;
 
 fail:
-    DEBUG(2, "Failed to save netgroup %s\n", name);
+    DEBUG(SSSDBG_OP_FAILURE, "Failed to save netgroup %s\n", name);
     return ret;
 }
 
@@ -172,14 +173,15 @@ errno_t update_dn_list(struct dn_item *dn_list, const size_t count,
         for(c = 0; c < count; c++) {
             dn = ldb_msg_find_attr_as_string(res[c], SYSDB_ORIG_DN, NULL);
             if (dn == NULL) {
-                DEBUG(1, "Missing original DN.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "Missing original DN.\n");
                 return EINVAL;
             }
             if (strcmp(dn, dn_item->dn) == 0) {
-                DEBUG(9, "Found matching entry for [%s].\n", dn_item->dn);
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Found matching entry for [%s].\n", dn_item->dn);
                 cn = ldb_msg_find_attr_as_string(res[c], SYSDB_NAME, NULL);
                 if (cn == NULL) {
-                    DEBUG(1, "Missing name.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Missing name.\n");
                     return EINVAL;
                 }
                 dn_item->cn = talloc_strdup(dn_item, cn);
@@ -258,7 +260,7 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
                                            SYSDB_ORIG_NETGROUP_MEMBER, state,
                                            &member_list);
         if (ret != EOK) {
-            DEBUG(7, "Missing netgroup members.\n");
+            DEBUG(SSSDBG_TRACE_LIBS, "Missing netgroup members.\n");
             continue;
         }
 
@@ -266,12 +268,13 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
             if (is_dn(member_list[mc])) {
                 dn_item = talloc_zero(state, struct dn_item);
                 if (dn_item == NULL) {
-                    DEBUG(1, "talloc failed.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
                     ret = ENOMEM;
                     goto fail;
                 }
 
-                DEBUG(9, "Adding [%s] to DN list.\n", member_list[mc]);
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Adding [%s] to DN list.\n", member_list[mc]);
                 dn_item->netgroup = netgroups[c];
                 dn_item->dn = member_list[mc];
                 DLIST_ADD(state->dn_list, dn_item);
@@ -279,7 +282,8 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
                 ret = sysdb_attrs_add_string(netgroups[c], SYSDB_NETGROUP_MEMBER,
                                              member_list[mc]);
                 if (ret != EOK) {
-                    DEBUG(1, "sysdb_attrs_add_string failed.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "sysdb_attrs_add_string failed.\n");
                     goto fail;
                 }
             }
@@ -287,7 +291,7 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
     }
 
     if (state->dn_list == NULL) {
-        DEBUG(9, "No DNs found among netgroup members.\n");
+        DEBUG(SSSDBG_TRACE_ALL, "No DNs found among netgroup members.\n");
         tevent_req_done(req);
         tevent_req_post(req, ev);
         return req;
@@ -295,7 +299,7 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
 
     dn_filter = talloc_strdup(state, "(|");
     if (dn_filter == NULL) {
-        DEBUG(1, "talloc_strdup failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
         ret = ENOMEM;;
         goto fail;
     }
@@ -304,7 +308,7 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
             dn_filter = talloc_asprintf_append(dn_filter, "(%s=%s)",
                                                SYSDB_ORIG_DN, dn_item->dn);
             if (dn_filter == NULL) {
-                DEBUG(1, "talloc_asprintf_append failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append failed.\n");
                 ret = ENOMEM;
                 goto fail;
             }
@@ -312,14 +316,14 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
 
     dn_filter = talloc_asprintf_append(dn_filter, ")");
     if (dn_filter == NULL) {
-        DEBUG(1, "talloc_asprintf_append failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append failed.\n");
         ret = ENOMEM;
         goto fail;
     }
 
     sysdb_filter = talloc_asprintf(state, "(&(%s)%s)", SYSDB_NC, dn_filter);
     if (sysdb_filter == NULL) {
-        DEBUG(1, "talloc_asprintf failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -335,7 +339,7 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
     talloc_zfree(netgr_basedn);
     talloc_zfree(sysdb_filter);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(1, "sysdb_search_entry failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_entry failed.\n");
         goto fail;
     }
 
@@ -343,7 +347,7 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
         ret = update_dn_list(state->dn_list, sysdb_count, sysdb_res,
                              &all_resolved);
         if (ret != EOK) {
-            DEBUG(1, "update_dn_list failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "update_dn_list failed.\n");
             goto fail;
         }
 
@@ -353,7 +357,8 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
                                                  SYSDB_NETGROUP_MEMBER,
                                                  dn_item->cn);
                     if (ret != EOK) {
-                        DEBUG(1, "sysdb_attrs_add_string failed.\n");
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "sysdb_attrs_add_string failed.\n");
                         goto fail;
                     }
             }
@@ -367,7 +372,8 @@ struct tevent_req *netgr_translate_members_send(TALLOC_CTX *memctx,
     state->dn_idx = state->dn_list;
     ret = netgr_translate_members_ldap_step(req);
     if (ret != EOK && ret != EAGAIN) {
-        DEBUG(1, "netgr_translate_members_ldap_step failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "netgr_translate_members_ldap_step failed.\n");
         goto fail;
     }
 
@@ -410,7 +416,8 @@ static errno_t netgr_translate_members_ldap_step(struct tevent_req *req)
                                              SYSDB_NETGROUP_MEMBER,
                                              state->dn_item->cn);
                 if (ret != EOK) {
-                    DEBUG(1, "sysdb_attrs_add_string failed.\n");
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "sysdb_attrs_add_string failed.\n");
                     tevent_req_error(req, ret);
                     return ret;
                 }
@@ -430,14 +437,14 @@ static errno_t netgr_translate_members_ldap_step(struct tevent_req *req)
 
     cn_attr = talloc_array(state, const char *, 3);
     if (cn_attr == NULL) {
-        DEBUG(1, "talloc_array failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
     }
     cn_attr[0] = state->opts->netgroup_map[SDAP_AT_NETGROUP_NAME].name;
     cn_attr[1] = "objectclass";
     cn_attr[2] = NULL;
 
-    DEBUG(9, "LDAP base search for [%s].\n", state->dn_item->dn);
+    DEBUG(SSSDBG_TRACE_ALL, "LDAP base search for [%s].\n", state->dn_item->dn);
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    state->dn_item->dn, LDAP_SCOPE_BASE, filter,
                                    cn_attr, state->opts->netgroup_map,
@@ -446,7 +453,7 @@ static errno_t netgr_translate_members_ldap_step(struct tevent_req *req)
                                                   SDAP_SEARCH_TIMEOUT),
                                    false);
     if (!subreq) {
-        DEBUG(1, "sdap_get_generic_send failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_get_generic_send failed.\n");
         return ENOMEM;
     }
     talloc_steal(subreq, cn_attr);
@@ -469,24 +476,25 @@ static void netgr_translate_members_ldap_done(struct tevent_req *subreq)
     ret = sdap_get_generic_recv(subreq, state, &count, &netgroups);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(1, "sdap_get_generic request failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_get_generic request failed.\n");
         goto fail;
     }
 
     switch (count) {
         case 0:
-            DEBUG(0, "sdap_get_generic_recv found no entry for [%s].\n",
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "sdap_get_generic_recv found no entry for [%s].\n",
                       state->dn_item->dn);
             break;
         case 1:
             ret = sysdb_attrs_get_string(netgroups[0], SYSDB_NAME, &str);
             if (ret != EOK) {
-                DEBUG(1, "sysdb_attrs_add_string failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_attrs_add_string failed.\n");
                 break;
             }
             state->dn_item->cn = talloc_strdup(state->dn_item, str);
             if (state->dn_item->cn == NULL) {
-                DEBUG(1, "talloc_strdup failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
             }
             break;
         default:
@@ -496,7 +504,8 @@ static void netgr_translate_members_ldap_done(struct tevent_req *subreq)
     }
 
     if (state->dn_item->cn == NULL) {
-        DEBUG(1, "Failed to resolve netgroup name for DN [%s], using DN.\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to resolve netgroup name for DN [%s], using DN.\n",
                   state->dn_item->dn);
         state->dn_item->cn = talloc_strdup(state->dn_item, state->dn_item->dn);
     }
@@ -504,7 +513,8 @@ static void netgr_translate_members_ldap_done(struct tevent_req *subreq)
     state->dn_idx = state->dn_item->next;
     ret = netgr_translate_members_ldap_step(req);
     if (ret != EOK && ret != EAGAIN) {
-        DEBUG(1, "netgr_translate_members_ldap_step failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "netgr_translate_members_ldap_step failed.\n");
         goto fail;
     }
 
@@ -719,7 +729,7 @@ static void netgr_translate_members_done(struct tevent_req *subreq)
                                  &state->higher_timestamp,
                                  now);
         if (ret) {
-            DEBUG(2, "Failed to store netgroups.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to store netgroups.\n");
             tevent_req_error(req, ret);
             return;
         }

@@ -191,7 +191,7 @@ static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
 
     state->op = sdap_id_op_create(state, ctx->conn->conn_cache);
     if (!state->op) {
-        DEBUG(2, "sdap_id_op_create failed\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -211,7 +211,7 @@ static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
                             clean_name,
                             ctx->opts->netgroup_map[IPA_OC_NETGROUP].name);
     if (!state->filter) {
-        DEBUG(2, "Failed to build filter\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -302,7 +302,8 @@ static void ipa_id_get_netgroup_done(struct tevent_req *subreq)
     }
 
     if (ret == EOK && state->count > 1) {
-        DEBUG(1, "Found more than one netgroup with the name [%s].\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Found more than one netgroup with the name [%s].\n",
                   state->name);
         tevent_req_error(req, EINVAL);
         return;

@@ -508,7 +508,7 @@ errno_t sss_hash_create_ex(TALLOC_CTX *mem_ctx,
         ret = EIO;
     }
 
-    DEBUG(0, "Could not create hash table: [%d][%s]\n",
+    DEBUG(SSSDBG_FATAL_FAILURE, "Could not create hash table: [%d][%s]\n",
               hret, hash_error_string(hret));
 
     talloc_free(internal_ctx);

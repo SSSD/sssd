@@ -82,7 +82,7 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(1, "Reconnected to the Data Provider.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Reconnected to the Data Provider.\n");
 
         /* Identify ourselves to the data provider */
         ret = dp_common_send_id(be_conn->conn,
@@ -96,7 +96,7 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
     }
 
     /* Handle failure */
-    DEBUG(0, "Could not reconnect to %s provider.\n",
+    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
               be_conn->domain->name);
 
     /* FIXME: kill the frontend and let the monitor restart it ? */
@@ -147,7 +147,8 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
     if (ret != EOK) {
-        DEBUG(0, "Failed to set up automatic reconnection\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to set up automatic reconnection\n");
         goto done;
     }
 
@@ -172,7 +173,8 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
     ret = sss_ncache_init(pctx, &pctx->ncache);
     if (ret != EOK) {
-        DEBUG(0, "fatal error initializing negative cache\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "fatal error initializing negative cache\n");
         goto done;
     }
 
@@ -258,7 +260,8 @@ int main(int argc, const char *argv[])
     ret = die_if_parent_died();
     if (ret != EOK) {
         /* This is not fatal, don't return */
-        DEBUG(2, "Could not set up to exit when parent process does\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not set up to exit when parent process does\n");
     }
 
     ret = pam_process_init(main_ctx,

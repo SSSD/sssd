@@ -104,7 +104,8 @@ static void be_run_cb_step(struct tevent_context *ev, struct tevent_timer *te,
                                be_run_cb_step,
                                cb_ctx);
         if (!tev) {
-            DEBUG(0, "Out of memory. Could not invoke callbacks\n");
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Out of memory. Could not invoke callbacks\n");
             goto final;
         }
         return;
@@ -130,7 +131,8 @@ static errno_t be_run_cb(struct be_ctx *be, struct be_cb *cb_list)
 
     cb_ctx = talloc(be, struct be_cb_ctx);
     if (!cb_ctx) {
-        DEBUG(0, "Out of memory. Could not invoke callbacks\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Out of memory. Could not invoke callbacks\n");
         return ENOMEM;
     }
     cb_ctx->be = be;
@@ -142,7 +144,8 @@ static errno_t be_run_cb(struct be_ctx *be, struct be_cb *cb_list)
                           be_run_cb_step,
                           cb_ctx);
     if (!te) {
-        DEBUG(0, "Out of memory. Could not invoke callbacks\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Out of memory. Could not invoke callbacks\n");
         talloc_free(cb_ctx);
         return ENOMEM;
     }
@@ -196,7 +199,7 @@ int be_add_online_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t cb,
 
     ret = be_add_cb(mem_ctx, ctx, cb, pvt, &ctx->online_cb_list, online_cb);
     if (ret != EOK) {
-        DEBUG(1, "be_add_cb failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "be_add_cb failed.\n");
         return ret;
     }
 
@@ -218,15 +221,16 @@ void be_run_online_cb(struct be_ctx *be) {
         be->run_online_cb = false;
 
         if (be->online_cb_list) {
-            DEBUG(3, "Going online. Running callbacks.\n");
+            DEBUG(SSSDBG_MINOR_FAILURE, "Going online. Running callbacks.\n");
 
             ret = be_run_cb(be, be->online_cb_list);
             if (ret != EOK) {
-                DEBUG(1, "be_run_cb failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "be_run_cb failed.\n");
             }
 
         } else {
-            DEBUG(9, "Online call back list is empty, nothing to do.\n");
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Online call back list is empty, nothing to do.\n");
         }
     }
 }
@@ -268,14 +272,15 @@ void be_run_offline_cb(struct be_ctx *be) {
     int ret;
 
     if (be->offline_cb_list) {
-        DEBUG(3, "Going offline. Running callbacks.\n");
+        DEBUG(SSSDBG_MINOR_FAILURE, "Going offline. Running callbacks.\n");
 
         ret = be_run_cb(be, be->offline_cb_list);
         if (ret != EOK) {
-            DEBUG(1, "be_run_cb failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "be_run_cb failed.\n");
         }
 
     } else {
-        DEBUG(9, "Offline call back list is empty, nothing to do.\n");
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Offline call back list is empty, nothing to do.\n");
     }
 }

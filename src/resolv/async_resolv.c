@@ -140,7 +140,8 @@ fd_input_available(struct tevent_context *ev, struct tevent_fd *fde,
     struct fd_watch *watch = talloc_get_type(data, struct fd_watch);
 
     if (watch->ctx->channel == NULL) {
-        DEBUG(1, "Invalid ares channel - this is likely a bug\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid ares channel - this is likely a bug\n");
         return;
     }
 
@@ -182,7 +183,7 @@ add_timeout_timer(struct tevent_context *ev, struct resolv_ctx *ctx)
     ctx->timeout_watcher = tevent_add_timer(ev, ctx, tv, check_fd_timeouts,
                                             ctx);
     if (ctx->timeout_watcher == NULL) {
-        DEBUG(1, "Out of memory\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
     }
 }
 
@@ -192,7 +193,7 @@ check_fd_timeouts(struct tevent_context *ev, struct tevent_timer *te,
 {
     struct resolv_ctx *ctx = talloc_get_type(private_data, struct resolv_ctx);
 
-    DEBUG(9, "Checking for DNS timeouts\n");
+    DEBUG(SSSDBG_TRACE_ALL, "Checking for DNS timeouts\n");
 
     /* NULLify the timeout_watcher so we don't
      * free it in the _done() function if it
@@ -303,13 +304,13 @@ unschedule_timeout_watcher(struct resolv_ctx *ctx, struct resolv_request *rreq)
     talloc_free(rreq); /* Cancels the tevent timeout as well */
 
     if (ctx->pending_requests <= 0) {
-        DEBUG(1, "Pending DNS requests mismatch\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Pending DNS requests mismatch\n");
         return;
     }
 
     ctx->pending_requests--;
     if (ctx->pending_requests == 0) {
-        DEBUG(9, "Unscheduling DNS timeout watcher\n");
+        DEBUG(SSSDBG_TRACE_ALL, "Unscheduling DNS timeout watcher\n");
         talloc_zfree(ctx->timeout_watcher);
     }
 }
@@ -360,7 +361,8 @@ fd_event_add(struct resolv_ctx *ctx, int s, int flags)
     /* The file descriptor is new, register it with tevent. */
     watch = talloc(ctx, struct fd_watch);
     if (watch == NULL) {
-        DEBUG(1, "Out of memory allocating fd_watch structure\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Out of memory allocating fd_watch structure\n");
         return;
     }
     talloc_set_destructor(watch, fd_watch_destructor);
@@ -371,7 +373,7 @@ fd_event_add(struct resolv_ctx *ctx, int s, int flags)
     watch->fde = tevent_add_fd(ctx->ev_ctx, watch, s, flags,
                                fd_input_available, watch);
     if (watch->fde == NULL) {
-        DEBUG(1, "tevent_add_fd() failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd() failed\n");
         talloc_free(watch);
         return;
     }
@@ -400,7 +402,7 @@ resolv_ctx_destructor(struct resolv_ctx *ctx)
     ares_channel channel;
 
     if (ctx->channel == NULL) {
-        DEBUG(1, "Ares channel already destroyed?\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Ares channel already destroyed?\n");
         return -1;
     }
 
@@ -421,7 +423,7 @@ recreate_ares_channel(struct resolv_ctx *ctx)
     ares_channel old_channel;
     struct ares_options options;
 
-    DEBUG(4, "Initializing new c-ares channel\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Initializing new c-ares channel\n");
     /* FIXME: the options would contain
      * the nameservers to contact, the domains
      * to search... => get from confdb
@@ -438,7 +440,7 @@ recreate_ares_channel(struct resolv_ctx *ctx)
                             ARES_OPT_LOOKUPS |
                             ARES_OPT_TRIES);
     if (ret != ARES_SUCCESS) {
-        DEBUG(1, "Failed to initialize ares channel: %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize ares channel: %s\n",
                   resolv_strerror(ret));
         return return_code(ret);
     }
@@ -446,7 +448,7 @@ recreate_ares_channel(struct resolv_ctx *ctx)
     old_channel = ctx->channel;
     ctx->channel = new_channel;
     if (old_channel != NULL) {
-        DEBUG(4, "Destroying the old c-ares channel\n");
+        DEBUG(SSSDBG_CONF_SETTINGS, "Destroying the old c-ares channel\n");
         ares_destroy(old_channel);
     }
 
@@ -651,7 +653,7 @@ resolv_copy_hostent_ares(TALLOC_CTX *mem_ctx, struct hostent *src,
             }
 
             if (cret != EOK) {
-                DEBUG(1, "Could not copy address\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "Could not copy address\n");
                 goto fail;
             }
         }
@@ -706,7 +708,8 @@ resolv_gethostbyname_files_send(TALLOC_CTX *mem_ctx,
     state->rhostent = NULL;
     state->family = family;
 
-    DEBUG(4, "Trying to resolve %s record of '%s' in files\n",
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Trying to resolve %s record of '%s' in files\n",
               state->family == AF_INET ? "A" : "AAAA", state->name);
 
     state->status = ares_gethostbyname_file(state->resolv_ctx->channel,
@@ -798,7 +801,8 @@ resolv_gethostbyname_dns_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct timeval tv = { 0, 0 };
 
     if (ctx->channel == NULL) {
-        DEBUG(1, "Invalid ares channel - this is likely a bug\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid ares channel - this is likely a bug\n");
         return NULL;
     }
 
@@ -821,7 +825,8 @@ resolv_gethostbyname_dns_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
      * This would not let our caller to set a callback for req. */
     subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
-        DEBUG(1, "Failed to add critical timer to run next operation!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to add critical timer to run next operation!\n");
         talloc_zfree(req);
         return NULL;
     }
@@ -845,7 +850,8 @@ resolv_gethostbyname_dns_wakeup(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (state->resolv_ctx->channel == NULL) {
-        DEBUG(1, "Invalid ares channel - this is likely a bug\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid ares channel - this is likely a bug\n");
         tevent_req_error(req, EIO);
         return;
     }
@@ -859,7 +865,7 @@ resolv_gethostbyname_dns_query(struct tevent_req *req,
 {
     struct resolv_request *rreq;
 
-    DEBUG(4, "Trying to resolve %s record of '%s' in DNS\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Trying to resolve %s record of '%s' in DNS\n",
               state->family == AF_INET ? "A" : "AAAA", state->name);
 
     rreq = schedule_timeout_watcher(state->ev, state->resolv_ctx, req);
@@ -951,7 +957,7 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
 
     switch (state->family) {
         case AF_INET:
-            DEBUG(7, "Parsing an A reply\n");
+            DEBUG(SSSDBG_TRACE_LIBS, "Parsing an A reply\n");
 
             addr = talloc_array(state, struct ares_addrttl, naddrttls);
             if (!addr) {
@@ -964,7 +970,7 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
                                         &naddrttls);
             break;
         case AF_INET6:
-            DEBUG(7, "Parsing an AAAA reply\n");
+            DEBUG(SSSDBG_TRACE_LIBS, "Parsing an AAAA reply\n");
 
             addr = talloc_array(state, struct ares_addr6ttl, naddrttls);
             if (!addr) {
@@ -977,7 +983,7 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
                                            &naddrttls);
             break;
         default:
-            DEBUG(1, "Unknown family %d\n", state->family);
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown family %d\n", state->family);
             ret = EAFNOSUPPORT;
             goto fail;
     }
@@ -1083,7 +1089,8 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     errno_t ret;
 
     if (ctx->channel == NULL) {
-        DEBUG(1, "Invalid ares channel - this is likely a bug\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid ares channel - this is likely a bug\n");
         return NULL;
     }
 
@@ -1114,7 +1121,8 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         ret = resolv_gethostbyname_address(state, state->name,
                                            &state->rhostent);
         if (ret != EOK) {
-            DEBUG(1, "Canot create a fake hostent structure\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Canot create a fake hostent structure\n");
             goto fail;
         }
 
@@ -1125,7 +1133,7 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 
     ret = resolv_gethostbyname_step(req);
     if (ret != EOK) {
-        DEBUG(1, "Cannot start the resolving\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot start the resolving\n");
         goto fail;
     }
 
@@ -1151,9 +1159,10 @@ resolv_is_address(const char *name)
     freeaddrinfo(res);
     if (ret != 0) {
         if (ret == -2) {
-            DEBUG(9, "[%s] does not look like an IP address\n", name);
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "[%s] does not look like an IP address\n", name);
         } else {
-            DEBUG(2, "getaddrinfo failed [%d]: %s\n",
+            DEBUG(SSSDBG_OP_FAILURE, "getaddrinfo failed [%d]: %s\n",
                       ret, gai_strerror(ret));
         }
     }
@@ -1210,7 +1219,8 @@ resolv_gethostbyname_address(TALLOC_CTX *mem_ctx, const char *address,
         ret = inet_pton(family, address,
                         rhostent->addr_list[0]->ipaddr);
         if (ret != 1) {
-            DEBUG(1, "Could not parse address as neither v4 nor v6\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not parse address as neither v4 nor v6\n");
             ret = EINVAL;
             goto done;
         }
@@ -1240,7 +1250,8 @@ resolv_gethostbyname_family_init(enum restrict_family family_order)
             return AF_INET6;
     }
 
-    DEBUG(1, "Unknown address family order %d\n", family_order);
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          "Unknown address family order %d\n", family_order);
     return -1;
 }
 
@@ -1258,7 +1269,7 @@ resolv_gethostbyname_next(struct gethostbyname_state *state)
     } else {
         /* No more address families for this DB, check if
          * there is another DB to try */
-        DEBUG(5, "No more address families to retry\n");
+        DEBUG(SSSDBG_FUNC_DATA, "No more address families to retry\n");
         state->dbi++;
         if (state->db[state->dbi] != DB_SENTINEL) {
             state->family = resolv_gethostbyname_family_init(
@@ -1267,7 +1278,7 @@ resolv_gethostbyname_next(struct gethostbyname_state *state)
         }
     }
 
-    DEBUG(4, "No more hosts databases to retry\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "No more hosts databases to retry\n");
     return ENOENT;
 }
 
@@ -1283,21 +1294,21 @@ resolv_gethostbyname_step(struct tevent_req *req)
 
     switch(state->db[state->dbi]) {
         case DB_FILES:
-            DEBUG(8, "Querying files\n");
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Querying files\n");
             subreq = resolv_gethostbyname_files_send(state, state->ev,
                                                      state->resolv_ctx,
                                                      state->name,
                                                      state->family);
             break;
         case DB_DNS:
-            DEBUG(8, "Querying DNS\n");
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Querying DNS\n");
             subreq = resolv_gethostbyname_dns_send(state, state->ev,
                                                    state->resolv_ctx,
                                                    state->name,
                                                    state->family);
             break;
         default:
-            DEBUG(1, "Invalid hosts database\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid hosts database\n");
             return EINVAL;
     }
 
@@ -1332,7 +1343,7 @@ resolv_gethostbyname_done(struct tevent_req *subreq)
                                                 &state->rhostent);
             break;
         default:
-            DEBUG(1, "Invalid hosts database\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid hosts database\n");
             tevent_req_error(req, EINVAL);
             return;
     }
@@ -1358,7 +1369,7 @@ resolv_gethostbyname_done(struct tevent_req *subreq)
     }
 
     if (ret != EOK) {
-        DEBUG(2, "querying hosts database failed [%d]: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, "querying hosts database failed [%d]: %s\n",
                   ret, strerror(ret));
         tevent_req_error(req, ret);
         return;
@@ -1402,14 +1413,15 @@ resolv_get_string_address_index(TALLOC_CTX *mem_ctx,
 
     address = talloc_zero_size(mem_ctx, 128);
     if (address == NULL) {
-        DEBUG(1, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return NULL;
     }
 
     errno = 0;
     if (inet_ntop(hostent->family, hostent->addr_list[addrindex]->ipaddr,
                   address, 128) == NULL) {
-        DEBUG(1, "inet_ntop failed [%d][%s].\n", errno, strerror(errno));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "inet_ntop failed [%d][%s].\n", errno, strerror(errno));
         talloc_free(address);
         return NULL;
     }
@@ -1464,7 +1476,7 @@ resolv_get_sockaddr_address_index(TALLOC_CTX *mem_ctx,
 
     sockaddr = talloc_zero(mem_ctx, struct sockaddr_storage);
     if (sockaddr == NULL) {
-        DEBUG(1, "talloc_zero failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return NULL;
     }
 
@@ -1583,10 +1595,12 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct getsrv_state *state;
     struct timeval tv = { 0, 0 };
 
-    DEBUG(4, "Trying to resolve SRV record of '%s'\n", query);
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Trying to resolve SRV record of '%s'\n", query);
 
     if (ctx->channel == NULL) {
-        DEBUG(1, "Invalid ares channel - this is likely a bug\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid ares channel - this is likely a bug\n");
         return NULL;
     }
 
@@ -1604,7 +1618,8 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 
     subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
-        DEBUG(1, "Failed to add critical timer to run next operation!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to add critical timer to run next operation!\n");
         talloc_zfree(req);
         return NULL;
     }
@@ -1650,7 +1665,8 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
 
     ret = ares_parse_srv_reply(abuf, alen, &reply_list);
     if (ret != ARES_SUCCESS) {
-        DEBUG(2, "SRV record parsing failed: %d: %s\n", ret, ares_strerror(ret));
+        DEBUG(SSSDBG_OP_FAILURE,
+              "SRV record parsing failed: %d: %s\n", ret, ares_strerror(ret));
         ret = return_code(ret);
         goto fail;
     }
@@ -1700,7 +1716,8 @@ ares_getsrv_wakeup(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (state->resolv_ctx->channel == NULL) {
-        DEBUG(1, "Invalid ares channel - this is likely a bug\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid ares channel - this is likely a bug\n");
         tevent_req_error(req, EIO);
         return;
     }
@@ -1819,10 +1836,12 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct gettxt_state *state;
     struct timeval tv = { 0, 0 };
 
-    DEBUG(4, "Trying to resolve TXT record of '%s'\n", query);
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Trying to resolve TXT record of '%s'\n", query);
 
     if (ctx->channel == NULL) {
-        DEBUG(1, "Invalid ares channel - this is likely a bug\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid ares channel - this is likely a bug\n");
         return NULL;
     }
 
@@ -1840,7 +1859,8 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 
     subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
-        DEBUG(1, "Failed to add critical timer to run next operation!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to add critical timer to run next operation!\n");
         talloc_zfree(req);
         return NULL;
     }
@@ -1887,7 +1907,8 @@ resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int
 
     ret = ares_parse_txt_reply(abuf, alen, &reply_list);
     if (status != ARES_SUCCESS) {
-        DEBUG(2, "TXT record parsing failed: %d: %s\n", ret, ares_strerror(ret));
+        DEBUG(SSSDBG_OP_FAILURE,
+              "TXT record parsing failed: %d: %s\n", ret, ares_strerror(ret));
         ret = return_code(ret);
         goto fail;
     }
@@ -1937,7 +1958,8 @@ ares_gettxt_wakeup(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (state->resolv_ctx->channel == NULL) {
-        DEBUG(1, "Invalid ares channel - this is likely a bug\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Invalid ares channel - this is likely a bug\n");
         tevent_req_error(req, EIO);
         return;
     }
@@ -2121,7 +2143,7 @@ static int reply_weight_rearrange(int len,
         }
 
         if (r == NULL || totals[i] == -1) {
-            DEBUG(1, "Bug: did not select any server!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: did not select any server!\n");
             ret = EIO;
             goto done;
         }
@@ -2165,7 +2187,8 @@ resolv_sort_srv_reply(struct ares_srv_reply **reply)
      * (the root domain), abort.
      */
     if (*reply && !(*reply)->next && strcmp((*reply)->host, ".") == 0) {
-        DEBUG(1, "DNS returned only the root domain, aborting\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "DNS returned only the root domain, aborting\n");
         return EIO;
     }
 
@@ -2190,7 +2213,8 @@ resolv_sort_srv_reply(struct ares_srv_reply **reply)
         pri_end->next = NULL;
         ret = reply_weight_rearrange(len, &pri_start, &pri_end);
         if (ret) {
-            DEBUG(1, "Error rearranging priority level [%d]: %s\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Error rearranging priority level [%d]: %s\n",
                       ret, strerror(ret));
             return ret;
         }

@@ -88,7 +88,7 @@ void BlockSignals(bool block, int signum)
 	/* yikes! This platform can't block signals? */
 	static int done;
 	if (!done) {
-		DEBUG(0,"WARNING: No signal blocking available\n");
+		DEBUG(SSSDBG_FATAL_FAILURE,"WARNING: No signal blocking available\n");
 		done=1;
 	}
 #endif

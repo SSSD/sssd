@@ -261,7 +261,8 @@ const char *_dp_opt_get_cstring(struct dp_option *opts,
                                 int id, const char *location)
 {
     if (opts[id].type != DP_OPT_STRING) {
-        DEBUG(0, "[%s] Requested type 'String' for option '%s'"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "[%s] Requested type 'String' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
                   dp_opt_type_to_string(opts[id].type));
@@ -274,7 +275,8 @@ char *_dp_opt_get_string(struct dp_option *opts,
                          int id, const char *location)
 {
     if (opts[id].type != DP_OPT_STRING) {
-        DEBUG(0, "[%s] Requested type 'String' for option '%s'"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "[%s] Requested type 'String' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
                   dp_opt_type_to_string(opts[id].type));
@@ -288,7 +290,7 @@ struct dp_opt_blob _dp_opt_get_blob(struct dp_option *opts,
 {
     struct dp_opt_blob null_blob = { NULL, 0 };
     if (opts[id].type != DP_OPT_BLOB) {
-        DEBUG(0, "[%s] Requested type 'Blob' for option '%s'"
+        DEBUG(SSSDBG_FATAL_FAILURE, "[%s] Requested type 'Blob' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
                   dp_opt_type_to_string(opts[id].type));
@@ -301,7 +303,8 @@ int _dp_opt_get_int(struct dp_option *opts,
                     int id, const char *location)
 {
     if (opts[id].type != DP_OPT_NUMBER) {
-        DEBUG(0, "[%s] Requested type 'Number' for option '%s'"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "[%s] Requested type 'Number' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
                   dp_opt_type_to_string(opts[id].type));
@@ -314,7 +317,8 @@ bool _dp_opt_get_bool(struct dp_option *opts,
                       int id, const char *location)
 {
     if (opts[id].type != DP_OPT_BOOL) {
-        DEBUG(0, "[%s] Requested type 'Boolean' for option '%s'"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "[%s] Requested type 'Boolean' for option '%s'"
                   " but value is of type '%s'!\n",
                   location, opts[id].opt_name,
                   dp_opt_type_to_string(opts[id].type));
@@ -328,7 +332,8 @@ int _dp_opt_set_string(struct dp_option *opts, int id,
                        const char *s, const char *location)
 {
     if (opts[id].type != DP_OPT_STRING) {
-        DEBUG(0, "[%s] Requested type 'String' for option '%s'"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "[%s] Requested type 'String' for option '%s'"
                   " but type is '%s'!\n",
                   location, opts[id].opt_name,
                   dp_opt_type_to_string(opts[id].type));
@@ -341,7 +346,7 @@ int _dp_opt_set_string(struct dp_option *opts, int id,
     if (s) {
         opts[id].val.string = talloc_strdup(opts, s);
         if (!opts[id].val.string) {
-            DEBUG(0, "talloc_strdup() failed!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "talloc_strdup() failed!\n");
             return ENOMEM;
         }
     }
@@ -353,7 +358,7 @@ int _dp_opt_set_blob(struct dp_option *opts, int id,
                      struct dp_opt_blob b, const char *location)
 {
     if (opts[id].type != DP_OPT_BLOB) {
-        DEBUG(0, "[%s] Requested type 'Blob' for option '%s'"
+        DEBUG(SSSDBG_FATAL_FAILURE, "[%s] Requested type 'Blob' for option '%s'"
                   " but type is '%s'!\n",
                   location, opts[id].opt_name,
                   dp_opt_type_to_string(opts[id].type));
@@ -367,7 +372,7 @@ int _dp_opt_set_blob(struct dp_option *opts, int id,
     if (b.data) {
         opts[id].val.blob.data = talloc_memdup(opts, b.data, b.length);
         if (!opts[id].val.blob.data) {
-            DEBUG(0, "talloc_memdup() failed!\n");
+            DEBUG(SSSDBG_FATAL_FAILURE, "talloc_memdup() failed!\n");
             return ENOMEM;
         }
     }
@@ -380,7 +385,8 @@ int _dp_opt_set_int(struct dp_option *opts, int id,
                     int i, const char *location)
 {
     if (opts[id].type != DP_OPT_NUMBER) {
-        DEBUG(0, "[%s] Requested type 'Number' for option '%s'"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "[%s] Requested type 'Number' for option '%s'"
                   " but type is '%s'!\n",
                   location, opts[id].opt_name,
                   dp_opt_type_to_string(opts[id].type));
@@ -396,7 +402,8 @@ int _dp_opt_set_bool(struct dp_option *opts, int id,
                      bool b, const char *location)
 {
     if (opts[id].type != DP_OPT_BOOL) {
-        DEBUG(0, "[%s] Requested type 'Boolean' for option '%s'"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "[%s] Requested type 'Boolean' for option '%s'"
                   " but type is '%s'!\n",
                   location, opts[id].opt_name,
                   dp_opt_type_to_string(opts[id].type));

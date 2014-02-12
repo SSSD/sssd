@@ -97,9 +97,11 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, "Original DN is not available for [%s].\n", name);
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Original DN is not available for [%s].\n", name);
     } else {
-        DEBUG(7, "Adding original DN [%s] to attributes of [%s].\n",
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Adding original DN [%s] to attributes of [%s].\n",
                   el->values[0].data, name);
         ret = sysdb_attrs_add_string(netgroup_attrs, SYSDB_ORIG_DN,
                                      (const char *)el->values[0].data);
@@ -136,10 +138,12 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, "No original members for netgroup [%s]\n", name);
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "No original members for netgroup [%s]\n", name);
 
     } else {
-        DEBUG(7, "Adding original members to netgroup [%s]\n", name);
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Adding original members to netgroup [%s]\n", name);
         for(c = 0; c < el->num_values; c++) {
             ret = sysdb_attrs_add_string(netgroup_attrs,
                        opts->netgroup_map[IPA_AT_NETGROUP_MEMBER].sys_name,
@@ -156,10 +160,10 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, "No members for netgroup [%s]\n", name);
+        DEBUG(SSSDBG_TRACE_LIBS, "No members for netgroup [%s]\n", name);
 
     } else {
-        DEBUG(7, "Adding members to netgroup [%s]\n", name);
+        DEBUG(SSSDBG_TRACE_LIBS, "Adding members to netgroup [%s]\n", name);
         for(c = 0; c < el->num_values; c++) {
             ret = sysdb_attrs_add_string(netgroup_attrs, SYSDB_NETGROUP_MEMBER,
                                          (const char*)el->values[c].data);
@@ -169,7 +173,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         }
     }
 
-    DEBUG(6, "Storing info for netgroup %s\n", name);
+    DEBUG(SSSDBG_TRACE_FUNC, "Storing info for netgroup %s\n", name);
 
     ret = sysdb_add_netgroup(ctx, dom, name, NULL, netgroup_attrs, NULL,
                              dom->netgroup_timeout, 0);
@@ -178,7 +182,7 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
     return EOK;
 
 fail:
-    DEBUG(2, "Failed to save netgroup %s\n", name);
+    DEBUG(SSSDBG_OP_FAILURE, "Failed to save netgroup %s\n", name);
     return ret;
 }
 

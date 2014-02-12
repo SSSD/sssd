@@ -108,7 +108,7 @@ bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
                                    DBUS_TYPE_INVALID);
 
     if (!db_ret) {
-        DEBUG(1, "dbus_message_get_args failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "dbus_message_get_args failed.\n");
         return false;
     }
 
@@ -117,20 +117,22 @@ bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
 
     ret = copy_pam_data(mem_ctx, &pd, new_pd);
     if (ret != EOK) {
-        DEBUG(1, "copy_pam_data failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "copy_pam_data failed.\n");
         return false;
     }
 
     ret = sss_authtok_set((*new_pd)->authtok, authtok_type,
                           authtok_data, authtok_length);
     if (ret) {
-        DEBUG(1, "Failed to set auth token: %d [%s]\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set auth token: %d [%s]\n", ret, strerror(ret));
         return false;
     }
     ret = sss_authtok_set((*new_pd)->newauthtok, new_authtok_type,
                           new_authtok_data, new_authtok_length);
     if (ret) {
-        DEBUG(1, "Failed to set auth token: %d [%s]\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set auth token: %d [%s]\n", ret, strerror(ret));
         return false;
     }
 
@@ -229,30 +231,31 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
     const uint8_t *data;
 
     if (!dbus_message_iter_init(msg, &iter)) {
-        DEBUG(1, "pam response has no arguments.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam response has no arguments.\n");
         return false;
     }
 
     if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
-        DEBUG(1, "pam response format error.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam response format error.\n");
         return false;
     }
     dbus_message_iter_get_basic(&iter, &(pd->pam_status));
 
     if (!dbus_message_iter_next(&iter)) {
-        DEBUG(1, "pam response has too few arguments.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam response has too few arguments.\n");
         return false;
     }
 
     /* After this point will be an array of pam data */
     if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) {
-        DEBUG(1, "pam response format error.\n");
-        DEBUG(1, "Type was %c\n", (char)dbus_message_iter_get_arg_type(&iter));
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam response format error.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Type was %c\n", (char)dbus_message_iter_get_arg_type(&iter));
         return false;
     }
 
     if (dbus_message_iter_get_element_type(&iter) != DBUS_TYPE_STRUCT) {
-        DEBUG(1, "pam response format error.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam response format error.\n");
         return false;
     }
 
@@ -260,7 +263,7 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
     while (dbus_message_iter_get_arg_type(&array_iter) != DBUS_TYPE_INVALID) {
         /* Read in a pam data struct */
         if (dbus_message_iter_get_arg_type(&array_iter) != DBUS_TYPE_STRUCT) {
-            DEBUG(1, "pam response format error.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam response format error.\n");
             return false;
         }
 
@@ -270,20 +273,20 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
 
         /* Get the pam data type */
         if (dbus_message_iter_get_arg_type(&struct_iter) != DBUS_TYPE_UINT32) {
-            DEBUG(1, "pam response format error.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam response format error.\n");
             return false;
         }
         dbus_message_iter_get_basic(&struct_iter, &type);
 
         if (!dbus_message_iter_next(&struct_iter)) {
-            DEBUG(1, "pam response format error.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam response format error.\n");
             return false;
         }
 
         /* Get the byte array */
         if (dbus_message_iter_get_arg_type(&struct_iter) != DBUS_TYPE_ARRAY ||
             dbus_message_iter_get_element_type(&struct_iter) != DBUS_TYPE_BYTE) {
-            DEBUG(1, "pam response format error.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam response format error.\n");
             return false;
         }
 
@@ -291,7 +294,7 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
         dbus_message_iter_get_fixed_array(&sub_iter, &data, &len);
 
         if (pam_add_response(pd, type, len, data) != EOK) {
-            DEBUG(1, "pam_add_response failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
             return false;
         }
         dbus_message_iter_next(&array_iter);
@@ -316,7 +319,8 @@ void dp_id_callback(DBusPendingCall *pending, void *ptr)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        DEBUG(0, "Severe error. A reply callback was called but no"
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Severe error. A reply callback was called but no"
                   " reply was received and no timeout occurred\n");
 
         /* FIXME: Destroy this connection ? */
@@ -330,18 +334,19 @@ void dp_id_callback(DBusPendingCall *pending, void *ptr)
                                     DBUS_TYPE_UINT16, &dp_ver,
                                     DBUS_TYPE_INVALID);
         if (!ret) {
-            DEBUG(1, "Failed to parse message\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse message\n");
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             /* FIXME: Destroy this connection ? */
             goto done;
         }
 
-        DEBUG(4, "Got id ack and version (%d) from DP\n", dp_ver);
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Got id ack and version (%d) from DP\n", dp_ver);
 
         break;
 
     case DBUS_MESSAGE_TYPE_ERROR:
-        DEBUG(0,"The Monitor returned an error [%s]\n",
+        DEBUG(SSSDBG_FATAL_FAILURE,"The Monitor returned an error [%s]\n",
                  dbus_message_get_error_name(reply));
         /* Falling through to default intentionally*/
     default:
@@ -375,11 +380,11 @@ int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
                                        DP_INTERFACE,
                                        DP_METHOD_REGISTER);
     if (msg == NULL) {
-        DEBUG(0, "Out of memory?!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?!\n");
         return ENOMEM;
     }
 
-    DEBUG(4, "Sending ID to DP: (%d,%s)\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Sending ID to DP: (%d,%s)\n",
               version, name);
 
     ret = dbus_message_append_args(msg,
@@ -387,7 +392,7 @@ int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_INVALID);
     if (!ret) {
-        DEBUG(1, "Failed to build message\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
         return EIO;
     }
 

@@ -185,7 +185,8 @@ int sysdb_upgrade_01(struct ldb_context *ldb, const char **ver)
     for (i = 0; i < res->count; i++) {
         el = ldb_msg_find_element(res->msgs[i], "memberUid");
         if (!el) {
-            DEBUG(1, "memberUid is missing from message [%s], skipping\n",
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "memberUid is missing from message [%s], skipping\n",
                       ldb_dn_get_linearized(res->msgs[i]->dn));
             continue;
         }
@@ -290,7 +291,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
     ret = sysdb_ldb_connect(tmp_ctx, ldb_file, &ldb);
     if (ret != EOK) {
-        DEBUG(1, "sysdb_ldb_connect failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
         return ret;
     }
 
@@ -333,7 +334,8 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
                 goto exit;
             }
 
-            DEBUG(4, "Upgrading DB from version: %s\n", version);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "Upgrading DB from version: %s\n", version);
 
             if (strcmp(version, SYSDB_VERSION_0_1) == 0) {
                 /* convert database */
@@ -358,7 +360,8 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
     /* == V2->V3 UPGRADE == */
 
-    DEBUG(0, "UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_3);
+    DEBUG(SSSDBG_FATAL_FAILURE,
+          "UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_3);
 
     /* ldb uses posix locks,
      * posix is stupid and kills all locks when you close *any* file
@@ -379,14 +382,15 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
     /* reopen */
     ret = sysdb_ldb_connect(tmp_ctx, ldb_file, &ldb);
     if (ret != EOK) {
-        DEBUG(1, "sysdb_ldb_connect failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_ldb_connect failed.\n");
         return ret;
     }
 
     /* open a transaction */
     ret = ldb_transaction_start(ldb);
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, "Failed to start ldb transaction! (%d)\n", ret);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to start ldb transaction! (%d)\n", ret);
         ret = EIO;
         goto exit;
     }
@@ -413,7 +417,8 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
         ret = ldb_transaction_start(sysdb->ldb);
         if (ret != LDB_SUCCESS) {
-            DEBUG(1, "Failed to start ldb transaction! (%d)\n", ret);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to start ldb transaction! (%d)\n", ret);
             ret = EIO;
             goto done;
         }
@@ -477,7 +482,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
             ret = ldb_add(sysdb->ldb, msg);
             if (ret != LDB_SUCCESS) {
-                DEBUG(0, "WARNING: Could not add entry %s,"
+                DEBUG(SSSDBG_FATAL_FAILURE, "WARNING: Could not add entry %s,"
                           " to new ldb file! (%d [%s])\n",
                           ldb_dn_get_linearized(msg->dn),
                           ret, ldb_errstring(sysdb->ldb));
@@ -485,7 +490,8 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
             ret = ldb_delete(ldb, orig_dn);
             if (ret != LDB_SUCCESS) {
-                DEBUG(0, "WARNING: Could not remove entry %s,"
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "WARNING: Could not remove entry %s,"
                           " from old ldb file! (%d [%s])\n",
                           ldb_dn_get_linearized(orig_dn),
                           ret, ldb_errstring(ldb));
@@ -497,21 +503,21 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
          * of failure just for tracing */
         ret = ldb_delete(ldb, groups_dn);
         if (ret != LDB_SUCCESS) {
-            DEBUG(9, "WARNING: Could not remove entry %s,"
+            DEBUG(SSSDBG_TRACE_ALL, "WARNING: Could not remove entry %s,"
                       " from old ldb file! (%d [%s])\n",
                       ldb_dn_get_linearized(groups_dn),
                       ret, ldb_errstring(ldb));
         }
         ret = ldb_delete(ldb, users_dn);
         if (ret != LDB_SUCCESS) {
-            DEBUG(9, "WARNING: Could not remove entry %s,"
+            DEBUG(SSSDBG_TRACE_ALL, "WARNING: Could not remove entry %s,"
                       " from old ldb file! (%d [%s])\n",
                       ldb_dn_get_linearized(users_dn),
                       ret, ldb_errstring(ldb));
         }
         ret = ldb_delete(ldb, domain_dn);
         if (ret != LDB_SUCCESS) {
-            DEBUG(9, "WARNING: Could not remove entry %s,"
+            DEBUG(SSSDBG_TRACE_ALL, "WARNING: Could not remove entry %s,"
                       " from old ldb file! (%d [%s])\n",
                       ldb_dn_get_linearized(domain_dn),
                       ret, ldb_errstring(ldb));
@@ -519,7 +525,8 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
         ret = ldb_transaction_commit(sysdb->ldb);
         if (ret != LDB_SUCCESS) {
-            DEBUG(1, "Failed to commit ldb transaction! (%d)\n", ret);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to commit ldb transaction! (%d)\n", ret);
             ret = EIO;
             goto done;
         }
@@ -562,7 +569,8 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
     ret = ldb_transaction_commit(ldb);
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, "Failed to commit ldb transaction! (%d)\n", ret);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to commit ldb transaction! (%d)\n", ret);
         ret = EIO;
         goto exit;
     }
@@ -574,12 +582,14 @@ done:
         if (ctx_trans) {
             ret = ldb_transaction_cancel(sysdb->ldb);
             if (ret != LDB_SUCCESS) {
-                DEBUG(1, "Failed to cancel ldb transaction! (%d)\n", ret);
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to cancel ldb transaction! (%d)\n", ret);
             }
         }
         ret = ldb_transaction_cancel(ldb);
         if (ret != LDB_SUCCESS) {
-            DEBUG(1, "Failed to cancel ldb transaction! (%d)\n", ret);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to cancel ldb transaction! (%d)\n", ret);
         }
     }
 

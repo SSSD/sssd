@@ -542,7 +542,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
         return ENOMEM;
     }
 
-    DEBUG_GR_MEM(7, grp);
+    DEBUG_GR_MEM(SSSDBG_TRACE_LIBS, grp);
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
@@ -1337,7 +1337,7 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
         break;
 
     default:
-        DEBUG(2, "proxy -> initgroups_dyn failed (%d)[%s]\n",
+        DEBUG(SSSDBG_OP_FAILURE, "proxy -> initgroups_dyn failed (%d)[%s]\n",
                   ret, strerror(ret));
         ret = EIO;
         break;
@@ -1496,7 +1496,8 @@ void proxy_get_account_info(struct be_req *breq)
 
     if (ret) {
         if (ret == ENXIO) {
-            DEBUG(2, "proxy returned UNAVAIL error, going offline!\n");
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "proxy returned UNAVAIL error, going offline!\n");
             be_mark_offline(be_ctx);
         }
         be_req_terminate(breq, DP_ERR_FATAL, ret, NULL);

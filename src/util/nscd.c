@@ -49,7 +49,7 @@ int flush_nscd_cache(enum nscd_db flush_db)
             break;
 
         default:
-            DEBUG(1, "Unknown nscd database\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown nscd database\n");
             ret = EINVAL;
             goto done;
     }
@@ -59,10 +59,11 @@ int flush_nscd_cache(enum nscd_db flush_db)
     case 0:
         execl(NSCD_PATH, "nscd", NSCD_RELOAD_ARG, service, NULL);
         /* if this returns it is an error */
-        DEBUG(1, "execl(3) failed: %d(%s)\n", errno, strerror(errno));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "execl(3) failed: %d(%s)\n", errno, strerror(errno));
         exit(errno);
     case -1:
-        DEBUG(1, "fork failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "fork failed\n");
         ret = EFAULT;
         break;
     default:
@@ -76,11 +77,13 @@ int flush_nscd_cache(enum nscd_db flush_db)
                 if (ret > 0) {
                     /* The flush fails if nscd is not running, so do not care
                     * about the return code */
-                    DEBUG(8, "Error flushing cache, is nscd running?\n");
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "Error flushing cache, is nscd running?\n");
                 }
             }
         } else {
-            DEBUG(5, "Failed to wait for children %d\n", nscd_pid);
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "Failed to wait for children %d\n", nscd_pid);
             ret = EIO;
         }
     }

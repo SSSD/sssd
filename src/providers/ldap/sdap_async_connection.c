@@ -41,7 +41,7 @@ errno_t deref_string_to_val(const char *str, int *val)
     } else if (strcasecmp(str, "always") == 0) {
         *val = LDAP_DEREF_ALWAYS;
     } else {
-        DEBUG(1, "Illegal deref option [%s].\n", str);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Illegal deref option [%s].\n", str);
         return EINVAL;
     }
 
@@ -125,7 +125,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                 timeout);
     if (subreq == NULL) {
         ret = ENOMEM;
-        DEBUG(1, "sss_ldap_init_send failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldap_init_send failed.\n");
         goto fail;
     }
 
@@ -164,14 +164,14 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     ret = sss_ldap_init_recv(subreq, &state->sh->ldap, &sd);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(1, "sdap_async_connect_call request failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_async_connect_call request failed.\n");
         tevent_req_error(req, ret);
         return;
     }
 
     ret = setup_ldap_connection_callbacks(state->sh, state->ev);
     if (ret != EOK) {
-        DEBUG(1, "setup_ldap_connection_callbacks failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "setup_ldap_connection_callbacks failed.\n");
         goto fail;
     }
 
@@ -181,7 +181,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     if (sd != -1) {
         ret = sdap_call_conn_cb(state->uri, sd, state->sh);
         if (ret != EOK) {
-            DEBUG(1, "sdap_call_conn_cb failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "sdap_call_conn_cb failed.\n");
             goto fail;
         }
     }
@@ -190,7 +190,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     ver = LDAP_VERSION3;
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_PROTOCOL_VERSION, &ver);
     if (lret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, "Failed to set ldap version to 3\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set ldap version to 3\n");
         goto fail;
     }
 
@@ -198,7 +198,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
      * to handle EINTR during poll(). */
     ret = ldap_set_option(state->sh->ldap, LDAP_OPT_RESTART, LDAP_OPT_ON);
     if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, "Failed to set restart option.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set restart option.\n");
     }
 
     /* Set Network Timeout */
@@ -206,7 +206,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     tv.tv_usec = 0;
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_NETWORK_TIMEOUT, &tv);
     if (lret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, "Failed to set network timeout to %d\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set network timeout to %d\n",
                   dp_opt_get_int(state->opts->basic, SDAP_NETWORK_TIMEOUT));
         goto fail;
     }
@@ -216,7 +216,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     tv.tv_usec = 0;
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_TIMEOUT, &tv);
     if (lret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, "Failed to set default timeout to %d\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set default timeout to %d\n",
                   dp_opt_get_int(state->opts->basic, SDAP_OPT_TIMEOUT));
         goto fail;
     }
@@ -226,7 +226,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_REFERRALS,
                            (ldap_referrals ? LDAP_OPT_ON : LDAP_OPT_OFF));
     if (lret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, "Failed to set referral chasing to %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set referral chasing to %s\n",
                   (ldap_referrals ? "LDAP_OPT_ON" : "LDAP_OPT_OFF"));
         goto fail;
     }
@@ -235,7 +235,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
         rebind_proc_params = talloc_zero(state->sh,
                                          struct sdap_rebind_proc_params);
         if (rebind_proc_params == NULL) {
-            DEBUG(1, "talloc_zero failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
             ret = ENOMEM;
             goto fail;
         }
@@ -247,7 +247,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
         lret = ldap_set_rebind_proc(state->sh->ldap, sdap_rebind_proc,
                                     rebind_proc_params);
         if (lret != LDAP_SUCCESS) {
-            DEBUG(1, "ldap_set_rebind_proc failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "ldap_set_rebind_proc failed.\n");
             goto fail;
         }
     }
@@ -257,13 +257,14 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     if (ldap_deref != NULL) {
         ret = deref_string_to_val(ldap_deref, &ldap_deref_val);
         if (ret != EOK) {
-            DEBUG(1, "deref_string_to_val failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "deref_string_to_val failed.\n");
             goto fail;
         }
 
         lret = ldap_set_option(state->sh->ldap, LDAP_OPT_DEREF, &ldap_deref_val);
         if (lret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, "Failed to set deref option to %d\n", ldap_deref_val);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to set deref option to %d\n", ldap_deref_val);
             goto fail;
         }
 
@@ -307,20 +308,20 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(4, "Executing START TLS\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Executing START TLS\n");
 
     lret = ldap_start_tls(state->sh->ldap, NULL, NULL, &msgid);
     if (lret != LDAP_SUCCESS) {
         optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
                                              &errmsg);
         if (optret == LDAP_SUCCESS) {
-            DEBUG(3, "ldap_start_tls failed: [%s] [%s]\n",
+            DEBUG(SSSDBG_MINOR_FAILURE, "ldap_start_tls failed: [%s] [%s]\n",
                       sss_ldap_err2string(lret),
                       errmsg);
             sss_log(SSS_LOG_ERR, "Could not start TLS. %s", errmsg);
         }
         else {
-            DEBUG(3, "ldap_start_tls failed: [%s]\n",
+            DEBUG(SSSDBG_MINOR_FAILURE, "ldap_start_tls failed: [%s]\n",
                       sss_ldap_err2string(lret));
             sss_log(SSS_LOG_ERR, "Could not start TLS. "
                                  "Check for certificate issues.");
@@ -335,7 +336,7 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_connect_done, req, 5, &state->op);
     if (ret) {
-        DEBUG(1, "Failed to set up operation!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         goto fail;
     }
 
@@ -376,17 +377,18 @@ static void sdap_connect_done(struct sdap_op *op,
     ret = ldap_parse_result(state->sh->ldap, state->reply->msg,
                             &state->result, NULL, &errmsg, NULL, NULL, 0);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(2, "ldap_parse_result failed (%d)\n", state->op->msgid);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldap_parse_result failed (%d)\n", state->op->msgid);
         tevent_req_error(req, EIO);
         return;
     }
 
-    DEBUG(3, "START TLS result: %s(%d), %s\n",
+    DEBUG(SSSDBG_MINOR_FAILURE, "START TLS result: %s(%d), %s\n",
               sss_ldap_err2string(state->result), state->result, errmsg);
     ldap_memfree(errmsg);
 
     if (ldap_tls_inplace(state->sh->ldap)) {
-        DEBUG(9, "SSL/TLS handler already in place.\n");
+        DEBUG(SSSDBG_TRACE_ALL, "SSL/TLS handler already in place.\n");
         tevent_req_done(req);
         return;
     }
@@ -398,13 +400,13 @@ static void sdap_connect_done(struct sdap_op *op,
         optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
                                              &tlserr);
         if (optret == LDAP_SUCCESS) {
-            DEBUG(3, "ldap_install_tls failed: [%s] [%s]\n",
+            DEBUG(SSSDBG_MINOR_FAILURE, "ldap_install_tls failed: [%s] [%s]\n",
                       sss_ldap_err2string(ret),
                       tlserr);
             sss_log(SSS_LOG_ERR, "Could not start TLS encryption. %s", tlserr);
         }
         else {
-            DEBUG(3, "ldap_install_tls failed: [%s]\n",
+            DEBUG(SSSDBG_MINOR_FAILURE, "ldap_install_tls failed: [%s]\n",
                       sss_ldap_err2string(ret));
             sss_log(SSS_LOG_ERR, "Could not start TLS encryption. "
                                  "Check for certificate issues.");
@@ -669,13 +671,14 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
                                   0, NULL, 0, &ctrls[0]);
     if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
-        DEBUG(1, "sss_ldap_control_create failed to create "
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldap_control_create failed to create "
                   "Password Policy control.\n");
         goto fail;
     }
     request_controls = ctrls;
 
-    DEBUG(4, "Executing simple bind as: %s\n", state->user_dn);
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Executing simple bind as: %s\n", state->user_dn);
 
     ret = ldap_sasl_bind(state->sh->ldap, state->user_dn, LDAP_SASL_SIMPLE,
                          pw, request_controls, NULL, &msgid);
@@ -684,16 +687,17 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
         ret = ldap_get_option(state->sh->ldap,
                               LDAP_OPT_RESULT_CODE, &ldap_err);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, "ldap_bind failed (couldn't get ldap error)\n");
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ldap_bind failed (couldn't get ldap error)\n");
             ret = LDAP_LOCAL_ERROR;
         } else {
-            DEBUG(1, "ldap_bind failed (%d)[%s]\n",
+            DEBUG(SSSDBG_CRIT_FAILURE, "ldap_bind failed (%d)[%s]\n",
                       ldap_err, sss_ldap_err2string(ldap_err));
             ret = ldap_err;
         }
         goto fail;
     }
-    DEBUG(8, "ldap simple bind sent, msgid = %d\n", msgid);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "ldap simple bind sent, msgid = %d\n", msgid);
 
     if (!sh->connected) {
         ret = sdap_set_connected(sh, ev);
@@ -704,7 +708,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     ret = sdap_op_add(state, ev, sh, msgid,
                       simple_bind_done, req, 5, &state->op);
     if (ret) {
-        DEBUG(1, "Failed to set up operation!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         goto fail;
     }
 
@@ -782,7 +786,8 @@ static void simple_bind_done(struct sdap_op *op,
                     goto done;
                 }
 
-                DEBUG(7, "Password Policy Response: expire [%d] grace [%d] "
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      "Password Policy Response: expire [%d] grace [%d] "
                           "error [%s].\n", pp_expire, pp_grace,
                           ldap_passwordpolicy_err2txt(pp_error));
                 if (!state->ppolicy)
@@ -933,7 +938,7 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
     state->sasl_user = sasl_user;
     state->sasl_cred = sasl_cred;
 
-    DEBUG(4, "Executing sasl bind mech: %s, user: %s\n",
+    DEBUG(SSSDBG_CONF_SETTINGS, "Executing sasl bind mech: %s, user: %s\n",
               sasl_mech, sasl_user);
 
     /* FIXME: Warning, this is a sync call!
@@ -1075,12 +1080,12 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
     struct sdap_kinit_state *state;
     int ret;
 
-    DEBUG(6, "Attempting kinit (%s, %s, %s, %d)\n",
+    DEBUG(SSSDBG_TRACE_FUNC, "Attempting kinit (%s, %s, %s, %d)\n",
               keytab ? keytab : "default",
               principal, realm, lifetime);
 
     if (lifetime < 0 || lifetime > INT32_MAX) {
-        DEBUG(1, "Ticket lifetime out of range.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Ticket lifetime out of range.\n");
         return NULL;
     }
 
@@ -1099,7 +1104,8 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
     if (keytab) {
         ret = setenv("KRB5_KTNAME", keytab, 1);
         if (ret == -1) {
-            DEBUG(2, "Failed to set KRB5_KTNAME to %s\n", keytab);
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to set KRB5_KTNAME to %s\n", keytab);
             talloc_free(req);
             return NULL;
         }
@@ -1111,7 +1117,7 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
         ret = setenv("KRB5_CANONICALIZE", "false", 1);
     }
     if (ret == -1) {
-        DEBUG(2, "Failed to set KRB5_CANONICALIZE to %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to set KRB5_CANONICALIZE to %s\n",
                   ((canonicalize)?"true":"false"));
         talloc_free(req);
         return NULL;
@@ -1132,14 +1138,15 @@ static struct tevent_req *sdap_kinit_next_kdc(struct tevent_req *req)
     struct sdap_kinit_state *state = tevent_req_data(req,
                                                     struct sdap_kinit_state);
 
-    DEBUG(7, "Resolving next KDC for service %s\n", state->krb_service_name);
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Resolving next KDC for service %s\n", state->krb_service_name);
 
     next_req = be_resolve_server_send(state, state->ev,
                                       state->be,
                                       state->krb_service_name,
                                       state->kdc_srv == NULL ? true : false);
     if (next_req == NULL) {
-        DEBUG(1, "be_resolve_server_send failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "be_resolve_server_send failed.\n");
         return NULL;
     }
     tevent_req_set_callback(next_req, sdap_kinit_kdc_resolved, req);
@@ -1165,7 +1172,7 @@ static void sdap_kinit_kdc_resolved(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(7, "KDC resolved, attempting to get TGT...\n");
+    DEBUG(SSSDBG_TRACE_LIBS, "KDC resolved, attempting to get TGT...\n");
 
     tgtreq = sdap_get_tgt_send(state, state->ev, state->realm,
                                state->principal, state->keytab,
@@ -1208,7 +1215,8 @@ static void sdap_kinit_done(struct tevent_req *subreq)
         return;
     } else if (ret != EOK) {
         /* A severe error while executing the child. Abort the operation. */
-        DEBUG(1, "child failed (%d [%s])\n", ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "child failed (%d [%s])\n", ret, strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -1216,7 +1224,8 @@ static void sdap_kinit_done(struct tevent_req *subreq)
     if (result == EOK) {
         ret = setenv("KRB5CCNAME", ccname, 1);
         if (ret == -1) {
-            DEBUG(2, "Unable to set env. variable KRB5CCNAME!\n");
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unable to set env. variable KRB5CCNAME!\n");
             tevent_req_error(req, ERR_AUTH_FAILED);
         }
 
@@ -1236,7 +1245,8 @@ static void sdap_kinit_done(struct tevent_req *subreq)
 
     }
 
-    DEBUG(4, "Could not get TGT: %d [%s]\n", result, sss_strerror(result));
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Could not get TGT: %d [%s]\n", result, sss_strerror(result));
     tevent_req_error(req, ERR_AUTH_FAILED);
 }
 
@@ -1298,7 +1308,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
 
         ret = sss_authtok_get_password(authtok, &password, &pwlen);
         if (ret != EOK) {
-            DEBUG(1, "Cannot parse authtok.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot parse authtok.\n");
             tevent_req_error(req, ret);
             return tevent_req_post(req, ev);
         }
@@ -1333,7 +1343,8 @@ static int sdap_auth_get_authtok(const char *authtok_type,
         pw->bv_len = authtok.length;
         pw->bv_val = (char *) authtok.data;
     } else {
-        DEBUG(1, "Authentication token type [%s] is not supported\n",
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Authentication token type [%s] is not supported\n",
                   authtok_type);
         return EINVAL;
     }
@@ -1503,7 +1514,8 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     }
 
     if (use_tls && sdap_is_secure_uri(state->service->uri)) {
-        DEBUG(8, "[%s] is a secure channel. No need to run START_TLS\n",
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "[%s] is a secure channel. No need to run START_TLS\n",
                   state->service->uri);
         use_tls = false;
     }
@@ -1965,7 +1977,7 @@ static int synchronous_tls_setup(LDAP *ldap)
     LDAPMessage *result = NULL;
     TALLOC_CTX *tmp_ctx;
 
-    DEBUG(4, "Executing START TLS\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "Executing START TLS\n");
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return LDAP_NO_MEMORY;
@@ -1974,11 +1986,12 @@ static int synchronous_tls_setup(LDAP *ldap)
     if (lret != LDAP_SUCCESS) {
         optret = sss_ldap_get_diagnostic_msg(tmp_ctx, ldap, &diag_msg);
         if (optret == LDAP_SUCCESS) {
-            DEBUG(3, "ldap_start_tls failed: [%s] [%s]\n",
+            DEBUG(SSSDBG_MINOR_FAILURE, "ldap_start_tls failed: [%s] [%s]\n",
                       sss_ldap_err2string(lret), diag_msg);
             sss_log(SSS_LOG_ERR, "Could not start TLS. %s", diag_msg);
         } else {
-            DEBUG(3, "ldap_start_tls failed: [%s]\n", sss_ldap_err2string(lret));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "ldap_start_tls failed: [%s]\n", sss_ldap_err2string(lret));
             sss_log(SSS_LOG_ERR, "Could not start TLS. "
                                  "Check for certificate issues.");
         }
@@ -1997,16 +2010,17 @@ static int synchronous_tls_setup(LDAP *ldap)
     lret = ldap_parse_result(ldap, result, &ldaperr, NULL, &errmsg, NULL, NULL,
                              0);
     if (lret != LDAP_SUCCESS) {
-        DEBUG(2, "ldap_parse_result failed (%d) [%d][%s]\n", msgid, lret,
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldap_parse_result failed (%d) [%d][%s]\n", msgid, lret,
                   sss_ldap_err2string(lret));
         goto done;
     }
 
-    DEBUG(3, "START TLS result: %s(%d), %s\n",
+    DEBUG(SSSDBG_MINOR_FAILURE, "START TLS result: %s(%d), %s\n",
               sss_ldap_err2string(ldaperr), ldaperr, errmsg);
 
     if (ldap_tls_inplace(ldap)) {
-        DEBUG(9, "SSL/TLS handler already in place.\n");
+        DEBUG(SSSDBG_TRACE_ALL, "SSL/TLS handler already in place.\n");
         lret = LDAP_SUCCESS;
         goto done;
     }
@@ -2016,11 +2030,11 @@ static int synchronous_tls_setup(LDAP *ldap)
 
         optret = sss_ldap_get_diagnostic_msg(tmp_ctx, ldap, &diag_msg);
         if (optret == LDAP_SUCCESS) {
-            DEBUG(3, "ldap_install_tls failed: [%s] [%s]\n",
+            DEBUG(SSSDBG_MINOR_FAILURE, "ldap_install_tls failed: [%s] [%s]\n",
                       sss_ldap_err2string(lret), diag_msg);
             sss_log(SSS_LOG_ERR, "Could not start TLS encryption. %s", diag_msg);
         } else {
-            DEBUG(3, "ldap_install_tls failed: [%s]\n",
+            DEBUG(SSSDBG_MINOR_FAILURE, "ldap_install_tls failed: [%s]\n",
                       sss_ldap_err2string(lret));
             sss_log(SSS_LOG_ERR, "Could not start TLS encryption. "
                                  "Check for certificate issues.");
@@ -2054,14 +2068,14 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
     if (p->use_start_tls) {
         ret = synchronous_tls_setup(ldap);
         if (ret != LDAP_SUCCESS) {
-            DEBUG(1, "synchronous_tls_setup failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "synchronous_tls_setup failed.\n");
             return ret;
         }
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(1, "talloc_new failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
         return LDAP_NO_MEMORY;
     }
 
@@ -2071,7 +2085,8 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
         ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
                                       0, NULL, 0, &ctrls[0]);
         if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
-            DEBUG(1, "sss_ldap_control_create failed to create "
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_ldap_control_create failed to create "
                       "Password Policy control.\n");
             goto done;
         }
@@ -2102,7 +2117,7 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
     } else {
         sasl_bind_state = talloc_zero(tmp_ctx, struct sasl_bind_state);
         if (sasl_bind_state == NULL) {
-            DEBUG(1, "talloc_zero failed.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
             ret = LDAP_NO_MEMORY;
             goto done;
         }
@@ -2114,12 +2129,13 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
                                            (*sdap_sasl_interact),
                                            sasl_bind_state);
         if (ret != LDAP_SUCCESS) {
-            DEBUG(1, "ldap_sasl_interactive_bind_s failed (%d)[%s]\n", ret,
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ldap_sasl_interactive_bind_s failed (%d)[%s]\n", ret,
                       sss_ldap_err2string(ret));
         }
     }
 
-    DEBUG(7, "%s bind to [%s].\n",
+    DEBUG(SSSDBG_TRACE_LIBS, "%s bind to [%s].\n",
              (ret == LDAP_SUCCESS ? "Successfully" : "Failed to"), url);
 
 done:

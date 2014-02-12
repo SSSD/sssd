@@ -56,7 +56,7 @@ int confdb_test(struct confdb_ctx *cdb)
 
     if (strcmp(values[0], CONFDB_VERSION) != 0) {
         /* Existing version does not match executable version */
-        DEBUG(1, "Upgrading confdb version from %s to %s\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Upgrading confdb version from %s to %s\n",
                   values[0], CONFDB_VERSION);
 
         /* This is recoverable, since we purge the confdb file
@@ -114,7 +114,8 @@ int confdb_create_base(struct confdb_ctx *cdb)
     while ((ldif = ldb_ldif_read_string(cdb->ldb, &base_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
-            DEBUG(0, "Failed to initialize DB (%d,[%s]), aborting!\n",
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to initialize DB (%d,[%s]), aborting!\n",
                       ret, ldb_errstring(cdb->ldb));
             return EIO;
         }

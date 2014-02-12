@@ -31,7 +31,7 @@
 
 #define NULL_CHECK_OR_JUMP(var, msg, ret, err, label) do { \
     if (var == NULL) { \
-        DEBUG(1, msg); \
+        DEBUG(SSSDBG_CRIT_FAILURE, msg); \
         ret = (err); \
         goto label; \
     } \
@@ -39,7 +39,7 @@
 
 #define NEQ_CHECK_OR_JUMP(var, val, msg, ret, err, label) do { \
     if (var != (val)) { \
-        DEBUG(1, msg); \
+        DEBUG(SSSDBG_CRIT_FAILURE, msg); \
         ret = (err); \
         goto label; \
     } \
@@ -168,7 +168,7 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
     if (ret) {
         /* TODO: should we allow null passwords via a config option ? */
         if (ret == ENOENT) {
-            DEBUG(1, "Empty passwords are not allowed!\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Empty passwords are not allowed!\n");
         }
         lreq->error = EINVAL;
         goto done;
@@ -177,12 +177,12 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
     ret = s3crypt_gen_salt(lreq, &salt);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("Salt generation failed.\n"),
                       lreq->error, ret, done);
-    DEBUG(4, "Using salt [%s]\n", salt);
+    DEBUG(SSSDBG_CONF_SETTINGS, "Using salt [%s]\n", salt);
 
     ret = s3crypt_sha512(lreq, password, salt, &new_hash);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("Hash generation failed.\n"),
                       lreq->error, ret, done);
-    DEBUG(4, "New hash [%s]\n", new_hash);
+    DEBUG(SSSDBG_CONF_SETTINGS, "New hash [%s]\n", new_hash);
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
     NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
@@ -229,7 +229,7 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
     struct pam_data *pd = preq->pd;
     int ret;
 
-    DEBUG(4, "LOCAL pam handler.\n");
+    DEBUG(SSSDBG_CONF_SETTINGS, "LOCAL pam handler.\n");
 
     lreq = talloc_zero(preq, struct LOCAL_request);
     if (!lreq) {
@@ -238,7 +238,8 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
 
     lreq->dbctx = preq->domain->sysdb;
     if (lreq->dbctx == NULL) {
-        DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal: Sysdb CTX not found for this domain!\n");
         talloc_free(lreq);
         return ENOENT;
     }
@@ -251,18 +252,20 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
     ret = sysdb_get_user_attr(lreq, lreq->dbctx, preq->domain,
                               preq->pd->user, attrs, &res);
     if (ret != EOK) {
-        DEBUG(1, "sysdb_get_user_attr failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_get_user_attr failed.\n");
         talloc_free(lreq);
         return ret;
     }
 
     if (res->count < 1) {
-        DEBUG(4, "No user found with filter ["SYSDB_PWNAM_FILTER"]\n",
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "No user found with filter ["SYSDB_PWNAM_FILTER"]\n",
                   pd->user, pd->user, pd->user);
         pd->pam_status = PAM_USER_UNKNOWN;
         goto done;
     } else if (res->count > 1) {
-        DEBUG(4, "More than one object found with filter ["SYSDB_PWNAM_FILTER"]\n",
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "More than one object found with filter ["SYSDB_PWNAM_FILTER"]\n",
                   pd->user, pd->user, pd->user);
         lreq->error = EFAULT;
         goto done;
@@ -270,7 +273,8 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
 
     username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     if (strcmp(username, pd->user) != 0) {
-        DEBUG(1, "Expected username [%s] get [%s].\n", pd->user, username);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected username [%s] get [%s].\n", pd->user, username);
         lreq->error = EINVAL;
         goto done;
     }
@@ -285,7 +289,8 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
                  pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) &&
                 lreq->preq->cctx->priv == 1) {
 /* TODO: maybe this is a candiate for an explicit audit message. */
-                DEBUG(4, "allowing root to reset a password.\n");
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "allowing root to reset a password.\n");
                 break;
             }
             ret = sss_authtok_get_password(pd->authtok, &password, NULL);
@@ -295,16 +300,18 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
             pwdhash = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PWD, NULL);
             NULL_CHECK_OR_JUMP(pwdhash, ("No password stored.\n"),
                                lreq->error, LDB_ERR_NO_SUCH_ATTRIBUTE, done);
-            DEBUG(4, "user: [%s], password hash: [%s]\n", username, pwdhash);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "user: [%s], password hash: [%s]\n", username, pwdhash);
 
             ret = s3crypt_sha512(lreq, password, pwdhash, &new_hash);
             NEQ_CHECK_OR_JUMP(ret, EOK, ("nss_sha512_crypt failed.\n"),
                               lreq->error, ret, done);
 
-            DEBUG(4, "user: [%s], new hash: [%s]\n", username, new_hash);
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "user: [%s], new hash: [%s]\n", username, new_hash);
 
             if (strcmp(new_hash, pwdhash) != 0) {
-                DEBUG(1, "Passwords do not match.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "Passwords do not match.\n");
                 do_failed_login(lreq);
                 goto done;
             }
