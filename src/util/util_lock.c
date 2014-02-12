@@ -51,8 +51,8 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
             ret = errno;
             if (ret == EACCES || ret == EAGAIN || ret == EINTR) {
                 DEBUG(SSSDBG_TRACE_FUNC,
-                      ("Failed to lock file. Retries left: %d\n",
-                       retries_left - 1));
+                      "Failed to lock file. Retries left: %d\n",
+                       retries_left - 1);
 
                 if ((ret == EACCES || ret == EAGAIN) && (retries_left <= 1)) {
                     /* File is locked by someone else. Return EACCESS
@@ -64,13 +64,13 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                     ret = usleep(wait);
                     if (ret == -1) {
                         DEBUG(SSSDBG_MINOR_FAILURE,
-                              ("usleep() failed -> ignoring\n"));
+                              "usleep() failed -> ignoring\n");
                     }
                 }
             } else {
                 /* Error occurred */
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Unable to lock file.\n"));
+                      "Unable to lock file.\n");
                 return ret;
             }
         } else if (ret == 0) {
@@ -79,7 +79,7 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
         }
     }
     if (retries_left == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to lock file.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to lock file.\n");
         return ret;
     }
 

@@ -48,8 +48,8 @@ static errno_t ipa_idmap_check_posix_child(struct sdap_idmap_ctx *idmap_ctx,
                                                    &has_algorithmic_mapping);
     if (err == IDMAP_SUCCESS) {
         DEBUG(SSSDBG_TRACE_ALL,
-              ("Idmap of domain [%s] already known, nothing to do.\n",
-                dom_sid_str));
+              "Idmap of domain [%s] already known, nothing to do.\n",
+                dom_sid_str);
         return EOK;
     } else {
         err = sss_idmap_domain_by_name_has_algorithmic_mapping(idmap_ctx->map,
@@ -57,30 +57,30 @@ static errno_t ipa_idmap_check_posix_child(struct sdap_idmap_ctx *idmap_ctx,
                                                       &has_algorithmic_mapping);
         if (err == IDMAP_SUCCESS) {
             DEBUG(SSSDBG_TRACE_ALL,
-                  ("Idmap of domain [%s] already known, nothing to do.\n",
-                    dom_sid_str));
+                  "Idmap of domain [%s] already known, nothing to do.\n",
+                    dom_sid_str);
             return EOK;
         }
     }
-    DEBUG(SSSDBG_TRACE_ALL, ("Trying to add idmap for domain [%s].\n",
-                             dom_sid_str));
+    DEBUG(SSSDBG_TRACE_ALL, "Trying to add idmap for domain [%s].\n",
+                             dom_sid_str);
 
     if (err != IDMAP_SID_UNKNOWN && err != IDMAP_NAME_UNKNOWN) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("sss_idmap_domain_has_algorithmic_mapping failed.\n"));
+              "sss_idmap_domain_has_algorithmic_mapping failed.\n");
         return EINVAL;
     }
 
     dom = find_subdomain_by_sid(idmap_ctx->id_ctx->be->domain, dom_sid_str);
     if (dom == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("find_subdomain_by_sid failed with SID [%s].\n", dom_sid_str));
+              "find_subdomain_by_sid failed with SID [%s].\n", dom_sid_str);
         return EINVAL;
     }
 
     if (dom->forest == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("No forest available for domain [%s].\n",
-                                     dom_sid_str));
+        DEBUG(SSSDBG_MINOR_FAILURE, "No forest available for domain [%s].\n",
+                                     dom_sid_str);
         return EINVAL;
     }
 
@@ -88,20 +88,20 @@ static errno_t ipa_idmap_check_posix_child(struct sdap_idmap_ctx *idmap_ctx,
                                          dom->forest, true);
     if (forest_root == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("find_subdomain_by_name failed to find forest root [%s].\n",
-               dom->forest));
+              "find_subdomain_by_name failed to find forest root [%s].\n",
+               dom->forest);
         return ENOENT;
     }
 
     if (forest_root->domain_id == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Forest root [%s] does not have a SID.\n",
-                                     dom->forest));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Forest root [%s] does not have a SID.\n",
+                                     dom->forest);
         return EINVAL;
     }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -113,8 +113,8 @@ static errno_t ipa_idmap_check_posix_child(struct sdap_idmap_ctx *idmap_ctx,
             if (r->range_type == NULL
                     || strcmp(r->range_type, IPA_RANGE_AD_TRUST_POSIX) != 0) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Forest root does not have range type [%s].\n",
-                       IPA_RANGE_AD_TRUST_POSIX));
+                      "Forest root does not have range type [%s].\n",
+                       IPA_RANGE_AD_TRUST_POSIX);
                 ret = EINVAL;
                 goto done;
             }
@@ -123,7 +123,7 @@ static errno_t ipa_idmap_check_posix_child(struct sdap_idmap_ctx *idmap_ctx,
             range.max = r->base_id + r->id_range_size -1;
             range_id = talloc_asprintf(tmp_ctx, "%s-%s", dom_sid_str, r->name);
             if (range_id == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -132,7 +132,7 @@ static errno_t ipa_idmap_check_posix_child(struct sdap_idmap_ctx *idmap_ctx,
                                           &range, range_id, 0, true);
             if (err != IDMAP_SUCCESS && err != IDMAP_COLLISION) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Could not add range [%s] to ID map\n", range_id));
+                      "Could not add range [%s] to ID map\n", range_id);
                 ret = EIO;
                 goto done;
             }
@@ -142,8 +142,8 @@ static errno_t ipa_idmap_check_posix_child(struct sdap_idmap_ctx *idmap_ctx,
     }
 
     if (!found) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("No idrange found for forest root [%s].\n",
-                                     forest_root->domain_id));
+        DEBUG(SSSDBG_MINOR_FAILURE, "No idrange found for forest root [%s].\n",
+                                     forest_root->domain_id);
         ret = ENOENT;
         goto done;
     }
@@ -175,14 +175,14 @@ errno_t ipa_idmap_find_new_domain(struct sdap_idmap_ctx *idmap_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
     ret = sysdb_get_ranges(tmp_ctx, idmap_ctx->id_ctx->be->domain->sysdb,
                            &range_count, &range_list);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_ranges failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_ranges failed.\n");
         goto done;
     }
 
@@ -207,9 +207,9 @@ errno_t ipa_idmap_find_new_domain(struct sdap_idmap_ctx *idmap_ctx,
                 name = r->trusted_dom_sid;
                 sid = r->trusted_dom_sid;
             } else {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Cannot determine range type, " \
+                DEBUG(SSSDBG_MINOR_FAILURE, "Cannot determine range type, " \
                                              "skipping id ange [%s].\n",
-                                             r->name));
+                                             r->name);
                 continue;
             }
         } else {
@@ -229,9 +229,9 @@ errno_t ipa_idmap_find_new_domain(struct sdap_idmap_ctx *idmap_ctx,
                 name = r->trusted_dom_sid;
                 sid = r->trusted_dom_sid;
             } else {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Range type [%s] not supported, " \
+                DEBUG(SSSDBG_MINOR_FAILURE, "Range type [%s] not supported, " \
                                              "skipping id range [%s].\n",
-                                             r->range_type, r->name));
+                                             r->range_type, r->name);
                 continue;
             }
         }
@@ -241,8 +241,8 @@ errno_t ipa_idmap_find_new_domain(struct sdap_idmap_ctx *idmap_ctx,
         err = sss_idmap_add_domain_ex(idmap_ctx->map, name, sid, &range,
                                       r->name, rid, external_mapping);
         if (err != IDMAP_SUCCESS && err != IDMAP_COLLISION) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not add range [%s] to ID map\n",
-                                        r->name));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not add range [%s] to ID map\n",
+                                        r->name);
             ret = EIO;
             goto done;
         }
@@ -251,7 +251,7 @@ errno_t ipa_idmap_find_new_domain(struct sdap_idmap_ctx *idmap_ctx,
     ret = ipa_idmap_check_posix_child(idmap_ctx, dom_name, dom_sid_str,
                                       range_count, range_list);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ipa_idmap_check_posix_child failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_idmap_check_posix_child failed.\n");
         goto done;
     }
 
@@ -299,8 +299,8 @@ errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
                          &idmap_ctx->map);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not initialize the ID map: [%s]\n",
-               idmap_error_string(err)));
+              "Could not initialize the ID map: [%s]\n",
+               idmap_error_string(err));
         if (err == IDMAP_OUT_OF_MEMORY) {
             ret = ENOMEM;
         } else {
@@ -314,13 +314,13 @@ errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
     ret = sysdb_get_ranges(tmp_ctx, sysdb, &range_count, &range_list);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not read ranges from the cache: [%s]\n",
-               strerror(ret)));
+              "Could not read ranges from the cache: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Initializing [%zu] domains for ID-mapping\n", range_count));
+          "Initializing [%zu] domains for ID-mapping\n", range_count);
 
     for (c = 0; c < range_count; c++) {
 
@@ -344,9 +344,9 @@ errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
                 sid = r->trusted_dom_sid;
                 name = sid;
             } else {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Cannot determine range type, " \
+                DEBUG(SSSDBG_MINOR_FAILURE, "Cannot determine range type, " \
                                              "skipping id ange [%s].\n",
-                                             r->name));
+                                             r->name);
                 continue;
             }
         } else {
@@ -366,9 +366,9 @@ errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
                 sid = r->trusted_dom_sid;
                 name = sid;
             } else {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Range type [%s] not supported, " \
+                DEBUG(SSSDBG_MINOR_FAILURE, "Range type [%s] not supported, " \
                                              "skipping id range [%s].\n",
-                                             r->range_type, r->name));
+                                             r->range_type, r->name);
                 continue;
             }
         }
@@ -378,8 +378,8 @@ errno_t ipa_idmap_init(TALLOC_CTX *mem_ctx,
         err = sss_idmap_add_domain_ex(idmap_ctx->map, name, sid, &range,
                                       r->name, rid, external_mapping);
         if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not add range [%s] to ID map\n",
-                                        r->name));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not add range [%s] to ID map\n",
+                                        r->name);
             ret = EIO;
             goto done;
         }

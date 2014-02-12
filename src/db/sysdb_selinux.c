@@ -53,8 +53,8 @@ sysdb_add_selinux_entity(struct sysdb_ctx *sysdb,
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS, objectclass);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set map object class [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set map object class [%d]: %s\n",
+              ret, strerror(ret));
         return ret;
     }
 
@@ -74,7 +74,7 @@ sysdb_add_selinux_entity(struct sysdb_ctx *sysdb,
 
 done:
     if (ret) {
-        DEBUG(SSSDBG_TRACE_LIBS, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_TRACE_LIBS, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -124,7 +124,7 @@ static errno_t sysdb_store_selinux_entity(struct sss_domain_info *domain,
     }
 
     if (type != SELINUX_CONFIG && type != SELINUX_USER_MAP) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Bad SELinux entity type: [%d]\n", type));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bad SELinux entity type: [%d]\n", type);
         ret = EINVAL;
         goto done;
     }
@@ -136,7 +136,7 @@ static errno_t sysdb_store_selinux_entity(struct sss_domain_info *domain,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
 
@@ -158,7 +158,7 @@ static errno_t sysdb_store_selinux_entity(struct sss_domain_info *domain,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -167,12 +167,12 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
 
     if (ret) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -197,7 +197,7 @@ errno_t sysdb_store_selinux_config(struct sss_domain_info *domain,
     }
 
     if (!order) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("The SELinux order is missing\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "The SELinux order is missing\n");
         return EINVAL;
     }
 
@@ -234,7 +234,7 @@ errno_t sysdb_delete_usermaps(struct sss_domain_info *domain)
     ret = sysdb_delete_recursive(sysdb, dn, true);
     talloc_free(dn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb_delete_recursive failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_delete_recursive failed.\n");
         return ret;
     }
 
@@ -317,9 +317,9 @@ errno_t sysdb_search_selinux_config(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No SELinux root entry found\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "No SELinux root entry found\n");
     } else if (ret) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, strerror(ret));
     }
 
     talloc_free(tmp_ctx);

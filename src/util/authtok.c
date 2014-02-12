@@ -214,7 +214,7 @@ struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx)
 
     token = talloc_zero(mem_ctx, struct sss_auth_token);
     if (token == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
     }
 
     return token;

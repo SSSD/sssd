@@ -54,16 +54,16 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
     flags = fcntl(0, F_GETFL);
     if (flags == -1) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
-                ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
+                ret, strerror(ret));
         goto done;
     }
 
     ret = fcntl(0, F_SETFL, flags | O_NONBLOCK);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
-                ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
+                ret, strerror(ret));
         goto done;
     }
 
@@ -71,8 +71,8 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
     sock = socket(family, SOCK_STREAM, IPPROTO_TCP);
     if (sock == -1) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("socket() failed (%d): %s\n",
-                ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "socket() failed (%d): %s\n",
+                ret, strerror(ret));
         goto done;
     }
 
@@ -80,8 +80,8 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
     ret = connect(sock, addr, addr_len);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("connect() failed (%d): %s\n",
-                ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "connect() failed (%d): %s\n",
+                ret, strerror(ret));
         goto done;
     }
 
@@ -89,16 +89,16 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
     flags = fcntl(sock, F_GETFL);
     if (flags == -1) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
-                ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
+                ret, strerror(ret));
         goto done;
     }
 
     ret = fcntl(sock, F_SETFL, flags | O_NONBLOCK);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("fcntl() failed (%d): %s\n",
-                ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "fcntl() failed (%d): %s\n",
+                ret, strerror(ret));
         goto done;
     }
 
@@ -115,7 +115,7 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
                 continue;
             }
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("poll() failed (%d): %s\n", ret, strerror(ret)));
+                  "poll() failed (%d): %s\n", ret, strerror(ret));
             goto done;
         }
 
@@ -130,7 +130,7 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
                         continue;
                     }
                     DEBUG(SSSDBG_OP_FAILURE,
-                          ("read() failed (%d): %s\n", ret, strerror(ret)));
+                          "read() failed (%d): %s\n", ret, strerror(ret));
                     goto done;
                 } else if (res == 0) {
                     ret = EOK;
@@ -142,8 +142,8 @@ connect_socket(int family, struct sockaddr *addr, size_t addr_len)
                 ret = errno;
                 if (res == -1) {
                     DEBUG(SSSDBG_OP_FAILURE,
-                          ("sss_atomic_write_s() failed (%d): %s\n",
-                           ret, strerror(ret)));
+                          "sss_atomic_write_s() failed (%d): %s\n",
+                           ret, strerror(ret));
                     goto done;
                 } else if (ret == EPIPE) {
                     ret = EOK;
@@ -172,8 +172,8 @@ connect_proxy_command(char **args)
     execv(args[0], (char * const *)args);
 
     ret = errno;
-    DEBUG(SSSDBG_OP_FAILURE, ("execv() failed (%d): %s\n",
-            ret, strerror(ret)));
+    DEBUG(SSSDBG_OP_FAILURE, "execv() failed (%d): %s\n",
+            ret, strerror(ret));
 
     return ret;
 }
@@ -210,14 +210,14 @@ int main(int argc, const char **argv)
     ret = set_locale();
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("set_locale() failed (%d): %s\n", ret, strerror(ret)));
+              "set_locale() failed (%d): %s\n", ret, strerror(ret));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     mem_ctx = talloc_new(NULL);
     if (!mem_ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Not enough memory\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Not enough memory\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -266,7 +266,7 @@ int main(int argc, const char **argv)
         ret = getaddrinfo(pc_host, strport, &ai_hint, &ai);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
+                  "getaddrinfo() failed (%d): %s\n", ret, gai_strerror(ret));
         } else {
             host = ai[0].ai_canonname;
         }
@@ -275,7 +275,7 @@ int main(int argc, const char **argv)
                           canonhost, NI_MAXHOST, NULL, 0, NI_NAMEREQD);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("getnameinfo() failed (%d): %s\n", ret, gai_strerror(ret)));
+                  "getnameinfo() failed (%d): %s\n", ret, gai_strerror(ret));
         } else {
             host = canonhost;
         }
@@ -287,7 +287,7 @@ int main(int argc, const char **argv)
                               host, pc_domain, pc_host, &ent);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret)));
+                  "sss_ssh_get_ent() failed (%d): %s\n", ret, strerror(ret));
         }
     }
 

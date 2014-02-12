@@ -87,7 +87,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     char *primary_group_sid_str = NULL;
 
     if (pac_ctx == NULL || logon_info == NULL || _sid_table == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing parameter.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Missing parameter.\n");
         return EINVAL;
     }
 
@@ -97,7 +97,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
                           info3->sidcount + info3->base.groups.count + 2,
                           &sid_table);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_hash_create failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
         goto done;
     }
 
@@ -107,7 +107,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     err = sss_idmap_smb_sid_to_sid(pac_ctx->idmap_ctx, info3->base.domain_sid,
                                    &user_dom_sid_str);
     if (err != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_smb_sid_to_sid failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sss_idmap_smb_sid_to_sid failed.\n");
         ret = EFAULT;
         goto done;
     }
@@ -115,7 +115,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     ret = responder_get_domain_by_id(pac_ctx->rctx, user_dom_sid_str,
                                      &user_dom);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("responder_get_domain_by_id failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "responder_get_domain_by_id failed.\n");
         ret = EINVAL;
         goto done;
     }
@@ -123,7 +123,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     user_dom_sid_str_len = strlen(user_dom_sid_str);
     sid_str = talloc_zero_size(mem_ctx, user_dom_sid_str_len + 12);
     if (sid_str == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero_size failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_size failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -135,14 +135,14 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     ret = snprintf(rid_start, 12, "-%lu",
                                   (unsigned long) info3->base.rid);
     if (ret < 0 || ret > 12) {
-        DEBUG(SSSDBG_OP_FAILURE, ("snprintf failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "snprintf failed.\n");
         ret = EIO;
         goto done;
     }
 
     user_sid_str = talloc_strdup(mem_ctx, sid_str);
     if (user_sid_str == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -158,8 +158,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
 
     ret = hash_enter(sid_table, &key, &value);
     if (ret != HASH_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed [%d][%s].\n",
-                                  ret, hash_error_string(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed [%d][%s].\n",
+                                  ret, hash_error_string(ret));
         ret = EIO;
         goto done;
     }
@@ -169,14 +169,14 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
     ret = snprintf(rid_start, 12, "-%lu",
                                   (unsigned long) info3->base.primary_gid);
     if (ret < 0 || ret > 12) {
-        DEBUG(SSSDBG_OP_FAILURE, ("snprintf failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "snprintf failed.\n");
         ret = EIO;
         goto done;
     }
 
     primary_group_sid_str = talloc_strdup(mem_ctx, sid_str);
     if (primary_group_sid_str == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -192,8 +192,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
 
     ret = hash_enter(sid_table, &key, &value);
     if (ret != HASH_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed [%d][%s].\n",
-                                  ret, hash_error_string(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed [%d][%s].\n",
+                                  ret, hash_error_string(ret));
         ret = EIO;
         goto done;
     }
@@ -204,7 +204,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
         ret = snprintf(rid_start, 12, "-%lu",
                                 (unsigned long) info3->base.groups.rids[s].rid);
         if (ret < 0 || ret > 12) {
-            DEBUG(SSSDBG_OP_FAILURE, ("snprintf failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "snprintf failed.\n");
             ret = EIO;
             goto done;
         }
@@ -222,8 +222,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
 
         ret = hash_enter(sid_table, &key, &value);
         if (ret != HASH_SUCCESS) {
-            DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed [%d][%s].\n",
-                                      ret, hash_error_string(ret)));
+            DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed [%d][%s].\n",
+                                      ret, hash_error_string(ret));
             ret = EIO;
             goto done;
         }
@@ -234,7 +234,7 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
         err = sss_idmap_smb_sid_to_sid(pac_ctx->idmap_ctx, info3->sids[s].sid,
                                        &msid_str);
         if (err != IDMAP_SUCCESS) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sss_idmap_smb_sid_to_sid failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sss_idmap_smb_sid_to_sid failed.\n");
             ret = EFAULT;
             goto done;
         }
@@ -256,8 +256,8 @@ errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
         ret = hash_enter(sid_table, &key, &value);
         sss_idmap_free_sid(pac_ctx->idmap_ctx, msid_str);
         if (ret != HASH_SUCCESS) {
-            DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed [%d][%s].\n",
-                                      ret, hash_error_string(ret)));
+            DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed [%d][%s].\n",
+                                      ret, hash_error_string(ret));
             ret = EIO;
             goto done;
         }
@@ -301,20 +301,20 @@ errno_t get_data_from_pac(TALLOC_CTX *mem_ctx,
 
     ndr_pull = ndr_pull_init_blob(&blob, mem_ctx);
     if (ndr_pull == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_init_blob failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ndr_pull_init_blob failed.\n");
         return ENOMEM;
     }
     ndr_pull->flags |= LIBNDR_FLAG_REF_ALLOC; /* FIXME: is this really needed ? */
 
     pac_data = talloc_zero(mem_ctx, struct PAC_DATA);
     if (pac_data == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
     ndr_err = ndr_pull_PAC_DATA(ndr_pull, NDR_SCALARS|NDR_BUFFERS, pac_data);
     if (!NDR_ERR_CODE_IS_SUCCESS(ndr_err)) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ndr_pull_PAC_DATA failed [%d]\n", ndr_err));
+        DEBUG(SSSDBG_OP_FAILURE, "ndr_pull_PAC_DATA failed [%d]\n", ndr_err);
         return EBADMSG;
     }
 
@@ -356,19 +356,19 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
 
     pwd = talloc_zero(mem_ctx, struct passwd);
     if (pwd == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
     base_info = &logon_info->info3.base;
 
     if (base_info->account_name.size == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing account name in PAC.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Missing account name in PAC.\n");
         ret = EINVAL;
         goto done;
     }
     if (base_info->rid == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing user RID in PAC.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Missing user RID in PAC.\n");
         ret = EINVAL;
         goto done;
     }
@@ -377,7 +377,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
      * case names only, effectively making the domain case-insenvitive. */
     lname = sss_tc_utf8_str_tolower(pwd, base_info->account_name.string);
     if (lname == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_tc_utf8_str_tolower failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sss_tc_utf8_str_tolower failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -385,7 +385,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
     /* Subdomain use fully qualified names */
     pwd->pw_name = sss_get_domain_name(pwd, lname, dom);
     if (!pwd->pw_name) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_sprintf failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_sprintf failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -394,12 +394,12 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
     key.str = user_sid_str;
     ret = hash_lookup(sid_table, &key, &value);
     if (ret != HASH_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("hash_lookup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "hash_lookup failed.\n");
         ret = EIO;
         goto done;
     }
     if (value.type != HASH_VALUE_ULONG) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Wrong value type.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Wrong value type.\n");
         ret = EIO;
         goto done;
     }
@@ -412,12 +412,12 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
         key.str = primary_group_sid_str;
         ret = hash_lookup(sid_table, &key, &value);
         if (ret != HASH_SUCCESS) {
-            DEBUG(SSSDBG_OP_FAILURE, ("hash_lookup failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "hash_lookup failed.\n");
             ret = EIO;
             goto done;
         }
         if (value.type != HASH_VALUE_ULONG) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Wrong value type.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Wrong value type.\n");
             ret = EIO;
             goto done;
         }
@@ -427,13 +427,13 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
     if (base_info->full_name.size != 0) {
         pwd->pw_gecos = talloc_strdup(pwd, base_info->full_name.string);
         if (pwd->pw_gecos == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
         }
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing full name in PAC, "
-                                  "gecos field will by empty.\n "));
+        DEBUG(SSSDBG_OP_FAILURE, "Missing full name in PAC, "
+                                  "gecos field will by empty.\n ");
     }
 
     /* Check if there is a special homedir template for sub-domains. If not a
@@ -452,14 +452,14 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
 
     attrs = sysdb_new_attrs(mem_ctx);
     if (attrs == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     uc_realm = get_uppercase_realm(mem_ctx, dom->name);
     if (uc_realm == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("get_uppercase_realm failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -467,7 +467,7 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
     upn = talloc_asprintf(mem_ctx, "%s@%s", lname, uc_realm);
     talloc_free(uc_realm);
     if (upn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -475,19 +475,19 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, upn);
     talloc_free(upn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
         goto done;
     }
 
     ret = sysdb_attrs_add_lc_name_alias(attrs, pwd->pw_name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_lc_name_alias failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_lc_name_alias failed.\n");
         goto done;
     }
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, user_sid_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
         goto done;
     }
 

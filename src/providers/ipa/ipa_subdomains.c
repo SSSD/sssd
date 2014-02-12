@@ -84,7 +84,7 @@ struct be_ctx *ipa_get_subdomains_be_ctx(struct be_ctx *be_ctx)
     subdom_ctx = talloc_get_type(be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
                                  struct ipa_subdomains_ctx);
     if (subdom_ctx == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Subdomains are not configured.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Subdomains are not configured.\n");
         return NULL;
     }
 
@@ -108,7 +108,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     ad_options = ad_create_default_options(id_ctx, id_ctx->server_mode->realm,
                                            id_ctx->server_mode->hostname);
     if (ad_options == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize AD options\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);
         return ENOMEM;
     }
@@ -117,7 +117,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
 
     ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, ad_domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD domain\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD domain\n");
         talloc_free(ad_options);
         return ret;
     }
@@ -125,7 +125,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     ret = dp_opt_set_string(ad_options->basic, AD_KRB5_REALM,
                             id_ctx->server_mode->realm);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot set AD realm\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD realm\n");
         talloc_free(ad_options);
         return ret;
     }
@@ -143,7 +143,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
                            subdom->name, gc_service_name,
                            subdom->name, &ad_options->service);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize AD failover\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD failover\n");
         talloc_free(ad_options);
         return ret;
     }
@@ -163,7 +163,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
                                      id_ctx->server_mode->hostname,
                                      ad_domain);
     if (srv_ctx == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory?\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
         return ENOMEM;
     }
     be_fo_set_srv_lookup_plugin(be_ctx, ad_srv_plugin_send,
@@ -173,7 +173,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
                                  ad_id_ctx->sdap_id_ctx->opts->sdom,
                                  subdom->parent);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize sdap domain\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize sdap domain\n");
         talloc_free(ad_options);
         return ret;
     }
@@ -216,7 +216,7 @@ ipa_server_trust_add(struct be_ctx *be_ctx,
     ret = ipa_ad_ctx_new(be_ctx, id_ctx, subdom, &ad_id_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot create ad_id_ctx for subdomain %s\n", subdom->name));
+              "Cannot create ad_id_ctx for subdomain %s\n", subdom->name);
         return ret;
     }
 
@@ -261,8 +261,8 @@ ipa_ad_subdom_refresh(struct be_ctx *be_ctx,
             ret = ipa_server_trust_add(be_ctx, id_ctx, dom);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Cannot create ad_id_ctx for subdomain %s\n",
-                       dom->name));
+                      "Cannot create ad_id_ctx for subdomain %s\n",
+                       dom->name);
                 continue;
             }
         }
@@ -278,7 +278,7 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
 
     ret = sysdb_update_subdomains(ctx->be_ctx->domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_subdomains failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
         return ret;
     }
 
@@ -287,7 +287,7 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
                     IPA_SERVER_MODE));
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-                ("sss_krb5_write_mappings failed.\n"));
+                "sss_krb5_write_mappings failed.\n");
         /* Just continue */
     }
 
@@ -311,8 +311,8 @@ ipa_ad_subdom_remove(struct ipa_subdomains_ctx *ctx,
     }
 
     if (iter == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No IPA-AD context for subdomain %s\n",
-              subdom->name));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No IPA-AD context for subdomain %s\n",
+              subdom->name);
         return;
     }
 
@@ -338,7 +338,7 @@ const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
     ctx = talloc_get_type(be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
                           struct ipa_subdomains_ctx);
     if (ctx == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Subdomains are not configured.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Subdomains are not configured.\n");
         return NULL;
     }
 
@@ -362,26 +362,26 @@ static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
 
     range_list = talloc_array(mem_ctx, struct range_info *, count + 1);
     if (range_list == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
     }
 
     for (c = 0; c < count; c++) {
         range_list[c] = talloc_zero(range_list, struct range_info);
         if (range_list[c] == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
             ret = ENOMEM;
             goto done;
         }
 
         ret = sysdb_attrs_get_string(reply[c], IPA_CN, &value);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
             goto done;
         }
         range_list[c]->name = talloc_strdup(range_list[c], value);
         if (range_list[c]->name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -391,40 +391,40 @@ static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
             range_list[c]->trusted_dom_sid = talloc_strdup(range_list[c],
                                                            value);
             if (range_list[c]->trusted_dom_sid == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
         } else if (ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
             goto done;
         }
 
         ret = sysdb_attrs_get_uint32_t(reply[c], IPA_BASE_ID,
                                        &range_list[c]->base_id);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
             goto done;
         }
 
         ret = sysdb_attrs_get_uint32_t(reply[c], IPA_ID_RANGE_SIZE,
                                        &range_list[c]->id_range_size);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
             goto done;
         }
 
         ret = sysdb_attrs_get_uint32_t(reply[c], IPA_BASE_RID,
                                        &range_list[c]->base_rid);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
             goto done;
         }
 
         ret = sysdb_attrs_get_uint32_t(reply[c], IPA_SECONDARY_BASE_RID,
                                        &range_list[c]->secondary_base_rid);
         if (ret != EOK && ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
             goto done;
         }
 
@@ -432,7 +432,7 @@ static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
         if (ret == EOK) {
             range_list[c]->range_type = talloc_strdup(range_list[c], value);
             if (range_list[c]->range_type == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -447,11 +447,11 @@ static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
                                                           IPA_RANGE_AD_TRUST);
             }
         } else {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
             goto done;
         }
         if (range_list[c]->range_type == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -478,7 +478,7 @@ static errno_t ipa_subdom_enumerates(struct sss_domain_info *parent,
 
     ret = sysdb_attrs_get_string(attrs, IPA_CN, &name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
         return ret;
     }
 
@@ -499,21 +499,21 @@ static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_attrs_get_string(attrs, SYSDB_ORIG_DN, &orig_dn);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_ALL, ("Checking if we need the forest name for [%s].\n",
-                             orig_dn));
+    DEBUG(SSSDBG_TRACE_ALL, "Checking if we need the forest name for [%s].\n",
+                             orig_dn);
 
     dn = ldb_dn_new(mem_ctx, ldb_ctx, orig_dn);
     if (dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ldb_dn_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
         goto done;
     }
 
     if (!ldb_dn_validate(dn)) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Original DN [%s] is not a valid DN.\n",
-                                  orig_dn));
+        DEBUG(SSSDBG_OP_FAILURE, "Original DN [%s] is not a valid DN.\n",
+                                  orig_dn);
         ret = EINVAL;
         goto done;
     }
@@ -533,7 +533,7 @@ static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
     val = ldb_dn_get_component_val(dn, 3);
     if (strncasecmp("trusts", (const char *) val->data, val->length) != 0) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("4th component is not 'trust', nothing to do.\n"));
+              "4th component is not 'trust', nothing to do.\n");
         ret = EOK;
         goto done;
     }
@@ -541,7 +541,7 @@ static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
     val = ldb_dn_get_component_val(dn, 2);
     if (strncasecmp("ad", (const char *) val->data, val->length) != 0) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("3rd component is not 'ad', nothing to do.\n"));
+              "3rd component is not 'ad', nothing to do.\n");
         ret = EOK;
         goto done;
     }
@@ -549,7 +549,7 @@ static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
     val = ldb_dn_get_component_val(dn, 1);
     forest = talloc_strndup(mem_ctx, (const char *) val->data, val->length);
     if (forest == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strndup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -585,7 +585,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
 
     ret = sysdb_attrs_get_string(attrs, IPA_CN, &name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
         goto done;
     }
 
@@ -597,13 +597,13 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
 
     ret = sysdb_attrs_get_string(attrs, IPA_FLATNAME, &flat);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
         goto done;
     }
 
     ret = sysdb_attrs_get_string(attrs, IPA_TRUSTED_DOMAIN_SID, &id);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
         goto done;
     }
 
@@ -618,7 +618,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
                                 id, mpg, enumerate, forest);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_subdomain_store failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
         goto done;
     }
 
@@ -653,7 +653,7 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             }
             ret = sysdb_attrs_get_string(reply[c], IPA_CN, &value);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_string failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
                 goto done;
             }
             if (strcmp(value, dom->name) == 0) {
@@ -684,8 +684,8 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
                 /* Nothing we can do about the errorr. Let's at least try
                  * to reuse the existing domain
                  */
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to parse subdom data, "
-                      "will try to use cached subdomain\n"));
+                DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
+                      "will try to use cached subdomain\n");
             }
             handled[c] = true;
             h++;
@@ -716,8 +716,8 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
         ret = ipa_subdom_store(parent, ctx->sdap_id_ctx->opts->idmap_ctx,
                                reply[c], enumerate);
         if (ret) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to parse subdom data, "
-                  "will try to use cached subdomain\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
+                  "will try to use cached subdomain\n");
         }
     }
 
@@ -797,15 +797,15 @@ static void ipa_subdomains_retrieve(struct ipa_subdomains_ctx *ctx, struct be_re
     req_ctx->sdap_op = sdap_id_op_create(req_ctx,
                                          ctx->sdap_id_ctx->conn->conn_cache);
     if (req_ctx->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     req = sdap_id_op_connect_send(req_ctx->sdap_op, req_ctx, &ret);
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
+                                  ret, strerror(ret));
         goto done;
     }
 
@@ -834,12 +834,12 @@ static void ipa_subdomains_get_conn_done(struct tevent_req *req)
     if (ret) {
         if (dp_error == DP_ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("No IPA server is available, cannot get the "
-                   "subdomain list while offline\n"));
+                  "No IPA server is available, cannot get the "
+                   "subdomain list while offline\n");
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret)));
+                  "Failed to connect to IPA server: [%d](%s)\n",
+                   ret, strerror(ret));
         }
 
         goto fail;
@@ -891,7 +891,7 @@ ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
                                        SDAP_SEARCH_TIMEOUT), false);
 
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
         return ENOMEM;
     }
 
@@ -916,7 +916,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
     talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send request failed.\n");
         goto done;
     }
 
@@ -943,21 +943,21 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     ret = ipa_subdomains_refresh(ctx->sd_ctx, ctx->reply_count, ctx->reply,
                                  &refresh_has_changes);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to refresh subdomains.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to refresh subdomains.\n");
         goto done;
     }
 
     if (refresh_has_changes) {
         ret = ipa_subdom_reinit(ctx->sd_ctx);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not reinitialize subdomains\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
             goto done;
         }
 
         ret = ipa_ad_subdom_refresh(ctx->sd_ctx->be_ctx, ctx->sd_ctx->id_ctx,
                                     domain);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("ipa_ad_subdom_refresh failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_ad_subdom_refresh failed.\n");
             goto done;
         }
     }
@@ -1009,21 +1009,21 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
     talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send request failed.\n");
         goto done;
     }
 
     ret = ipa_ranges_parse_results(ctx, reply_count, reply, &range_list);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("ipa_ranges_parse_results request failed.\n"));
+              "ipa_ranges_parse_results request failed.\n");
         goto done;
     }
 
     ret = sysdb_update_ranges(sysdb, range_list);
     talloc_free(range_list);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_update_ranges failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_ranges failed.\n");
         goto done;
     }
 
@@ -1036,7 +1036,7 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
         goto done;
     }
 
-    DEBUG(SSSDBG_OP_FAILURE, ("No search base for ranges available.\n"));
+    DEBUG(SSSDBG_OP_FAILURE, "No search base for ranges available.\n");
     ret = EINVAL;
 
 done:
@@ -1059,7 +1059,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
     ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
     talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send request failed.\n");
         goto done;
     }
 
@@ -1091,7 +1091,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
         /* Right now we know there has been an error
          * and we don't have the master domain record
          */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Master domain record not found!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Master domain record not found!\n");
 
         if (!ctx->sd_ctx->configured_explicit) {
             ctx->sd_ctx->disabled_until = time(NULL) +
@@ -1131,11 +1131,11 @@ static void ipa_subdom_reset_timeouts_cb(void *pvt)
 
     ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
     if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Bad private pointer\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bad private pointer\n");
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, ("Resetting last_refreshed and disabled_until.\n"));
+    DEBUG(SSSDBG_TRACE_ALL, "Resetting last_refreshed and disabled_until.\n");
     ctx->last_refreshed = 0;
     ctx->disabled_until = 0;
 }
@@ -1149,7 +1149,7 @@ static void ipa_subdom_online_cb(void *pvt)
 
     ctx = talloc_get_type(pvt, struct ipa_subdomains_ctx);
     if (!ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Bad private pointer\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bad private pointer\n");
         return;
     }
 
@@ -1160,7 +1160,7 @@ static void ipa_subdom_online_cb(void *pvt)
     be_req = be_req_create(ctx, NULL, ctx->be_ctx,
                            ipa_subdom_be_req_callback, NULL);
     if (be_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("be_req_create() failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "be_req_create() failed.\n");
         return;
     }
 
@@ -1170,7 +1170,7 @@ static void ipa_subdom_online_cb(void *pvt)
     ctx->timer_event = tevent_add_timer(ctx->be_ctx->ev, ctx, tv,
                                         ipa_subdom_timer_refresh, ctx);
     if (!ctx->timer_event) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom timer event\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom timer event\n");
     }
 }
 
@@ -1194,7 +1194,7 @@ static errno_t get_config_status(struct be_ctx *be_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -1202,7 +1202,7 @@ static errno_t get_config_status(struct be_ctx *be_ctx,
                             CONFDB_DOMAIN_SUBDOMAINS_PROVIDER, NULL,
                             &tmp_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("confdb_get_string failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "confdb_get_string failed.\n");
         goto done;
     }
 
@@ -1212,8 +1212,8 @@ static errno_t get_config_status(struct be_ctx *be_ctx,
         *configured_explicit = true;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, ("IPA subdomain provider is configured %s.\n",
-                             *configured_explicit ? "explicit" : "implicit"));
+    DEBUG(SSSDBG_TRACE_ALL, "IPA subdomain provider is configured %s.\n",
+                             *configured_explicit ? "explicit" : "implicit");
 
     ret = EOK;
 
@@ -1239,7 +1239,7 @@ void ipa_subdomains_handler(struct be_req *be_req)
     now = time(NULL);
 
     if (ctx->disabled_until > now) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Subdomain provider disabled.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Subdomain provider disabled.\n");
         be_req_terminate(be_req, DP_ERR_OK, EOK, NULL);
         return;
     }
@@ -1268,13 +1268,13 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
 
     ret = get_config_status(be_ctx, &configured_explicit);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("get_config_status failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "get_config_status failed.\n");
         return ret;
     }
 
     ctx = talloc_zero(id_ctx, struct ipa_subdomains_ctx);
     if (ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
@@ -1294,23 +1294,23 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
                                          NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to add subdom reset timeouts callback"));
+              "Failed to add subdom reset timeouts callback");
     }
 
     ret = be_add_online_cb(ctx, be_ctx, ipa_subdom_online_cb, ctx, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom online callback"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom online callback");
     }
 
     ret = be_add_offline_cb(ctx, be_ctx, ipa_subdom_offline_cb, ctx, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to add subdom offline callback"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom offline callback");
     }
 
     ret = ipa_subdom_reinit(ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not load the list of subdomains. "
-              "Users from trusted domains might not be resolved correctly\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not load the list of subdomains. "
+              "Users from trusted domains might not be resolved correctly\n");
     }
 
     return EOK;
@@ -1336,9 +1336,9 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
                CONFDB_DEFAULT_FULL_NAME_FORMAT) != 0)
             && (strcmp(be_ctx->domain->names->fq_fmt,
                        CONFDB_DEFAULT_FULL_NAME_FORMAT_INTERNAL) != 0)) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("%s is set to a non-default value [%s] " \
+        DEBUG(SSSDBG_FATAL_FAILURE, "%s is set to a non-default value [%s] " \
               "lookups of subdomain users will likely fail!\n",
-              CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt));
+              CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt);
         sss_log(SSS_LOG_ERR, "%s is set to a non-default value [%s] " \
                 "lookups of subdomain users will likely fail!\n",
                 CONFDB_FULL_NAME_FORMAT, be_ctx->domain->names->fq_fmt);
@@ -1347,13 +1347,13 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
 
     realm = dp_opt_get_string(id_ctx->ipa_options->basic, IPA_KRB5_REALM);
     if (realm == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No Kerberos realm for IPA?\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No Kerberos realm for IPA?\n");
         return EINVAL;
     }
 
     hostname = dp_opt_get_string(id_ctx->ipa_options->basic, IPA_HOSTNAME);
     if (hostname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No host name for IPA?\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No host name for IPA?\n");
         return EINVAL;
     }
 
@@ -1368,7 +1368,7 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
 
     ret = ipa_ad_subdom_refresh(be_ctx, id_ctx, be_ctx->domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ipa_ad_subdom_refresh failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_ad_subdom_refresh failed.\n");
         return ret;
     }
 

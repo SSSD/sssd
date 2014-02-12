@@ -80,7 +80,7 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
                           ectx, "enumeration", &sdom->enum_task);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Unable to initialize enumeration periodic task\n"));
+              "Unable to initialize enumeration periodic task\n");
         talloc_free(ectx);
         return ret;
     }
@@ -113,13 +113,13 @@ ldap_enumeration_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct ldap_enumeration_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
     ectx = talloc_get_type(pvt, struct ldap_enum_ctx);
     if (ectx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot retrieve ldap_enum_ctx!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot retrieve ldap_enum_ctx!\n");
         ret = EFAULT;
         goto fail;
     }
@@ -133,7 +133,7 @@ ldap_enumeration_send(TALLOC_CTX *mem_ctx,
         /* The ptask API will reschedule the enumeration on its own on
          * failure */
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Failed to schedule enumeration, retrying later!\n"));
+              "Failed to schedule enumeration, retrying later!\n");
         ret = EIO;
         goto fail;
     }

@@ -43,13 +43,13 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
 
     filename = strchr(server_address, '/');
     if (filename == NULL) {
-        DEBUG(1, ("Unexpected dbus address [%s].\n", server_address));
+        DEBUG(1, "Unexpected dbus address [%s].\n", server_address);
         return EIO;
     }
 
     ret = check_file(filename, 0, 0, 0600, CHECK_SOCK, NULL, true);
     if (ret != EOK) {
-        DEBUG(1, ("check_file failed for [%s].\n", filename));
+        DEBUG(1, "check_file failed for [%s].\n", filename);
         return EIO;
     }
 

@@ -105,23 +105,23 @@ void ipa_selinux_handler(struct be_req *be_req)
     hostname = dp_opt_get_string(selinux_ctx->id_ctx->ipa_options->basic,
                                  IPA_HOSTNAME);
     if (!hostname) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot determine this machine's host name\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot determine this machine's host name\n");
         goto fail;
     }
 
     if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
         subdom_be_ctx = ipa_get_subdomains_be_ctx(be_ctx);
         if (subdom_be_ctx == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Subdomains are not configured, " \
+            DEBUG(SSSDBG_OP_FAILURE, "Subdomains are not configured, " \
                                       "cannot lookup domain [%s].\n",
-                                       pd->domain));
+                                       pd->domain);
             goto fail;
         } else {
             user_domain = find_subdomain_by_name(subdom_be_ctx->domain,
                                                  pd->domain, true);
             if (user_domain == NULL) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("No domain entry found " \
-                                             "for [%s].\n", pd->domain));
+                DEBUG(SSSDBG_MINOR_FAILURE, "No domain entry found " \
+                                             "for [%s].\n", pd->domain);
                 goto fail;
             }
         }
@@ -134,14 +134,14 @@ void ipa_selinux_handler(struct be_req *be_req)
                                        be_req, pd->user, hostname,
                                        selinux_ctx);
     if (op_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot create op context\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot create op context\n");
         goto fail;
     }
 
     req = ipa_get_selinux_send(be_req, be_ctx,
                                op_ctx->user, op_ctx->host, selinux_ctx);
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initiate the search\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initiate the search\n");
         goto fail;
     }
 
@@ -165,7 +165,7 @@ ipa_save_user_maps(struct sysdb_ctx *sysdb,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -173,16 +173,16 @@ ipa_save_user_maps(struct sysdb_ctx *sysdb,
     for (i = 0; i < map_count; i++) {
         ret = sysdb_store_selinux_usermap(domain, maps[i]);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to store user map %d. "
-                                      "Ignoring.\n", i));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to store user map %d. "
+                                      "Ignoring.\n", i);
         } else {
-            DEBUG(SSSDBG_TRACE_FUNC, ("User map %d processed.\n", i));
+            DEBUG(SSSDBG_TRACE_FUNC, "User map %d processed.\n", i);
         }
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction!\n");
         goto done;
     }
     in_transaction = false;
@@ -192,7 +192,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction");
         }
     }
     return ret;
@@ -243,7 +243,7 @@ ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
     } else if (ret != EOK) {
         goto fail;
     } else if (count > 1) {
-        DEBUG(SSSDBG_OP_FAILURE, ("More than one result for a BASE search!\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "More than one result for a BASE search!\n");
         goto fail;
     }
 
@@ -312,7 +312,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
                              &order_array, &order_count);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to create ordered SELinux users array.\n"));
+              "Failed to create ordered SELinux users array.\n");
         goto fail;
     }
 
@@ -320,13 +320,13 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
                              default_user);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to evaluate ordered SELinux users array.\n"));
+              "Failed to evaluate ordered SELinux users array.\n");
         goto fail;
     }
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto fail;
     }
     in_transaction = true;
@@ -334,7 +334,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     ret = sysdb_delete_usermaps(op_ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Cannot delete existing maps from sysdb\n"));
+              "Cannot delete existing maps from sysdb\n");
         goto fail;
     }
 
@@ -353,7 +353,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not commit transaction\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not commit transaction\n");
         goto fail;
     }
     in_transaction = false;
@@ -371,7 +371,7 @@ fail:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
         }
     }
     if (ret == EAGAIN) {
@@ -518,10 +518,10 @@ ipa_selinux_process_seealso_maps(struct sysdb_attrs *user,
         el->name = SYSDB_ORIG_MEMBER_USER;
 
         DEBUG(SSSDBG_TRACE_ALL,
-              ("Matching HBAC rule %s with SELinux mappings\n", hbac_dn));
+              "Matching HBAC rule %s with SELinux mappings\n", hbac_dn);
 
         if (!sss_selinux_match(hbac_rules[i], user, host, &priority)) {
-            DEBUG(SSSDBG_TRACE_ALL, ("Rule did not match\n"));
+            DEBUG(SSSDBG_TRACE_ALL, "Rule did not match\n");
             continue;
         }
 
@@ -538,9 +538,9 @@ ipa_selinux_process_seealso_maps(struct sysdb_attrs *user,
             }
 
             if (strcasecmp(hbac_dn, seealso_dn) == 0) {
-                DEBUG(SSSDBG_TRACE_FUNC, ("HBAC rule [%s] matched, copying its"
+                DEBUG(SSSDBG_TRACE_FUNC, "HBAC rule [%s] matched, copying its"
                                           "attributes to SELinux user map [%s]\n",
-                                          hbac_dn, seealso_dn));
+                                          hbac_dn, seealso_dn);
 
                 /* Selinux maps priority evaluation removed --DELETE this comment before pushing*/
                 if (priority < top_priority) {
@@ -658,7 +658,7 @@ static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -732,7 +732,7 @@ static errno_t write_selinux_login_file(const char *username, char *string)
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -764,8 +764,8 @@ static errno_t write_selinux_login_file(const char *username, char *string)
             /* continue if we can't get enforce mode or selinux is enabled */
         }
 
-        DEBUG(SSSDBG_OP_FAILURE, ("unable to create temp file [%s] "
-              "for SELinux data [%d]: %s\n", tmp_path, ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "unable to create temp file [%s] "
+              "for SELinux data [%d]: %s\n", tmp_path, ret, strerror(ret));
         goto done;
     }
 
@@ -781,15 +781,15 @@ static errno_t write_selinux_login_file(const char *username, char *string)
     written = sss_atomic_write_s(fd, full_string, len);
     if (written == -1) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("writing to SELinux data file %s"
+        DEBUG(SSSDBG_OP_FAILURE, "writing to SELinux data file %s"
                                   "failed [%d]: %s", tmp_path, ret,
-                                  strerror(ret)));
+                                  strerror(ret));
         goto done;
     }
 
     if (written != len) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Expected to write %zd bytes, wrote %zu",
-                                  written, len));
+        DEBUG(SSSDBG_OP_FAILURE, "Expected to write %zd bytes, wrote %zu",
+                                  written, len);
         ret = EIO;
         goto done;
     }
@@ -807,8 +807,8 @@ done:
     if (fd != -1) {
         close(fd);
         if (unlink(tmp_path) < 0) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not remove file [%s]",
-                                         tmp_path));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not remove file [%s]",
+                                         tmp_path);
         }
     }
 
@@ -833,8 +833,8 @@ static errno_t remove_selinux_login_file(const char *username)
             ret = EOK;
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Could not remove login file %s [%d]: %s\n",
-                   path, ret, strerror(ret)));
+                  "Could not remove login file %s [%d]: %s\n",
+                   path, ret, strerror(ret));
         }
     }
 
@@ -881,7 +881,7 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
     time_t refresh_interval;
     struct ipa_options *ipa_options = selinux_ctx->id_ctx->ipa_options;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Retrieving SELinux user mapping\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Retrieving SELinux user mapping\n");
     req = tevent_req_create(mem_ctx, &state, struct ipa_get_selinux_state);
     if (req == NULL) {
         return NULL;
@@ -893,8 +893,8 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
     state->host = host;
 
     offline = be_is_offline(be_ctx);
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Connection status is [%s].\n",
-                                  offline ? "offline" : "online"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Connection status is [%s].\n",
+                                  offline ? "offline" : "online");
 
     if (!offline) {
         refresh_interval = dp_opt_get_int(ipa_options->basic,
@@ -903,7 +903,7 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
         if (now < selinux_ctx->last_update + refresh_interval) {
             /* SELinux maps were recently updated -> force offline */
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  ("Performing cached SELinux processing\n"));
+                  "Performing cached SELinux processing\n");
             offline = true;
         }
     }
@@ -912,15 +912,15 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
         state->op = sdap_id_op_create(state,
                         selinux_ctx->id_ctx->sdap_id_ctx->conn->conn_cache);
         if (!state->op) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
             ret = ENOMEM;
             goto immediate;
         }
 
         subreq = sdap_id_op_connect_send(state->op, state, &ret);
         if (!subreq) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_id_op_connect_send failed: "
-                                        "%d(%s).\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send failed: "
+                                        "%d(%s).\n", ret, strerror(ret));
             talloc_zfree(state->op);
             goto immediate;
         }
@@ -986,7 +986,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
     hostname = dp_opt_get_string(state->selinux_ctx->id_ctx->ipa_options->basic,
                                         IPA_HOSTNAME);
     if (hostname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot determine the host name\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot determine the host name\n");
         goto fail;
     }
 
@@ -1034,8 +1034,8 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
     ret = sysdb_search_selinux_config(state, state->be_ctx->domain,
                                       NULL, &defaults);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_selinux_config failed [%d]: %s\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_selinux_config failed [%d]: %s\n",
+                                  ret, strerror(ret));
         return ret;
     }
 
@@ -1067,8 +1067,8 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
     ret = sysdb_get_selinux_usermaps(state, state->be_ctx->domain,
                                      attrs, &nmaps, &maps);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_get_selinux_usermaps failed [%d]: %s\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_selinux_usermaps failed [%d]: %s\n",
+                                  ret, strerror(ret));
         return ret;
     }
 
@@ -1082,8 +1082,8 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
     ret = hbac_get_cached_rules(state, state->be_ctx->domain,
                                 &state->hbac_rule_count, &state->hbac_rules);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("hbac_get_cached_rules failed [%d]: %s\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "hbac_get_cached_rules failed [%d]: %s\n",
+                                  ret, strerror(ret));
         return ret;
     }
 
@@ -1149,7 +1149,7 @@ static void ipa_get_selinux_config_done(struct tevent_req *subreq)
     ret = ipa_get_config_recv(subreq, state, &state->defaults);
     talloc_free(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not get IPA config\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not get IPA config\n");
         goto done;
     }
 
@@ -1207,7 +1207,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-         ("Found %zu SELinux user maps\n", state->nmaps));
+         "Found %zu SELinux user maps\n", state->nmaps);
 
     check_hbac = false;
     for (i = 0; i < state->nmaps; i++) {
@@ -1230,8 +1230,8 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("SELinux maps referenced an HBAC rule. "
-              "Need to refresh HBAC rules\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "SELinux maps referenced an HBAC rule. "
+              "Need to refresh HBAC rules\n");
         subreq = ipa_hbac_rule_info_send(state, false, state->be_ctx->ev,
                                          sdap_id_op_handle(state->op),
                                          id_ctx->sdap_id_ctx->opts,
@@ -1266,7 +1266,7 @@ static void ipa_get_selinux_hbac_done(struct tevent_req *subreq)
     ret = ipa_hbac_rule_info_recv(subreq, state, &state->hbac_rule_count,
                                   &state->hbac_rules);
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("Received %zu HBAC rules\n", state->hbac_rule_count));
+          "Received %zu HBAC rules\n", state->hbac_rule_count);
     talloc_free(subreq);
 
     if (ret != EOK) {

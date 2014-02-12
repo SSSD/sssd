@@ -77,7 +77,7 @@ static struct crypto_mech_data cmdata[] = {
 static struct crypto_mech_data *get_crypto_mech_data(enum obfmethod meth)
 {
     if (meth >= NUM_OBFMETHODS) {
-        DEBUG(1, ("Unsupported cipher type\n"));
+        DEBUG(1, "Unsupported cipher type\n");
         return NULL;
     }
     return &cmdata[meth];
@@ -97,24 +97,24 @@ static int generate_random_key(TALLOC_CTX *mem_ctx,
     randkey = PK11_KeyGen(slot, mech_props->cipher,
                           NULL, mech_props->keylen, NULL);
     if (randkey == NULL) {
-        DEBUG(1, ("Failure to generate key (err %d)\n",
-                  PR_GetError()));
+        DEBUG(1, "Failure to generate key (err %d)\n",
+                  PR_GetError());
         ret = EIO;
         goto done;
     }
 
     sret = PK11_ExtractKeyValue(randkey);
     if (sret != SECSuccess) {
-        DEBUG(1, ("Failure to extract key value (err %d)\n",
-                  PR_GetError()));
+        DEBUG(1, "Failure to extract key value (err %d)\n",
+                  PR_GetError());
         ret = EIO;
         goto done;
     }
 
     randkeydata = PK11_GetKeyData(randkey);
     if (randkeydata == NULL) {
-        DEBUG(1, ("Failure to get key data (err %d)\n",
-                  PR_GetError()));
+        DEBUG(1, "Failure to get key data (err %d)\n",
+                  PR_GetError());
         ret = EIO;
         goto done;
     }
@@ -168,8 +168,8 @@ static int nss_ctx_init(TALLOC_CTX *mem_ctx,
 
     cctx->slot = PK11_GetBestSlot(mech_props->cipher, NULL);
     if (cctx->slot == NULL) {
-        DEBUG(1, ("Unable to find security device (err %d)\n",
-                  PR_GetError()));
+        DEBUG(1, "Unable to find security device (err %d)\n",
+                  PR_GetError());
         ret = EIO;
         goto done;
     }
@@ -194,8 +194,8 @@ static int nss_encrypt_decrypt_init(struct crypto_mech_data *mech_props,
     cctx->keyobj = PK11_ImportSymKey(cctx->slot, mech_props->cipher,
                                      PK11_OriginUnwrap, op, cctx->key, NULL);
     if (cctx->keyobj == NULL) {
-        DEBUG(1, ("Failure to import key into NSS (err %d)\n",
-                  PR_GetError()));
+        DEBUG(1, "Failure to import key into NSS (err %d)\n",
+                  PR_GetError());
         ret = EIO;
         goto done;
     }
@@ -203,8 +203,8 @@ static int nss_encrypt_decrypt_init(struct crypto_mech_data *mech_props,
     /* turn the raw IV into a initialization vector object */
     cctx->sparam = PK11_ParamFromIV(mech_props->cipher, cctx->iv);
     if (cctx->sparam == NULL) {
-        DEBUG(1, ("Failure to set up PKCS11 param (err %d)\n",
-                  PR_GetError()));
+        DEBUG(1, "Failure to set up PKCS11 param (err %d)\n",
+                  PR_GetError());
         ret = EIO;
         goto done;
     }
@@ -213,8 +213,8 @@ static int nss_encrypt_decrypt_init(struct crypto_mech_data *mech_props,
     cctx->ectx = PK11_CreateContextBySymKey(mech_props->cipher, op,
                                             cctx->keyobj, cctx->sparam);
     if (cctx->ectx == NULL) {
-        DEBUG(1, ("Cannot create cipher context (err %d)\n",
-                  PORT_GetError()));
+        DEBUG(1, "Cannot create cipher context (err %d)\n",
+                  PORT_GetError());
         ret = EIO;
         goto done;
     }
@@ -265,26 +265,26 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
 
     ret = nss_ctx_init(tmp_ctx, mech_props, &cctx);
     if (ret) {
-        DEBUG(1, ("Cannot initialize NSS context\n"));
+        DEBUG(1, "Cannot initialize NSS context\n");
         goto done;
     }
 
     /* generate random encryption and IV key */
     ret = generate_random_key(cctx, cctx->slot, mech_props, &cctx->key);
     if (ret != EOK) {
-        DEBUG(1, ("Could not generate encryption key\n"));
+        DEBUG(1, "Could not generate encryption key\n");
         goto done;
     }
 
     ret = generate_random_key(cctx, cctx->slot, mech_props, &cctx->iv);
     if (ret != EOK) {
-        DEBUG(1, ("Could not generate initialization vector\n"));
+        DEBUG(1, "Could not generate initialization vector\n");
         goto done;
     }
 
     ret = nss_encrypt_decrypt_init(mech_props, true, cctx);
     if (ret) {
-        DEBUG(1, ("Cannot initialize NSS context properties\n"));
+        DEBUG(1, "Cannot initialize NSS context properties\n");
         goto done;
     }
 
@@ -306,8 +306,8 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
     sret = PK11_CipherOp(cctx->ectx, cryptotext, &ctlen, ct_maxsize,
                          plaintext, plen);
     if (sret != SECSuccess) {
-        DEBUG(1, ("Cannot execute the encryption operation (err %d)\n",
-                   PR_GetError()));
+        DEBUG(1, "Cannot execute the encryption operation (err %d)\n",
+                   PR_GetError());
         ret = EIO;
         goto done;
     }
@@ -315,8 +315,8 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
     sret = PK11_DigestFinal(cctx->ectx, cryptotext+ctlen, &digestlen,
                             ct_maxsize-ctlen);
     if (sret != SECSuccess) {
-        DEBUG(1, ("Cannot execute the digest operation (err %d)\n",
-                    PR_GetError()));
+        DEBUG(1, "Cannot execute the digest operation (err %d)\n",
+                    PR_GetError());
         ret = EIO;
         goto done;
     }
@@ -340,9 +340,9 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
         goto done;
     }
 
-    DEBUG(8, ("Writing method: %d\n", meth));
+    DEBUG(8, "Writing method: %d\n", meth);
     SAFEALIGN_SET_UINT16(&obfbuf[p], meth, &p);
-    DEBUG(8, ("Writing bufsize: %d\n", result_len));
+    DEBUG(8, "Writing bufsize: %d\n", result_len);
     SAFEALIGN_SET_UINT16(&obfbuf[p], result_len, &p);
     safealign_memcpy(&obfbuf[p], cctx->key->data, mech_props->keylen, &p);
     safealign_memcpy(&obfbuf[p], cctx->iv->data, mech_props->bsize, &p);
@@ -409,9 +409,9 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
 
     /* unpack obfuscation buffer */
     SAFEALIGN_COPY_UINT16_CHECK(&meth, obfbuf+p, obflen, &p);
-    DEBUG(8, ("Read method: %d\n", meth));
+    DEBUG(8, "Read method: %d\n", meth);
     SAFEALIGN_COPY_UINT16_CHECK(&ctsize, obfbuf+p, obflen, &p);
-    DEBUG(8, ("Read bufsize: %d\n", ctsize));
+    DEBUG(8, "Read bufsize: %d\n", ctsize);
 
     mech_props = get_crypto_mech_data(meth);
     if (mech_props == NULL) {
@@ -424,7 +424,7 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
            obfbuf + p + mech_props->keylen + mech_props->bsize + ctsize,
            OBF_BUFFER_SENTINEL_SIZE);
     if (memcmp(sentinel_check, OBF_BUFFER_SENTINEL, OBF_BUFFER_SENTINEL_SIZE) != 0) {
-        DEBUG(0, ("Obfuscation buffer seems corrupt, aborting\n"));
+        DEBUG(0, "Obfuscation buffer seems corrupt, aborting\n");
         ret = EFAULT;
         goto done;
     }
@@ -453,7 +453,7 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
 
     ret = nss_ctx_init(tmp_ctx, mech_props, &cctx);
     if (ret) {
-        DEBUG(1, ("Cannot initialize NSS context\n"));
+        DEBUG(1, "Cannot initialize NSS context\n");
         goto done;
     }
 
@@ -481,8 +481,8 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
     sret = PK11_CipherOp(cctx->ectx, (unsigned char *) pwdbuf, &plainlen, ctsize,
                          cryptotext, ctsize);
     if (sret != SECSuccess) {
-        DEBUG(1, ("Cannot execute the encryption operation (err %d)\n",
-                   PR_GetError()));
+        DEBUG(1, "Cannot execute the encryption operation (err %d)\n",
+                   PR_GetError());
         ret = EIO;
         goto done;
     }
@@ -490,8 +490,8 @@ int sss_password_decrypt(TALLOC_CTX *mem_ctx, char *b64encoded,
     sret = PK11_DigestFinal(cctx->ectx, (unsigned char *) pwdbuf+plainlen, &digestlen,
                             ctsize - plainlen);
     if (sret != SECSuccess) {
-        DEBUG(1, ("Cannot execute the encryption operation (err %d)\n",
-                   PR_GetError()));
+        DEBUG(1, "Cannot execute the encryption operation (err %d)\n",
+                   PR_GetError());
         ret = EIO;
         goto done;
     }

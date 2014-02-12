@@ -127,9 +127,9 @@ ipa_selinux_get_maps_next(struct tevent_req *req,
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Trying to fetch SELinux maps with following "
+    DEBUG(SSSDBG_TRACE_FUNC, "Trying to fetch SELinux maps with following "
                               "parameters: [%d][%s][%s]\n", base->scope,
-                              state->cur_filter, base->basedn));
+                              state->cur_filter, base->basedn);
     subreq = sdap_get_generic_send(state, state->ev, state->opts,
                                    state->sh, base->basedn,
                                    base->scope, state->cur_filter,
@@ -166,7 +166,7 @@ static void ipa_selinux_get_maps_done(struct tevent_req *subreq)
 
     if (count > 0) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Found %zu user maps in current search base\n", count));
+              "Found %zu user maps in current search base\n", count);
 
         total_count = count + state->map_count;
         state->maps = talloc_realloc(state, state->maps, struct sysdb_attrs *, total_count);
@@ -192,7 +192,7 @@ static void ipa_selinux_get_maps_done(struct tevent_req *subreq)
     }
 
     if (state->map_count == 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No SELinux user maps found!\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "No SELinux user maps found!\n");
         ret = ENOENT;
     }
 

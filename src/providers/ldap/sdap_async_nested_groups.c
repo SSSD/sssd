@@ -197,8 +197,8 @@ static errno_t sdap_nested_group_hash_entry(hash_table_t *table,
         return ret;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, ("Inserting [%s] into hash table [%s]\n",
-                             name, table_name));
+    DEBUG(SSSDBG_TRACE_ALL, "Inserting [%s] into hash table [%s]\n",
+                             name, table_name);
 
     key.type = HASH_KEY_STRING;
     key.str = talloc_strdup(NULL, name);
@@ -246,12 +246,12 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
     if (group_ctx->opts->schema_type == SDAP_SCHEMA_AD) {
         ret = sysdb_attrs_get_int32_t(group, SYSDB_GROUP_TYPE, &ad_group_type);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_get_int32_t failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_int32_t failed.\n");
             return ret;
         }
 
-        DEBUG(SSSDBG_TRACE_ALL, ("AD group has type flags %#x.\n",
-                                 ad_group_type));
+        DEBUG(SSSDBG_TRACE_ALL, "AD group has type flags %#x.\n",
+                                 ad_group_type);
         /* Only security groups from AD are considered for POSIX groups.
          * Additionally only global and universal group are taken to account
          * for trusted domains. */
@@ -261,7 +261,7 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
                         || (ad_group_type & SDAP_AD_GROUP_TYPE_UNIVERSAL))))) {
             posix_group = false;
             gid = 0;
-            DEBUG(SSSDBG_TRACE_FUNC, ("Filtering AD group.\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Filtering AD group.\n");
         }
     }
 
@@ -269,15 +269,15 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
                                    &gid);
     if (ret == ENOENT || (ret == EOK && gid == 0) || !posix_group) {
         DEBUG(SSSDBG_TRACE_ALL,
-             ("The group's gid was %s\n", ret == ENOENT ? "missing" : "zero"));
+             "The group's gid was %s\n", ret == ENOENT ? "missing" : "zero");
         DEBUG(SSSDBG_TRACE_INTERNAL,
-             ("Marking group as non-posix and setting GID=0!\n"));
+             "Marking group as non-posix and setting GID=0!\n");
         if (ret == ENOENT || !posix_group) {
             ret = sysdb_attrs_add_uint32(group,
                                          map[SDAP_AT_GROUP_GID].sys_name, 0);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Failed to add a GID to non-posix group!\n"));
+                      "Failed to add a GID to non-posix group!\n");
                 return ret;
             }
         }
@@ -285,7 +285,7 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
         ret = sysdb_attrs_add_bool(group, SYSDB_POSIX, false);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Error: Failed to mark group as non-posix!\n"));
+                  "Error: Failed to mark group as non-posix!\n");
             return ret;
         }
     } else if (ret != EOK) {
@@ -321,7 +321,7 @@ static errno_t sdap_nested_group_sysdb_search(struct sss_domain_info *domain,
     }
 
     if (count != 1) {
-        DEBUG(SSSDBG_OP_FAILURE, ("More than one entry found?\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "More than one entry found?\n");
         ret = EFAULT;
         goto done;
     }
@@ -331,7 +331,7 @@ static errno_t sdap_nested_group_sysdb_search(struct sss_domain_info *domain,
     if (user) {
         uid = ldb_msg_find_attr_as_uint64(msgs[0], SYSDB_UIDNUM, 0);
         if (uid == 0) {
-            DEBUG(SSSDBG_OP_FAILURE, ("User with no UID?\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "User with no UID?\n");
             ret = EINVAL;
             goto done;
         }
@@ -367,7 +367,7 @@ sdap_nested_group_check_cache(struct sdap_options *opts,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -478,7 +478,7 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -525,7 +525,7 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
                                             dn, &type);
         if (ret == EOK) {
             /* found and valid */
-            DEBUG(SSSDBG_TRACE_ALL, ("[%s] found in cache, skipping\n", dn));
+            DEBUG(SSSDBG_TRACE_ALL, "[%s] found in cache, skipping\n", dn);
             continue;
         } else if (ret != EAGAIN && ret != ENOENT) {
             /* error */
@@ -543,18 +543,18 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
 
             if (is_user && is_group) {
                 /* search bases overlap */
-                DEBUG(SSSDBG_TRACE_ALL, ("[%s] is unknown object\n", dn));
+                DEBUG(SSSDBG_TRACE_ALL, "[%s] is unknown object\n", dn);
                 type = SDAP_NESTED_GROUP_DN_UNKNOWN;
             } else if (is_user) {
-                DEBUG(SSSDBG_TRACE_ALL, ("[%s] is a user\n", dn));
+                DEBUG(SSSDBG_TRACE_ALL, "[%s] is a user\n", dn);
                 type = SDAP_NESTED_GROUP_DN_USER;
             } else if (is_group) {
-                DEBUG(SSSDBG_TRACE_ALL, ("[%s] is a group\n", dn));
+                DEBUG(SSSDBG_TRACE_ALL, "[%s] is a group\n", dn);
                 type = SDAP_NESTED_GROUP_DN_GROUP;
             } else {
                 /* dn is outside search bases */
-                DEBUG(SSSDBG_TRACE_ALL, ("[%s] is out of scope of configured "
-                      "search bases, skipping\n", dn));
+                DEBUG(SSSDBG_TRACE_ALL, "[%s] is out of scope of configured "
+                      "search bases, skipping\n", dn);
                 continue;
             }
         }
@@ -562,8 +562,8 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
         /* check nesting level */
         if (type == SDAP_NESTED_GROUP_DN_GROUP) {
             if (nesting_level >= group_ctx->max_nesting_level) {
-                DEBUG(SSSDBG_TRACE_ALL, ("[%s] is outside nesting limit "
-                      "(level %d), skipping\n", dn, nesting_level));
+                DEBUG(SSSDBG_TRACE_ALL, "[%s] is outside nesting limit "
+                      "(level %d), skipping\n", dn, nesting_level);
                 talloc_zfree(user_filter);
                 talloc_zfree(group_filter);
                 continue;
@@ -637,7 +637,7 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_nested_group_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -650,15 +650,15 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
 
     ret = sss_hash_create(state->group_ctx, 32, &state->group_ctx->users);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to create hash table [%d]: %s\n",
-                                    ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
+                                    ret, strerror(ret));
         goto immediately;
     }
 
     ret = sss_hash_create(state->group_ctx, 32, &state->group_ctx->groups);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to create hash table [%d]: %s\n",
-                                    ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create hash table [%d]: %s\n",
+                                    ret, strerror(ret));
         goto immediately;
     }
 
@@ -683,8 +683,8 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
     if (state->group_ctx->try_deref) {
         for (i = 0; opts->sdom->user_search_bases[i] != NULL; i++) {
             if (opts->sdom->user_search_bases[i]->filter != NULL) {
-                DEBUG(SSSDBG_TRACE_FUNC, ("User search base contains filter, "
-                                          "dereference will be disabled\n"));
+                DEBUG(SSSDBG_TRACE_FUNC, "User search base contains filter, "
+                                          "dereference will be disabled\n");
                 state->group_ctx->try_deref = false;
                 break;
             }
@@ -694,8 +694,8 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
     if (state->group_ctx->try_deref) {
         for (i = 0; opts->sdom->group_search_bases[i] != NULL; i++) {
             if (opts->sdom->group_search_bases[i]->filter != NULL) {
-                DEBUG(SSSDBG_TRACE_FUNC, ("Group search base contains filter, "
-                                          "dereference will be disabled\n"));
+                DEBUG(SSSDBG_TRACE_FUNC, "Group search base contains filter, "
+                                          "dereference will be disabled\n");
                 state->group_ctx->try_deref = false;
                 break;
             }
@@ -705,8 +705,8 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
     /* insert initial group into hash table */
     ret = sdap_nested_group_hash_group(state->group_ctx, group);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to insert group into hash table "
-                                    "[%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to insert group into hash table "
+                                    "[%d]: %s\n", ret, strerror(ret));
         goto immediately;
     }
 
@@ -774,8 +774,8 @@ errno_t sdap_nested_group_recv(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("%lu users found in the hash table\n",
-                              num_users));
+    DEBUG(SSSDBG_TRACE_FUNC, "%lu users found in the hash table\n",
+                              num_users);
 
     ret = sdap_nested_group_extract_hash_table(state, state->group_ctx->groups,
                                                &num_groups, &groups);
@@ -783,8 +783,8 @@ errno_t sdap_nested_group_recv(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("%lu groups found in the hash table\n",
-                              num_groups));
+    DEBUG(SSSDBG_TRACE_FUNC, "%lu groups found in the hash table\n",
+                              num_groups);
 
     if (_num_users != NULL) {
         *_num_users = num_users;
@@ -836,7 +836,7 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_process_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -848,8 +848,8 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
     /* get original dn */
     ret = sysdb_attrs_get_string(group, SYSDB_ORIG_DN, &orig_dn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to retrieve original dn "
-                                    "[%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve original dn "
+                                    "[%d]: %s\n", ret, strerror(ret));
         goto immediately;
     }
 
@@ -859,7 +859,7 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("About to process group [%s]\n", orig_dn));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "About to process group [%s]\n", orig_dn);
 
     /* get member list */
     ret = sysdb_attrs_get_el(group, group_map[SDAP_AT_GROUP_MEMBER].sys_name,
@@ -868,8 +868,8 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
         ret = EOK; /* no members */
         goto immediately;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to retrieve member list "
-                                    "[%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve member list "
+                                    "[%d]: %s\n", ret, strerror(ret));
         goto immediately;
     }
 
@@ -880,8 +880,8 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
                                           &state->num_missing_total,
                                           &state->num_missing_groups);
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Looking up %d/%d members of group [%s]\n",
-          state->num_missing_total, members->num_values, orig_dn));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Looking up %d/%d members of group [%s]\n",
+          state->num_missing_total, members->num_values, orig_dn);
 
     if (state->num_missing_total == 0) {
         ret = EOK; /* we're done */
@@ -891,15 +891,15 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
     /* process members */
     if (group_ctx->try_deref
             && state->num_missing_total > group_ctx->deref_treshold) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Dereferencing members of group [%s]\n",
-                                      orig_dn));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Dereferencing members of group [%s]\n",
+                                      orig_dn);
         state->deref = true;
         subreq = sdap_nested_group_deref_send(state, ev, group_ctx, members,
                                               orig_dn,
                                               state->nesting_level);
     } else {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Members of group [%s] will be "
-                                      "processed individually\n", orig_dn));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Members of group [%s] will be "
+                                      "processed individually\n", orig_dn);
         state->deref = false;
         subreq = sdap_nested_group_single_send(state, ev, group_ctx,
                                                state->missing,
@@ -944,8 +944,8 @@ static void sdap_nested_group_process_done(struct tevent_req *subreq)
             state->group_ctx->try_deref = false;
             state->deref = false;
 
-            DEBUG(SSSDBG_TRACE_INTERNAL, ("Members of group [%s] will be "
-                  "processed individually\n", state->group_dn));
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Members of group [%s] will be "
+                  "processed individually\n", state->group_dn);
 
             subreq = sdap_nested_group_single_send(state,
                                                    state->ev,
@@ -1011,7 +1011,7 @@ sdap_nested_group_recurse_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_recurse_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -1133,7 +1133,7 @@ sdap_nested_group_single_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_single_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -1257,12 +1257,12 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         /* save user in hash table */
         ret = sdap_nested_group_hash_user(state->group_ctx, entry);
         if (ret == EEXIST) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("User was looked up twice, "
-                                      "this shouldn't have happened.\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "User was looked up twice, "
+                                      "this shouldn't have happened.\n");
             goto done;
         } else if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to save user in hash table "
-                                        "[%d]: %s\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to save user in hash table "
+                                        "[%d]: %s\n", ret, strerror(ret));
             goto done;
         }
         break;
@@ -1286,12 +1286,12 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
                 ret = sysdb_attrs_get_string(entry, SYSDB_ORIG_DN, &orig_dn);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
-                          ("The entry has no originalDN\n"));
+                          "The entry has no originalDN\n");
                     orig_dn = "invalid";
                 }
 
-                DEBUG(SSSDBG_TRACE_ALL, ("[%s] is outside nesting limit "
-                      "(level %d), skipping\n", orig_dn, state->nesting_level));
+                DEBUG(SSSDBG_TRACE_ALL, "[%s] is outside nesting limit "
+                      "(level %d), skipping\n", orig_dn, state->nesting_level);
                 break;
             }
         }
@@ -1299,12 +1299,12 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         /* save group in hash table */
         ret = sdap_nested_group_hash_group(state->group_ctx, entry);
         if (ret == EEXIST) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Group was looked up twice, "
-                                      "this shouldn't have happened.\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Group was looked up twice, "
+                                      "this shouldn't have happened.\n");
             goto done;
         } else if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to save group in hash table "
-                                        "[%d]: %s\n", ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to save group in hash table "
+                                        "[%d]: %s\n", ret, strerror(ret));
             goto done;
         }
 
@@ -1337,8 +1337,8 @@ static void sdap_nested_group_single_step_done(struct tevent_req *subreq)
     ret = sdap_nested_group_single_step_process(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error processing direct membership "
-                                    "[%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error processing direct membership "
+                                    "[%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -1368,7 +1368,7 @@ static void sdap_nested_group_single_step_done(struct tevent_req *subreq)
 done:
     if (ret == EOK) {
         /* tevent_req_error() cannot cope with EOK */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("We should not get here with EOK\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "We should not get here with EOK\n");
         tevent_req_error(req, EINVAL);
     } else if (ret != EAGAIN) {
         tevent_req_error(req, ret);
@@ -1388,8 +1388,8 @@ static void sdap_nested_group_single_done(struct tevent_req *subreq)
     ret = sdap_nested_group_recurse_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error processing nested groups "
-                                    "[%d]: %s", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error processing nested groups "
+                                    "[%d]: %s", ret, strerror(ret));
         tevent_req_error(req, ret);
     }
 
@@ -1540,7 +1540,7 @@ sdap_nested_group_lookup_user_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_lookup_user_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -1553,8 +1553,8 @@ sdap_nested_group_lookup_user_send(TALLOC_CTX *mem_ctx,
             goto immediately;
         }
 
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Couldn't parse out user information "
-              "based on DN %s, falling back to an LDAP lookup\n", member->dn));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Couldn't parse out user information "
+              "based on DN %s, falling back to an LDAP lookup\n", member->dn);
     }
 
     /* only pull down username and originalDN */
@@ -1637,7 +1637,7 @@ static void sdap_nested_group_lookup_user_done(struct tevent_req *subreq)
         state->user = NULL;
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("BASE search returned more than one records\n"));
+              "BASE search returned more than one records\n");
         ret = EIO;
         goto done;
     }
@@ -1693,7 +1693,7 @@ sdap_nested_group_lookup_group_send(TALLOC_CTX *mem_ctx,
      req = tevent_req_create(mem_ctx, &state,
                              struct sdap_nested_group_lookup_group_state);
      if (req == NULL) {
-         DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
          return NULL;
      }
 
@@ -1773,7 +1773,7 @@ static void sdap_nested_group_lookup_group_done(struct tevent_req *subreq)
         state->group = NULL;
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("BASE search returned more than one records\n"));
+              "BASE search returned more than one records\n");
         ret = EIO;
         goto done;
     }
@@ -1833,7 +1833,7 @@ sdap_nested_group_lookup_unknown_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_lookup_unknown_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -2012,7 +2012,7 @@ sdap_nested_group_deref_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_nested_group_deref_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -2102,8 +2102,8 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Received %zu dereference results, "
-          "about to process them\n", num_entries));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Received %zu dereference results, "
+          "about to process them\n", num_entries);
 
     /*
      * We don't have any knowledge about possible number of groups when
@@ -2121,7 +2121,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
         ret = sysdb_attrs_get_string(entries[i]->attrs,
                                      SYSDB_ORIG_DN, &orig_dn);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("The entry has no originalDN\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "The entry has no originalDN\n");
             goto done;
         }
 
@@ -2176,8 +2176,8 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
                                               entries[i]->attrs);
             if (ret != EOK && ret != EEXIST) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Unable to save user in hash table "
-                       "[%d]: %s\n", ret, strerror(ret)));
+                      "Unable to save user in hash table "
+                       "[%d]: %s\n", ret, strerror(ret));
                 goto done;
             }
 
@@ -2186,8 +2186,8 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
 
             /* skip the group if we have reached the nesting limit */
             if (state->nesting_level >= state->group_ctx->max_nesting_level) {
-                DEBUG(SSSDBG_TRACE_ALL, ("[%s] is outside nesting limit "
-                      "(level %d), skipping\n", orig_dn, state->nesting_level));
+                DEBUG(SSSDBG_TRACE_ALL, "[%s] is outside nesting limit "
+                      "(level %d), skipping\n", orig_dn, state->nesting_level);
                 continue;
             }
 
@@ -2203,8 +2203,8 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
                 continue;
             } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Unable to save group in hash table "
-                       "[%d]: %s\n", ret, strerror(ret)));
+                      "Unable to save group in hash table "
+                       "[%d]: %s\n", ret, strerror(ret));
                 goto done;
             }
 
@@ -2215,7 +2215,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
         } else {
             /* this should never happen, but if it does, do not loop forever */
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Entry does not match any known map, skipping\n"));
+                  "Entry does not match any known map, skipping\n");
             continue;
         }
     }
@@ -2252,8 +2252,8 @@ static void sdap_nested_group_deref_direct_done(struct tevent_req *subreq)
     ret = sdap_nested_group_deref_direct_process(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error processing direct membership "
-                                    "[%d]: %s\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error processing direct membership "
+                                    "[%d]: %s\n", ret, strerror(ret));
         goto done;
     }
 
@@ -2276,7 +2276,7 @@ static void sdap_nested_group_deref_direct_done(struct tevent_req *subreq)
 done:
     if (ret == EOK) {
         /* tevent_req_error() cannot cope with EOK */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("We should not get here with EOK\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "We should not get here with EOK\n");
         tevent_req_error(req, EINVAL);
     } else if (ret != EAGAIN) {
         tevent_req_error(req, ret);

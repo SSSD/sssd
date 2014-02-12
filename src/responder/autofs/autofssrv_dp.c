@@ -82,8 +82,8 @@ sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
     talloc_free(key);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not issue DP request [%d]: %s\n",
-               ret, strerror(ret)));
+              "Could not issue DP request [%d]: %s\n",
+               ret, strerror(ret));
         goto error;
     }
 
@@ -112,7 +112,7 @@ sss_dp_get_autofs_msg(void *pvt)
 
     filter = talloc_asprintf(info, "mapname=%s", info->name);
     if (!filter) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;
     }
 
@@ -121,14 +121,14 @@ sss_dp_get_autofs_msg(void *pvt)
                                        DP_INTERFACE,
                                        DP_METHOD_AUTOFSHANDLER);
     if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;
     }
 
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Creating autofs request for [%s][%u][%s]\n",
-           info->dom->name, be_type, filter));
+          "Creating autofs request for [%s][%u][%s]\n",
+           info->dom->name, be_type, filter);
 
     dbret = dbus_message_append_args(msg,
                                      DBUS_TYPE_UINT32, &be_type,
@@ -136,7 +136,7 @@ sss_dp_get_autofs_msg(void *pvt)
                                      DBUS_TYPE_INVALID);
     talloc_free(filter);
     if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build message\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
         dbus_message_unref(msg);
         return NULL;
     }

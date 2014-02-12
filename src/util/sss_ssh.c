@@ -45,7 +45,7 @@ sss_ssh_make_ent(TALLOC_CTX *mem_ctx,
     name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     if (!name) {
         ret = EINVAL;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Host is missing name attribute\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Host is missing name attribute\n");
         goto done;
     }
 

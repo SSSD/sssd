@@ -41,39 +41,39 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
      */
     ret = ad_get_dyndns_options(be_ctx, ad_opts);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not set AD options\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set AD options\n");
         return ret;
     }
 
     if (dp_opt_get_bool(ad_opts->dyndns_ctx->opts,
                         DP_OPT_DYNDNS_UPDATE) == false) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Dynamic DNS updates not set\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, "Dynamic DNS updates not set\n");
         return EOK;
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Dynamic DNS updates are on. Checking for nsupdate..\n"));
+          "Dynamic DNS updates are on. Checking for nsupdate..\n");
     ret = be_nsupdate_check();
     if (ret == ENOENT) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("DNS updates requested but nsupdate not available\n"));
+              "DNS updates requested but nsupdate not available\n");
         return EOK;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not check for nsupdate\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not check for nsupdate\n");
         return ret;
     }
 
     ad_opts->be_res = be_ctx->be_res;
     if (ad_opts->be_res == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Resolver must be initialized in order "
-              "to use the AD dynamic DNS updates\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Resolver must be initialized in order "
+              "to use the AD dynamic DNS updates\n");
         return EINVAL;
     }
 
     ret = be_nsupdate_init_timer(ad_opts->dyndns_ctx, be_ctx->ev,
                                  ad_dyndns_timer, ad_opts);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not set up periodic update\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up periodic update\n");
         return ret;
     }
 
@@ -81,7 +81,7 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
                            ad_dyndns_update,
                            ad_opts, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not set up online callback\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up online callback\n");
         return ret;
     }
 
@@ -99,7 +99,7 @@ void ad_dyndns_timer(void *pvt)
     req = sdap_dyndns_timer_conn_send(ctx, sdap_ctx->be->ev, sdap_ctx,
                                       ctx->dyndns_ctx);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
         /* Not much we can do. Just attempt to reschedule */
         be_nsupdate_timer_schedule(sdap_ctx->be->ev, ctx->dyndns_ctx);
         return;
@@ -116,7 +116,7 @@ static void ad_dyndns_timer_connected(struct tevent_req *req)
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Failed to connect to AD: [%d](%s)\n", ret, sss_strerror(ret)));
+              "Failed to connect to AD: [%d](%s)\n", ret, sss_strerror(ret));
         return;
     }
 
@@ -138,7 +138,7 @@ void ad_dyndns_update(void *pvt)
 
     req = ad_dyndns_update_send(ctx);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not update DNS\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not update DNS\n");
         return;
     }
     tevent_req_set_callback(req, ad_dyndns_nsupdate_done, NULL);
@@ -149,12 +149,12 @@ static void ad_dyndns_nsupdate_done(struct tevent_req *req)
     int ret = ad_dyndns_update_recv(req);
     talloc_free(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Updating DNS entry failed [%d]: %s\n",
-              ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Updating DNS entry failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         return;
     }
 
-    DEBUG(SSSDBG_OP_FAILURE, ("DNS update finished\n"));
+    DEBUG(SSSDBG_OP_FAILURE, "DNS update finished\n");
 }
 
 struct ad_dyndns_update_state {
@@ -173,7 +173,7 @@ ad_dyndns_update_send(struct ad_options *ctx)
     struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
     LDAPURLDesc *lud;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Performing update\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Performing update\n");
 
     req = tevent_req_create(ctx, &state, struct ad_dyndns_update_state);
     if (req == NULL) {
@@ -183,8 +183,8 @@ ad_dyndns_update_send(struct ad_options *ctx)
 
     if (ctx->dyndns_ctx->last_refresh + 60 > time(NULL) ||
         ctx->dyndns_ctx->timer_in_progress) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Last periodic update ran recently or timer"
-              "in progress, not scheduling another update\n"));
+        DEBUG(SSSDBG_FUNC_DATA, "Last periodic update ran recently or timer"
+              "in progress, not scheduling another update\n");
         tevent_req_done(req);
         tevent_req_post(req, sdap_ctx->be->ev);
         return req;
@@ -194,7 +194,7 @@ ad_dyndns_update_send(struct ad_options *ctx)
     ret = ldap_url_parse(ctx->service->sdap->uri, &lud);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to parse ldap URI (%s)!\n", ctx->service->sdap->uri));
+              "Failed to parse ldap URI (%s)!\n", ctx->service->sdap->uri);
         ret = EINVAL;
         goto done;
     }
@@ -202,7 +202,7 @@ ad_dyndns_update_send(struct ad_options *ctx)
     if (lud->lud_scheme != NULL &&
         strcasecmp(lud->lud_scheme, "ldapi") == 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("The LDAP scheme is ldapi://, cannot proceed with update\n"));
+              "The LDAP scheme is ldapi://, cannot proceed with update\n");
         ldap_free_urldesc(lud);
         ret = EINVAL;
         goto done;
@@ -210,8 +210,8 @@ ad_dyndns_update_send(struct ad_options *ctx)
 
     if (lud->lud_host == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("The LDAP URI (%s) did not contain a host name\n",
-              ctx->service->sdap->uri));
+              "The LDAP URI (%s) did not contain a host name\n",
+              ctx->service->sdap->uri);
         ldap_free_urldesc(lud);
         ret = EINVAL;
         goto done;
@@ -243,8 +243,8 @@ ad_dyndns_update_send(struct ad_options *ctx)
     if (!subreq) {
         ret = EIO;
         DEBUG(SSSDBG_OP_FAILURE,
-              ("sdap_id_op_connect_send failed: [%d](%s)\n",
-               ret, sss_strerror(ret)));
+              "sdap_id_op_connect_send failed: [%d](%s)\n",
+               ret, sss_strerror(ret));
         goto done;
     }
     tevent_req_set_callback(subreq, ad_dyndns_sdap_update_done, req);
@@ -268,8 +268,8 @@ static void ad_dyndns_sdap_update_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Dynamic DNS update failed [%d]: %s\n",
-              ret, sss_strerror(ret)));
+              "Dynamic DNS update failed [%d]: %s\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }

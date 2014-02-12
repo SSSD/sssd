@@ -34,7 +34,7 @@ int ipa_sudo_init(struct be_ctx *be_ctx,
     struct ipa_options *ipa_options;
     struct sdap_options *ldap_options;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Initializing sudo IPA back end\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing sudo IPA back end\n");
 
     /*
      * SDAP_SUDO_SEARCH_BASE has already been initialized in
@@ -42,8 +42,8 @@ int ipa_sudo_init(struct be_ctx *be_ctx,
      */
     ret = sdap_sudo_init(be_ctx, id_ctx->sdap_id_ctx, ops, pvt_data);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot initialize LDAP SUDO [%d]: %s\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize LDAP SUDO [%d]: %s\n",
+                                  ret, strerror(ret));
         return ret;
     }
 

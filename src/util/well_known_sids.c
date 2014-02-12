@@ -257,17 +257,17 @@ errno_t well_known_sid_to_name(const char *sid, const char **dom,
     } else if (strncmp(sid, BUILTIN_SID_PREFIX, BUILTIN_SID_PREFIX_LEN) == 0) {
         ret = handle_builtin_sids(sid, dom, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("handle_builtin_sids failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "handle_builtin_sids failed.\n");
         }
     } else if (strncmp(sid, NT_SID_PREFIX, NT_SID_PREFIX_LEN) == 0) {
         ret = handle_nt_sids(sid, dom, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("handle_nt_sids failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "handle_nt_sids failed.\n");
         }
     } else if (strncmp(sid, SPECIAL_SID_PREFIX, SPECIAL_SID_PREFIX_LEN) == 0) {
         ret = handle_special_sids(sid, dom, name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("handle_special_sids failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "handle_special_sids failed.\n");
         }
     } else {
         ret = EINVAL;
@@ -288,12 +288,12 @@ errno_t name_to_well_known_sid(const char *dom, const char *name,
     if (strcmp(dom, NT_DOM_NAME) == 0) {
         ret = handle_nt_names(name, sid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("handle_nt_name failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "handle_nt_name failed.\n");
         }
     } else if (strcmp(dom, BUILTIN_DOM_NAME) == 0) {
         ret = handle_builtin_names(name, sid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("handle_builtin_name failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "handle_builtin_name failed.\n");
         }
     } else if (strcmp(dom, NULL_DOM_NAME) == 0
                 || strcmp(dom, WORLD_DOM_NAME) == 0
@@ -301,7 +301,7 @@ errno_t name_to_well_known_sid(const char *dom, const char *name,
                 || strcmp(dom, CREATOR_DOM_NAME) == 0) {
         ret = handle_special_names(dom, name, sid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("handle_special_name failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "handle_special_name failed.\n");
         }
     } else {
         ret = ENOENT;

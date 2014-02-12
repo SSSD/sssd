@@ -179,12 +179,12 @@ static errno_t be_req_set_domain(struct be_req *be_req, const char *domain)
 
     dom = find_subdomain_by_name(be_req->be_ctx->domain, domain, true);
     if (dom == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown domain [%s]!\n", domain));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain [%s]!\n", domain);
         return ERR_DOMAIN_NOT_FOUND;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Changing request domain from [%s] to [%s]\n",
-                              be_req->domain->name, dom->name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Changing request domain from [%s] to [%s]\n",
+                              be_req->domain->name, dom->name);
     be_req->domain = dom;
 
     return EOK;
@@ -212,11 +212,11 @@ void be_terminate_domain_requests(struct be_ctx *be_ctx,
 {
     struct be_req *be_req = NULL;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Terminating requests for domain [%s]\n",
-                              domain));
+    DEBUG(SSSDBG_TRACE_FUNC, "Terminating requests for domain [%s]\n",
+                              domain);
 
     if (domain == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("BUG: domain is NULL\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: domain is NULL\n");
         return;
     }
 
@@ -367,21 +367,21 @@ static errno_t be_queue_request(TALLOC_CTX *queue_mem_ctx,
     int ret;
 
     if (*req_queue == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Queue is empty, " \
-                                 "running request immediately.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Queue is empty, " \
+                                 "running request immediately.\n");
         ret = be_file_request(req_mem_ctx, be_req, fn);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("be_file_request failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "be_file_request failed.\n");
             return ret;
         }
     }
 
     item = talloc_zero(queue_mem_ctx, struct bet_queue_item);
     if (item == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed, cannot add item to " \
-                                  "request queue.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed, cannot add item to " \
+                                  "request queue.\n");
     } else {
-        DEBUG(SSSDBG_TRACE_ALL, ("Adding request to queue.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Adding request to queue.\n");
         item->mem_ctx = req_mem_ctx;
         item->be_req = be_req;
         item->fn = fn;
@@ -409,7 +409,7 @@ static void be_queue_next_request(struct be_req *be_req, enum bet_type type)
     req_queue = &be_req->becli->bectx->bet_info[type].req_queue;
 
     if (*req_queue == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Queue is empty, nothing to do.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Queue is empty, nothing to do.\n");
         return;
     }
 
@@ -425,7 +425,7 @@ static void be_queue_next_request(struct be_req *be_req, enum bet_type type)
     }
 
     if (*req_queue == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Request queue is empty.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Request queue is empty.\n");
         return;
     }
 
@@ -433,11 +433,11 @@ static void be_queue_next_request(struct be_req *be_req, enum bet_type type)
 
     ret = be_file_request((*req_queue)->mem_ctx, next_be_req, (*req_queue)->fn);
     if (ret == EOK) {
-        DEBUG(SSSDBG_TRACE_ALL, ("Queued request filed successfully.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "Queued request filed successfully.\n");
         return;
     }
 
-    DEBUG(SSSDBG_OP_FAILURE, ("be_file_request failed.\n"));
+    DEBUG(SSSDBG_OP_FAILURE, "be_file_request failed.\n");
 
     be_queue_next_request(next_be_req, type);
 
@@ -458,14 +458,14 @@ static void be_queue_next_request(struct be_req *be_req, enum bet_type type)
                                          DBUS_TYPE_INVALID);
 
         if (!dbret) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to generate dbus reply\n");
             dbus_message_unref(reply);
             goto done;
         }
 
         dbus_conn = sbus_get_connection(next_be_req->becli->conn);
         if (dbus_conn == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "D-BUS not connected\n");
             goto done;
         }
         dbus_connection_send(dbus_conn, reply, NULL);
@@ -488,8 +488,8 @@ bool be_is_offline(struct be_ctx *ctx)
                          &offline_timeout);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to get offline_timeout from confdb. "
-               "Using default value (60 seconds)\n"));
+              "Failed to get offline_timeout from confdb. "
+               "Using default value (60 seconds)\n");
         offline_timeout = 60;
     }
 
@@ -502,7 +502,7 @@ bool be_is_offline(struct be_ctx *ctx)
 
 void be_mark_offline(struct be_ctx *ctx)
 {
-    DEBUG(8, ("Going offline!\n"));
+    DEBUG(8, "Going offline!\n");
 
     ctx->offstat.went_offline = time(NULL);
     ctx->offstat.offline = true;
@@ -559,9 +559,9 @@ static void get_subdomains_callback(struct be_req *req,
     dbus_uint32_t err_min = 0;
     const char *err_msg = NULL;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Backend returned: (%d, %d, %s) [%s]\n",
+    DEBUG(SSSDBG_TRACE_FUNC, "Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
-              dp_pam_err_to_string(req, dp_err_type, errnum)));
+              dp_pam_err_to_string(req, dp_err_type, errnum));
 
     be_queue_next_request(req, BET_SUBDOMAINS);
 
@@ -581,7 +581,7 @@ static void get_subdomains_callback(struct be_req *req,
         }
         if (!err_msg) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to set err_msg, Out of memory?\n"));
+                  "Failed to set err_msg, Out of memory?\n");
             err_msg = "OOM";
         }
 
@@ -592,14 +592,14 @@ static void get_subdomains_callback(struct be_req *req,
                                          DBUS_TYPE_INVALID);
 
         if (!dbret) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to generate dbus reply\n");
             dbus_message_unref(reply);
             goto done;
         }
 
         dbus_conn = sbus_get_connection(req->becli->conn);
         if (dbus_conn == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "D-BUS not connected\n");
             goto done;
         }
         dbus_connection_send(dbus_conn, reply, NULL);
@@ -638,7 +638,7 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
                                 DBUS_TYPE_STRING, &domain_hint,
                                 DBUS_TYPE_INVALID);
     if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,("Failed, to parse message!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE,"Failed, to parse message!\n");
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         return EIO;
     }
@@ -648,7 +648,7 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
 
     /* return an error if corresponding backend target is not configured */
     if (becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops == NULL) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Undefined backend target.\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Undefined backend target.\n");
         err_maj = DP_ERR_FATAL;
         err_min = ENODEV;
         err_msg = "Subdomains back end target is not configured";
@@ -656,13 +656,13 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Got get subdomains [%sforced][%s]\n", force ? "" : "not ",
-          domain_hint == NULL ? "no hint": domain_hint ));
+          "Got get subdomains [%sforced][%s]\n", force ? "" : "not ",
+          domain_hint == NULL ? "no hint": domain_hint );
 
     /* If we are offline return immediately
      */
     if (becli->bectx->offstat.offline) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Cannot proceed, provider is offline.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Cannot proceed, provider is offline.\n");
         err_maj = DP_ERR_OFFLINE;
         err_min = EAGAIN;
         err_msg = "Provider is offline";
@@ -724,14 +724,14 @@ immediate:
                                          DBUS_TYPE_STRING, &err_msg,
                                          DBUS_TYPE_INVALID);
         if (!dbret) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to generate dbus reply\n");
             dbus_message_unref(reply);
             return EIO;
         }
 
         if (!(err_maj == DP_ERR_FATAL && err_min == ENODEV)) {
-            DEBUG(SSSDBG_TRACE_LIBS, ("Request processed. Returned %d,%d,%s\n",
-                  err_maj, err_min, err_msg));
+            DEBUG(SSSDBG_TRACE_LIBS, "Request processed. Returned %d,%d,%s\n",
+                  err_maj, err_min, err_msg);
         }
 
         /* send reply back */
@@ -770,7 +770,7 @@ static void acctinfo_callback(struct be_req *req,
             err_msg = dp_pam_err_to_string(req, dp_err_type, errnum);
         }
         if (!err_msg) {
-            DEBUG(1, ("Failed to set err_msg, Out of memory?\n"));
+            DEBUG(1, "Failed to set err_msg, Out of memory?\n");
             err_msg = "OOM";
         }
 
@@ -780,21 +780,21 @@ static void acctinfo_callback(struct be_req *req,
                                          DBUS_TYPE_STRING, &err_msg,
                                          DBUS_TYPE_INVALID);
         if (!dbret) {
-            DEBUG(1, ("Failed to generate dbus reply\n"));
+            DEBUG(1, "Failed to generate dbus reply\n");
             return;
         }
 
         dbus_conn = sbus_get_connection(req->becli->conn);
         if (!dbus_conn) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "D-BUS not connected\n");
             return;
         }
 
         dbus_connection_send(dbus_conn, reply, NULL);
         dbus_message_unref(reply);
 
-        DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
-                  err_maj, err_min, err_msg));
+        DEBUG(4, "Request processed. Returned %d,%d,%s\n",
+                  err_maj, err_min, err_msg);
     }
 
     /* finally free the request */
@@ -848,7 +848,7 @@ static void acctinfo_initgroups_callback(struct be_req *be_req,
     pr->orig_errstr = errstr;
 
     if (!be_req->be_ctx->nss_cli || !be_req->be_ctx->nss_cli->conn) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("NSS Service not conected\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "NSS Service not conected\n");
         ret = EACCES;
         goto done;
     }
@@ -859,7 +859,7 @@ static void acctinfo_initgroups_callback(struct be_req *be_req,
                                        DP_INTERFACE,
                                        DP_REV_METHOD_INITGR_CHECK);
     if (!msg) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         ret = ENOMEM;
         goto done;
     }
@@ -871,7 +871,7 @@ static void acctinfo_initgroups_callback(struct be_req *be_req,
                                      &pr->groups, pr->gnum,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         ret = ENOMEM;
         goto done;
     }
@@ -881,8 +881,8 @@ static void acctinfo_initgroups_callback(struct be_req *be_req,
                          acctinfo_callback_initgr_sbus, be_req, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Error contacting NSS responder: %d [%s]\n",
-               ret, strerror(ret)));
+              "Error contacting NSS responder: %d [%s]\n",
+               ret, strerror(ret));
     }
 
 done:
@@ -969,7 +969,7 @@ be_file_account_request(struct be_req *be_req, struct be_acct_req *ar)
     if ((ar->entry_type & 0xFF) == BE_REQ_INITGROUPS) {
         ret = be_initgroups_prereq(be_req);
         if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Prerequest failed"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Prerequest failed");
             return ret;
         }
     }
@@ -978,7 +978,7 @@ be_file_account_request(struct be_req *be_req, struct be_acct_req *ar)
     ret = be_file_request(be_ctx, be_req,
                           be_ctx->bet_info[BET_ID].bet_ops->handler);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to file request"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to file request");
         return ret;
     }
 
@@ -1047,8 +1047,8 @@ be_get_account_info_send(TALLOC_CTX *mem_ctx,
 
     ret = be_req_set_domain(be_req, ar->domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set request domain [%d]: %s\n",
-                                    ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set request domain [%d]: %s\n",
+                                    ret, sss_strerror(ret));
         goto done;
     }
 
@@ -1152,12 +1152,12 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
                                 DBUS_TYPE_STRING, &domain,
                                 DBUS_TYPE_INVALID);
     if (!ret) {
-        DEBUG(1,("Failed, to parse message!\n"));
+        DEBUG(1,"Failed, to parse message!\n");
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         return EIO;
     }
 
-    DEBUG(4, ("Got request for [%u][%d][%s]\n", type, attr_type, filter));
+    DEBUG(4, "Got request for [%u][%d][%s]\n", type, attr_type, filter);
 
     reply = dbus_message_new_method_return(message);
     if (!reply) return ENOMEM;
@@ -1178,8 +1178,8 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
                                          DBUS_TYPE_INVALID);
         if (!dbret) return EIO;
 
-        DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
-                  err_maj, err_min, err_msg));
+        DEBUG(4, "Request processed. Returned %d,%d,%s\n",
+                  err_maj, err_min, err_msg);
 
         sbus_conn_send_reply(conn, reply);
         dbus_message_unref(reply);
@@ -1203,8 +1203,8 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
 
     ret = be_req_set_domain(be_req, domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set request domain [%d]: %s\n",
-                                    ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set request domain [%d]: %s\n",
+                                    ret, sss_strerror(ret));
         err_maj = DP_ERR_FATAL;
         err_min = ret;
         err_msg = sss_strerror(ret);
@@ -1302,8 +1302,8 @@ done:
                                          DBUS_TYPE_INVALID);
         if (!dbret) return EIO;
 
-        DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
-                  err_maj, err_min, err_msg));
+        DEBUG(4, "Request processed. Returned %d,%d,%s\n",
+                  err_maj, err_min, err_msg);
 
         /* send reply back */
         sbus_conn_send_reply(conn, reply);
@@ -1325,9 +1325,9 @@ static void be_pam_handler_callback(struct be_req *req,
     dbus_bool_t dbret;
     errno_t ret;
 
-    DEBUG(4, ("Backend returned: (%d, %d, %s) [%s]\n",
+    DEBUG(4, "Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
-              dp_pam_err_to_string(req, dp_err_type, errnum)));
+              dp_pam_err_to_string(req, dp_err_type, errnum));
 
     pd = talloc_get_type(be_req_get_data(req), struct pam_data);
 
@@ -1337,8 +1337,8 @@ static void be_pam_handler_callback(struct be_req *req,
         dp_err_type == DP_ERR_OK) {
         if (!becli->bectx->bet_info[BET_SELINUX].bet_ops) {
             DEBUG(SSSDBG_TRACE_FUNC,
-                  ("SELinux provider doesn't exist, "
-                   "not sending the request to it.\n"));
+                  "SELinux provider doesn't exist, "
+                   "not sending the request to it.\n");
         } else {
             req->phase = REQ_PHASE_SELINUX;
 
@@ -1347,32 +1347,32 @@ static void be_pam_handler_callback(struct be_req *req,
                                   req,
                                   becli->bectx->bet_info[BET_SELINUX].bet_ops->handler);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("be_file_request failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "be_file_request failed.\n");
                 goto done;
             }
             return;
         }
     }
 
-    DEBUG(4, ("Sending result [%d][%s]\n", pd->pam_status, pd->domain));
+    DEBUG(4, "Sending result [%d][%s]\n", pd->pam_status, pd->domain);
     reply = (DBusMessage *)req->pvt;
     dbret = dp_pack_pam_response(reply, pd);
     if (!dbret) {
-        DEBUG(1, ("Failed to generate dbus reply\n"));
+        DEBUG(1, "Failed to generate dbus reply\n");
         dbus_message_unref(reply);
         goto done;
     }
 
     dbus_conn = sbus_get_connection(req->becli->conn);
     if (!dbus_conn) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "D-BUS not connected\n");
         goto done;
     }
 
     dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
 
-    DEBUG(4, ("Sent result [%d][%s]\n", pd->pam_status, pd->domain));
+    DEBUG(4, "Sent result [%d][%s]\n", pd->pam_status, pd->domain);
 
 done:
     talloc_free(req);
@@ -1396,14 +1396,14 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 
     reply = dbus_message_new_method_return(message);
     if (!reply) {
-        DEBUG(1, ("dbus_message_new_method_return failed, cannot send reply.\n"));
+        DEBUG(1, "dbus_message_new_method_return failed, cannot send reply.\n");
         return ENOMEM;
     }
 
     be_req = be_req_create(becli, becli, becli->bectx,
                            be_pam_handler_callback, reply);
     if (!be_req) {
-        DEBUG(7, ("talloc_zero failed.\n"));
+        DEBUG(7, "talloc_zero failed.\n");
         dbus_message_unref(reply);
         return ENOMEM;
     }
@@ -1412,7 +1412,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 
     ret = dp_unpack_pam_request(message, be_req, &pd, &dbus_error);
     if (!ret) {
-        DEBUG(1,("Failed, to parse message!\n"));
+        DEBUG(1,"Failed, to parse message!\n");
         talloc_free(be_req);
         return EIO;
     }
@@ -1428,13 +1428,13 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 
     ret = be_req_set_domain(be_req, pd->domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to set request domain [%d]: %s\n",
-                                    ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set request domain [%d]: %s\n",
+                                    ret, sss_strerror(ret));
         pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
 
-    DEBUG(4, ("Got request with the following data\n"));
+    DEBUG(4, "Got request with the following data\n");
     DEBUG_PAM_DATA(4, pd);
 
     switch (pd->cmd) {
@@ -1456,7 +1456,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
             goto done;
             break;
         default:
-            DEBUG(7, ("Unsupported PAM command [%d].\n", pd->cmd));
+            DEBUG(7, "Unsupported PAM command [%d].\n", pd->cmd);
             pd->pam_status = PAM_MODULE_UNKNOWN;
             goto done;
     }
@@ -1465,7 +1465,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
      * configured
      */
     if (!becli->bectx->bet_info[target].bet_ops) {
-        DEBUG(7, ("Undefined backend target.\n"));
+        DEBUG(7, "Undefined backend target.\n");
         pd->pam_status = PAM_MODULE_UNKNOWN;
         goto done;
     }
@@ -1476,7 +1476,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
                           be_req,
                           becli->bectx->bet_info[target].bet_ops->handler);
     if (ret != EOK) {
-        DEBUG(7, ("be_file_request failed.\n"));
+        DEBUG(7, "be_file_request failed.\n");
         goto done;
     }
 
@@ -1484,12 +1484,12 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 
 done:
 
-    DEBUG(4, ("Sending result [%d][%s]\n",
-              pd->pam_status, pd->domain));
+    DEBUG(4, "Sending result [%d][%s]\n",
+              pd->pam_status, pd->domain);
 
     ret = dp_pack_pam_response(reply, pd);
     if (!ret) {
-        DEBUG(1, ("Failed to generate dbus reply\n"));
+        DEBUG(1, "Failed to generate dbus reply\n");
         talloc_free(be_req);
         dbus_message_unref(reply);
         return EIO;
@@ -1525,16 +1525,16 @@ static void be_sudo_handler_reply(struct sbus_connection *conn,
                                      DBUS_TYPE_STRING, &err_msg,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to generate dbus reply\n");
         return;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, ("SUDO Backend returned: (%d, %d, %s)\n",
-                             dp_err, dp_ret, errstr ? errstr : "<NULL>"));
+    DEBUG(SSSDBG_FUNC_DATA, "SUDO Backend returned: (%d, %d, %s)\n",
+                             dp_err, dp_ret, errstr ? errstr : "<NULL>");
 
     dbus_conn = sbus_get_connection(conn);
     if (!dbus_conn) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "D-BUS not connected\n");
         return;
     }
 
@@ -1572,7 +1572,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     const char *err_msg = NULL;
     int i;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Entering be_sudo_handler()\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Entering be_sudo_handler()\n");
 
     user_data = sbus_conn_get_private_data(conn);
     if (user_data == NULL) {
@@ -1587,7 +1587,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     reply = dbus_message_new_method_return(message);
     if (!reply) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("dbus_message_new_method_return failed, cannot send reply.\n"));
+              "dbus_message_new_method_return failed, cannot send reply.\n");
         return ENOMEM;
     }
 
@@ -1595,7 +1595,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req = be_req_create(be_cli, be_cli, be_cli->bectx,
                            be_sudo_handler_callback, reply);
     if (be_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         dbus_message_unref(reply);
         return ENOMEM;
     }
@@ -1605,7 +1605,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
 
     /* get type of the request */
     if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse the message!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
         ret = EIO;
         err_msg = "Invalid D-Bus message format";
         goto fail;
@@ -1631,7 +1631,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
     /* get and set sudo request data */
     sudo_req = talloc_zero(be_req, struct be_sudo_req);
     if (sudo_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         goto fail;
     }
 
@@ -1649,7 +1649,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
          */
         /* read rules_num */
         if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse the message!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
             ret = EIO;
             err_msg = "Invalid D-Bus message format";
             goto fail;
@@ -1659,7 +1659,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
 
         sudo_req->rules = talloc_array(sudo_req, char*, rules_num + 1);
         if (sudo_req->rules == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_array failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_array failed.\n");
             ret = ENOMEM;
             goto fail;
         }
@@ -1668,13 +1668,13 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
         for (i = 0; i < rules_num; i++) {
             iter_next = dbus_message_iter_next(&iter);
             if (iter_next == FALSE) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse the message!\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
                 ret = EIO;
                 err_msg = "Invalid D-Bus message format";
                 goto fail;
             }
             if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_STRING) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse the message!\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
                 ret = EIO;
                 err_msg = "Invalid D-Bus message format";
                 goto fail;
@@ -1683,7 +1683,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
             dbus_message_iter_get_basic(&iter, &rule);
             sudo_req->rules[i] = talloc_strdup(sudo_req->rules, rule);
             if (sudo_req->rules[i] == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto fail;
             }
@@ -1693,7 +1693,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
 
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid request type %d\n", sudo_req->type));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type %d\n", sudo_req->type);
         ret = EINVAL;
         err_msg = "Invalid DP request type";
         goto fail;
@@ -1703,7 +1703,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
 
     /* return an error if corresponding backend target is not configured */
     if (!be_cli->bectx->bet_info[BET_SUDO].bet_ops) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Undefined backend target.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Undefined backend target.\n");
         ret = ENODEV;
         goto fail;
     }
@@ -1712,7 +1712,7 @@ static int be_sudo_handler(DBusMessage *message, struct sbus_connection *conn)
                           be_req,
                           be_cli->bectx->bet_info[BET_SUDO].bet_ops->handler);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("be_file_request failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "be_file_request failed.\n");
         err_msg = "Cannot file back end request";
         goto fail;
     }
@@ -1748,17 +1748,17 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
     dbus_uint32_t err_min;
     const char *err_msg;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Entering be_autofs_handler()\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Entering be_autofs_handler()\n");
 
     user_data = sbus_conn_get_private_data(conn);
     if (user_data == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get SBUS private data\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get SBUS private data\n");
         return EINVAL;
     }
 
     be_cli = talloc_get_type(user_data, struct be_client);
     if (be_cli == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get back end client context\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get back end client context\n");
         return EINVAL;
     }
 
@@ -1769,7 +1769,7 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
                                 DBUS_TYPE_STRING, &filter,
                                 DBUS_TYPE_INVALID);
     if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse message!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse message!\n");
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         return EIO;
     }
@@ -1777,7 +1777,7 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
     reply = dbus_message_new_method_return(message);
     if (!reply) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("dbus_message_new_method_return failed, cannot send reply.\n"));
+              "dbus_message_new_method_return failed, cannot send reply.\n");
         return ENOMEM;
     }
 
@@ -1797,8 +1797,8 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
                                          DBUS_TYPE_INVALID);
         if (!dbret) return EIO;
 
-        DEBUG(SSSDBG_TRACE_LIBS, ("Request processed. Returned %d,%d,%s\n",
-              err_maj, err_min, err_msg));
+        DEBUG(SSSDBG_TRACE_LIBS, "Request processed. Returned %d,%d,%s\n",
+              err_maj, err_min, err_msg);
 
         sbus_conn_send_reply(conn, reply);
         dbus_message_unref(reply);
@@ -1831,7 +1831,7 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req = be_req_create(be_cli, be_cli, be_cli->bectx,
                            be_autofs_handler_callback, reply);
     if (be_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
         err_msg = "Out of memory";
@@ -1841,7 +1841,7 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
     /* set autofs request data */
     be_autofs_req = talloc_zero(be_req, struct be_autofs_req);
     if (be_autofs_req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
         err_msg = "Out of memory";
@@ -1850,7 +1850,7 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
 
     be_autofs_req->mapname = talloc_strdup(be_autofs_req, filter_val);
     if (be_autofs_req->mapname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
         err_msg = "Out of memory";
@@ -1860,7 +1860,7 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req->req_data = be_autofs_req;
 
     if (!be_cli->bectx->bet_info[BET_AUTOFS].bet_ops) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Undefined backend target.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Undefined backend target.\n");
         err_maj = DP_ERR_FATAL;
         err_min = ENODEV;
         err_msg = "Autofs back end target is not configured";
@@ -1871,7 +1871,7 @@ static int be_autofs_handler(DBusMessage *message, struct sbus_connection *conn)
                           be_req,
                           be_cli->bectx->bet_info[BET_AUTOFS].bet_ops->handler);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("be_file_request failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "be_file_request failed.\n");
         err_maj = DP_ERR_FATAL;
         err_min = ENODEV;
         err_msg = "Cannot file back end request";
@@ -1893,8 +1893,8 @@ done:
                                          DBUS_TYPE_INVALID);
         if (!dbret) return EIO;
 
-        DEBUG(SSSDBG_TRACE_LIBS, ("Request processed. Returned %d,%d,%s\n",
-              err_maj, err_min, err_msg));
+        DEBUG(SSSDBG_TRACE_LIBS, "Request processed. Returned %d,%d,%s\n",
+              err_maj, err_min, err_msg);
 
         /* send reply back */
         sbus_conn_send_reply(conn, reply);
@@ -1933,7 +1933,7 @@ static void be_autofs_handler_callback(struct be_req *req,
         }
         if (!err_msg) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to set err_msg, Out of memory?\n"));
+                  "Failed to set err_msg, Out of memory?\n");
             err_msg = "OOM";
         }
 
@@ -1943,13 +1943,13 @@ static void be_autofs_handler_callback(struct be_req *req,
                                          DBUS_TYPE_STRING, &err_msg,
                                          DBUS_TYPE_INVALID);
         if (!dbret) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to generate dbus reply\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to generate dbus reply\n");
             return;
         }
 
         dbus_conn = sbus_get_connection(req->becli->conn);
         if (!dbus_conn) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("D-BUS not connected\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "D-BUS not connected\n");
             return;
         }
 
@@ -1957,8 +1957,8 @@ static void be_autofs_handler_callback(struct be_req *req,
         dbus_message_unref(reply);
 
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Request processed. Returned %d,%d,%s\n",
-               err_maj, err_min, err_msg));
+              "Request processed. Returned %d,%d,%s\n",
+               err_maj, err_min, err_msg);
     }
 
     /* finally free the request */
@@ -1995,13 +1995,13 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
                                 DBUS_TYPE_STRING, &filter,
                                 DBUS_TYPE_INVALID);
     if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed, to parse message!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse message!\n");
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         return EIO;
     }
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Got request for [%u][%s]\n", flags, filter));
+          "Got request for [%u][%s]\n", flags, filter);
 
     reply = dbus_message_new_method_return(message);
     if (!reply) return ENOMEM;
@@ -2023,8 +2023,8 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
         if (!dbret) return EIO;
 
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Request processed. Returned %d,%d,%s\n",
-               err_maj, err_min, err_msg));
+              "Request processed. Returned %d,%d,%s\n",
+               err_maj, err_min, err_msg);
 
         sbus_conn_send_reply(conn, reply);
         dbus_message_unref(reply);
@@ -2082,7 +2082,7 @@ static int be_host_handler(DBusMessage *message, struct sbus_connection *conn)
     /* process request */
 
     if (!becli->bectx->bet_info[BET_HOSTID].bet_ops) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Undefined backend target.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Undefined backend target.\n");
         err_maj = DP_ERR_FATAL;
         err_min = ENODEV;
         err_msg = "HostID back end target is not configured";
@@ -2115,8 +2115,8 @@ done:
         if (!dbret) return EIO;
 
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Request processed. Returned %d,%d,%s\n",
-               err_maj, err_min, err_msg));
+              "Request processed. Returned %d,%d,%s\n",
+               err_maj, err_min, err_msg);
 
         /* send reply back */
         sbus_conn_send_reply(conn, reply);
@@ -2131,25 +2131,25 @@ static int be_client_destructor(void *ctx)
     struct be_client *becli = talloc_get_type(ctx, struct be_client);
     if (becli->bectx) {
         if (becli->bectx->nss_cli == becli) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Removed NSS client\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Removed NSS client\n");
             becli->bectx->nss_cli = NULL;
         } else if (becli->bectx->pam_cli == becli) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Removed PAM client\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Removed PAM client\n");
             becli->bectx->pam_cli = NULL;
         } else if (becli->bectx->sudo_cli == becli) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Removed SUDO client\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Removed SUDO client\n");
             becli->bectx->sudo_cli = NULL;
         } else if (becli->bectx->autofs_cli == becli) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Removed autofs client\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Removed autofs client\n");
             becli->bectx->autofs_cli = NULL;
         } else if (becli->bectx->ssh_cli == becli) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Removed SSH client\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Removed SSH client\n");
             becli->bectx->ssh_cli = NULL;
         } else if (becli->bectx->pac_cli == becli) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Removed PAC client\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Removed PAC client\n");
             becli->bectx->pac_cli = NULL;
         } else {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Unknown client removed ...\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown client removed ...\n");
         }
     }
     return 0;
@@ -2170,12 +2170,12 @@ static int client_registration(DBusMessage *message,
     data = sbus_conn_get_private_data(conn);
     becli = talloc_get_type(data, struct be_client);
     if (!becli) {
-        DEBUG(0, ("Connection holds no valid init data\n"));
+        DEBUG(0, "Connection holds no valid init data\n");
         return EINVAL;
     }
 
     /* First thing, cancel the timeout */
-    DEBUG(4, ("Cancel DP ID timeout [%p]\n", becli->timeout));
+    DEBUG(4, "Cancel DP ID timeout [%p]\n", becli->timeout);
     talloc_zfree(becli->timeout);
 
     dbus_error_init(&dbus_error);
@@ -2185,7 +2185,7 @@ static int client_registration(DBusMessage *message,
                                   DBUS_TYPE_STRING, &cli_name,
                                   DBUS_TYPE_INVALID);
     if (!dbret) {
-        DEBUG(1, ("Failed to parse message, killing connection\n"));
+        DEBUG(1, "Failed to parse message, killing connection\n");
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         sbus_disconnect(conn);
         /* FIXME: should we just talloc_zfree(conn) ? */
@@ -2205,16 +2205,16 @@ static int client_registration(DBusMessage *message,
     } else if (strcasecmp(cli_name, "PAC") == 0) {
         becli->bectx->pac_cli = becli;
     } else {
-        DEBUG(1, ("Unknown client! [%s]\n", cli_name));
+        DEBUG(1, "Unknown client! [%s]\n", cli_name);
     }
     talloc_set_destructor((TALLOC_CTX *)becli, be_client_destructor);
 
-    DEBUG(4, ("Added Frontend client [%s]\n", cli_name));
+    DEBUG(4, "Added Frontend client [%s]\n", cli_name);
 
     /* reply that all is ok */
     reply = dbus_message_new_method_return(message);
     if (!reply) {
-        DEBUG(0, ("Dbus Out of memory!\n"));
+        DEBUG(0, "Dbus Out of memory!\n");
         return ENOMEM;
     }
 
@@ -2222,7 +2222,7 @@ static int client_registration(DBusMessage *message,
                                      DBUS_TYPE_UINT16, &version,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
-        DEBUG(0, ("Failed to build dbus reply\n"));
+        DEBUG(0, "Failed to build dbus reply\n");
         dbus_message_unref(reply);
         sbus_disconnect(conn);
         return EIO;
@@ -2246,7 +2246,7 @@ static errno_t be_file_check_online_request(struct be_req *req)
     ret = be_file_request(req->be_ctx, req,
                           req->be_ctx->bet_info[BET_ID].bet_ops->check_online);
     if (ret != EOK) {
-        DEBUG(1, ("be_file_request failed.\n"));
+        DEBUG(1, "be_file_request failed.\n");
     }
 
     return ret;
@@ -2257,16 +2257,16 @@ static void check_online_callback(struct be_req *req, int dp_err_type,
 {
     int ret;
 
-    DEBUG(4, ("Backend returned: (%d, %d, %s) [%s]\n",
+    DEBUG(4, "Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
-              dp_pam_err_to_string(req, dp_err_type, errnum)));
+              dp_pam_err_to_string(req, dp_err_type, errnum));
 
     req->be_ctx->check_online_ref_count--;
 
     if (dp_err_type != DP_ERR_OK && req->be_ctx->check_online_ref_count > 0) {
         ret = be_file_check_online_request(req);
         if (ret != EOK) {
-            DEBUG(1, ("be_file_check_online_request failed.\n"));
+            DEBUG(1, "be_file_check_online_request failed.\n");
             goto done;
         }
         return;
@@ -2294,37 +2294,37 @@ static void check_if_online(struct be_ctx *ctx)
     be_run_unconditional_online_cb(ctx);
 
     if (ctx->offstat.offline == false) {
-        DEBUG(8, ("Backend is already online, nothing to do.\n"));
+        DEBUG(8, "Backend is already online, nothing to do.\n");
         return;
     }
 
     /* Make sure nobody tries to go online while we are checking */
     ctx->offstat.went_offline = time(NULL);
 
-    DEBUG(8, ("Trying to go back online!\n"));
+    DEBUG(8, "Trying to go back online!\n");
 
     ctx->check_online_ref_count++;
 
     if (ctx->check_online_ref_count != 1) {
-        DEBUG(8, ("There is an online check already running.\n"));
+        DEBUG(8, "There is an online check already running.\n");
         return;
     }
 
     if (ctx->bet_info[BET_ID].bet_ops->check_online == NULL) {
-        DEBUG(8, ("ID providers does not provide a check_online method.\n"));
+        DEBUG(8, "ID providers does not provide a check_online method.\n");
         goto failed;
     }
 
     be_req = be_req_create(ctx, NULL, ctx,
                            check_online_callback, NULL);
     if (be_req == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
+        DEBUG(1, "talloc_zero failed.\n");
         goto failed;
     }
 
     ret = be_file_check_online_request(be_req);
     if (ret != EOK) {
-        DEBUG(1, ("be_file_check_online_request failed.\n"));
+        DEBUG(1, "be_file_check_online_request failed.\n");
         goto failed;
     }
 
@@ -2332,7 +2332,7 @@ static void check_if_online(struct be_ctx *ctx)
 
 failed:
     ctx->check_online_ref_count--;
-    DEBUG(1, ("Failed to run a check_online test.\n"));
+    DEBUG(1, "Failed to run a check_online test.\n");
 
     talloc_free(be_req);
 
@@ -2350,7 +2350,7 @@ static void init_timeout(struct tevent_context *ev,
 {
     struct be_client *becli;
 
-    DEBUG(2, ("Client timed out before Identification [%p]!\n", te));
+    DEBUG(2, "Client timed out before Identification [%p]!\n", te);
 
     becli = talloc_get_type(ptr, struct be_client);
 
@@ -2371,7 +2371,7 @@ static int be_client_init(struct sbus_connection *conn, void *data)
 
     becli = talloc(conn, struct be_client);
     if (!becli) {
-        DEBUG(0,("Out of memory?!\n"));
+        DEBUG(0,"Out of memory?!\n");
         talloc_zfree(conn);
         return ENOMEM;
     }
@@ -2385,11 +2385,11 @@ static int be_client_init(struct sbus_connection *conn, void *data)
     becli->timeout = tevent_add_timer(bectx->ev, becli,
                                       tv, init_timeout, becli);
     if (!becli->timeout) {
-        DEBUG(0,("Out of memory?!\n"));
+        DEBUG(0,"Out of memory?!\n");
         talloc_zfree(conn);
         return ENOMEM;
     }
-    DEBUG(4, ("Set-up Backend ID timeout [%p]\n", becli->timeout));
+    DEBUG(4, "Set-up Backend ID timeout [%p]\n", becli->timeout);
 
     /* Attach the client context to the connection context, so that it is
      * always available when we need to manage the connection. */
@@ -2408,7 +2408,7 @@ static int be_srv_init(struct be_ctx *ctx)
     /* Set up SBUS connection to the monitor */
     ret = dp_get_sbus_address(ctx, &sbus_address, ctx->domain->name);
     if (ret != EOK) {
-        DEBUG(0, ("Could not get sbus backend address.\n"));
+        DEBUG(0, "Could not get sbus backend address.\n");
         return ret;
     }
 
@@ -2416,7 +2416,7 @@ static int be_srv_init(struct be_ctx *ctx)
                           &be_interface, true, &ctx->sbus_srv,
                           be_client_init, ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up sbus server.\n"));
+        DEBUG(0, "Could not set up sbus server.\n");
         return ret;
     }
 
@@ -2427,7 +2427,7 @@ static void be_target_access_permit(struct be_req *be_req)
 {
     struct pam_data *pd =
                     talloc_get_type(be_req_get_data(be_req), struct pam_data);
-    DEBUG(9, ("be_target_access_permit called, returning PAM_SUCCESS.\n"));
+    DEBUG(9, "be_target_access_permit called, returning PAM_SUCCESS.\n");
 
     pd->pam_status = PAM_SUCCESS;
     be_req_terminate(be_req, DP_ERR_OK, PAM_SUCCESS, NULL);
@@ -2443,7 +2443,7 @@ static void be_target_access_deny(struct be_req *be_req)
 {
     struct pam_data *pd =
                     talloc_get_type(be_req_get_data(be_req), struct pam_data);
-    DEBUG(9, ("be_target_access_deny called, returning PAM_PERM_DENIED.\n"));
+    DEBUG(9, "be_target_access_deny called, returning PAM_PERM_DENIED.\n");
 
     pd->pam_status = PAM_PERM_DENIED;
     be_req_terminate(be_req, DP_ERR_OK, PAM_PERM_DENIED, NULL);
@@ -2477,13 +2477,13 @@ static int load_backend_module(struct be_ctx *ctx,
 
     if (bet_type <= BET_NULL || bet_type >= BET_MAX ||
         bet_type != bet_data[bet_type].bet_type) {
-        DEBUG(2, ("invalid bet_type or bet_data corrupted.\n"));
+        DEBUG(2, "invalid bet_type or bet_data corrupted.\n");
         return EINVAL;
     }
 
     tmp_ctx = talloc_new(ctx);
     if (!tmp_ctx) {
-        DEBUG(7, ("talloc_new failed.\n"));
+        DEBUG(7, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -2496,8 +2496,8 @@ static int load_backend_module(struct be_ctx *ctx,
     }
     if (!mod_name) {
         if (default_mod_name != NULL) {
-            DEBUG(5, ("no module name found in confdb, using [%s].\n",
-                      default_mod_name));
+            DEBUG(5, "no module name found in confdb, using [%s].\n",
+                      default_mod_name);
             mod_name = talloc_strdup(ctx, default_mod_name);
         } else {
             ret = ENOENT;
@@ -2533,7 +2533,7 @@ static int load_backend_module(struct be_ctx *ctx,
                                        bet_data[bet_type].mod_init_fn_name_fmt,
                                        mod_name);
     if (mod_init_fn_name == NULL) {
-        DEBUG(7, ("talloc_asprintf failed\n"));
+        DEBUG(7, "talloc_asprintf failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -2543,14 +2543,14 @@ static int load_backend_module(struct be_ctx *ctx,
     while(ctx->loaded_be[lb].be_name != NULL) {
         if (strncmp(ctx->loaded_be[lb].be_name, mod_name,
                     strlen(mod_name)) == 0) {
-            DEBUG(7, ("Backend [%s] already loaded.\n", mod_name));
+            DEBUG(7, "Backend [%s] already loaded.\n", mod_name);
             already_loaded = true;
             break;
         }
 
         ++lb;
         if (lb >= BET_MAX) {
-            DEBUG(2, ("Backend context corrupted.\n"));
+            DEBUG(2, "Backend context corrupted.\n");
             ret = EINVAL;
             goto done;
         }
@@ -2564,11 +2564,11 @@ static int load_backend_module(struct be_ctx *ctx,
             goto done;
         }
 
-        DEBUG(7, ("Loading backend [%s] with path [%s].\n", mod_name, path));
+        DEBUG(7, "Loading backend [%s] with path [%s].\n", mod_name, path);
         handle = dlopen(path, RTLD_NOW);
         if (!handle) {
-            DEBUG(0, ("Unable to load %s module with path (%s), error: %s\n",
-                      mod_name, path, dlerror()));
+            DEBUG(0, "Unable to load %s module with path (%s), error: %s\n",
+                      mod_name, path, dlerror());
             ret = ELIBACC;
             goto done;
         }
@@ -2587,8 +2587,8 @@ static int load_backend_module(struct be_ctx *ctx,
              * handle the different types of error conditions. */
             ret = ENOENT;
         } else {
-            DEBUG(0, ("Unable to load init fn %s from module %s, error: %s\n",
-                      mod_init_fn_name, mod_name, dlerror()));
+            DEBUG(0, "Unable to load init fn %s from module %s, error: %s\n",
+                      mod_init_fn_name, mod_name, dlerror());
             ret = ELIBBAD;
         }
         goto done;
@@ -2596,8 +2596,8 @@ static int load_backend_module(struct be_ctx *ctx,
 
     ret = mod_init_fn(ctx, &(*bet_info).bet_ops, &(*bet_info).pvt_bet_data);
     if (ret != EOK) {
-        DEBUG(0, ("Error (%d) in module (%s) initialization (%s)!\n",
-                  ret, mod_name, mod_init_fn_name));
+        DEBUG(0, "Error (%d) in module (%s) initialization (%s)!\n",
+                  ret, mod_name, mod_init_fn_name);
         goto done;
     }
 
@@ -2632,7 +2632,7 @@ int be_process_init_sudo(struct be_ctx *be_ctx)
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
@@ -2640,8 +2640,8 @@ int be_process_init_sudo(struct be_ctx *be_ctx)
                                     CONFDB_MONITOR_CONF_ENTRY,
                                     CONFDB_MONITOR_ACTIVE_SERVICES, &services);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to read from confdb [%d]: %s\n",
-                                     ret, strerror(ret)));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read from confdb [%d]: %s\n",
+                                     ret, strerror(ret));
         goto done;
     }
 
@@ -2655,15 +2655,15 @@ int be_process_init_sudo(struct be_ctx *be_ctx)
     ret = confdb_get_string(be_ctx->cdb, tmp_ctx, be_ctx->conf_path,
                             CONFDB_DOMAIN_SUDO_PROVIDER, NULL, &provider);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to read from confdb [%d]: %s\n",
-                                     ret, strerror(ret)));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to read from confdb [%d]: %s\n",
+                                     ret, strerror(ret));
         goto done;
     }
 
     if (!responder_enabled && provider == NULL) {
         /* provider is not set explicitly */
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("SUDO is not listed in services, disabling SUDO module.\n"));
+              "SUDO is not listed in services, disabling SUDO module.\n");
         ret = ENOENT;
         goto done;
     }
@@ -2671,8 +2671,8 @@ int be_process_init_sudo(struct be_ctx *be_ctx)
     if (!responder_enabled && provider != NULL
             && strcmp(provider, NO_PROVIDER) != 0) {
         /* provider is set but responder is disabled */
-        DEBUG(SSSDBG_MINOR_FAILURE, ("SUDO provider is set, but it is not "
-              "listed in active services. SUDO support will not work!\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "SUDO provider is set, but it is not "
+              "listed in active services. SUDO support will not work!\n");
     }
 
     ret = load_backend_module(be_ctx, BET_SUDO, &be_ctx->bet_info[BET_SUDO],
@@ -2694,7 +2694,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
 
     ctx = talloc_zero(mem_ctx, struct be_ctx);
     if (!ctx) {
-        DEBUG(0, ("fatal error initializing be_ctx\n"));
+        DEBUG(0, "fatal error initializing be_ctx\n");
         return ENOMEM;
     }
     ctx->ev = ev;
@@ -2702,7 +2702,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     ctx->identity = talloc_asprintf(ctx, "%%BE_%s", be_domain);
     ctx->conf_path = talloc_asprintf(ctx, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (!ctx->identity || !ctx->conf_path) {
-        DEBUG(0, ("Out of memory!?\n"));
+        DEBUG(0, "Out of memory!?\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -2710,13 +2710,13 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     ret = be_init_failover(ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("fatal error initializing failover context\n"));
+              "fatal error initializing failover context\n");
         goto fail;
     }
 
     ret = sssd_domain_init(ctx, cdb, be_domain, DB_PATH, &ctx->domain);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error opening cache database\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error opening cache database\n");
         goto fail;
     }
 
@@ -2725,7 +2725,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                            ctx, &ctx->mon_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("fatal error setting up monitor bus\n"));
+              "fatal error setting up monitor bus\n");
         goto fail;
     }
 
@@ -2735,21 +2735,21 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                          ctx->domain->name, &ctx->domain->names);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("fatal error setting fully qualified name format for %s\n",
-              ctx->domain->name));
+              "fatal error setting fully qualified name format for %s\n",
+              ctx->domain->name);
         goto fail;
     }
 
     ret = be_srv_init(ctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error setting up server bus\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up server bus\n");
         goto fail;
     }
 
     /* Initialize be_refresh periodic task. */
     ctx->refresh_ctx = be_refresh_ctx_init(ctx);
     if (ctx->refresh_ctx == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to initialize refresh_ctx\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize refresh_ctx\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -2762,7 +2762,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                               ctx->refresh_ctx, "Refresh Records", NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Unable to initialize refresh periodic task\n"));
+                  "Unable to initialize refresh periodic task\n");
             goto fail;
         }
     }
@@ -2771,12 +2771,12 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                               &ctx->bet_info[BET_ID], NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("fatal error initializing data providers\n"));
+              "fatal error initializing data providers\n");
         goto fail;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("ID backend target successfully loaded from provider [%s].\n",
-          ctx->bet_info[BET_ID].mod_name));
+          "ID backend target successfully loaded from provider [%s].\n",
+          ctx->bet_info[BET_ID].mod_name);
 
     ret = load_backend_module(ctx, BET_AUTH,
                               &ctx->bet_info[BET_AUTH],
@@ -2784,28 +2784,28 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("fatal error initializing data providers\n"));
+                  "fatal error initializing data providers\n");
             goto fail;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("No authentication module provided for [%s] !!\n",
-              be_domain));
+              "No authentication module provided for [%s] !!\n",
+              be_domain);
     } else {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("AUTH backend target successfully loaded "
-               "from provider [%s].\n", ctx->bet_info[BET_AUTH].mod_name));
+              "AUTH backend target successfully loaded "
+               "from provider [%s].\n", ctx->bet_info[BET_AUTH].mod_name);
     }
 
     ret = load_backend_module(ctx, BET_ACCESS, &ctx->bet_info[BET_ACCESS],
                               ACCESS_PERMIT);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to setup ACCESS backend.\n"));
+              "Failed to setup ACCESS backend.\n");
         goto fail;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("ACCESS backend target successfully loaded "
-           "from provider [%s].\n", ctx->bet_info[BET_ACCESS].mod_name));
+          "ACCESS backend target successfully loaded "
+           "from provider [%s].\n", ctx->bet_info[BET_ACCESS].mod_name);
 
     ret = load_backend_module(ctx, BET_CHPASS,
                               &ctx->bet_info[BET_CHPASS],
@@ -2813,31 +2813,31 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("fatal error initializing data providers\n"));
+                  "fatal error initializing data providers\n");
             goto fail;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("No change password module provided for [%s] !!\n",
-               be_domain));
+              "No change password module provided for [%s] !!\n",
+               be_domain);
     } else {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("CHPASS backend target successfully loaded "
-               "from provider [%s].\n", ctx->bet_info[BET_CHPASS].mod_name));
+              "CHPASS backend target successfully loaded "
+               "from provider [%s].\n", ctx->bet_info[BET_CHPASS].mod_name);
     }
 
     ret = be_process_init_sudo(ctx);
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("fatal error initializing data providers\n"));
+                  "fatal error initializing data providers\n");
             goto fail;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("No SUDO module provided for [%s] !!\n", be_domain));
+              "No SUDO module provided for [%s] !!\n", be_domain);
     } else {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("SUDO backend target successfully loaded "
-               "from provider [%s].\n", ctx->bet_info[BET_SUDO].mod_name));
+              "SUDO backend target successfully loaded "
+               "from provider [%s].\n", ctx->bet_info[BET_SUDO].mod_name);
     }
 
     ret = load_backend_module(ctx, BET_AUTOFS,
@@ -2846,15 +2846,15 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("fatal error initializing data providers\n"));
+                  "fatal error initializing data providers\n");
             goto fail;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("No autofs module provided for [%s] !!\n", be_domain));
+              "No autofs module provided for [%s] !!\n", be_domain);
     } else {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("autofs backend target successfully loaded "
-               "from provider [%s].\n", ctx->bet_info[BET_AUTOFS].mod_name));
+              "autofs backend target successfully loaded "
+               "from provider [%s].\n", ctx->bet_info[BET_AUTOFS].mod_name);
     }
 
     ret = load_backend_module(ctx, BET_SELINUX,
@@ -2862,14 +2862,14 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                               ctx->bet_info[BET_ID].mod_name);
     if (ret != EOK) {
         if (ret != ENOENT) {
-            DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing data providers\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing data providers\n");
             goto fail;
         }
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No selinux module provided for [%s] !!\n",
-                  be_domain));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No selinux module provided for [%s] !!\n",
+                  be_domain);
     } else {
-        DEBUG(SSSDBG_TRACE_ALL, ("selinux backend target successfully loaded "
-                  "from provider [%s].\n", ctx->bet_info[BET_SELINUX].mod_name));
+        DEBUG(SSSDBG_TRACE_ALL, "selinux backend target successfully loaded "
+                  "from provider [%s].\n", ctx->bet_info[BET_SELINUX].mod_name);
     }
 
     ret = load_backend_module(ctx, BET_HOSTID,
@@ -2878,26 +2878,26 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("fatal error initializing data providers\n"));
+                  "fatal error initializing data providers\n");
             goto fail;
         }
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("No host info module provided for [%s] !!\n", be_domain));
+              "No host info module provided for [%s] !!\n", be_domain);
     } else {
         DEBUG(SSSDBG_TRACE_ALL,
-              ("HOST backend target successfully loaded from provider [%s].\n",
-               ctx->bet_info[BET_HOSTID].mod_name));
+              "HOST backend target successfully loaded from provider [%s].\n",
+               ctx->bet_info[BET_HOSTID].mod_name);
     }
 
     ret = load_backend_module(ctx, BET_SUBDOMAINS,
                               &ctx->bet_info[BET_SUBDOMAINS],
                               ctx->bet_info[BET_ID].mod_name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Subdomains are not supported for [%s] !!\n", be_domain));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Subdomains are not supported for [%s] !!\n", be_domain);
     } else {
-        DEBUG(SSSDBG_TRACE_ALL, ("Get-Subdomains backend target successfully loaded "
+        DEBUG(SSSDBG_TRACE_ALL, "Get-Subdomains backend target successfully loaded "
                   "from provider [%s].\n",
-                  ctx->bet_info[BET_SUBDOMAINS].mod_name));
+                  ctx->bet_info[BET_SUBDOMAINS].mod_name);
     }
 
     /* Handle SIGUSR1 to force offline behavior */
@@ -2971,20 +2971,20 @@ int main(int argc, const char *argv[])
 
     ret = server_setup(srv_name, 0, confdb_path, &main_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up mainloop [%d]\n", ret));
+        DEBUG(0, "Could not set up mainloop [%d]\n", ret);
         return 2;
     }
 
     ret = setenv(SSS_DOM_ENV, be_domain, 1);
     if (ret != 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Setting "SSS_DOM_ENV" failed, journald "
-              "logging mightnot work as expected\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Setting "SSS_DOM_ENV" failed, journald "
+              "logging mightnot work as expected\n");
     }
 
     ret = die_if_parent_died();
     if (ret != EOK) {
         /* This is not fatal, don't return */
-        DEBUG(2, ("Could not set up to exit when parent process does\n"));
+        DEBUG(2, "Could not set up to exit when parent process does\n");
     }
 
     ret = be_process_init(main_ctx,
@@ -2992,11 +2992,11 @@ int main(int argc, const char *argv[])
                           main_ctx->event_ctx,
                           main_ctx->confdb_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not initialize backend [%d]\n", ret));
+        DEBUG(0, "Could not initialize backend [%d]\n", ret);
         return 3;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Backend provider (%s) started!\n", be_domain));
+    DEBUG(SSSDBG_TRACE_FUNC, "Backend provider (%s) started!\n", be_domain);
 
     /* loop on main */
     server_loop(main_ctx);

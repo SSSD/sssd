@@ -63,7 +63,7 @@ get_autofs_entry_attr(struct sysdb_attrs *entry, struct sdap_options *opts,
     if (ret) return NULL;
     if (el->num_values != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Expected one entry got %d\n", el->num_values));
+              "Expected one entry got %d\n", el->num_values);
         return NULL;
     }
 
@@ -93,13 +93,13 @@ add_autofs_entry(struct sss_domain_info *domain,
 
     key = get_autofs_entry_key(entry, opts);
     if (!key) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not get autofs entry key\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not get autofs entry key\n");
         return EINVAL;
     }
 
     value = get_autofs_entry_value(entry, opts);
     if (!value) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not get autofs entry value\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not get autofs entry value\n");
         return EINVAL;
     }
 
@@ -131,30 +131,30 @@ save_autofs_entries(struct sss_domain_info *domain,
         hret = hash_lookup(entry_hash, &key, &value);
         if (hret != HASH_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Cannot retrieve entry [%s] from hash\n", add_dn_list[i]));
+                  "Cannot retrieve entry [%s] from hash\n", add_dn_list[i]);
             continue;
         }
 
         entry = talloc_get_type(value.ptr, struct sysdb_attrs);
         if (!entry) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Cannot retrieve entry [%s] from ptr\n", add_dn_list[i]));
+                  "Cannot retrieve entry [%s] from ptr\n", add_dn_list[i]);
             continue;
         }
 
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Saving autofs entry [%s]\n", add_dn_list[i]));
+              "Saving autofs entry [%s]\n", add_dn_list[i]);
         ret = add_autofs_entry(domain, map, opts, entry);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Cannot save entry [%s] to cache\n", add_dn_list[i]));
+                  "Cannot save entry [%s] to cache\n", add_dn_list[i]);
             continue;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("Saved entry [%s]\n", add_dn_list[i]));
+        DEBUG(SSSDBG_TRACE_FUNC, "Saved entry [%s]\n", add_dn_list[i]);
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("All entries saved\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "All entries saved\n");
     return EOK;
 }
 
@@ -169,17 +169,17 @@ del_autofs_entries(struct sss_domain_info *dom,
 
     for (i=0; del_dn_list[i]; i++) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Removing autofs entry [%s]\n", del_dn_list[i]));
+              "Removing autofs entry [%s]\n", del_dn_list[i]);
 
         ret = sysdb_del_autofsentry(dom, del_dn_list[i]);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Cannot delete entry %s\n", del_dn_list[i]));
+                  "Cannot delete entry %s\n", del_dn_list[i]);
             continue;
         }
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("All entries removed\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "All entries removed\n");
     return EOK;
 }
 
@@ -262,7 +262,7 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
                     opts->autofs_entry_map[SDAP_AT_AUTOFS_ENTRY_KEY].name,
                     opts->autofs_entry_map[SDAP_OC_AUTOFS_ENTRY].name);
     if (!state->base_filter) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build filter\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto immediate;
     }
@@ -271,7 +271,7 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
                                SDAP_OPTS_AUTOFS_ENTRY, NULL,
                                &state->attrs, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build attributes from map\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build attributes from map\n");
         ret = ENOMEM;
         goto immediate;
     }
@@ -279,17 +279,17 @@ automntmaps_process_members_send(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_attrs_get_string(state->map, SYSDB_ORIG_DN, &state->orig_dn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot get originalDN\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get originalDN\n");
         goto immediate;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Examining autofs map [%s]\n", state->orig_dn));
+          "Examining autofs map [%s]\n", state->orig_dn);
 
     ret = automntmaps_process_members_next_base(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("search failed [%d]: %s\n", ret, strerror(ret)));
+              "search failed [%d]: %s\n", ret, strerror(ret));
         goto immediate;
     }
 
@@ -321,8 +321,8 @@ automntmaps_process_members_next_base(struct tevent_req *req)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Searching for automount map entries with base [%s]\n",
-           state->search_bases[state->base_iter]->basedn));
+          "Searching for automount map entries with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn);
 
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    state->orig_dn,
@@ -332,7 +332,7 @@ automntmaps_process_members_next_base(struct tevent_req *req)
                                    SDAP_OPTS_AUTOFS_ENTRY,
                                    state->timeout, true);
     if (!subreq) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot start search for entries\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot start search for entries\n");
         return EIO;
     }
     tevent_req_set_callback(subreq, automntmaps_process_members_done, req);
@@ -386,11 +386,11 @@ automntmaps_process_members_done(struct tevent_req *subreq)
         }
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("No more search bases to try\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "No more search bases to try\n");
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Search for autofs entries, returned %zu results.\n",
-          state->entries_count));
+          "Search for autofs entries, returned %zu results.\n",
+          state->entries_count);
 
     tevent_req_done(req);
     return;
@@ -501,8 +501,8 @@ sdap_get_automntmap_next_base(struct tevent_req *req)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Searching for automount maps with base [%s]\n",
-           state->search_bases[state->base_iter]->basedn));
+          "Searching for automount maps with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn);
 
     subreq = sdap_get_generic_send(
             state, state->ev, state->opts, state->sh,
@@ -541,7 +541,7 @@ sdap_get_automntmap_process(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Search for autofs maps, returned %zu results.\n", state->count));
+          "Search for autofs maps, returned %zu results.\n", state->count);
 
     if (state->count == 0) {
         /* No maps found in this search */
@@ -559,12 +559,12 @@ sdap_get_automntmap_process(struct tevent_req *subreq)
         return;
     } else if (state->count > 1) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("The search yielded more than one autofs map\n"));
+              "The search yielded more than one autofs map\n");
         tevent_req_error(req, EIO);
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Processing autofs maps\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Processing autofs maps\n");
     subreq = automntmaps_process_members_send(state, state->ev, state->opts,
                                               state->sh, state->dom,
                                               state->search_bases,
@@ -596,7 +596,7 @@ sdap_get_automntmap_done(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("automount map members received\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "automount map members received\n");
     tevent_req_done(req);
     return;
 }
@@ -669,7 +669,7 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     if (!mapname) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No map name given\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No map name given\n");
         ret = EINVAL;
         goto fail;
     }
@@ -691,7 +691,7 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
                     clean_mapname,
                     state->opts->autofs_mobject_map[SDAP_OC_AUTOFS_MAP].name);
     if (!state->filter) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build filter\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -701,7 +701,7 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
                                SDAP_OPTS_AUTOFS_MAP, NULL,
                                &state->attrs, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build attributes from map\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build attributes from map\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -714,7 +714,7 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
                                       dp_opt_get_int(state->opts->basic,
                                                      SDAP_SEARCH_TIMEOUT));
     if (!subreq) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -744,11 +744,11 @@ sdap_autofs_setautomntent_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         if (ret == ENOENT) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not find automount map\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not find automount map\n");
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
-                ("sdap_get_automntmap_recv failed [%d]: %s\n",
-                ret, strerror(ret)));
+                "sdap_get_automntmap_recv failed [%d]: %s\n",
+                ret, strerror(ret));
         }
         tevent_req_error(req, ret);
         return;
@@ -756,7 +756,7 @@ sdap_autofs_setautomntent_done(struct tevent_req *subreq)
 
     ret = sdap_autofs_setautomntent_save(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not save automount map\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not save automount map\n");
         tevent_req_error(req, ret);
         return;
     }
@@ -793,7 +793,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     if (!tmp_ctx) return ENOMEM;
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Got %zu map entries from LDAP\n", state->entries_count));
+          "Got %zu map entries from LDAP\n", state->entries_count);
     if (state->entries_count == 0) {
         /* No entries for this map in LDAP.
          * We need to ensure that there are no entries
@@ -818,7 +818,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
             key = get_autofs_entry_key(state->entries[i], state->opts);
             val = get_autofs_entry_value(state->entries[i], state->opts);
             if (!key || !val) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Malformed entry, skipping\n"));
+                DEBUG(SSSDBG_MINOR_FAILURE, "Malformed entry, skipping\n");
                 continue;
             }
 
@@ -851,12 +851,12 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
                                       &count, &entries);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("cache lookup for the map failed [%d]: %s\n",
-               ret, strerror(ret)));
+              "cache lookup for the map failed [%d]: %s\n",
+               ret, strerror(ret));
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Got %zu map entries from sysdb\n", count));
+    DEBUG(SSSDBG_TRACE_LIBS, "Got %zu map entries from sysdb\n", count);
     if (count == 0) {
         /* No map members for this map in sysdb currently */
         sysdb_entrylist = NULL;
@@ -889,8 +889,8 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-             ("Cannot start sysdb transaction [%d]: %s\n",
-              ret, strerror(ret)));
+             "Cannot start sysdb transaction [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
     in_transaction = true;
@@ -899,8 +899,8 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     ret = save_autofs_map(state->dom, state->opts, state->map);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-             ("Cannot save autofs map entry [%d]: %s\n",
-              ret, strerror(ret)));
+             "Cannot save autofs map entry [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
@@ -911,8 +911,8 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
                                   entry_hash);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Cannot save autofs entries [%d]: %s\n",
-                  ret, strerror(ret)));
+                  "Cannot save autofs entries [%d]: %s\n",
+                  ret, strerror(ret));
             goto done;
         }
     }
@@ -923,8 +923,8 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
                                  state->mapname, del_entries);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Cannot delete autofs entries [%d]: %s\n",
-                  ret, strerror(ret)));
+                  "Cannot delete autofs entries [%d]: %s\n",
+                  ret, strerror(ret));
             goto done;
         }
     }
@@ -933,8 +933,8 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
     ret = sysdb_transaction_commit(state->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-             ("Cannot commit sysdb transaction [%d]: %s\n",
-              ret, strerror(ret)));
+             "Cannot commit sysdb transaction [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
     in_transaction = false;
@@ -945,8 +945,8 @@ done:
         tret = sysdb_transaction_cancel(state->sysdb);
         if (tret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                ("Cannot cancel sysdb transaction [%d]: %s\n",
-                ret, strerror(ret)));
+                "Cannot cancel sysdb transaction [%d]: %s\n",
+                ret, strerror(ret));
         }
     }
     talloc_zfree(tmp_ctx);

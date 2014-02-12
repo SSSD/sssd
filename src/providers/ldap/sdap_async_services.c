@@ -104,7 +104,7 @@ sdap_get_services_send(TALLOC_CTX *memctx,
 
     if (!state->search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Services lookup request without a search base\n"));
+              "Services lookup request without a search base\n");
         ret = EINVAL;
         goto done;
     }
@@ -137,8 +137,8 @@ sdap_get_services_next_base(struct tevent_req *req)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Searching for services with base [%s]\n",
-           state->search_bases[state->base_iter]->basedn));
+          "Searching for services with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn);
 
     subreq = sdap_get_generic_send(
             state, state->ev, state->opts, state->sh,
@@ -177,8 +177,8 @@ sdap_get_services_process(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Search for services, returned %zu results.\n",
-           count));
+          "Search for services, returned %zu results.\n",
+           count);
 
     if (state->enumeration || count == 0) {
         /* No services found in this search or enumerating */
@@ -234,13 +234,13 @@ sdap_get_services_process(struct tevent_req *subreq)
                              &state->higher_usn);
     if (ret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to store services.\n"));
+              "Failed to store services.\n");
         tevent_req_error(req, ret);
         return;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("Saving %zu services - Done\n", state->count));
+          "Saving %zu services - Done\n", state->count);
 
     tevent_req_done(req);
 }
@@ -274,7 +274,7 @@ sdap_save_services(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
 
@@ -292,10 +292,10 @@ sdap_save_services(TALLOC_CTX *mem_ctx,
          * Just report the failure to save and go on */
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Failed to store service %zu. Ignoring.\n", i));
+                  "Failed to store service %zu. Ignoring.\n", i);
         } else {
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  ("Service [%zu/%zu] processed!\n", i, num_services));
+                  "Service [%zu/%zu] processed!\n", i, num_services);
         }
 
         if (usn_value) {
@@ -316,7 +316,7 @@ sdap_save_services(TALLOC_CTX *mem_ctx,
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to commit transaction!\n"));
+              "Failed to commit transaction!\n");
         goto done;
     }
     in_transaction = false;
@@ -330,7 +330,7 @@ done:
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to cancel transaction!\n"));
+                  "Failed to cancel transaction!\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -360,7 +360,7 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
     uint16_t port;
     uint64_t cache_timeout;
 
-    DEBUG(SSSDBG_TRACE_ALL, ("Saving service\n"));
+    DEBUG(SSSDBG_TRACE_ALL, "Saving service\n");
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -381,11 +381,11 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
             &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not determine the primary name of the service\n"));
+              "Could not determine the primary name of the service\n");
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Primary name: [%s]\n", name));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Primary name: [%s]\n", name);
 
 
     /* Handle any available aliases */
@@ -394,7 +394,7 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
                                   &aliases);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to identify service aliases\n"));
+              "Failed to identify service aliases\n");
         goto done;
     }
 
@@ -402,8 +402,8 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_get_uint16_t(attrs, SYSDB_SVC_PORT, &port);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to identify service port: [%s]\n",
-               strerror(ret)));
+              "Failed to identify service port: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
@@ -412,8 +412,8 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
                                        tmp_ctx, &protocols);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to identify service protocols: [%s]\n",
-               strerror(ret)));
+              "Failed to identify service protocols: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
@@ -423,8 +423,8 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
                                       dom->case_sensitive, &cased_protocols);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                ("Failed to get case_sensitive protocols names: [%s]\n",
-                strerror(ret)));
+                "Failed to get case_sensitive protocols names: [%s]\n",
+                strerror(ret));
             goto done;
         }
     }
@@ -436,22 +436,22 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
                       opts->service_map[SDAP_AT_SERVICE_USN].sys_name, &el);
     if (ret && ret != ENOENT) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to retrieve USN value: [%s]\n",
-               strerror(ret)));
+              "Failed to retrieve USN value: [%s]\n",
+               strerror(ret));
         goto done;
     }
     if (ret == ENOENT || el->num_values == 0) {
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Original USN value is not available for [%s].\n",
-               name));
+              "Original USN value is not available for [%s].\n",
+               name);
     } else {
         ret = sysdb_attrs_add_string(svc_attrs,
                           opts->service_map[SDAP_AT_SERVICE_USN].sys_name,
                           (const char*)el->values[0].data);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Failed to add USN value: [%s]\n",
-                   strerror(ret)));
+                  "Failed to add USN value: [%s]\n",
+                   strerror(ret));
             goto done;
         }
         usn_value = talloc_strdup(tmp_ctx, (const char*)el->values[0].data);
@@ -468,8 +468,8 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
                              attrs, &missing);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to identify removed attributes: [%s]\n",
-               strerror(ret)));
+              "Failed to identify removed attributes: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
@@ -479,8 +479,8 @@ sdap_save_service(TALLOC_CTX *mem_ctx,
                               svc_attrs, missing, cache_timeout, now);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to store service in the sysdb: [%s]\n",
-               strerror(ret)));
+              "Failed to store service in the sysdb: [%s]\n",
+               strerror(ret));
         goto done;
     }
 
@@ -568,7 +568,7 @@ enum_services_send(TALLOC_CTX *memctx,
                 id_ctx->opts->service_map[SDAP_AT_SERVICE_PROTOCOL].name);
     }
     if (!state->filter) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to build base filter\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to build base filter\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -633,8 +633,8 @@ enum_services_op_done(struct tevent_req *subreq)
         }
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Services higher USN value: [%s]\n",
-              state->id_ctx->srv_opts->max_service_value));
+    DEBUG(SSSDBG_FUNC_DATA, "Services higher USN value: [%s]\n",
+              state->id_ctx->srv_opts->max_service_value);
 
     tevent_req_done(req);
 }

@@ -36,7 +36,7 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
     const char *orig = NULL;
 
     if (template == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Missing template.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing template.\n");
         return NULL;
     }
 
@@ -45,13 +45,13 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
 
     copy = talloc_strdup(tmp_ctx, template);
     if (copy == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
         goto done;
     }
 
     result = talloc_strdup(tmp_ctx, "");
     if (result == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
         goto done;
     }
 
@@ -60,15 +60,15 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
         *n = '\0';
         n++;
         if ( *n == '\0' ) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("format error, single %% at the end of "
-                                        "the template.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "format error, single %% at the end of "
+                                        "the template.\n");
             goto done;
         }
         switch( *n ) {
             case 'u':
                 if (username == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot expand user name template "
-                                                "because user name is empty.\n"));
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand user name template "
+                                                "because user name is empty.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p,
@@ -77,8 +77,8 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
 
             case 'U':
                 if (uid == 0) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot expand uid template "
-                                                "because uid is invalid.\n"));
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand uid template "
+                                                "because uid is invalid.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%d", p,
@@ -87,9 +87,9 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
 
             case 'd':
                 if (domain == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot expand domain name "
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand domain name "
                                                 "template because domain name "
-                                                "is empty.\n"));
+                                                "is empty.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p,
@@ -98,9 +98,9 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
 
             case 'f':
                 if (domain == NULL || username == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot expand fully qualified "
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand fully qualified "
                                                 "name template because domain "
-                                                "or user name is empty.\n"));
+                                                "or user name is empty.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s@%s", p,
@@ -110,8 +110,8 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
             case 'o':
                 if (original == NULL) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
-                          ("Original home directory for %s is not available, "
-                           "using empty string\n", username));
+                          "Original home directory for %s is not available, "
+                           "using empty string\n", username);
                     orig = "";
                 } else {
                     orig = original;
@@ -121,9 +121,9 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
 
             case 'F':
                 if (flatname == NULL) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot expand domain name "
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot expand domain name "
                                                 "template because domain flat "
-                                                "name is empty.\n"));
+                                                "name is empty.\n");
                     goto done;
                 }
                 result = talloc_asprintf_append(result, "%s%s", p, flatname);
@@ -134,13 +134,13 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                 break;
 
             default:
-                DEBUG(SSSDBG_CRIT_FAILURE, ("format error, unknown template "
-                                            "[%%%c].\n", *n));
+                DEBUG(SSSDBG_CRIT_FAILURE, "format error, unknown template "
+                                            "[%%%c].\n", *n);
                 goto done;
         }
 
         if (result == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf_append failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append failed.\n");
             goto done;
         }
 
@@ -149,7 +149,7 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
 
     result = talloc_asprintf_append(result, "%s", p);
     if (result == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf_append failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append failed.\n");
         goto done;
     }
 

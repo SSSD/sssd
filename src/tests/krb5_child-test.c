@@ -79,7 +79,7 @@ setup_krb5_child_test(TALLOC_CTX *mem_ctx, struct krb5_child_test_ctx **_ctx)
 
     ctx->ev = tevent_context_init(ctx);
     if (ctx->ev == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not init tevent context"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not init tevent context");
         talloc_free(ctx);
         return EFAULT;
     }
@@ -116,8 +116,8 @@ create_dummy_krb5_ctx(TALLOC_CTX *mem_ctx, const char *realm)
                                         &errval, &errstr, &errpos, NULL);
     if (krb5_ctx->illegal_path_re == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Invalid Regular Expression pattern at position %d. "
-               "(Error: %d [%s])\n", errpos, errval, errstr));
+              "Invalid Regular Expression pattern at position %d. "
+               "(Error: %d [%s])\n", errpos, errval, errstr);
         goto fail;
     }
     talloc_set_destructor((TALLOC_CTX *) krb5_ctx, re_destructor);
@@ -180,8 +180,8 @@ create_dummy_pam_data(TALLOC_CTX *mem_ctx, const char *user,
     if (ret) goto fail;
 
     (void)sss_authtok_get_password(pd->authtok, &authtok, &authtok_len);
-    DEBUG(SSSDBG_FUNC_DATA, ("Authtok [%s] len [%d]\n",
-                             authtok, (int)authtok_len));
+    DEBUG(SSSDBG_FUNC_DATA, "Authtok [%s] len [%d]\n",
+                             authtok, (int)authtok_len);
 
     return pd;
 
@@ -207,7 +207,7 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     pwd = getpwnam(user);
     if (!pwd) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Cannot get info on user [%s]\n", user));
+              "Cannot get info on user [%s]\n", user);
         goto fail;
     }
 
@@ -222,7 +222,7 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     ret = krb5_get_simple_upn(kr, kr->krb5_ctx, NULL, kr->pd->user, NULL,
                               &kr->upn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_get_simple_upn failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_get_simple_upn failed.\n");
         goto fail;
     }
 
@@ -236,7 +236,7 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
     if (timeout) {
         ret = dp_opt_set_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT, timeout);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set value for krb5_auth_timeout\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set value for krb5_auth_timeout\n");
             goto fail;
         }
     }
@@ -248,22 +248,22 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
                                             true, true);
         if (!kr->ccname) goto fail;
 
-        DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%llu] gid [%llu]\n",
+        DEBUG(SSSDBG_FUNC_DATA, "ccname [%s] uid [%llu] gid [%llu]\n",
               kr->ccname, (unsigned long long) kr->uid,
-              (unsigned long long) kr->gid));
+              (unsigned long long) kr->gid);
     } else {
         kr->ccname = talloc_strdup(kr, ccname);
     }
     if (!kr->ccname) goto fail;
 
-    DEBUG(SSSDBG_FUNC_DATA, ("ccname [%s] uid [%u] gid [%u]\n",
-            kr->ccname, kr->uid, kr->gid));
+    DEBUG(SSSDBG_FUNC_DATA, "ccname [%s] uid [%u] gid [%u]\n",
+            kr->ccname, kr->uid, kr->gid);
 
     ret = sss_krb5_precreate_ccache(kr->ccname,
                                     kr->krb5_ctx->illegal_path_re,
                                     kr->uid, kr->gid);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("create_ccache_dir failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "create_ccache_dir failed.\n");
         goto fail;
     }
 
@@ -445,7 +445,7 @@ main(int argc, const char *argv[])
             rm_ccache = false;
             break;
         default:
-            DEBUG(SSSDBG_FATAL_FAILURE, ("Unexpected option\n"));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Unexpected option\n");
             return 1;
         }
     }
@@ -459,28 +459,28 @@ main(int argc, const char *argv[])
     }
 
     if (!pc_user) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Please specify the user\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Please specify the user\n");
         poptPrintUsage(pc, stderr, 0);
         return 1;
     }
 
     if (!pc_realm) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Please specify the realm\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Please specify the realm\n");
         poptPrintUsage(pc, stderr, 0);
         return 1;
     }
 
     if (!password && !pc_passwd) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Password was not provided or asked for\n"));
+              "Password was not provided or asked for\n");
         poptPrintUsage(pc, stderr, 0);
         return 1;
     }
 
     if (pc_ccname && pc_ccname_tp) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Both ccname and ccname template specified, "
-               "will prefer ccname\n"));
+              "Both ccname and ccname template specified, "
+               "will prefer ccname\n");
     }
 
     ret = setup_krb5_child_test(NULL, &ctx);
@@ -493,14 +493,14 @@ main(int argc, const char *argv[])
     ctx->kr = create_dummy_req(ctx, pc_user, password ? password : pc_passwd,
                                pc_realm, pc_ccname, pc_ccname_tp, pc_timeout);
     if (!ctx->kr) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Cannot create Kerberos request\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot create Kerberos request\n");
         ret = 4;
         goto done;
     }
 
     req = handle_child_send(ctx, ctx->ev, ctx->kr);
     if (!req) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Cannot create child request\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot create child request\n");
         ret = 4;
         goto done;
     }
@@ -515,7 +515,7 @@ main(int argc, const char *argv[])
     ret = parse_krb5_child_response(ctx, ctx->buf, ctx->len,
                                     ctx->kr->pd, 0, &ctx->res);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Could not parse child response\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not parse child response\n");
         ret = 5;
         goto done;
     }

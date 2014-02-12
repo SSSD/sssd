@@ -122,7 +122,7 @@ ipa_host_info_send(TALLOC_CTX *mem_ctx,
 
     ret = ipa_host_info_next(req, state);
     if (ret == EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No host search base configured?\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No host search base configured?\n");
         ret = EINVAL;
     }
 
@@ -169,7 +169,7 @@ static errno_t ipa_host_info_next(struct tevent_req *req,
                                                   SDAP_ENUM_SEARCH_TIMEOUT),
                                    true);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting host info\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error requesting host info\n");
         talloc_zfree(state->cur_filter);
         return EIO;
     }
@@ -232,7 +232,7 @@ ipa_host_info_done(struct tevent_req *subreq)
 
             ret = ipa_hostgroup_info_next(req, state);
             if (ret == EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("No host search base configured?\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "No host search base configured?\n");
                 tevent_req_error(req, EINVAL);
                 return;
             } else if (ret != EAGAIN) {
@@ -255,7 +255,7 @@ ipa_host_info_done(struct tevent_req *subreq)
             }
 
             if (!sdap_has_deref_support(state->sh, state->opts)) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Server does not support deref\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "Server does not support deref\n");
                 tevent_req_error(req, EIO);
                 return;
             }
@@ -268,7 +268,7 @@ ipa_host_info_done(struct tevent_req *subreq)
                                             dp_opt_get_int(state->opts->basic,
                                                            SDAP_ENUM_SEARCH_TIMEOUT));
             if (subreq == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting host info\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "Error requesting host info\n");
                 tevent_req_error(req, EIO);
                 return;
             }
@@ -307,7 +307,7 @@ static errno_t ipa_hostgroup_info_next(struct tevent_req *req,
                                                   SDAP_ENUM_SEARCH_TIMEOUT),
                                    true);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting hostgroup info\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error requesting hostgroup info\n");
         talloc_zfree(state->cur_filter);
         return EIO;
     }
@@ -340,7 +340,7 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
         talloc_zfree(subreq);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("sdap_get_generic_recv failed: [%d]\n", ret));
+                  "sdap_get_generic_recv failed: [%d]\n", ret);
             tevent_req_error(req, ret);
             return;
         }
@@ -385,7 +385,7 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
         if (ret != EOK) goto done;
 
         if (state->hostgroup_count == 0) {
-            DEBUG(SSSDBG_FUNC_DATA, ("No host groups were dereferenced\n"));
+            DEBUG(SSSDBG_FUNC_DATA, "No host groups were dereferenced\n");
         } else {
             state->hostgroups = talloc_zero_array(state, struct sysdb_attrs *,
                                                   state->hostgroup_count);
@@ -411,8 +411,8 @@ ipa_hostgroup_info_done(struct tevent_req *subreq)
                              &hostgroup_name);
                 if (ret != EOK) goto done;
 
-                DEBUG(SSSDBG_FUNC_DATA, ("Dereferenced host group: %s\n",
-                                        hostgroup_name));
+                DEBUG(SSSDBG_FUNC_DATA, "Dereferenced host group: %s\n",
+                                        hostgroup_name);
                 state->hostgroups[j] = talloc_steal(state->hostgroups,
                                                     deref_result[i]->attrs);
                 j++;
@@ -425,7 +425,7 @@ done:
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, ("Error [%d][%s]\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Error [%d][%s]\n", ret, strerror(ret));
         tevent_req_error(req, ret);
     }
 }

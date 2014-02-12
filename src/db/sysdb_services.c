@@ -188,7 +188,7 @@ sysdb_store_service(struct sss_domain_info *domain,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
 
@@ -212,16 +212,16 @@ sysdb_store_service(struct sss_domain_info *domain,
              */
             for (i = 0; i < res->count; i++) {
                 DEBUG(SSSDBG_TRACE_FUNC,
-                      ("Corrupt cache entry [%s] detected. Deleting\n",
+                      "Corrupt cache entry [%s] detected. Deleting\n",
                        ldb_dn_canonical_string(tmp_ctx,
-                                               res->msgs[i]->dn)));
+                                               res->msgs[i]->dn));
 
                 ret = sysdb_delete_entry(sysdb, res->msgs[i]->dn, true);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
-                          ("Could not delete corrupt cache entry [%s]\n",
+                          "Could not delete corrupt cache entry [%s]\n",
                            ldb_dn_canonical_string(tmp_ctx,
-                                                   res->msgs[i]->dn)));
+                                                   res->msgs[i]->dn));
                     goto done;
                 }
             }
@@ -236,7 +236,7 @@ sysdb_store_service(struct sss_domain_info *domain,
 
                 if (!name) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
-                          ("A service with no name?\n"));
+                          "A service with no name?\n");
                     /* Corrupted */
                 }
 
@@ -245,17 +245,17 @@ sysdb_store_service(struct sss_domain_info *domain,
                  * for port reassignments, we need to delete the old entry.
                  */
                 DEBUG(SSSDBG_TRACE_FUNC,
-                      ("Corrupt or replaced cache entry [%s] detected. "
+                      "Corrupt or replaced cache entry [%s] detected. "
                        "Deleting\n",
                        ldb_dn_canonical_string(tmp_ctx,
-                                               res->msgs[0]->dn)));
+                                               res->msgs[0]->dn));
 
                 ret = sysdb_delete_entry(sysdb, res->msgs[0]->dn, true);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
-                          ("Could not delete cache entry [%s]\n",
+                          "Could not delete cache entry [%s]\n",
                            ldb_dn_canonical_string(tmp_ctx,
-                                                   res->msgs[0]->dn)));
+                                                   res->msgs[0]->dn));
                 }
             }
         }
@@ -282,18 +282,18 @@ sysdb_store_service(struct sss_domain_info *domain,
 
                 /* Corrupted */
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("A service with no name?\n"));
+                      "A service with no name?\n");
                 DEBUG(SSSDBG_TRACE_FUNC,
-                      ("Corrupt cache entry [%s] detected. Deleting\n",
+                      "Corrupt cache entry [%s] detected. Deleting\n",
                        ldb_dn_canonical_string(tmp_ctx,
-                                               res->msgs[i]->dn)));
+                                               res->msgs[i]->dn));
 
                 ret = sysdb_delete_entry(sysdb, res->msgs[i]->dn, true);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
-                          ("Could not delete corrupt cache entry [%s]\n",
+                          "Could not delete corrupt cache entry [%s]\n",
                            ldb_dn_canonical_string(tmp_ctx,
-                                                   res->msgs[i]->dn)));
+                                                   res->msgs[i]->dn));
                     goto done;
                 }
             } else if (strcmp(name, primary_name) == 0) {
@@ -303,17 +303,17 @@ sysdb_store_service(struct sss_domain_info *domain,
                  */
                 if(update_dn) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
-                          ("Two existing services with the same name: [%s]? "
+                          "Two existing services with the same name: [%s]? "
                            "Deleting both.\n",
-                           primary_name));
+                           primary_name);
 
                     /* Delete the entry from the previous pass */
                     ret = sysdb_delete_entry(sysdb, update_dn, true);
                     if (ret != EOK) {
                         DEBUG(SSSDBG_MINOR_FAILURE,
-                              ("Could not delete cache entry [%s]\n",
+                              "Could not delete cache entry [%s]\n",
                                ldb_dn_canonical_string(tmp_ctx,
-                                                       update_dn)));
+                                                       update_dn));
                         goto done;
                     }
 
@@ -321,9 +321,9 @@ sysdb_store_service(struct sss_domain_info *domain,
                     ret = sysdb_delete_entry(sysdb, res->msgs[i]->dn, true);
                     if (ret != EOK) {
                         DEBUG(SSSDBG_MINOR_FAILURE,
-                              ("Could not delete cache entry [%s]\n",
+                              "Could not delete cache entry [%s]\n",
                                ldb_dn_canonical_string(tmp_ctx,
-                                                       res->msgs[i]->dn)));
+                                                       res->msgs[i]->dn));
                         goto done;
                     }
 
@@ -384,15 +384,15 @@ sysdb_store_service(struct sss_domain_info *domain,
                                  remove_attrs);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not remove missing attributes: [%s]\n",
-                   strerror(ret)));
+                  "Could not remove missing attributes: [%s]\n",
+                   strerror(ret));
             goto done;
         }
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -401,7 +401,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -522,7 +522,7 @@ sysdb_svc_add(TALLOC_CTX *mem_ctx,
 done:
     if (ret) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Error: %d (%s)\n", ret, strerror(ret)));
+              "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_free(tmp_ctx);
     return ret;
@@ -595,7 +595,7 @@ sysdb_svc_update(struct sysdb_ctx *sysdb,
 done:
     if (ret) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Error: %d (%s)\n", ret, strerror(ret)));
+              "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_free(msg);
     return ret;
@@ -628,7 +628,7 @@ sysdb_svc_remove_alias(struct sysdb_ctx *sysdb,
 done:
     if (ret) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Error: %d (%s)\n", ret, strerror(ret)));
+              "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(msg);
     return ret;
@@ -654,7 +654,7 @@ sysdb_svc_delete(struct sss_domain_info *domain,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
 
@@ -689,7 +689,7 @@ sysdb_svc_delete(struct sss_domain_info *domain,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -699,13 +699,13 @@ done:
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not cancel transaction\n"));
+                  "Could not cancel transaction\n");
         }
     }
 
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Error: %d (%s)\n", ret, strerror(ret)));
+              "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -796,20 +796,20 @@ errno_t sysdb_search_services(TALLOC_CTX *mem_ctx,
     basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                             SYSDB_TMPL_SVC_BASE, domain->name);
     if (!basedn) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build base dn\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
         ret = ENOMEM;
         goto fail;
     }
 
     filter = talloc_asprintf(tmp_ctx, "(&(%s)%s)", SYSDB_SC, sub_filter);
     if (!filter) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build filter\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
         goto fail;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("Search services with filter: %s\n", filter));
+          "Search services with filter: %s\n", filter);
 
     ret = sysdb_search_entry(mem_ctx, domain->sysdb, basedn,
                              LDB_SCOPE_SUBTREE, filter, attrs,
@@ -823,10 +823,10 @@ errno_t sysdb_search_services(TALLOC_CTX *mem_ctx,
 
 fail:
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("No such entry\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "No such entry\n");
     }
     else if (ret) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Error: %d (%s)\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
     }
     talloc_zfree(tmp_ctx);
     return ret;

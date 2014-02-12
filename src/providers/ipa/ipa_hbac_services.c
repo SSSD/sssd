@@ -69,7 +69,7 @@ ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_hbac_service_state);
     if (req == NULL) {
-        DEBUG(1, ("tevent_req_create failed.\n"));
+        DEBUG(1, "tevent_req_create failed.\n");
         return NULL;
     }
 
@@ -92,7 +92,7 @@ ipa_hbac_service_info_send(TALLOC_CTX *mem_ctx,
 
     state->attrs = talloc_array(state, const char *, 6);
     if (state->attrs == NULL) {
-        DEBUG(1, ("Failed to allocate service attribute list.\n"));
+        DEBUG(1, "Failed to allocate service attribute list.\n");
         ret = ENOMEM;
         goto immediate;
     }
@@ -143,9 +143,9 @@ static errno_t ipa_hbac_service_info_next(struct tevent_req *req,
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Sending request for next search base: "
+    DEBUG(SSSDBG_TRACE_FUNC, "Sending request for next search base: "
                               "[%s][%d][%s]\n", base->basedn, base->scope,
-                              state->cur_filter));
+                              state->cur_filter);
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    base->basedn, base->scope,
                                    state->cur_filter,
@@ -154,7 +154,7 @@ static errno_t ipa_hbac_service_info_next(struct tevent_req *req,
                                                   SDAP_ENUM_SEARCH_TIMEOUT),
                                    true);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting service info\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error requesting service info\n");
         return EIO;
     }
     tevent_req_set_callback(subreq, ipa_hbac_service_info_done, req);
@@ -203,7 +203,7 @@ ipa_hbac_service_info_done(struct tevent_req *subreq)
                                  state->service_count,
                                  state->services);
     if (ret != EOK) {
-        DEBUG(1, ("Could not replace attribute names\n"));
+        DEBUG(1, "Could not replace attribute names\n");
         goto done;
     }
 
@@ -258,9 +258,9 @@ ipa_hbac_servicegroup_info_next(struct tevent_req *req,
     }
 
     /* Look up service groups */
-    DEBUG(SSSDBG_TRACE_FUNC, ("Sending request for next search base: "
+    DEBUG(SSSDBG_TRACE_FUNC, "Sending request for next search base: "
                               "[%s][%d][%s]\n", base->basedn, base->scope,
-                              state->cur_filter));
+                              state->cur_filter);
     subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
                                    base->basedn, base->scope,
                                    state->cur_filter, state->attrs, NULL, 0,
@@ -268,7 +268,7 @@ ipa_hbac_servicegroup_info_next(struct tevent_req *req,
                                                   SDAP_ENUM_SEARCH_TIMEOUT),
                                    true);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error requesting servicegroup info\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error requesting servicegroup info\n");
         return EIO;
     }
     tevent_req_set_callback(subreq, ipa_hbac_servicegroup_info_done, req);
@@ -303,7 +303,7 @@ ipa_hbac_servicegroup_info_done(struct tevent_req *subreq)
                                      group_count,
                                      groups);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not replace attribute names\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not replace attribute names\n");
             goto done;
         }
 
@@ -311,7 +311,7 @@ ipa_hbac_servicegroup_info_done(struct tevent_req *subreq)
                                      state->servicegroup_count,
                                      state->servicegroups);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not replace attribute names\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not replace attribute names\n");
             goto done;
         }
 
@@ -346,7 +346,7 @@ done:
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
-        DEBUG(3, ("Error [%d][%s]\n", ret, strerror(ret)));
+        DEBUG(3, "Error [%d][%s]\n", ret, strerror(ret));
         tevent_req_error(req, ret);
     }
 }
@@ -399,7 +399,7 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
     struct ldb_message **msgs;
     const char *name;
 
-    DEBUG(7, ("Processing PAM services for rule [%s]\n", rule_name));
+    DEBUG(7, "Processing PAM services for rule [%s]\n", rule_name);
 
     tmp_ctx = talloc_new(mem_ctx);
     if (tmp_ctx == NULL) return ENOMEM;
@@ -414,7 +414,7 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
     ret = hbac_get_category(rule_attrs, IPA_SERVICE_CATEGORY,
                             &new_services->category);
     if (ret != EOK) {
-        DEBUG(1, ("Could not identify service categories\n"));
+        DEBUG(1, "Could not identify service categories\n");
         goto done;
     }
     if (new_services->category & HBAC_CATEGORY_ALL) {
@@ -426,12 +426,12 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
     /* Get the list of DNs from the member attr */
     ret = sysdb_attrs_get_el(rule_attrs, IPA_MEMBER_SERVICE, &el);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+        DEBUG(1, "sysdb_attrs_get_el failed.\n");
         goto done;
     }
     if (ret == ENOENT || el->num_values == 0) {
         el->num_values = 0;
-        DEBUG(4, ("No services specified, rule will never apply.\n"));
+        DEBUG(4, "No services specified, rule will never apply.\n");
     }
 
     /* Assume maximum size; We'll trim it later */
@@ -475,8 +475,8 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
         if (ret == EOK) {
             if (count > 1) {
-                DEBUG(1, ("Original DN matched multiple services. "
-                          "Skipping \n"));
+                DEBUG(1, "Original DN matched multiple services. "
+                          "Skipping \n");
                 talloc_zfree(member_dn);
                 continue;
             }
@@ -484,7 +484,7 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
             /* Original DN matched a single service. Get the service name */
             name = ldb_msg_find_attr_as_string(msgs[0], IPA_CN, NULL);
             if (name == NULL) {
-                DEBUG(1, ("Attribute is missing!\n"));
+                DEBUG(1, "Attribute is missing!\n");
                 ret = EFAULT;
                 goto done;
             }
@@ -495,8 +495,8 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 ret = ENOMEM;
                 goto done;
             }
-            DEBUG(8, ("Added service [%s] to rule [%s]\n",
-                      name, rule_name));
+            DEBUG(8, "Added service [%s] to rule [%s]\n",
+                      name, rule_name);
             num_services++;
         } else { /* ret == ENOENT */
             /* Check if this is a service group */
@@ -510,8 +510,8 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
             if (ret == EOK) {
                 if (count > 1) {
-                    DEBUG(1, ("Original DN matched multiple service groups. "
-                              "Skipping\n"));
+                    DEBUG(1, "Original DN matched multiple service groups. "
+                              "Skipping\n");
                     talloc_zfree(member_dn);
                     continue;
                 }
@@ -519,7 +519,7 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 /* Original DN matched a single group. Get the groupname */
                 name = ldb_msg_find_attr_as_string(msgs[0], IPA_CN, NULL);
                 if (name == NULL) {
-                    DEBUG(1, ("Attribute is missing!\n"));
+                    DEBUG(1, "Attribute is missing!\n");
                     ret = EFAULT;
                     goto done;
                 }
@@ -531,13 +531,13 @@ hbac_service_attrs_to_rule(TALLOC_CTX *mem_ctx,
                     goto done;
                 }
 
-                DEBUG(8, ("Added service group [%s] to rule [%s]\n",
-                          name, rule_name));
+                DEBUG(8, "Added service group [%s] to rule [%s]\n",
+                          name, rule_name);
                 num_servicegroups++;
             } else { /* ret == ENOENT */
                 /* Neither a service nor a service group? Skip it */
-                DEBUG(1, ("[%s] does not map to either a service or "
-                          "service group. Skipping\n", member_dn));
+                DEBUG(1, "[%s] does not map to either a service or "
+                          "service group. Skipping\n", member_dn);
             }
         }
         talloc_zfree(member_dn);

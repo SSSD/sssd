@@ -55,14 +55,14 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
     struct get_password_migration_flag_state *state;
 
     if (sdap_id_ctx == NULL || ipa_realm == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing parameter.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Missing parameter.\n");
         return NULL;
     }
 
     req = tevent_req_create(memctx, &state,
                             struct get_password_migration_flag_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("tevent_req_create failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
 
@@ -75,14 +75,14 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
     state->sdap_op = sdap_id_op_create(state,
                                        state->sdap_id_ctx->conn->conn_cache);
     if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
         goto fail;
     }
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (!subreq) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
+                                  ret, strerror(ret));
         goto fail;
     }
 
@@ -108,12 +108,12 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
     if (ret) {
         if (dp_error == DP_ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("No IPA server is available, cannot get the "
-                   "migration flag while offline\n"));
+                  "No IPA server is available, cannot get the "
+                   "migration flag while offline\n");
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret)));
+                  "Failed to connect to IPA server: [%d](%s)\n",
+                   ret, strerror(ret));
         }
 
         tevent_req_error(req, ret);
@@ -194,7 +194,7 @@ void ipa_auth(struct be_req *be_req)
 
     state = talloc_zero(be_req, struct ipa_auth_state);
     if (state == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
         goto fail;
     }
 
@@ -219,14 +219,14 @@ void ipa_auth(struct be_req *be_req)
                                     struct ipa_auth_ctx);
             break;
         default:
-            DEBUG(SSSDBG_OP_FAILURE, ("Unsupported PAM task.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Unsupported PAM task.\n");
             goto fail;
     }
 
     req = krb5_auth_send(state, state->ev, be_ctx, state->pd,
                          state->ipa_auth_ctx->krb5_auth_ctx);
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_auth_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_send failed.\n");
         goto fail;
     }
 
@@ -251,7 +251,7 @@ static void ipa_auth_handler_done(struct tevent_req *req)
     talloc_zfree(req);
     state->pd->pam_status = pam_status;
     if (ret != EOK && pam_status != PAM_CRED_ERR) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_auth_recv request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv request failed.\n");
         dp_err = DP_ERR_OK;
         goto done;
     }
@@ -270,7 +270,7 @@ static void ipa_auth_handler_done(struct tevent_req *req)
                                                IPA_KRB5_REALM));
         if (req == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
-                    ("get_password_migration_flag failed.\n"));
+                    "get_password_migration_flag failed.\n");
             goto done;
         }
 
@@ -292,8 +292,8 @@ static void ipa_get_migration_flag_done(struct tevent_req *req)
     ret = get_password_migration_flag_recv(req, &state->password_migration);
     talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("get_password_migration_flag "
-                                  "request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "get_password_migration_flag "
+                                  "request failed.\n");
         state->pd->pam_status = PAM_SYSTEM_ERR;
         dp_err = DP_ERR_OK;
         goto done;
@@ -306,7 +306,7 @@ static void ipa_get_migration_flag_done(struct tevent_req *req)
                                     state->ipa_auth_ctx->sdap_auth_ctx->service,
                                     true, CON_TLS_ON, true);
         if (req == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sdap_cli_connect_send failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_cli_connect_send failed.\n");
             goto done;
         }
 
@@ -314,7 +314,7 @@ static void ipa_get_migration_flag_done(struct tevent_req *req)
         return;
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Password migration is not enabled.\n"));
+    DEBUG(SSSDBG_CONF_SETTINGS, "Password migration is not enabled.\n");
     dp_err = DP_ERR_OK;
 done:
     be_req_terminate(state->be_req, dp_err, state->pd->pam_status, NULL);
@@ -335,17 +335,17 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Cannot connect to LDAP server to perform migration\n"));
+              "Cannot connect to LDAP server to perform migration\n");
         goto done;
     }
 
     state->pd->pam_status = PAM_SYSTEM_ERR;
-    DEBUG(SSSDBG_TRACE_FUNC, ("Assuming Kerberos password is missing, "
-                              "starting password migration.\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Assuming Kerberos password is missing, "
+                              "starting password migration.\n");
 
     attrs = talloc_array(state, const char *, 2);
     if (attrs == NULL) {
-        DEBUG(1, ("talloc_array failed.\n"));
+        DEBUG(1, "talloc_array failed.\n");
         state->pd->pam_status = PAM_SYSTEM_ERR;
         dp_err = DP_ERR_OK;
         goto done;
@@ -356,14 +356,14 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
     ret = sysdb_search_user_by_name(state, be_ctx->domain, state->pd->user,
                                     attrs, &user_msg);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_user_by_name failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_name failed.\n");
         goto done;
     }
 
     dn = ldb_msg_find_attr_as_string(user_msg, SYSDB_ORIG_DN, NULL);
     if (dn == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Missing original DN for user [%s].\n",
-                                     state->pd->user));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Missing original DN for user [%s].\n",
+                                     state->pd->user);
         state->pd->pam_status = PAM_SYSTEM_ERR;
         dp_err = DP_ERR_OK;
         goto done;
@@ -372,7 +372,7 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
     req = sdap_auth_send(state, state->ev, state->sh, NULL, NULL, dn,
                          state->pd->authtok);
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_auth_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_auth_send failed.\n");
         goto done;
     }
 
@@ -401,26 +401,26 @@ static void ipa_auth_ldap_done(struct tevent_req *req)
     case ERR_AUTH_FAILED:
     case ERR_PASSWORD_EXPIRED:
 /* TODO: do we need to handle expired passwords? */
-        DEBUG(SSSDBG_MINOR_FAILURE, ("LDAP authentication failed, "
-                                     "Password migration not possible.\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "LDAP authentication failed, "
+                                     "Password migration not possible.\n");
         state->pd->pam_status = PAM_CRED_INSUFFICIENT;
         dp_err = DP_ERR_OK;
         goto done;
     default:
-        DEBUG(SSSDBG_OP_FAILURE, ("auth_send request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "auth_send request failed.\n");
         state->pd->pam_status = PAM_SYSTEM_ERR;
         dp_err = DP_ERR_OK;
         goto done;
     }
 
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("LDAP authentication succeded, "
-                              "trying Kerberos authentication again.\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "LDAP authentication succeded, "
+                              "trying Kerberos authentication again.\n");
 
     req = krb5_auth_send(state, state->ev, be_ctx, state->pd,
                          state->ipa_auth_ctx->krb5_auth_ctx);
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_auth_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_send failed.\n");
         goto done;
     }
 
@@ -442,7 +442,7 @@ static void ipa_auth_handler_retry_done(struct tevent_req *req)
     ret = krb5_auth_recv(req, &pam_status, &dp_err);
     talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_auth_recv request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv request failed.\n");
         state->pd->pam_status = PAM_SYSTEM_ERR;
         dp_err = DP_ERR_OK;
         goto done;

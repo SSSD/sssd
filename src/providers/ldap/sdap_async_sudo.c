@@ -206,7 +206,7 @@ static int sdap_sudo_refresh_retry(struct tevent_req *req)
     if (state->sdap_op == NULL) {
         state->sdap_op = sdap_id_op_create(state, state->sdap_conn_cache);
         if (state->sdap_op == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("sdap_id_op_create() failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_create() failed\n");
             state->dp_error = DP_ERR_FATAL;
             state->error = EIO;
             return EIO;
@@ -216,7 +216,7 @@ static int sdap_sudo_refresh_retry(struct tevent_req *req)
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("sdap_id_op_connect_send() failed: %d(%s)\n", ret, strerror(ret)));
+              "sdap_id_op_connect_send() failed: %d(%s)\n", ret, strerror(ret));
         talloc_zfree(state->sdap_op);
         state->dp_error = DP_ERR_FATAL;
         state->error = ret;
@@ -249,11 +249,11 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
         return;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("SUDO LDAP connection failed - %s\n", strerror(ret)));
+              "SUDO LDAP connection failed - %s\n", strerror(ret));
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("SUDO LDAP connection successful\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "SUDO LDAP connection successful\n");
 
     subreq = sdap_sudo_load_sudoers_send(state, state->be_ctx->ev,
                                          state->opts,
@@ -304,7 +304,7 @@ static struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
 
     if (!state->search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("SUDOERS lookup request without a search base\n"));
+              "SUDOERS lookup request without a search base\n");
         ret = EINVAL;
         goto done;
     }
@@ -343,7 +343,7 @@ static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req)
     search_base = state->search_bases[state->base_iter];
     if (search_base == NULL) {
         /* should not happen */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("search_base is null\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "search_base is null\n");
         return EFAULT;
     }
 
@@ -356,8 +356,8 @@ static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req)
 
     /* send request */
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Searching for sudo rules with base [%s]\n",
-           search_base->basedn));
+          "Searching for sudo rules with base [%s]\n",
+           search_base->basedn);
 
     subreq = sdap_get_generic_send(state,
                                    state->ev,
@@ -395,8 +395,8 @@ static void sdap_sudo_load_sudoers_process(struct tevent_req *subreq)
     search_base = state->search_bases[state->base_iter];
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Receiving sudo rules with base [%s]\n",
-           search_base->basedn));
+          "Receiving sudo rules with base [%s]\n",
+           search_base->basedn);
 
     ret = sdap_get_generic_recv(subreq, state, &count, &attrs);
     talloc_zfree(subreq);
@@ -475,12 +475,12 @@ static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Received %zu rules\n", rules_count));
+    DEBUG(SSSDBG_TRACE_FUNC, "Received %zu rules\n", rules_count);
 
     /* start transaction */
     ret = sysdb_transaction_start(state->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -505,12 +505,12 @@ static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
     /* commit transaction */
     ret = sysdb_transaction_commit(state->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Sudoers is successfuly stored in cache\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Sudoers is successfuly stored in cache\n");
 
     ret = EOK;
     state->num_rules = rules_count;
@@ -519,7 +519,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(state->sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
         }
     }
 
@@ -555,15 +555,15 @@ static int sdap_sudo_purge_sudoers(struct sss_domain_info *dom,
                                          &name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Failed to retrieve rule name: [%s]\n", strerror(ret)));
+                      "Failed to retrieve rule name: [%s]\n", strerror(ret));
                 continue;
             }
 
             ret = sysdb_sudo_purge_byname(dom, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Failed to delete rule %s: [%s]\n",
-                       name, strerror(ret)));
+                      "Failed to delete rule %s: [%s]\n",
+                       name, strerror(ret));
                 continue;
             }
         }
@@ -579,8 +579,8 @@ static int sdap_sudo_purge_sudoers(struct sss_domain_info *dom,
 
 done:
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("failed to purge sudo rules [%d]: %s\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "failed to purge sudo rules [%d]: %s\n",
+                                  ret, strerror(ret));
     }
 
     return ret;
@@ -607,8 +607,8 @@ static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
                                          rules_count, cache_timeout, now,
                                          _usn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("failed to save sudo rules [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "failed to save sudo rules [%d]: %s\n",
+              ret, strerror(ret));
         return ret;
     }
 

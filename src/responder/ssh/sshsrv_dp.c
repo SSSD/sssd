@@ -86,8 +86,8 @@ sss_dp_get_ssh_host_send(TALLOC_CTX *mem_ctx,
     talloc_free(key);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not issue DP request [%d]: %s\n",
-               ret, strerror(ret)));
+              "Could not issue DP request [%d]: %s\n",
+               ret, strerror(ret));
         goto error;
     }
 
@@ -120,7 +120,7 @@ sss_dp_get_ssh_host_msg(void *pvt)
         filter = talloc_asprintf(info, "name=%s", info->name);
     }
     if (!filter) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;
     }
 
@@ -129,15 +129,15 @@ sss_dp_get_ssh_host_msg(void *pvt)
                                        DP_INTERFACE,
                                        DP_METHOD_HOSTHANDLER);
     if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         talloc_free(filter);
         return NULL;
     }
 
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Creating SSH host request for [%s][%u][%s]\n",
-           info->dom->name, be_type, filter));
+          "Creating SSH host request for [%s][%u][%s]\n",
+           info->dom->name, be_type, filter);
 
     dbret = dbus_message_append_args(msg,
                                      DBUS_TYPE_UINT32, &be_type,
@@ -145,7 +145,7 @@ sss_dp_get_ssh_host_msg(void *pvt)
                                      DBUS_TYPE_INVALID);
     talloc_free(filter);
     if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build message\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
         dbus_message_unref(msg);
         return NULL;
     }

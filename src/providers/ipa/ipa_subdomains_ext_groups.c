@@ -58,14 +58,14 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     ret = sss_hash_create(mem_ctx, reply_count, &ext_group_hash);
     if (ret != HASH_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_hash_create failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
         goto done;
     }
 
@@ -83,7 +83,7 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
         }
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("sysdb_attrs_get_string_array failed.\n"));
+                  "sysdb_attrs_get_string_array failed.\n");
             goto done;
         }
 
@@ -95,7 +95,7 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
         }
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("sysdb_attrs_get_string_array failed.\n"));
+                  "sysdb_attrs_get_string_array failed.\n");
             goto done;
         }
 
@@ -105,7 +105,7 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
             ret = hash_lookup(ext_group_hash, &key, &value);
             if (ret == HASH_SUCCESS) {
                 if (value.type != HASH_VALUE_PTR) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("Unexpected value type.\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "Unexpected value type.\n");
                     ret = EINVAL;
                     goto done;
                 }
@@ -113,18 +113,18 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
                 for (m = 0; mof[m] != NULL; m++) {
                     /* hash_enter does not modify m_key.str. */
                     m_key.str = discard_const(mof[m]);
-                    DEBUG(SSSDBG_TRACE_ALL, ("Adding group [%s] to SID [%s].\n",
-                                             m_key.str, key.str));
+                    DEBUG(SSSDBG_TRACE_ALL, "Adding group [%s] to SID [%s].\n",
+                                             m_key.str, key.str);
                     ret = hash_enter(value.ptr, &m_key, &m_value);
                     if (ret != HASH_SUCCESS) {
-                        DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed.\n"));
+                        DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed.\n");
                         goto done;
                     }
                 }
             } else if (ret == HASH_ERROR_KEY_NOT_FOUND) {
                 ret = sss_hash_create(ext_group_hash, 5, &m_hash);
                 if (ret != HASH_SUCCESS) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("sss_hash_create failed.\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
                     goto done;
                 }
 
@@ -132,26 +132,26 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
                 value.ptr = m_hash;
 
                 DEBUG(SSSDBG_TRACE_ALL,
-                      ("Adding SID [%s] to external group hash.\n", key.str));
+                      "Adding SID [%s] to external group hash.\n", key.str);
                 ret = hash_enter(ext_group_hash, &key, &value);
                 if (ret != HASH_SUCCESS) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed.\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed.\n");
                     goto done;
                 }
 
                 for (m = 0; mof[m] != NULL; m++) {
                     /* hash_enter does not modify m_key.str. */
                     m_key.str = discard_const(mof[m]);
-                    DEBUG(SSSDBG_TRACE_ALL, ("Adding group [%s] to SID [%s].\n",
-                                             m_key.str, key.str));
+                    DEBUG(SSSDBG_TRACE_ALL, "Adding group [%s] to SID [%s].\n",
+                                             m_key.str, key.str);
                     ret = hash_enter(m_hash, &m_key, &m_value);
                     if (ret != HASH_SUCCESS) {
-                        DEBUG(SSSDBG_OP_FAILURE, ("hash_enter failed.\n"));
+                        DEBUG(SSSDBG_OP_FAILURE, "hash_enter failed.\n");
                         goto done;
                     }
                 }
             } else {
-                DEBUG(SSSDBG_OP_FAILURE, ("hash_lookup failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "hash_lookup failed.\n");
                 goto done;
             }
         }
@@ -198,20 +198,20 @@ static errno_t find_ipa_ext_memberships(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_initgroups(tmp_ctx, user_dom, user_name, &result);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sysdb_initgroups failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_initgroups failed.\n");
         goto done;
     }
 
     if (result->count == 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("User [%s] not found in cache.\n",
-                                     user_name));
+        DEBUG(SSSDBG_MINOR_FAILURE, "User [%s] not found in cache.\n",
+                                     user_name);
         ret = EOK;
         goto done;
     }
 
     ret = sss_hash_create(tmp_ctx, 10, &group_hash);
     if (ret != HASH_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_hash_create failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sss_hash_create failed.\n");
         goto done;
     }
 
@@ -224,20 +224,20 @@ static errno_t find_ipa_ext_memberships(TALLOC_CTX *mem_ctx,
         sid = ldb_msg_find_attr_as_string(result->msgs[c], SYSDB_SID_STR,
                                           NULL);
         if (sid == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Group [%s] does not have a SID.\n",
-                  ldb_dn_get_linearized(result->msgs[c]->dn)));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Group [%s] does not have a SID.\n",
+                  ldb_dn_get_linearized(result->msgs[c]->dn));
             continue;
         }
 
         key.str = discard_const(sid);
         ret = hash_lookup(ext_group_hash, &key, &value);
         if (ret == HASH_ERROR_KEY_NOT_FOUND) {
-            DEBUG(SSSDBG_TRACE_ALL, ("SID [%s] not found in ext group hash.\n",
-                                     sid));
+            DEBUG(SSSDBG_TRACE_ALL, "SID [%s] not found in ext group hash.\n",
+                                     sid);
         } else if (ret == HASH_SUCCESS) {
             iter = new_hash_iter_context(value.ptr);
             if (iter == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("new_hash_iter_context failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "new_hash_iter_context failed.\n");
                 ret = EINVAL;
                 goto done;
             }
@@ -245,35 +245,35 @@ static errno_t find_ipa_ext_memberships(TALLOC_CTX *mem_ctx,
             while ((entry = iter->next(iter)) != NULL) {
                 ret = hash_enter(group_hash, &entry->key, &entry->value);
                 if (ret != HASH_SUCCESS) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("Failed to add group [%s].\n",
-                                              entry->key.str));
+                    DEBUG(SSSDBG_OP_FAILURE, "Failed to add group [%s].\n",
+                                              entry->key.str);
                 }
             }
 
             talloc_free(iter);
         } else {
-            DEBUG(SSSDBG_OP_FAILURE, ("hash_lookup failed for SID [%s].\n",
-                                      sid));
+            DEBUG(SSSDBG_OP_FAILURE, "hash_lookup failed for SID [%s].\n",
+                                      sid);
         }
     }
 
     g_count = hash_count(group_hash);
     if (g_count == 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("No external groupmemberships found.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "No external groupmemberships found.\n");
         ret = EOK;
         goto done;
     }
 
     groups = talloc_zero_array(mem_ctx, char *, g_count + 1);
     if (groups == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
     iter = new_hash_iter_context(group_hash);
     if (iter == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("new_hash_iter_context failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "new_hash_iter_context failed.\n");
         ret = EINVAL;
         goto done;
     }
@@ -282,7 +282,7 @@ static errno_t find_ipa_ext_memberships(TALLOC_CTX *mem_ctx,
     while ((entry = iter->next(iter)) != NULL) {
         groups[c] = talloc_strdup(groups, entry->key.str);
         if (groups[c] == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -291,7 +291,7 @@ static errno_t find_ipa_ext_memberships(TALLOC_CTX *mem_ctx,
 
     user_dn = ldb_dn_copy(mem_ctx, result->msgs[0]->dn);
     if (user_dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ldb_dn_copy failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_copy failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -324,7 +324,7 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -335,7 +335,7 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
 
         subfilter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_ORIG_DN, groups[c]);
         if (subfilter == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -344,12 +344,12 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
                                   &msgs_count, &msgs);
         if (ret != EOK) {
             if (ret == ENOENT) {
-                DEBUG(SSSDBG_TRACE_ALL, ("Group [%s] not in the cache.\n",
-                                         groups[c]));
+                DEBUG(SSSDBG_TRACE_ALL, "Group [%s] not in the cache.\n",
+                                         groups[c]);
                 *missing_groups = true;
                 continue;
             } else {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_search_entry failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
                 goto done;
             }
         }
@@ -360,13 +360,13 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
         ret = sysdb_mod_group_member(group_dom, user_dn, msgs[0]->dn,
                                      LDB_FLAG_MOD_ADD);
         if (ret != EOK && ret != EEXIST) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_mod_group_member failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_mod_group_member failed.\n");
             goto done;
         }
 
         user_attrs = sysdb_new_attrs(tmp_ctx);
         if (user_attrs == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_new_attrs failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -374,14 +374,14 @@ static errno_t add_ad_user_to_cached_groups(struct ldb_dn *user_dn,
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
                                      groups[c]);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_string failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
             goto done;
         }
 
         ret = sysdb_set_entry_attr(user_dom->sysdb, user_dn, user_attrs,
                                    LDB_FLAG_MOD_ADD);
         if (ret != EOK && ret != EEXIST) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sysdb_set_entry_attr failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_entry_attr failed.\n");
             goto done;
         }
 
@@ -441,7 +441,7 @@ struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct get_ad_membership_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("tevent_req_create failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
 
@@ -454,14 +454,14 @@ struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
 
     if ((ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_INITGROUPS
             || ar->filter_type != BE_FILTER_NAME) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Unsupported request type.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Unsupported request type.\n");
         ret = EINVAL;
         goto done;
     }
 
     state->user_name = talloc_strdup(state, ar->filter_value);
     if (state->user_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_Strdup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_Strdup failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -469,7 +469,7 @@ struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
     state->sdap_op = sdap_id_op_create(state,
                                        state->sdap_id_ctx->conn->conn_cache);
     if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -479,21 +479,21 @@ struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
         server_mode->ext_groups = talloc_zero(server_mode,
                                               struct ipa_ext_groups);
         if (server_mode->ext_groups == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
             ret = ENOMEM;
             goto done;
         }
     }
 
     if (server_mode->ext_groups->next_update > time(NULL)) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("External group information still valid.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "External group information still valid.\n");
         ret = ipa_add_ext_groups_step(req);
         if (ret == EOK) {
             goto done;
         } else if (ret == EAGAIN) {
             return req;
         } else {
-            DEBUG(SSSDBG_OP_FAILURE, ("ipa_add_ext_groups_step failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_add_ext_groups_step failed.\n");
             goto done;
         }
 
@@ -501,8 +501,8 @@ struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
+                                  ret, strerror(ret));
         goto done;
     }
 
@@ -537,11 +537,11 @@ static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq)
     if (ret != EOK) {
         if (state->dp_error == DP_ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("No IPA server is available, going offline\n"));
+                  "No IPA server is available, going offline\n");
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret)));
+                  "Failed to connect to IPA server: [%d](%s)\n",
+                   ret, strerror(ret));
         }
 
         goto fail;
@@ -550,7 +550,7 @@ static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq)
 
     ret = domain_to_basedn(state, state->domain, &basedn);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("domain_to_basedn failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "domain_to_basedn failed.\n");
         goto fail;
     }
 
@@ -562,7 +562,7 @@ static void ipa_get_ad_memberships_connect_done(struct tevent_req *subreq)
                                                 SDAP_ENUM_SEARCH_TIMEOUT),
                                  false);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_get_generic_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -588,18 +588,18 @@ static void ipa_get_ext_groups_done(struct tevent_req *subreq)
                                 &state->reply_count, &state->reply);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ipa_get_ext_groups request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ext_groups request failed.\n");
         tevent_req_error(req, ret);
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("[%zu] external groups found.\n",
-                              state->reply_count));
+    DEBUG(SSSDBG_TRACE_FUNC, "[%zu] external groups found.\n",
+                              state->reply_count);
 
     ret = process_ext_groups(state->server_mode->ext_groups,
                              state->reply_count, state->reply, &ext_group_hash);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("process_ext_groups failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "process_ext_groups failed.\n");
         goto fail;
     }
 
@@ -614,7 +614,7 @@ static void ipa_get_ext_groups_done(struct tevent_req *subreq)
     } else if (ret == EAGAIN) {
         return;
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, ("ipa_add_ext_groups_step failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_add_ext_groups_step failed.\n");
         goto fail;
     }
 
@@ -636,12 +636,12 @@ static errno_t ipa_add_ext_groups_step(struct tevent_req *req)
                                    state->server_mode->ext_groups->ext_groups,
                                    &user_dn, &groups);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("find_ipa_ext_memberships failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "find_ipa_ext_memberships failed.\n");
         goto fail;
     }
 
     if (groups == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, ("No external groups memberships found.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "No external groups memberships found.\n");
         state->dp_error = DP_ERR_OK;
         return EOK;
     }
@@ -650,7 +650,7 @@ static errno_t ipa_add_ext_groups_step(struct tevent_req *req)
                                          user_dn, state->user_dom, groups,
                                          state->sdap_id_ctx->be->domain);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ipa_add_ad_memberships_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_add_ad_memberships_send failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -674,7 +674,7 @@ static void ipa_add_ad_memberships_done(struct tevent_req *subreq)
     ret = ipa_add_ad_memberships_recv(subreq, &state->dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ipa_add_ad_memberships request failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_add_ad_memberships request failed.\n");
         tevent_req_error(req, ret);
         return;
     }
@@ -730,7 +730,7 @@ static struct tevent_req *ipa_add_ad_memberships_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct add_ad_membership_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("tevent_req_create failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
 
@@ -751,12 +751,12 @@ static struct tevent_req *ipa_add_ad_memberships_send(TALLOC_CTX *mem_ctx,
     ret = add_ad_user_to_cached_groups(user_dn, user_dom, group_dom, groups,
                                        &missing_groups);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("add_ad_user_to_cached_groups failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "add_ad_user_to_cached_groups failed.\n");
         goto done;
     }
 
     if (!missing_groups) {
-        DEBUG(SSSDBG_TRACE_ALL, ("All groups found in cache.\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "All groups found in cache.\n");
         ret = EOK;
         goto done;
     }
@@ -764,15 +764,15 @@ static struct tevent_req *ipa_add_ad_memberships_send(TALLOC_CTX *mem_ctx,
     state->sdap_op = sdap_id_op_create(state,
                                        state->sdap_id_ctx->conn->conn_cache);
     if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto done;
     }
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
+                                  ret, strerror(ret));
         goto done;
     }
 
@@ -806,11 +806,11 @@ static void ipa_add_ad_memberships_connect_done(struct tevent_req *subreq)
     if (ret != EOK) {
         if (state->dp_error == DP_ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("No IPA server is available, going offline\n"));
+                  "No IPA server is available, going offline\n");
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret)));
+                  "Failed to connect to IPA server: [%d](%s)\n",
+                   ret, strerror(ret));
         }
 
         tevent_req_error(req, ret);
@@ -841,14 +841,14 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
                                            state->group_dom, state->groups,
                                            &missing_groups);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("add_ad_user_to_cached_groups failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "add_ad_user_to_cached_groups failed.\n");
             goto fail;
         }
 
         if (missing_groups) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("There are unresolved external group " \
+            DEBUG(SSSDBG_CRIT_FAILURE, "There are unresolved external group " \
                                         "memberships even after all groups have " \
-                                        "been looked up on the LDAP server."));
+                                        "been looked up on the LDAP server.");
         }
         tevent_req_done(req);
         return;
@@ -857,7 +857,7 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
     group_dn = ldb_dn_new(state, sysdb_ctx_get_ldb(state->group_dom->sysdb),
                           state->groups[state->iter]);
     if (group_dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ldb_dn_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -873,7 +873,7 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
                                  BE_FILTER_NAME, BE_ATTR_CORE,
                                  false);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("groups_get_send failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "groups_get_send failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -896,8 +896,8 @@ static void ipa_add_ad_memberships_get_group_done(struct tevent_req *subreq)
     ret = groups_get_recv(subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to read group [%s] from LDAP [%d](%s)\n",
-              state->groups[state->iter], ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to read group [%s] from LDAP [%d](%s)\n",
+              state->groups[state->iter], ret, strerror(ret));
 
         tevent_req_error(req, ret);
         return;

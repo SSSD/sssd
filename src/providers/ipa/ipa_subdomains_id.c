@@ -70,7 +70,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
 
     state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sdap_id_op_create failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -78,7 +78,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     state->domain = find_subdomain_by_name(state->ctx->be->domain,
                                            ar->domain, true);
     if (state->domain == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("find_subdomain_by_name failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "find_subdomain_by_name failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -97,14 +97,14 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
             break;
         case BE_REQ_INITGROUPS:
             ret = ENOTSUP;
-            DEBUG(SSSDBG_TRACE_FUNC, ("Initgroups requests are not handled " \
+            DEBUG(SSSDBG_TRACE_FUNC, "Initgroups requests are not handled " \
                                       "by the IPA provider but are resolved " \
                                       "by the responder directly from the " \
-                                      "cache.\n"));
+                                      "cache.\n");
             break;
         default:
             ret = EINVAL;
-            DEBUG(SSSDBG_OP_FAILURE, ("Invalid sub-domain request type.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain request type.\n");
     }
     if (ret != EOK) goto fail;
 
@@ -143,7 +143,7 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
 
     req_input = talloc(state, struct req_input);
     if (req_input == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc failed.\n");
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -153,7 +153,7 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
             req_input->type = REQ_INP_NAME;
             req_input->inp.name = talloc_strdup(req_input, state->filter);
             if (req_input->inp.name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 tevent_req_error(req, ENOMEM);
                 return;
             }
@@ -170,13 +170,13 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
             req_input->type = REQ_INP_SECID;
             req_input->inp.secid = talloc_strdup(req_input, state->filter);
             if (req_input->inp.secid == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                 tevent_req_error(req, ENOMEM);
                 return;
             }
             break;
         default:
-            DEBUG(SSSDBG_OP_FAILURE, ("Invalid sub-domain filter type.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain filter type.\n");
             state->dp_error = dp_error;
             tevent_req_error(req, EINVAL);
             return;
@@ -376,7 +376,7 @@ get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
                                       uid, NULL, dom->name, dom->flat_name);
 
     if (homedir == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("expand_homedir_template failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "expand_homedir_template failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -417,14 +417,14 @@ store_homedir_of_user(struct sss_domain_info *domain,
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_HOMEDIR, homedir);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Error setting homedir: [%s]\n",
-                                     strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Error setting homedir: [%s]\n",
+                                     strerror(ret));
         goto done;
     }
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
 
@@ -433,15 +433,15 @@ store_homedir_of_user(struct sss_domain_info *domain,
     ret = sysdb_set_user_attr(domain, fqname, attrs, SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to update homedir information!\n"));
+              "Failed to update homedir information!\n");
         goto done;
     }
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Cannot commit sysdb transaction [%d]: %s.\n",
-               ret, strerror(ret)));
+              "Cannot commit sysdb transaction [%d]: %s.\n",
+               ret, strerror(ret));
         goto done;
     }
 
@@ -451,7 +451,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction.\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -480,15 +480,15 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         ret = sysdb_getpwuid(mem_ctx, dom, uid, &res);
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Unsupported filter type: [%d].\n", filter_type));
+              "Unsupported filter type: [%d].\n", filter_type);
         ret = EINVAL;
         goto done;
     }
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Failed to make request to our cache: [%d]: [%s]\n",
-               ret, sss_strerror(ret)));
+              "Failed to make request to our cache: [%d]: [%s]\n",
+               ret, sss_strerror(ret));
         goto done;
     }
 
@@ -504,8 +504,8 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     fqname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
     if (uid == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("UID for user [%s] is not known.\n",
-                                  filter_value));
+        DEBUG(SSSDBG_OP_FAILURE, "UID for user [%s] is not known.\n",
+                                  filter_value);
         ret = ENOENT;
         goto done;
     }
@@ -513,16 +513,16 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     ret = get_subdomain_homedir_of_user(mem_ctx, dom, fqname, uid, &homedir);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("get_subdomain_homedir_of_user failed: [%d]: [%s]\n",
-               ret, sss_strerror(ret)));
+              "get_subdomain_homedir_of_user failed: [%d]: [%s]\n",
+               ret, sss_strerror(ret));
         goto done;
     }
 
     ret = store_homedir_of_user(dom, fqname, homedir);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("store_homedir_of_user failed: [%d]: [%s]\n",
-               ret, sss_strerror(ret)));
+              "store_homedir_of_user failed: [%d]: [%s]\n",
+               ret, sss_strerror(ret));
         goto done;
     }
 
@@ -542,7 +542,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
     ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("AD lookup failed: %d\n", ret));
+        DEBUG(SSSDBG_OP_FAILURE, "AD lookup failed: %d\n", ret);
         tevent_req_error(req, ret);
         return;
     }
@@ -552,8 +552,8 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
                                   state->ar->filter_value);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("apply_subdomain_homedir failed: [%d]: [%s].\n",
-               ret, sss_strerror(ret)));
+              "apply_subdomain_homedir failed: [%d]: [%s].\n",
+               ret, sss_strerror(ret));
         goto fail;
     }
 
@@ -596,8 +596,8 @@ ipa_get_ad_acct_done(struct tevent_req *subreq)
     ret = ipa_get_ad_memberships_recv(subreq, &state->dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("IPA external groups lookup failed: %d\n",
-                                  ret));
+        DEBUG(SSSDBG_OP_FAILURE, "IPA external groups lookup failed: %d\n",
+                                  ret);
         tevent_req_error(req, ret);
         return;
     }

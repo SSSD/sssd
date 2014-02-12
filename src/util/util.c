@@ -509,8 +509,8 @@ errno_t sss_hash_create_ex(TALLOC_CTX *mem_ctx,
         ret = EIO;
     }
 
-    DEBUG(0, ("Could not create hash table: [%d][%s]\n",
-              hret, hash_error_string(hret)));
+    DEBUG(0, "Could not create hash table: [%d][%s]\n",
+              hret, hash_error_string(hret));
 
     talloc_free(internal_ctx);
     return ret;
@@ -624,7 +624,7 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
     char **new_list = NULL;
 
     if (string == NULL || list_p == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing string or list.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Missing string or list.\n");
         return EINVAL;
     }
 
@@ -644,13 +644,13 @@ errno_t add_string_to_list(TALLOC_CTX *mem_ctx, const char *string,
     }
 
     if (new_list == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_array/talloc_realloc failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array/talloc_realloc failed.\n");
         return ENOMEM;
     }
 
     new_list[c] = talloc_strdup(new_list, string);
     if (new_list[c] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
         talloc_free(new_list);
         return ENOMEM;
     }
@@ -748,25 +748,25 @@ bool check_ipv4_addr(struct in_addr *addr, uint8_t flags)
 
     if (inet_ntop(AF_INET, addr, straddr, INET_ADDRSTRLEN) == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("inet_ntop failed, won't log IP addresses\n"));
+              "inet_ntop failed, won't log IP addresses\n");
         snprintf(straddr, INET_ADDRSTRLEN, "unknown");
     }
 
     if ((flags & SSS_NO_MULTICAST) && IN_MULTICAST(ntohl(addr->s_addr))) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Multicast IPv4 address %s\n", straddr));
+        DEBUG(SSSDBG_FUNC_DATA, "Multicast IPv4 address %s\n", straddr);
         return false;
     } else if ((flags & SSS_NO_LOOPBACK)
                && inet_netof(*addr) == IN_LOOPBACKNET) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Loopback IPv4 address %s\n", straddr));
+        DEBUG(SSSDBG_FUNC_DATA, "Loopback IPv4 address %s\n", straddr);
         return false;
     } else if ((flags & SSS_NO_LINKLOCAL)
                && (addr->s_addr & htonl(0xffff0000)) == htonl(0xa9fe0000)) {
         /* 169.254.0.0/16 */
-        DEBUG(SSSDBG_FUNC_DATA, ("Link-local IPv4 address %s\n", straddr));
+        DEBUG(SSSDBG_FUNC_DATA, "Link-local IPv4 address %s\n", straddr);
         return false;
     } else if ((flags & SSS_NO_BROADCAST)
                && addr->s_addr == htonl(INADDR_BROADCAST)) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Broadcast IPv4 address %s\n", straddr));
+        DEBUG(SSSDBG_FUNC_DATA, "Broadcast IPv4 address %s\n", straddr);
         return false;
     }
 
@@ -779,18 +779,18 @@ bool check_ipv6_addr(struct in6_addr *addr, uint8_t flags)
 
     if (inet_ntop(AF_INET6, addr, straddr, INET6_ADDRSTRLEN) == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("inet_ntop failed, won't log IP addresses\n"));
+              "inet_ntop failed, won't log IP addresses\n");
         snprintf(straddr, INET6_ADDRSTRLEN, "unknown");
     }
 
     if ((flags & SSS_NO_LINKLOCAL) && IN6_IS_ADDR_LINKLOCAL(addr)) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Link local IPv6 address %s\n", straddr));
+        DEBUG(SSSDBG_FUNC_DATA, "Link local IPv6 address %s\n", straddr);
         return false;
     } else if ((flags & SSS_NO_LOOPBACK) && IN6_IS_ADDR_LOOPBACK(addr)) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Loopback IPv6 address %s\n", straddr));
+        DEBUG(SSSDBG_FUNC_DATA, "Loopback IPv6 address %s\n", straddr);
         return false;
     } else if ((flags & SSS_NO_MULTICAST) && IN6_IS_ADDR_MULTICAST(addr)) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Multicast IPv6 address %s\n", straddr));
+        DEBUG(SSSDBG_FUNC_DATA, "Multicast IPv6 address %s\n", straddr);
         return false;
     }
 

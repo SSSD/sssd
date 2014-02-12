@@ -50,7 +50,7 @@ errno_t set_debug_file_from_fd(const int fd)
     dummy = fdopen(fd, "a");
     if (dummy == NULL) {
         ret = errno;
-        DEBUG(1, ("fdopen failed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(1, "fdopen failed [%d][%s].\n", ret, strerror(ret));
         sss_log(SSS_LOG_ERR,
                 "Could not open debug file descriptor [%d]. "
                 "Debug messages will not be written to the file "
@@ -323,5 +323,5 @@ int rotate_debug_files(void)
 
 void talloc_log_fn(const char *message)
 {
-    DEBUG(SSSDBG_FATAL_FAILURE, ("%s", message));
+    DEBUG(SSSDBG_FATAL_FAILURE, "%s", message);
 }

@@ -82,7 +82,7 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
-        DEBUG(2, ("sdap_id_op_create failed\n"));
+        DEBUG(2, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -102,7 +102,7 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
                             clean_name,
                             ctx->opts->netgroup_map[SDAP_OC_NETGROUP].name);
     if (!state->filter) {
-        DEBUG(2, ("Failed to build filter\n"));
+        DEBUG(2, "Failed to build filter\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -208,8 +208,8 @@ static void ldap_netgroup_get_done(struct tevent_req *subreq)
     }
 
     if (ret == EOK && state->count > 1) {
-        DEBUG(1, ("Found more than one netgroup with the name [%s].\n",
-                  state->name));
+        DEBUG(1, "Found more than one netgroup with the name [%s].\n",
+                  state->name);
         tevent_req_error(req, EINVAL);
         return;
     }

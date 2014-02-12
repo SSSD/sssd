@@ -44,20 +44,20 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
 
     test_ctx = create_ev_test_ctx(mem_ctx);
     if (test_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed\n");
         goto fail;
     }
 
     conf_db = talloc_asprintf(test_ctx, "%s/%s", tests_path, confdb_path);
     if (conf_db == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
         goto fail;
     }
 
     /* Connect to the conf db */
     ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("confdb_init failed: %d\n", ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "confdb_init failed: %d\n", ret);
         goto fail;
     }
 
@@ -65,13 +65,13 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/sssd", "domains", val);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("cannot add domain: %d\n", ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "cannot add domain: %d\n", ret);
         goto fail;
     }
 
     dompath = talloc_asprintf(test_ctx, "config/domain/%s", domain_name);
     if (dompath == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
         goto fail;
     }
 
@@ -79,7 +79,7 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
     ret = confdb_add_param(test_ctx->confdb, true,
                            dompath, "id_provider", val);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("cannot add id_provider: %d\n", ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "cannot add id_provider: %d\n", ret);
         goto fail;
     }
 
@@ -91,7 +91,7 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
                                    val);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("cannot add parameter %s: %d\n", params[i].key, ret));
+                      "cannot add parameter %s: %d\n", params[i].key, ret);
                 goto fail;
             }
         }
@@ -100,7 +100,7 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
     ret = sssd_domain_init(test_ctx, test_ctx->confdb, domain_name,
                            tests_path, &test_ctx->dom);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("cannot add id_provider: %d\n", ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "cannot add id_provider: %d\n", ret);
         goto fail;
     }
     test_ctx->sysdb = test_ctx->dom->sysdb;
@@ -121,7 +121,7 @@ void test_dom_suite_setup(const char *tests_path)
     ret = mkdir(tests_path, 0775);
     if (ret != 0 && errno != EEXIST) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not create test directory\n"));
+              "Could not create test directory\n");
     }
 }
 
@@ -136,14 +136,14 @@ void test_dom_suite_cleanup(const char *tests_path,
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed\n");
         return;
     }
 
     conf_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, confdb_path);
     if (!conf_db) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not construct conf_db path\n"));
+              "Could not construct conf_db path\n");
         goto done;
     }
 
@@ -151,14 +151,14 @@ void test_dom_suite_cleanup(const char *tests_path,
     ret = unlink(conf_db);
     if (ret != 0 && errno != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not delete the test config ldb file (%d) (%s)\n",
-               errno, strerror(errno)));
+              "Could not delete the test config ldb file (%d) (%s)\n",
+               errno, strerror(errno));
     }
 
     sys_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, sysdb_path);
     if (!sys_db) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not construct sys_db path\n"));
+              "Could not construct sys_db path\n");
         goto done;
     }
 
@@ -166,16 +166,16 @@ void test_dom_suite_cleanup(const char *tests_path,
     ret = unlink(sys_db);
     if (ret != 0 && errno != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not delete the test ldb file (%d) (%s)\n",
-               errno, strerror(errno)));
+              "Could not delete the test ldb file (%d) (%s)\n",
+               errno, strerror(errno));
     }
 
     errno = 0;
     ret = rmdir(tests_path);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not delete the test dir (%d) (%s)\n",
-               errno, strerror(errno)));
+              "Could not delete the test dir (%d) (%s)\n",
+               errno, strerror(errno));
     }
 
 done:

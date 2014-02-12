@@ -205,8 +205,8 @@ static void network_status_change_cb(void *cb_data)
     struct mt_svc *iter;
     struct mt_ctx *ctx = (struct mt_ctx *) cb_data;
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("A networking status change detected "
-          "signaling providers to reset offline status\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "A networking status change detected "
+          "signaling providers to reset offline status\n");
     for (iter = ctx->svc_list; iter; iter = iter->next) {
         /* Don't signal services, only providers */
         if (iter->provider) {
@@ -268,7 +268,7 @@ static int client_registration(DBusMessage *message,
     data = sbus_conn_get_private_data(conn);
     mini = talloc_get_type(data, struct mon_init_conn);
     if (!mini) {
-        DEBUG(0, ("Connection holds no valid init data\n"));
+        DEBUG(0, "Connection holds no valid init data\n");
         return EINVAL;
     }
 
@@ -282,14 +282,14 @@ static int client_registration(DBusMessage *message,
                                   DBUS_TYPE_UINT16, &svc_ver,
                                   DBUS_TYPE_INVALID);
     if (!dbret) {
-        DEBUG(1, ("Failed to parse message, killing connection\n"));
+        DEBUG(1, "Failed to parse message, killing connection\n");
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         sbus_disconnect(conn);
         /* FIXME: should we just talloc_zfree(conn) ? */
         goto done;
     }
 
-    DEBUG(4, ("Received ID registration: (%s,%d)\n", svc_name, svc_ver));
+    DEBUG(4, "Received ID registration: (%s,%d)\n", svc_name, svc_ver);
 
     /* search this service in the list */
     svc = mini->ctx->svc_list;
@@ -301,8 +301,8 @@ static int client_registration(DBusMessage *message,
         svc = svc->next;
     }
     if (!svc) {
-        DEBUG(0, ("Unable to find peer [%s] in list of services,"
-                  " killing connection!\n", svc_name));
+        DEBUG(0, "Unable to find peer [%s] in list of services,"
+                  " killing connection!\n", svc_name);
         sbus_disconnect(conn);
         /* FIXME: should we just talloc_zfree(conn) ? */
         goto done;
@@ -313,7 +313,7 @@ static int client_registration(DBusMessage *message,
 
     ret = mark_service_as_started(svc);
     if (ret) {
-        DEBUG(1, ("Failed to mark service [%s]!\n", svc_name));
+        DEBUG(1, "Failed to mark service [%s]!\n", svc_name);
         goto done;
     }
 
@@ -411,7 +411,7 @@ static int mark_service_as_started(struct mt_svc *svc)
     int ret;
     int i;
 
-    DEBUG(5, ("Marking %s as started.\n", svc->name));
+    DEBUG(5, "Marking %s as started.\n", svc->name);
     svc->svc_started = true;
 
     /* we need to attach a spy to the connection structure so that if some code
@@ -419,7 +419,7 @@ static int mark_service_as_started(struct mt_svc *svc)
      * try to access or even free, freed memory. */
     ret = add_svc_conn_spy(svc);
     if (ret) {
-        DEBUG(0, ("Failed to attch spy\n"));
+        DEBUG(0, "Failed to attch spy\n");
         goto done;
     }
 
@@ -428,7 +428,7 @@ static int mark_service_as_started(struct mt_svc *svc)
         /* check if all providers are up */
         for (iter = ctx->svc_list; iter; iter = iter->next) {
             if (iter->provider && !iter->svc_started) {
-                DEBUG(5, ("Still waiting on %s provider.\n", iter->name));
+                DEBUG(5, "Still waiting on %s provider.\n", iter->name);
                 break;
             }
         }
@@ -440,7 +440,7 @@ static int mark_service_as_started(struct mt_svc *svc)
 
         ctx->services_started = true;
 
-        DEBUG(4, ("Now starting services!\n"));
+        DEBUG(4, "Now starting services!\n");
         /* then start all services */
         for (i = 0; ctx->services[i]; i++) {
             add_new_service(ctx, ctx->services[i], 0);
@@ -457,20 +457,20 @@ static int mark_service_as_started(struct mt_svc *svc)
         if (ctx->is_daemon) {
             if (ctx->parent_pid <= 1 || ctx->parent_pid != getppid()) {
                 /* the parent process was already terminated */
-                DEBUG(SSSDBG_MINOR_FAILURE, ("Invalid parent pid: %d\n",
-                      ctx->parent_pid));
+                DEBUG(SSSDBG_MINOR_FAILURE, "Invalid parent pid: %d\n",
+                      ctx->parent_pid);
                 goto done;
             }
 
-            DEBUG(SSSDBG_TRACE_FUNC, ("SSSD is initialized, "
-                                      "terminating parent process\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "SSSD is initialized, "
+                                      "terminating parent process\n");
 
             errno = 0;
             ret = kill(ctx->parent_pid, SIGTERM);
             if (ret != 0) {
                 ret = errno;
-                DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to terminate parent "
-                      "process [%d]: %s\n", ret, strerror(ret)));
+                DEBUG(SSSDBG_FATAL_FAILURE, "Unable to terminate parent "
+                      "process [%d]: %s\n", ret, strerror(ret));
             }
         }
     }
@@ -486,16 +486,16 @@ static void services_startup_timeout(struct tevent_context *ev,
     struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
     int i;
 
-    DEBUG(6, ("Handling timeout\n"));
+    DEBUG(6, "Handling timeout\n");
 
     if (!ctx->services_started) {
 
-        DEBUG(1, ("Providers did not start in time, "
-                  "forcing services startup!\n"));
+        DEBUG(1, "Providers did not start in time, "
+                  "forcing services startup!\n");
 
         ctx->services_started = true;
 
-        DEBUG(4, ("Now starting services!\n"));
+        DEBUG(4, "Now starting services!\n");
         /* then start all services */
         for (i = 0; ctx->services[i]; i++) {
             add_new_service(ctx, ctx->services[i], 0);
@@ -512,7 +512,7 @@ static int add_services_startup_timeout(struct mt_ctx *ctx)
     tv = tevent_timeval_current_ofs(5, 0);
     to = tevent_add_timer(ctx->ev, ctx, tv, services_startup_timeout, ctx);
     if (!to) {
-        DEBUG(0,("Out of memory?!\n"));
+        DEBUG(0,"Out of memory?!\n");
         return ENOMEM;
     }
 
@@ -568,20 +568,20 @@ static void tasks_check_handler(struct tevent_context *ev,
         break;
 
     case ENXIO:
-        DEBUG(1,("Child (%s) not responding! (yet)\n", svc->name));
+        DEBUG(1,"Child (%s) not responding! (yet)\n", svc->name);
         break;
 
     default:
         /* TODO: should we tear it down ? */
-        DEBUG(1,("Sending a message to service (%s) failed!!\n", svc->name));
+        DEBUG(1,"Sending a message to service (%s) failed!!\n", svc->name);
         break;
     }
 
     if (svc->failed_pongs >= 3) {
         /* too long since we last heard of this process */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Killing service [%s], not responding to pings!\n",
-               svc->name));
+              "Killing service [%s], not responding to pings!\n",
+               svc->name);
         sss_log(SSS_LOG_ERR,
                 "Killing service [%s], not responding to pings!\n",
                 svc->name);
@@ -605,8 +605,8 @@ static void set_tasks_checker(struct mt_svc *svc)
     tv.tv_usec = 0;
     te = tevent_add_timer(svc->mt_ctx->ev, svc, tv, tasks_check_handler, svc);
     if (te == NULL) {
-        DEBUG(0, ("failed to add event, monitor offline for [%s]!\n",
-                  svc->name));
+        DEBUG(0, "failed to add event, monitor offline for [%s]!\n",
+                  svc->name);
         /* FIXME: shutdown ? */
     }
     svc->ping_ev = te;
@@ -625,9 +625,9 @@ static int monitor_kill_service (struct mt_svc *svc)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Sending signal to child (%s:%d) failed: [%d]: %s! "
+              "Sending signal to child (%s:%d) failed: [%d]: %s! "
                "Ignore and pretend child is dead.\n",
-               svc->name, svc->pid, ret, strerror(ret)));
+               svc->name, svc->pid, ret, strerror(ret));
         goto done;
     }
 
@@ -640,7 +640,7 @@ static int monitor_kill_service (struct mt_svc *svc)
         /* Nothing much we can do */
         ret = ENOMEM;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to allocate timed event: mt_svc_sigkill.\n"));
+              "Failed to allocate timed event: mt_svc_sigkill.\n");
         goto done;
     }
 
@@ -661,8 +661,8 @@ static void mt_svc_sigkill(struct tevent_context *ev,
     struct mt_svc *svc = talloc_get_type(ptr, struct mt_svc);
 
     DEBUG(SSSDBG_FATAL_FAILURE,
-          ("[%s][%d] is not responding to SIGTERM. Sending SIGKILL.\n",
-           svc->name, svc->pid));
+          "[%s][%d] is not responding to SIGTERM. Sending SIGKILL.\n",
+           svc->name, svc->pid);
     sss_log(SSS_LOG_ERR,
             "[%s][%d] is not responding to SIGTERM. Sending SIGKILL.\n",
             svc->name, svc->pid);
@@ -670,9 +670,9 @@ static void mt_svc_sigkill(struct tevent_context *ev,
     ret = kill(svc->pid, SIGKILL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Sending signal to child (%s:%d) failed! "
+              "Sending signal to child (%s:%d) failed! "
               "Ignore and pretend child is dead.\n",
-              svc->name, svc->pid));
+              svc->name, svc->pid);
         talloc_free(svc);
     }
 }
@@ -688,8 +688,8 @@ static void reload_reply(DBusPendingCall *pending, void *data)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        DEBUG(0, ("A reply callback was called but no reply was received"
-                  " and no timeout occurred\n"));
+        DEBUG(0, "A reply callback was called but no reply was received"
+                  " and no timeout occurred\n");
         /* Destroy this connection */
         sbus_disconnect(svc->conn);
         dbus_pending_call_unref(pending);
@@ -710,7 +710,7 @@ static int monitor_update_resolv(struct config_file_ctx *file_ctx,
 {
     int ret;
     struct mt_svc *cur_svc;
-    DEBUG(2, ("Resolv.conf has been updated. Reloading.\n"));
+    DEBUG(2, "Resolv.conf has been updated. Reloading.\n");
 
     ret = res_init();
     if(ret != 0) {
@@ -740,7 +740,7 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
          * yet.
          */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not signal service [%s].\n", svc->name));
+              "Could not signal service [%s].\n", svc->name);
         return EIO;
     }
 
@@ -750,8 +750,8 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
                                        svc_signal);
     if (msg == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Out of memory trying to allocate memory to invoke: %s\n",
-               svc_signal));
+              "Out of memory trying to allocate memory to invoke: %s\n",
+               svc_signal);
         monitor_kill_service(svc);
         return ENOMEM;
     }
@@ -798,7 +798,7 @@ static int check_domain_ranges(struct sss_domain_info *domains)
         other = get_next_domain(dom, false);
         if (dom->id_max && dom->id_min > dom->id_max) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Domain '%s' does not have a valid ID range\n", dom->name));
+                  "Domain '%s' does not have a valid ID range\n", dom->name);
             return EINVAL;
         }
 
@@ -808,8 +808,8 @@ static int check_domain_ranges(struct sss_domain_info *domains)
                          (other->id_max ? other->id_max : UINT32_MAX));
             if (id_min <= id_max) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Domains '%s' and '%s' overlap in range %u - %u\n",
-                      dom->name, other->name, id_min, id_max));
+                      "Domains '%s' and '%s' overlap in range %u - %u\n",
+                      dom->name, other->name, id_min, id_max);
             }
             other = get_next_domain(other, false);
         }
@@ -857,7 +857,7 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_new failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
     }
 
@@ -866,7 +866,7 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
                                     CONFDB_MONITOR_ACTIVE_DOMAINS,
                                     &domain_names);
     if (ret == ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, ("No domains configured!\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "No domains configured!\n");
         goto done;
     }
 
@@ -874,7 +874,7 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
         conf_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
                                     domain_names[c]);
         if (conf_path == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("talloc_asprintf failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -883,8 +883,8 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
                                 CONFDB_DOMAIN_ID_PROVIDER, NULL, &id_provider);
         if (ret == EOK) {
             if (id_provider == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("id_provider is not set for "
-                      "domain [%s], trying next domain.\n", domain_names[c]));
+                DEBUG(SSSDBG_OP_FAILURE, "id_provider is not set for "
+                      "domain [%s], trying next domain.\n", domain_names[c]);
                 continue;
             }
 
@@ -892,9 +892,9 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
                 add_pac = true;
             }
         } else {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to get id_provider for " \
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to get id_provider for " \
                                       "domain [%s], trying next domain.\n",
-                                      domain_names[c]));
+                                      domain_names[c]);
         }
     }
 
@@ -902,7 +902,7 @@ static errno_t add_implicit_services(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx
         !string_in_list("pac", *_services, false)) {
         ret = add_string_to_list(mem_ctx, "pac", _services);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("add_string_to_list failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "add_string_to_list failed.\n");
             goto done;
         }
     }
@@ -964,20 +964,20 @@ int get_monitor_config(struct mt_ctx *ctx)
                                     CONFDB_MONITOR_ACTIVE_SERVICES,
                                     &ctx->services);
     if (ret != EOK) {
-        DEBUG(0, ("No services configured!\n"));
+        DEBUG(0, "No services configured!\n");
         return EINVAL;
     }
 
     ret = add_implicit_services(ctx->cdb, ctx->service_ctx, &ctx->services);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to add implicit configured " \
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add implicit configured " \
                                   "services. Some functionality might " \
-                                  "be missing"));
+                                  "be missing");
     }
 
     badsrv = check_services(ctx->services);
     if (badsrv != NULL) {
-        DEBUG(0, ("Invalid service %s\n", badsrv));
+        DEBUG(0, "Invalid service %s\n", badsrv);
         return EINVAL;
     }
 
@@ -993,13 +993,13 @@ int get_monitor_config(struct mt_ctx *ctx)
     }
     ret = confdb_get_domains(ctx->cdb, &ctx->domains);
     if (ret != EOK) {
-        DEBUG(0, ("No domains configured.\n"));
+        DEBUG(0, "No domains configured.\n");
         return ret;
     }
 
     ret = check_local_domain_unique(ctx->domains);
     if (ret != EOK) {
-        DEBUG(0, ("More than one local domain configured.\n"));
+        DEBUG(0, "More than one local domain configured.\n");
         return ret;
     }
 
@@ -1022,7 +1022,7 @@ static errno_t get_ping_config(struct mt_ctx *ctx, const char *path,
                          MONITOR_DEF_PING_TIME, &svc->ping_time);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-               ("Failed to get ping timeout for '%s'\n", svc->name));
+               "Failed to get ping timeout for '%s'\n", svc->name);
         return ret;
     }
 
@@ -1032,15 +1032,15 @@ static errno_t get_ping_config(struct mt_ctx *ctx, const char *path,
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Time between service pings for [%s]: [%d]\n",
-           svc->name, svc->ping_time));
+          "Time between service pings for [%s]: [%d]\n",
+           svc->name, svc->ping_time);
 
     ret = confdb_get_int(ctx->cdb, path,
                          CONFDB_SERVICE_FORCE_TIMEOUT,
                          MONITOR_DEF_FORCE_TIME, &svc->kill_time);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to get kill timeout for %s\n", svc->name));
+              "Failed to get kill timeout for %s\n", svc->name);
         return ret;
     }
 
@@ -1050,8 +1050,8 @@ static errno_t get_ping_config(struct mt_ctx *ctx, const char *path,
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Time between SIGTERM and SIGKILL for [%s]: [%d]\n",
-           svc->name, svc->kill_time));
+          "Time between SIGTERM and SIGKILL for [%s]: [%d]\n",
+           svc->name, svc->kill_time);
 
     return EOK;
 }
@@ -1097,7 +1097,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
                             CONFDB_SERVICE_COMMAND,
                             NULL, &svc->command);
     if (ret != EOK) {
-        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        DEBUG(0,"Failed to start service '%s'\n", svc->name);
         talloc_free(svc);
         return ret;
     }
@@ -1156,7 +1156,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     ret = get_ping_config(ctx, path, svc);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to get ping timeouts for %s\n", svc->name));
+              "Failed to get ping timeouts for %s\n", svc->name);
         talloc_free(svc);
         return ret;
     }
@@ -1184,7 +1184,7 @@ static int add_new_service(struct mt_ctx *ctx,
 
     ret = start_service(svc);
     if (ret != EOK) {
-        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        DEBUG(0,"Failed to start service '%s'\n", svc->name);
         talloc_free(svc);
     }
 
@@ -1232,7 +1232,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
                             CONFDB_DOMAIN_ID_PROVIDER,
                             NULL, &svc->provider);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to find ID provider from [%s] configuration\n", name));
+        DEBUG(0, "Failed to find ID provider from [%s] configuration\n", name);
         talloc_free(svc);
         return ret;
     }
@@ -1241,7 +1241,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
                             CONFDB_DOMAIN_COMMAND,
                             NULL, &svc->command);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to find command from [%s] configuration\n", name));
+        DEBUG(0, "Failed to find command from [%s] configuration\n", name);
         talloc_free(svc);
         return ret;
     }
@@ -1249,7 +1249,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     ret = get_ping_config(ctx, path, svc);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to get ping timeouts for %s\n", svc->name));
+              "Failed to get ping timeouts for %s\n", svc->name);
         talloc_free(svc);
         return ret;
     }
@@ -1329,8 +1329,8 @@ static int add_new_provider(struct mt_ctx *ctx,
 
     ret = get_provider_config(ctx, name, &svc);
     if (ret != EOK) {
-        DEBUG(0, ("Could not get provider configuration for [%s]\n",
-                  name));
+        DEBUG(0, "Could not get provider configuration for [%s]\n",
+                  name);
         return ret;
     }
     svc->restarts = restarts;
@@ -1347,7 +1347,7 @@ static int add_new_provider(struct mt_ctx *ctx,
 
     ret = start_service(svc);
     if (ret != EOK) {
-        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        DEBUG(0,"Failed to start service '%s'\n", svc->name);
         talloc_free(svc);
     }
 
@@ -1364,7 +1364,7 @@ static void monitor_hup(struct tevent_context *ev,
     struct mt_ctx *ctx = talloc_get_type(private_data, struct mt_ctx);
     struct mt_svc *cur_svc;
 
-    DEBUG(1, ("Received SIGHUP.\n"));
+    DEBUG(1, "Received SIGHUP.\n");
 
     /* Send D-Bus message to other services to rotate their logs.
      * NSS service receives also message to clear memory caches. */
@@ -1391,7 +1391,7 @@ static int monitor_cleanup(void)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Error removing pidfile! (%d [%s])\n", ret, strerror(ret)));
+              "Error removing pidfile! (%d [%s])\n", ret, strerror(ret));
         return ret;
     }
 
@@ -1407,7 +1407,7 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
     int kret;
     bool killed;
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, ("Returned with: %d\n", ret));
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Returned with: %d\n", ret);
 
     /* Kill all of our known children manually */
     DLIST_FOR_EACH(svc, mt_ctx->svc_list) {
@@ -1417,14 +1417,14 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
         }
 
         killed = false;
-        DEBUG(1, ("Terminating [%s][%d]\n", svc->name, svc->pid));
+        DEBUG(1, "Terminating [%s][%d]\n", svc->name, svc->pid);
         do {
             errno = 0;
             kret = kill(svc->pid, SIGTERM);
             if (kret < 0) {
                 error = errno;
-                DEBUG(1, ("Couldn't kill [%s][%d]: [%s]\n",
-                          svc->name, svc->pid, strerror(error)));
+                DEBUG(1, "Couldn't kill [%s][%d]: [%s]\n",
+                          svc->name, svc->pid, strerror(error));
             }
 
             error = 0;
@@ -1437,8 +1437,8 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
                     if (error == ECHILD) {
                         killed = true;
                     } else if (error != EINTR) {
-                        DEBUG(0, ("[%d][%s] while waiting for [%s]\n",
-                                  error, strerror(error), svc->name));
+                        DEBUG(0, "[%d][%s] while waiting for [%s]\n",
+                                  error, strerror(error), svc->name);
                         /* Forcibly kill this child */
                         kill(svc->pid, SIGKILL);
                         break;
@@ -1446,11 +1446,11 @@ static void monitor_quit(struct mt_ctx *mt_ctx, int ret)
                 } else if (pid != 0) {
                     error = 0;
                     if (WIFEXITED(status)) {
-                        DEBUG(1, ("Child [%s] exited gracefully\n", svc->name));
+                        DEBUG(1, "Child [%s] exited gracefully\n", svc->name);
                     } else if (WIFSIGNALED(status)) {
-                        DEBUG(1, ("Child [%s] terminated with a signal\n", svc->name));
+                        DEBUG(1, "Child [%s] terminated with a signal\n", svc->name);
                     } else {
-                        DEBUG(0, ("Child [%s] did not exit cleanly\n", svc->name));
+                        DEBUG(0, "Child [%s] did not exit cleanly\n", svc->name);
                         /* Forcibly kill this child */
                         kill(svc->pid, SIGKILL);
                     }
@@ -1496,10 +1496,10 @@ static void monitor_quit_signal(struct tevent_context *ev,
 {
     struct mt_ctx *mt_ctx = talloc_get_type(private_data, struct mt_ctx);
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Received shutdown command\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Received shutdown command\n");
 
-    DEBUG(SSSDBG_IMPORTANT_INFO, ("Monitor received %s: terminating "
-                                  "children\n", strsignal(signum)));
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Monitor received %s: terminating "
+                                  "children\n", strsignal(signum));
 
     monitor_quit(mt_ctx, 0);
 }
@@ -1508,7 +1508,7 @@ static void signal_res_init(struct mt_ctx *monitor)
 {
     struct mt_svc *cur_svc;
     int ret;
-    DEBUG(SSSDBG_OP_FAILURE, ("Reloading Resolv.conf.\n"));
+    DEBUG(SSSDBG_OP_FAILURE, "Reloading Resolv.conf.\n");
 
     ret = res_init();
     if (ret == 0) {
@@ -1531,7 +1531,7 @@ static void signal_offline(struct tevent_context *ev,
     monitor = talloc_get_type(private_data, struct mt_ctx);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-         ("Signaling providers to go offline immediately.\n"));
+         "Signaling providers to go offline immediately.\n");
 
     /* Signal all providers to immediately go offline */
     for(cur_svc = monitor->svc_list; cur_svc; cur_svc = cur_svc->next) {
@@ -1555,7 +1555,7 @@ static void signal_offline_reset(struct tevent_context *ev,
     monitor = talloc_get_type(private_data, struct mt_ctx);
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-         ("Signaling providers to reset offline immediately.\n"));
+         "Signaling providers to reset offline immediately.\n");
 
     for(cur_svc = monitor->svc_list; cur_svc; cur_svc = cur_svc->next) {
         if (cur_svc->provider) {
@@ -1596,14 +1596,14 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
 
     cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (cdb_file == NULL) {
-        DEBUG(0,("Out of memory, aborting!\n"));
+        DEBUG(0,"Out of memory, aborting!\n");
         ret = ENOMEM;
         goto done;
     }
 
     ret = confdb_init(ctx, &ctx->cdb, cdb_file);
     if (ret != EOK) {
-        DEBUG(0,("The confdb initialization failed\n"));
+        DEBUG(0,"The confdb initialization failed\n");
         goto done;
     }
 
@@ -1620,26 +1620,26 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
 
         ret = confdb_init(ctx, &ctx->cdb, cdb_file);
         if (ret != EOK) {
-            DEBUG(0,("The confdb initialization failed\n"));
+            DEBUG(0,"The confdb initialization failed\n");
             goto done;
         }
 
         /* Load special entries */
         ret = confdb_create_base(ctx->cdb);
         if (ret != EOK) {
-            DEBUG(0, ("Unable to load special entries into confdb\n"));
+            DEBUG(0, "Unable to load special entries into confdb\n");
             goto done;
         }
     } else if (ret != EOK) {
-        DEBUG(0, ("Fatal error initializing confdb\n"));
+        DEBUG(0, "Fatal error initializing confdb\n");
         goto done;
     }
     talloc_zfree(cdb_file);
 
     ret = confdb_init_db(config_file, ctx->cdb);
     if (ret != EOK) {
-        DEBUG(0, ("ConfDB initialization has failed [%s]\n",
-              sss_strerror(ret)));
+        DEBUG(0, "ConfDB initialization has failed [%s]\n",
+              sss_strerror(ret));
         goto done;
     }
 
@@ -1697,7 +1697,7 @@ static void config_file_changed(struct tevent_context *ev,
 
     te = tevent_add_timer(ev, ev, tv, process_config_file, file_ctx);
     if (!te) {
-        DEBUG(0, ("Unable to queue config file update! Exiting.\n"));
+        DEBUG(0, "Unable to queue config file update! Exiting.\n");
         kill(getpid(), SIGTERM);
         return;
     }
@@ -1726,7 +1726,7 @@ static void process_config_file(struct tevent_context *ev,
 
     file_ctx = talloc_get_type(ptr, struct config_file_ctx);
 
-    DEBUG(1, ("Processing config file changes\n"));
+    DEBUG(1, "Processing config file changes\n");
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return;
@@ -1742,8 +1742,8 @@ static void process_config_file(struct tevent_context *ev,
     if (len == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Critical error reading inotify file descriptor [%d]: %s\n",
-               ret, strerror(ret)));
+              "Critical error reading inotify file descriptor [%d]: %s\n",
+               ret, strerror(ret));
         goto done;
     }
 
@@ -1761,8 +1761,8 @@ static void process_config_file(struct tevent_context *ev,
         if (len == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                ("Critical error reading inotify file descriptor [%d]: %s\n",
-                ret, strerror(ret)));
+                "Critical error reading inotify file descriptor [%d]: %s\n",
+                ret, strerror(ret));
             goto done;
         }
     }
@@ -1773,7 +1773,7 @@ static void process_config_file(struct tevent_context *ev,
         }
     }
     if (!cb) {
-        DEBUG(0, ("Unknown watch descriptor\n"));
+        DEBUG(0, "Unknown watch descriptor\n");
         goto done;
     }
 
@@ -1788,12 +1788,12 @@ static void process_config_file(struct tevent_context *ev,
         struct tevent_timer *tev;
         tv.tv_sec = t.tv_sec+5;
         tv.tv_usec = t.tv_usec;
-        DEBUG(5, ("Restoring inotify watch.\n"));
+        DEBUG(5, "Restoring inotify watch.\n");
 
         cb->retries = 0;
         rw_ctx = talloc(file_ctx, struct rewatch_ctx);
         if(!rw_ctx) {
-            DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
+            DEBUG(0, "Could not restore inotify watch. Quitting!\n");
             close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
             goto done;
@@ -1803,7 +1803,7 @@ static void process_config_file(struct tevent_context *ev,
 
         tev = tevent_add_timer(ev, rw_ctx, tv, rewatch_config_file, rw_ctx);
         if (tev == NULL) {
-            DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
+            DEBUG(0, "Could not restore inotify watch. Quitting!\n");
             close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
         }
@@ -1839,7 +1839,7 @@ static void rewatch_config_file(struct tevent_context *ev,
     cb->retries++;
     if (cb->retries > 6) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-             ("Could not restore inotify watch. Switching to polling!\n"));
+             "Could not restore inotify watch. Switching to polling!\n");
         close(file_ctx->mt_ctx->inotify_fd);
         err = monitor_config_file_fallback(file_ctx->parent_ctx,
                                            file_ctx->mt_ctx,
@@ -1867,13 +1867,13 @@ static void rewatch_config_file(struct tevent_context *ev,
         tv.tv_usec = t.tv_usec;
 
         DEBUG(SSSDBG_CRIT_FAILURE,
-             ("Could not add inotify watch for file [%s]. Error [%d:%s]\n",
-             cb->filename, err, strerror(err)));
+             "Could not add inotify watch for file [%s]. Error [%d:%s]\n",
+             cb->filename, err, strerror(err));
 
         tev = tevent_add_timer(ev, ev, tv, rewatch_config_file, rw_ctx);
         if (tev == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                 ("Could not restore inotify watch. Quitting!\n"));
+                 "Could not restore inotify watch. Quitting!\n");
             close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
         }
@@ -1906,8 +1906,8 @@ static void poll_config_file(struct tevent_context *ev,
         ret = stat(cb->filename, &file_stat);
         if (ret < 0) {
             err = errno;
-            DEBUG(0, ("Could not stat file [%s]. Error [%d:%s]\n",
-                      cb->filename, err, strerror(err)));
+            DEBUG(0, "Could not stat file [%s]. Error [%d:%s]\n",
+                      cb->filename, err, strerror(err));
             /* TODO: If the config file is missing, should we shut down? */
             return;
         }
@@ -1917,7 +1917,7 @@ static void poll_config_file(struct tevent_context *ev,
             /* Note: this will fire if the modification time changes into the past
              * as well as the future.
              */
-            DEBUG(1, ("Config file changed\n"));
+            DEBUG(1, "Config file changed\n");
             cb->modified = file_stat.st_mtime;
 
             /* Tell the monitor to signal the children */
@@ -1931,7 +1931,7 @@ static void poll_config_file(struct tevent_context *ev,
     file_ctx->timer = tevent_add_timer(ev, file_ctx->parent_ctx, tv,
                              poll_config_file, file_ctx);
     if (!file_ctx->timer) {
-        DEBUG(0, ("Error: Config file no longer monitored for changes!\n"));
+        DEBUG(0, "Error: Config file no longer monitored for changes!\n");
     }
 }
 
@@ -1949,8 +1949,8 @@ static int try_inotify(struct config_file_ctx *file_ctx, const char *filename,
         file_ctx->mt_ctx->inotify_fd = inotify_init();
         if (file_ctx->mt_ctx->inotify_fd < 0) {
             err = errno;
-            DEBUG(0, ("Could not initialize inotify, error [%d:%s]\n",
-                      err, strerror(err)));
+            DEBUG(0, "Could not initialize inotify, error [%d:%s]\n",
+                      err, strerror(err));
             return err;
         }
 
@@ -1995,8 +1995,8 @@ static int try_inotify(struct config_file_ctx *file_ctx, const char *filename,
                                cb->filename, IN_MODIFY);
     if (cb->wd < 0) {
         err = errno;
-        DEBUG(0, ("Could not add inotify watch for file [%s]. Error [%d:%s]\n",
-                  cb->filename, err, strerror(err)));
+        DEBUG(0, "Could not add inotify watch for file [%s]. Error [%d:%s]\n",
+                  cb->filename, err, strerror(err));
         close(file_ctx->mt_ctx->inotify_fd);
         return err;
     }
@@ -2025,13 +2025,13 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
         err = errno;
         if (err == ENOENT && ignore_missing) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                    ("file [%s] is missing. Will not update online status "
-                     "based on watching the file\n", file));
+                    "file [%s] is missing. Will not update online status "
+                     "based on watching the file\n", file);
             return EOK;
         } else {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                 ("Could not stat file [%s]. Error [%d:%s]\n",
-                 file, err, strerror(err)));
+                 "Could not stat file [%s]. Error [%d:%s]\n",
+                 file, err, strerror(err));
 
             return err;
         }
@@ -2084,14 +2084,14 @@ errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
         err = errno;
         if (err == ENOENT && ignore_missing) {
              DEBUG(SSSDBG_MINOR_FAILURE,
-                     ("file [%s] is missing. Will not update online status "
-                      "based on watching the file\n", file));
+                     "file [%s] is missing. Will not update online status "
+                      "based on watching the file\n", file);
              return EOK;
 
         } else {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                 ("Could not stat file [%s]. Error [%d:%s]\n",
-                 file, err, strerror(err)));
+                 "Could not stat file [%s]. Error [%d:%s]\n",
+                 file, err, strerror(err));
 
             return err;
         }
@@ -2155,9 +2155,9 @@ int monitor_process_init(struct mt_ctx *ctx,
         if (ret < 0) {
             error = errno;
             DEBUG(1,
-                  ("Unable to set KRB5RCACHEDIR: %s."
+                  "Unable to set KRB5RCACHEDIR: %s."
                    "Will attempt to use libkrb5 defaults\n",
-                   strerror(error)));
+                   strerror(error));
         }
         talloc_zfree(rcachedir);
     }
@@ -2250,7 +2250,7 @@ int monitor_process_init(struct mt_ctx *ctx,
     ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
                         ctx, &ctx->nlctx);
     if (ret != EOK) {
-        DEBUG(2, ("Cannot set up listening for network notifications\n"));
+        DEBUG(2, "Cannot set up listening for network notifications\n");
         return ret;
     }
 
@@ -2296,7 +2296,7 @@ static void init_timeout(struct tevent_context *ev,
 {
     struct mon_init_conn *mini;
 
-    DEBUG(2, ("Client timed out before Identification!\n"));
+    DEBUG(2, "Client timed out before Identification!\n");
 
     mini = talloc_get_type(ptr, struct mon_init_conn);
 
@@ -2316,13 +2316,13 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
     struct mon_init_conn *mini;
     struct timeval tv;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Initializing D-BUS Service\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Initializing D-BUS Service\n");
 
     ctx = talloc_get_type(data, struct mt_ctx);
 
     mini = talloc(conn, struct mon_init_conn);
     if (!mini) {
-        DEBUG(0,("Out of memory?!\n"));
+        DEBUG(0,"Out of memory?!\n");
         talloc_zfree(conn);
         return ENOMEM;
     }
@@ -2334,7 +2334,7 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
 
     mini->timeout = tevent_add_timer(ctx->ev, mini, tv, init_timeout, mini);
     if (!mini->timeout) {
-        DEBUG(0,("Out of memory?!\n"));
+        DEBUG(0,"Out of memory?!\n");
         talloc_zfree(conn);
         return ENOMEM;
     }
@@ -2356,11 +2356,11 @@ static int service_send_ping(struct mt_svc *svc)
     int ret;
 
     if (!svc->conn) {
-        DEBUG(8, ("Service not yet initialized\n"));
+        DEBUG(8, "Service not yet initialized\n");
         return ENXIO;
     }
 
-    DEBUG(4,("Pinging %s\n", svc->name));
+    DEBUG(4,"Pinging %s\n", svc->name);
 
     /*
      * Set up identity request
@@ -2372,7 +2372,7 @@ static int service_send_ping(struct mt_svc *svc)
                                        MONITOR_INTERFACE,
                                        MON_CLI_METHOD_PING);
     if (!msg) {
-        DEBUG(0,("Out of memory?!\n"));
+        DEBUG(0,"Out of memory?!\n");
         talloc_zfree(svc->conn);
         return ENOMEM;
     }
@@ -2396,7 +2396,7 @@ static void ping_check(DBusPendingCall *pending, void *data)
     if (!svc) {
         /* The connection probably went down before the callback fired.
          * Not much we can do. */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Invalid service pointer.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid service pointer.\n");
         return;
     }
     svc->pending = NULL;
@@ -2407,8 +2407,8 @@ static void ping_check(DBusPendingCall *pending, void *data)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        DEBUG(0, ("A reply callback was called but no reply was received"
-                  " and no timeout occurred\n"));
+        DEBUG(0, "A reply callback was called but no reply was received"
+                  " and no timeout occurred\n");
 
         /* Destroy this connection */
         sbus_disconnect(svc->conn);
@@ -2421,7 +2421,7 @@ static void ping_check(DBusPendingCall *pending, void *data)
         /* ok peer replied,
          * make sure we reset the failure counter in the service structure */
 
-        DEBUG(4,("Service %s replied to ping\n", svc->name));
+        DEBUG(4,"Service %s replied to ping\n", svc->name);
 
         svc->failed_pongs = 0;
         break;
@@ -2439,16 +2439,16 @@ static void ping_check(DBusPendingCall *pending, void *data)
         if (strnlen(dbus_error_name, len + 1) == len
                 && strncmp(dbus_error_name, DBUS_ERROR_NO_REPLY, len) == 0) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("A service PING timed out on [%s]. "
+                  "A service PING timed out on [%s]. "
                    "Attempt [%d]\n",
-                   svc->name, svc->failed_pongs));
+                   svc->name, svc->failed_pongs);
             svc->failed_pongs++;
             break;
         }
 
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("A service PING returned an error [%s], closing connection.\n",
-               dbus_error_name));
+              "A service PING returned an error [%s], closing connection.\n",
+               dbus_error_name);
         /* Falling through to default intentionally*/
     default:
         /*
@@ -2475,7 +2475,7 @@ static int start_service(struct mt_svc *svc)
     struct tevent_timer *te;
     struct timeval tv;
 
-    DEBUG(4,("Queueing service %s for startup\n", svc->name));
+    DEBUG(4,"Queueing service %s for startup\n", svc->name);
 
     tv = tevent_timeval_current();
 
@@ -2488,7 +2488,7 @@ static int start_service(struct mt_svc *svc)
     te = tevent_add_timer(svc->mt_ctx->ev, svc, tv,
                           service_startup_handler, svc);
     if (te == NULL) {
-        DEBUG(0, ("Unable to queue service %s for startup\n", svc->name));
+        DEBUG(0, "Unable to queue service %s for startup\n", svc->name);
         return ENOMEM;
     }
     return EOK;
@@ -2511,8 +2511,8 @@ static void service_startup_handler(struct tevent_context *ev,
     mt_svc->pid = fork();
     if (mt_svc->pid != 0) {
         if (mt_svc->pid == -1) {
-            DEBUG(0, ("Could not fork child to start service [%s]. "
-                      "Continuing.\n", mt_svc->name));
+            DEBUG(0, "Could not fork child to start service [%s]. "
+                      "Continuing.\n", mt_svc->name);
             return;
         }
 
@@ -2529,7 +2529,7 @@ static void service_startup_handler(struct tevent_context *ev,
                                  &mt_svc->child_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Could not register sigchld handler.\n"));
+                  "Could not register sigchld handler.\n");
             /* Should we exit here? For now, we'll hope this
              * child never dies, because we can't restart it.
              */
@@ -2548,7 +2548,7 @@ static void service_startup_handler(struct tevent_context *ev,
 
     /* If we are here, exec() has failed
      * Print errno and abort quickly */
-    DEBUG(0,("Could not exec %s, reason: %s\n", mt_svc->command, strerror(errno)));
+    DEBUG(0,"Could not exec %s, reason: %s\n", mt_svc->command, strerror(errno));
 
     /* We have to call _exit() instead of exit() here
      * because a bug in D-BUS will cause the server to
@@ -2567,8 +2567,8 @@ static void mt_svc_restart(struct tevent_context *ev,
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Scheduling service %s for restart %d\n",
-                              svc->name, svc->restarts+1));
+    DEBUG(SSSDBG_TRACE_FUNC, "Scheduling service %s for restart %d\n",
+                              svc->name, svc->restarts+1);
 
     if (svc->type == MT_SVC_SERVICE) {
         add_new_service(svc->mt_ctx, svc->name, svc->restarts + 1);
@@ -2577,7 +2577,7 @@ static void mt_svc_restart(struct tevent_context *ev,
     } else {
         /* Invalid type? */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("BUG: Invalid child process type [%d]\n", svc->type));
+              "BUG: Invalid child process type [%d]\n", svc->type);
     }
 
     /* Free the old service (which will also remove it
@@ -2597,14 +2597,14 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
 
     if (WIFEXITED(wait_status)) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Child [%s] exited with code [%d]\n",
-               svc->name, WEXITSTATUS(wait_status)));
+              "Child [%s] exited with code [%d]\n",
+               svc->name, WEXITSTATUS(wait_status));
     } else if (WIFSIGNALED(wait_status)) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Child [%s] terminated with signal [%d]\n",
-               svc->name, WTERMSIG(wait_status)));
+              "Child [%s] terminated with signal [%d]\n",
+               svc->name, WTERMSIG(wait_status));
     } else {
-        DEBUG(0, ("Child [%s] did not exit cleanly\n", svc->name));
+        DEBUG(0, "Child [%s] did not exit cleanly\n", svc->name);
         /* Forcibly kill this child, just in case */
         kill(svc->pid, SIGKILL);
 
@@ -2621,7 +2621,7 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
     /* Restart the service */
     if (svc->restarts > MONITOR_MAX_SVC_RESTARTS) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Process [%s], definitely stopped!\n", svc->name));
+              "Process [%s], definitely stopped!\n", svc->name);
         talloc_free(svc);
 
         /* exit with error */
@@ -2640,7 +2640,7 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
     if (te == NULL) {
         /* Nothing much we can do */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to allocate timed event: mt_svc_restart.\n"));
+              "Failed to allocate timed event: mt_svc_restart.\n");
         talloc_free(svc);
         return;
     }
@@ -2719,7 +2719,7 @@ int main(int argc, const char *argv[])
     uid = getuid();
     if (uid != 0) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Running under %"SPRIuid", must be root\n", uid));
+              "Running under %"SPRIuid", must be root\n", uid);
         sss_log(SSS_LOG_ALERT, "sssd must be run as root");
         return 8;
     }
@@ -2802,9 +2802,9 @@ int main(int argc, const char *argv[])
                 break;
 
             case EOK:
-                DEBUG(SSSDBG_TRACE_FUNC, ("NSCD socket was detected and it "
+                DEBUG(SSSDBG_TRACE_FUNC, "NSCD socket was detected and it "
                             "seems to be configured not to interfere with "
-                            "SSSD's caching capabilities\n"));
+                            "SSSD's caching capabilities\n");
         }
     }
 
@@ -2814,19 +2814,19 @@ int main(int argc, const char *argv[])
         switch (ret) {
         case ERR_MISSING_CONF:
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Configuration file: %s does not exist.\n", config_file));
+                  "Configuration file: %s does not exist.\n", config_file);
             sss_log(SSS_LOG_ALERT,
                     "Configuration file: %s does not exist.\n", config_file);
             break;
         case EPERM:
         case EACCES:
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  (CONF_FILE_PERM_ERROR_MSG, config_file));
+                  CONF_FILE_PERM_ERROR_MSG, config_file);
             sss_log(SSS_LOG_ALERT, CONF_FILE_PERM_ERROR_MSG, config_file);
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE,
-                 ("SSSD couldn't load the configuration database.\n"));
+                 "SSSD couldn't load the configuration database.\n");
             sss_log(SSS_LOG_ALERT,
                    "SSSD couldn't load the configuration database [%d]: %s.\n",
                     ret, strerror(ret));

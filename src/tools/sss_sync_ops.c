@@ -38,7 +38,7 @@
 
 #define VAR_CHECK(var, val, attr, msg) do { \
         if (var != (val)) { \
-            DEBUG(1, (msg" attribute: %s", attr)); \
+            DEBUG(1, msg" attribute: %s", attr); \
             return val; \
         } \
 } while(0)
@@ -364,7 +364,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    DEBUG(7, ("Gecos: %s\n", data->gecos));
+    DEBUG(7, "Gecos: %s\n", data->gecos);
 
     /* homedir */
     if (homedir) {
@@ -382,7 +382,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
-    DEBUG(7, ("Homedir: %s\n", data->home));
+    DEBUG(7, "Homedir: %s\n", data->home);
 
     /* default shell */
     if (!shell) {
@@ -399,7 +399,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
             goto done;
         }
     }
-    DEBUG(7, ("Shell: %s\n", data->shell));
+    DEBUG(7, "Shell: %s\n", data->shell);
 
     /* create homedir on user creation? */
     if (!create_home) {
@@ -412,7 +412,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
     } else {
         data->create_homedir = (create_home == DO_CREATE_HOME);
     }
-    DEBUG(7, ("Auto create homedir: %s\n", data->create_homedir?"True":"False"));
+    DEBUG(7, "Auto create homedir: %s\n", data->create_homedir?"True":"False");
 
     /* umask to create homedirs */
     ret = confdb_get_int(confdb,
@@ -421,7 +421,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         goto done;
     }
-    DEBUG(7, ("Umask: %o\n", data->umask));
+    DEBUG(7, "Umask: %o\n", data->umask);
 
     /* a directory to create mail spools in */
     ret = confdb_get_string(confdb, mem_ctx,
@@ -430,7 +430,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         goto done;
     }
-    DEBUG(7, ("Mail dir: %s\n", data->maildir));
+    DEBUG(7, "Mail dir: %s\n", data->maildir);
 
     /* skeleton dir */
     if (!skeldir) {
@@ -447,7 +447,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
             goto done;
         }
     }
-    DEBUG(7, ("Skeleton dir: %s\n", data->skeldir));
+    DEBUG(7, "Skeleton dir: %s\n", data->skeldir);
 
     ret = EOK;
 done:
@@ -505,13 +505,13 @@ int userdel(TALLOC_CTX *mem_ctx,
 
     user_dn = sysdb_user_dn(mem_ctx, data->domain, data->name);
     if (!user_dn) {
-        DEBUG(1, ("Could not construct a user DN\n"));
+        DEBUG(1, "Could not construct a user DN\n");
         return ENOMEM;
     }
 
     ret = sysdb_delete_entry(sysdb, user_dn, false);
     if (ret) {
-        DEBUG(2, ("Removing user failed: %s (%d)\n", strerror(ret), ret));
+        DEBUG(2, "Removing user failed: %s (%d)\n", strerror(ret), ret);
     }
 
     flush_nscd_cache(NSCD_DB_PASSWD);
@@ -546,13 +546,13 @@ int groupdel(TALLOC_CTX *mem_ctx,
 
     group_dn = sysdb_group_dn(mem_ctx, data->domain, data->name);
     if (group_dn == NULL) {
-        DEBUG(1, ("Could not construct a group DN\n"));
+        DEBUG(1, "Could not construct a group DN\n");
         return ENOMEM;
     }
 
     ret = sysdb_delete_entry(sysdb, group_dn, false);
     if (ret) {
-        DEBUG(2, ("Removing group failed: %s (%d)\n", strerror(ret), ret));
+        DEBUG(2, "Removing group failed: %s (%d)\n", strerror(ret), ret);
     }
 
     flush_nscd_cache(NSCD_DB_GROUP);
@@ -578,7 +578,7 @@ int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
 
     switch (res->count) {
     case 0:
-        DEBUG(1, ("No result for sysdb_getpwnam call\n"));
+        DEBUG(1, "No result for sysdb_getpwnam call\n");
         return ENOENT;
 
     case 1:
@@ -620,15 +620,15 @@ int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
             } else if (strcasecmp(str, "false") == 0) {
                 out->lock = DO_UNLOCK;
             } else { /* Invalid value */
-                DEBUG(2, ("Invalid value for %s attribute: %s\n",
-                          SYSDB_DISABLED, str ? str : "NULL"));
+                DEBUG(2, "Invalid value for %s attribute: %s\n",
+                          SYSDB_DISABLED, str ? str : "NULL");
                 return EIO;
             }
         }
         break;
 
     default:
-        DEBUG(1, ("More than one result for sysdb_getpwnam call\n"));
+        DEBUG(1, "More than one result for sysdb_getpwnam call\n");
         return EIO;
     }
 
@@ -650,7 +650,7 @@ int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
 
     switch (res->count) {
     case 0:
-        DEBUG(1, ("No result for sysdb_getgrnam call\n"));
+        DEBUG(1, "No result for sysdb_getgrnam call\n");
         return ENOENT;
 
     case 1:
@@ -664,7 +664,7 @@ int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
         break;
 
     default:
-        DEBUG(1, ("More than one result for sysdb_getgrnam call\n"));
+        DEBUG(1, "More than one result for sysdb_getgrnam call\n");
         return EIO;
     }
 

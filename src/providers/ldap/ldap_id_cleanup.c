@@ -90,8 +90,8 @@ errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
                                BE_PTASK_OFFLINE_SKIP, ldap_cleanup_task,
                                cleanup_ctx, name, &sdom->cleanup_task);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Unable to initialize cleanup periodic "
-                                     "task for %s\n", sdom->dom->name));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to initialize cleanup periodic "
+                                     "task for %s\n", sdom->dom->name);
         goto done;
     }
 
@@ -127,7 +127,7 @@ errno_t ldap_id_cleanup(struct sdap_options *opts,
 
     ret = sysdb_transaction_start(sdom->dom->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -144,7 +144,7 @@ errno_t ldap_id_cleanup(struct sdap_options *opts,
 
     ret = sysdb_transaction_commit(sdom->dom->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -155,7 +155,7 @@ done:
     if (in_transaction) {
         tret = sysdb_transaction_cancel(sdom->dom->sysdb);
         if (tret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
         }
     }
     talloc_free(tmp_ctx);
@@ -189,8 +189,8 @@ static int cleanup_users(struct sdap_options *opts,
     }
 
     account_cache_expiration = dp_opt_get_int(opts->basic, SDAP_ACCOUNT_CACHE_EXPIRATION);
-    DEBUG(9, ("Cache expiration is set to %d days\n",
-              account_cache_expiration));
+    DEBUG(9, "Cache expiration is set to %d days\n",
+              account_cache_expiration);
 
     if (account_cache_expiration > 0) {
         subfilter = talloc_asprintf(tmpctx,
@@ -210,7 +210,7 @@ static int cleanup_users(struct sdap_options *opts,
                                     SYSDB_LAST_LOGIN);
     }
     if (!subfilter) {
-        DEBUG(2, ("Failed to build filter\n"));
+        DEBUG(2, "Failed to build filter\n");
         ret = ENOMEM;
         goto done;
     }
@@ -223,7 +223,7 @@ static int cleanup_users(struct sdap_options *opts,
         goto done;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Found %zu expired user entries!\n", count));
+    DEBUG(SSSDBG_FUNC_DATA, "Found %zu expired user entries!\n", count);
 
     if (count == 0) {
         ret = EOK;
@@ -241,8 +241,8 @@ static int cleanup_users(struct sdap_options *opts,
     for (i = 0; i < count; i++) {
         name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
         if (!name) {
-            DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
-                       ldb_dn_get_linearized(msgs[i]->dn)));
+            DEBUG(2, "Entry %s has no Name Attribute ?!?\n",
+                       ldb_dn_get_linearized(msgs[i]->dn));
             ret = EFAULT;
             goto done;
         }
@@ -251,8 +251,8 @@ static int cleanup_users(struct sdap_options *opts,
             ret = cleanup_users_logged_in(uid_table, msgs[i]);
             if (ret == EOK) {
                 /* If the user is logged in, proceed to the next one */
-                DEBUG(5, ("User %s is still logged in or a dummy entry, "
-                          "keeping data\n", name));
+                DEBUG(5, "User %s is still logged in or a dummy entry, "
+                          "keeping data\n", name);
                 continue;
             } else if (ret != ENOENT) {
                 goto done;
@@ -260,7 +260,7 @@ static int cleanup_users(struct sdap_options *opts,
         }
 
         /* If not logged in or cannot check the table, delete him */
-        DEBUG(9, ("About to delete user %s\n", name));
+        DEBUG(9, "About to delete user %s\n", name);
         ret = sysdb_delete_user(dom, name, 0);
         if (ret) {
             goto done;
@@ -283,8 +283,8 @@ static int cleanup_users_logged_in(hash_table_t *table,
     uid = ldb_msg_find_attr_as_uint64(msg,
                                       SYSDB_UIDNUM, 0);
     if (!uid) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Entry %s has no UID Attribute!\n",
-                  ldb_dn_get_linearized(msg->dn)));
+        DEBUG(SSSDBG_OP_FAILURE, "Entry %s has no UID Attribute!\n",
+                  ldb_dn_get_linearized(msg->dn));
         return ENOENT;
     }
 
@@ -331,7 +331,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
                                 SYSDB_CACHE_EXPIRE,
                                 SYSDB_CACHE_EXPIRE, (long)now);
     if (!subfilter) {
-        DEBUG(2, ("Failed to build filter\n"));
+        DEBUG(2, "Failed to build filter\n");
         ret = ENOMEM;
         goto done;
     }
@@ -344,7 +344,7 @@ static int cleanup_groups(TALLOC_CTX *memctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Found %zu expired group entries!\n", count));
+    DEBUG(SSSDBG_FUNC_DATA, "Found %zu expired group entries!\n", count);
 
     if (count == 0) {
         ret = EOK;
@@ -373,14 +373,14 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             subfilter = talloc_asprintf(tmpctx, "(%s=%s)", SYSDB_MEMBEROF, dn);
         }
         if (!subfilter) {
-            DEBUG(2, ("Failed to build filter\n"));
+            DEBUG(2, "Failed to build filter\n");
             ret = ENOMEM;
             goto done;
         }
 
         base_dn = sysdb_base_dn(sysdb, tmpctx);
         if (base_dn == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to build base dn\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
             ret = ENOMEM;
             goto done;
         }
@@ -393,17 +393,17 @@ static int cleanup_groups(TALLOC_CTX *memctx,
 
             name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
             if (!name) {
-                DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
-                          ldb_dn_get_linearized(msgs[i]->dn)));
+                DEBUG(2, "Entry %s has no Name Attribute ?!?\n",
+                          ldb_dn_get_linearized(msgs[i]->dn));
                 ret = EFAULT;
                 goto done;
             }
 
-            DEBUG(8, ("About to delete group %s\n", name));
+            DEBUG(8, "About to delete group %s\n", name);
             ret = sysdb_delete_group(domain, name, 0);
             if (ret) {
-                DEBUG(2, ("Group delete returned %d (%s)\n",
-                          ret, strerror(ret)));
+                DEBUG(2, "Group delete returned %d (%s)\n",
+                          ret, strerror(ret));
                 goto done;
             }
         }

@@ -120,12 +120,12 @@ static int pd_set_primary_name(const struct ldb_message *msg,struct pam_data *pd
 
     name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     if (!name) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("A user with no name?\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "A user with no name?\n");
         return EIO;
     }
 
     if (strcmp(pd->user, name)) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("User's primary name is %s\n", name));
+        DEBUG(SSSDBG_TRACE_FUNC, "User's primary name is %s\n", name);
         talloc_free(pd->user);
         pd->user = talloc_strdup(pd, name);
         if (!pd->user) return ENOMEM;
@@ -148,7 +148,7 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
     uint32_t terminator;
 
     if (blen < 4*sizeof(uint32_t)+2) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Received data is invalid.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Received data is invalid.\n");
         return EINVAL;
     }
 
@@ -157,7 +157,7 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
 
     if (start != SSS_START_OF_PAM_REQUEST
         || terminator != SSS_END_OF_PAM_REQUEST) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Received data is invalid.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Received data is invalid.\n");
         return EINVAL;
     }
 
@@ -172,7 +172,7 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
             /* the uint32_t end maker SSS_END_OF_PAM_REQUEST does not count to
              * the remaining buffer */
             if (size > (blen - c - sizeof(uint32_t))) {
-                DEBUG(1, ("Invalid data size.\n"));
+                DEBUG(1, "Invalid data size.\n");
                 return EINVAL;
             }
 
@@ -218,7 +218,7 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
                     if (ret != EOK) return ret;
                     break;
                 default:
-                    DEBUG(1,("Ignoring unknown data type [%d].\n", type));
+                    DEBUG(1,"Ignoring unknown data type [%d].\n", type);
                     c += size;
             }
         }
@@ -242,12 +242,12 @@ static int pam_parse_in_data_v3(struct sss_domain_info *domains,
 
     ret = pam_parse_in_data_v2(domains, default_domain, pd, body, blen);
     if (ret != EOK) {
-        DEBUG(1, ("pam_parse_in_data_v2 failed.\n"));
+        DEBUG(1, "pam_parse_in_data_v2 failed.\n");
         return ret;
     }
 
     if (pd->cli_pid == 0) {
-        DEBUG(1, ("Missing client PID.\n"));
+        DEBUG(1, "Missing client PID.\n");
         return EINVAL;
     }
 
@@ -322,12 +322,12 @@ static int pam_parse_in_data(struct sss_domain_info *domains,
 
     ret = extract_authtok_v1(pd->authtok, body, blen, &end);
     if (ret) {
-        DEBUG(1, ("Invalid auth token\n"));
+        DEBUG(1, "Invalid auth token\n");
         return ret;
     }
     ret = extract_authtok_v1(pd->newauthtok, body, blen, &end);
     if (ret) {
-        DEBUG(1, ("Invalid new auth token\n"));
+        DEBUG(1, "Invalid new auth token\n");
         return ret;
     }
 
@@ -362,7 +362,7 @@ static errno_t set_last_login(struct pam_auth_req *preq)
     ret = sysdb_set_user_attr(preq->domain, preq->pd->user, attrs,
                               SYSDB_MOD_REP);
     if (ret != EOK) {
-        DEBUG(2, ("set_last_login failed.\n"));
+        DEBUG(2, "set_last_login failed.\n");
         preq->pd->pam_status = PAM_SYSTEM_ERR;
         goto fail;
     } else {
@@ -389,7 +389,7 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
                          &pam_verbosity);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to read PAM verbosity, not fatal.\n"));
+        DEBUG(1, "Failed to read PAM verbosity, not fatal.\n");
         pam_verbosity = DEFAULT_PAM_VERBOSITY;
     }
 
@@ -397,7 +397,7 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
     while(resp != NULL) {
         if (resp->type == SSS_PAM_USER_INFO) {
             if (resp->len < sizeof(uint32_t)) {
-                DEBUG(1, ("User info entry is too short.\n"));
+                DEBUG(1, "User info entry is too short.\n");
                 return EINVAL;
             }
 
@@ -413,8 +413,8 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
             switch (user_info_type) {
                 case SSS_PAM_USER_INFO_OFFLINE_AUTH:
                     if (resp->len != sizeof(uint32_t) + sizeof(int64_t)) {
-                        DEBUG(1, ("User info offline auth entry is "
-                                  "too short.\n"));
+                        DEBUG(1, "User info offline auth entry is "
+                                  "too short.\n");
                         return EINVAL;
                     }
                     memcpy(&expire_date, resp->data + sizeof(uint32_t),
@@ -429,8 +429,8 @@ static errno_t filter_responses(struct confdb_ctx *cdb,
                     break;
                 default:
                     DEBUG(SSSDBG_TRACE_LIBS,
-                          ("User info type [%d] not filtered.\n",
-                           user_info_type));
+                          "User info type [%d] not filtered.\n",
+                           user_info_type);
             }
         } else if (resp->type & SSS_SERVER_INFO) {
             resp->do_not_send_to_client = true;
@@ -447,7 +447,7 @@ static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
 {
     struct pam_auth_req *preq;
 
-    DEBUG(4, ("pam_reply_delay get called.\n"));
+    DEBUG(4, "pam_reply_delay get called.\n");
 
     preq = talloc_get_type(pvt, struct pam_auth_req);
 
@@ -482,7 +482,7 @@ static void pam_reply(struct pam_auth_req *preq)
 
 
     DEBUG(SSSDBG_FUNC_DATA,
-          ("pam_reply called with result [%d].\n", pd->pam_status));
+          "pam_reply called with result [%d].\n", pd->pam_status);
 
     if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
         switch(pd->cmd) {
@@ -496,14 +496,14 @@ static void pam_reply(struct pam_auth_req *preq)
                 pd->offline_auth = true;
 
                 if (preq->domain->sysdb == NULL) {
-                    DEBUG(0, ("Fatal: Sysdb CTX not found for domain"
-                              " [%s]!\n", preq->domain->name));
+                    DEBUG(0, "Fatal: Sysdb CTX not found for domain"
+                              " [%s]!\n", preq->domain->name);
                     goto done;
                 }
 
                 ret = sss_authtok_get_password(pd->authtok, &password, NULL);
                 if (ret) {
-                    DEBUG(0, ("Failed to get password.\n"));
+                    DEBUG(0, "Failed to get password.\n");
                     goto done;
                 }
 
@@ -518,13 +518,13 @@ static void pam_reply(struct pam_auth_req *preq)
             break;
         case SSS_PAM_CHAUTHTOK_PRELIM:
         case SSS_PAM_CHAUTHTOK:
-            DEBUG(5, ("Password change not possible while offline.\n"));
+            DEBUG(5, "Password change not possible while offline.\n");
             pd->pam_status = PAM_AUTHTOK_ERR;
             user_info_type = SSS_PAM_USER_INFO_OFFLINE_CHPASS;
             ret = pam_add_response(pd, SSS_PAM_USER_INFO, sizeof(uint32_t),
                                    (const uint8_t *) &user_info_type);
             if (ret != EOK) {
-                DEBUG(1, ("pam_add_response failed.\n"));
+                DEBUG(1, "pam_add_response failed.\n");
                 goto done;
             }
             break;
@@ -534,12 +534,12 @@ static void pam_reply(struct pam_auth_req *preq)
         case SSS_PAM_ACCT_MGMT:
         case SSS_PAM_OPEN_SESSION:
         case SSS_PAM_CLOSE_SESSION:
-            DEBUG(2, ("Assuming offline authentication setting status for "
-                      "pam call %d to PAM_SUCCESS.\n", pd->cmd));
+            DEBUG(2, "Assuming offline authentication setting status for "
+                      "pam call %d to PAM_SUCCESS.\n", pd->cmd);
             pd->pam_status = PAM_SUCCESS;
             break;
         default:
-            DEBUG(1, ("Unknown PAM call [%d].\n", pd->cmd));
+            DEBUG(1, "Unknown PAM call [%d].\n", pd->cmd);
             pd->pam_status = PAM_MODULE_UNKNOWN;
         }
     }
@@ -547,8 +547,8 @@ static void pam_reply(struct pam_auth_req *preq)
     if (pd->response_delay > 0) {
         ret = gettimeofday(&tv, NULL);
         if (ret != EOK) {
-            DEBUG(1, ("gettimeofday failed [%d][%s].\n",
-                      errno, strerror(errno)));
+            DEBUG(1, "gettimeofday failed [%d][%s].\n",
+                      errno, strerror(errno));
             goto done;
         }
         tv.tv_sec += pd->response_delay;
@@ -557,7 +557,7 @@ static void pam_reply(struct pam_auth_req *preq)
 
         te = tevent_add_timer(cctx->ev, cctx, tv, pam_reply_delay, preq);
         if (te == NULL) {
-            DEBUG(1, ("Failed to add event pam_reply_delay.\n"));
+            DEBUG(1, "Failed to add event pam_reply_delay.\n");
             goto done;
         }
 
@@ -586,14 +586,14 @@ static void pam_reply(struct pam_auth_req *preq)
 
     ret = filter_responses(pctx->rctx->cdb, pd->resp_list);
     if (ret != EOK) {
-        DEBUG(1, ("filter_responses failed, not fatal.\n"));
+        DEBUG(1, "filter_responses failed, not fatal.\n");
     }
 
     if (pd->domain != NULL) {
         ret = pam_add_response(pd, SSS_PAM_DOMAIN_NAME, strlen(pd->domain)+1,
                                (uint8_t *) pd->domain);
         if (ret != EOK) {
-            DEBUG(1, ("pam_add_response failed.\n"));
+            DEBUG(1, "pam_add_response failed.\n");
             goto done;
         }
     }
@@ -618,7 +618,7 @@ static void pam_reply(struct pam_auth_req *preq)
     }
 
     sss_packet_get_body(cctx->creq->out, &body, &blen);
-    DEBUG(SSSDBG_FUNC_DATA, ("blen: %zu\n", blen));
+    DEBUG(SSSDBG_FUNC_DATA, "blen: %zu\n", blen);
     p = 0;
 
     memcpy(&body[p], &pd->pam_status, sizeof(int32_t));
@@ -661,7 +661,7 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
             resp_len = sizeof(uint32_t) + sizeof(int64_t);
             resp = talloc_size(preq->pd, resp_len);
             if (resp == NULL) {
-                DEBUG(1, ("talloc_size failed, cannot prepare user info.\n"));
+                DEBUG(1, "talloc_size failed, cannot prepare user info.\n");
             } else {
                 memcpy(resp, &resp_type, sizeof(uint32_t));
                 dummy = (int64_t) expire_date;
@@ -669,7 +669,7 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
                 ret = pam_add_response(preq->pd, SSS_PAM_USER_INFO, resp_len,
                                        (const uint8_t *) resp);
                 if (ret != EOK) {
-                    DEBUG(1, ("pam_add_response failed.\n"));
+                    DEBUG(1, "pam_add_response failed.\n");
                 }
             }
             break;
@@ -679,7 +679,7 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
                 resp_len = sizeof(uint32_t) + sizeof(int64_t);
                 resp = talloc_size(preq->pd, resp_len);
                 if (resp == NULL) {
-                    DEBUG(1, ("talloc_size failed, cannot prepare user info.\n"));
+                    DEBUG(1, "talloc_size failed, cannot prepare user info.\n");
                 } else {
                     memcpy(resp, &resp_type, sizeof(uint32_t));
                     dummy = (int64_t) delayed_until;
@@ -687,14 +687,14 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
                     ret = pam_add_response(preq->pd, SSS_PAM_USER_INFO, resp_len,
                                            (const uint8_t *) resp);
                     if (ret != EOK) {
-                        DEBUG(1, ("pam_add_response failed.\n"));
+                        DEBUG(1, "pam_add_response failed.\n");
                     }
                 }
             }
             break;
         default:
             DEBUG(SSSDBG_TRACE_LIBS,
-                  ("cached login returned: %d\n", preq->pd->pam_status));
+                  "cached login returned: %d\n", preq->pd->pam_status);
     }
 
     pam_reply(preq);
@@ -725,7 +725,7 @@ errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
                               body + blen - sizeof(uint32_t),
                               NULL);
         if (terminator != SSS_END_OF_PAM_REQUEST) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Received data not terminated.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Received data not terminated.\n");
             ret = EINVAL;
             goto done;
         }
@@ -748,8 +748,8 @@ errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
                                        body, blen);
             break;
         default:
-            DEBUG(1, ("Illegal protocol version [%d].\n",
-                      cctx->cli_protocol_version->version));
+            DEBUG(1, "Illegal protocol version [%d].\n",
+                      cctx->cli_protocol_version->version);
             ret = EINVAL;
     }
 
@@ -843,8 +843,8 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
             /* Try the next domain */
             DEBUG(SSSDBG_TRACE_FUNC,
-                  ("User [%s@%s] filtered out (negative cache). "
-                   "Trying next domain.\n", pd->user, dom->name));
+                  "User [%s@%s] filtered out (negative cache). "
+                   "Trying next domain.\n", pd->user, dom->name);
         }
         if (!dom) {
             ret = ENOENT;
@@ -854,7 +854,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     }
 
     if (preq->domain->provider == NULL) {
-        DEBUG(1, ("Domain [%s] has no auth provider.\n", preq->domain->name));
+        DEBUG(1, "Domain [%s] has no auth provider.\n", preq->domain->name);
         ret = EINVAL;
         goto done;
     }
@@ -956,7 +956,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             if (ret != EOK
                     && ret != ENOENT) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Could not look up initgroup timout\n"));
+                      "Could not look up initgroup timout\n");
                 return EIO;
             } else if (ret == ENOENT) {
                 /* Call provider first */
@@ -965,22 +965,22 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             /* Entry is still valid, get it from the sysdb */
         }
 
-        DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
+        DEBUG(4, "Requesting info for [%s@%s]\n", name, dom->name);
 
         if (dom->sysdb == NULL) {
-            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
             preq->pd->pam_status = PAM_SYSTEM_ERR;
             return EFAULT;
         }
 
         ret = sysdb_getpwnam(preq, dom, name, &preq->res);
         if (ret != EOK) {
-            DEBUG(1, ("Failed to make request to our cache!\n"));
+            DEBUG(1, "Failed to make request to our cache!\n");
             return EIO;
         }
 
         if (preq->res->count > 1) {
-            DEBUG(0, ("getpwnam call returned more than one result !?!\n"));
+            DEBUG(0, "getpwnam call returned more than one result !?!\n");
             return ENOENT;
         }
 
@@ -991,8 +991,8 @@ static int pam_check_user_search(struct pam_auth_req *preq)
                 if (ret != EOK) {
                     /* Should not be fatal, just slower next time */
                     DEBUG(SSSDBG_MINOR_FAILURE,
-                           ("Cannot set ncache for [%s@%s]\n", name,
-                            dom->name));
+                           "Cannot set ncache for [%s@%s]\n", name,
+                            dom->name);
                 }
             }
 
@@ -1002,7 +1002,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
                 continue;
             }
 
-            DEBUG(2, ("No results for getpwnam call\n"));
+            DEBUG(2, "No results for getpwnam call\n");
 
             /* TODO: store negative cache ? */
 
@@ -1020,12 +1020,12 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             }
         }
 
-        DEBUG(6, ("Returning info for user [%s@%s]\n", name, dom->name));
+        DEBUG(6, "Returning info for user [%s@%s]\n", name, dom->name);
 
         /* We might have searched by alias. Pass on the primary name */
         ret = pd_set_primary_name(preq->res->msgs[0], preq->pd);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Could not canonicalize username\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not canonicalize username\n");
             return ret;
         }
 
@@ -1049,7 +1049,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
                                         name, 0, NULL);
         if (!dpreq) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Out of memory sending data provider request\n"));
+                  "Out of memory sending data provider request\n");
             return ENOMEM;
         }
 
@@ -1071,7 +1071,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
     }
 
     DEBUG(SSSDBG_MINOR_FAILURE,
-          ("No matching domain found for [%s], fail!\n", preq->pd->user));
+          "No matching domain found for [%s], fail!\n", preq->pd->user);
     return ENOENT;
 }
 
@@ -1091,7 +1091,7 @@ static void pam_dp_send_acct_req_done(struct tevent_req *req)
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Fatal error, killing connection!\n"));
+              "Fatal error, killing connection!\n");
         talloc_free(cb_ctx->cctx);
         return;
     }
@@ -1133,9 +1133,9 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
     char *name;
 
     if (err_maj) {
-        DEBUG(2, ("Unable to get information from Data Provider\n"
+        DEBUG(2, "Unable to get information from Data Provider\n"
                   "Error: %u, %u, %s\n",
-                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg);
     }
 
     ret = pam_check_user_search(preq);
@@ -1154,8 +1154,8 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
         talloc_free(name);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Could not save initgr timestamp. "
-                   "Proceeding with PAM actions\n"));
+                  "Could not save initgr timestamp. "
+                   "Proceeding with PAM actions\n");
             /* This is non-fatal, we'll just end up going to the
              * data provider again next time.
              */
@@ -1188,7 +1188,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     else {
         preq->callback = pam_reply;
         ret = pam_dp_send_req(preq, SSS_CLI_SOCKET_TIMEOUT/2);
-        DEBUG(4, ("pam_dp_send_req returned %d\n", ret));
+        DEBUG(4, "pam_dp_send_req returned %d\n", ret);
     }
 
     if (ret != EOK) {
@@ -1198,37 +1198,37 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
 }
 
 static int pam_cmd_authenticate(struct cli_ctx *cctx) {
-    DEBUG(4, ("entering pam_cmd_authenticate\n"));
+    DEBUG(4, "entering pam_cmd_authenticate\n");
     return pam_forwarder(cctx, SSS_PAM_AUTHENTICATE);
 }
 
 static int pam_cmd_setcred(struct cli_ctx *cctx) {
-    DEBUG(4, ("entering pam_cmd_setcred\n"));
+    DEBUG(4, "entering pam_cmd_setcred\n");
     return pam_forwarder(cctx, SSS_PAM_SETCRED);
 }
 
 static int pam_cmd_acct_mgmt(struct cli_ctx *cctx) {
-    DEBUG(4, ("entering pam_cmd_acct_mgmt\n"));
+    DEBUG(4, "entering pam_cmd_acct_mgmt\n");
     return pam_forwarder(cctx, SSS_PAM_ACCT_MGMT);
 }
 
 static int pam_cmd_open_session(struct cli_ctx *cctx) {
-    DEBUG(4, ("entering pam_cmd_open_session\n"));
+    DEBUG(4, "entering pam_cmd_open_session\n");
     return pam_forwarder(cctx, SSS_PAM_OPEN_SESSION);
 }
 
 static int pam_cmd_close_session(struct cli_ctx *cctx) {
-    DEBUG(4, ("entering pam_cmd_close_session\n"));
+    DEBUG(4, "entering pam_cmd_close_session\n");
     return pam_forwarder(cctx, SSS_PAM_CLOSE_SESSION);
 }
 
 static int pam_cmd_chauthtok(struct cli_ctx *cctx) {
-    DEBUG(4, ("entering pam_cmd_chauthtok\n"));
+    DEBUG(4, "entering pam_cmd_chauthtok\n");
     return pam_forwarder(cctx, SSS_PAM_CHAUTHTOK);
 }
 
 static int pam_cmd_chauthtok_prelim(struct cli_ctx *cctx) {
-    DEBUG(4, ("entering pam_cmd_chauthtok_prelim\n"));
+    DEBUG(4, "entering pam_cmd_chauthtok_prelim\n");
     return pam_forwarder(cctx, SSS_PAM_CHAUTHTOK_PRELIM);
 }
 

@@ -65,19 +65,19 @@ struct pam_data *create_pam_data(TALLOC_CTX *mem_ctx)
 
     pd = talloc_zero(mem_ctx, struct pam_data);
     if (pd == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         goto failed;
     }
 
     pd->authtok = sss_authtok_new(pd);
     if (pd->authtok == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         goto failed;
     }
 
     pd->newauthtok = sss_authtok_new(pd);
     if (pd->newauthtok == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         goto failed;
     }
 
@@ -174,23 +174,23 @@ errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *src,
 
 failed:
     talloc_free(pd);
-    DEBUG(1, ("copy_pam_data failed: (%d) %s.\n", ret, strerror(ret)));
+    DEBUG(1, "copy_pam_data failed: (%d) %s.\n", ret, strerror(ret));
     return ret;
 }
 
 void pam_print_data(int l, struct pam_data *pd)
 {
-    DEBUG(l, ("command: %s\n", pamcmd2str(pd->cmd)));
-    DEBUG(l, ("domain: %s\n", PAM_SAFE_ITEM(pd->domain)));
-    DEBUG(l, ("user: %s\n", PAM_SAFE_ITEM(pd->user)));
-    DEBUG(l, ("service: %s\n", PAM_SAFE_ITEM(pd->service)));
-    DEBUG(l, ("tty: %s\n", PAM_SAFE_ITEM(pd->tty)));
-    DEBUG(l, ("ruser: %s\n", PAM_SAFE_ITEM(pd->ruser)));
-    DEBUG(l, ("rhost: %s\n", PAM_SAFE_ITEM(pd->rhost)));
-    DEBUG(l, ("authtok type: %d\n", sss_authtok_get_type(pd->authtok)));
-    DEBUG(l, ("newauthtok type: %d\n", sss_authtok_get_type(pd->newauthtok)));
-    DEBUG(l, ("priv: %d\n", pd->priv));
-    DEBUG(l, ("cli_pid: %d\n", pd->cli_pid));
+    DEBUG(l, "command: %s\n", pamcmd2str(pd->cmd));
+    DEBUG(l, "domain: %s\n", PAM_SAFE_ITEM(pd->domain));
+    DEBUG(l, "user: %s\n", PAM_SAFE_ITEM(pd->user));
+    DEBUG(l, "service: %s\n", PAM_SAFE_ITEM(pd->service));
+    DEBUG(l, "tty: %s\n", PAM_SAFE_ITEM(pd->tty));
+    DEBUG(l, "ruser: %s\n", PAM_SAFE_ITEM(pd->ruser));
+    DEBUG(l, "rhost: %s\n", PAM_SAFE_ITEM(pd->rhost));
+    DEBUG(l, "authtok type: %d\n", sss_authtok_get_type(pd->authtok));
+    DEBUG(l, "newauthtok type: %d\n", sss_authtok_get_type(pd->newauthtok));
+    DEBUG(l, "priv: %d\n", pd->priv);
+    DEBUG(l, "cli_pid: %d\n", pd->cli_pid);
 }
 
 int pam_add_response(struct pam_data *pd, enum response_type type,

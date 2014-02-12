@@ -69,7 +69,7 @@ void sdap_pam_access_handler(struct be_req *breq)
                            access_ctx->id_ctx->conn,
                            pd);
     if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to start sdap_access request\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to start sdap_access request\n");
         sdap_access_reply(breq, PAM_SYSTEM_ERR);
         return;
     }
@@ -97,7 +97,7 @@ static void sdap_access_done(struct tevent_req *req)
         pam_status = PAM_ACCT_EXPIRED;
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Error retrieving access check result.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error retrieving access check result.\n");
         pam_status = PAM_SYSTEM_ERR;
         break;
     }

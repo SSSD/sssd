@@ -88,9 +88,9 @@ static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
 {
 #ifdef HAVE_LIBPCRE_LESSER_THAN_7
     DEBUG(SSSDBG_MINOR_FAILURE,
-          ("The libpcre version on this system is too old. Only "
+          "The libpcre version on this system is too old. Only "
            "the user@DOMAIN name fully qualified name format will "
-           "be supported\n"));
+           "be supported\n");
     *re_pattern = NULL;
     return EOK;
 #else
@@ -108,8 +108,8 @@ static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
     ret = confdb_get_string(cdb, mem_ctx, conf_path, CONFDB_DOMAIN_ID_PROVIDER,
                             NULL, &id_provider);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to read ID provider " \
-                                  "from conf db.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to read ID provider " \
+                                  "from conf db.\n");
         goto done;
     }
 
@@ -120,7 +120,7 @@ static errno_t get_id_provider_default_re(TALLOC_CTX *mem_ctx,
             if (strcmp(id_provider, provider_default_re[c].name) == 0) {
                 *re_pattern = talloc_strdup(mem_ctx, provider_default_re[c].re);
                 if (*re_pattern == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                     ret = ENOMEM;
                     goto done;
                 }
@@ -146,18 +146,18 @@ static errno_t sss_fqnames_init(struct sss_names_ctx *nctx, const char *fq_fmt)
         return ENOMEM;
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Using fq format [%s].\n", nctx->fq_fmt));
+    DEBUG(SSSDBG_CONF_SETTINGS, "Using fq format [%s].\n", nctx->fq_fmt);
 
     /* Fail if the name specifier is missing, or if the format is
      * invalid */
     fq = sss_tc_fqname2 (nctx, nctx, "unused.example.com", "unused", "the-test-user");
     if (fq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("The fq format is invalid [%s]", nctx->fq_fmt));
+              "The fq format is invalid [%s]", nctx->fq_fmt);
         return EINVAL;
     } else if (strstr (fq, "the-test-user") == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Username pattern not found in [%s]\n", nctx->fq_fmt));
+              "Username pattern not found in [%s]\n", nctx->fq_fmt);
         return ENOENT;
     }
 
@@ -184,12 +184,12 @@ int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
         goto done;
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS, ("Using re [%s].\n", ctx->re_pattern));
+    DEBUG(SSSDBG_CONF_SETTINGS, "Using re [%s].\n", ctx->re_pattern);
 
     ret = sss_fqnames_init(ctx, fq_fmt);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not check the FQ names format"
-              "[%d]: %s\n", ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not check the FQ names format"
+              "[%d]: %s\n", ret, sss_strerror(ret));
         goto done;
     }
 
@@ -197,8 +197,8 @@ int sss_names_init_from_args(TALLOC_CTX *mem_ctx, const char *re_pattern,
                             NAME_DOMAIN_PATTERN_OPTIONS,
                             &errval, &errstr, &errpos, NULL);
     if (!ctx->re) {
-        DEBUG(1, ("Invalid Regular Expression pattern at position %d."
-                  " (Error: %d [%s])\n", errpos, errval, errstr));
+        DEBUG(1, "Invalid Regular Expression pattern at position %d."
+                  " (Error: %d [%s])\n", errpos, errval, errstr);
         ret = EFAULT;
         goto done;
     }
@@ -250,8 +250,8 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
     if (re_pattern == NULL && conf_path != NULL) {
         ret = get_id_provider_default_re(tmpctx, cdb, conf_path, &re_pattern);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to get provider default regular " \
-                                      "expression for domain [%s].\n", domain));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to get provider default regular " \
+                                      "expression for domain [%s].\n", domain);
             goto done;
         }
     }
@@ -265,11 +265,11 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
         }
 #ifdef HAVE_LIBPCRE_LESSER_THAN_7
     } else {
-        DEBUG(2, ("This binary was build with a version of libpcre that does "
-                  "not support non-unique named subpatterns.\n"));
-        DEBUG(2, ("Please make sure that your pattern [%s] only contains "
+        DEBUG(2, "This binary was build with a version of libpcre that does "
+                  "not support non-unique named subpatterns.\n");
+        DEBUG(2, "Please make sure that your pattern [%s] only contains "
                   "subpatterns with a unique name and uses "
-                  "the Python syntax (?P<name>).\n", re_pattern));
+                  "the Python syntax (?P<name>).\n", re_pattern);
 #endif
     }
 
@@ -317,12 +317,12 @@ int sss_parse_name(TALLOC_CTX *memctx,
     if (ret == PCRE_ERROR_NOMATCH) {
         return EINVAL;
     } else if (ret < 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("PCRE Matching error, %d\n", ret));
+        DEBUG(SSSDBG_MINOR_FAILURE, "PCRE Matching error, %d\n", ret);
         return EINVAL;
     }
 
     if (ret == 0) {
-        DEBUG(1, ("Too many matches, the pattern is invalid.\n"));
+        DEBUG(1, "Too many matches, the pattern is invalid.\n");
     }
 
     strnum = ret;
@@ -331,7 +331,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
         result = NULL;
         ret = pcre_get_named_substring(re, orig, ovec, strnum, "name", &result);
         if (ret < 0  || !result) {
-            DEBUG(2, ("Name not found!\n"));
+            DEBUG(2, "Name not found!\n");
             return EINVAL;
         }
         *_name = talloc_strdup(memctx, result);
@@ -344,7 +344,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
         ret = pcre_get_named_substring(re, orig, ovec, strnum, "domain",
                                        &result);
         if (ret < 0  || !result) {
-            DEBUG(4, ("Domain not provided!\n"));
+            DEBUG(4, "Domain not provided!\n");
             *_domain = NULL;
         } else {
             /* ignore "" string */
@@ -418,12 +418,12 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
             } else {
                 match = match_any_domain_or_subdomain_name (dom, dmatch);
                 if (match != NULL) {
-                    DEBUG(SSSDBG_FUNC_DATA, ("name '%s' matched expression for "
+                    DEBUG(SSSDBG_FUNC_DATA, "name '%s' matched expression for "
                                              "domain '%s', user is %s\n",
-                                             orig, match->name, nmatch));
+                                             orig, match->name, nmatch);
                     rdomain = talloc_strdup(tmp_ctx, match->name);
                     if (rdomain == NULL) {
-                        DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                         ret = ENOMEM;
                         goto done;
                     }
@@ -442,13 +442,13 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
 
     if (rdomain == NULL && rname == NULL) {
         if (candidate_name && !name_mismatch) {
-            DEBUG(SSSDBG_FUNC_DATA, ("name '%s' matched without domain, " \
-                                     "user is %s\n", orig, nmatch));
+            DEBUG(SSSDBG_FUNC_DATA, "name '%s' matched without domain, " \
+                                     "user is %s\n", orig, nmatch);
             rdomain = NULL;
             if (default_domain != NULL) {
                 rdomain = talloc_strdup(tmp_ctx, default_domain);
                 if (rdomain == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("talloc_strdup failed.\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
                     ret = ENOMEM;
                     goto done;
                 }
@@ -460,16 +460,16 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                     }
                 }
                 if (match == NULL) {
-                    DEBUG(SSSDBG_FUNC_DATA, ("default domain [%s] is currently " \
+                    DEBUG(SSSDBG_FUNC_DATA, "default domain [%s] is currently " \
                                              "not know, trying to look it up.\n",
-                                             rdomain));
+                                             rdomain);
                     *domain = talloc_steal(memctx, rdomain);
                     ret = EAGAIN;
                     goto done;
                 }
             }
 
-            DEBUG(SSSDBG_FUNC_DATA, ("using default domain [%s]\n", rdomain));
+            DEBUG(SSSDBG_FUNC_DATA, "using default domain [%s]\n", rdomain);
 
             rname = candidate_name;
         } else if (candidate_domain) {
@@ -481,7 +481,7 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
 
     if (rdomain == NULL && rname == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("name '%s' did not match any domain's expression\n", orig));
+              "name '%s' did not match any domain's expression\n", orig);
         ret = EINVAL;
         goto done;
     }
@@ -554,8 +554,8 @@ calc_flat_name(struct sss_domain_info *domain)
 
     s = domain->flat_name;
     if (s == NULL) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Flat name requested but domain has no"
-              "flat name set, falling back to domain name\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Flat name requested but domain has no"
+              "flat name set, falling back to domain name\n");
         s = domain->name;
     }
 

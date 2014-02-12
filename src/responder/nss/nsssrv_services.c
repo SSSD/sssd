@@ -166,7 +166,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
 
          if (dom->sysdb == NULL) {
              DEBUG(SSSDBG_CRIT_FAILURE,
-                   ("Critical: Sysdb CTX not found for [%s]!\n", dom->name));
+                   "Critical: Sysdb CTX not found for [%s]!\n", dom->name);
              ret = EINVAL;
              goto immediate;
          }
@@ -182,11 +182,11 @@ getserv_send(TALLOC_CTX *mem_ctx,
              /* If negatively cached, return we didn't find it */
              if (ret == EEXIST) {
                  DEBUG(SSSDBG_TRACE_FUNC,
-                       ("Service [%s:%s] does not exist in [%s]! "
+                       "Service [%s:%s] does not exist in [%s]! "
                         "(negative cache)\n",
                         SVC_NAME_CASED,
                         SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
-                        dom->name));
+                        dom->name);
 
                  /* If this is a multi-domain search, try the next one */
                  if (cmdctx->check_next) {
@@ -205,10 +205,10 @@ getserv_send(TALLOC_CTX *mem_ctx,
 
              /* Check the cache */
              DEBUG(SSSDBG_TRACE_FUNC,
-                   ("Checking cache for [%s:%s@%s]\n",
+                   "Checking cache for [%s:%s@%s]\n",
                     SVC_NAME_CASED,
                     SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
-                    dom->name));
+                    dom->name);
 
              ret = sysdb_getservbyname(state, dom,
                                        SVC_NAME_CASED,
@@ -223,11 +223,11 @@ getserv_send(TALLOC_CTX *mem_ctx,
              /* If negatively cached, return we didn't find it */
              if (ret == EEXIST) {
                  DEBUG(SSSDBG_TRACE_FUNC,
-                       ("Service [%"PRIu16":%s] does not exist in [%s]! "
+                       "Service [%"PRIu16":%s] does not exist in [%s]! "
                         "(negative cache)\n",
                         port,
                         SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
-                        dom->name));
+                        dom->name);
 
                  /* If this is a multi-domain search, try the next one */
                  if (cmdctx->check_next) {
@@ -246,10 +246,10 @@ getserv_send(TALLOC_CTX *mem_ctx,
 
              /* Check the cache */
              DEBUG(SSSDBG_TRACE_FUNC,
-                   ("Checking cache for [%"PRIu16":%s@%s]\n",
+                   "Checking cache for [%"PRIu16":%s@%s]\n",
                     port,
                     SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
-                    dom->name));
+                    dom->name);
 
              ret = sysdb_getservbyport(state, dom, port,
                                        SVC_PROTO_CASED,
@@ -276,8 +276,8 @@ getserv_send(TALLOC_CTX *mem_ctx,
                           * We'll log an error and continue.
                           */
                          DEBUG(SSSDBG_MINOR_FAILURE,
-                               ("Could not set negative cache for [%s][%s]\n",
-                                SVC_NAME_CASED, SVC_PROTO_CASED));
+                               "Could not set negative cache for [%s][%s]\n",
+                                SVC_NAME_CASED, SVC_PROTO_CASED);
                      }
                  } else {
                      ret = sss_ncache_set_service_port(nctx->ncache, false,
@@ -289,9 +289,9 @@ getserv_send(TALLOC_CTX *mem_ctx,
                           * We'll log an error and continue.
                           */
                          DEBUG(SSSDBG_MINOR_FAILURE,
-                               ("Could not set negative cache for "
+                               "Could not set negative cache for "
                                 "[%"PRIu16"][%s]\n",
-                                state->port, SVC_PROTO_CASED));
+                                state->port, SVC_PROTO_CASED);
                      }
                  }
              }
@@ -311,7 +311,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
          /* Found a result. Check its validity */
          if (state->res->count > 1) {
              DEBUG(SSSDBG_OP_FAILURE,
-                   ("getservby* returned more than one result!\n"));
+                   "getservby* returned more than one result!\n");
              ret = ENOENT;
              goto immediate;
          }
@@ -346,7 +346,7 @@ getserv_send(TALLOC_CTX *mem_ctx,
                   * queue the cache entry for update out-of-band.
                   */
                  DEBUG(SSSDBG_TRACE_FUNC,
-                       ("Performing midpoint cache update\n"));
+                       "Performing midpoint cache update\n");
 
                  /* Update the cache */
                  subreq = sss_dp_get_account_send(cctx, cctx->rctx,
@@ -356,8 +356,8 @@ getserv_send(TALLOC_CTX *mem_ctx,
                                                   port, NULL);
                  if (!subreq) {
                      DEBUG(SSSDBG_CRIT_FAILURE,
-                           ("Out of memory sending out-of-band data provider "
-                            "request\n"));
+                           "Out of memory sending out-of-band data provider "
+                            "request\n");
                      /* This is non-fatal, so we'll continue here */
                  }
                  /* We don't need to listen for a reply, so we will free the
@@ -464,11 +464,11 @@ static void lookup_service_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Unable to get information from Data Provider\n"
+              "Unable to get information from Data Provider\n"
                "dp_error: [%u], errno: [%u], error_msg: [%s]\n"
                "Will try to return what we have in cache\n",
                (unsigned int)err_maj, (unsigned int)err_min,
-               err_msg ? err_msg : "none"));
+               err_msg ? err_msg : "none");
     }
 
     /* Recheck the cache after the lookup.
@@ -480,18 +480,18 @@ static void lookup_service_done(struct tevent_req *subreq)
      */
     if (dom->sysdb == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Critical: Sysdb CTX not found for [%s]!\n",
-                dom->name));
+              "Critical: Sysdb CTX not found for [%s]!\n",
+                dom->name);
         ret = EINVAL;
         goto done;
     }
 
     if (state->name) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Re-checking cache for [%s:%s@%s]\n",
+              "Re-checking cache for [%s:%s@%s]\n",
                SVC_NAME_CASED,
                SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
-               dom->name));
+               dom->name);
 
         ret = sysdb_getservbyname(state, dom,
                                   SVC_NAME_CASED,
@@ -499,10 +499,10 @@ static void lookup_service_done(struct tevent_req *subreq)
                                   &state->res);
     } else {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Re-checking cache for [%"PRIu16":%s@%s]\n",
+              "Re-checking cache for [%"PRIu16":%s@%s]\n",
                state->port,
                SVC_PROTO_CASED ? SVC_PROTO_CASED : "<ANY>",
-               dom->name));
+               dom->name);
 
         ret = sysdb_getservbyport(state, dom,
                                   state->port,
@@ -524,8 +524,8 @@ static void lookup_service_done(struct tevent_req *subreq)
                  * We'll log an error and continue.
                  */
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not set negative cache for [%s][%s]\n",
-                       SVC_NAME_CASED, SVC_PROTO_CASED));
+                      "Could not set negative cache for [%s][%s]\n",
+                       SVC_NAME_CASED, SVC_PROTO_CASED);
             }
         } else {
             ret = sss_ncache_set_service_port(nctx->ncache, false,
@@ -537,8 +537,8 @@ static void lookup_service_done(struct tevent_req *subreq)
                  * We'll log an error and continue.
                  */
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Could not set negative cache for [%"PRIu16"][%s]\n",
-                       state->port, SVC_PROTO_CASED));
+                      "Could not set negative cache for [%"PRIu16"][%s]\n",
+                       state->port, SVC_PROTO_CASED);
             }
         }
 
@@ -631,8 +631,8 @@ fill_service(struct sss_packet *packet,
         /* new service */
         if (!ldb_msg_check_string_attribute(msg, "objectClass",
                                             SYSDB_SVC_CLASS)) {
-            DEBUG(1, ("Wrong object (%s) found on stack!\n",
-                      ldb_dn_get_linearized(msg->dn)));
+            DEBUG(1, "Wrong object (%s) found on stack!\n",
+                      ldb_dn_get_linearized(msg->dn));
             continue;
         }
 
@@ -645,7 +645,7 @@ fill_service(struct sss_packet *packet,
         tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not identify service name, skipping\n"));
+                  "Could not identify service name, skipping\n");
             continue;
         }
         to_sized_string(&cased_name, tmpstr);
@@ -654,7 +654,7 @@ fill_service(struct sss_packet *packet,
         port = (uint16_t) ldb_msg_find_attr_as_uint(msg, SYSDB_SVC_PORT, 0);
         if (!port) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("No port for service [%s]. Skipping\n", tmpstr));
+                  "No port for service [%s]. Skipping\n", tmpstr);
 
         }
 
@@ -680,7 +680,7 @@ fill_service(struct sss_packet *packet,
         tmpstr = sss_get_cased_name(tmp_ctx, orig_proto, dom->case_sensitive);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("sss_get_cased_name failed, skipping\n"));
+                  "sss_get_cased_name failed, skipping\n");
             continue;
         }
         to_sized_string(&cased_proto, tmpstr);
@@ -832,17 +832,17 @@ int nss_cmd_getservbyname(struct cli_ctx *cctx)
                               &service_protocol);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not parse request\n"));
+              "Could not parse request\n");
         goto done;
     }
 
     dctx->protocol = service_protocol;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requesting info for service [%s:%s] from [%s]\n",
+          "Requesting info for service [%s:%s] from [%s]\n",
            service_name,
            service_protocol ? service_protocol : "<ANY>",
-           domname ? domname : "<ALL>"));
+           domname ? domname : "<ALL>");
 
     if (domname) {
         dctx->domain = responder_get_domain(cctx->rctx, domname);
@@ -960,7 +960,7 @@ errno_t parse_getservbyname(TALLOC_CTX *mem_ctx,
 
         if (j != blen - namelen - 1) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Body longer than the name and protocol\n"));
+                  "Body longer than the name and protocol\n");
             ret = EINVAL;
             goto done;
         }
@@ -970,8 +970,8 @@ errno_t parse_getservbyname(TALLOC_CTX *mem_ctx,
                                      &domname, &svc_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Could not split name and domain of [%s]\n",
-               rawname));
+              "Could not split name and domain of [%s]\n",
+               rawname);
         goto done;
     }
 
@@ -1000,7 +1000,7 @@ nss_cmd_getserv_done(struct tevent_req *req)
     talloc_zfree(req);
     if (reqret != EOK && reqret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("getservbyname failed\n"));
+              "getservbyname failed\n");
         nss_cmd_done(cmdctx, reqret);
         return;
     }
@@ -1023,15 +1023,15 @@ nss_cmd_getserv_done(struct tevent_req *req)
         }
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Could not create response packet: [%s]\n",
-                   strerror(ret)));
+                  "Could not create response packet: [%s]\n",
+                   strerror(ret));
         }
 
         sss_cmd_done(cmdctx->cctx, cmdctx);
         return;
     }
 
-    DEBUG(SSSDBG_OP_FAILURE, ("Error creating packet\n"));
+    DEBUG(SSSDBG_OP_FAILURE, "Error creating packet\n");
 }
 
 errno_t parse_getservbyport(TALLOC_CTX *mem_ctx,
@@ -1088,7 +1088,7 @@ errno_t parse_getservbyport(TALLOC_CTX *mem_ctx,
 
         if (j != blen - port_and_padding_len - 1) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Body longer than the name and protocol\n"));
+                  "Body longer than the name and protocol\n");
             ret = EINVAL;
             goto done;
         }
@@ -1143,15 +1143,15 @@ int nss_cmd_getservbyport(struct cli_ctx *cctx)
                               &service_protocol);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not parse request\n"));
+              "Could not parse request\n");
         goto done;
     }
 
     dctx->protocol = service_protocol;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requesting info for service on port [%"PRIu16"/%s]\n",
-           port, service_protocol ? service_protocol : "<ANY>"));
+          "Requesting info for service on port [%"PRIu16"/%s]\n",
+           port, service_protocol ? service_protocol : "<ANY>");
 
     /* All port lookups are multidomain searches */
     dctx->domain = cctx->rctx->domains;
@@ -1202,7 +1202,7 @@ setservent_send(TALLOC_CTX *mem_ctx, struct cli_ctx *cctx)
     struct nss_ctx *nctx =
             talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Received setservent request\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Received setservent request\n");
 
     /* Reset the read pointers */
     cctx->svc_dom_idx = 0;
@@ -1302,8 +1302,8 @@ setservent_send(TALLOC_CTX *mem_ctx, struct cli_ctx *cctx)
         }
 
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error [%s] requesting info from domain [%s]. Skipping.\n",
-               strerror(ret), step_ctx->dctx->domain->name));
+              "Error [%s] requesting info from domain [%s]. Skipping.\n",
+               strerror(ret), step_ctx->dctx->domain->name);
 
         step_ctx->dctx->domain = get_next_domain(step_ctx->dctx->domain, false);
     }
@@ -1378,7 +1378,7 @@ lookup_servent_send(TALLOC_CTX *mem_ctx,
         sysdb = dom->sysdb;
         if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("Sysdb CTX not found for [%s]!\n", dom->name));
+                  "Sysdb CTX not found for [%s]!\n", dom->name);
             ret = EINVAL;
             goto immediate;
         }
@@ -1429,18 +1429,18 @@ lookup_servent_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Unable to get information from Data Provider\n"
+              "Unable to get information from Data Provider\n"
                "dp_error: [%u], errno: [%u], error_msg: [%s]\n"
                "Will try to return what we have in cache\n",
                (unsigned int)dp_err, (unsigned int)dp_ret,
-               err_msg ? err_msg : "none"));
+               err_msg ? err_msg : "none");
     }
 
     /* Check the cache now */
     sysdb = state->dom->sysdb;
     if (sysdb == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Sysdb CTX not found for [%s]!\n", state->dom->name));
+              "Sysdb CTX not found for [%s]!\n", state->dom->name);
         ret = EINVAL;
         goto done;
     }
@@ -1485,11 +1485,11 @@ setservent_step_done(struct tevent_req *req)
     talloc_zfree(req);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Domain [%s] returned no results\n", dctx->domain->name));
+              "Domain [%s] returned no results\n", dctx->domain->name);
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error [%s] while retrieving info from domain [%s]. "
-               "Skipping.\n", strerror(ret), dctx->domain->name));
+              "Error [%s] while retrieving info from domain [%s]. "
+               "Skipping.\n", strerror(ret), dctx->domain->name);
         /* Continue on */
     } else {
         /* Got some results
@@ -1511,8 +1511,8 @@ setservent_step_done(struct tevent_req *req)
         }
 
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error [%s] requesting info from domain [%s]. Skipping.\n",
-               strerror(ret), step_ctx->dctx->domain->name));
+              "Error [%s] requesting info from domain [%s]. Skipping.\n",
+               strerror(ret), step_ctx->dctx->domain->name);
 
         step_ctx->dctx->domain = get_next_domain(step_ctx->dctx->domain, false);
     }
@@ -1549,8 +1549,8 @@ setservent_finalize(struct setent_step_ctx *step_ctx)
                           setservent_result_timeout, nctx);
     if (!te) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not set up life timer for setservent result object. "
-               "Entries may become stale.\n"));
+              "Could not set up life timer for setservent result object. "
+               "Entries may become stale.\n");
     }
 
     nss_setent_notify_done(nctx->svcctx);
@@ -1565,7 +1565,7 @@ setservent_result_timeout(struct tevent_context *ev,
     struct nss_ctx *nctx = talloc_get_type(pvt, struct nss_ctx);
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("setservent result object has expired. Cleaning up.\n"));
+          "setservent result object has expired. Cleaning up.\n");
 
     /* Free the service enumeration context.
      * If additional getservent requests come in, they will invoke
@@ -1600,7 +1600,7 @@ nss_cmd_setservent(struct cli_ctx *cctx)
     req = setservent_send(cmdctx, cctx);
     if (!req) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Fatal error calling nss_cmd_setservent_send\n"));
+              "Fatal error calling nss_cmd_setservent_send\n");
         ret = EIO;
         goto done;
     }
@@ -1655,7 +1655,7 @@ int nss_cmd_getservent(struct cli_ctx *cctx)
     struct tevent_req *req;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Requesting info for all services\n"));
+          "Requesting info for all services\n");
 
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
@@ -1705,8 +1705,8 @@ nss_cmd_implicit_setservent_done(struct tevent_req *req)
      */
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Implicit setservent failed with unexpected error [%d][%s]\n",
-               ret, strerror(ret)));
+              "Implicit setservent failed with unexpected error [%d][%s]\n",
+               ret, strerror(ret));
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
 
@@ -1717,8 +1717,8 @@ nss_cmd_implicit_setservent_done(struct tevent_req *req)
     ret = nss_cmd_getservent_immediate(cmdctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Immediate retrieval failed with unexpected error "
-               "[%d][%s]\n", ret, strerror(ret)));
+              "Immediate retrieval failed with unexpected error "
+               "[%d][%s]\n", ret, strerror(ret));
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
 }
@@ -1810,7 +1810,7 @@ int nss_cmd_endservent(struct cli_ctx *cctx)
     int ret;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Terminating request info for all accounts\n"));
+          "Terminating request info for all accounts\n");
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 

@@ -221,7 +221,7 @@ int test_helper_debug_check_message(int level)
         goto done;
     }
 
-    DEBUG(level, ("%s", body));
+    DEBUG(level, "%s", body);
 
     ret = fseek(file, 0, SEEK_END);
     if (ret == -1) {
@@ -358,7 +358,7 @@ int test_helper_debug_is_empty_message(int level)
         goto done;
     }
 
-    DEBUG(level, ("some error\n"));
+    DEBUG(level, "some error\n");
 
     ret = fseek(file, 0, SEEK_END);
     if (ret == -1) {

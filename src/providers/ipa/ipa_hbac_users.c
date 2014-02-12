@@ -172,12 +172,12 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    DEBUG(7, ("Processing users for rule [%s]\n", rule_name));
+    DEBUG(7, "Processing users for rule [%s]\n", rule_name);
 
     ret = hbac_get_category(rule_attrs, IPA_USER_CATEGORY,
                             &new_users->category);
     if (ret != EOK) {
-        DEBUG(1, ("Could not identify user categories\n"));
+        DEBUG(1, "Could not identify user categories\n");
         goto done;
     }
     if (new_users->category & HBAC_CATEGORY_ALL) {
@@ -188,12 +188,12 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_attrs_get_el(rule_attrs, IPA_MEMBER_USER, &el);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+        DEBUG(1, "sysdb_attrs_get_el failed.\n");
         goto done;
     }
     if (ret == ENOENT || el->num_values == 0) {
         el->num_values = 0;
-        DEBUG(4, ("No user specified, rule will never apply.\n"));
+        DEBUG(4, "No user specified, rule will never apply.\n");
     }
 
     new_users->names = talloc_array(new_users,
@@ -234,7 +234,7 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
         if (ret == EOK) {
             if (count > 1) {
-                DEBUG(1, ("Original DN matched multiple users. Skipping \n"));
+                DEBUG(1, "Original DN matched multiple users. Skipping \n");
                 talloc_zfree(member_dn);
                 continue;
             }
@@ -242,7 +242,7 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
             /* Original DN matched a single user. Get the username */
             name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
             if (name == NULL) {
-                DEBUG(1, ("Attribute is missing!\n"));
+                DEBUG(1, "Attribute is missing!\n");
                 ret = EFAULT;
                 goto done;
             }
@@ -253,8 +253,8 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 ret = ENOMEM;
                 goto done;
             }
-            DEBUG(8, ("Added user [%s] to rule [%s]\n",
-                      name, rule_name));
+            DEBUG(8, "Added user [%s] to rule [%s]\n",
+                      name, rule_name);
             num_users++;
         } else {
             /* Check if it is a group instead */
@@ -267,8 +267,8 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
 
             if (ret == EOK) {
                 if (count > 1) {
-                    DEBUG(1, ("Original DN matched multiple groups. "
-                              "Skipping\n"));
+                    DEBUG(1, "Original DN matched multiple groups. "
+                              "Skipping\n");
                     talloc_zfree(member_dn);
                     continue;
                 }
@@ -276,7 +276,7 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 /* Original DN matched a single group. Get the groupname */
                 name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
                 if (name == NULL) {
-                    DEBUG(1, ("Attribute is missing!\n"));
+                    DEBUG(1, "Attribute is missing!\n");
                     ret = EFAULT;
                     goto done;
                 }
@@ -287,8 +287,8 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                     ret = ENOMEM;
                     goto done;
                 }
-                DEBUG(8, ("Added POSIX group [%s] to rule [%s]\n",
-                          name, rule_name));
+                DEBUG(8, "Added POSIX group [%s] to rule [%s]\n",
+                          name, rule_name);
                 num_groups++;
             } else {
                 /* If the group still matches the group pattern,
@@ -298,13 +298,13 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                                         member_user,
                                         &new_users->groups[num_groups]);
                 if (ret == EOK) {
-                    DEBUG(8, ("Added non-POSIX group [%s] to rule [%s]\n",
-                              new_users->groups[num_groups], rule_name));
+                    DEBUG(8, "Added non-POSIX group [%s] to rule [%s]\n",
+                              new_users->groups[num_groups], rule_name);
                     num_groups++;
                 } else {
                     /* Not a group, so we don't care about it */
-                    DEBUG(1, ("[%s] does not map to either a user or group. "
-                              "Skipping\n", member_dn));
+                    DEBUG(1, "[%s] does not map to either a user or group. "
+                              "Skipping\n", member_dn);
                 }
             }
         }

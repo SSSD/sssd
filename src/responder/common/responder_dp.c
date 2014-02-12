@@ -103,22 +103,22 @@ static int sss_dp_req_destructor(void *ptr)
          */
         if (cb == sdp_req->cb_list) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("BUG: a callback did not free its request. "
-                   "May leak memory\n"));
+                  "BUG: a callback did not free its request. "
+                   "May leak memory\n");
             /* Skip to the next since a memory leak is non-fatal */
             sdp_req->cb_list = sdp_req->cb_list->next;
         }
     }
 
     /* Destroy the hash entry */
-    DEBUG(SSSDBG_TRACE_FUNC, ("Deleting request: [%s]\n", sdp_req->key->str));
+    DEBUG(SSSDBG_TRACE_FUNC, "Deleting request: [%s]\n", sdp_req->key->str);
     hret = hash_delete(sdp_req->rctx->dp_request_table, sdp_req->key);
     if (hret != HASH_SUCCESS) {
         /* This should never happen */
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("BUG: Could not clear [%d:%lu:%s] from request queue: [%s]\n",
+              "BUG: Could not clear [%d:%lu:%s] from request queue: [%s]\n",
                sdp_req->key->type, sdp_req->key->ul, sdp_req->key->str,
-               hash_error_string(hret)));
+               hash_error_string(hret));
         return -1;
     }
 
@@ -142,18 +142,18 @@ void handle_requests_after_reconnect(struct resp_ctx *rctx)
     struct sss_dp_req *sdp_req;
 
     if (!rctx->dp_request_table) {
-        DEBUG(7, ("No requests to handle after reconnect\n"));
+        DEBUG(7, "No requests to handle after reconnect\n");
         return;
     }
 
     ret = hash_values(rctx->dp_request_table, &count, &values);
     if (ret != HASH_SUCCESS) {
-        DEBUG(1, ("hash_values failed, "
-                  "not all request might be handled after reconnect.\n"));
+        DEBUG(1, "hash_values failed, "
+                  "not all request might be handled after reconnect.\n");
         return;
     }
 
-    DEBUG(7, ("Will handle %lu requests after reconnect\n", count));
+    DEBUG(7, "Will handle %lu requests after reconnect\n", count);
     for (i=0; i<count; i++) {
         sdp_req = talloc_get_type(values[i].ptr, struct sss_dp_req);
         talloc_free(sdp_req);
@@ -180,8 +180,8 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
          * here, something is seriously wrong and we should bail out.
          */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Severe error. A reply callback was called but no reply "
-               "was received and no timeout occurred\n"));
+              "Severe error. A reply callback was called but no reply "
+               "was received and no timeout occurred\n");
 
         /* FIXME: Destroy this connection ? */
         err = EIO;
@@ -197,17 +197,17 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
                                     DBUS_TYPE_STRING, err_msg,
                                     DBUS_TYPE_INVALID);
         if (!ret) {
-            DEBUG(1,("Failed to parse message\n"));
+            DEBUG(1,"Failed to parse message\n");
             /* FIXME: Destroy this connection ? */
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             err = EIO;
             goto done;
         }
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Got reply from Data Provider - "
+              "Got reply from Data Provider - "
                "DP error code: %u errno: %u error message: %s\n",
               (unsigned int)*dp_err, (unsigned int)*dp_ret,
-              *err_msg ? *err_msg : "none"));
+              *err_msg ? *err_msg : "none");
         break;
 
     case DBUS_MESSAGE_TYPE_ERROR:
@@ -216,8 +216,8 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
             err = ETIME;
             goto done;
         }
-        DEBUG(0,("The Data Provider returned an error [%s]\n",
-                 dbus_message_get_error_name(reply)));
+        DEBUG(0,"The Data Provider returned an error [%s]\n",
+                 dbus_message_get_error_name(reply));
         /* Falling through to default intentionally*/
     default:
         /*
@@ -284,7 +284,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Issuing request for [%s]\n", key->str));
+    DEBUG(SSSDBG_TRACE_FUNC, "Issuing request for [%s]\n", key->str);
 
     /* Check the hash for existing references to this request */
     hret = hash_lookup(rctx->dp_request_table, key, &value);
@@ -292,7 +292,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
     case HASH_SUCCESS:
         /* Request already in progress */
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Identical request in progress: [%s]\n", key->str));
+              "Identical request in progress: [%s]\n", key->str);
         break;
 
     case HASH_ERROR_KEY_NOT_FOUND:
@@ -301,7 +301,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
          */
         msg = msg_create(pvt);
         if (!msg) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot create D-Bus message\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create D-Bus message\n");
             ret = EIO;
             goto fail;
         }
@@ -310,7 +310,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
         sidereq = sss_dp_internal_get_send(rctx, key, dom, msg);
         dbus_message_unref(msg);
         if (!sidereq) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot send D-Bus message\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot send D-Bus message\n");
             ret = EIO;
             goto fail;
         }
@@ -325,7 +325,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
                               sss_dp_req_timeout, sidereq);
         if (!te) {
             /* Nothing much we can do */
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
             ret = ENOMEM;
             goto fail;
         }
@@ -334,7 +334,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
         hret = hash_lookup(rctx->dp_request_table, key, &value);
         if (hret != HASH_SUCCESS) {
             /* Something must have gone wrong with creating the request */
-            DEBUG(SSSDBG_CRIT_FAILURE, ("The request has disappeared?\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "The request has disappeared?\n");
             ret = EIO;
             goto fail;
         }
@@ -342,8 +342,8 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
 
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not query request list (%s)\n",
-               hash_error_string(hret)));
+              "Could not query request list (%s)\n",
+               hash_error_string(hret));
         ret = EIO;
         goto fail;
     }
@@ -351,7 +351,7 @@ sss_dp_issue_request(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
     /* Register this request for results */
     sdp_req = talloc_get_type(value.ptr, struct sss_dp_req);
     if (!sdp_req) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not retrieve DP request context\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not retrieve DP request context\n");
         ret = EIO;
         goto fail;
     }
@@ -500,8 +500,8 @@ sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     talloc_free(key);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not issue DP request [%d]: %s\n",
-               ret, strerror(ret)));
+              "Could not issue DP request [%d]: %s\n",
+               ret, strerror(ret));
         goto error;
     }
 
@@ -581,7 +581,7 @@ sss_dp_get_account_msg(void *pvt)
         filter = talloc_strdup(info, ENUM_INDICATOR);
     }
     if (!filter) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;
     }
 
@@ -591,14 +591,14 @@ sss_dp_get_account_msg(void *pvt)
                                        DP_METHOD_GETACCTINFO);
     if (msg == NULL) {
         talloc_free(filter);
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;
     }
 
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Creating request for [%s][%u][%d][%s]\n",
-           info->dom->name, be_type, attrs, filter));
+          "Creating request for [%s][%u][%d][%s]\n",
+           info->dom->name, be_type, attrs, filter);
 
     dbret = dbus_message_append_args(msg,
                                      DBUS_TYPE_UINT32, &be_type,
@@ -608,7 +608,7 @@ sss_dp_get_account_msg(void *pvt)
                                      DBUS_TYPE_INVALID);
     talloc_free(filter);
     if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build message\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
         dbus_message_unref(msg);
         return NULL;
     }
@@ -683,8 +683,8 @@ sss_dp_internal_get_send(struct resp_ctx *rctx,
     ret = sss_dp_get_domain_conn(rctx, dom->conn_name, &be_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("BUG: The Data Provider connection for %s is not available!",
-               dom->name));
+              "BUG: The Data Provider connection for %s is not available!",
+               dom->name);
         ret = EIO;
         goto error;
     }
@@ -700,7 +700,7 @@ sss_dp_internal_get_send(struct resp_ctx *rctx,
          * We can't communicate on this connection
          */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("D-BUS send failed.\n"));
+              "D-BUS send failed.\n");
         ret = EIO;
         goto error;
     }
@@ -709,12 +709,12 @@ sss_dp_internal_get_send(struct resp_ctx *rctx,
     value.type = HASH_VALUE_PTR;
     value.ptr = state->sdp_req;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Entering request [%s]\n", key->str));
+    DEBUG(SSSDBG_TRACE_FUNC, "Entering request [%s]\n", key->str);
     hret = hash_enter(rctx->dp_request_table, key, &value);
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not store request query (%s)\n",
-               hash_error_string(hret)));
+              "Could not store request query (%s)\n",
+               hash_error_string(hret));
         ret = EIO;
         goto error;
     }
@@ -790,8 +790,8 @@ static void sss_dp_internal_get_done(DBusPendingCall *pending, void *ptr)
          */
         if (cb == sdp_req->cb_list) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("BUG: a callback did not free its request. "
-                   "May leak memory\n"));
+                  "BUG: a callback did not free its request. "
+                   "May leak memory\n");
             /* Skip to the next since a memory leak is non-fatal */
             sdp_req->cb_list = sdp_req->cb_list->next;
         }

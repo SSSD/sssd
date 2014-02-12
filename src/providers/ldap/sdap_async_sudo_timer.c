@@ -63,7 +63,7 @@ struct tevent_req * sdap_sudo_timer_send(TALLOC_CTX *mem_ctx,
     /* create request */
     req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_timer_state);
     if (req == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("tevent_req_create() failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
 
@@ -75,7 +75,7 @@ struct tevent_req * sdap_sudo_timer_send(TALLOC_CTX *mem_ctx,
     /* set timer */
     timer = tevent_add_timer(ev, req, when, sdap_sudo_timer, req);
     if (timer == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("tevent_add_timer() failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "tevent_add_timer() failed\n");
         ret = ENOMEM;
         goto immediately;
     }
@@ -120,7 +120,7 @@ static void sdap_sudo_timer(struct tevent_context *ev,
     /* issue request */
     state->subreq = state->fn(state, state->sudo_ctx);
     if (state->subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to issue timed request!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to issue timed request!\n");
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -137,8 +137,8 @@ static void sdap_sudo_timer(struct tevent_context *ev,
          * the possibility of starting another
          * concurrently
          */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set timeout, "
-                                    "canceling request!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set timeout, "
+                                    "canceling request!\n");
         talloc_zfree(state->subreq);
         tevent_req_error(req, ENOMEM);
     }
@@ -169,8 +169,8 @@ static void sdap_sudo_timer_timeout(struct tevent_context *ev,
     req = talloc_get_type(pvt, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_timer_state);
 
-    DEBUG(SSSDBG_CRIT_FAILURE, ("Request timed out. Is timeout too small?"
-                                " (%lds)!\n", state->timeout));
+    DEBUG(SSSDBG_CRIT_FAILURE, "Request timed out. Is timeout too small?"
+                                " (%lds)!\n", state->timeout);
 
     talloc_zfree(state->subreq);
 

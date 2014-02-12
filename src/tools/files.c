@@ -174,8 +174,8 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
                             O_RDONLY | O_DIRECTORY | O_NOFOLLOW, &ret);
     if (dir_fd == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot open %s: [%d]: %s\n",
-              dir_name, ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot open %s: [%d]: %s\n",
+              dir_name, ret, strerror(ret));
         return ret;
     }
 
@@ -183,7 +183,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
     if (rootdir == NULL) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Cannot open directory: [%d][%s]\n", ret, strerror(ret)));
+              "Cannot open directory: [%d][%s]\n", ret, strerror(ret));
         close(dir_fd);
         goto fail;
     }
@@ -199,7 +199,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
         if (ret != 0) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("stat failed: [%d][%s]\n", ret, strerror(ret)));
+                  "stat failed: [%d][%s]\n", ret, strerror(ret));
             goto fail;
         }
 
@@ -207,8 +207,8 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
             /* if directory, recursively descend, but check if on the same FS */
             if (parent_dev && parent_dev != statres.st_dev) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Directory %s is on different filesystem, "
-                       "will not follow\n", result->d_name));
+                      "Directory %s is on different filesystem, "
+                       "will not follow\n", result->d_name);
                 ret = EFAULT;
                 goto fail;
             }
@@ -216,8 +216,8 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
             ret = remove_tree_with_ctx(mem_ctx, dir_fd, result->d_name, statres.st_dev);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Removing subdirectory failed: [%d][%s]\n",
-                       ret, strerror(ret)));
+                      "Removing subdirectory failed: [%d][%s]\n",
+                       ret, strerror(ret));
                 goto fail;
             }
         } else {
@@ -225,7 +225,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
             if (ret != 0) {
                 ret = errno;
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                        ("Removing file failed: [%d][%s]\n", ret, strerror(ret)));
+                        "Removing file failed: [%d][%s]\n", ret, strerror(ret));
                 goto fail;
             }
         }
@@ -248,7 +248,7 @@ fail:
     if (rootdir) {  /* clean up on abnormal exit but retain return code */
         err = closedir(rootdir);
         if (err) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("closedir failed, bad dirp?\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "closedir failed, bad dirp?\n");
         }
     }
     return ret;
@@ -313,7 +313,7 @@ copy_symlink(int src_dir_fd,
     ret = selinux_file_context(full_path);
     if (ret != 0) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to set SELinux context for [%s]\n", full_path));
+              "Failed to set SELinux context for [%s]\n", full_path);
         /* Not fatal */
     }
 
@@ -323,11 +323,11 @@ copy_symlink(int src_dir_fd,
         ret = errno;
         if (ret == EEXIST) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("symlink pointing to already exists at '%s'\n", full_path));
+                  "symlink pointing to already exists at '%s'\n", full_path);
             return EOK;
         }
 
-        DEBUG(SSSDBG_CRIT_FAILURE, ("symlinkat failed: %s\n", strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "symlinkat failed: %s\n", strerror(ret));
         return ret;
     }
 
@@ -336,15 +336,15 @@ copy_symlink(int src_dir_fd,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-             ("fchownat failed: %s\n", strerror(ret)));
+             "fchownat failed: %s\n", strerror(ret));
         return ret;
     }
 
     ret = sss_timeat_set(dst_dir_fd, file_name, statp,
                          AT_SYMLINK_NOFOLLOW);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("utimensat failed [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "utimensat failed [%d]: %s\n",
+              ret, strerror(ret));
         /* Do not fail */
     }
 
@@ -371,7 +371,7 @@ copy_file(int ifd,
     ret = selinux_file_context(full_path);
     if (ret != 0) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Failed to set SELinux context for [%s]\n", full_path));
+              "Failed to set SELinux context for [%s]\n", full_path);
         /* Not fatal */
     }
 
@@ -382,8 +382,8 @@ copy_file(int ifd,
     if (ofd < 0 && errno != EEXIST) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
-               ("Cannot open() destination file '%s': [%d][%s].\n",
-               full_path, ret, strerror(ret)));
+               "Cannot open() destination file '%s': [%d][%s].\n",
+               full_path, ret, strerror(ret));
         goto done;
     }
 
@@ -391,8 +391,8 @@ copy_file(int ifd,
         if (cnt == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Cannot read() from source file: [%d][%s].\n",
-                   ret, strerror(ret)));
+                  "Cannot read() from source file: [%d][%s].\n",
+                   ret, strerror(ret));
             goto done;
         }
 
@@ -401,14 +401,14 @@ copy_file(int ifd,
         if (written == -1) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Cannot write() to destination file: [%d][%s].\n",
-                   ret, strerror(ret)));
+                  "Cannot write() to destination file: [%d][%s].\n",
+                   ret, strerror(ret));
             goto done;
         }
 
         if (written != cnt) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Wrote %zd bytes, expected %zd\n", written, cnt));
+                  "Wrote %zd bytes, expected %zd\n", written, cnt);
             goto done;
         }
     }
@@ -419,8 +419,8 @@ copy_file(int ifd,
     if (ret == -1 && errno != EPERM) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Error changing owner of '%s': %s\n",
-              full_path, strerror(ret)));
+              "Error changing owner of '%s': %s\n",
+              full_path, strerror(ret));
         goto done;
     }
 
@@ -428,15 +428,15 @@ copy_file(int ifd,
     ret = fchmod(ofd, statp->st_mode);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("Error changing owner of '%s': %s\n",
-              full_path, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Error changing owner of '%s': %s\n",
+              full_path, strerror(ret));
               goto done;
     }
 
     ret = sss_futime_set(ofd, statp);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("sss_futime_set failed [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "sss_futime_set failed [%d]: %s\n",
+              ret, strerror(ret));
         /* Do not fail */
     }
 
@@ -489,16 +489,16 @@ copy_entry(struct copy_ctx *cctx,
                          O_RDONLY | O_NOFOLLOW | O_NONBLOCK, &ret);
     if (ifd == -1 && ret != ELOOP) {
         /* openat error */
-        DEBUG(SSSDBG_CRIT_FAILURE, ("openat failed on '%s': %s\n",
-              src_ent_path, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "openat failed on '%s': %s\n",
+              src_ent_path, strerror(ret));
         goto done;
     } else if (ifd == -1 && ret == ELOOP) {
         /* Should be a symlink.. */
         ret = fstatat(src_dir_fd, ent_name, &st, AT_SYMLINK_NOFOLLOW);
         if (ret == -1) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, ("fstatat failed on '%s': %s\n",
-                  src_ent_path, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "fstatat failed on '%s': %s\n",
+                  src_ent_path, strerror(ret));
             goto done;
         }
 
@@ -506,8 +506,8 @@ copy_entry(struct copy_ctx *cctx,
         ret = copy_symlink(src_dir_fd, dest_dir_fd, ent_name,
                            dest_ent_path, &st, cctx->uid, cctx->gid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot copy '%s' to '%s'\n",
-                  src_ent_path, dest_ent_path));
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot copy '%s' to '%s'\n",
+                  src_ent_path, dest_ent_path);
         }
         goto done;
     }
@@ -516,7 +516,7 @@ copy_entry(struct copy_ctx *cctx,
     if (ret != 0) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-                ("couldn't stat '%s': %s", src_ent_path, strerror(ret)));
+                "couldn't stat '%s': %s", src_ent_path, strerror(ret));
         goto done;
     }
 
@@ -528,8 +528,8 @@ copy_entry(struct copy_ctx *cctx,
                        &st);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                    ("Couldn't recursively copy '%s' to '%s': %s\n",
-                    src_ent_path, dest_ent_path, strerror(ret)));
+                    "Couldn't recursively copy '%s' to '%s': %s\n",
+                    src_ent_path, dest_ent_path, strerror(ret));
             goto done;
         }
     } else if (S_ISREG(st.st_mode)) {
@@ -537,14 +537,14 @@ copy_entry(struct copy_ctx *cctx,
         ret = copy_file(ifd, dest_dir_fd, ent_name, dest_ent_path,
                         &st, cctx->uid, cctx->gid);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot copy '%s' to '%s'\n",
-                    src_ent_path, dest_ent_path));
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot copy '%s' to '%s'\n",
+                    src_ent_path, dest_ent_path);
             goto done;
         }
     } else {
         /* Is a special file */
-        DEBUG(SSSDBG_FUNC_DATA, ("'%s' is a special file, skipping.\n",
-                  src_ent_path));
+        DEBUG(SSSDBG_FUNC_DATA, "'%s' is a special file, skipping.\n",
+                  src_ent_path);
     }
 
     ret = EOK;
@@ -577,7 +577,7 @@ copy_dir(struct copy_ctx *cctx,
     if (dir == NULL) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error reading '%s': %s", src_dir_path, strerror(ret)));
+              "Error reading '%s': %s", src_dir_path, strerror(ret));
         goto done;
     }
 
@@ -590,7 +590,7 @@ copy_dir(struct copy_ctx *cctx,
     if (ret == -1 && errno != EEXIST) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error reading '%s': %s", dest_dir_path, strerror(ret)));
+              "Error reading '%s': %s", dest_dir_path, strerror(ret));
         goto done;
     }
 
@@ -599,7 +599,7 @@ copy_dir(struct copy_ctx *cctx,
     if (dest_dir_fd == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Error opening '%s': %s", dest_dir_path, strerror(ret)));
+              "Error opening '%s': %s", dest_dir_path, strerror(ret));
         goto done;
     }
 
@@ -616,8 +616,8 @@ copy_dir(struct copy_ctx *cctx,
                          dest_dir_fd, dest_dir_path,
                          ent->d_name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Could not copy [%s] to [%s]\n",
-                  src_dir_path, dest_dir_path));
+            DEBUG(SSSDBG_OP_FAILURE, "Could not copy [%s] to [%s]\n",
+                  src_dir_path, dest_dir_path);
             goto done;
         }
     }
@@ -628,8 +628,8 @@ copy_dir(struct copy_ctx *cctx,
     if (ret == -1 && errno != EPERM) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Error changing owner of '%s': %s",
-              dest_dir_path, strerror(ret)));
+              "Error changing owner of '%s': %s",
+              dest_dir_path, strerror(ret));
         goto done;
     }
 
@@ -640,15 +640,15 @@ copy_dir(struct copy_ctx *cctx,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Error setting mode of '%s': %s",
-              dest_dir_path, strerror(ret)));
+              "Error setting mode of '%s': %s",
+              dest_dir_path, strerror(ret));
         goto done;
     }
 
     sss_futime_set(dest_dir_fd, src_dir_stat);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("sss_futime_set failed [%d]: %s\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "sss_futime_set failed [%d]: %s\n",
+              ret, strerror(ret));
         /* Do not fail */
     }
 
@@ -659,7 +659,7 @@ done:
         if (dret != 0) {
             dret = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Failed to close directory: %s.\n", strerror(dret)));
+                  "Failed to close directory: %s.\n", strerror(dret));
         }
     }
 
@@ -708,7 +708,7 @@ int copy_tree(const char *src_root, const char *dst_root,
                    dst_root, dst_root, mode_root, &s_src);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("copy_dir failed: [%d][%s]\n", ret, strerror(ret)));
+              "copy_dir failed: [%d][%s]\n", ret, strerror(ret));
         goto fail;
     }
 

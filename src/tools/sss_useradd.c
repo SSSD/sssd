@@ -69,7 +69,7 @@ int main(int argc, const char **argv)
 
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(1, ("set_locale failed (%d): %s\n", ret, strerror(ret)));
+        DEBUG(1, "set_locale failed (%d): %s\n", ret, strerror(ret));
         ERROR("Error setting the locale\n");
         ret = EXIT_FAILURE;
         goto fini;
@@ -114,7 +114,7 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&tctx);
     if (ret != EOK) {
-        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        DEBUG(1, "init_sss_tools failed (%d): %s\n", ret, strerror(ret));
         if (ret == ENOENT) {
             ERROR("Error initializing the tools - no local domain\n");
         } else {
@@ -135,7 +135,7 @@ int main(int argc, const char **argv)
     if (groups) {
         ret = parse_groups(tctx, groups, &tctx->octx->addgroups);
         if (ret != EOK) {
-            DEBUG(1, ("Cannot parse groups to add the user to\n"));
+            DEBUG(1, "Cannot parse groups to add the user to\n");
             ERROR("Internal error while parsing parameters\n");
             ret = EXIT_FAILURE;
             goto fini;
@@ -143,7 +143,7 @@ int main(int argc, const char **argv)
 
         ret = parse_group_name_domain(tctx, tctx->octx->addgroups);
         if (ret != EOK) {
-            DEBUG(1, ("Cannot parse FQDN groups to add the user to\n"));
+            DEBUG(1, "Cannot parse FQDN groups to add the user to\n");
             ERROR("Groups must be in the same domain as user\n");
             ret = EXIT_FAILURE;
             goto fini;
@@ -181,7 +181,7 @@ int main(int argc, const char **argv)
 
     tctx->error = sysdb_transaction_start(tctx->sysdb);
     if (tctx->error != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -194,7 +194,7 @@ int main(int argc, const char **argv)
 
     tctx->error = sysdb_transaction_commit(tctx->sysdb);
     if (tctx->error) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -244,8 +244,8 @@ int main(int argc, const char **argv)
                                 tctx->octx->gid);
         if (ret != EOK) {
             ERROR("Cannot create user's mail spool: %1$s\n", strerror(ret));
-            DEBUG(1, ("Cannot create user's mail spool: [%d][%s].\n",
-                        ret, strerror(ret)));
+            DEBUG(1, "Cannot create user's mail spool: [%d][%s].\n",
+                        ret, strerror(ret));
             ret = EXIT_FAILURE;
             goto fini;
         }
@@ -255,7 +255,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(tctx->sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
 
@@ -270,8 +270,8 @@ done:
                 break;
 
             default:
-                DEBUG(1, ("sysdb operation failed (%d)[%s]\n",
-                          tctx->error, strerror(tctx->error)));
+                DEBUG(1, "sysdb operation failed (%d)[%s]\n",
+                          tctx->error, strerror(tctx->error));
                 ERROR("Transaction error. Could not add user.\n");
                 break;
         }

@@ -139,8 +139,8 @@ parse_filter(TALLOC_CTX *mem_ctx, const char *full_filter,
 
         /* Malformed option */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Keyword in filter [%s] did not match expected format\n",
-               full_filter));
+              "Keyword in filter [%s] did not match expected format\n",
+               full_filter);
         return EINVAL;
     }
 
@@ -187,7 +187,7 @@ ad_parse_access_filter(TALLOC_CTX *mem_ctx,
                              &filters, &nfilters);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Cannot parse the list of ad_access_filters\n"));
+              "Cannot parse the list of ad_access_filters\n");
         goto done;
     }
 
@@ -198,8 +198,8 @@ ad_parse_access_filter(TALLOC_CTX *mem_ctx,
         if (ret != EOK) {
             /* Skip the faulty filter. At worst, the user won't be
              * allowed access */
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Access filter [%s] could not be "
-                  "parsed, skipping\n", filters[i]));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Access filter [%s] could not be "
+                  "parsed, skipping\n", filters[i]);
             continue;
         }
 
@@ -269,7 +269,7 @@ ad_access_send(TALLOC_CTX *mem_ctx,
     ret = ad_parse_access_filter(state, domain, ctx->sdap_access_ctx->filter,
                                  &state->filter);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not determine the best filter\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine the best filter\n");
         ret = ERR_ACCESS_DENIED;
         goto done;
     }
@@ -361,8 +361,8 @@ ad_access_done(struct tevent_req *subreq)
     state->cindex++;
     if (state->clist[state->cindex] == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-            ("Error retrieving access check result: %s\n",
-            sss_strerror(ret)));
+            "Error retrieving access check result: %s\n",
+            sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -403,7 +403,7 @@ ad_access_handler(struct be_req *breq)
     if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
         domain = find_subdomain_by_name(be_ctx->domain, pd->domain, true);
         if (domain == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("find_subdomain_by_name failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "find_subdomain_by_name failed.\n");
             be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
             return;
         }

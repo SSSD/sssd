@@ -59,9 +59,9 @@ int sdap_copy_map(TALLOC_CTX *memctx,
             map[i].name = NULL;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has%s value %s\n",
+        DEBUG(SSSDBG_TRACE_FUNC, "Option %s has%s value %s\n",
               map[i].opt_name, map[i].name ? "" : " no",
-              map[i].name ? map[i].name : ""));
+              map[i].name ? map[i].name : "");
     }
 
     *_map = map;
@@ -96,7 +96,7 @@ int sdap_get_map(TALLOC_CTX *memctx,
                                 &name);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to retrieve value for %s\n", map[i].opt_name));
+                  "Failed to retrieve value for %s\n", map[i].opt_name);
             talloc_zfree(map);
             return EINVAL;
         }
@@ -105,7 +105,7 @@ int sdap_get_map(TALLOC_CTX *memctx,
             ret = sss_filter_sanitize(map, name, &map[i].name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Could not sanitize attribute [%s]\n", name));
+                      "Could not sanitize attribute [%s]\n", name);
                 talloc_zfree(map);
                 return EINVAL;
             }
@@ -116,14 +116,14 @@ int sdap_get_map(TALLOC_CTX *memctx,
 
         if (map[i].def_name && !map[i].name) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to retrieve value for %s\n", map[i].opt_name));
+                  "Failed to retrieve value for %s\n", map[i].opt_name);
             talloc_zfree(map);
             return EINVAL;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("Option %s has%s value %s\n",
+        DEBUG(SSSDBG_TRACE_FUNC, "Option %s has%s value %s\n",
               map[i].opt_name, map[i].name ? "" : " no",
-              map[i].name ? map[i].name : ""));
+              map[i].name ? map[i].name : "");
     }
 
     *_map = map;
@@ -157,8 +157,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     lerrno = 0;
     ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("ldap_set_option failed [%s], ignored.\n",
-                  sss_ldap_err2string(ret)));
+        DEBUG(1, "ldap_set_option failed [%s], ignored.\n",
+                  sss_ldap_err2string(ret));
     }
 
     attrs = sysdb_new_attrs(tmp_ctx);
@@ -170,13 +170,13 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     str = ldap_get_dn(sh->ldap, sm->msg);
     if (!str) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-        DEBUG(1, ("ldap_get_dn failed: %d(%s)\n",
-                  lerrno, sss_ldap_err2string(lerrno)));
+        DEBUG(1, "ldap_get_dn failed: %d(%s)\n",
+                  lerrno, sss_ldap_err2string(lerrno));
         ret = EIO;
         goto done;
     }
 
-    DEBUG(9, ("OriginalDN: [%s].\n", str));
+    DEBUG(9, "OriginalDN: [%s].\n", str);
     ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
     if (ret) goto done;
     if (_dn) {
@@ -192,7 +192,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     if (map) {
         vals = ldap_get_values_len(sh->ldap, sm->msg, "objectClass");
         if (!vals) {
-            DEBUG(1, ("Unknown entry type, no objectClasses found!\n"));
+            DEBUG(1, "Unknown entry type, no objectClasses found!\n");
             ret = EINVAL;
             goto done;
         }
@@ -206,8 +206,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             }
         }
         if (!vals[i]) {
-            DEBUG(1, ("objectClass not matching: %s\n",
-                      map[0].name));
+            DEBUG(1, "objectClass not matching: %s\n",
+                      map[0].name);
             ldap_value_free_len(vals);
             ret = EINVAL;
             goto done;
@@ -221,8 +221,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         DEBUG(lerrno == LDAP_SUCCESS
               ? SSSDBG_TRACE_INTERNAL
               : SSSDBG_MINOR_FAILURE,
-              ("Entry has no attributes [%d(%s)]!?\n",
-               lerrno, sss_ldap_err2string(lerrno)));
+              "Entry has no attributes [%d(%s)]!?\n",
+               lerrno, sss_ldap_err2string(lerrno));
         if (map) {
             ret = EINVAL;
             goto done;
@@ -248,7 +248,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             break;
         default:
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not determine if attribute [%s] was ranged\n", str));
+                  "Could not determine if attribute [%s] was ranged\n", str);
             goto done;
         }
 
@@ -285,25 +285,25 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             if (!vals) {
                 ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
                 if (lerrno != LDAP_SUCCESS) {
-                    DEBUG(1, ("LDAP Library error: %d(%s)",
-                              lerrno, sss_ldap_err2string(lerrno)));
+                    DEBUG(1, "LDAP Library error: %d(%s)",
+                              lerrno, sss_ldap_err2string(lerrno));
                     ret = EIO;
                     goto done;
                 }
 
-                DEBUG(5, ("Attribute [%s] has no values, skipping.\n", str));
+                DEBUG(5, "Attribute [%s] has no values, skipping.\n", str);
 
             } else {
                 if (!vals[0]) {
-                    DEBUG(1, ("Missing value after ldap_get_values() ??\n"));
+                    DEBUG(1, "Missing value after ldap_get_values() ??\n");
                     ret = EINVAL;
                     goto done;
                 }
                 for (i = 0; vals[i]; i++) {
                     if (vals[i]->bv_len == 0) {
                         DEBUG(SSSDBG_MINOR_FAILURE,
-                              ("Value of attribute [%s] is empty. "
-                               "Skipping this value.\n", str));
+                              "Value of attribute [%s] is empty. "
+                               "Skipping this value.\n", str);
                         continue;
                     }
                     if (base64) {
@@ -334,8 +334,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
     ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (lerrno) {
-        DEBUG(1, ("LDAP Library error: %d(%s)",
-                  lerrno, sss_ldap_err2string(lerrno)));
+        DEBUG(1, "LDAP Library error: %d(%s)",
+                  lerrno, sss_ldap_err2string(lerrno));
         ret = EIO;
         goto done;
     }
@@ -390,19 +390,19 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
     }
 
     if (!dref->derefVal.bv_val) {
-        DEBUG(2, ("Entry has no DN?\n"));
+        DEBUG(2, "Entry has no DN?\n");
         ret = EINVAL;
         goto done;
     }
 
     orig_dn = dref->derefVal.bv_val;
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Dereferenced DN: %s\n", orig_dn));
+          "Dereferenced DN: %s\n", orig_dn);
 
     if (!dref->attrVals) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Dereferenced entry [%s] has no attributes\n",
-              orig_dn));
+              "Dereferenced entry [%s] has no attributes\n",
+              orig_dn);
         ret = EINVAL;
         goto done;
     }
@@ -411,7 +411,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
     for (dval = dref->attrVals; dval != NULL; dval = dval->next) {
         if (strcasecmp("objectClass", dval->type) == 0) {
             if (dval->vals == NULL) {
-                DEBUG(4, ("No value for objectClass, skipping\n"));
+                DEBUG(4, "No value for objectClass, skipping\n");
                 continue;
             }
 
@@ -424,8 +424,8 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
             }
 
             for (i=0; i<len; i++) {
-                DEBUG(9, ("Dereferenced objectClass value: %s\n",
-                          dval->vals[i].bv_val));
+                DEBUG(9, "Dereferenced objectClass value: %s\n",
+                          dval->vals[i].bv_val);
                 ocs[i] = talloc_strdup(ocs, dval->vals[i].bv_val);
                 if (!ocs[i]) {
                     ret = ENOMEM;
@@ -437,7 +437,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
         }
     }
     if (!ocs) {
-        DEBUG(1, ("Unknown entry type, no objectClasses found!\n"));
+        DEBUG(1, "Unknown entry type, no objectClasses found!\n");
         ret = EINVAL;
         goto done;
     }
@@ -448,7 +448,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
         for (i=0; ocs[i]; i++) {
             /* the objectclass is always the first name in the map */
             if (strcasecmp(minfo[mi].map[0].name, ocs[i]) == 0) {
-                DEBUG(9, ("Found map for objectclass '%s'\n", ocs[i]));
+                DEBUG(9, "Found map for objectclass '%s'\n", ocs[i]);
                 map = minfo[mi].map;
                 num_attrs = minfo[mi].num_attrs;
                 break;
@@ -469,7 +469,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
         }
 
         for (dval = dref->attrVals; dval != NULL; dval = dval->next) {
-            DEBUG(8, ("Dereferenced attribute: %s\n", dval->type));
+            DEBUG(8, "Dereferenced attribute: %s\n", dval->type);
 
             for (a = 1; a < num_attrs; a++) {
                 /* check if this attr is valid with the chosen schema */
@@ -486,13 +486,13 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
             }
 
             if (dval->vals == NULL) {
-                DEBUG(4, ("No value for attribute %s, skipping\n", name));
+                DEBUG(4, "No value for attribute %s, skipping\n", name);
                 continue;
             }
 
             for (i=0; dval->vals[i].bv_val; i++) {
-                DEBUG(9, ("Dereferenced attribute value: %s\n",
-                          dval->vals[i].bv_val));
+                DEBUG(9, "Dereferenced attribute value: %s\n",
+                          dval->vals[i].bv_val);
                 ret = sysdb_attrs_add_mem(res[mi]->attrs, name,
                                           dval->vals[i].bv_val,
                                           dval->vals[i].bv_len);
@@ -521,15 +521,15 @@ int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
     lerrno = 0;
     ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("ldap_set_option failed [%s], ignored.\n",
-                  sss_ldap_err2string(ret)));
+        DEBUG(1, "ldap_set_option failed [%s], ignored.\n",
+                  sss_ldap_err2string(ret));
     }
 
     str = ldap_get_dn(sh->ldap, sm->msg);
     if (!str) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-        DEBUG(1, ("ldap_get_dn failed: %d(%s)\n",
-                  lerrno, sss_ldap_err2string(lerrno)));
+        DEBUG(1, "ldap_get_dn failed: %d(%s)\n",
+                  lerrno, sss_ldap_err2string(lerrno));
         return EIO;
     }
 
@@ -563,7 +563,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
             ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_HARD;
         }
         else {
-            DEBUG(1, ("Unknown value for tls_reqcert.\n"));
+            DEBUG(1, "Unknown value for tls_reqcert.\n");
             return EINVAL;
         }
         /* LDAP_OPT_X_TLS_REQUIRE_CERT has to be set as a global option,
@@ -571,7 +571,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT,
                               &ldap_opt_x_tls_require_cert);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
+            DEBUG(1, "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -580,7 +580,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
+            DEBUG(1, "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -589,7 +589,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTDIR, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
+            DEBUG(1, "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -598,7 +598,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CERTFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
+            DEBUG(1, "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -607,7 +607,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_KEYFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
+            DEBUG(1, "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -616,7 +616,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CIPHER_SUITE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
-            DEBUG(1, ("ldap_set_option failed: %s\n", sss_ldap_err2string(ret)));
+            DEBUG(1, "ldap_set_option failed: %s\n", sss_ldap_err2string(ret));
             return EIO;
         }
     }
@@ -710,15 +710,15 @@ static char *get_single_value_as_string(TALLOC_CTX *mem_ctx,
     char *str = NULL;
 
     if (el->num_values == 0) {
-        DEBUG(3, ("Missing value.\n"));
+        DEBUG(3, "Missing value.\n");
     } else if (el->num_values == 1) {
         str = talloc_strndup(mem_ctx, (char *) el->values[0].data,
                              el->values[0].length);
         if (str == NULL) {
-            DEBUG(1, ("talloc_strndup failed.\n"));
+            DEBUG(1, "talloc_strndup failed.\n");
         }
     } else {
-        DEBUG(3, ("More than one value found.\n"));
+        DEBUG(3, "More than one value found.\n");
     }
 
     return str;
@@ -743,19 +743,19 @@ static char *get_naming_context(TALLOC_CTX *mem_ctx,
     }
 
     if (dnc == NULL && nc == NULL) {
-        DEBUG(3, ("No attributes [%s] or [%s] found in rootDSE.\n",
+        DEBUG(3, "No attributes [%s] or [%s] found in rootDSE.\n",
                   SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS,
-                  SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT));
+                  SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT);
     } else {
         if (dnc != NULL) {
-            DEBUG(5, ("Using value from [%s] as naming context.\n",
-                      SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT));
+            DEBUG(5, "Using value from [%s] as naming context.\n",
+                      SDAP_ROOTDSE_ATTR_DEFAULT_NAMING_CONTEXT);
             naming_context = get_single_value_as_string(mem_ctx, dnc);
         }
 
         if (naming_context == NULL && nc != NULL) {
-            DEBUG(5, ("Using value from [%s] as naming context.\n",
-                      SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS));
+            DEBUG(5, "Using value from [%s] as naming context.\n",
+                      SDAP_ROOTDSE_ATTR_NAMING_CONTEXTS);
             naming_context = get_single_value_as_string(mem_ctx, nc);
         }
     }
@@ -806,12 +806,12 @@ static errno_t sdap_set_search_base(struct sdap_options *opts,
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("Setting option [%s] to [%s].\n",
-            opts->basic[class].opt_name, naming_context));
+          "Setting option [%s] to [%s].\n",
+            opts->basic[class].opt_name, naming_context);
 
     ret = dp_opt_set_string(opts->basic, class, naming_context);
     if (ret != EOK) {
-        DEBUG(1, ("dp_opt_set_string failed.\n"));
+        DEBUG(1, "dp_opt_set_string failed.\n");
         goto done;
     }
 
@@ -838,7 +838,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
             || !sdom->autofs_search_bases) {
         naming_context = get_naming_context(opts->basic, rootdse);
         if (naming_context == NULL) {
-            DEBUG(1, ("get_naming_context failed.\n"));
+            DEBUG(1, "get_naming_context failed.\n");
 
             /* This has to be non-fatal, since some servers offer
              * multiple namingContexts entries. We will just
@@ -952,29 +952,29 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
             if (ret != EOK) {
                 switch (ret) {
                 case ENOENT:
-                    DEBUG(1, ("%s configured but not found in rootdse!\n",
-                              opts->gen_map[SDAP_AT_LAST_USN].opt_name));
+                    DEBUG(1, "%s configured but not found in rootdse!\n",
+                              opts->gen_map[SDAP_AT_LAST_USN].opt_name);
                     break;
                 case ERANGE:
-                    DEBUG(1, ("Multiple values of %s found in rootdse!\n",
-                              opts->gen_map[SDAP_AT_LAST_USN].opt_name));
+                    DEBUG(1, "Multiple values of %s found in rootdse!\n",
+                              opts->gen_map[SDAP_AT_LAST_USN].opt_name);
                     break;
                 default:
-                    DEBUG(1, ("Unkown error (%d) checking rootdse!\n", ret));
+                    DEBUG(1, "Unkown error (%d) checking rootdse!\n", ret);
                 }
             } else {
                 if (!entry_usn_name) {
-                    DEBUG(1, ("%s found in rootdse but %s is not set!\n",
+                    DEBUG(1, "%s found in rootdse but %s is not set!\n",
                               last_usn_name,
-                              opts->gen_map[SDAP_AT_ENTRY_USN].opt_name));
+                              opts->gen_map[SDAP_AT_ENTRY_USN].opt_name);
                 } else {
                     so->supports_usn = true;
                     so->last_usn = strtoul(last_usn_value, &endptr, 10);
                     if (endptr != NULL && (*endptr != '\0' || endptr == last_usn_value)) {
-                        DEBUG(3, ("USN is not valid (value: %s)\n", last_usn_value));
+                        DEBUG(3, "USN is not valid (value: %s)\n", last_usn_value);
                         so->last_usn = 0;
                     } else {
-                        DEBUG(9, ("USN value: %s (int: %lu)\n", last_usn_value, so->last_usn));
+                        DEBUG(9, "USN value: %s (int: %lu)\n", last_usn_value, so->last_usn);
                     }
                 }
             }
@@ -993,10 +993,10 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                     so->supports_usn = true;
                     so->last_usn = strtoul(last_usn_value, &endptr, 10);
                     if (endptr != NULL && (*endptr != '\0' || endptr == last_usn_value)) {
-                        DEBUG(3, ("USN is not valid (value: %s)\n", last_usn_value));
+                        DEBUG(3, "USN is not valid (value: %s)\n", last_usn_value);
                         so->last_usn = 0;
                     } else {
-                        DEBUG(9, ("USN value: %s (int: %lu)\n", last_usn_value, so->last_usn));
+                        DEBUG(9, "USN value: %s (int: %lu)\n", last_usn_value, so->last_usn);
                     }
                     last_usn_name = usn_attrs[i].last_name;
                     break;
@@ -1018,26 +1018,26 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
             case DS_BEHAVIOR_WIN2012:
                 opts->dc_functional_level = dc_level;
                 DEBUG(SSSDBG_CONF_SETTINGS,
-                      ("Setting AD compatibility level to [%d]\n",
-                       opts->dc_functional_level));
+                      "Setting AD compatibility level to [%d]\n",
+                       opts->dc_functional_level);
                 break;
             default:
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      ("Received invalid value for AD compatibility level. "
-                       "Continuing without AD performance enhancements\n"));
+                      "Received invalid value for AD compatibility level. "
+                       "Continuing without AD performance enhancements\n");
             }
         } else if (ret != ENOENT) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Error detecting Active Directory compatibility level "
+                  "Error detecting Active Directory compatibility level "
                    "(%s). Continuing without AD performance enhancements\n",
-                   strerror(ret)));
+                   strerror(ret));
         }
     }
 
     if (!last_usn_name) {
-        DEBUG(5, ("No known USN scheme is supported by this server!\n"));
+        DEBUG(5, "No known USN scheme is supported by this server!\n");
         if (!entry_usn_name) {
-            DEBUG(5, ("Will use modification timestamp as usn!\n"));
+            DEBUG(5, "Will use modification timestamp as usn!\n");
             opts->gen_map[SDAP_AT_ENTRY_USN].name =
                 talloc_strdup(opts->gen_map, "modifyTimestamp");
         }
@@ -1168,11 +1168,11 @@ int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
     if (sdap_is_control_supported(sh, oid)) {
         ret = sss_ldap_control_create(oid, iscritical, value, dupval, ctrlp);
         if (ret != LDAP_SUCCESS) {
-            DEBUG(1, ("sss_ldap_control_create failed [%d][%s].\n",
-                      ret, sss_ldap_err2string(ret)));
+            DEBUG(1, "sss_ldap_control_create failed [%d][%s].\n",
+                      ret, sss_ldap_err2string(ret));
         }
     } else {
-        DEBUG(3, ("Server does not support the requested control [%s].\n", oid));
+        DEBUG(3, "Server does not support the requested control [%s].\n", oid);
         ret = LDAP_NOT_SUPPORTED;
     }
 
@@ -1189,13 +1189,13 @@ int sdap_replace_id(struct sysdb_attrs *entry, const char *attr, id_t val)
     if (ret == ENOENT) {
         return sysdb_attrs_add_uint32(entry, attr, val);
     } else if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot get attribute [%s]\n", attr));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot get attribute [%s]\n", attr);
         return ret;
     }
 
     if (el->num_values != 1) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Expected 1 value for %s, got %d\n", attr, el->num_values));
+              "Expected 1 value for %s, got %d\n", attr, el->num_values);
         return EINVAL;
     }
 
@@ -1223,17 +1223,17 @@ sdap_get_primary_name(TALLOC_CTX *memctx,
 
     ret = sysdb_attrs_primary_name(dom->sysdb, attrs, attr_name, &orig_name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("The object has no name attribute\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "The object has no name attribute\n");
         return EINVAL;
     }
 
     name = sss_get_domain_name(memctx, orig_name, dom);
     if (name == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Failed to format original name [%s]\n", orig_name));
+              "Failed to format original name [%s]\n", orig_name);
         return ENOMEM;
     }
-    DEBUG(SSSDBG_TRACE_FUNC, ("Processing object %s\n", name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Processing object %s\n", name);
 
     *_primary_name = name;
     return EOK;

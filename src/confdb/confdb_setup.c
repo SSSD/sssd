@@ -56,8 +56,8 @@ int confdb_test(struct confdb_ctx *cdb)
 
     if (strcmp(values[0], CONFDB_VERSION) != 0) {
         /* Existing version does not match executable version */
-        DEBUG(1, ("Upgrading confdb version from %s to %s\n",
-                  values[0], CONFDB_VERSION));
+        DEBUG(1, "Upgrading confdb version from %s to %s\n",
+                  values[0], CONFDB_VERSION);
 
         /* This is recoverable, since we purge the confdb file
          * when we re-initialize it.
@@ -114,8 +114,8 @@ int confdb_create_base(struct confdb_ctx *cdb)
     while ((ldif = ldb_ldif_read_string(cdb->ldb, &base_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
-            DEBUG(0, ("Failed to initialize DB (%d,[%s]), aborting!\n",
-                      ret, ldb_errstring(cdb->ldb)));
+            DEBUG(0, "Failed to initialize DB (%d,[%s]), aborting!\n",
+                      ret, ldb_errstring(cdb->ldb));
             return EIO;
         }
         ldb_ldif_read_free(cdb->ldb, ldif);
@@ -141,13 +141,13 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
 
     tmp_ctx = talloc_new(cdb);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory.\n");
         return ENOMEM;
     }
 
     init_data = sss_ini_initdata_init(tmp_ctx);
     if (!init_data) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Out of memory.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -156,8 +156,8 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = sss_ini_config_file_open(init_data, config_file);
     if (ret != EOK) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("sss_ini_config_file_open failed: %s [%d]\n", strerror(ret),
-               ret));
+              "sss_ini_config_file_open failed: %s [%d]\n", strerror(ret),
+               ret);
         if (ret == ENOENT) {
             /* sss specific error denoting missing configuration file */
             ret = ERR_MISSING_CONF;
@@ -168,7 +168,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = sss_ini_config_access_check(init_data);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Permission check on config file failed.\n"));
+              "Permission check on config file failed.\n");
         ret = EPERM;
         goto done;
     }
@@ -179,7 +179,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = sss_ini_get_stat(init_data);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Status check on config file failed.\n"));
+              "Status check on config file failed.\n");
         ret = errno;
         goto done;
     }
@@ -189,7 +189,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = sss_ini_get_mtime(init_data, sizeof(timestr), timestr);
     if (ret <= 0 || ret >= sizeof(timestr)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to convert time_t to string ??\n"));
+              "Failed to convert time_t to string ??\n");
         ret = errno ? errno : EFAULT;
     }
     ret = confdb_get_string(cdb, tmp_ctx, "config", "lastUpdate",
@@ -203,13 +203,13 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
             goto done;
         }
     } else {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to get lastUpdate attribute.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get lastUpdate attribute.\n");
         goto done;
     }
 
     ret = sss_ini_get_config(init_data, config_file);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to load configuration\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to load configuration\n");
         goto done;
     }
 
@@ -217,7 +217,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = sss_ini_get_cfgobj(init_data, "sssd", "config_file_version");
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Internal error determining config_file_version\n"));
+              "Internal error determining config_file_version\n");
         goto done;
     }
 
@@ -225,8 +225,8 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     if (ret != EOK) {
         /* No known version. Assumed to be version 1 */
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Config file is an old version. "
-               "Please run configuration upgrade script.\n"));
+              "Config file is an old version. "
+               "Please run configuration upgrade script.\n");
         ret = EINVAL;
         goto done;
     }
@@ -234,17 +234,17 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     version = sss_ini_get_int_config_value(init_data, 1, -1, &ret);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-                ("Config file version could not be determined\n"));
+                "Config file version could not be determined\n");
         goto done;
     } else if (version < CONFDB_VERSION_INT) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-                ("Config file is an old version. "
-                 "Please run configuration upgrade script.\n"));
+                "Config file is an old version. "
+                 "Please run configuration upgrade script.\n");
         ret = EINVAL;
         goto done;
     } else if (version > CONFDB_VERSION_INT) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-                ("Config file version is newer than confdb\n"));
+                "Config file version is newer than confdb\n");
         ret = EINVAL;
         goto done;
     }
@@ -253,8 +253,8 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = ldb_transaction_start(cdb->ldb);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to start a transaction for "
-               "updating the configuration\n"));
+              "Failed to start a transaction for "
+               "updating the configuration\n");
         ret = sysdb_error_to_errno(ret);
         goto done;
     }
@@ -264,24 +264,24 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = confdb_purge(cdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Could not purge existing configuration\n"));
+              "Could not purge existing configuration\n");
         goto done;
     }
 
     ret = sss_confdb_create_ldif(tmp_ctx, init_data, &config_ldif);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Could not create LDIF for confdb\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not create LDIF for confdb\n");
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("LDIF file to import: \n%s", config_ldif));
+    DEBUG(SSSDBG_TRACE_LIBS, "LDIF file to import: \n%s", config_ldif);
 
     while ((ldif = ldb_ldif_read_string(cdb->ldb, &config_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                    ("Failed to initialize DB (%d,[%s]), aborting!\n",
-                     ret, ldb_errstring(cdb->ldb)));
+                    "Failed to initialize DB (%d,[%s]), aborting!\n",
+                     ret, ldb_errstring(cdb->ldb));
             ret = EIO;
             goto done;
         }
@@ -294,13 +294,13 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = confdb_add_param(cdb, true, "config", "lastUpdate", vals);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-                ("Failed to set last update time on db!\n"));
+                "Failed to set last update time on db!\n");
         goto done;
     }
 
     ret = ldb_transaction_commit(cdb->ldb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
         goto done;
     }
     in_transaction = false;
@@ -311,7 +311,7 @@ done:
     if (in_transaction) {
         sret = ldb_transaction_cancel(cdb->ldb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
 

@@ -85,7 +85,7 @@ static void pac_dp_reconnect_init(struct sbus_connection *conn,
 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Reconnected to the Data Provider.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Reconnected to the Data Provider.\n");
 
         /* Identify ourselves to the data provider */
         ret = dp_common_send_id(be_conn->conn,
@@ -99,8 +99,8 @@ static void pac_dp_reconnect_init(struct sbus_connection *conn,
     }
 
     /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, ("Could not reconnect to %s provider.\n",
-              be_conn->domain->name));
+    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
+              be_conn->domain->name);
 
     /* FIXME: kill the frontend and let the monitor restart it ? */
     /* nss_shutdown(rctx); */
@@ -131,13 +131,13 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                            "PAC", &pac_dp_interface,
                            &rctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_process_init() failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");
         return ret;
     }
 
     pac_ctx = talloc_zero(rctx, struct pac_ctx);
     if (!pac_ctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing pac_ctx\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing pac_ctx\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -150,7 +150,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                             CONFDB_PAC_CONF_ENTRY, CONFDB_SERVICE_ALLOWED_UIDS,
                             DEFAULT_ALLOWED_UIDS, &uid_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to get allowed UIDs.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get allowed UIDs.\n");
         goto fail;
     }
 
@@ -159,7 +159,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                                   &pac_ctx->rctx->allowed_uids);
     talloc_free(uid_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to set allowed UIDs.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set allowed UIDs.\n");
         goto fail;
     }
 
@@ -169,7 +169,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                          CONFDB_SERVICE_RECON_RETRIES,
                          3, &max_retries);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to set up automatic reconnection\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set up automatic reconnection\n");
         goto fail;
     }
 
@@ -181,7 +181,7 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
     err = sss_idmap_init(sss_idmap_talloc, pac_ctx, sss_idmap_talloc_free,
                          &pac_ctx->idmap_ctx);
     if (err != IDMAP_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_idmap_init failed.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "sss_idmap_init failed.\n");
         ret = EFAULT;
         goto fail;
     }
@@ -194,18 +194,18 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                          &fd_limit);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to set up file descriptor limit\n"));
+              "Failed to set up file descriptor limit\n");
         goto fail;
     }
     responder_set_fd_limit(fd_limit);
 
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("schedule_get_domains_tasks failed.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("PAC Initialization complete\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "PAC Initialization complete\n");
 
     return EOK;
 
@@ -254,7 +254,7 @@ int main(int argc, const char *argv[])
     ret = die_if_parent_died();
     if (ret != EOK) {
         /* This is not fatal, don't return */
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set up to exit when parent process does\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set up to exit when parent process does\n");
     }
 
     ret = pac_process_init(main_ctx,

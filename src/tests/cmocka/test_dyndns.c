@@ -66,25 +66,25 @@ void __wrap_execv(const char *path, char *const argv[])
 
     switch (dyndns_test_ctx->state) {
         case MOCK_NSUPDATE_OK:
-            DEBUG(SSSDBG_FUNC_DATA, ("nsupdate success test case\n"));
+            DEBUG(SSSDBG_FUNC_DATA, "nsupdate success test case\n");
             err = 0;
             break;
         case MOCK_NSUPDATE_ERR:
-            DEBUG(SSSDBG_FUNC_DATA, ("nsupdate error test case\n"));
+            DEBUG(SSSDBG_FUNC_DATA, "nsupdate error test case\n");
             err = 1;
             break;
         case MOCK_NSUPDATE_TIMEOUT:
-            DEBUG(SSSDBG_FUNC_DATA, ("nsupdate timeout test case\n"));
+            DEBUG(SSSDBG_FUNC_DATA, "nsupdate timeout test case\n");
             err = 2;
             sleep(3);
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, ("unknown test case\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "unknown test case\n");
             err = 255;
             break;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Child exiting with status %d\n", err));
+    DEBUG(SSSDBG_TRACE_LIBS, "Child exiting with status %d\n", err);
     _exit(err);
 }
 
@@ -222,7 +222,7 @@ void dyndns_test_ok(void **state)
     /* Wait until the test finishes with EOK */
     ret = test_ev_loop(dyndns_test_ctx->tctx);
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Child request returned [%d]: %s\n", ret, strerror(ret)));
+          "Child request returned [%d]: %s\n", ret, strerror(ret));
     assert_int_equal(ret, EOK);
 
     assert_true(WIFEXITED(dyndns_test_ctx->child_status));
@@ -253,7 +253,7 @@ void dyndns_test_error(void **state)
     /* Wait until the test finishes with EIO (child error) */
     ret = test_ev_loop(dyndns_test_ctx->tctx);
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Child request returned [%d]: %s\n", ret, strerror(ret)));
+          "Child request returned [%d]: %s\n", ret, strerror(ret));
     assert_int_equal(ret, ERR_DYNDNS_FAILED);
 
     assert_true(WIFEXITED(dyndns_test_ctx->child_status));
@@ -296,7 +296,7 @@ void dyndns_test_timeout(void **state)
     tevent_loop_once(dyndns_test_ctx->tctx->ev); /* nsupdate_child_handler */
 
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Child request returned [%d]: %s\n", ret, strerror(ret)));
+          "Child request returned [%d]: %s\n", ret, strerror(ret));
     assert_int_equal(ret, ERR_DYNDNS_TIMEOUT);
 
     assert_true(check_leaks_pop(tmp_ctx) == true);
@@ -338,7 +338,7 @@ void dyndns_test_interval(void **state)
     /* Wait until the timer hits */
     ret = test_ev_loop(dyndns_test_ctx->tctx);
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Child request returned [%d]: %s\n", ret, strerror(ret)));
+          "Child request returned [%d]: %s\n", ret, strerror(ret));
     assert_int_equal(ret, ERR_OK);
 
     talloc_free(dyndns_test_ctx->update_ctx);

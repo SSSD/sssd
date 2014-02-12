@@ -40,7 +40,7 @@ errno_t pack_user_info_chpass_error(TALLOC_CTX *mem_ctx,
     *resp_len = 2 * sizeof(uint32_t) + err_len;
     resp = talloc_size(mem_ctx, *resp_len);
     if (resp == NULL) {
-        DEBUG(1, ("talloc_size failed.\n"));
+        DEBUG(1, "talloc_size failed.\n");
         return ENOMEM;
     }
 
@@ -49,7 +49,7 @@ errno_t pack_user_info_chpass_error(TALLOC_CTX *mem_ctx,
     SAFEALIGN_SET_UINT32(&resp[p], err_len, &p);
     safealign_memcpy(&resp[p], user_error_message, err_len, &p);
     if (p != *resp_len) {
-        DEBUG(0, ("Size mismatch\n"));
+        DEBUG(0, "Size mismatch\n");
     }
 
     *_resp = resp;

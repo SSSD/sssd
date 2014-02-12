@@ -78,8 +78,8 @@ static int seed_prompt(const char *req)
        len = sss_atomic_write_s(STDOUT_FILENO, &prompt[i++], 1);
        if (len == -1) {
            ret = errno;
-           DEBUG(SSSDBG_CRIT_FAILURE, ("write failed [%d][%s].\n",
-                                       ret, strerror(ret)));
+           DEBUG(SSSDBG_CRIT_FAILURE, "write failed [%d][%s].\n",
+                                       ret, strerror(ret));
            goto done;
        }
     }
@@ -107,8 +107,8 @@ static int seed_str_input(TALLOC_CTX *mem_ctx,
     while ((bytes_read = sss_atomic_read_s(STDIN_FILENO, buf+len, 1)) != 0) {
         if (bytes_read == -1) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, ("read failed [%d][%s].\n",
-                                        ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "read failed [%d][%s].\n",
+                                        ret, strerror(ret));
             return ret;
         }
         if (buf[len] == '\n' || len == BUFSIZE) {
@@ -121,7 +121,7 @@ static int seed_str_input(TALLOC_CTX *mem_ctx,
     *_input = talloc_strdup(mem_ctx, buf);
     if (*_input == NULL) {
         ret = ENOMEM;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to allocate input\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate input\n");
     }
 
     return ret;
@@ -145,8 +145,8 @@ static int seed_id_input(const char *req,
     while ((bytes_read = sss_atomic_read_s(STDIN_FILENO, buf+len, 1)) != 0) {
         if (bytes_read == -1) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, ("read failed [%d][%s].\n",
-                                        ret, strerror(ret)));
+            DEBUG(SSSDBG_CRIT_FAILURE, "read failed [%d][%s].\n",
+                                        ret, strerror(ret));
             return ret;
         }
         if (buf[len] == '\n' || len == BUFSIZE) {
@@ -161,18 +161,18 @@ static int seed_id_input(const char *req,
         *_id_input = (uid_t)strtoll(buf, &endptr, 10);
         if (errno != 0) {
             ret = errno;
-            DEBUG(SSSDBG_OP_FAILURE, ("strtoll failed on [%s]: [%d][%s].\n",
-                                      (char *)buf, ret, strerror(ret)));
+            DEBUG(SSSDBG_OP_FAILURE, "strtoll failed on [%s]: [%d][%s].\n",
+                                      (char *)buf, ret, strerror(ret));
             return ret;
         }
         if (*endptr != '\0') {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("extra characters [%s] after ID [%"SPRIuid"]\n",
-                   endptr, *_id_input));
+                  "extra characters [%s] after ID [%"SPRIuid"]\n",
+                   endptr, *_id_input);
         }
     } else {
         ret = EINVAL;
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get %s input.\n", req));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get %s input.\n", req);
     }
 
     return ret;
@@ -187,14 +187,14 @@ static int seed_password_input_prompt(TALLOC_CTX *mem_ctx, char **_password)
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not allocate temp context\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate temp context\n");
         ret = ENOMEM;
         goto done;
     }
 
     temp = getpass("Enter temporary password:");
     if (temp == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get prompted password\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get prompted password\n");
         ret = EINVAL;
         goto done;
     }
@@ -216,14 +216,14 @@ static int seed_password_input_prompt(TALLOC_CTX *mem_ctx, char **_password)
 
     temp = getpass("Enter temporary password again:");
     if (temp == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get prompted password\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get prompted password\n");
         ret = EINVAL;
         goto done;
     }
 
     if (strncmp(temp,password,strlen(password)) != 0) {
         ERROR("Passwords do not match\n");
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Provided passwords do not match\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Provided passwords do not match\n");
         ret = EINVAL;
         goto done;
     }
@@ -250,16 +250,16 @@ static int seed_password_input_file(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not allocate temp context\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate temp context\n");
         ret = ENOMEM;
         goto done;
     }
 
     fd = open(filename, O_RDONLY);
     if (fd == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to open password file "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to open password file "
                                     "[%s] [%d][%s]\n",
-                                    filename, errno, strerror(errno)));
+                                    filename, errno, strerror(errno));
         ret = EINVAL;
         goto done;
     }
@@ -268,9 +268,9 @@ static int seed_password_input_file(TALLOC_CTX *mem_ctx,
     len = sss_atomic_read_s(fd, buf, PASS_MAX + 1);
     if (len == -1) {
         ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to read password from file "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to read password from file "
                                      "[%s] [%d][%s]\n",
-                                     filename, ret, strerror(ret)));
+                                     filename, ret, strerror(ret));
         close(fd);
         goto done;
     }
@@ -341,7 +341,7 @@ static int seed_interactive_input(TALLOC_CTX *mem_ctx,
         ret = seed_str_input(input_uctx, _("username"), &input_uctx->name);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Username interactive input failed.\n"));
+                  "Username interactive input failed.\n");
             goto done;
         }
     } else {
@@ -355,7 +355,7 @@ static int seed_interactive_input(TALLOC_CTX *mem_ctx,
     if (uctx->uid == 0) {
         ret = seed_id_input(_("UID"), &input_uctx->uid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("UID interactive input failed.\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "UID interactive input failed.\n");
             goto done;
         }
     } else {
@@ -365,7 +365,7 @@ static int seed_interactive_input(TALLOC_CTX *mem_ctx,
     if (uctx->gid == 0) {
         ret = seed_id_input(_("GID"), &input_uctx->gid);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("GID interactive input failed.\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "GID interactive input failed.\n");
             goto done;
         }
     } else {
@@ -376,7 +376,7 @@ static int seed_interactive_input(TALLOC_CTX *mem_ctx,
         ret = seed_str_input(input_uctx, _("user comment (gecos)"),
                              &input_uctx->gecos);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Gecos interactive input failed.\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Gecos interactive input failed.\n");
             goto done;
         }
     } else {
@@ -392,7 +392,7 @@ static int seed_interactive_input(TALLOC_CTX *mem_ctx,
                              &input_uctx->home);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Home directory interactive input fialed.\n"));
+                  "Home directory interactive input fialed.\n");
             goto done;
         }
     } else {
@@ -407,7 +407,7 @@ static int seed_interactive_input(TALLOC_CTX *mem_ctx,
         ret = seed_str_input(input_uctx, _("user login shell"),
                              &input_uctx->shell);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Shell interactive input failed\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Shell interactive input failed\n");
             goto done;
         }
     } else {
@@ -479,14 +479,14 @@ static int seed_init(TALLOC_CTX *mem_ctx,
 
     sctx = talloc_zero(tmp_ctx, struct seed_ctx);
     if (sctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not allocate tools context\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate tools context\n");
         ret = ENOMEM;
         goto fini;
     }
 
     sctx->uctx = talloc_zero(sctx, struct user_ctx);
     if (sctx->uctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Could not allocate user data context\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate user data context\n");
         ret = ENOMEM;
         goto fini;
     }
@@ -494,8 +494,8 @@ static int seed_init(TALLOC_CTX *mem_ctx,
     debug_prg_name = argv[0];
     ret = set_locale();
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("set_locale failed (%d): %s\n",
-                                    ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "set_locale failed (%d): %s\n",
+                                    ret, strerror(ret));
         ERROR("Error setting the locale\n");
         ret = EINVAL;
         goto fini;
@@ -513,7 +513,7 @@ static int seed_init(TALLOC_CTX *mem_ctx,
     while ((ret = poptGetNextOpt(pc)) > 0) {
         switch (ret) {
             case 'i':
-                DEBUG(SSSDBG_TRACE_INTERNAL, ("Interactive mode selected\n"));
+                DEBUG(SSSDBG_TRACE_INTERNAL, "Interactive mode selected\n");
                 sctx->interact = true;
                 break;
         }
@@ -625,7 +625,7 @@ static int seed_init_db(TALLOC_CTX *mem_ctx,
     ret = confdb_init(tmp_ctx, &confdb, confdb_path);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not initialize connection to the confdb\n"));
+              "Could not initialize connection to the confdb\n");
         ERROR("Could not initialize connection to the confdb\n");
         goto done;
     }
@@ -634,8 +634,8 @@ static int seed_init_db(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         SYSDB_VERSION_ERROR(ret);
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Could not initialize connection to domain '%s' in sysdb.%s\n",
-               domain_name, ret == ENOENT ? " Domain not found." : ""));
+              "Could not initialize connection to domain '%s' in sysdb.%s\n",
+               domain_name, ret == ENOENT ? " Domain not found." : "");
         ERROR("Could not initialize connection to domain '%1$s' in sysdb.%2$s\n",
               domain_name, ret == ENOENT ? " Domain not found." : "");
 
@@ -678,8 +678,8 @@ static int seed_domain_user_info(const char *name,
     passwd = getpwnam(fq_name);
     if (passwd == NULL) {
         ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, ("getpwnam failed [%d] [%s]\n",
-                                     ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "getpwnam failed [%d] [%s]\n",
+                                     ret, strerror(ret));
         goto done;
     }
 
@@ -687,38 +687,38 @@ static int seed_domain_user_info(const char *name,
     ret = sysdb_getpwnam(tmp_ctx, domain, name, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Couldn't lookup user (%s) in the cache\n", name));
+              "Couldn't lookup user (%s) in the cache\n", name);
         goto done;
     }
 
     if (res->count == 0) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("User (%s) wasn't found in the cache\n", name));
+              "User (%s) wasn't found in the cache\n", name);
         *is_cached = false;
         ret = ENOENT;
         goto done;
     } else if (res->count > 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Multiple user (%s) entries were found in the cache\n", name));
+              "Multiple user (%s) entries were found in the cache\n", name);
         ret = EINVAL;
         goto done;
     } else {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("User found in cache\n"));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "User found in cache\n");
         *is_cached = true;
 
         errno = 0;
         ret = initgroups(fq_name, passwd->pw_gid);
         if (ret != EOK) {
             ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE, ("initgroups failed [%d] [%s]\n",
-                                         ret, strerror(ret)));
+            DEBUG(SSSDBG_MINOR_FAILURE, "initgroups failed [%d] [%s]\n",
+                                         ret, strerror(ret));
             goto done;
         }
     }
 
 done:
     if (ret == ENOMEM) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to allocate user information\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to allocate user information\n");
     }
     talloc_zfree(tmp_ctx);
     return ret;
@@ -732,7 +732,7 @@ static int seed_cache_user(struct seed_ctx *sctx)
 
     ret = sysdb_transaction_start(sctx->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb transaction start failure\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb transaction start failure\n");
         goto done;
     }
 
@@ -745,8 +745,8 @@ static int seed_cache_user(struct seed_ctx *sctx)
                              sctx->uctx->shell, NULL, NULL, 0, 0);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to add user to the cache. (%d)[%s]\n",
-                   ret, strerror(ret)));
+                  "Failed to add user to the cache. (%d)[%s]\n",
+                   ret, strerror(ret));
             ERROR("Failed to create user cache entry\n");
             goto done;
         }
@@ -755,15 +755,15 @@ static int seed_cache_user(struct seed_ctx *sctx)
     ret = sysdb_cache_password(sctx->domain, sctx->uctx->name,
                                sctx->uctx->password);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to cache password. (%d)[%s]\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to cache password. (%d)[%s]\n",
+                                  ret, strerror(ret));
         ERROR("Failed to cache password\n");
         goto done;
     }
 
     ret = sysdb_transaction_commit(sctx->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("sysdb transaction commit failure\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb transaction commit failure\n");
         goto done;
     }
 
@@ -773,7 +773,7 @@ done:
     if (in_transaction == true) {
         sret = sysdb_transaction_cancel(sctx->sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to cancel transaction\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to cancel transaction\n");
         }
     }
 
@@ -789,8 +789,8 @@ int main(int argc, const char **argv)
     /* initialize seed context and parse options */
     ret = seed_init(sctx, argc, argv, &sctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,("Seed init failed [%d][%s]\n",
-                                 ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE,"Seed init failed [%d][%s]\n",
+                                 ret, strerror(ret));
         goto done;
     }
 
@@ -798,7 +798,7 @@ int main(int argc, const char **argv)
     ret = seed_init_db(sctx, sctx->uctx->domain_name, &sctx->confdb,
                        &sctx->domain, &sctx->sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to initialize db and domain\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to initialize db and domain\n");
         goto done;
     }
 
@@ -806,8 +806,8 @@ int main(int argc, const char **argv)
     ret = seed_domain_user_info(sctx->uctx->name, sctx->uctx->domain_name,
                                 sctx->domain, &sctx->user_cached);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed lookup of user [%s] in domain [%s]\n",
-                                  sctx->uctx->name, sctx->uctx->domain_name));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed lookup of user [%s] in domain [%s]\n",
+                                  sctx->uctx->name, sctx->uctx->domain_name);
     }
 
     /* interactive mode to fill in user information */
@@ -819,7 +819,7 @@ int main(int argc, const char **argv)
         } else {
             ret = seed_interactive_input(sctx, sctx->uctx, &input_uctx);
             if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to get seed input.\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "Failed to get seed input.\n");
                 ret = EINVAL;
                 goto done;
             }
@@ -831,7 +831,7 @@ int main(int argc, const char **argv)
     if (sctx->user_cached == false) {
         if (sctx->uctx->uid == 0 || sctx->uctx->gid == 0) {
             /* require username, UID, and GID to continue */
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Not enough information provided\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Not enough information provided\n");
             ERROR("UID and primary GID not provided.\n");
             ret = EINVAL;
             goto done;
@@ -843,13 +843,13 @@ int main(int argc, const char **argv)
         ret = seed_password_input_file(sctx->uctx, sctx->password_file,
                                        &sctx->uctx->password);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Password input failure\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Password input failure\n");
             goto done;
         }
     } else {
         ret = seed_password_input_prompt(sctx->uctx, &sctx->uctx->password);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Password input failure\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Password input failure\n");
             goto done;
         }
     }
@@ -857,7 +857,7 @@ int main(int argc, const char **argv)
     /* Add user info and password to sysdb cache */
     ret = seed_cache_user(sctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to modify cache.\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to modify cache.\n");
         goto done;
     } else {
         if (sctx->user_cached == false) {
@@ -870,8 +870,8 @@ int main(int argc, const char **argv)
 done:
     talloc_zfree(sctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Exit error: [%d] [%s]\n",
-                                      ret, strerror(ret)));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Exit error: [%d] [%s]\n",
+                                      ret, strerror(ret));
         ret = EXIT_FAILURE;
     } else {
         ret = EXIT_SUCCESS;

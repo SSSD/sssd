@@ -100,8 +100,8 @@ static errno_t sss_send_pac(krb5_authdata **pac_authdata)
     ret = sss_pac_make_request(SSS_PAC_ADD_PAC_USER, &sss_data,
                                NULL, NULL, &errnop);
     if (ret != NSS_STATUS_SUCCESS || errnop != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("sss_pac_make_request failed [%d][%d].\n",
-                                  ret, errnop));
+        DEBUG(SSSDBG_OP_FAILURE, "sss_pac_make_request failed [%d][%d].\n",
+                                  ret, errnop);
         return EIO;
     }
 
@@ -124,14 +124,14 @@ static void sss_krb5_expire_callback_func(krb5_context context, void *data,
 
     exp_time = password_expiration - time(NULL);
     if (exp_time < 0 || exp_time > UINT32_MAX) {
-        DEBUG(1, ("Time to expire out of range.\n"));
+        DEBUG(1, "Time to expire out of range.\n");
         return;
     }
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("exp_time: [%ld]\n", exp_time));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "exp_time: [%ld]\n", exp_time);
 
     blob = talloc_array(kr->pd, uint32_t, 2);
     if (blob == NULL) {
-        DEBUG(1, ("talloc_size failed.\n"));
+        DEBUG(1, "talloc_size failed.\n");
         return;
     }
 
@@ -141,7 +141,7 @@ static void sss_krb5_expire_callback_func(krb5_context context, void *data,
     ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO, 2 * sizeof(uint32_t),
                            (uint8_t *) blob);
     if (ret != EOK) {
-        DEBUG(1, ("pam_add_response failed.\n"));
+        DEBUG(1, "pam_add_response failed.\n");
     }
 
     return;
@@ -324,7 +324,7 @@ static krb5_error_code answer_otp(krb5_context ctx,
     }
     if (chl->tokeninfo[i] == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("No tokeninfos found which match our credentials.\n"));
+              "No tokeninfos found which match our credentials.\n");
         ret = EOK;
         goto done;
     }
@@ -333,7 +333,7 @@ static krb5_error_code answer_otp(krb5_context ctx,
         /* Don't let SSSD cache the OTP authtok since it is single-use. */
         ret = pam_add_response(kr->pd, SSS_OTP, 0, NULL);
         if (ret != EOK) {
-            DEBUG(1, ("pam_add_response failed.\n"));
+            DEBUG(1, "pam_add_response failed.\n");
             goto done;
         }
     }
@@ -369,21 +369,21 @@ static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
     struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
 
     if (num_prompts != 0) {
-        DEBUG(1, ("Cannot handle password prompts.\n"));
+        DEBUG(1, "Cannot handle password prompts.\n");
         return KRB5_LIBOS_CANTREADPWD;
     }
 
     if (banner == NULL || *banner == '\0') {
-        DEBUG(5, ("Prompter called with empty banner, nothing to do.\n"));
+        DEBUG(5, "Prompter called with empty banner, nothing to do.\n");
         return EOK;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Prompter called with [%s].\n", banner));
+    DEBUG(SSSDBG_FUNC_DATA, "Prompter called with [%s].\n", banner);
 
     ret = pam_add_response(kr->pd, SSS_PAM_TEXT_MSG, strlen(banner)+1,
                            (const uint8_t *) banner);
     if (ret != EOK) {
-        DEBUG(1, ("pam_add_response failed.\n"));
+        DEBUG(1, "pam_add_response failed.\n");
     }
 
     return EOK;
@@ -399,13 +399,13 @@ static krb5_error_code create_empty_cred(krb5_context ctx, krb5_principal princ,
 
     cred = calloc(sizeof(krb5_creds), 1);
     if (cred == NULL) {
-        DEBUG(1, ("calloc failed.\n"));
+        DEBUG(1, "calloc failed.\n");
         return ENOMEM;
     }
 
     kerr = krb5_copy_principal(ctx, princ, &cred->client);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_copy_principal failed.\n"));
+        DEBUG(1, "krb5_copy_principal failed.\n");
         goto done;
     }
 
@@ -416,11 +416,11 @@ static krb5_error_code create_empty_cred(krb5_context ctx, krb5_principal princ,
                                     KRB5_TGS_NAME_SIZE, KRB5_TGS_NAME,
                                     krb5_realm->length, krb5_realm->data, 0);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_build_principal_ext failed.\n"));
+        DEBUG(1, "krb5_build_principal_ext failed.\n");
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Created empty krb5_creds.\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Created empty krb5_creds.\n");
 
 done:
     if (kerr != 0) {
@@ -467,7 +467,7 @@ static errno_t handle_randomized(char *in)
         umask(old_umask);
         if (fd == -1) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, ("mkstemp(\"%s\") failed!\n", ccname));
+            DEBUG(SSSDBG_CRIT_FAILURE, "mkstemp(\"%s\") failed!\n", ccname);
             return ret;
         }
     }
@@ -509,7 +509,7 @@ static krb5_error_code create_ccache(char *ccname, krb5_creds *creds)
     if (kerr) goto done;
 
     type = krb5_cc_get_type(kctx, kcc);
-    DEBUG(SSSDBG_TRACE_ALL, ("Initializing ccache of type [%s]\n", type));
+    DEBUG(SSSDBG_TRACE_ALL, "Initializing ccache of type [%s]\n", type);
 
 #ifdef HAVE_KRB5_CC_COLLECTION
     if (krb5_cc_support_switch(kctx, type)) {
@@ -575,7 +575,7 @@ static errno_t pack_response_packet(TALLOC_CTX *mem_ctx, errno_t error,
 
     buf = talloc_array(mem_ctx, uint8_t, size);
     if (!buf) {
-        DEBUG(1, ("Insufficient memory to create message.\n"));
+        DEBUG(1, "Insufficient memory to create message.\n");
         return ENOMEM;
     }
 
@@ -587,7 +587,7 @@ static errno_t pack_response_packet(TALLOC_CTX *mem_ctx, errno_t error,
         safealign_memcpy(&buf[p], pdr->data, pdr->len, &p);
     }
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("response packet size: [%zu]\n", p));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "response packet size: [%zu]\n", p);
 
     *_buf = buf;
     *_len = p;
@@ -600,13 +600,13 @@ static errno_t k5c_attach_ccname_msg(struct krb5_req *kr)
     int ret;
 
     if (kr->ccname == NULL) {
-        DEBUG(1, ("Error obtaining ccname.\n"));
+        DEBUG(1, "Error obtaining ccname.\n");
         return ERR_INTERNAL;
     }
 
     msg = talloc_asprintf(kr, "%s=%s",CCACHE_ENV_NAME, kr->ccname);
     if (msg == NULL) {
-        DEBUG(1, ("talloc_asprintf failed.\n"));
+        DEBUG(1, "talloc_asprintf failed.\n");
         return ENOMEM;
     }
 
@@ -626,7 +626,7 @@ static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error)
 
     ret = pack_response_packet(kr, error, kr->pd->resp_list, &buf, &len);
     if (ret != EOK) {
-        DEBUG(1, ("pack_response_packet failed.\n"));
+        DEBUG(1, "pack_response_packet failed.\n");
         return ret;
     }
 
@@ -635,18 +635,18 @@ static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error)
     if (written == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("write failed [%d][%s].\n", ret, strerror(ret)));
+              "write failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
 
     if (written != len) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Write error, wrote [%zu] bytes, expected [%zu]\n",
-               written, len));
+              "Write error, wrote [%zu] bytes, expected [%zu]\n",
+               written, len);
         return EOK;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, ("Response sent.\n"));
+    DEBUG(SSSDBG_TRACE_ALL, "Response sent.\n");
 
     return EOK;
 }
@@ -667,13 +667,13 @@ static errno_t add_ticket_times_and_upn_to_response(struct krb5_req *kr)
     ret = pam_add_response(kr->pd, SSS_KRB5_INFO_TGT_LIFETIME,
                            4*sizeof(int64_t), (uint8_t *) t);
     if (ret != EOK) {
-        DEBUG(1, ("pack_response_packet failed.\n"));
+        DEBUG(1, "pack_response_packet failed.\n");
         goto done;
     }
 
     kerr = krb5_unparse_name_ext(kr->ctx, kr->creds->client, &upn, &upn_len);
     if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("krb5_unparse_name failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_unparse_name failed.\n");
         goto done;
     }
 
@@ -681,7 +681,7 @@ static errno_t add_ticket_times_and_upn_to_response(struct krb5_req *kr)
                            (uint8_t *) upn);
     krb5_free_unparsed_name(kr->ctx, upn);
     if (ret != EOK) {
-        DEBUG(1, ("pack_response_packet failed.\n"));
+        DEBUG(1, "pack_response_packet failed.\n");
         goto done;
     }
 
@@ -706,16 +706,16 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     memset(&keytab, 0, sizeof(keytab));
     kerr = krb5_kt_resolve(kr->ctx, kr->keytab, &keytab);
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("error resolving keytab [%s], " \
-                                    "not verifying TGT.\n", kr->keytab));
+        DEBUG(SSSDBG_CRIT_FAILURE, "error resolving keytab [%s], " \
+                                    "not verifying TGT.\n", kr->keytab);
         return kerr;
     }
 
     memset(&cursor, 0, sizeof(cursor));
     kerr = krb5_kt_start_seq_get(kr->ctx, keytab, &cursor);
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("error reading keytab [%s], " \
-                                    "not verifying TGT.\n", kr->keytab));
+        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab [%s], " \
+                                    "not verifying TGT.\n", kr->keytab);
         return kerr;
     }
 
@@ -729,19 +729,19 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
         kerr = krb5_copy_principal(kr->ctx, entry.principal,
                                    &validation_princ);
         if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_copy_principal failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
             goto done;
         }
 
         kerr = sss_krb5_free_keytab_entry_contents(kr->ctx, &entry);
         if (kerr != 0) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Failed to free keytab entry.\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to free keytab entry.\n");
         }
         memset(&entry, 0, sizeof(entry));
 
         if (krb5_realm_compare(kr->ctx, validation_princ, kr->creds->client)) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  ("Found keytab entry with the realm of the credential.\n"));
+                  "Found keytab entry with the realm of the credential.\n");
             realm_entry_found = true;
             break;
         }
@@ -749,8 +749,8 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
 
     if (!realm_entry_found) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-                ("Keytab entry with the realm of the credential not found "
-                 "in keytab. Using the last entry.\n"));
+                "Keytab entry with the realm of the credential not found "
+                 "in keytab. Using the last entry.\n");
     }
 
     /* Close the keytab here.  Even though we're using cursors, the file
@@ -759,15 +759,15 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
      * cursor, creating a leak. */
     kerr = krb5_kt_end_seq_get(kr->ctx, keytab, &cursor);
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_kt_end_seq_get failed, " \
-                                    "not verifying TGT.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_end_seq_get failed, " \
+                                    "not verifying TGT.\n");
         goto done;
     }
 
     /* check if we got any errors from krb5_kt_next_entry */
     if (kt_err != 0 && kt_err != KRB5_KT_END) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("error reading keytab [%s], " \
-                                    "not verifying TGT.\n", kr->keytab));
+        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab [%s], " \
+                                    "not verifying TGT.\n", kr->keytab);
         goto done;
     }
 
@@ -775,8 +775,8 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     principal = NULL;
     kerr = krb5_unparse_name(kr->ctx, validation_princ, &principal);
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("internal error parsing principal name, "
-                                    "not verifying TGT.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "internal error parsing principal name, "
+                                    "not verifying TGT.\n");
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
@@ -787,11 +787,11 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
                                   &validation_ccache, &opt);
 
     if (kerr == 0) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("TGT verified using key for [%s].\n",
-                                  principal));
+        DEBUG(SSSDBG_TRACE_FUNC, "TGT verified using key for [%s].\n",
+                                  principal);
     } else {
-        DEBUG(SSSDBG_CRIT_FAILURE ,("TGT failed verification using key " \
-                                    "for [%s].\n", principal));
+        DEBUG(SSSDBG_CRIT_FAILURE ,"TGT failed verification using key " \
+                                    "for [%s].\n", principal);
         goto done;
     }
 
@@ -801,9 +801,9 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
         kerr = sss_extract_pac(kr->ctx, validation_ccache, validation_princ,
                                kr->creds->client, keytab, &pac_authdata);
         if (kerr != 0) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sss_extract_and_send_pac failed, group " \
+            DEBUG(SSSDBG_OP_FAILURE, "sss_extract_and_send_pac failed, group " \
                                       "membership for user with principal [%s] " \
-                                      "might not be correct.\n", kr->name));
+                                      "might not be correct.\n", kr->name);
             kerr = 0;
             goto done;
         }
@@ -811,9 +811,9 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
         kerr = sss_send_pac(pac_authdata);
         krb5_free_authdata(kr->ctx, pac_authdata);
         if (kerr != 0) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sss_send_pac failed, group " \
+            DEBUG(SSSDBG_OP_FAILURE, "sss_send_pac failed, group " \
                                       "membership for user with principal [%s] " \
-                                      "might not be correct.\n", kr->name));
+                                      "might not be correct.\n", kr->name);
             kerr = 0;
         }
     }
@@ -824,7 +824,7 @@ done:
     }
 
     if (krb5_kt_close(kr->ctx, keytab) != 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("krb5_kt_close failed"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "krb5_kt_close failed");
     }
     if (validation_princ != NULL) {
         krb5_free_principal(kr->ctx, validation_princ);
@@ -846,8 +846,8 @@ static void krb5_set_canonicalize(krb5_get_init_creds_opt *opts)
     if (tmp_str != NULL && strcasecmp(tmp_str, "true") == 0) {
         canonicalize = 1;
     }
-    DEBUG(SSSDBG_CONF_SETTINGS, ("%s is set to [%s]\n",
-          SSSD_KRB5_CANONICALIZE, tmp_str ? tmp_str : "not set"));
+    DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
+          SSSD_KRB5_CANONICALIZE, tmp_str ? tmp_str : "not set");
     sss_krb5_get_init_creds_opt_set_canonicalize(opts, canonicalize);
 }
 
@@ -903,13 +903,13 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                                                   kr);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        DEBUG(1, ("Failed to set expire callback, continue without.\n"));
+        DEBUG(1, "Failed to set expire callback, continue without.\n");
     }
 
     sss_krb5_princ_realm(kr->ctx, kr->princ, &realm_name, &realm_length);
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Attempting kinit for realm [%s]\n",realm_name));
+          "Attempting kinit for realm [%s]\n",realm_name);
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         discard_const(password),
                                         sss_krb5_prompter, kr, 0,
@@ -927,7 +927,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         }
 
     } else {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("TGT validation is disabled.\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, "TGT validation is disabled.\n");
     }
 
     if (kr->validate || kr->fast_ccname != NULL) {
@@ -936,7 +936,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
          * ccache I/O operations with user privileges. */
         kerr = become_user(kr->uid, kr->gid);
         if (kerr != 0) {
-            DEBUG(1, ("become_user failed.\n"));
+            DEBUG(1, "become_user failed.\n");
             return kerr;
         }
     }
@@ -961,7 +961,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
 
     kerr = add_ticket_times_and_upn_to_response(kr);
     if (kerr != 0) {
-        DEBUG(1, ("add_ticket_times_and_upn_to_response failed.\n"));
+        DEBUG(1, "add_ticket_times_and_upn_to_response failed.\n");
     }
 
     kerr = 0;
@@ -1028,12 +1028,12 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
     size_t msg_len;
     uint8_t *msg;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Password change operation\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Password change operation\n");
 
     ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to fetch current password [%d] %s.\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "Failed to fetch current password [%d] %s.\n",
+                  ret, strerror(ret));
         return ERR_NO_CREDS;
     }
 
@@ -1044,14 +1044,14 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
 
     kerr = get_changepw_options(kr->ctx, &chagepw_options);
     if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("get_changepw_options failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "get_changepw_options failed.\n");
         return kerr;
     }
 
     sss_krb5_princ_realm(kr->ctx, kr->princ, &realm_name, &realm_length);
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Attempting kinit for realm [%s]\n",realm_name));
+          "Attempting kinit for realm [%s]\n",realm_name);
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         discard_const(password),
                                         prompter, kr, 0,
@@ -1063,13 +1063,13 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
                                           &msg_len, &msg);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("pack_user_info_chpass_error failed.\n"));
+                  "pack_user_info_chpass_error failed.\n");
         } else {
             ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO, msg_len,
                                    msg);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("pam_add_response failed.\n"));
+                      "pam_add_response failed.\n");
             }
         }
         return kerr;
@@ -1079,16 +1079,16 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
 
     if (prelim) {
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Initial authentication for change password operation "
-               "successful.\n"));
+              "Initial authentication for change password operation "
+               "successful.\n");
         krb5_free_cred_contents(kr->ctx, kr->creds);
         return EOK;
     }
 
     ret = sss_authtok_get_password(kr->pd->newauthtok, &newpassword, NULL);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to fetch new password [%d] %s.\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "Failed to fetch new password [%d] %s.\n",
+                  ret, strerror(ret));
         return ERR_NO_CREDS;
     }
 
@@ -1108,29 +1108,29 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
         }
 
         if (result_code_string.length > 0) {
-            DEBUG(1, ("krb5_change_password failed [%d][%.*s].\n", result_code,
-                      result_code_string.length, result_code_string.data));
+            DEBUG(1, "krb5_change_password failed [%d][%.*s].\n", result_code,
+                      result_code_string.length, result_code_string.data);
             user_error_message = talloc_strndup(kr->pd, result_code_string.data,
                                                 result_code_string.length);
             if (user_error_message == NULL) {
-                DEBUG(1, ("talloc_strndup failed.\n"));
+                DEBUG(1, "talloc_strndup failed.\n");
             }
         }
 
         if (result_string.length > 0 && result_string.data[0] != '\0') {
-            DEBUG(1, ("krb5_change_password failed [%d][%.*s].\n", result_code,
-                      result_string.length, result_string.data));
+            DEBUG(1, "krb5_change_password failed [%d][%.*s].\n", result_code,
+                      result_string.length, result_string.data);
             talloc_free(user_error_message);
             user_error_message = talloc_strndup(kr->pd, result_string.data,
                                                 result_string.length);
             if (user_error_message == NULL) {
-                DEBUG(1, ("talloc_strndup failed.\n"));
+                DEBUG(1, "talloc_strndup failed.\n");
             }
         } else if (result_code == KRB5_KPASSWD_SOFTERROR) {
             user_error_message = talloc_strdup(kr->pd, "Please make sure the "
                                  "password meets the complexity constraints.");
             if (user_error_message == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strndup failed.\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strndup failed.\n");
             }
         }
 
@@ -1138,12 +1138,12 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
             ret = pack_user_info_chpass_error(kr->pd, user_error_message,
                                               &user_resp_len, &user_resp);
             if (ret != EOK) {
-                DEBUG(1, ("pack_user_info_chpass_error failed.\n"));
+                DEBUG(1, "pack_user_info_chpass_error failed.\n");
             } else {
                 ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO, user_resp_len,
                                        user_resp);
                 if (ret != EOK) {
-                    DEBUG(1, ("pack_response_packet failed.\n"));
+                    DEBUG(1, "pack_response_packet failed.\n");
                 }
             }
         }
@@ -1170,7 +1170,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
     krb5_error_code kerr;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Attempting to get a TGT\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Attempting to get a TGT\n");
 
     ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
     switch (ret) {
@@ -1178,12 +1178,12 @@ static errno_t tgt_req_child(struct krb5_req *kr)
             break;
 
         case EACCES:
-            DEBUG(SSSDBG_OP_FAILURE, ("Invalid authtok type\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid authtok type\n");
             return ERR_INVALID_CRED_TYPE;
             break;
 
         default:
-            DEBUG(SSSDBG_OP_FAILURE, ("No credentials available\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "No credentials available\n");
             return ERR_NO_CREDS;
             break;
     }
@@ -1202,18 +1202,18 @@ static errno_t tgt_req_child(struct krb5_req *kr)
        KRB5KDC_ERR_KEY_EXP regardless if the supplied password is correct or
        not. In general the password can still be used to get a changepw ticket.
        So we validate the password by trying to get a changepw ticket. */
-    DEBUG(SSSDBG_TRACE_LIBS, ("Password was expired\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Password was expired\n");
     kerr = sss_krb5_get_init_creds_opt_set_expire_callback(kr->ctx,
                                                            kr->options,
                                                            NULL, NULL);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        DEBUG(1, ("Failed to unset expire callback, continue ...\n"));
+        DEBUG(1, "Failed to unset expire callback, continue ...\n");
     }
 
     kerr = get_changepw_options(kr->ctx, &chagepw_options);
     if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("get_changepw_options failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "get_changepw_options failed.\n");
         return kerr;
     }
 
@@ -1242,24 +1242,24 @@ static errno_t kuserok_child(struct krb5_req *kr)
     krb5_boolean access_allowed;
     krb5_error_code kerr;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Verifying if principal can log in as user\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Verifying if principal can log in as user\n");
 
     /* krb5_kuserok tries to verify that kr->pd->user is a locally known
      * account, so we have to unset _SSS_LOOPS to make getpwnam() work. */
     if (unsetenv("_SSS_LOOPS") != 0) {
-        DEBUG(1, ("Failed to unset _SSS_LOOPS, "
-                  "krb5_kuserok will most certainly fail.\n"));
+        DEBUG(1, "Failed to unset _SSS_LOOPS, "
+                  "krb5_kuserok will most certainly fail.\n");
     }
 
     kerr = krb5_set_default_realm(kr->ctx, kr->realm);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_set_default_realm failed, "
-                  "krb5_kuserok may fail.\n"));
+        DEBUG(1, "krb5_set_default_realm failed, "
+                  "krb5_kuserok may fail.\n");
     }
 
     access_allowed = krb5_kuserok(kr->ctx, kr->princ, kr->pd->user);
     DEBUG(SSSDBG_TRACE_LIBS,
-          ("Access was %s\n", access_allowed ? "allowed" : "denied"));
+          "Access was %s\n", access_allowed ? "allowed" : "denied");
 
     if (access_allowed) {
         return EOK;
@@ -1275,13 +1275,13 @@ static errno_t renew_tgt_child(struct krb5_req *kr)
     krb5_error_code kerr;
     int ret;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Renewing a ticket\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Renewing a ticket\n");
 
     ret = sss_authtok_get_ccfile(kr->pd->authtok, &ccname, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Unsupported authtok type for TGT renewal [%d].\n",
-               sss_authtok_get_type(kr->pd->authtok)));
+              "Unsupported authtok type for TGT renewal [%d].\n",
+               sss_authtok_get_type(kr->pd->authtok));
         return ERR_INVALID_CRED_TYPE;
     }
 
@@ -1304,7 +1304,7 @@ static errno_t renew_tgt_child(struct krb5_req *kr)
         }
 
     } else {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("TGT validation is disabled.\n"));
+        DEBUG(SSSDBG_CONF_SETTINGS, "TGT validation is disabled.\n");
     }
 
     if (kr->validate || kr->fast_ccname != NULL) {
@@ -1313,7 +1313,7 @@ static errno_t renew_tgt_child(struct krb5_req *kr)
          * ccache I/O operations with user privileges. */
         kerr = become_user(kr->uid, kr->gid);
         if (kerr != 0) {
-            DEBUG(1, ("become_user failed.\n"));
+            DEBUG(1, "become_user failed.\n");
             goto done;
         }
     }
@@ -1332,7 +1332,7 @@ static errno_t renew_tgt_child(struct krb5_req *kr)
 
     kerr = add_ticket_times_and_upn_to_response(kr);
     if (kerr != 0) {
-        DEBUG(1, ("add_ticket_times_and_upn_to_response failed.\n"));
+        DEBUG(1, "add_ticket_times_and_upn_to_response failed.\n");
     }
 
     kerr = k5c_attach_ccname_msg(kr);
@@ -1352,7 +1352,7 @@ static errno_t create_empty_ccache(struct krb5_req *kr)
     krb5_creds *creds = NULL;
     krb5_error_code kerr;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Creating empty ccache\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Creating empty ccache\n");
 
     kerr = create_empty_cred(kr->ctx, kr->princ, &creds);
     if (kerr == 0) {
@@ -1412,13 +1412,13 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     struct pam_data *pd;
     errno_t ret;
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("total buffer size: [%zu]\n", size));
+    DEBUG(SSSDBG_TRACE_LIBS, "total buffer size: [%zu]\n", size);
 
     if (!offline || !kr) return EINVAL;
 
     pd = create_pam_data(kr);
     if (pd == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         return ENOMEM;
     }
     kr->pd = pd;
@@ -1440,12 +1440,12 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     p += len;
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("cmd [%d] uid [%llu] gid [%llu] validate [%s] "
+          "cmd [%d] uid [%llu] gid [%llu] validate [%s] "
            "enterprise principal [%s] offline [%s] UPN [%s]\n",
            pd->cmd, (unsigned long long) kr->uid,
            (unsigned long long) kr->gid, kr->validate ? "true" : "false",
            kr->use_enterprise_princ ? "true" : "false",
-           *offline ? "true" : "false", kr->upn ? kr->upn : "none"));
+           *offline ? "true" : "false", kr->upn ? kr->upn : "none");
 
     if (pd->cmd == SSS_PAM_AUTHENTICATE ||
         pd->cmd == SSS_CMD_RENEW ||
@@ -1467,8 +1467,8 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
             return ret;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, ("ccname: [%s] keytab: [%s]\n",
-              kr->ccname, kr->keytab));
+        DEBUG(SSSDBG_CONF_SETTINGS, "ccname: [%s] keytab: [%s]\n",
+              kr->ccname, kr->keytab);
     } else {
         kr->ccname = NULL;
         kr->keytab = NULL;
@@ -1490,7 +1490,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
         pd->user = talloc_strndup(pd, (char *)(buf + p), len);
         if (pd->user == NULL) return ENOMEM;
         p += len;
-        DEBUG(SSSDBG_CONF_SETTINGS, ("user: [%s]\n", pd->user));
+        DEBUG(SSSDBG_CONF_SETTINGS, "user: [%s]\n", pd->user);
     } else {
         pd->user = NULL;
     }
@@ -1534,7 +1534,7 @@ static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
 
     krberr = krb5_cc_resolve(ctx, ccname, &ccache);
     if (krberr != 0) {
-        DEBUG(1, ("krb5_cc_resolve failed.\n"));
+        DEBUG(1, "krb5_cc_resolve failed.\n");
         goto done;
     }
 
@@ -1546,7 +1546,7 @@ static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
 
     krberr = krb5_cc_retrieve_cred(ctx, ccache, 0, &mcred, &cred);
     if (krberr != 0) {
-        DEBUG(1, ("krb5_cc_retrieve_cred failed.\n"));
+        DEBUG(1, "krb5_cc_retrieve_cred failed.\n");
         krberr = 0;
         goto done;
     }
@@ -1586,13 +1586,13 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed.\n"));
+        DEBUG(1, "talloc_new failed.\n");
         return ENOMEM;
     }
 
     ccname = talloc_asprintf(tmp_ctx, "FILE:%s/fast_ccache_%s", DB_PATH, realm);
     if (ccname == NULL) {
-        DEBUG(1, ("talloc_asprintf failed.\n"));
+        DEBUG(1, "talloc_asprintf failed.\n");
         kerr = ENOMEM;
         goto done;
     }
@@ -1604,30 +1604,30 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     }
     if (kerr) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to read keytab file [%s]: %s\n",
+              "Failed to read keytab file [%s]: %s\n",
                KEYTAB_CLEAN_NAME,
-               sss_krb5_get_error_message(ctx, kerr)));
+               sss_krb5_get_error_message(ctx, kerr));
         goto done;
     }
 
     kerr = find_principal_in_keytab(ctx, keytab, primary, realm, &client_princ);
     if (kerr != 0) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("find_principal_in_keytab failed for principal %s@%s.\n",
-               primary, realm));
+              "find_principal_in_keytab failed for principal %s@%s.\n",
+               primary, realm);
         goto done;
     }
 
     server_name = talloc_asprintf(tmp_ctx, "krbtgt/%s@%s", realm, realm);
     if (server_name == NULL) {
-        DEBUG(1, ("talloc_asprintf failed.\n"));
+        DEBUG(1, "talloc_asprintf failed.\n");
         kerr = ENOMEM;
         goto done;
     }
 
     kerr = krb5_parse_name(ctx, server_name, &server_princ);
     if (kerr != 0) {
-        DEBUG(1, ("krb5_parse_name failed.\n"));
+        DEBUG(1, "krb5_parse_name failed.\n");
         goto done;
     }
 
@@ -1635,14 +1635,14 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     kerr = get_tgt_times(ctx, ccname, server_princ, client_princ, &tgtt);
     if (kerr == 0) {
         if (tgtt.endtime > time(NULL)) {
-            DEBUG(5, ("FAST TGT is still valid.\n"));
+            DEBUG(5, "FAST TGT is still valid.\n");
             goto done;
         }
     }
 
     kerr = get_and_save_tgt_with_keytab(ctx, client_princ, keytab, ccname);
     if (kerr != 0) {
-        DEBUG(1, ("get_and_save_tgt_with_keytab failed.\n"));
+        DEBUG(1, "get_and_save_tgt_with_keytab failed.\n");
         goto done;
     }
 
@@ -1680,13 +1680,13 @@ static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline)
         ret = errno;
         ret = (ret == 0) ? EINVAL: ret;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("read failed [%d][%s].\n", ret, strerror(ret)));
+              "read failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
 
     ret = unpack_buffer(buf, len, kr, offline);
     if (ret != EOK) {
-        DEBUG(1, ("unpack_buffer failed.\n"));
+        DEBUG(1, "unpack_buffer failed.\n");
     }
 
     return ret;
@@ -1701,35 +1701,35 @@ static int k5c_setup_fast(struct krb5_req *kr, char *lifetime_str, bool demand)
     krb5_error_code kerr;
     char *tmp_str;
 
-    DEBUG(SSSDBG_CONF_SETTINGS, ("%s is set to [%s]\n",
-                                 SSSD_KRB5_LIFETIME, lifetime_str));
+    DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
+                                 SSSD_KRB5_LIFETIME, lifetime_str);
 
     tmp_str = getenv(SSSD_KRB5_FAST_PRINCIPAL);
     if (tmp_str) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("%s is set to [%s]\n",
-                                     SSSD_KRB5_FAST_PRINCIPAL, tmp_str));
+        DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
+                                     SSSD_KRB5_FAST_PRINCIPAL, tmp_str);
         kerr = krb5_parse_name(kr->ctx, tmp_str, &fast_princ_struct);
         if (kerr) {
-            DEBUG(1, ("krb5_parse_name failed.\n"));
+            DEBUG(1, "krb5_parse_name failed.\n");
             return kerr;
         }
         kerr = sss_krb5_unparse_name_flags(kr->ctx, fast_princ_struct,
                                        KRB5_PRINCIPAL_UNPARSE_NO_REALM,
                                        &tmp_str);
         if (kerr) {
-            DEBUG(1, ("sss_krb5_unparse_name_flags failed.\n"));
+            DEBUG(1, "sss_krb5_unparse_name_flags failed.\n");
             return kerr;
         }
         fast_principal = talloc_strdup(kr, tmp_str);
         if (!fast_principal) {
-            DEBUG(1, ("talloc_strdup failed.\n"));
+            DEBUG(1, "talloc_strdup failed.\n");
             return KRB5KRB_ERR_GENERIC;
         }
         free(tmp_str);
         realm_data = krb5_princ_realm(kr->ctx, fast_princ_struct);
         fast_principal_realm = talloc_asprintf(kr, "%.*s", realm_data->length, realm_data->data);
         if (!fast_principal_realm) {
-            DEBUG(1, ("talloc_asprintf failed.\n"));
+            DEBUG(1, "talloc_asprintf failed.\n");
             return ENOMEM;
         }
     } else {
@@ -1740,7 +1740,7 @@ static int k5c_setup_fast(struct krb5_req *kr, char *lifetime_str, bool demand)
     kerr = check_fast_ccache(kr, kr->ctx, fast_principal, fast_principal_realm,
                              kr->keytab, &kr->fast_ccname);
     if (kerr != 0) {
-        DEBUG(1, ("check_fast_ccache failed.\n"));
+        DEBUG(1, "check_fast_ccache failed.\n");
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;
     }
@@ -1749,8 +1749,8 @@ static int k5c_setup_fast(struct krb5_req *kr, char *lifetime_str, bool demand)
                                                             kr->options,
                                                             kr->fast_ccname);
     if (kerr != 0) {
-        DEBUG(1, ("sss_krb5_get_init_creds_opt_set_fast_ccache_name "
-                  "failed.\n"));
+        DEBUG(1, "sss_krb5_get_init_creds_opt_set_fast_ccache_name "
+                  "failed.\n");
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         return kerr;
     }
@@ -1760,8 +1760,8 @@ static int k5c_setup_fast(struct krb5_req *kr, char *lifetime_str, bool demand)
                                                 kr->options,
                                                 SSS_KRB5_FAST_REQUIRED);
         if (kerr != 0) {
-            DEBUG(1, ("sss_krb5_get_init_creds_opt_set_fast_flags "
-                      "failed.\n"));
+            DEBUG(1, "sss_krb5_get_init_creds_opt_set_fast_flags "
+                      "failed.\n");
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             return kerr;
         }
@@ -1781,7 +1781,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     kr->realm = getenv(SSSD_KRB5_REALM);
     if (kr->realm == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Cannot read [%s] from environment.\n", SSSD_KRB5_REALM));
+              "Cannot read [%s] from environment.\n", SSSD_KRB5_REALM);
     }
 
     kerr = krb5_init_context(&kr->ctx);
@@ -1809,7 +1809,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     if (kr->use_enterprise_princ) {
         kerr = krb5_set_default_realm(kr->ctx, kr->realm);
         if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_set_default_realm failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "krb5_set_default_realm failed.\n");
         }
     }
 
@@ -1828,7 +1828,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 
     kr->creds = calloc(1, sizeof(krb5_creds));
     if (kr->creds == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
+        DEBUG(1, "talloc_zero failed.\n");
         return ENOMEM;
     }
 
@@ -1856,35 +1856,35 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 
     lifetime_str = getenv(SSSD_KRB5_RENEWABLE_LIFETIME);
     if (lifetime_str == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Cannot read [%s] from environment.\n",
-              SSSD_KRB5_RENEWABLE_LIFETIME));
+        DEBUG(SSSDBG_CONF_SETTINGS, "Cannot read [%s] from environment.\n",
+              SSSD_KRB5_RENEWABLE_LIFETIME);
     } else {
         kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
         if (kerr != 0) {
-            DEBUG(1, ("krb5_string_to_deltat failed for [%s].\n",
-                      lifetime_str));
+            DEBUG(1, "krb5_string_to_deltat failed for [%s].\n",
+                      lifetime_str);
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             return kerr;
         }
-        DEBUG(SSSDBG_CONF_SETTINGS, ("%s is set to [%s]\n",
-              SSSD_KRB5_RENEWABLE_LIFETIME, lifetime_str));
+        DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
+              SSSD_KRB5_RENEWABLE_LIFETIME, lifetime_str);
         krb5_get_init_creds_opt_set_renew_life(kr->options, lifetime);
     }
 
     lifetime_str = getenv(SSSD_KRB5_LIFETIME);
     if (lifetime_str == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, ("Cannot read [%s] from environment.\n",
-              SSSD_KRB5_LIFETIME));
+        DEBUG(SSSDBG_CONF_SETTINGS, "Cannot read [%s] from environment.\n",
+              SSSD_KRB5_LIFETIME);
     } else {
         kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
         if (kerr != 0) {
-            DEBUG(1, ("krb5_string_to_deltat failed for [%s].\n",
-                      lifetime_str));
+            DEBUG(1, "krb5_string_to_deltat failed for [%s].\n",
+                      lifetime_str);
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
             return kerr;
         }
         DEBUG(SSSDBG_CONF_SETTINGS,
-              ("%s is set to [%s]\n", SSSD_KRB5_LIFETIME, lifetime_str));
+              "%s is set to [%s]\n", SSSD_KRB5_LIFETIME, lifetime_str);
         krb5_get_init_creds_opt_set_tkt_life(kr->options, lifetime);
     }
 
@@ -1893,15 +1893,15 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 
         use_fast_str = getenv(SSSD_KRB5_USE_FAST);
         if (use_fast_str == NULL || strcasecmp(use_fast_str, "never") == 0) {
-            DEBUG(SSSDBG_CONF_SETTINGS, ("Not using FAST.\n"));
+            DEBUG(SSSDBG_CONF_SETTINGS, "Not using FAST.\n");
         } else if (strcasecmp(use_fast_str, "try") == 0) {
             kerr = k5c_setup_fast(kr, lifetime_str, false);
         } else if (strcasecmp(use_fast_str, "demand") == 0) {
             kerr = k5c_setup_fast(kr, lifetime_str, true);
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Unsupported value [%s] for krb5_use_fast.\n",
-                   use_fast_str));
+                  "Unsupported value [%s] for krb5_use_fast.\n",
+                   use_fast_str);
             return EINVAL;
         }
     }
@@ -1962,13 +1962,13 @@ int main(int argc, const char *argv[])
 
     kr = talloc_zero(NULL, struct krb5_req);
     if (kr == NULL) {
-        DEBUG(1, ("talloc failed.\n"));
+        DEBUG(1, "talloc failed.\n");
         exit(-1);
     }
 
     debug_prg_name = talloc_asprintf(kr, "[sssd[krb5_child[%d]]]", getpid());
     if (!debug_prg_name) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_asprintf failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -1976,11 +1976,11 @@ int main(int argc, const char *argv[])
     if (debug_fd != -1) {
         ret = set_debug_file_from_fd(debug_fd);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("set_debug_file_from_fd failed.\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "set_debug_file_from_fd failed.\n");
         }
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("krb5_child started.\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "krb5_child started.\n");
 
     ret = k5c_recv_data(kr, STDIN_FILENO, &offline);
     if (ret != EOK) {
@@ -1991,7 +1991,7 @@ int main(int argc, const char *argv[])
 
     ret = k5c_setup(kr, offline);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_child_setup failed.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_child_setup failed.\n");
         goto done;
     }
 
@@ -1999,53 +1999,53 @@ int main(int argc, const char *argv[])
     case SSS_PAM_AUTHENTICATE:
         /* If we are offline, we need to create an empty ccache file */
         if (offline) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Will perform offline auth\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Will perform offline auth\n");
             ret = create_empty_ccache(kr);
         } else {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Will perform online auth\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Will perform online auth\n");
             ret = tgt_req_child(kr);
         }
         break;
     case SSS_PAM_CHAUTHTOK:
-        DEBUG(SSSDBG_TRACE_FUNC, ("Will perform password change\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Will perform password change\n");
         ret = changepw_child(kr, false);
         break;
     case SSS_PAM_CHAUTHTOK_PRELIM:
-        DEBUG(SSSDBG_TRACE_FUNC, ("Will perform password change checks\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Will perform password change checks\n");
         ret = changepw_child(kr, true);
         break;
     case SSS_PAM_ACCT_MGMT:
-        DEBUG(SSSDBG_TRACE_FUNC, ("Will perform account management\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Will perform account management\n");
         ret = kuserok_child(kr);
         break;
     case SSS_CMD_RENEW:
         if (offline) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Cannot renew TGT while offline\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot renew TGT while offline\n");
             ret = KRB5_KDC_UNREACH;
             goto done;
         }
-        DEBUG(SSSDBG_TRACE_FUNC, ("Will perform ticket renewal\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Will perform ticket renewal\n");
         ret = renew_tgt_child(kr);
         break;
     default:
-        DEBUG(1, ("PAM command [%d] not supported.\n", kr->pd->cmd));
+        DEBUG(1, "PAM command [%d] not supported.\n", kr->pd->cmd);
         ret = EINVAL;
         goto done;
     }
 
     ret = k5c_send_data(kr, STDOUT_FILENO, ret);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to send reply\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to send reply\n");
     }
 
 done:
     krb5_cleanup(kr);
     talloc_free(kr);
     if (ret == EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("krb5_child completed successfully\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "krb5_child completed successfully\n");
         exit(0);
     } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("krb5_child failed!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_child failed!\n");
         exit(-1);
     }
 }

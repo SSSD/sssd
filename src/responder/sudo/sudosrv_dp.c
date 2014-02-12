@@ -99,8 +99,8 @@ sss_dp_get_sudoers_send(TALLOC_CTX *mem_ctx,
     talloc_free(key);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Could not issue DP request [%d]: %s\n",
-               ret, strerror(ret)));
+              "Could not issue DP request [%d]: %s\n",
+               ret, strerror(ret));
         goto error;
     }
 
@@ -144,14 +144,14 @@ sss_dp_get_sudoers_msg(void *pvt)
                                        DP_INTERFACE,
                                        DP_METHOD_SUDOHANDLER);
     if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Out of memory?!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
         return NULL;
     }
 
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Creating SUDOers request for [%s][%u][%s][%u]\n",
-           info->dom->name, be_type, info->name, info->num_rules));
+          "Creating SUDOers request for [%s][%u][%s][%u]\n",
+           info->dom->name, be_type, info->name, info->num_rules);
 
     dbus_message_iter_init_append(msg, &iter);
 
@@ -172,8 +172,8 @@ sss_dp_get_sudoers_msg(void *pvt)
         for (i = 0; i < info->num_rules; i++) {
             ret = sysdb_attrs_get_string(info->rules[i], SYSDB_NAME, &rule_name);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Could not get rule name [%d]: %s\n",
-                      ret, strerror(ret)));
+                DEBUG(SSSDBG_OP_FAILURE, "Could not get rule name [%d]: %s\n",
+                      ret, strerror(ret));
                 goto fail;
             }
 
@@ -188,7 +188,7 @@ sss_dp_get_sudoers_msg(void *pvt)
     return msg;
 
 fail:
-    DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to build message\n"));
+    DEBUG(SSSDBG_CRIT_FAILURE, "Failed to build message\n");
     dbus_message_unref(msg);
     return NULL;
 }

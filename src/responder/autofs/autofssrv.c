@@ -70,8 +70,8 @@ autofs_get_config(struct autofs_ctx *actx,
                          CONFDB_AUTOFS_MAP_NEG_TIMEOUT, 15,
                          &actx->neg_timeout);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Cannot read %s from configuration [%d]: %s\n",
-              CONFDB_AUTOFS_MAP_NEG_TIMEOUT, ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot read %s from configuration [%d]: %s\n",
+              CONFDB_AUTOFS_MAP_NEG_TIMEOUT, ret, strerror(ret));
         return ret;
     }
 
@@ -87,7 +87,7 @@ autofs_dp_reconnect_init(struct sbus_connection *conn,
 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Reconnected to the Data Provider.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
 
         /* Identify ourselves to the data provider */
         ret = dp_common_send_id(be_conn->conn,
@@ -101,8 +101,8 @@ autofs_dp_reconnect_init(struct sbus_connection *conn,
     }
 
     /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, ("Could not reconnect to %s provider.\n",
-                                 be_conn->domain->name));
+    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
+                                 be_conn->domain->name);
 }
 
 static int autofs_clean_hash_table(DBusMessage *message,
@@ -116,7 +116,7 @@ static int autofs_clean_hash_table(DBusMessage *message,
 
     ret = autofs_orphan_maps(actx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not invalidate maps\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not invalidate maps\n");
         return ret;
     }
 
@@ -148,20 +148,20 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                            &autofs_dp_interface,
                            &rctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_process_init() failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");
         return ret;
     }
 
     autofs_ctx = talloc_zero(rctx, struct autofs_ctx);
     if (!autofs_ctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing autofs_ctx\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing autofs_ctx\n");
         ret = ENOMEM;
         goto fail;
     }
 
     ret = autofs_get_config(autofs_ctx, cdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Cannot read autofs configuration\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot read autofs configuration\n");
         goto fail;
     }
 
@@ -175,7 +175,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                          3, &max_retries);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to set up automatic reconnection\n"));
+              "Failed to set up automatic reconnection\n");
         goto fail;
     }
 
@@ -189,18 +189,18 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                               autofs_map_hash_delete_cb, NULL);
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Unable to initialize automount maps hash table\n"));
+              "Unable to initialize automount maps hash table\n");
         ret = EIO;
         goto fail;
     }
 
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("schedule_get_domains_tasks failed.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("autofs Initialization complete\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "autofs Initialization complete\n");
     return EOK;
 
 fail:
@@ -250,8 +250,8 @@ int main(int argc, const char *argv[])
     ret = die_if_parent_died();
     if (ret != EOK) {
         /* This is not fatal, don't return */
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set up to exit "
-                                  "when parent process does\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set up to exit "
+                                  "when parent process does\n");
     }
 
     ret = autofs_process_init(main_ctx,

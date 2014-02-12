@@ -58,7 +58,7 @@ void fqdn_test_teardown(void **state)
                                                      struct fqdn_test_ctx);
 
     if (test_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
         return;
     }
 
@@ -78,7 +78,7 @@ void test_default(void **state)
     char fqdn_s[fqdn_size];
 
     if (test_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
         return;
     }
 
@@ -110,7 +110,7 @@ void test_all(void **state)
     char fqdn_s[fqdn_size];
 
     if (test_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
         return;
     }
 
@@ -142,7 +142,7 @@ void test_flat(void **state)
     char fqdn_s[fqdn_size];
 
     if (test_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
         return;
     }
 
@@ -174,7 +174,7 @@ void test_flat_fallback(void **state)
     char fqdn_s[fqdn_size];
 
     if (test_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
         return;
     }
 
@@ -207,7 +207,7 @@ void test_init_nouser(void **state)
     errno_t ret;
 
     if (test_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Type mismatch\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
         return;
     }
 

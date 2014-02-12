@@ -68,7 +68,7 @@ bool subdomain_enumerates(struct sss_domain_info *parent,
     if (parent->sd_enumerate == NULL
             || parent->sd_enumerate[0] == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Subdomain_enumerate not set\n"));
+              "Subdomain_enumerate not set\n");
         return false;
     }
 
@@ -165,15 +165,15 @@ find_subdomain_by_object_name(struct sss_domain_info *domain,
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return NULL;
     }
 
     ret = sss_parse_name(tmp_ctx, domain->names, object_name,
                          &domainname, &name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to parse name '%s' [%d]: %s\n",
-                                    object_name, ret, sss_strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
+                                    object_name, ret, sss_strerror(ret));
         goto done;
     }
 
@@ -201,37 +201,37 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *dom;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Creating [%s] as subdomain of [%s]!\n", name, parent->name));
+          "Creating [%s] as subdomain of [%s]!\n", name, parent->name);
 
     dom = talloc_zero(mem_ctx, struct sss_domain_info);
     if (dom == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("talloc_zero failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
         return NULL;
     }
 
     dom->parent = parent;
     dom->name = talloc_strdup(dom, name);
     if (dom->name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy domain name.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy domain name.\n");
         goto fail;
     }
 
     dom->provider = talloc_strdup(dom, parent->provider);
     if (dom->provider == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy provider name.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy provider name.\n");
         goto fail;
     }
 
     dom->conn_name = talloc_strdup(dom, parent->conn_name);
     if (dom->conn_name == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy connection name.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy connection name.\n");
         goto fail;
     }
 
     if (realm != NULL) {
         dom->realm = talloc_strdup(dom, realm);
         if (dom->realm == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy realm name.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy realm name.\n");
             goto fail;
         }
     }
@@ -239,7 +239,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     if (flat_name != NULL) {
         dom->flat_name = talloc_strdup(dom, flat_name);
         if (dom->flat_name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy flat name.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy flat name.\n");
             goto fail;
         }
     }
@@ -247,7 +247,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     if (id != NULL) {
         dom->domain_id = talloc_strdup(dom, id);
         if (dom->domain_id == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy id.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy id.\n");
             goto fail;
         }
     }
@@ -255,7 +255,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     if (forest != NULL) {
         dom->forest = talloc_strdup(dom, forest);
         if (dom->forest == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Failed to copy forest.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy forest.\n");
             goto fail;
         }
     }
@@ -284,7 +284,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->default_shell = parent->default_shell;
 
     if (parent->sysdb == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Missing sysdb context in parent domain.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Missing sysdb context in parent domain.\n");
         goto fail;
     }
     dom->sysdb = parent->sysdb;
@@ -308,18 +308,18 @@ errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
 
     ret = confdb_get_domain(cdb, domain_name, &dom);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Error retrieving domain configuration.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Error retrieving domain configuration.\n");
         return ret;
     }
 
     if (dom->sysdb != NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Sysdb context already initialized.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Sysdb context already initialized.\n");
         return EEXIST;
     }
 
     ret = sysdb_domain_init(mem_ctx, dom, db_path, &sysdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Error opening cache database.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Error opening cache database.\n");
         return ret;
     }
 
@@ -344,8 +344,8 @@ sss_krb5_touch_config(void)
     ret = utime(config, NULL);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to change mtime of \"%s\" "
-                                    "[%d]: %s\n", config, ret, strerror(ret)));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to change mtime of \"%s\" "
+                                    "[%d]: %s\n", config, ret, strerror(ret));
         return ret;
     }
 
@@ -372,7 +372,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
     char *uc_parent;
 
     if (domain == NULL || domain->name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("No domain name provided\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "No domain name provided\n");
         return EINVAL;
     }
 
@@ -381,7 +381,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
 
     sanitized_domain = talloc_strdup(tmp_ctx, domain->name);
     if (sanitized_domain == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup() failed\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
         return ENOMEM;
     }
 
@@ -401,8 +401,8 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
         goto done;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, ("Mapping file for domain [%s] is [%s]\n",
-                             domain->name, mapping_file));
+    DEBUG(SSSDBG_FUNC_DATA, "Mapping file for domain [%s] is [%s]\n",
+                             domain->name, mapping_file);
 
     tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", mapping_file);
     if (tmp_file == NULL) {
@@ -414,8 +414,8 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
     fd = mkstemp(tmp_file);
     umask(old_mode);
     if (fd < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("creating the temp file [%s] for domain-realm "
-                                  "mappings failed.", tmp_file));
+        DEBUG(SSSDBG_OP_FAILURE, "creating the temp file [%s] for domain-realm "
+                                  "mappings failed.", tmp_file);
         ret = EIO;
         talloc_zfree(tmp_ctx);
         goto done;
@@ -424,13 +424,13 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
     fstream = fdopen(fd, "a");
     if (!fstream) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, ("fdopen failed [%d]: %s\n",
-                                  ret, strerror(ret)));
+        DEBUG(SSSDBG_OP_FAILURE, "fdopen failed [%d]: %s\n",
+                                  ret, strerror(ret));
         ret = close(fd);
         if (ret != 0) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                ("fclose failed [%d][%s].\n", ret, strerror(ret)));
+                "fclose failed [%d][%s].\n", ret, strerror(ret));
             /* Nothing to do here, just report the failure */
         }
         ret = EIO;
@@ -439,7 +439,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
 
     ret = fprintf(fstream, "[domain_realm]\n");
     if (ret < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("fprintf failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "fprintf failed\n");
         ret = EIO;
         goto done;
     }
@@ -450,7 +450,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
         ret = fprintf(fstream, ".%s = %s\n%s = %s\n",
                                dom->name, dom->realm, dom->name, dom->realm);
         if (ret < 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("fprintf failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "fprintf failed\n");
             goto done;
         }
     }
@@ -460,7 +460,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
         parent_dom = domain;
         uc_parent = get_uppercase_realm(tmp_ctx, parent_dom->name);
         if (uc_parent == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, ("get_uppercase_realm failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -475,7 +475,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
 
             uc_forest = get_uppercase_realm(tmp_ctx, dom->forest);
             if (uc_forest == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, ("get_uppercase_realm failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -483,7 +483,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
             if (!capaths_started) {
                 ret = fprintf(fstream, "[capaths]\n");
                 if (ret < 0) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("fprintf failed\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "fprintf failed\n");
                     ret = EIO;
                     goto done;
                 }
@@ -494,7 +494,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
                                    dom->realm, uc_parent, uc_forest,
                                    uc_parent, dom->realm, uc_forest);
             if (ret < 0) {
-                DEBUG(SSSDBG_CRIT_FAILURE, ("fprintf failed\n"));
+                DEBUG(SSSDBG_CRIT_FAILURE, "fprintf failed\n");
                 goto done;
             }
         }
@@ -505,7 +505,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
     if (ret != 0) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("fclose failed [%d][%s].\n", ret, strerror(ret)));
+              "fclose failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
 
@@ -513,7 +513,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("rename failed [%d][%s].\n", ret, strerror(ret)));
+              "rename failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
 
@@ -523,7 +523,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("fchmod failed [%d][%s].\n", ret, strerror(ret)));
+              "fchmod failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
 
@@ -531,8 +531,8 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
 done:
     err = sss_krb5_touch_config();
     if (err != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Unable to change last modification time "
-              "of krb5.conf. Created mappings may not be loaded.\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to change last modification time "
+              "of krb5.conf. Created mappings may not be loaded.\n");
         /* Ignore */
     }
 
@@ -541,7 +541,7 @@ done:
         if (err != 0) {
             err = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
-                ("fclose failed [%d][%s].\n", err, strerror(err)));
+                "fclose failed [%d][%s].\n", err, strerror(err));
             /* Nothing to do here, just report the failure */
         }
     }
@@ -551,8 +551,8 @@ done:
         if (err < 0) {
             err = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not remove file [%s]: [%d]: %s",
-                   tmp_file, err, strerror(err)));
+                  "Could not remove file [%s]: [%d]: %s",
+                   tmp_file, err, strerror(err));
         }
     }
     talloc_free(tmp_ctx);

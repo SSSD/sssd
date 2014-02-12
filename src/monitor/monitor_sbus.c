@@ -61,8 +61,8 @@ static void id_callback(DBusPendingCall *pending, void *ptr)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        DEBUG(0, ("Severe error. A reply callback was called but no"
-                  " reply was received and no timeout occurred\n"));
+        DEBUG(0, "Severe error. A reply callback was called but no"
+                  " reply was received and no timeout occurred\n");
 
         /* FIXME: Destroy this connection ? */
         goto done;
@@ -75,19 +75,19 @@ static void id_callback(DBusPendingCall *pending, void *ptr)
                                     DBUS_TYPE_UINT16, &mon_ver,
                                     DBUS_TYPE_INVALID);
         if (!ret) {
-            DEBUG(1, ("Failed to parse message\n"));
+            DEBUG(1, "Failed to parse message\n");
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             /* FIXME: Destroy this connection ? */
             goto done;
         }
 
-        DEBUG(4, ("Got id ack and version (%d) from Monitor\n", mon_ver));
+        DEBUG(4, "Got id ack and version (%d) from Monitor\n", mon_ver);
 
         break;
 
     case DBUS_MESSAGE_TYPE_ERROR:
-        DEBUG(0,("The Monitor returned an error [%s]\n",
-                 dbus_message_get_error_name(reply)));
+        DEBUG(0,"The Monitor returned an error [%s]\n",
+                 dbus_message_get_error_name(reply));
         /* Falling through to default intentionally*/
     default:
         /*
@@ -120,18 +120,18 @@ int monitor_common_send_id(struct sbus_connection *conn,
                                        MON_SRV_INTERFACE,
                                        MON_SRV_METHOD_REGISTER);
     if (msg == NULL) {
-        DEBUG(0, ("Out of memory?!\n"));
+        DEBUG(0, "Out of memory?!\n");
         return ENOMEM;
     }
 
-    DEBUG(4, ("Sending ID: (%s,%d)\n", name, version));
+    DEBUG(4, "Sending ID: (%s,%d)\n", name, version);
 
     ret = dbus_message_append_args(msg,
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_INVALID);
     if (!ret) {
-        DEBUG(1, ("Failed to build message\n"));
+        DEBUG(1, "Failed to build message\n");
         return EIO;
     }
 
@@ -197,14 +197,14 @@ errno_t monitor_common_rotate_logs(struct confdb_ctx *confdb,
                          old_debug_level,
                          &debug_level);
     if (ret != EOK) {
-        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(0, "Error reading from confdb (%d) [%s]\n",
+                  ret, strerror(ret));
         /* Try to proceed with the old value */
         debug_level = old_debug_level;
     }
 
     if (debug_level != old_debug_level) {
-        DEBUG(0, ("Debug level changed to %#.4x\n", debug_level));
+        DEBUG(0, "Debug level changed to %#.4x\n", debug_level);
         debug_level = debug_convert_old_level(debug_level);
     }
 
@@ -226,7 +226,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
     /* Set up SBUS connection to the monitor */
     ret = monitor_get_sbus_address(NULL, &sbus_address);
     if (ret != EOK) {
-        DEBUG(0, ("Could not locate monitor address.\n"));
+        DEBUG(0, "Could not locate monitor address.\n");
         return ret;
     }
 
@@ -234,7 +234,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
                            intf, &conn,
                            NULL, pvt);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to connect to monitor services.\n"));
+        DEBUG(0, "Failed to connect to monitor services.\n");
         talloc_free(sbus_address);
         return ret;
     }
@@ -243,7 +243,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
     /* Identify ourselves to the monitor */
     ret = monitor_common_send_id(conn, svc_name, svc_version);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to identify to the monitor!\n"));
+        DEBUG(0, "Failed to identify to the monitor!\n");
         return ret;
     }
 

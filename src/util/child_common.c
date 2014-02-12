@@ -56,7 +56,7 @@ errno_t sss_sigchld_init(TALLOC_CTX *mem_ctx,
 
     sigchld_ctx = talloc_zero(mem_ctx, struct sss_sigchild_ctx);
     if (!sigchld_ctx) {
-        DEBUG(0, ("fatal error initializing sss_sigchild_ctx\n"));
+        DEBUG(0, "fatal error initializing sss_sigchild_ctx\n");
         return ENOMEM;
     }
     sigchld_ctx->ev = ev;
@@ -64,8 +64,8 @@ errno_t sss_sigchld_init(TALLOC_CTX *mem_ctx,
     ret = sss_hash_create(sigchld_ctx, 10, &sigchld_ctx->children);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("fatal error initializing children hash table: [%s]\n",
-               strerror(ret)));
+              "fatal error initializing children hash table: [%s]\n",
+               strerror(ret));
         talloc_free(sigchld_ctx);
         return ret;
     }
@@ -95,8 +95,8 @@ static int sss_child_destructor(void *ptr)
     error = hash_delete(child_ctx->sigchld_ctx->children, &key);
     if (error != HASH_SUCCESS && error != HASH_ERROR_KEY_NOT_FOUND) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("failed to delete child_ctx from hash table [%d]: %s\n",
-               error, hash_error_string(error)));
+              "failed to delete child_ctx from hash table [%d]: %s\n",
+               error, hash_error_string(error));
     }
 
     return 0;
@@ -165,8 +165,8 @@ static void sss_child_invoke_cb(struct tevent_context *ev,
     error = hash_delete(child_ctx->sigchld_ctx->children, &key);
     if (error != HASH_SUCCESS && error != HASH_ERROR_KEY_NOT_FOUND) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("failed to delete child_ctx from hash table [%d]: %s\n",
-               error, hash_error_string(error)));
+              "failed to delete child_ctx from hash table [%d]: %s\n",
+               error, hash_error_string(error));
     }
 
     if (child_ctx->cb) {
@@ -204,7 +204,7 @@ void sss_child_handler(struct tevent_context *ev,
 
         if (pid == -1) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  ("waitpid failed [%d]: %s\n", errno, strerror(errno)));
+                  "waitpid failed [%d]: %s\n", errno, strerror(errno));
             return;
         } else if (pid == 0) continue;
 
@@ -216,14 +216,14 @@ void sss_child_handler(struct tevent_context *ev,
             imm = tevent_create_immediate(child_ctx);
             if (imm == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("Out of memory invoking SIGCHLD callback\n"));
+                      "Out of memory invoking SIGCHLD callback\n");
                 return;
             }
 
             invoke_pvt = talloc_zero(child_ctx, struct sss_child_cb_pvt);
             if (invoke_pvt == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      ("out of memory invoking SIGCHLD callback\n"));
+                      "out of memory invoking SIGCHLD callback\n");
                 return;
             }
             invoke_pvt->child_ctx = child_ctx;
@@ -233,10 +233,10 @@ void sss_child_handler(struct tevent_context *ev,
                                       sss_child_invoke_cb, invoke_pvt);
         } else if (error == HASH_ERROR_KEY_NOT_FOUND) {
             DEBUG(SSSDBG_TRACE_LIBS,
-                 ("BUG: waitpid() returned [%d] but it was not in the table. "
+                 "BUG: waitpid() returned [%d] but it was not in the table. "
                   "This could be due to a linked library creating processes "
                   "without registering them with the sigchld handler\n",
-                  pid));
+                  pid);
             /* We will simply ignore this and return to the loop
              * This will prevent a zombie, but may cause unexpected
              * behavior in the code that was trying to handle this
@@ -244,8 +244,8 @@ void sss_child_handler(struct tevent_context *ev,
              */
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("SIGCHLD hash table error [%d]: %s\n",
-                   error, hash_error_string(error)));
+                  "SIGCHLD hash table error [%d]: %s\n",
+                   error, hash_error_string(error));
             /* This is bad, but we should try to check for other
              * children anyway, to avoid potential zombies.
              */
@@ -267,7 +267,7 @@ int child_handler_setup(struct tevent_context *ev, int pid,
 {
     struct sss_child_ctx_old *child_ctx;
 
-    DEBUG(8, ("Setting up signal handler up for pid [%d]\n", pid));
+    DEBUG(8, "Setting up signal handler up for pid [%d]\n", pid);
 
     child_ctx = talloc_zero(ev, struct sss_child_ctx_old);
     if (child_ctx == NULL) {
@@ -286,7 +286,7 @@ int child_handler_setup(struct tevent_context *ev, int pid,
     child_ctx->cb = cb;
     child_ctx->pvt = pvt;
 
-    DEBUG(8, ("Signal handler set up for pid [%d]\n", pid));
+    DEBUG(8, "Signal handler set up for pid [%d]\n", pid);
 
     if (_child_ctx != NULL) {
         *_child_ctx = child_ctx;
@@ -307,7 +307,7 @@ void child_handler_destroy(struct sss_child_ctx_old *ctx)
     ret = kill(ctx->pid, SIGKILL);
     if (ret == -1) {
         ret = errno;
-        DEBUG(SSSDBG_MINOR_FAILURE, ("kill failed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "kill failed [%d][%s].\n", ret, strerror(ret));
     }
 }
 
@@ -343,7 +343,7 @@ struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
     fde = tevent_add_fd(ev, state, fd, TEVENT_FD_WRITE,
                         write_pipe_handler, req);
     if (fde == NULL) {
-        DEBUG(1, ("tevent_add_fd failed.\n"));
+        DEBUG(1, "tevent_add_fd failed.\n");
         goto fail;
     }
 
@@ -365,8 +365,8 @@ static void write_pipe_handler(struct tevent_context *ev,
 
     if (flags & TEVENT_FD_READ) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("write_pipe_done called with TEVENT_FD_READ,"
-               " this should not happen.\n"));
+              "write_pipe_done called with TEVENT_FD_READ,"
+               " this should not happen.\n");
         tevent_req_error(req, EINVAL);
         return;
     }
@@ -376,19 +376,19 @@ static void write_pipe_handler(struct tevent_context *ev,
     if (state->written == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("write failed [%d][%s].\n", ret, strerror(ret)));
+              "write failed [%d][%s].\n", ret, strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
 
     if (state->len != state->written) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Wrote %zu bytes, expected %zu\n",
-              state->written, state->len));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Wrote %zu bytes, expected %zu\n",
+              state->written, state->len);
         tevent_req_error(req, EIO);
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("All data has been sent!\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "All data has been sent!\n");
     tevent_req_done(req);
     return;
 }
@@ -427,7 +427,7 @@ struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
     fde = tevent_add_fd(ev, state, fd, TEVENT_FD_READ,
                         read_pipe_handler, req);
     if (fde == NULL) {
-        DEBUG(1, ("tevent_add_fd failed.\n"));
+        DEBUG(1, "tevent_add_fd failed.\n");
         goto fail;
     }
 
@@ -450,8 +450,8 @@ static void read_pipe_handler(struct tevent_context *ev,
     uint8_t buf[CHILD_MSG_CHUNK];
 
     if (flags & TEVENT_FD_WRITE) {
-        DEBUG(1, ("read_pipe_done called with TEVENT_FD_WRITE,"
-                  " this should not happen.\n"));
+        DEBUG(1, "read_pipe_done called with TEVENT_FD_WRITE,"
+                  " this should not happen.\n");
         tevent_req_error(req, EINVAL);
         return;
     }
@@ -462,7 +462,7 @@ static void read_pipe_handler(struct tevent_context *ev,
     if (size == -1) {
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("read failed [%d][%s].\n", err, strerror(err)));
+              "read failed [%d][%s].\n", err, strerror(err));
         tevent_req_error(req, err);
         return;
 
@@ -479,13 +479,13 @@ static void read_pipe_handler(struct tevent_context *ev,
         return;
 
     } else if (size == 0) {
-        DEBUG(6, ("EOF received, client finished\n"));
+        DEBUG(6, "EOF received, client finished\n");
         tevent_req_done(req);
         return;
 
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("unexpected return value of read [%zd].\n", size));
+              "unexpected return value of read [%zd].\n", size);
         tevent_req_error(req, EINVAL);
         return;
     }
@@ -514,13 +514,13 @@ void fd_nonblocking(int fd)
     flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) {
         ret = errno;
-        DEBUG(1, ("F_GETFL failed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(1, "F_GETFL failed [%d][%s].\n", ret, strerror(ret));
         return;
     }
 
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
         ret = errno;
-        DEBUG(1, ("F_SETFL failed [%d][%s].\n", ret, strerror(ret)));
+        DEBUG(1, "F_SETFL failed [%d][%s].\n", ret, strerror(ret));
     }
 
     return;
@@ -538,40 +538,40 @@ void child_sig_handler(struct tevent_context *ev,
     struct tevent_immediate *imm;
 
     if (count <= 0) {
-        DEBUG(0, ("SIGCHLD handler called with invalid child count\n"));
+        DEBUG(0, "SIGCHLD handler called with invalid child count\n");
         return;
     }
 
     child_ctx = talloc_get_type(pvt, struct sss_child_ctx_old);
-    DEBUG(7, ("Waiting for child [%d].\n", child_ctx->pid));
+    DEBUG(7, "Waiting for child [%d].\n", child_ctx->pid);
 
     errno = 0;
     ret = waitpid(child_ctx->pid, &child_ctx->child_status, WNOHANG);
 
     if (ret == -1) {
         err = errno;
-        DEBUG(1, ("waitpid failed [%d][%s].\n", err, strerror(err)));
+        DEBUG(1, "waitpid failed [%d][%s].\n", err, strerror(err));
     } else if (ret == 0) {
-        DEBUG(1, ("waitpid did not found a child with changed status.\n"));
+        DEBUG(1, "waitpid did not found a child with changed status.\n");
     } else {
         if (WIFEXITED(child_ctx->child_status)) {
             if (WEXITSTATUS(child_ctx->child_status) != 0) {
-                DEBUG(1, ("child [%d] failed with status [%d].\n", ret,
-                          WEXITSTATUS(child_ctx->child_status)));
+                DEBUG(1, "child [%d] failed with status [%d].\n", ret,
+                          WEXITSTATUS(child_ctx->child_status));
             } else {
-                DEBUG(4, ("child [%d] finished successfully.\n", ret));
+                DEBUG(4, "child [%d] finished successfully.\n", ret);
             }
         } else if (WIFSIGNALED(child_ctx->child_status)) {
-            DEBUG(1, ("child [%d] was terminated by signal [%d].\n", ret,
-                      WTERMSIG(child_ctx->child_status)));
+            DEBUG(1, "child [%d] was terminated by signal [%d].\n", ret,
+                      WTERMSIG(child_ctx->child_status));
         } else {
             if (WIFSTOPPED(child_ctx->child_status)) {
-                DEBUG(7, ("child [%d] was stopped by signal [%d].\n", ret,
-                          WSTOPSIG(child_ctx->child_status)));
+                DEBUG(7, "child [%d] was stopped by signal [%d].\n", ret,
+                          WSTOPSIG(child_ctx->child_status));
             }
             if (WIFCONTINUED(child_ctx->child_status)) {
-                DEBUG(7, ("child [%d] was resumed by delivery of SIGCONT.\n",
-                          ret));
+                DEBUG(7, "child [%d] was resumed by delivery of SIGCONT.\n",
+                          ret);
             }
 
             return;
@@ -582,7 +582,7 @@ void child_sig_handler(struct tevent_context *ev,
          */
         imm = tevent_create_immediate(child_ctx);
         if (imm == NULL) {
-            DEBUG(0, ("Out of memory invoking sig handler callback\n"));
+            DEBUG(0, "Out of memory invoking sig handler callback\n");
             return;
         }
 
@@ -633,7 +633,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
      */
     argv  = talloc_array(mem_ctx, char *, argc);
     if (argv == NULL) {
-        DEBUG(1, ("talloc_array failed.\n"));
+        DEBUG(1, "talloc_array failed.\n");
         return ENOMEM;
     }
 
@@ -701,7 +701,7 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
     ret = dup2(pipefd_to_child[0], STDIN_FILENO);
     if (ret == -1) {
         err = errno;
-        DEBUG(1, ("dup2 failed [%d][%s].\n", err, strerror(err)));
+        DEBUG(1, "dup2 failed [%d][%s].\n", err, strerror(err));
         return err;
     }
 
@@ -709,20 +709,20 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
     ret = dup2(pipefd_from_child[1], STDOUT_FILENO);
     if (ret == -1) {
         err = errno;
-        DEBUG(1, ("dup2 failed [%d][%s].\n", err, strerror(err)));
+        DEBUG(1, "dup2 failed [%d][%s].\n", err, strerror(err));
         return err;
     }
 
     ret = prepare_child_argv(mem_ctx, debug_fd,
                              binary, &argv);
     if (ret != EOK) {
-        DEBUG(1, ("prepare_child_argv.\n"));
+        DEBUG(1, "prepare_child_argv.\n");
         return ret;
     }
 
     execv(binary, argv);
     err = errno;
-    DEBUG(SSSDBG_OP_FAILURE, ("execv failed [%d][%s].\n", err, strerror(err)));
+    DEBUG(SSSDBG_OP_FAILURE, "execv failed [%d][%s].\n", err, strerror(err));
     return err;
 }
 
@@ -734,14 +734,14 @@ void child_cleanup(int readfd, int writefd)
         ret = close(readfd);
         if (ret != EOK) {
             ret = errno;
-            DEBUG(1, ("close failed [%d][%s].\n", ret, strerror(ret)));
+            DEBUG(1, "close failed [%d][%s].\n", ret, strerror(ret));
         }
     }
     if (writefd != -1) {
         ret = close(writefd);
         if (ret != EOK) {
             ret = errno;
-            DEBUG(1, ("close failed [%d][%s].\n", ret, strerror(ret)));
+            DEBUG(1, "close failed [%d][%s].\n", ret, strerror(ret));
         }
     }
 }

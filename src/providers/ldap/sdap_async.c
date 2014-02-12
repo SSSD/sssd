@@ -33,7 +33,7 @@ void make_realm_upper_case(const char *upn)
 
     c = strchr(upn, REALM_SEPARATOR);
     if (c == NULL) {
-        DEBUG(9, ("No realm delimiter found in upn [%s].\n", upn));
+        DEBUG(9, "No realm delimiter found in upn [%s].\n", upn);
         return;
     }
 
@@ -100,10 +100,10 @@ static void sdap_handle_release(struct sdap_handle *sh)
 {
     struct sdap_op *op;
 
-    DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], ldap[%p], "
+    DEBUG(8, "Trace: sh[%p], connected[%d], ops[%p], ldap[%p], "
               "destructor_lock[%d], release_memory[%d]\n",
               sh, (int)sh->connected, sh->ops, sh->ldap,
-              (int)sh->destructor_lock, (int)sh->release_memory));
+              (int)sh->destructor_lock, (int)sh->release_memory);
 
     if (sh->destructor_lock) return;
     sh->destructor_lock = true;
@@ -168,11 +168,11 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
     LDAPMessage *msg;
     int ret;
 
-    DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], ldap[%p]\n",
-              sh, (int)sh->connected, sh->ops, sh->ldap));
+    DEBUG(8, "Trace: sh[%p], connected[%d], ops[%p], ldap[%p]\n",
+              sh, (int)sh->connected, sh->ops, sh->ldap);
 
     if (!sh->connected || !sh->ldap) {
-        DEBUG(2, ("ERROR: LDAP connection is not connected!\n"));
+        DEBUG(2, "ERROR: LDAP connection is not connected!\n");
         sdap_handle_release(sh);
         return;
     }
@@ -181,14 +181,14 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
     if (ret == 0) {
         /* this almost always means we have reached the end of
          * the list of received messages */
-        DEBUG(8, ("Trace: ldap_result found nothing!\n"));
+        DEBUG(8, "Trace: ldap_result found nothing!\n");
         return;
     }
 
     if (ret == -1) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &ret);
         DEBUG(SSSDBG_OP_FAILURE,
-              ("ldap_result error: [%s]\n", ldap_err2string(ret)));
+              "ldap_result error: [%s]\n", ldap_err2string(ret));
         sdap_handle_release(sh);
         return;
     }
@@ -203,7 +203,7 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
 
     te = tevent_add_timer(ev, sh, no_timeout, sdap_ldap_next_result, sh);
     if (!te) {
-        DEBUG(1, ("Failed to add critical timer to fetch next result!\n"));
+        DEBUG(1, "Failed to add critical timer to fetch next result!\n");
     }
 
     /* now process this message */
@@ -281,7 +281,7 @@ static void sdap_process_message(struct tevent_context *ev,
 
     msgid = ldap_msgid(msg);
     if (msgid == -1) {
-        DEBUG(2, ("can't fire callback, message id invalid!\n"));
+        DEBUG(2, "can't fire callback, message id invalid!\n");
         ldap_msgfree(msg);
         return;
     }
@@ -293,20 +293,20 @@ static void sdap_process_message(struct tevent_context *ev,
     }
 
     if (op == NULL) {
-        DEBUG(2, ("Unmatched msgid, discarding message (type: %0x)\n",
-                  msgtype));
+        DEBUG(2, "Unmatched msgid, discarding message (type: %0x)\n",
+                  msgtype);
         ldap_msgfree(msg);
         return;
     }
 
     /* shouldn't happen */
     if (op->done) {
-        DEBUG(2, ("Operation [%p] already handled (type: %0x)\n", op, msgtype));
+        DEBUG(2, "Operation [%p] already handled (type: %0x)\n", op, msgtype);
         ldap_msgfree(msg);
         return;
     }
 
-    DEBUG(9, ("Message type: [%s]\n", sdap_ldap_result_str(msgtype)));
+    DEBUG(9, "Message type: [%s]\n", sdap_ldap_result_str(msgtype));
 
     switch (msgtype) {
     case LDAP_RES_SEARCH_ENTRY:
@@ -334,7 +334,7 @@ static void sdap_process_message(struct tevent_context *ev,
 
     default:
         /* unkwon msg type ?? */
-        DEBUG(1, ("Couldn't figure out the msg type! [%0x]\n", msgtype));
+        DEBUG(1, "Couldn't figure out the msg type! [%0x]\n", msgtype);
         ldap_msgfree(msg);
         return;
     }
@@ -395,7 +395,7 @@ static void sdap_unlock_next_reply(struct sdap_op *op)
         te = tevent_add_timer(op->ev, op, tv,
                               sdap_process_next_reply, op);
         if (!te) {
-            DEBUG(1, ("Failed to add critical timer for next reply!\n"));
+            DEBUG(1, "Failed to add critical timer for next reply!\n");
             op->callback(op, NULL, EFAULT, op->data);
         }
     }
@@ -435,7 +435,7 @@ static void sdap_op_timeout(struct tevent_req *req)
 
     /* should never happen, but just in case */
     if (op->done) {
-        DEBUG(2, ("Timeout happened after op was finished !?\n"));
+        DEBUG(2, "Timeout happened after op was finished !?\n");
         return;
     }
 
@@ -523,7 +523,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
 
     ber = ber_alloc_t( LBER_USE_DER );
     if (ber == NULL) {
-        DEBUG(7, ("ber_alloc_t failed.\n"));
+        DEBUG(7, "ber_alloc_t failed.\n");
         talloc_zfree(req);
         return NULL;
     }
@@ -533,7 +533,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                      LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, password,
                      LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, new_password);
     if (ret == -1) {
-        DEBUG(1, ("ber_printf failed.\n"));
+        DEBUG(1, "ber_printf failed.\n");
         ber_free(ber, 1);
         talloc_zfree(req);
         return NULL;
@@ -542,7 +542,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     ret = ber_flatten(ber, &bv);
     ber_free(ber, 1);
     if (ret == -1) {
-        DEBUG(1, ("ber_flatten failed.\n"));
+        DEBUG(1, "ber_flatten failed.\n");
         talloc_zfree(req);
         return NULL;
     }
@@ -550,31 +550,31 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     ret = sdap_control_create(state->sh, LDAP_CONTROL_PASSWORDPOLICYREQUEST,
                               0, NULL, 0, &ctrls[0]);
     if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
-        DEBUG(1, ("sdap_control_create failed to create "
-                  "Password Policy control.\n"));
+        DEBUG(1, "sdap_control_create failed to create "
+                  "Password Policy control.\n");
         ret = ERR_INTERNAL;
         goto fail;
     }
     request_controls = ctrls;
 
-    DEBUG(4, ("Executing extended operation\n"));
+    DEBUG(4, "Executing extended operation\n");
 
     ret = ldap_extended_operation(state->sh->ldap, LDAP_EXOP_MODIFY_PASSWD,
                                   bv, request_controls, NULL, &msgid);
     ber_bvfree(bv);
     if (ctrls[0]) ldap_control_free(ctrls[0]);
     if (ret == -1 || msgid == -1) {
-        DEBUG(1, ("ldap_extended_operation failed\n"));
+        DEBUG(1, "ldap_extended_operation failed\n");
         ret = ERR_NETWORK_IO;
         goto fail;
     }
-    DEBUG(8, ("ldap_extended_operation sent, msgid = %d\n", msgid));
+    DEBUG(8, "ldap_extended_operation sent, msgid = %d\n", msgid);
 
     /* FIXME: get timeouts from configuration, for now 5 secs. */
     ret = sdap_op_add(state, ev, state->sh, msgid,
                       sdap_exop_modify_passwd_done, req, 5, &state->op);
     if (ret) {
-        DEBUG(1, ("Failed to set up operation!\n"));
+        DEBUG(1, "Failed to set up operation!\n");
         ret = ERR_INTERNAL;
         goto fail;
     }
@@ -612,17 +612,17 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
                             &result, NULL, &errmsg, NULL,
                             &response_controls, 0);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
+        DEBUG(2, "ldap_parse_result failed (%d)\n", state->op->msgid);
         ret = ERR_INTERNAL;
         goto done;
     }
 
     if (response_controls == NULL) {
-        DEBUG(5, ("Server returned no controls.\n"));
+        DEBUG(5, "Server returned no controls.\n");
     } else {
         for (c = 0; response_controls[c] != NULL; c++) {
-            DEBUG(9, ("Server returned control [%s].\n",
-                      response_controls[c]->ldctl_oid));
+            DEBUG(9, "Server returned control [%s].\n",
+                      response_controls[c]->ldctl_oid);
             if (strcmp(response_controls[c]->ldctl_oid,
                        LDAP_CONTROL_PASSWORDPOLICYRESPONSE) == 0) {
                 ret = ldap_parse_passwordpolicy_control(state->sh->ldap,
@@ -630,20 +630,20 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
                                                         &pp_expire, &pp_grace,
                                                         &pp_error);
                 if (ret != LDAP_SUCCESS) {
-                    DEBUG(1, ("ldap_parse_passwordpolicy_control failed.\n"));
+                    DEBUG(1, "ldap_parse_passwordpolicy_control failed.\n");
                     ret = ERR_NETWORK_IO;
                     goto done;
                 }
 
-                DEBUG(7, ("Password Policy Response: expire [%d] grace [%d] "
+                DEBUG(7, "Password Policy Response: expire [%d] grace [%d] "
                           "error [%s].\n", pp_expire, pp_grace,
-                          ldap_passwordpolicy_err2txt(pp_error)));
+                          ldap_passwordpolicy_err2txt(pp_error));
             }
         }
     }
 
-    DEBUG(3, ("ldap_extended_operation result: %s(%d), %s\n",
-            sss_ldap_err2string(result), result, errmsg));
+    DEBUG(3, "ldap_extended_operation result: %s(%d), %s\n",
+            sss_ldap_err2string(result), result, errmsg);
 
     switch (result) {
     case LDAP_SUCCESS:
@@ -653,7 +653,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
         state->user_error_message = talloc_strdup(state,
             "Please make sure the password meets the complexity constraints.");
         if (state->user_error_message == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_strdup failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed\n");
             ret = ENOMEM;
             goto done;
         }
@@ -664,7 +664,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
         if (errmsg) {
             state->user_error_message = talloc_strdup(state, errmsg);
             if (state->user_error_message == NULL) {
-                DEBUG(1, ("talloc_strdup failed.\n"));
+                DEBUG(1, "talloc_strdup failed.\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -763,14 +763,14 @@ sdap_modify_shadow_lastchange_send(TALLOC_CTX *mem_ctx,
     ret = ldap_modify_ext(state->sh->ldap, state->dn, state->mods,
             NULL, NULL, &msgid);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to send operation!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to send operation!\n");
         goto done;
     }
 
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
             sdap_modify_shadow_lastchange_done, req, 5, &state->op);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to set up operation!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         goto done;
     }
 
@@ -803,15 +803,15 @@ static void sdap_modify_shadow_lastchange_done(struct sdap_op *op,
                             &result, NULL, &errmsg, NULL,
                             NULL, 0);
     if (lret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ldap_parse_result failed (%d)\n",
-                                  state->op->msgid));
+        DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n",
+                                  state->op->msgid);
         ret = EIO;
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Updating lastPwdChange result: %s(%d), %s\n",
+    DEBUG(SSSDBG_TRACE_LIBS, "Updating lastPwdChange result: %s(%d), %s\n",
                               sss_ldap_err2string(result),
-                              result, errmsg));
+                              result, errmsg);
 
 done:
     ldap_memfree(errmsg);
@@ -866,7 +866,7 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
             NULL
     };
 
-    DEBUG(9, ("Getting rootdse\n"));
+    DEBUG(9, "Getting rootdse\n");
 
     req = tevent_req_create(memctx, &state, struct sdap_get_rootdse_state);
     if (!req) return NULL;
@@ -916,15 +916,15 @@ static void sdap_get_rootdse_done(struct tevent_req *subreq)
     }
 
     if (num_results == 0 || !results) {
-        DEBUG(2, ("RootDSE could not be retrieved. "
+        DEBUG(2, "RootDSE could not be retrieved. "
                   "Please check that anonymous access to RootDSE is allowed\n"
-              ));
+              );
         tevent_req_error(req, ENOENT);
         return;
     }
 
     if (num_results > 1) {
-        DEBUG(2, ("Multiple replies when searching for RootDSE ??\n"));
+        DEBUG(2, "Multiple replies when searching for RootDSE ??\n");
         tevent_req_error(req, EIO);
         return;
     }
@@ -932,7 +932,7 @@ static void sdap_get_rootdse_done(struct tevent_req *subreq)
     state->rootdse = talloc_steal(state, results[0]);
     talloc_zfree(results);
 
-    DEBUG(SSSDBG_TRACE_INTERNAL, ("Got rootdse\n"));
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Got rootdse\n");
 
     /* Auto-detect the ldap matching rule if requested */
     if ((!dp_opt_get_bool(state->opts->basic,
@@ -944,13 +944,13 @@ static void sdap_get_rootdse_done(struct tevent_req *subreq)
          * lookup.
          */
         DEBUG(SSSDBG_TRACE_INTERNAL,
-              ("Skipping auto-detection of match rule\n"));
+              "Skipping auto-detection of match rule\n");
         tevent_req_done(req);
         return;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          ("Auto-detecting support for match rule\n"));
+          "Auto-detecting support for match rule\n");
 
     /* Create a filter using the matching rule. It need not point
      * at any valid data. We're only going to be looking for the
@@ -997,16 +997,16 @@ static void sdap_get_matching_rule_done(struct tevent_req *subreq)
         state->opts->support_matching_rule = false;
     } else {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("Unexpected error while testing for matching rule support\n"));
+              "Unexpected error while testing for matching rule support\n");
         tevent_req_error(req, ret);
         return;
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          ("LDAP server %s the matching rule extension\n",
+          "LDAP server %s the matching rule extension\n",
           state->opts->support_matching_rule
               ? "supports"
-              : "does not support"));
+              : "does not support");
 
     tevent_req_done(req);
 }
@@ -1042,7 +1042,7 @@ static errno_t add_to_reply(TALLOC_CTX *mem_ctx,
                                        struct sysdb_attrs *,
                                        sreply->reply_max);
         if (sreply->reply == NULL) {
-            DEBUG(1, ("talloc_realloc failed.\n"));
+            DEBUG(1, "talloc_realloc failed.\n");
             return ENOMEM;
         }
     }
@@ -1075,7 +1075,7 @@ static errno_t add_to_deref_reply(TALLOC_CTX *mem_ctx,
                                         struct sdap_deref_attrs *,
                                         dreply->reply_max);
             if (dreply->reply == NULL) {
-                DEBUG(1, ("talloc_realloc failed.\n"));
+                DEBUG(1, "talloc_realloc failed.\n");
                 return ENOMEM;
             }
         }
@@ -1170,7 +1170,7 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
 
     if (state->sh == NULL || state->sh->ldap == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Trying LDAP search while not connected.\n"));
+              "Trying LDAP search while not connected.\n");
         tevent_req_error(req, EIO);
         tevent_req_post(req, ev);
         return req;
@@ -1252,15 +1252,15 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     talloc_zfree(state->op);
 
     DEBUG(SSSDBG_TRACE_FUNC,
-         ("calling ldap_search_ext with [%s][%s].\n",
+         "calling ldap_search_ext with [%s][%s].\n",
           state->filter ? state->filter : "no filter",
-          state->search_base));
+          state->search_base);
     if (DEBUG_IS_SET(SSSDBG_TRACE_LIBS)) {
         int i;
 
         if (state->attrs) {
             for (i = 0; state->attrs[i]; i++) {
-                DEBUG(7, ("Requesting attrs: [%s]\n", state->attrs[i]));
+                DEBUG(7, "Requesting attrs: [%s]\n", state->attrs[i]);
             }
         }
     }
@@ -1294,13 +1294,13 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     ldap_control_free(page_control);
     state->serverctrls[state->nserverctrls] = NULL;
     if (lret != LDAP_SUCCESS) {
-        DEBUG(3, ("ldap_search_ext failed: %s\n", sss_ldap_err2string(lret)));
+        DEBUG(3, "ldap_search_ext failed: %s\n", sss_ldap_err2string(lret));
         if (lret == LDAP_SERVER_DOWN) {
             ret = ETIMEDOUT;
             optret = sss_ldap_get_diagnostic_msg(state, state->sh->ldap,
                                                  &errmsg);
             if (optret == LDAP_SUCCESS) {
-                DEBUG(3, ("Connection error: %s\n", errmsg));
+                DEBUG(3, "Connection error: %s\n", errmsg);
                 sss_log(SSS_LOG_ERR, "LDAP connection error: %s", errmsg);
             }
             else {
@@ -1314,14 +1314,14 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
         }
         goto done;
     }
-    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", msgid));
+    DEBUG(8, "ldap_search_ext called, msgid = %d\n", msgid);
 
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_get_generic_ext_done, req,
                       state->timeout,
                       &state->op);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to set up operation!\n"));
+        DEBUG(1, "Failed to set up operation!\n");
         goto done;
     }
 
@@ -1362,7 +1362,7 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
     case LDAP_RES_SEARCH_ENTRY:
         ret = state->parse_cb(state->sh, reply, state->cb_data);
         if (ret != EOK) {
-            DEBUG(1, ("reply parsing callback failed.\n"));
+            DEBUG(1, "reply parsing callback failed.\n");
             tevent_req_error(req, ret);
             return;
         }
@@ -1375,19 +1375,19 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
                                 &result, NULL, &errmsg, NULL,
                                 &returned_controls, 0);
         if (ret != LDAP_SUCCESS) {
-            DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
+            DEBUG(2, "ldap_parse_result failed (%d)\n", state->op->msgid);
             tevent_req_error(req, EIO);
             return;
         }
 
-        DEBUG(6, ("Search result: %s(%d), %s\n",
+        DEBUG(6, "Search result: %s(%d), %s\n",
                   sss_ldap_err2string(result), result,
-                  errmsg ? errmsg : "no errmsg set"));
+                  errmsg ? errmsg : "no errmsg set");
 
         if (result == LDAP_SIZELIMIT_EXCEEDED) {
             /* Try to return what we've got */
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("LDAP sizelimit was exceeded, returning incomplete data\n"));
+                  "LDAP sizelimit was exceeded, returning incomplete data\n");
         } else if (result == LDAP_INAPPROPRIATE_MATCHING) {
             /* This error should only occur when we're testing for
              * specialized functionality like the ldap matching rule
@@ -1395,8 +1395,8 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
              * level and return EIO.
              */
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  ("LDAP_INAPPROPRIATE_MATCHING:  %s\n",
-                   errmsg ? errmsg : "no errmsg set"));
+                  "LDAP_INAPPROPRIATE_MATCHING:  %s\n",
+                   errmsg ? errmsg : "no errmsg set");
             ldap_memfree(errmsg);
             tevent_req_error(req, EIO);
             return;
@@ -1406,9 +1406,9 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
             return;
         } else if (result != LDAP_SUCCESS && result != LDAP_NO_SUCH_OBJECT) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Unexpected result from ldap: %s(%d), %s\n",
+                  "Unexpected result from ldap: %s(%d), %s\n",
                    sss_ldap_err2string(result), result,
-                   errmsg ? errmsg : "no errmsg set"));
+                   errmsg ? errmsg : "no errmsg set");
             ldap_memfree(errmsg);
             tevent_req_error(req, EIO);
             return;
@@ -1428,11 +1428,11 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
                                                &total_count, &cookie);
         ldap_controls_free(returned_controls);
         if (lret != LDAP_SUCCESS) {
-            DEBUG(1, ("Could not determine page control"));
+            DEBUG(1, "Could not determine page control");
             tevent_req_error(req, EIO);
             return;
         }
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Total count [%d]\n", total_count));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Total count [%d]\n", total_count);
 
         if (cookie.bv_val != NULL && cookie.bv_len > 0) {
             /* Cookie contains data, which means there are more requests
@@ -1546,14 +1546,14 @@ static errno_t sdap_get_generic_parse_entry(struct sdap_handle *sh,
                            state->map, state->map_num_attrs,
                            &attrs, NULL, disable_range_rtrvl);
     if (ret != EOK) {
-        DEBUG(3, ("sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret)));
+        DEBUG(3, "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
         return ret;
     }
 
     ret = add_to_reply(state, &state->sreply, attrs);
     if (ret != EOK) {
         talloc_free(attrs);
-        DEBUG(1, ("add_to_reply failed.\n"));
+        DEBUG(1, "add_to_reply failed.\n");
         return ret;
     }
 
@@ -1570,8 +1570,8 @@ static void sdap_get_generic_done(struct tevent_req *subreq)
     ret = sdap_get_generic_ext_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
-        DEBUG(4, ("sdap_get_generic_ext_recv failed [%d]: %s\n",
-                  ret, sss_strerror(ret)));
+        DEBUG(4, "sdap_get_generic_ext_recv failed [%d]: %s\n",
+                  ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -1647,12 +1647,12 @@ sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     ret = sdap_x_deref_create_control(sh, deref_attr,
                                       attrs, &state->ctrls[0]);
     if (ret != EOK) {
-        DEBUG(1, ("Could not create OpenLDAP deref control\n"));
+        DEBUG(1, "Could not create OpenLDAP deref control\n");
         talloc_zfree(req);
         return NULL;
     }
 
-    DEBUG(6, ("Dereferencing entry [%s] using OpenLDAP deref\n", base_dn));
+    DEBUG(6, "Dereferencing entry [%s] using OpenLDAP deref\n", base_dn);
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
                                        LDAP_SCOPE_BASE, NULL, attrs,
                                        false, state->ctrls, NULL, 0, timeout,
@@ -1683,8 +1683,8 @@ static int sdap_x_deref_create_control(struct sdap_handle *sh,
 
     ret = ldap_create_deref_control_value(sh->ldap, ds, &derefval);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("sss_ldap_control_create failed: %s\n",
-                  ldap_err2string(ret)));
+        DEBUG(1, "sss_ldap_control_create failed: %s\n",
+                  ldap_err2string(ret));
         return ret;
     }
 
@@ -1692,7 +1692,7 @@ static int sdap_x_deref_create_control(struct sdap_handle *sh,
                               1, &derefval, 1, ctrl);
     ldap_memfree(derefval.bv_val);
     if (ret != EOK) {
-        DEBUG(1, ("sss_ldap_control_create failed\n"));
+        DEBUG(1, "sss_ldap_control_create failed\n");
         return ret;
     }
 
@@ -1720,12 +1720,12 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
     ret = ldap_get_entry_controls(state->sh->ldap, msg->msg,
                                   &ctrls);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("ldap_parse_result failed\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed\n");
         goto done;
     }
 
     if (!ctrls) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("No controls found for entry\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "No controls found for entry\n");
         ret = ENOENT;
         goto done;
     }
@@ -1734,20 +1734,20 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
 
     derefctrl = ldap_control_find(LDAP_CONTROL_X_DEREF, ctrls, NULL);
     if (!derefctrl) {
-        DEBUG(SSSDBG_FUNC_DATA, ("No deref controls found\n"));
+        DEBUG(SSSDBG_FUNC_DATA, "No deref controls found\n");
         ret = EOK;
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Got deref control\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Got deref control\n");
 
     ret = ldap_parse_derefresponse_control(state->sh->ldap,
                                             derefctrl,
                                             &deref_res);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("ldap_parse_derefresponse_control failed: %s\n",
-               ldap_err2string(ret)));
+              "ldap_parse_derefresponse_control failed: %s\n",
+               ldap_err2string(ret));
         goto done;
     }
 
@@ -1755,21 +1755,21 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
         ret = sdap_parse_deref(tmp_ctx, state->maps, state->num_maps,
                                dref, &res);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("sdap_parse_deref failed [%d]: %s\n",
-                  ret, strerror(ret)));
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_parse_deref failed [%d]: %s\n",
+                  ret, strerror(ret));
             goto done;
         }
 
         ret = add_to_deref_reply(state, state->num_maps,
                                     &state->dreply, res);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("add_to_deref_reply failed.\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "add_to_deref_reply failed.\n");
             goto done;
         }
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("All deref results from a single control parsed\n"));
+          "All deref results from a single control parsed\n");
     ldap_derefresponse_free(deref_res);
     deref_res = NULL;
 
@@ -1790,8 +1790,8 @@ static void sdap_x_deref_search_done(struct tevent_req *subreq)
     ret = sdap_get_generic_ext_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
-        DEBUG(4, ("sdap_get_generic_ext_recv failed [%d]: %s\n",
-                  ret, sss_strerror(ret)));
+        DEBUG(4, "sdap_get_generic_ext_recv failed [%d]: %s\n",
+                  ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -1875,11 +1875,11 @@ sdap_asq_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     ret = sdap_asq_search_create_control(sh, deref_attr, &state->ctrls[0]);
     if (ret != EOK) {
         talloc_zfree(req);
-        DEBUG(1, ("Could not create ASQ control\n"));
+        DEBUG(1, "Could not create ASQ control\n");
         return NULL;
     }
 
-    DEBUG(6, ("Dereferencing entry [%s] using ASQ\n", base_dn));
+    DEBUG(6, "Dereferencing entry [%s] using ASQ\n", base_dn);
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
                                        LDAP_SCOPE_BASE, NULL, attrs,
                                        false, state->ctrls, NULL, 0, timeout,
@@ -1905,13 +1905,13 @@ static int sdap_asq_search_create_control(struct sdap_handle *sh,
 
     ber = ber_alloc_t(LBER_USE_DER);
     if (ber == NULL) {
-        DEBUG(2, ("ber_alloc_t failed.\n"));
+        DEBUG(2, "ber_alloc_t failed.\n");
         return ENOMEM;
     }
 
     ret = ber_printf(ber, "{s}", attr);
     if (ret == -1) {
-        DEBUG(2, ("ber_printf failed.\n"));
+        DEBUG(2, "ber_printf failed.\n");
         ber_free(ber, 1);
         return EIO;
     }
@@ -1919,14 +1919,14 @@ static int sdap_asq_search_create_control(struct sdap_handle *sh,
     ret = ber_flatten(ber, &asqval);
     ber_free(ber, 1);
     if (ret == -1) {
-        DEBUG(1, ("ber_flatten failed.\n"));
+        DEBUG(1, "ber_flatten failed.\n");
         return EIO;
     }
 
     ret = sdap_control_create(sh, LDAP_SERVER_ASQ_OID, 1, asqval, 1, ctrl);
     ber_bvfree(asqval);
     if (ret != EOK) {
-        DEBUG(1, ("sdap_control_create failed\n"));
+        DEBUG(1, "sdap_control_create failed\n");
         return ret;
     }
 
@@ -1988,7 +1988,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
     vals = ldap_get_values_len(sh->ldap, msg->msg, "objectClass");
     if (!vals) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("Unknown entry type, no objectClass found for DN [%s]!\n", dn));
+              "Unknown entry type, no objectClass found for DN [%s]!\n", dn);
         ret = EINVAL;
         goto done;
     }
@@ -2000,8 +2000,8 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
                             vals[i]->bv_val, vals[i]->bv_len) == 0) {
                 /* it's an entry of the right type */
                 DEBUG(SSSDBG_TRACE_INTERNAL,
-                      ("Matched objectclass [%s] on DN [%s], will use associated map\n",
-                       state->maps[mi].map[0].name, dn));
+                      "Matched objectclass [%s] on DN [%s], will use associated map\n",
+                       state->maps[mi].map[0].name, dn);
                 map = state->maps[mi].map;
                 num_attrs = state->maps[mi].num_attrs;
                 break;
@@ -2009,8 +2009,8 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
         }
         if (!map) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
-                  ("DN [%s] did not match the objectClass [%s]\n",
-                   dn, state->maps[mi].map[0].name));
+                  "DN [%s] did not match the objectClass [%s]\n",
+                   dn, state->maps[mi].map[0].name);
             continue;
         }
 
@@ -2021,7 +2021,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
                                map, num_attrs,
                                &res[mi]->attrs, NULL, disable_range_rtrvl);
         if (ret != EOK) {
-            DEBUG(3, ("sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret)));
+            DEBUG(3, "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
             goto done;
         }
     }
@@ -2030,7 +2030,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
     ret = add_to_deref_reply(state, state->num_maps,
                              &state->dreply, res);
     if (ret != EOK) {
-        DEBUG(1, ("add_to_deref_reply failed.\n"));
+        DEBUG(1, "add_to_deref_reply failed.\n");
         goto done;
     }
 
@@ -2049,8 +2049,8 @@ static void sdap_asq_search_done(struct tevent_req *subreq)
     ret = sdap_get_generic_ext_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
-        DEBUG(4, ("sdap_get_generic_ext_recv failed [%d]: %s\n",
-                  ret, sss_strerror(ret)));
+        DEBUG(4, "sdap_get_generic_ext_recv failed [%d]: %s\n",
+                  ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -2163,8 +2163,8 @@ static errno_t sdap_posix_check_next(struct tevent_req *req)
         tevent_req_data(req, struct sdap_posix_check_state);
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Searching for POSIX attributes with base [%s]\n",
-           state->search_bases[state->base_iter]->basedn));
+          "Searching for POSIX attributes with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn);
 
     subreq = sdap_get_generic_ext_send(state, state->ev, state->opts,
                                  state->sh,
@@ -2195,10 +2195,10 @@ static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
     dn = ldap_get_dn(sh->ldap, msg->msg);
     if (dn == NULL) {
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Search did not find any entry with POSIX attributes\n"));
+              "Search did not find any entry with POSIX attributes\n");
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_LIBS, ("Found [%s] with POSIX attributes\n", dn));
+    DEBUG(SSSDBG_TRACE_LIBS, "Found [%s] with POSIX attributes\n", dn);
     ldap_memfree(dn);
 
     vals = ldap_get_values_len(sh->ldap, msg->msg,
@@ -2207,13 +2207,13 @@ static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
         vals = ldap_get_values_len(sh->ldap, msg->msg,
                                state->opts->group_map[SDAP_AT_GROUP_GID].name);
         if (vals == NULL) {
-            DEBUG(SSSDBG_TRACE_LIBS, ("Entry does not have POSIX attrs?\n"));
+            DEBUG(SSSDBG_TRACE_LIBS, "Entry does not have POSIX attrs?\n");
             goto done;
         }
     }
 
     if (vals[0] == NULL) {
-        DEBUG(SSSDBG_TRACE_LIBS, ("No value for POSIX attr\n"));
+        DEBUG(SSSDBG_TRACE_LIBS, "No value for POSIX attr\n");
         goto done;
     }
 
@@ -2221,7 +2221,7 @@ static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
     strtouint32(vals[0]->bv_val, &endptr, 10);
     if (errno || *endptr || (vals[0]->bv_val == endptr)) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("POSIX attribute is not a number: %s\n", vals[0]->bv_val));
+              "POSIX attribute is not a number: %s\n", vals[0]->bv_val);
         goto done;
     }
 
@@ -2243,15 +2243,15 @@ static void sdap_posix_check_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              ("sdap_get_generic_ext_recv failed [%d]: %s\n",
-              ret, strerror(ret)));
+              "sdap_get_generic_ext_recv failed [%d]: %s\n",
+              ret, strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
 
     /* Positive hit is definitve, no need to search other bases */
     if (state->has_posix == true) {
-        DEBUG(SSSDBG_FUNC_DATA, ("Server has POSIX attributes\n"));
+        DEBUG(SSSDBG_FUNC_DATA, "Server has POSIX attributes\n");
         tevent_req_done(req);
         return;
     }
@@ -2267,7 +2267,7 @@ static void sdap_posix_check_done(struct tevent_req *subreq)
     }
 
     /* All bases done! */
-    DEBUG(SSSDBG_TRACE_LIBS, ("Cycled through all bases\n"));
+    DEBUG(SSSDBG_TRACE_LIBS, "Cycled through all bases\n");
     tevent_req_done(req);
 }
 
@@ -2322,29 +2322,29 @@ sdap_deref_search_send(TALLOC_CTX *memctx,
     state->reply = NULL;
 
     if (sdap_is_control_supported(sh, LDAP_SERVER_ASQ_OID)) {
-        DEBUG(8, ("Server supports ASQ\n"));
+        DEBUG(8, "Server supports ASQ\n");
         state->deref_type = SDAP_DEREF_ASQ;
 
         subreq = sdap_asq_search_send(state, ev, opts, sh, base_dn,
                                       deref_attr, attrs, maps, num_maps,
                                       timeout);
         if (!subreq) {
-            DEBUG(2, ("Cannot start ASQ search\n"));
+            DEBUG(2, "Cannot start ASQ search\n");
             goto fail;
         }
     } else if (sdap_is_control_supported(sh, LDAP_CONTROL_X_DEREF)) {
-        DEBUG(8, ("Server supports OpenLDAP deref\n"));
+        DEBUG(8, "Server supports OpenLDAP deref\n");
         state->deref_type = SDAP_DEREF_OPENLDAP;
 
         subreq = sdap_x_deref_search_send(state, ev, opts, sh, base_dn,
                                           deref_attr, attrs, maps, num_maps,
                                           timeout);
         if (!subreq) {
-            DEBUG(2, ("Cannot start OpenLDAP deref search\n"));
+            DEBUG(2, "Cannot start OpenLDAP deref search\n");
             goto fail;
         }
     } else {
-        DEBUG(2, ("Server does not support any known deref method!\n"));
+        DEBUG(2, "Server does not support any known deref method!\n");
         goto fail;
     }
 
@@ -2374,14 +2374,14 @@ static void sdap_deref_search_done(struct tevent_req *subreq)
                 &state->reply_count, &state->reply);
         break;
     default:
-        DEBUG(1, ("Unknown deref method\n"));
+        DEBUG(1, "Unknown deref method\n");
         tevent_req_error(req, EINVAL);
         return;
     }
 
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(2, ("dereference processing failed [%d]: %s\n", ret, strerror(ret)));
+        DEBUG(2, "dereference processing failed [%d]: %s\n", ret, strerror(ret));
         if (ret == ENOTSUP) {
             sss_log(SSS_LOG_WARNING,
                 "LDAP server claims to support deref, but deref search failed. "
@@ -2434,8 +2434,8 @@ bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts)
 
     for (i=0; deref_oids[i][0]; i++) {
         if (sdap_is_control_supported(sh, deref_oids[i][0])) {
-            DEBUG(6, ("The server supports deref method %s\n",
-                      deref_oids[i][1]));
+            DEBUG(6, "The server supports deref method %s\n",
+                      deref_oids[i][1]);
             return true;
         }
     }
@@ -2459,20 +2459,20 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
 
     ret = sysdb_attrs_get_el(ldap_attrs, attr_name, &el);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not get %s from the "
+        DEBUG(SSSDBG_OP_FAILURE, "Could not get %s from the "
               "list of the LDAP attributes [%d]: %s\n",
-              attr_name, ret, strerror(ret)));
+              attr_name, ret, strerror(ret));
         return ret;
     }
 
     if (el->num_values == 0) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("%s is not available "
-              "for [%s].\n", desc, objname));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "%s is not available "
+              "for [%s].\n", desc, objname);
     } else {
         num_values = multivalued ? el->num_values : 1;
         for (i = 0; i < num_values; i++) {
-            DEBUG(SSSDBG_TRACE_INTERNAL, ("Adding %s [%s] to attributes "
-                  "of [%s].\n", desc, el->values[i].data, objname));
+            DEBUG(SSSDBG_TRACE_INTERNAL, "Adding %s [%s] to attributes "
+                  "of [%s].\n", desc, el->values[i].data, objname);
 
             ret = sysdb_attrs_add_mem(attrs, attr_name, el->values[i].data,
                                       el->values[i].length);
@@ -2507,7 +2507,7 @@ sdap_save_all_names(const char *name,
     ret = sysdb_attrs_get_aliases(tmp_ctx, ldap_attrs, name,
                                   lowercase, &aliases);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get the alias list"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get the alias list");
         goto done;
     }
 
@@ -2521,16 +2521,16 @@ sdap_save_all_names(const char *name,
         if (lowercase) {
             ret = sysdb_attrs_add_lc_name_alias(attrs, domname);
             if (ret) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Failed to add lower-cased version "
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to add lower-cased version "
                                           "of alias [%s] into the "
-                                          "attribute list\n", aliases[i]));
+                                          "attribute list\n", aliases[i]);
                 goto done;
             }
         } else {
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, domname);
             if (ret) {
-                DEBUG(SSSDBG_OP_FAILURE, ("Failed to add alias [%s] into the "
-                                          "attribute list\n", aliases[i]));
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to add alias [%s] into the "
+                                          "attribute list\n", aliases[i]);
                 goto done;
             }
         }

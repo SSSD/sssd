@@ -53,7 +53,7 @@ sdap_get_idmap_primary_gid(struct sdap_options *opts,
                 opts->user_map[SDAP_AT_USER_PRIMARY_GROUP].sys_name,
                 &primary_gid);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("no primary group ID provided\n"));
+        DEBUG(SSSDBG_MINOR_FAILURE, "no primary group ID provided\n");
         ret = EINVAL;
         goto done;
     }
@@ -69,7 +69,7 @@ sdap_get_idmap_primary_gid(struct sdap_options *opts,
                                                  &dom_sid_str);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("Could not parse domain SID from [%s]\n", sid_str));
+                  "Could not parse domain SID from [%s]\n", sid_str);
             goto done;
         }
     }
@@ -125,7 +125,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     char *dom_sid_str = NULL;
     struct sss_domain_info *subdomain;
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Save user\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Save user\n");
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -146,16 +146,16 @@ int sdap_save_user(TALLOC_CTX *memctx,
     if (ret == EOK) {
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR, sid_str);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not add SID string: [%s]\n",
-                                         strerror(ret)));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not add SID string: [%s]\n",
+                                         strerror(ret));
             goto done;
         }
     } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_ALL, ("objectSID: not available for user\n"));
+        DEBUG(SSSDBG_TRACE_ALL, "objectSID: not available for user\n");
         sid_str = NULL;
     } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, ("Could not identify objectSID: [%s]\n",
-                                     strerror(ret)));
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not identify objectSID: [%s]\n",
+                                     strerror(ret));
         sid_str = NULL;
     }
 
@@ -166,17 +166,17 @@ int sdap_save_user(TALLOC_CTX *memctx,
         if (subdomain) {
             dom = subdomain;
         } else {
-            DEBUG(SSSDBG_TRACE_FUNC, ("SID %s does not belong to any known "
-                                      "domain\n", sid_str));
+            DEBUG(SSSDBG_TRACE_FUNC, "SID %s does not belong to any known "
+                                      "domain\n", sid_str);
         }
     }
 
     ret = sdap_get_user_primary_name(memctx, opts, attrs, dom, &user_name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to get user name\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get user name\n");
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_FUNC, ("Processing user %s\n", user_name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Processing user %s\n", user_name);
 
     if (opts->schema_type == SDAP_SCHEMA_AD) {
         ret = sysdb_attrs_get_string(attrs,
@@ -232,19 +232,19 @@ int sdap_save_user(TALLOC_CTX *memctx,
     if (use_id_mapping) {
 
         if (sid_str == NULL) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("SID not available, cannot map a " \
-                                         "unix ID to user [%s].\n", user_name));
+            DEBUG(SSSDBG_MINOR_FAILURE, "SID not available, cannot map a " \
+                                         "unix ID to user [%s].\n", user_name);
             ret = ENOENT;
             goto done;
         }
 
         DEBUG(SSSDBG_TRACE_LIBS,
-              ("Mapping user [%s] objectSID [%s] to unix ID\n", user_name, sid_str));
+              "Mapping user [%s] objectSID [%s] to unix ID\n", user_name, sid_str);
 
         /* Convert the SID into a UNIX user ID */
         ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, sid_str, &uid);
         if (ret == ENOTSUP) {
-            DEBUG(SSSDBG_TRACE_FUNC, ("Skipping built-in object.\n"));
+            DEBUG(SSSDBG_TRACE_FUNC, "Skipping built-in object.\n");
             ret = EOK;
             goto done;
         } else if (ret != EOK) {
@@ -256,7 +256,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
          */
         ret = sdap_replace_id(attrs, SYSDB_UIDNUM, uid);
         if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot set the id-mapped UID\n"));
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot set the id-mapped UID\n");
             goto done;
         }
     } else {
@@ -265,16 +265,16 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                        &uid);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("no uid provided for [%s] in domain [%s].\n",
-                   user_name, dom->name));
+                  "no uid provided for [%s] in domain [%s].\n",
+                   user_name, dom->name);
             ret = EINVAL;
             goto done;
         }
     }
     /* check that the uid is valid for this domain */
     if (OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
-            DEBUG(2, ("User [%s] filtered out! (uid out of range)\n",
-                      user_name));
+            DEBUG(2, "User [%s] filtered out! (uid out of range)\n",
+                      user_name);
         ret = EINVAL;
         goto done;
     }
@@ -284,8 +284,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                          &gid);
         if (ret) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Cannot get the GID for [%s] in domain [%s].\n",
-                   user_name, dom->name));
+                  "Cannot get the GID for [%s] in domain [%s].\n",
+                   user_name, dom->name);
             goto done;
         }
 
@@ -300,7 +300,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
             ret = sysdb_attrs_add_uint32(user_attrs, SYSDB_PRIMARY_GROUP_GIDNUM,
                                          (uint32_t) gid);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, ("sysdb_attrs_add_uint32 failed.\n"));
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_uint32 failed.\n");
                 goto done;
             }
 
@@ -318,8 +318,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
                                        &gid);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("no gid provided for [%s] in domain [%s].\n",
-                  user_name, dom->name));
+                  "no gid provided for [%s] in domain [%s].\n",
+                  user_name, dom->name);
             ret = EINVAL;
             goto done;
         }
@@ -329,8 +329,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
     if (IS_SUBDOMAIN(dom) == false &&
             OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("User [%s] filtered out! (primary gid out of range)\n",
-               user_name));
+              "User [%s] filtered out! (primary gid out of range)\n",
+               user_name);
         ret = EINVAL;
         goto done;
     }
@@ -341,11 +341,11 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
     if (!el || el->num_values == 0) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              ("originalDN is not available for [%s].\n", user_name));
+              "originalDN is not available for [%s].\n", user_name);
     } else {
         orig_dn = (const char *) el->values[0].data;
-        DEBUG(SSSDBG_TRACE_INTERNAL, ("Adding originalDN [%s] to attributes "
-                "of [%s].\n", orig_dn, user_name));
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Adding originalDN [%s] to attributes "
+                "of [%s].\n", orig_dn, user_name);
 
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_DN, orig_dn);
         if (ret) {
@@ -359,10 +359,10 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
     if (el->num_values == 0) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Original memberOf is not available for [%s].\n", user_name));
+              "Original memberOf is not available for [%s].\n", user_name);
     } else {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Adding original memberOf attributes to [%s].\n", user_name));
+              "Adding original memberOf attributes to [%s].\n", user_name);
         for (i = 0; i < el->num_values; i++) {
             ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
                     (const char *) el->values[i].data);
@@ -387,7 +387,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
     if (el->num_values == 0) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Original USN value is not available for [%s].\n", user_name));
+              "Original USN value is not available for [%s].\n", user_name);
     } else {
         ret = sysdb_attrs_add_string(user_attrs,
                           opts->user_map[SDAP_AT_USER_USN].sys_name,
@@ -409,7 +409,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
     if (el->num_values == 0) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("User principal is not available for [%s].\n", user_name));
+              "User principal is not available for [%s].\n", user_name);
     } else {
         upn = talloc_strdup(user_attrs, (const char*) el->values[0].data);
         if (!upn) {
@@ -420,8 +420,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
             make_realm_upper_case(upn);
         }
         DEBUG(SSSDBG_TRACE_FUNC,
-              ("Adding user principal [%s] to attributes of [%s].\n",
-               upn, user_name));
+              "Adding user principal [%s] to attributes of [%s].\n",
+               upn, user_name);
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
         if (ret) {
             goto done;
@@ -449,7 +449,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
 
     ret = sdap_save_all_names(user_name, attrs, dom, user_attrs);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to save user names\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to save user names\n");
         goto done;
     }
 
@@ -462,7 +462,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Storing info for user %s\n", user_name));
+    DEBUG(SSSDBG_TRACE_FUNC, "Storing info for user %s\n", user_name);
 
     ret = sysdb_store_user(dom, user_name, pwd, uid, gid,
                            gecos, homedir, shell, orig_dn,
@@ -479,8 +479,8 @@ int sdap_save_user(TALLOC_CTX *memctx,
 done:
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to save user [%s]\n",
-               user_name ? user_name : "Unknown"));
+              "Failed to save user [%s]\n",
+               user_name ? user_name : "Unknown");
     }
     talloc_free(tmpctx);
     return ret;
@@ -518,7 +518,7 @@ int sdap_save_users(TALLOC_CTX *memctx,
 
     ret = sysdb_transaction_start(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
     }
     in_transaction = true;
@@ -533,9 +533,9 @@ int sdap_save_users(TALLOC_CTX *memctx,
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */
         if (ret) {
-            DEBUG(2, ("Failed to store user %d. Ignoring.\n", i));
+            DEBUG(2, "Failed to store user %d. Ignoring.\n", i);
         } else {
-            DEBUG(9, ("User %d processed!\n", i));
+            DEBUG(9, "User %d processed!\n", i);
         }
 
         if (usn_value) {
@@ -555,7 +555,7 @@ int sdap_save_users(TALLOC_CTX *memctx,
 
     ret = sysdb_transaction_commit(sysdb);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to commit transaction!\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction!\n");
         goto done;
     }
     in_transaction = false;
@@ -568,7 +568,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to cancel transaction\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     talloc_zfree(tmpctx);
@@ -635,7 +635,7 @@ struct tevent_req *sdap_search_user_send(TALLOC_CTX *memctx,
 
     if (!state->search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("User lookup request without a search base\n"));
+              "User lookup request without a search base\n");
         ret = EINVAL;
         goto done;
     }
@@ -667,8 +667,8 @@ static errno_t sdap_search_user_next_base(struct tevent_req *req)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Searching for users with base [%s]\n",
-           state->search_bases[state->base_iter]->basedn));
+          "Searching for users with base [%s]\n",
+           state->search_bases[state->base_iter]->basedn);
 
     subreq = sdap_get_generic_send(
             state, state->ev, state->opts, state->sh,
@@ -706,7 +706,7 @@ static void sdap_search_user_process(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          ("Search for users, returned %zu results.\n", count));
+          "Search for users, returned %zu results.\n", count);
 
     if (state->enumeration || count == 0) {
         /* No users found in this search or enumerating */
@@ -757,7 +757,7 @@ static void sdap_search_user_process(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, ("Retrieved total %zu users\n", state->count));
+    DEBUG(SSSDBG_TRACE_ALL, "Retrieved total %zu users\n", state->count);
     tevent_req_done(req);
 }
 
@@ -852,7 +852,7 @@ static void sdap_get_users_done(struct tevent_req *subreq)
     ret = sdap_search_user_recv(state, subreq, &state->higher_usn,
                                 &state->users, &state->count);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to retrieve users\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve users\n");
         tevent_req_error(req, ret);
         return;
     }
@@ -862,12 +862,12 @@ static void sdap_get_users_done(struct tevent_req *subreq)
                           state->users, state->count,
                           &state->higher_usn);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to store users.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to store users.\n");
         tevent_req_error(req, ret);
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, ("Saving %zu Users - Done\n", state->count));
+    DEBUG(SSSDBG_TRACE_ALL, "Saving %zu Users - Done\n", state->count);
 
     tevent_req_done(req);
 }

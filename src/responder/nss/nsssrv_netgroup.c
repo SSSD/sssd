@@ -50,8 +50,8 @@ static errno_t get_netgroup_entry(struct nss_ctx *nctx,
         return ENOENT;
     }
 
-    DEBUG(1, ("Unexpected error reading from netgroup hash [%d][%s]\n",
-              hret, hash_error_string(hret)));
+    DEBUG(1, "Unexpected error reading from netgroup hash [%d][%s]\n",
+              hret, hash_error_string(hret));
     return EIO;
 }
 
@@ -64,7 +64,7 @@ static errno_t set_netgroup_entry(struct nss_ctx *nctx,
     int hret;
 
     if (netgr->name == NULL) {
-        DEBUG(1, ("Missing netgroup name.\n"));
+        DEBUG(1, "Missing netgroup name.\n");
         return EINVAL;
     }
     /* Add this entry to the hash table */
@@ -74,8 +74,8 @@ static errno_t set_netgroup_entry(struct nss_ctx *nctx,
     value.ptr = netgr;
     hret = hash_enter(nctx->netgroups, &key, &value);
     if (hret != EOK) {
-        DEBUG(0, ("Unable to add hash table entry for [%s]", key.str));
-        DEBUG(4, ("Hash error [%d][%s]", hret, hash_error_string(hret)));
+        DEBUG(0, "Unable to add hash table entry for [%s]", key.str);
+        DEBUG(4, "Hash error [%d][%s]", hret, hash_error_string(hret));
         return EIO;
     }
     talloc_steal(nctx->netgroups, netgr);
@@ -125,7 +125,7 @@ int nss_cmd_setnetgrent(struct cli_ctx *client)
 
     req = setnetgrent_send(cmdctx, rawname, cmdctx);
     if (!req) {
-        DEBUG(0, ("Fatal error calling setnetgrent_send\n"));
+        DEBUG(0, "Fatal error calling setnetgrent_send\n");
         ret = EIO;
         goto done;
     }
@@ -143,8 +143,8 @@ static int netgr_hash_remove (TALLOC_CTX *ctx)
             talloc_get_type(ctx, struct getent_ctx);
 
     if (netgr->lookup_table == NULL) {
-        DEBUG(SSSDBG_TRACE_LIBS, ("netgroup [%s] was already removed\n",
-                                  netgr->name));
+        DEBUG(SSSDBG_TRACE_LIBS, "netgroup [%s] was already removed\n",
+                                  netgr->name);
         return EOK;
     }
 
@@ -154,8 +154,8 @@ static int netgr_hash_remove (TALLOC_CTX *ctx)
     /* Remove the netgroup result object from the lookup table */
     hret = hash_delete(netgr->lookup_table, &key);
     if (hret != HASH_SUCCESS) {
-        DEBUG(0, ("Could not remove key [%s] from table! [%d][%s]\n",
-                  netgr->name, hret, hash_error_string(hret)));
+        DEBUG(0, "Could not remove key [%s] from table! [%d][%s]\n",
+                  netgr->name, hret, hash_error_string(hret));
         return -1;
     }
     return 0;
@@ -187,7 +187,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct setnetgrent_ctx);
     if (!req) {
-        DEBUG(0, ("Could not create tevent request for setnetgrent\n"));
+        DEBUG(0, "Could not create tevent request for setnetgrent\n");
         return NULL;
     }
 
@@ -207,12 +207,12 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
                                      client->rctx->default_domain, rawname,
                                      &domname, &state->netgr_shortname);
     if (ret != EOK) {
-        DEBUG(2, ("Invalid name received [%s]\n", rawname));
+        DEBUG(2, "Invalid name received [%s]\n", rawname);
         goto error;
     }
 
-    DEBUG(4, ("Requesting info for netgroup [%s] from [%s]\n",
-              state->netgr_shortname, domname?domname:"<ALL>"));
+    DEBUG(4, "Requesting info for netgroup [%s] from [%s]\n",
+              state->netgr_shortname, domname?domname:"<ALL>");
 
     if (domname) {
         dctx->domain = responder_get_domain(client->rctx, domname);
@@ -341,7 +341,7 @@ static errno_t setnetgrent_retry(struct tevent_req *req)
 
         ret = set_netgroup_entry(nctx, state->netgr);
         if (ret != EOK) {
-            DEBUG(1, ("set_netgroup_entry failed.\n"));
+            DEBUG(1, "set_netgroup_entry failed.\n");
             talloc_free(state->netgr);
             goto done;
         }
@@ -418,8 +418,8 @@ static void set_netgr_lifetime(uint32_t lifetime,
                           setnetgrent_result_timeout,
                           netgr);
     if (!te) {
-        DEBUG(0, ("Could not set up life timer for setnetgrent result object. "
-                  "Entries may become stale.\n"));
+        DEBUG(0, "Could not set up life timer for setnetgrent result object. "
+                  "Entries may become stale.\n");
     }
 }
 
@@ -454,14 +454,14 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         name = sss_get_cased_name(step_ctx, step_ctx->name,
                                   dom->case_sensitive);
         if (!name) {
-            DEBUG(SSSDBG_CRIT_FAILURE, ("sss_get_cased_name failed\n"));
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_get_cased_name failed\n");
             return ENOMEM;
         }
 
-        DEBUG(4, ("Requesting info for [%s@%s]\n",
-                  name, dom->name));
+        DEBUG(4, "Requesting info for [%s@%s]\n",
+                  name, dom->name);
         if (dom->sysdb == NULL) {
-            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            DEBUG(0, "Fatal: Sysdb CTX not found for this domain!\n");
             return EIO;
         }
 
@@ -469,7 +469,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         ret = sysdb_getnetgr(step_ctx->dctx, dom, name, &step_ctx->dctx->res);
         if (step_ctx->dctx->res->count > 1) {
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  ("getnetgr call returned more than one result !?!\n"));
+                  "getnetgr call returned more than one result !?!\n");
             return EMSGSIZE;
         }
         if (ret == ENOENT) {
@@ -485,7 +485,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         }
 
         if (ret != EOK) {
-            DEBUG(1, ("Failed to make request to our cache!\n"));
+            DEBUG(1, "Failed to make request to our cache!\n");
             return EIO;
         }
 
@@ -493,7 +493,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
                                  &netgr);
         if (ret != EOK) {
             /* Something really bad happened! */
-            DEBUG(0, ("Netgroup entry was lost!\n"));
+            DEBUG(0, "Netgroup entry was lost!\n");
             return ret;
         }
 
@@ -502,8 +502,8 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
                                      &netgr->entries);
         if (ret == ENOENT) {
             /* This netgroup was not found in this domain */
-            DEBUG(2, ("No results for netgroup %s (domain %s)\n",
-                      name, dom->name));
+            DEBUG(2, "No results for netgroup %s (domain %s)\n",
+                      name, dom->name);
 
             if (!step_ctx->dctx->check_provider) {
                 if (step_ctx->check_next) {
@@ -516,7 +516,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         }
 
         if (ret != EOK) {
-            DEBUG(1, ("Failed to convert results into entries\n"));
+            DEBUG(1, "Failed to convert results into entries\n");
             netgr->ready = true;
             netgr->found = false;
             set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
@@ -542,8 +542,8 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         }
 
         /* Results found */
-        DEBUG(6, ("Returning info for netgroup [%s@%s]\n",
-                  name, dom->name));
+        DEBUG(6, "Returning info for netgroup [%s@%s]\n",
+                  name, dom->name);
         netgr->ready = true;
         netgr->found = true;
         if (step_ctx->nctx->cache_refresh_percent) {
@@ -559,11 +559,11 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 
     /* If we've gotten here, then no domain contained this netgroup */
     DEBUG(SSSDBG_MINOR_FAILURE,
-          ("No matching domain found for [%s], fail!\n", step_ctx->name));
+          "No matching domain found for [%s], fail!\n", step_ctx->name);
 
     netgr = talloc_zero(step_ctx->nctx, struct getent_ctx);
     if (netgr == NULL) {
-        DEBUG(1, ("talloc_zero failed, ignored.\n"));
+        DEBUG(1, "talloc_zero failed, ignored.\n");
     } else {
         netgr->ready = true;
         netgr->found = false;
@@ -571,14 +571,14 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         netgr->lookup_table = step_ctx->nctx->netgroups;
         netgr->name = talloc_strdup(netgr, step_ctx->name);
         if (netgr->name == NULL) {
-            DEBUG(1, ("talloc_strdup failed.\n"));
+            DEBUG(1, "talloc_strdup failed.\n");
             talloc_free(netgr);
             return ENOMEM;
         }
 
         ret = set_netgroup_entry(step_ctx->nctx, netgr);
         if (ret != EOK) {
-            DEBUG(1, ("set_netgroup_entry failed, ignored.\n"));
+            DEBUG(1, "set_netgroup_entry failed, ignored.\n");
         }
         set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
     }
@@ -596,10 +596,10 @@ static void lookup_netgr_dp_callback(uint16_t err_maj, uint32_t err_min,
     int ret;
 
     if (err_maj) {
-        DEBUG(2, ("Unable to get information from Data Provider\n"
+        DEBUG(2, "Unable to get information from Data Provider\n"
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
-                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg);
         /* Loop to the next domain if possible */
         if (cmdctx->check_next && get_next_domain(dctx->domain, false)) {
             dctx->domain = get_next_domain(dctx->domain, false);
@@ -658,7 +658,7 @@ static void nss_cmd_setnetgrent_done(struct tevent_req *req)
     reqret = setnetgrent_recv(req);
     talloc_zfree(req);
     if (reqret != EOK && reqret != ENOENT) {
-        DEBUG(1, ("setnetgrent failed\n"));
+        DEBUG(1, "setnetgrent failed\n");
         nss_cmd_done(cmdctx, reqret);
         return;
     }
@@ -675,7 +675,7 @@ static void nss_cmd_setnetgrent_done(struct tevent_req *req)
             packet = cmdctx->cctx->creq->out;
             ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
             if (ret != EOK) {
-                DEBUG(1, ("Couldn't grow the packet\n"));
+                DEBUG(1, "Couldn't grow the packet\n");
                 NSS_CMD_FATAL_ERROR(cmdctx);
             }
 
@@ -692,7 +692,7 @@ static void nss_cmd_setnetgrent_done(struct tevent_req *req)
         return;
     }
 
-    DEBUG(1, ("Error creating packet\n"));
+    DEBUG(1, "Error creating packet\n");
 }
 
 static void setnetgrent_implicit_done(struct tevent_req *req);
@@ -706,7 +706,7 @@ int nss_cmd_getnetgrent(struct cli_ctx *client)
     struct getent_ctx *netgr;
     struct tevent_req *req;
 
-    DEBUG(4, ("Requesting netgroup data\n"));
+    DEBUG(4, "Requesting netgroup data\n");
 
     cmdctx = talloc_zero(client, struct nss_cmd_ctx);
     if (!cmdctx) {
@@ -739,8 +739,8 @@ int nss_cmd_getnetgrent(struct cli_ctx *client)
 
         return EOK;
     } else if (ret != EOK) {
-        DEBUG(1, ("An unexpected error occurred: [%d][%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "An unexpected error occurred: [%d][%s]\n",
+                  ret, strerror(ret));
 
         return nss_cmd_done(cmdctx, ret);
     }
@@ -758,16 +758,16 @@ int nss_cmd_getnetgrent(struct cli_ctx *client)
 
         return EOK;
     } else if (!netgr->found) {
-        DEBUG(6, ("Results for [%s] not found.\n", client->netgr_name));
+        DEBUG(6, "Results for [%s] not found.\n", client->netgr_name);
         return ENOENT;
     }
 
-    DEBUG(6, ("Returning results for [%s]\n", client->netgr_name));
+    DEBUG(6, "Returning results for [%s]\n", client->netgr_name);
 
     /* Read the result strings */
     ret = nss_cmd_getnetgrent_process(cmdctx, netgr);
     if (ret != EOK) {
-        DEBUG(1, ("Failed: [%d][%s]\n", ret, strerror(ret)));
+        DEBUG(1, "Failed: [%d][%s]\n", ret, strerror(ret));
     }
     return ret;
 }
@@ -789,8 +789,8 @@ static void setnetgrent_implicit_done(struct tevent_req *req)
      * nss_cmd_retnetgrent later
      */
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(0, ("Implicit setnetgrent failed with unexpected error "
-                  "[%d][%s]\n", ret, strerror(ret)));
+        DEBUG(0, "Implicit setnetgrent failed with unexpected error "
+                  "[%d][%s]\n", ret, strerror(ret));
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
 
@@ -804,27 +804,27 @@ static void setnetgrent_implicit_done(struct tevent_req *req)
     ret = get_netgroup_entry(nctx, cmdctx->cctx->netgr_name, &netgr);
     if (ret == ENOENT) {
         /* Critical error. This should never happen */
-        DEBUG(0, ("Implicit setnetgrent returned success without creating "
-                  "result object.\n"));
+        DEBUG(0, "Implicit setnetgrent returned success without creating "
+                  "result object.\n");
         NSS_CMD_FATAL_ERROR(cmdctx);
     } else if (ret != EOK) {
-        DEBUG(1, ("An unexpected error occurred: [%d][%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, "An unexpected error occurred: [%d][%s]\n",
+                  ret, strerror(ret));
 
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
 
     if (!netgr->ready) {
         /* Critical error. This should never happen */
-        DEBUG(0, ("Implicit setnetgrent returned success without creating "
-                  "result object.\n"));
+        DEBUG(0, "Implicit setnetgrent returned success without creating "
+                  "result object.\n");
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
 
     ret = nss_cmd_getnetgrent_process(cmdctx, netgr);
     if (ret != EOK) {
-        DEBUG(0, ("Immediate retrieval failed with unexpected error "
-                  "[%d][%s]\n", ret, strerror(ret)));
+        DEBUG(0, "Immediate retrieval failed with unexpected error "
+                  "[%d][%s]\n", ret, strerror(ret));
         NSS_CMD_FATAL_ERROR(cmdctx);
     }
 }
@@ -858,7 +858,7 @@ static errno_t nss_cmd_getnetgrent_process(struct nss_cmd_ctx *cmdctx,
 
     if (!netgr->entries || netgr->entries[0] == NULL) {
         /* No entries */
-        DEBUG(5, ("No entries found\n"));
+        DEBUG(5, "No entries found\n");
         ret = sss_cmd_empty_packet(client->creq->out);
         if (ret != EOK) {
             return nss_cmd_done(cmdctx, ret);
@@ -953,7 +953,7 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
         } else if (entries[client->netgrent_cur]->type == SYSDB_NETGROUP_GROUP_VAL) {
             if (entries[client->netgrent_cur]->value.groupname == NULL ||
                 entries[client->netgrent_cur]->value.groupname[0] == '\0') {
-                DEBUG(1, ("Empty netgroup member. Please check your cache.\n"));
+                DEBUG(1, "Empty netgroup member. Please check your cache.\n");
                 continue;
             }
 
@@ -975,8 +975,8 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
                    grouplen);
             rp += grouplen;
         } else {
-            DEBUG(1, ("Unexpected value type for netgroup entry. "
-                      "Please check your cache.\n"));
+            DEBUG(1, "Unexpected value type for netgroup entry. "
+                      "Please check your cache.\n");
             continue;
         }
 
@@ -1028,7 +1028,7 @@ netgroup_hash_delete_cb(hash_entry_t *item,
 
     netgr = talloc_get_type(item->value.ptr, struct getent_ctx);
     if (!netgr) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Invalid netgroup\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid netgroup\n");
         return;
     }
 
@@ -1053,13 +1053,13 @@ errno_t nss_orphan_netgroups(struct nss_ctx *nctx)
         return EIO;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("Removing netgroups from memory cache.\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "Removing netgroups from memory cache.\n");
 
     for (i = 0; i < mcount; i++) {
         /* netgroup entry will be deleted by setnetgrent_result_timeout */
         hret = hash_delete(nctx->netgroups, &netgroups[i]);
         if (hret != HASH_SUCCESS) {
-            DEBUG(SSSDBG_MINOR_FAILURE, ("Could not delete key from hash\n"));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not delete key from hash\n");
             continue;
         }
     }

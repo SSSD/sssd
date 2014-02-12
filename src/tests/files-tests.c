@@ -64,14 +64,14 @@ static void teardown_files_test(void)
         cmd = talloc_asprintf(test_ctx, "/bin/rm -rf %s\n", dir_path);
         ret = system(cmd);
         if (ret == -1) {
-            DEBUG(1, ("Removing [%s] failed.\n", dir_path));
+            DEBUG(1, "Removing [%s] failed.\n", dir_path);
         }
     }
     if (dst_path && test_ctx) {
         cmd = talloc_asprintf(test_ctx, "/bin/rm -rf %s\n", dst_path);
         ret = system(cmd);
         if (ret == -1) {
-            DEBUG(1, ("Removing [%s] failed.\n", dst_path));
+            DEBUG(1, "Removing [%s] failed.\n", dst_path);
         }
     }
 
@@ -109,7 +109,7 @@ START_TEST(test_remove_tree)
     fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
     fail_unless(errno == 0, "Cannot getcwd\n");
 
-    DEBUG(5, ("About to delete %s\n", dir_path));
+    DEBUG(5, "About to delete %s\n", dir_path);
 
     /* create a file */
     ret = chdir(dir_path);
@@ -182,7 +182,7 @@ START_TEST(test_simple_copy)
     fail_if(ret == -1, "Cannot chdir\n");
 
     /* and finally copy.. */
-    DEBUG(5, ("Will copy from '%s' to '%s'\n", dir_path, dst_path));
+    DEBUG(5, "Will copy from '%s' to '%s'\n", dir_path, dst_path);
     ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 
@@ -224,7 +224,7 @@ START_TEST(test_copy_symlink)
     fail_if(ret == -1, "Cannot chdir\n");
 
     /* and finally copy.. */
-    DEBUG(5, ("Will copy from '%s' to '%s'\n", dir_path, dst_path));
+    DEBUG(5, "Will copy from '%s' to '%s'\n", dir_path, dst_path);
     ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 
@@ -262,7 +262,7 @@ START_TEST(test_copy_node)
     fail_if(ret == -1, "Cannot chdir\n");
 
     /* and finally copy.. */
-    DEBUG(5, ("Will copy from '%s' to '%s'\n", dir_path, dst_path));
+    DEBUG(5, "Will copy from '%s' to '%s'\n", dir_path, dst_path);
     ret = copy_tree(dir_path, dst_path, 0700, uid, gid);
     fail_unless(ret == EOK, "copy_tree failed\n");
 

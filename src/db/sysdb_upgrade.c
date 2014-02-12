@@ -37,7 +37,7 @@ static errno_t commence_upgrade(TALLOC_CTX *mem_ctx, struct ldb_context *ldb,
     struct upgrade_ctx *ctx;
     int ret;
 
-    DEBUG(SSSDBG_CRIT_FAILURE, ("UPGRADING DB TO VERSION %s\n", new_ver));
+    DEBUG(SSSDBG_CRIT_FAILURE, "UPGRADING DB TO VERSION %s\n", new_ver);
 
     ctx = talloc(mem_ctx, struct upgrade_ctx);
     if (!ctx) {
@@ -121,8 +121,8 @@ static int finish_upgrade(int ret, struct upgrade_ctx **ctx, const char **ver)
         lret = ldb_transaction_cancel((*ctx)->ldb);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Could not cancel transaction! [%s]\n",
-                   ldb_strerror(lret)));
+                  "Could not cancel transaction! [%s]\n",
+                   ldb_strerror(lret));
             /* Do not overwrite ret here, we want to return
              * the original failure, not the failure of the
              * transaction cancellation.
@@ -185,8 +185,8 @@ int sysdb_upgrade_01(struct ldb_context *ldb, const char **ver)
     for (i = 0; i < res->count; i++) {
         el = ldb_msg_find_element(res->msgs[i], "memberUid");
         if (!el) {
-            DEBUG(1, ("memberUid is missing from message [%s], skipping\n",
-                      ldb_dn_get_linearized(res->msgs[i]->dn)));
+            DEBUG(1, "memberUid is missing from message [%s], skipping\n",
+                      ldb_dn_get_linearized(res->msgs[i]->dn));
             continue;
         }
 
@@ -290,7 +290,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
     ret = sysdb_ldb_connect(tmp_ctx, ldb_file, &ldb);
     if (ret != EOK) {
-        DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+        DEBUG(1, "sysdb_ldb_connect failed.\n");
         return ret;
     }
 
@@ -333,7 +333,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
                 goto exit;
             }
 
-            DEBUG(4, ("Upgrading DB from version: %s\n", version));
+            DEBUG(4, "Upgrading DB from version: %s\n", version);
 
             if (strcmp(version, SYSDB_VERSION_0_1) == 0) {
                 /* convert database */
@@ -358,7 +358,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
     /* == V2->V3 UPGRADE == */
 
-    DEBUG(0, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_3));
+    DEBUG(0, "UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_3);
 
     /* ldb uses posix locks,
      * posix is stupid and kills all locks when you close *any* file
@@ -379,14 +379,14 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
     /* reopen */
     ret = sysdb_ldb_connect(tmp_ctx, ldb_file, &ldb);
     if (ret != EOK) {
-        DEBUG(1, ("sysdb_ldb_connect failed.\n"));
+        DEBUG(1, "sysdb_ldb_connect failed.\n");
         return ret;
     }
 
     /* open a transaction */
     ret = ldb_transaction_start(ldb);
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to start ldb transaction! (%d)\n", ret));
+        DEBUG(1, "Failed to start ldb transaction! (%d)\n", ret);
         ret = EIO;
         goto exit;
     }
@@ -413,7 +413,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
         ret = ldb_transaction_start(sysdb->ldb);
         if (ret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed to start ldb transaction! (%d)\n", ret));
+            DEBUG(1, "Failed to start ldb transaction! (%d)\n", ret);
             ret = EIO;
             goto done;
         }
@@ -477,18 +477,18 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
             ret = ldb_add(sysdb->ldb, msg);
             if (ret != LDB_SUCCESS) {
-                DEBUG(0, ("WARNING: Could not add entry %s,"
+                DEBUG(0, "WARNING: Could not add entry %s,"
                           " to new ldb file! (%d [%s])\n",
                           ldb_dn_get_linearized(msg->dn),
-                          ret, ldb_errstring(sysdb->ldb)));
+                          ret, ldb_errstring(sysdb->ldb));
             }
 
             ret = ldb_delete(ldb, orig_dn);
             if (ret != LDB_SUCCESS) {
-                DEBUG(0, ("WARNING: Could not remove entry %s,"
+                DEBUG(0, "WARNING: Could not remove entry %s,"
                           " from old ldb file! (%d [%s])\n",
                           ldb_dn_get_linearized(orig_dn),
-                          ret, ldb_errstring(ldb)));
+                          ret, ldb_errstring(ldb));
             }
         }
 
@@ -497,29 +497,29 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
          * of failure just for tracing */
         ret = ldb_delete(ldb, groups_dn);
         if (ret != LDB_SUCCESS) {
-            DEBUG(9, ("WARNING: Could not remove entry %s,"
+            DEBUG(9, "WARNING: Could not remove entry %s,"
                       " from old ldb file! (%d [%s])\n",
                       ldb_dn_get_linearized(groups_dn),
-                      ret, ldb_errstring(ldb)));
+                      ret, ldb_errstring(ldb));
         }
         ret = ldb_delete(ldb, users_dn);
         if (ret != LDB_SUCCESS) {
-            DEBUG(9, ("WARNING: Could not remove entry %s,"
+            DEBUG(9, "WARNING: Could not remove entry %s,"
                       " from old ldb file! (%d [%s])\n",
                       ldb_dn_get_linearized(users_dn),
-                      ret, ldb_errstring(ldb)));
+                      ret, ldb_errstring(ldb));
         }
         ret = ldb_delete(ldb, domain_dn);
         if (ret != LDB_SUCCESS) {
-            DEBUG(9, ("WARNING: Could not remove entry %s,"
+            DEBUG(9, "WARNING: Could not remove entry %s,"
                       " from old ldb file! (%d [%s])\n",
                       ldb_dn_get_linearized(domain_dn),
-                      ret, ldb_errstring(ldb)));
+                      ret, ldb_errstring(ldb));
         }
 
         ret = ldb_transaction_commit(sysdb->ldb);
         if (ret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed to commit ldb transaction! (%d)\n", ret));
+            DEBUG(1, "Failed to commit ldb transaction! (%d)\n", ret);
             ret = EIO;
             goto done;
         }
@@ -562,7 +562,7 @@ int sysdb_check_upgrade_02(struct sss_domain_info *domains,
 
     ret = ldb_transaction_commit(ldb);
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to commit ldb transaction! (%d)\n", ret));
+        DEBUG(1, "Failed to commit ldb transaction! (%d)\n", ret);
         ret = EIO;
         goto exit;
     }
@@ -574,12 +574,12 @@ done:
         if (ctx_trans) {
             ret = ldb_transaction_cancel(sysdb->ldb);
             if (ret != LDB_SUCCESS) {
-                DEBUG(1, ("Failed to cancel ldb transaction! (%d)\n", ret));
+                DEBUG(1, "Failed to cancel ldb transaction! (%d)\n", ret);
             }
         }
         ret = ldb_transaction_cancel(ldb);
         if (ret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed to cancel ldb transaction! (%d)\n", ret));
+            DEBUG(1, "Failed to cancel ldb transaction! (%d)\n", ret);
         }
     }
 
@@ -1060,8 +1060,8 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_LIBS, ("User [%s] is a member of %d groups\n",
-              name, memberof_el->num_values));
+        DEBUG(SSSDBG_TRACE_LIBS, "User [%s] is a member of %d groups\n",
+              name, memberof_el->num_values);
 
         for (j = 0; j < memberof_el->num_values; j++) {
             msg = ldb_msg_new(tmp_ctx);
@@ -1077,9 +1077,9 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
             }
 
             if (!ldb_dn_validate(msg->dn)) {
-                DEBUG(SSSDBG_MINOR_FAILURE, ("DN validation failed during "
+                DEBUG(SSSDBG_MINOR_FAILURE, "DN validation failed during "
                                              "upgrade: [%s]\n",
-                                             memberof_el->values[j].data));
+                                             memberof_el->values[j].data);
                 talloc_zfree(msg);
                 continue;
             }
@@ -1095,8 +1095,8 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                 goto done;
             }
 
-            DEBUG(SSSDBG_TRACE_FUNC, ("Adding ghost [%s] to entry [%s]\n",
-                  name, ldb_dn_get_linearized(msg->dn)));
+            DEBUG(SSSDBG_TRACE_FUNC, "Adding ghost [%s] to entry [%s]\n",
+                  name, ldb_dn_get_linearized(msg->dn));
 
             ret = sss_ldb_modify_permissive(sysdb->ldb, msg);
             talloc_zfree(msg);
@@ -1140,8 +1140,8 @@ int sysdb_upgrade_10(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
             }
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, ("Removing fake user [%s]\n",
-              ldb_dn_get_linearized(user->dn)));
+        DEBUG(SSSDBG_TRACE_FUNC, "Removing fake user [%s]\n",
+              ldb_dn_get_linearized(user->dn));
 
         ret = ldb_delete(sysdb->ldb, user->dn);
         if (ret != LDB_SUCCESS) {
@@ -1203,7 +1203,7 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, ("Found %d autofs entries\n", res->count));
+    DEBUG(SSSDBG_TRACE_LIBS, "Found %d autofs entries\n", res->count);
 
     for (i = 0; i < res->count; i++) {
         entry = res->msgs[i];
@@ -1218,13 +1218,13 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                 memberof_dn = ldb_dn_from_ldb_val(tmp_ctx, sysdb->ldb,
                                                   &(memberof_el->values[j]));
                 if (!memberof_dn) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("Cannot convert memberof into DN, skipping\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "Cannot convert memberof into DN, skipping\n");
                     continue;
                 }
 
                 val = ldb_dn_get_rdn_val(memberof_dn);
                 if (!val) {
-                    DEBUG(SSSDBG_OP_FAILURE, ("Cannot get map name from map DN\n"));
+                    DEBUG(SSSDBG_OP_FAILURE, "Cannot get map name from map DN\n");
                     continue;
                 }
 
@@ -1233,8 +1233,8 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
                                              key, value, NULL);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
-                          ("Cannot save autofs entry [%s]-[%s] into map %s\n",
-                           key, value, val->data));
+                          "Cannot save autofs entry [%s]-[%s] into map %s\n",
+                           key, value, val->data);
                     continue;
                 }
             }
@@ -1242,13 +1242,13 @@ int sysdb_upgrade_11(struct sysdb_ctx *sysdb, struct sss_domain_info *domain,
         }
 
         /* Delete the old entry if it was either processed or incomplete */
-        DEBUG(SSSDBG_TRACE_LIBS, ("Deleting [%s]\n",
-              ldb_dn_get_linearized(entry->dn)));
+        DEBUG(SSSDBG_TRACE_LIBS, "Deleting [%s]\n",
+              ldb_dn_get_linearized(entry->dn));
 
         ret = ldb_delete(sysdb->ldb, entry->dn);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, ("Cannot delete old autofs entry %s\n",
-                  ldb_dn_get_linearized(entry->dn)));
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot delete old autofs entry %s\n",
+                  ldb_dn_get_linearized(entry->dn));
             continue;
         }
     }
@@ -1337,7 +1337,7 @@ int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver)
 
     basedn = ldb_dn_new(ctx, sysdb->ldb, SYSDB_BASE);
     if (!basedn) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build base dn\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
         ret = EIO;
         goto done;
     }
@@ -1346,7 +1346,7 @@ int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver)
                      basedn, LDB_SCOPE_ONELEVEL,
                      attrs, "objectclass=%s", SYSDB_SUBDOMAIN_CLASS);
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to search subdomains\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to search subdomains\n");
         ret = EIO;
         goto done;
     }
@@ -1356,15 +1356,15 @@ int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver)
         tmp_str = ldb_msg_find_attr_as_string(dom_res->msgs[i], "cn", NULL);
         if (tmp_str == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  ("The object [%s] doesn't have a name\n",
-                   ldb_dn_get_linearized(dom_res->msgs[i]->dn)));
+                  "The object [%s] doesn't have a name\n",
+                   ldb_dn_get_linearized(dom_res->msgs[i]->dn));
             continue;
         }
 
         basedn = ldb_dn_new_fmt(ctx, sysdb->ldb, SYSDB_DOM_BASE, tmp_str);
         if (!basedn) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to build base dn for subdomain %s\n", tmp_str));
+                  "Failed to build base dn for subdomain %s\n", tmp_str);
             continue;
         }
 
@@ -1372,7 +1372,7 @@ int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver)
                          basedn, LDB_SCOPE_SUBTREE, attrs, NULL);
         if (ret != LDB_SUCCESS) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("Failed to search subdomain %s\n", tmp_str));
+                  "Failed to search subdomain %s\n", tmp_str);
             talloc_free(basedn);
             continue;
         }
@@ -1387,8 +1387,8 @@ int sysdb_upgrade_13(struct sysdb_ctx *sysdb, const char **ver)
             ret = ldb_delete(sysdb->ldb, res->msgs[j]->dn);
             if (ret) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Failed to delete %s\n",
-                       ldb_dn_get_linearized(res->msgs[j]->dn)));
+                      "Failed to delete %s\n",
+                       ldb_dn_get_linearized(res->msgs[j]->dn));
                 continue;
             }
         }
@@ -1426,7 +1426,7 @@ int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver)
 
     basedn = ldb_dn_new(ctx, sysdb->ldb, SYSDB_BASE);
     if (!basedn) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to build base dn\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
         ret = EIO;
         goto done;
     }
@@ -1451,8 +1451,8 @@ int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver)
     ret = ldb_add(sysdb->ldb, msg);
     if (ret != LDB_SUCCESS) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to upgrade DB (%d, [%s])!\n",
-               ret, ldb_errstring(sysdb->ldb)));
+              "Failed to upgrade DB (%d, [%s])!\n",
+               ret, ldb_errstring(sysdb->ldb));
         ret = EIO;
         goto done;
     }
@@ -1462,7 +1462,7 @@ int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver)
                      basedn, LDB_SCOPE_SUBTREE, attrs,
                      "objectclass=%s", SYSDB_ID_RANGE_CLASS);
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, ("Failed to search range objects\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to search range objects\n");
         ret = EIO;
         goto done;
     }
@@ -1474,13 +1474,13 @@ int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver)
         tmp_str = ldb_msg_find_attr_as_string(res->msgs[i], SYSDB_NAME, NULL);
         if (tmp_str == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  ("The object [%s] doesn't have a name\n",
-                   ldb_dn_get_linearized(res->msgs[i]->dn)));
+                  "The object [%s] doesn't have a name\n",
+                   ldb_dn_get_linearized(res->msgs[i]->dn));
             ret = ldb_delete(sysdb->ldb, res->msgs[i]->dn);
             if (ret) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Failed to delete %s\n",
-                       ldb_dn_get_linearized(res->msgs[i]->dn)));
+                      "Failed to delete %s\n",
+                       ldb_dn_get_linearized(res->msgs[i]->dn));
                 ret = EIO;
                 goto done;
             }
@@ -1490,22 +1490,22 @@ int sysdb_upgrade_14(struct sysdb_ctx *sysdb, const char **ver)
         newdn = ldb_dn_new_fmt(ctx, sysdb->ldb, SYSDB_TMPL_RANGE, tmp_str);
         if (!newdn) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to create new DN to move [%s]\n",
-                   ldb_dn_get_linearized(res->msgs[i]->dn)));
+                  "Failed to create new DN to move [%s]\n",
+                   ldb_dn_get_linearized(res->msgs[i]->dn));
             ret = ENOMEM;
             goto done;
         }
         ret = ldb_rename(sysdb->ldb, res->msgs[i]->dn, newdn);
         if (ret != LDB_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  ("Failed to move [%s] to [%s]\n",
+                  "Failed to move [%s] to [%s]\n",
                    ldb_dn_get_linearized(res->msgs[i]->dn),
-                   ldb_dn_get_linearized(newdn)));
+                   ldb_dn_get_linearized(newdn));
             ret = ldb_delete(sysdb->ldb, res->msgs[i]->dn);
             if (ret) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      ("Failed to delete %s\n",
-                       ldb_dn_get_linearized(res->msgs[i]->dn)));
+                      "Failed to delete %s\n",
+                       ldb_dn_get_linearized(res->msgs[i]->dn));
                 ret = EIO;
                 goto done;
             }

@@ -64,7 +64,7 @@ static void sudo_dp_reconnect_init(struct sbus_connection *conn,
 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(SSSDBG_TRACE_FUNC, ("Reconnected to the Data Provider.\n"));
+        DEBUG(SSSDBG_TRACE_FUNC, "Reconnected to the Data Provider.\n");
 
         /* Identify ourselves to the data provider */
         ret = dp_common_send_id(be_conn->conn,
@@ -78,8 +78,8 @@ static void sudo_dp_reconnect_init(struct sbus_connection *conn,
     }
 
     /* Failed to reconnect */
-    DEBUG(SSSDBG_FATAL_FAILURE, ("Could not reconnect to %s provider.\n",
-                                 be_conn->domain->name));
+    DEBUG(SSSDBG_FATAL_FAILURE, "Could not reconnect to %s provider.\n",
+                                 be_conn->domain->name);
 }
 
 int sudo_process_init(TALLOC_CTX *mem_ctx,
@@ -105,13 +105,13 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                            &sudo_dp_interface,
                            &rctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("sss_process_init() failed\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");
         return ret;
     }
 
     sudo_ctx = talloc_zero(rctx, struct sudo_ctx);
     if (!sudo_ctx) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("fatal error initializing sudo_ctx\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing sudo_ctx\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -126,7 +126,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                          3, &max_retries);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to set up automatic reconnection\n"));
+              "Failed to set up automatic reconnection\n");
         goto fail;
     }
 
@@ -143,18 +143,18 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                           CONFDB_DEFAULT_SUDO_TIMED,
                           &sudo_ctx->timed);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Error reading from confdb (%d) [%s]\n",
-              ret, strerror(ret)));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) [%s]\n",
+              ret, strerror(ret));
         goto fail;
     }
 
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("schedule_get_domains_tasks failed.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, ("SUDO Initialization complete\n"));
+    DEBUG(SSSDBG_TRACE_FUNC, "SUDO Initialization complete\n");
 
     return EOK;
 
@@ -205,8 +205,8 @@ int main(int argc, const char *argv[])
     ret = die_if_parent_died();
     if (ret != EOK) {
         /* This is not fatal, don't return */
-        DEBUG(SSSDBG_OP_FAILURE, ("Could not set up to exit "
-                                  "when parent process does\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set up to exit "
+                                  "when parent process does\n");
     }
 
     ret = sudo_process_init(main_ctx,
