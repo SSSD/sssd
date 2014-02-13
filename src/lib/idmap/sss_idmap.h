@@ -608,7 +608,7 @@ enum idmap_error_code sss_idmap_free_smb_sid(struct sss_idmap_ctx *ctx,
  * @brief Free mapped binary SID.
  *
  * @param[in] ctx         Idmap context
- * @param[in] smb_sid     Binary SID to be freed.
+ * @param[in] bin_sid     Binary SID to be freed.
  *
  * @return
  *  - #IDMAP_CONTEXT_INVALID: Provided context is invalid
