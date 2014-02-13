@@ -460,7 +460,7 @@ bool string_in_list(const char *string, char **list, bool case_sensitive);
  *        prevents the compiler from optimizing out
  *
  * @param data   The address of buffer to wipe
- * @param s      Size of the buffer
+ * @param size   Size of the buffer
  */
 void safezero(void *data, size_t size);
 

@@ -43,7 +43,7 @@ enum sss_id_type {
  * @param[in] fq_name  Fully qualified name of a user or a group
  * @param[out] sid     String representation of the SID of the requested user
  *                     or group, must be freed by the caller
- * @param[out] id_type Type of the object related to the given name
+ * @param[out] type    Type of the object related to the given name
  *
  * @return
  *  - 0 (EOK): success, sid contains the requested SID
@@ -63,7 +63,7 @@ int sss_nss_getsidbyname(const char *fq_name, char **sid,
  * @param[in] id       POSIX UID or GID
  * @param[out] sid     String representation of the SID of the requested user
  *                     or group, must be freed by the caller
- * @param[out] id_type Type of the object related to the given ID
+ * @param[out] type    Type of the object related to the given ID
  *
  * @return
  *  - see #sss_nss_getsidbyname
@@ -76,7 +76,7 @@ int sss_nss_getsidbyid(uint32_t id, char **sid, enum sss_id_type *type);
  * @param[in] sid      String representation of the SID
  * @param[out] fq_name Fully qualified name of a user or a group,
  *                     must be freed by the caller
- * @param[out] id_type Type of the object related to the SID
+ * @param[out] type    Type of the object related to the SID
  *
  * @return
  *  - see #sss_nss_getsidbyname
