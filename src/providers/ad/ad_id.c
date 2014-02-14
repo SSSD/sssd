@@ -239,12 +239,11 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
     return clist;
 }
 
-static errno_t ad_account_can_shortcut(struct be_ctx *be_ctx,
-                                       struct sdap_idmap_ctx *idmap_ctx,
-                                       int filter_type,
-                                       const char *filter_value,
-                                       const char *filter_domain,
-                                       bool *_shortcut)
+static bool ad_account_can_shortcut(struct be_ctx *be_ctx,
+                                    struct sdap_idmap_ctx *idmap_ctx,
+                                    int filter_type,
+                                    const char *filter_value,
+                                    const char *filter_domain)
 {
     struct sss_domain_info *domain = be_ctx->domain;
     struct sss_domain_info *req_dom = NULL;
@@ -257,8 +256,6 @@ static errno_t ad_account_can_shortcut(struct be_ctx *be_ctx,
 
     if (!sdap_idmap_domain_has_algorithmic_mapping(idmap_ctx, domain->name,
                                                    domain->domain_id)) {
-        shortcut = false;
-        ret = EOK;
         goto done;
     }
 
@@ -269,6 +266,8 @@ static errno_t ad_account_can_shortcut(struct be_ctx *be_ctx,
         id = strtouint32(filter_value, NULL, 10);
         if (errno != 0) {
             ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert filter value to "
+                  "number [%d]: %s\n", ret, strerror(ret));
             goto done;
         }
 
@@ -277,7 +276,6 @@ static errno_t ad_account_can_shortcut(struct be_ctx *be_ctx,
         if (err != IDMAP_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Mapping ID [%s] to SID failed: "
                   "[%s]\n", filter_value, idmap_error_string(err));
-            ret = EIO;
             goto done;
         }
         /* fall through */
@@ -287,33 +285,23 @@ static errno_t ad_account_can_shortcut(struct be_ctx *be_ctx,
         req_dom = find_subdomain_by_sid(domain, csid);
         if (req_dom == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Invalid domain\n");
-            ret = ERR_DOMAIN_NOT_FOUND;
             goto done;
         }
 
         if (strcasecmp(req_dom->name, filter_domain) != 0) {
             shortcut = true;
-        } else {
-            shortcut = false;
         }
         break;
     default:
-        shortcut = false;
         break;
     }
-
-    ret = EOK;
 
 done:
     if (sid != NULL) {
         sss_idmap_free_sid(idmap_ctx->map, sid);
     }
 
-    if (ret == EOK) {
-        *_shortcut = shortcut;
-    }
-
-    return ret;
+    return shortcut;
 }
 
 static void ad_account_info_complete(struct tevent_req *req);
@@ -343,15 +331,9 @@ ad_account_info_handler(struct be_req *be_req)
 
     /* Try to shortcut if this is ID or SID search and it belongs to
      * other domain range than is in ar->domain. */
-    ret = ad_account_can_shortcut(be_ctx, sdap_id_ctx->opts->idmap_ctx,
-                                  ar->filter_type, ar->filter_value,
-                                  ar->domain, &shortcut);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Cannot determine the right domain: %s\n", sss_strerror(ret));
-        shortcut = false;
-    }
-
+    shortcut = ad_account_can_shortcut(be_ctx, sdap_id_ctx->opts->idmap_ctx,
+                                       ar->filter_type, ar->filter_value,
+                                       ar->domain);
     if (shortcut) {
         DEBUG(SSSDBG_TRACE_FUNC, "This ID is from different domain\n");
         be_req_terminate(be_req, DP_ERR_OK, EOK, NULL);
