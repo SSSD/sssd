@@ -118,7 +118,7 @@ int __wrap_getifaddrs(struct ifaddrs **_ifap)
         ifap_prev = ifap;
 
         ifap->ifa_name = talloc_strdup(ifap, name);
-        if (ifap == NULL) {
+        if (ifap->ifa_name == NULL) {
             errno = ENOMEM;
             goto fail;
         }
