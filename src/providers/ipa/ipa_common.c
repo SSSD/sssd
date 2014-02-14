@@ -666,13 +666,15 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     }
 
     /* If krb5_fast_principal was not set explicitly, default to
-     * host/$client_hostname
+     * host/$client_hostname@REALM
      */
     value = dp_opt_get_string(ipa_opts->auth, KRB5_FAST_PRINCIPAL);
     if (value == NULL) {
-        value = talloc_asprintf(ipa_opts->auth, "host/%s",
+        value = talloc_asprintf(ipa_opts->auth, "host/%s@%s",
                                     dp_opt_get_string(ipa_opts->basic,
-                                                      IPA_HOSTNAME));
+                                                      IPA_HOSTNAME),
+                                    dp_opt_get_string(ipa_opts->auth,
+                                                      KRB5_REALM));
         if (value == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set %s!\n",
                      ipa_opts->auth[KRB5_FAST_PRINCIPAL].opt_name);
