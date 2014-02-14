@@ -944,14 +944,10 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
                                int status, int timeouts,
                                unsigned char *abuf, int alen)
 {
-    TALLOC_CTX *tmp_ctx;
     struct hostent *hostent;
     int naddrttls;
     errno_t ret;
-    void *addr;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
+    void *addr = NULL;
 
     naddrttls = DNS_HEADER_ANCOUNT(abuf);
 
@@ -1007,11 +1003,11 @@ resolv_gethostbyname_dns_parse(struct gethostbyname_dns_state *state,
         }
     }
 
-    talloc_free(tmp_ctx);
+    talloc_free(addr);
     return return_code(status);
 
 fail:
-    talloc_free(tmp_ctx);
+    talloc_free(addr);
     return ret;
 }
 
