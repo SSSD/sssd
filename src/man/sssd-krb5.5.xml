@@ -502,7 +502,7 @@
                         </para>
 
                         <para>
-                            Default: false (AD provide: true)
+                            Default: false (AD provider: true)
                         </para>
                     </listitem>
                 </varlistentry>
