@@ -5,6 +5,8 @@
 # Translators:
 # muzzol mussol <muzzol@gmail.com>, 2012
 # muzzol mussol <muzzol@gmail.com>, 2012
+# muzzol mussol <muzzol@gmail.com>, 2012
+# sgallagh <sgallagh@redhat.com>, 2011
 # sgallagh <sgallagh@redhat.com>, 2011
 msgid ""
 msgstr ""
