@@ -1642,6 +1642,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_dyndns.c \
     src/providers/ldap/sdap_refresh.c \
     src/providers/ldap/sdap_utils.c \
+    src/providers/ldap/sdap_domain.c \
     src/providers/ldap/sdap.c
 libsss_ldap_common_la_LDFLAGS = \
     -avoid-version
