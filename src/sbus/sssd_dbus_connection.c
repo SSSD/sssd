@@ -159,7 +159,6 @@ static int sbus_conn_set_fns(struct sbus_connection *conn);
 int sbus_init_connection(TALLOC_CTX *ctx,
                          struct tevent_context *ev,
                          DBusConnection *dbus_conn,
-                         struct sbus_interface *intf,
                          int connection_type,
                          struct sbus_connection **_conn)
 {
@@ -174,12 +173,6 @@ int sbus_init_connection(TALLOC_CTX *ctx,
     conn->dbus.conn = dbus_conn;
     conn->connection_type = connection_type;
 
-    ret = sbus_conn_add_interface(conn, intf);
-    if (ret != EOK) {
-        talloc_free(conn);
-        return ret;
-    }
-
     ret = sbus_conn_set_fns(conn);
     if (ret != EOK) {
         talloc_free(conn);
@@ -193,13 +186,6 @@ int sbus_init_connection(TALLOC_CTX *ctx,
 static int sbus_conn_set_fns(struct sbus_connection *conn)
 {
     dbus_bool_t dbret;
-
-    /*
-     * Set the default destructor
-     * Connections can override this with
-     * sbus_conn_set_destructor
-     */
-    sbus_conn_set_destructor(conn, NULL);
 
     /* Set up DBusWatch functions */
     dbret = dbus_connection_set_watch_functions(conn->dbus.conn,
@@ -244,8 +230,7 @@ static int sbus_conn_set_fns(struct sbus_connection *conn)
 }
 
 int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
-                        const char *address, struct sbus_interface *intf,
-                        struct sbus_connection **_conn)
+                        const char *address, struct sbus_connection **_conn)
 {
     struct sbus_connection *conn;
     DBusConnection *dbus_conn;
@@ -264,8 +249,7 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
         return EIO;
     }
 
-    ret = sbus_init_connection(ctx, ev, dbus_conn, intf,
-                               SBUS_CONN_TYPE_SHARED, &conn);
+    ret = sbus_init_connection(ctx, ev, dbus_conn, SBUS_CONN_TYPE_SHARED, &conn);
     if (ret != EOK) {
         /* FIXME: release resources */
     }
@@ -279,26 +263,7 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
     return ret;
 }
 
-/*
- * sbus_conn_set_destructor
- * Configures a callback to clean up this connection when it
- * is finalized.
- * @param conn The sbus_connection created
- * when this connection was established
- * @param destructor The destructor function that should be
- * called when the connection is finalized. If passed NULL,
- * this will reset the connection to the default destructor.
- */
-void sbus_conn_set_destructor(struct sbus_connection *conn,
-                              sbus_conn_destructor_fn destructor)
-{
-    if (!conn) return;
-
-    conn->destructor = destructor;
-    /* TODO: Should we try to handle the talloc_destructor too? */
-}
-
-int sbus_default_connection_destructor(void *ctx)
+static int connection_destructor(void *ctx)
 {
     struct sbus_connection *conn;
     conn = talloc_get_type(ctx, struct sbus_connection);
@@ -350,11 +315,6 @@ void sbus_disconnect (struct sbus_connection *conn)
 
     conn->disconnect = 1;
 
-    /* Invoke the custom destructor, if it exists */
-    if (conn->destructor) {
-        conn->destructor(conn);
-    }
-
     /* Unregister object paths */
     sbus_unreg_object_paths(conn);
 
@@ -376,7 +336,7 @@ void sbus_disconnect (struct sbus_connection *conn)
                                              NULL, NULL, NULL);
 
     /* Finalize the connection */
-    sbus_default_connection_destructor(conn);
+    connection_destructor(conn);
 
     dbus_connection_unref(conn->dbus.conn);
     /* Unreferenced conn->dbus_conn *
@@ -465,16 +425,6 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
             result = DBUS_HANDLER_RESULT_HANDLED;
         }
     }
-    else {
-        /* Special case: check for Introspection request
-         * This is usually only useful for system bus connections
-         */
-        if (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
-            strcmp(msg_method, DBUS_INTROSPECT_METHOD) == 0)
-        {
-            handler_fn = intf_p->intf->introspect_fn;
-        }
-    }
 
     if (handler_fn) {
         dbus_req = sbus_new_request(intf_p->conn, intf_p->intf, message);
@@ -482,7 +432,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
             ret = ENOMEM;
         } else {
             dbus_req->method = method;
-            ret = handler_fn(dbus_req);
+            ret = handler_fn(dbus_req, intf_p->intf->instance_data);
         }
         if (ret != EOK) {
             if (dbus_req)
@@ -494,6 +444,32 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
     }
 
     return result;
+}
+
+struct sbus_interface *
+sbus_new_interface(TALLOC_CTX *mem_ctx,
+                   const char *object_path,
+                   struct sbus_vtable *iface_vtable,
+                   void *instance_data)
+{
+    struct sbus_interface *intf;
+
+    intf = talloc_zero(mem_ctx, struct sbus_interface);
+    if (intf == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot allocate a new sbus_interface.\n");
+        return NULL;
+    }
+
+    intf->path = talloc_strdup(intf, object_path);
+    if (intf->path == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Cannot duplicate object path.\n");
+        talloc_free(intf);
+        return NULL;
+    }
+
+    intf->vtable = iface_vtable;
+    intf->instance_data = instance_data;
+    return intf;
 }
 
 /* Adds a new D-BUS path message handler to the connection
@@ -567,16 +543,6 @@ static void sbus_unreg_object_paths(struct sbus_connection *conn)
                                                iter->intf->path);
         iter = iter->next;
     }
-}
-
-void sbus_conn_set_private_data(struct sbus_connection *conn, void *pvt_data)
-{
-    conn->pvt_data = pvt_data;
-}
-
-void *sbus_conn_get_private_data(struct sbus_connection *conn)
-{
-    return conn->pvt_data;
 }
 
 static void sbus_reconnect(struct tevent_context *ev,

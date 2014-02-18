@@ -59,12 +59,6 @@ struct mon_cli_iface monitor_pam_methods = {
     .clearEnumCache = NULL,
 };
 
-struct sbus_interface monitor_pam_interface = {
-    MONITOR_PATH,
-    &monitor_pam_methods.vtable,
-    NULL
-};
-
 static struct data_provider_iface pam_dp_methods = {
     { &data_provider_iface_meta, 0 },
     .RegisterService = NULL,
@@ -75,13 +69,6 @@ static struct data_provider_iface pam_dp_methods = {
     .getDomains = NULL,
     .getAccountInfo = NULL,
 };
-
-struct sbus_interface pam_dp_interface = {
-    DP_PATH,
-    &pam_dp_methods.vtable,
-    NULL
-};
-
 
 static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
 {
@@ -131,8 +118,8 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            CONFDB_PAM_CONF_ENTRY,
                            SSS_PAM_SBUS_SERVICE_NAME,
                            SSS_PAM_SBUS_SERVICE_VERSION,
-                           &monitor_pam_interface,
-                           "PAM", &pam_dp_interface,
+                           &monitor_pam_methods,
+                           "PAM", &pam_dp_methods.vtable,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");

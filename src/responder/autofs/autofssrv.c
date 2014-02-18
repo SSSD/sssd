@@ -29,7 +29,7 @@
 #include "providers/data_provider.h"
 #include "responder/autofs/autofs_private.h"
 
-static int autofs_clean_hash_table(struct sbus_request *dbus_req);
+static int autofs_clean_hash_table(struct sbus_request *dbus_req, void *data);
 
 struct mon_cli_iface monitor_autofs_methods = {
     { &mon_cli_iface_meta, 0 },
@@ -43,12 +43,6 @@ struct mon_cli_iface monitor_autofs_methods = {
     .clearEnumCache = autofs_clean_hash_table,
 };
 
-struct sbus_interface monitor_autofs_interface = {
-    MONITOR_PATH,
-    &monitor_autofs_methods.vtable,
-    NULL
-};
-
 static struct data_provider_iface autofs_dp_methods = {
     { &data_provider_iface_meta, 0 },
     .RegisterService = NULL,
@@ -58,12 +52,6 @@ static struct data_provider_iface autofs_dp_methods = {
     .hostHandler = NULL,
     .getDomains = NULL,
     .getAccountInfo = NULL,
-};
-
-struct sbus_interface autofs_dp_interface = {
-    DP_PATH,
-    &autofs_dp_methods.vtable,
-    NULL
 };
 
 static errno_t
@@ -111,10 +99,9 @@ autofs_dp_reconnect_init(struct sbus_connection *conn,
                                  be_conn->domain->name);
 }
 
-static int autofs_clean_hash_table(struct sbus_request *dbus_req)
+static int autofs_clean_hash_table(struct sbus_request *dbus_req, void *data)
 {
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
-                                            struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
     struct autofs_ctx *actx =
             talloc_get_type(rctx->pvt_ctx, struct autofs_ctx);
     errno_t ret;
@@ -148,9 +135,9 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                            CONFDB_AUTOFS_CONF_ENTRY,
                            SSS_AUTOFS_SBUS_SERVICE_NAME,
                            SSS_AUTOFS_SBUS_SERVICE_VERSION,
-                           &monitor_autofs_interface,
+                           &monitor_autofs_methods,
                            "autofs",
-                           &autofs_dp_interface,
+                           &autofs_dp_methods.vtable,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");

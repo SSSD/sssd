@@ -68,7 +68,6 @@ struct be_conn {
     struct sss_domain_info *domain;
 
     char *sbus_address;
-    struct sbus_interface *intf;
     struct sbus_connection *conn;
 };
 
@@ -142,7 +141,16 @@ struct sss_cmd_table {
     int (*fn)(struct cli_ctx *cctx);
 };
 
-/* responder_common.c */
+/* from generated code */
+struct mon_cli_iface;
+
+/*
+ * responder_common.c
+ *
+ * NOTE: We would like to use more strong typing for the @dp_vtable argument
+ * but can't since it accepts either a struct data_provider_iface
+ * or struct data_provider_rev_iface. So pass the base struct: sbus_vtable
+ */
 int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb,
@@ -152,9 +160,9 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *confdb_service_path,
                      const char *svc_name,
                      uint16_t svc_version,
-                     struct sbus_interface *monitor_intf,
+                     struct mon_cli_iface *monitor_intf,
                      const char *cli_name,
-                     struct sbus_interface *dp_intf,
+                     struct sbus_vtable *dp_intf,
                      struct resp_ctx **responder_ctx);
 
 int sss_parse_name(TALLOC_CTX *memctx,
@@ -214,7 +222,7 @@ struct dp_callback_ctx {
 
 void handle_requests_after_reconnect(struct resp_ctx *rctx);
 
-int responder_logrotate(struct sbus_request *dbus_req);
+int responder_logrotate(struct sbus_request *dbus_req, void *data);
 
 /* Each responder-specific request must create a constructor
  * function that creates a DBus Message that would be sent to

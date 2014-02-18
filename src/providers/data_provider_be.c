@@ -54,10 +54,10 @@
 #define ACCESS_DENY "deny"
 #define NO_PROVIDER "none"
 
-static int data_provider_res_init(struct sbus_request *dbus_req);
-static int data_provider_go_offline(struct sbus_request *dbus_req);
-static int data_provider_reset_offline(struct sbus_request *dbus_req);
-static int data_provider_logrotate(struct sbus_request *dbus_req);
+static int data_provider_res_init(struct sbus_request *dbus_req, void *data);
+static int data_provider_go_offline(struct sbus_request *dbus_req, void *data);
+static int data_provider_reset_offline(struct sbus_request *dbus_req, void *data);
+static int data_provider_logrotate(struct sbus_request *dbus_req, void *data);
 
 struct mon_cli_iface monitor_be_methods = {
     { &mon_cli_iface_meta, 0 },
@@ -71,19 +71,13 @@ struct mon_cli_iface monitor_be_methods = {
     .clearEnumCache = NULL,
 };
 
-struct sbus_interface monitor_be_interface = {
-    MONITOR_PATH,
-    &monitor_be_methods.vtable,
-    NULL
-};
-
-static int client_registration(struct sbus_request *dbus_req);
-static int be_get_account_info(struct sbus_request *dbus_req);
-static int be_pam_handler(struct sbus_request *dbus_req);
-static int be_sudo_handler(struct sbus_request *dbus_req);
-static int be_autofs_handler(struct sbus_request *dbus_req);
-static int be_host_handler(struct sbus_request *dbus_req);
-static int be_get_subdomains(struct sbus_request *dbus_req);
+static int client_registration(struct sbus_request *dbus_req, void *data);
+static int be_get_account_info(struct sbus_request *dbus_req, void *user_data);
+static int be_pam_handler(struct sbus_request *dbus_req, void *user_data);
+static int be_sudo_handler(struct sbus_request *dbus_req, void *user_data);
+static int be_autofs_handler(struct sbus_request *dbus_req, void *user_data);
+static int be_host_handler(struct sbus_request *dbus_req, void *user_data);
+static int be_get_subdomains(struct sbus_request *dbus_req, void *user_data);
 
 struct data_provider_iface be_methods = {
     { &data_provider_iface_meta, 0 },
@@ -94,12 +88,6 @@ struct data_provider_iface be_methods = {
     .hostHandler = be_host_handler,
     .getDomains = be_get_subdomains,
     .getAccountInfo = be_get_account_info,
-};
-
-struct sbus_interface be_interface = {
-    DP_PATH,
-    &be_methods.vtable,
-    NULL
 };
 
 static struct bet_data bet_data[] = {
@@ -565,13 +553,12 @@ static void get_subdomains_callback(struct be_req *req,
     talloc_free(req);
 }
 
-static int be_get_subdomains(struct sbus_request *dbus_req)
+static int be_get_subdomains(struct sbus_request *dbus_req, void *user_data)
 {
     struct be_subdom_req *req;
     struct be_req *be_req = NULL;
     struct be_client *becli;
     DBusError dbus_error;
-    void *user_data;
     dbus_bool_t force;
     char *domain_hint;
     dbus_uint16_t err_maj;
@@ -579,8 +566,6 @@ static int be_get_subdomains(struct sbus_request *dbus_req)
     const char *err_msg;
     int ret;
 
-    user_data = sbus_conn_get_private_data(dbus_req->conn);
-    if (!user_data) return EINVAL;
     becli = talloc_get_type(user_data, struct be_client);
     if (!becli) return EINVAL;
 
@@ -1046,13 +1031,12 @@ errno_t be_get_account_info_recv(struct tevent_req *req,
     return EOK;
 }
 
-static int be_get_account_info(struct sbus_request *dbus_req)
+static int be_get_account_info(struct sbus_request *dbus_req, void *user_data)
 {
     struct be_acct_req *req;
     struct be_req *be_req;
     struct be_client *becli;
     DBusError dbus_error;
-    void *user_data;
     uint32_t type;
     char *filter;
     char *domain;
@@ -1064,8 +1048,6 @@ static int be_get_account_info(struct sbus_request *dbus_req)
 
     be_req = NULL;
 
-    user_data = sbus_conn_get_private_data(dbus_req->conn);
-    if (!user_data) return EINVAL;
     becli = talloc_get_type(user_data, struct be_client);
     if (!becli) return EINVAL;
 
@@ -1303,19 +1285,16 @@ done:
     talloc_free(req);
 }
 
-static int be_pam_handler(struct sbus_request *dbus_req)
+static int be_pam_handler(struct sbus_request *dbus_req, void *user_data)
 {
     DBusError dbus_error;
     DBusMessage *reply;
     struct be_client *becli;
     dbus_bool_t ret;
-    void *user_data;
     struct pam_data *pd = NULL;
     struct be_req *be_req = NULL;
     enum bet_type target = BET_NULL;
 
-    user_data = sbus_conn_get_private_data(dbus_req->conn);
-    if (!user_data) return EINVAL;
     becli = talloc_get_type(user_data, struct be_client);
     if (!becli) return EINVAL;
 
@@ -1465,7 +1444,7 @@ static void be_sudo_handler_callback(struct be_req *req,
     talloc_free(req);
 }
 
-static int be_sudo_handler(struct sbus_request *dbus_req)
+static int be_sudo_handler(struct sbus_request *dbus_req, void *user_data)
 {
     DBusError dbus_error;
     DBusMessageIter iter;
@@ -1473,7 +1452,6 @@ static int be_sudo_handler(struct sbus_request *dbus_req)
     struct be_client *be_cli = NULL;
     struct be_req *be_req = NULL;
     struct be_sudo_req *sudo_req = NULL;
-    void *user_data = NULL;
     int ret = 0;
     uint32_t type;
     uint32_t rules_num = 0;
@@ -1482,11 +1460,6 @@ static int be_sudo_handler(struct sbus_request *dbus_req)
     int i;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Entering be_sudo_handler()\n");
-
-    user_data = sbus_conn_get_private_data(dbus_req->conn);
-    if (user_data == NULL) {
-        return EINVAL;
-    }
 
     be_cli = talloc_get_type(user_data, struct be_client);
     if (be_cli == NULL) {
@@ -1632,13 +1605,12 @@ static void be_autofs_handler_callback(struct be_req *req,
                                        int errnum,
                                        const char *errstr);
 
-static int be_autofs_handler(struct sbus_request *dbus_req)
+static int be_autofs_handler(struct sbus_request *dbus_req, void *user_data)
 {
     DBusError dbus_error;
     struct be_client *be_cli = NULL;
     struct be_req *be_req = NULL;
     struct be_autofs_req *be_autofs_req = NULL;
-    void *user_data = NULL;
     int ret = 0;
     uint32_t type;
     char *filter;
@@ -1648,12 +1620,6 @@ static int be_autofs_handler(struct sbus_request *dbus_req)
     const char *err_msg;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Entering be_autofs_handler()\n");
-
-    user_data = sbus_conn_get_private_data(dbus_req->conn);
-    if (user_data == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot get SBUS private data\n");
-        return EINVAL;
-    }
 
     be_cli = talloc_get_type(user_data, struct be_client);
     if (be_cli == NULL) {
@@ -1847,13 +1813,12 @@ static void be_autofs_handler_callback(struct be_req *req,
     talloc_free(req);
 }
 
-static int be_host_handler(struct sbus_request *dbus_req)
+static int be_host_handler(struct sbus_request *dbus_req, void *user_data)
 {
     struct be_host_req *req;
     struct be_req *be_req;
     struct be_client *becli;
     DBusError dbus_error;
-    void *user_data;
     uint32_t flags;
     char *filter;
     int ret;
@@ -1863,8 +1828,6 @@ static int be_host_handler(struct sbus_request *dbus_req)
 
     be_req = NULL;
 
-    user_data = sbus_conn_get_private_data(dbus_req->conn);
-    if (!user_data) return EINVAL;
     becli = talloc_get_type(user_data, struct be_client);
     if (!becli) return EINVAL;
 
@@ -2030,7 +1993,7 @@ static int be_client_destructor(void *ctx)
     return 0;
 }
 
-static int client_registration(struct sbus_request *dbus_req)
+static int client_registration(struct sbus_request *dbus_req, void *data)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     struct sbus_connection *conn;
@@ -2039,11 +2002,9 @@ static int client_registration(struct sbus_request *dbus_req)
     dbus_uint16_t cli_ver;
     char *cli_name;
     dbus_bool_t dbret;
-    void *data;
     int ret;
 
     conn = dbus_req->conn;
-    data = sbus_conn_get_private_data(conn);
     becli = talloc_get_type(data, struct be_client);
     if (!becli) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Connection holds no valid init data\n");
@@ -2230,6 +2191,7 @@ static void init_timeout(struct tevent_context *ev,
 
 static int be_client_init(struct sbus_connection *conn, void *data)
 {
+    struct sbus_interface *intf;
     struct be_ctx *bectx;
     struct be_client *becli;
     struct timeval tv;
@@ -2264,9 +2226,12 @@ static int be_client_init(struct sbus_connection *conn, void *data)
 
     /* Attach the client context to the connection context, so that it is
      * always available when we need to manage the connection. */
-    sbus_conn_set_private_data(conn, becli);
+    intf = sbus_new_interface(conn, DP_PATH, &be_methods.vtable, becli);
+    if (!intf) {
+        return ENOMEM;
+    }
 
-    return EOK;
+    return sbus_conn_add_interface(conn, intf);
 }
 
 /* be_srv_init
@@ -2284,8 +2249,7 @@ static int be_srv_init(struct be_ctx *ctx)
     }
 
     ret = sbus_new_server(ctx, ctx->ev, sbus_address,
-                          &be_interface, true, &ctx->sbus_srv,
-                          be_client_init, ctx);
+                          true, &ctx->sbus_srv, be_client_init, ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");
         return ret;
@@ -2599,7 +2563,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sss_monitor_init(ctx, ctx->ev, &monitor_be_interface,
+    ret = sss_monitor_init(ctx, ctx->ev, &monitor_be_methods,
                            ctx->identity, DATA_PROVIDER_VERSION,
                            ctx, &ctx->mon_conn);
     if (ret != EOK) {
@@ -2879,38 +2843,37 @@ int main(int argc, const char *argv[])
 }
 #endif
 
-static int data_provider_res_init(struct sbus_request *dbus_req)
+static int data_provider_res_init(struct sbus_request *dbus_req, void *data)
 {
     struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn), struct be_ctx);
+    be_ctx = talloc_get_type(data, struct be_ctx);
 
     resolv_reread_configuration(be_ctx->be_res->resolv);
     check_if_online(be_ctx);
 
-    return monitor_common_res_init(dbus_req);
+    return monitor_common_res_init(dbus_req, data);
 }
 
-static int data_provider_go_offline(struct sbus_request *dbus_req)
+static int data_provider_go_offline(struct sbus_request *dbus_req, void *data)
 {
     struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn), struct be_ctx);
+    be_ctx = talloc_get_type(data, struct be_ctx);
     be_mark_offline(be_ctx);
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
-static int data_provider_reset_offline(struct sbus_request *dbus_req)
+static int data_provider_reset_offline(struct sbus_request *dbus_req, void *data)
 {
     struct be_ctx *be_ctx;
-    be_ctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn), struct be_ctx);
+    be_ctx = talloc_get_type(data, struct be_ctx);
     check_if_online(be_ctx);
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
-static int data_provider_logrotate(struct sbus_request *dbus_req)
+static int data_provider_logrotate(struct sbus_request *dbus_req, void *data)
 {
     errno_t ret;
-    struct be_ctx *be_ctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
-                                            struct be_ctx);
+    struct be_ctx *be_ctx = talloc_get_type(data, struct be_ctx);
 
     ret = monitor_common_rotate_logs(be_ctx->cdb, be_ctx->conf_path);
     if (ret != EOK) return ret;

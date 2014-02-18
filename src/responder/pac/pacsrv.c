@@ -60,12 +60,6 @@ struct mon_cli_iface monitor_pac_methods = {
     .clearEnumCache = NULL,
 };
 
-struct sbus_interface monitor_pac_interface = {
-    MONITOR_PATH,
-    &monitor_pac_methods.vtable,
-    NULL
-};
-
 static struct data_provider_iface pac_dp_methods = {
     { &data_provider_iface_meta, 0 },
     .RegisterService = NULL,
@@ -76,13 +70,6 @@ static struct data_provider_iface pac_dp_methods = {
     .getDomains = NULL,
     .getAccountInfo = NULL,
 };
-
-struct sbus_interface pac_dp_interface = {
-    DP_PATH,
-    &pac_dp_methods.vtable,
-    NULL
-};
-
 
 /* TODO: check if this can be made generic for all responders */
 static void pac_dp_reconnect_init(struct sbus_connection *conn,
@@ -135,8 +122,8 @@ int pac_process_init(TALLOC_CTX *mem_ctx,
                            CONFDB_PAC_CONF_ENTRY,
                            PAC_SBUS_SERVICE_NAME,
                            PAC_SBUS_SERVICE_VERSION,
-                           &monitor_pac_interface,
-                           "PAC", &pac_dp_interface,
+                           &monitor_pac_methods,
+                           "PAC", &pac_dp_methods.vtable,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");

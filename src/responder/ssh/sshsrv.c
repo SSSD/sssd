@@ -40,12 +40,6 @@ struct mon_cli_iface monitor_ssh_methods = {
     .clearEnumCache = NULL,
 };
 
-struct sbus_interface monitor_ssh_interface = {
-    MONITOR_PATH,
-    &monitor_ssh_methods.vtable,
-    NULL
-};
-
 static struct data_provider_iface ssh_dp_methods = {
     { &data_provider_iface_meta, 0 },
     .RegisterService = NULL,
@@ -55,12 +49,6 @@ static struct data_provider_iface ssh_dp_methods = {
     .hostHandler = NULL,
     .getDomains = NULL,
     .getAccountInfo = NULL,
-};
-
-struct sbus_interface ssh_dp_interface = {
-    DP_PATH,
-    &ssh_dp_methods.vtable,
-    NULL
 };
 
 static void ssh_dp_reconnect_init(struct sbus_connection *conn,
@@ -107,9 +95,9 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
                            CONFDB_SSH_CONF_ENTRY,
                            SSS_SSH_SBUS_SERVICE_NAME,
                            SSS_SSH_SBUS_SERVICE_VERSION,
-                           &monitor_ssh_interface,
+                           &monitor_ssh_methods,
                            "SSH",
-                           &ssh_dp_interface,
+                           &ssh_dp_methods.vtable,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");
