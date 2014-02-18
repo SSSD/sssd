@@ -35,7 +35,6 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
                     struct sss_test_conf_param *params)
 {
     struct sss_test_ctx *test_ctx;
-    char *conf_db;
     size_t i;
     const char *val[2];
     val[1] = NULL;
@@ -48,14 +47,15 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    conf_db = talloc_asprintf(test_ctx, "%s/%s", tests_path, confdb_path);
-    if (conf_db == NULL) {
+    test_ctx->confdb_path = talloc_asprintf(test_ctx, "%s/%s",
+                                            tests_path, confdb_path);
+    if (test_ctx->confdb_path == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
         goto fail;
     }
 
     /* Connect to the conf db */
-    ret = confdb_init(test_ctx, &test_ctx->confdb, conf_db);
+    ret = confdb_init(test_ctx, &test_ctx->confdb, test_ctx->confdb_path);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "confdb_init failed: %d\n", ret);
         goto fail;
