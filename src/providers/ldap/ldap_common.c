@@ -1790,26 +1790,6 @@ bool sdap_is_secure_uri(const char *uri)
     return false;
 }
 
-char *sdap_get_id_specific_filter(TALLOC_CTX *mem_ctx,
-                                  const char *base_filter,
-                                  const char *extra_filter)
-{
-    char *filter = NULL;
-
-    if (!extra_filter) {
-        return talloc_strdup(mem_ctx, base_filter);
-    }
-
-    if (extra_filter[0] == '(') {
-        filter = talloc_asprintf(mem_ctx, "(&%s%s)",
-                                 base_filter, extra_filter);
-    } else {
-        filter = talloc_asprintf(mem_ctx, "(&%s(%s))",
-                                 base_filter, extra_filter);
-    }
-    return filter; /* NULL or not */
-}
-
 char *sdap_get_access_filter(TALLOC_CTX *mem_ctx,
                              const char *base_filter)
 {
