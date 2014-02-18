@@ -143,6 +143,7 @@ if HAVE_CHECK
         sss_idmap-tests \
         responder_socket_access-tests \
         safe-format-tests \
+        sbus_tests \
         sbus_codegen_tests
 
 if BUILD_SSH
@@ -1352,6 +1353,16 @@ krb5_child_test_LDADD = \
     $(SYSTEMD_LOGIN_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
+
+sbus_tests_SOURCES = \
+   src/tests/common_dbus.c \
+   src/tests/sbus_tests.c
+sbus_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+sbus_tests_LDADD = \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS)
 
 sbus_codegen_tests_SOURCES = \
    src/tests/sbus_codegen_tests.c \
