@@ -30,24 +30,6 @@
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
 
-errno_t deref_string_to_val(const char *str, int *val)
-{
-    if (strcasecmp(str, "never") == 0) {
-        *val = LDAP_DEREF_NEVER;
-    } else if (strcasecmp(str, "searching") == 0) {
-        *val = LDAP_DEREF_SEARCHING;
-    } else if (strcasecmp(str, "finding") == 0) {
-        *val = LDAP_DEREF_FINDING;
-    } else if (strcasecmp(str, "always") == 0) {
-        *val = LDAP_DEREF_ALWAYS;
-    } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Illegal deref option [%s].\n", str);
-        return EINVAL;
-    }
-
-    return EOK;
-}
-
 /* ==Connect-to-LDAP-Server=============================================== */
 
 struct sdap_rebind_proc_params {
