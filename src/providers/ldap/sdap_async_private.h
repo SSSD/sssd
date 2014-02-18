@@ -41,7 +41,6 @@ errno_t update_dn_list(struct dn_item *dn_list,
                        struct ldb_message **res,
                        bool *all_resolved);
 
-void make_realm_upper_case(const char *upn);
 struct sdap_handle *sdap_handle_create(TALLOC_CTX *memctx);
 
 void sdap_ldap_result(struct tevent_context *ev, struct tevent_fd *fde,

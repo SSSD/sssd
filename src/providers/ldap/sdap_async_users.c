@@ -28,6 +28,24 @@
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_users.h"
 
+#define REALM_SEPARATOR '@'
+
+static void make_realm_upper_case(const char *upn)
+{
+    char *c;
+
+    c = strchr(upn, REALM_SEPARATOR);
+    if (c == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "No realm delimiter found in upn [%s].\n", upn);
+        return;
+    }
+
+    while(*(++c) != '\0') {
+        c[0] = toupper(*c);
+    }
+
+    return;
+}
 
 /* ==Save-User-Entry====================================================== */
 
