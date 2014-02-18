@@ -1620,6 +1620,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_id_services.c \
     src/providers/ldap/ldap_auth.c \
     src/providers/ldap/ldap_common.c \
+    src/providers/ldap/ldap_options.c \
     src/providers/ldap/sdap_access.c \
     src/providers/ldap/sdap_async.c \
     src/providers/ldap/sdap_async_users.c \
