@@ -144,12 +144,12 @@ int monitor_common_send_id(struct sbus_connection *conn,
     return retval;
 }
 
-int monitor_common_pong(struct sbus_request *dbus_req)
+int monitor_common_pong(struct sbus_request *dbus_req, void *data)
 {
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
-int monitor_common_res_init(struct sbus_request *dbus_req)
+int monitor_common_res_init(struct sbus_request *dbus_req, void *data)
 {
     int ret;
 
@@ -198,7 +198,7 @@ errno_t monitor_common_rotate_logs(struct confdb_ctx *confdb,
 
 errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
                          struct tevent_context *ev,
-                         struct sbus_interface *intf,
+                         struct mon_cli_iface *mon_iface,
                          const char *svc_name,
                          uint16_t svc_version,
                          void *pvt,
@@ -206,6 +206,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     char *sbus_address;
+    struct sbus_interface *intf;
     struct sbus_connection *conn;
 
     /* Set up SBUS connection to the monitor */
@@ -215,15 +216,24 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sbus_client_init(mem_ctx, ev, sbus_address,
-                           intf, &conn,
-                           NULL, pvt);
+    ret = sbus_client_init(mem_ctx, ev, sbus_address, &conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to connect to monitor services.\n");
         talloc_free(sbus_address);
         return ret;
     }
     talloc_free(sbus_address);
+
+    intf = sbus_new_interface(mem_ctx, MONITOR_PATH, &mon_iface->vtable, pvt);
+    if (!intf) {
+        ret = ENOMEM;
+    } else {
+        ret = sbus_conn_add_interface(conn, intf);
+    }
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to export monitor client.\n");
+        return ret;
+    }
 
     /* Identify ourselves to the monitor */
     ret = monitor_common_send_id(conn, svc_name, svc_version);

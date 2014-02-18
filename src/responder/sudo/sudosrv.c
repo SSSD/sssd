@@ -40,12 +40,6 @@ struct mon_cli_iface monitor_sudo_methods = {
     .clearEnumCache = NULL,
 };
 
-struct sbus_interface monitor_sudo_interface = {
-    MONITOR_PATH,
-    &monitor_sudo_methods.vtable,
-    NULL
-};
-
 static struct data_provider_iface sudo_dp_methods = {
     { &data_provider_iface_meta, 0 },
     .RegisterService = NULL,
@@ -55,12 +49,6 @@ static struct data_provider_iface sudo_dp_methods = {
     .hostHandler = NULL,
     .getDomains = NULL,
     .getAccountInfo = NULL,
-};
-
-struct sbus_interface sudo_dp_interface = {
-    DP_PATH,
-    &sudo_dp_methods.vtable,
-    NULL
 };
 
 static void sudo_dp_reconnect_init(struct sbus_connection *conn,
@@ -108,9 +96,9 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                            CONFDB_SUDO_CONF_ENTRY,
                            SSS_SUDO_SBUS_SERVICE_NAME,
                            SSS_SUDO_SBUS_SERVICE_VERSION,
-                           &monitor_sudo_interface,
+                           &monitor_sudo_methods,
                            "SUDO",
-                           &sudo_dp_interface,
+                           &sudo_dp_methods.vtable,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");

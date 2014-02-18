@@ -44,9 +44,6 @@ struct sbus_connection {
     int connection_type;
     int disconnect;
 
-    sbus_conn_destructor_fn destructor;
-    void *pvt_data; /* Private data for this connection */
-
     /* dbus tables and handlers */
     struct sbus_interface_p *intf_list;
 
@@ -59,7 +56,6 @@ struct sbus_connection {
 
     /* server related stuff */
     char *symlink;
-    struct sbus_interface *server_intf;
     sbus_server_conn_init_fn srv_init_fn;
     void *srv_init_data;
 

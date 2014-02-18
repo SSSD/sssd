@@ -27,7 +27,7 @@
 #include "util/sss_format.h"
 #include "providers/proxy/proxy.h"
 
-static int client_registration(struct sbus_request *dbus_req);
+static int client_registration(struct sbus_request *dbus_req, void *data);
 
 static struct data_provider_iface proxy_methods = {
     { &data_provider_iface_meta, 0 },
@@ -38,12 +38,6 @@ static struct data_provider_iface proxy_methods = {
     .hostHandler = NULL,
     .getDomains = NULL,
     .getAccountInfo = NULL,
-};
-
-struct sbus_interface proxy_interface = {
-    DP_PATH,
-    &proxy_methods.vtable,
-    NULL
 };
 
 static void proxy_shutdown(struct be_req *req)
@@ -337,6 +331,7 @@ static int proxy_client_init(struct sbus_connection *conn, void *data)
 {
     struct proxy_auth_ctx *proxy_auth_ctx;
     struct proxy_client *proxy_cli;
+    struct sbus_interface *intf;
     struct timeval tv;
 
     proxy_auth_ctx = talloc_get_type(data, struct proxy_auth_ctx);
@@ -369,9 +364,12 @@ static int proxy_client_init(struct sbus_connection *conn, void *data)
 
     /* Attach the client context to the connection context, so that it is
      * always available when we need to manage the connection. */
-    sbus_conn_set_private_data(conn, proxy_cli);
+    intf = sbus_new_interface(conn, DP_PATH, &proxy_methods.vtable, proxy_cli);
+    if (!intf) {
+        return ENOMEM;
+    }
 
-    return EOK;
+    return sbus_conn_add_interface(conn, intf);
 }
 
 static void init_timeout(struct tevent_context *ev,
@@ -394,7 +392,7 @@ static void init_timeout(struct tevent_context *ev,
      */
 }
 
-static int client_registration(struct sbus_request *dbus_req)
+static int client_registration(struct sbus_request *dbus_req, void *data)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     struct sbus_connection *conn;
@@ -403,7 +401,6 @@ static int client_registration(struct sbus_request *dbus_req)
     dbus_uint16_t cli_ver;
     uint32_t cli_id;
     dbus_bool_t dbret;
-    void *data;
     int hret;
     hash_key_t key;
     hash_value_t value;
@@ -413,7 +410,6 @@ static int client_registration(struct sbus_request *dbus_req)
     int ret;
 
     conn = dbus_req->conn;
-    data = sbus_conn_get_private_data(conn);
     proxy_cli = talloc_get_type(data, struct proxy_client);
     if (!proxy_cli) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Connection holds no valid init data\n");
@@ -535,7 +531,7 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = sbus_new_server(ctx, bectx->ev, sbus_address, &proxy_interface,
+    ret = sbus_new_server(ctx, bectx->ev, sbus_address,
                           false, &ctx->sbus_srv, proxy_client_init, ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");

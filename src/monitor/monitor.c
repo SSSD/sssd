@@ -217,7 +217,7 @@ static void network_status_change_cb(void *cb_data)
 
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
-static int get_monitor_version(struct sbus_request *dbus_req)
+static int get_monitor_version(struct sbus_request *dbus_req, void *data)
 {
     dbus_uint16_t version = MONITOR_VERSION;
 
@@ -236,19 +236,17 @@ static int add_svc_conn_spy(struct mt_svc *svc);
 
 /* registers a new client.
  * if operation is successful also sends back the Monitor version */
-static int client_registration(struct sbus_request *dbus_req)
+static int client_registration(struct sbus_request *dbus_req, void *data)
 {
     dbus_uint16_t version = MONITOR_VERSION;
     struct mon_init_conn *mini;
     struct mt_svc *svc;
-    void *data;
     DBusError dbus_error;
     dbus_uint16_t svc_ver;
     char *svc_name;
     dbus_bool_t dbret;
     int ret;
 
-    data = sbus_conn_get_private_data(dbus_req->conn);
     mini = talloc_get_type(data, struct mon_init_conn);
     if (!mini) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Connection holds no valid init data\n");
@@ -503,12 +501,6 @@ struct mon_srv_iface monitor_methods = {
     .RegisterService = client_registration,
 };
 
-struct sbus_interface monitor_server_interface = {
-    MON_SRV_PATH,
-    &monitor_methods.vtable,
-    NULL
-};
-
 /* monitor_dbus_init
  * Set up the monitor service as a D-BUS Server */
 static int monitor_dbus_init(struct mt_ctx *ctx)
@@ -521,8 +513,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
         return ret;
     }
 
-    ret = sbus_new_server(ctx, ctx->ev,
-                          monitor_address, &monitor_server_interface,
+    ret = sbus_new_server(ctx, ctx->ev, monitor_address,
                           false, &ctx->sbus_srv, monitor_service_init, ctx);
 
     talloc_free(monitor_address);
@@ -2309,6 +2300,7 @@ static void init_timeout(struct tevent_context *ev,
  */
 static int monitor_service_init(struct sbus_connection *conn, void *data)
 {
+    struct sbus_interface *intf;
     struct mt_ctx *ctx;
     struct mon_init_conn *mini;
     struct timeval tv;
@@ -2336,9 +2328,12 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
         return ENOMEM;
     }
 
-    sbus_conn_set_private_data(conn, mini);
+    intf = sbus_new_interface(conn, MON_SRV_PATH, &monitor_methods.vtable, mini);
+    if (!intf) {
+        return ENOMEM;
+    }
 
-    return EOK;
+    return sbus_conn_add_interface(conn, intf);
 }
 
 /* service_send_ping

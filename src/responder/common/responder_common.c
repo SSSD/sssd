@@ -535,10 +535,11 @@ static void idle_handler(struct tevent_context *ev,
 }
 
 static int sss_dp_init(struct resp_ctx *rctx,
-                       struct sbus_interface *intf,
+                       struct sbus_vtable *dp_intf,
                        const char *cli_name,
                        struct sss_domain_info *domain)
 {
+    struct sbus_interface *intf;
     struct be_conn *be_conn;
     int ret;
 
@@ -547,7 +548,6 @@ static int sss_dp_init(struct resp_ctx *rctx,
 
     be_conn->cli_name = cli_name;
     be_conn->domain = domain;
-    be_conn->intf = intf;
     be_conn->rctx = rctx;
 
     /* Set up SBUS connection to the monitor */
@@ -558,10 +558,20 @@ static int sss_dp_init(struct resp_ctx *rctx,
     }
     ret = sbus_client_init(rctx, rctx->ev,
                            be_conn->sbus_address,
-                           intf, &be_conn->conn,
-                           NULL, rctx);
+                           &be_conn->conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to connect to monitor services.\n");
+        return ret;
+    }
+
+    intf = sbus_new_interface(rctx, DP_PATH, dp_intf, rctx);
+    if (!intf) {
+        ret = ENOMEM;
+    } else {
+        ret = sbus_conn_add_interface(be_conn->conn, intf);
+    }
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to export data provider.\n");
         return ret;
     }
 
@@ -763,9 +773,9 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *confdb_service_path,
                      const char *svc_name,
                      uint16_t svc_version,
-                     struct sbus_interface *monitor_intf,
+                     struct mon_cli_iface *monitor_intf,
                      const char *cli_name,
-                     struct sbus_interface *dp_intf,
+                     struct sbus_vtable *dp_intf,
                      struct resp_ctx **responder_ctx)
 {
     struct resp_ctx *rctx;
@@ -990,11 +1000,10 @@ done:
     return ret;
 }
 
-int responder_logrotate(struct sbus_request *dbus_req)
+int responder_logrotate(struct sbus_request *dbus_req, void *data)
 {
     errno_t ret;
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
-                                            struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
 
     ret = monitor_common_rotate_logs(rctx->cdb, rctx->confdb_service_path);
     if (ret != EOK) return ret;

@@ -52,8 +52,7 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
     }
 
     DEBUG(SSSDBG_FUNC_DATA,"Adding connection %p.\n", dbus_conn);
-    ret = sbus_init_connection(server, server->ev,
-                               dbus_conn, server->server_intf,
+    ret = sbus_init_connection(server, server->ev, dbus_conn,
                                SBUS_CONN_TYPE_PRIVATE, &conn);
     if (ret != 0) {
         dbus_connection_close(dbus_conn);
@@ -67,9 +66,6 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
 
     /*
      * Initialize connection-specific features
-     * This may set a more detailed destructor, but
-     * the default destructor will always be chained
-     * to handle connection cleanup.
      * This function (or its callbacks) should also
      * set up connection-specific methods.
      */
@@ -185,7 +181,6 @@ remove_socket_symlink(const char *symlink_name)
 int sbus_new_server(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
                     const char *address,
-                    struct sbus_interface *intf,
                     bool use_symlink,
                     struct sbus_connection **_server,
                     sbus_server_conn_init_fn init_fn,
@@ -285,7 +280,6 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     server->ev = ev;
     server->type = SBUS_SERVER;
     server->dbus.server = dbus_server;
-    server->server_intf = intf;
     server->srv_init_fn = init_fn;
     server->srv_init_data = init_pvt_data;
 

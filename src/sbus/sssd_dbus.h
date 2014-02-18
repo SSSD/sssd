@@ -23,12 +23,13 @@
 #define _SSSD_DBUS_H_
 
 struct sbus_connection;
-
+struct sbus_interface;
 struct sbus_request;
 
 #include <dbus/dbus.h>
 
-typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req);
+typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req,
+                                   void *instance_data);
 
 /*
  * sbus_conn_destructor_fn
@@ -79,14 +80,28 @@ struct sbus_vtable {
 struct sbus_interface {
     const char *path;
     struct sbus_vtable *vtable;
-    sbus_msg_handler_fn introspect_fn;
+    void *instance_data;
 };
+
+/*
+ * Creates a new struct sbus_interface instance to be exported by a DBus
+ * service.
+ *
+ * Pass the result to sbus_conn_add_interface(). The interface
+ * will be exported at @object_path. The method handlers are represented by
+ * @iface_vtable. @instance_data contains additional caller specific data
+ * which is made available to handlers.
+ */
+struct sbus_interface *
+sbus_new_interface(TALLOC_CTX *mem_ctx,
+                   const char *object_path,
+                   struct sbus_vtable *iface_vtable,
+                   void *instance_data);
 
 /* Server Functions */
 int sbus_new_server(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
                     const char *address,
-                    struct sbus_interface *intf,
                     bool use_symlink,
                     struct sbus_connection **server,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data);
@@ -103,7 +118,6 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
 int sbus_new_connection(TALLOC_CTX *ctx,
                         struct tevent_context *ev,
                         const char *address,
-                        struct sbus_interface *intf,
                         struct sbus_connection **conn);
 
 /* sbus_add_connection
@@ -121,19 +135,11 @@ int sbus_new_connection(TALLOC_CTX *ctx,
 int sbus_init_connection(TALLOC_CTX *ctx,
                          struct tevent_context *ev,
                          DBusConnection *dbus_conn,
-                         struct sbus_interface *intf,
                          int connection_type,
                          struct sbus_connection **_conn);
 
-void sbus_conn_set_destructor(struct sbus_connection *conn,
-                              sbus_conn_destructor_fn destructor);
-
-int sbus_default_connection_destructor(void *ctx);
-
 DBusConnection *sbus_get_connection(struct sbus_connection *conn);
 void sbus_disconnect(struct sbus_connection *conn);
-void sbus_conn_set_private_data(struct sbus_connection *conn, void *pvt_data);
-void *sbus_conn_get_private_data(struct sbus_connection *conn);
 int sbus_conn_add_interface(struct sbus_connection *conn,
                             struct sbus_interface *intf);
 bool sbus_conn_disconnecting(struct sbus_connection *conn);

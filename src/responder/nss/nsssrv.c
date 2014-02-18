@@ -55,8 +55,8 @@
 #define SHELL_REALLOC_INCREMENT 5
 #define SHELL_REALLOC_MAX       50
 
-static int nss_clear_memcache(struct sbus_request *dbus_req);
-static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req);
+static int nss_clear_memcache(struct sbus_request *dbus_req, void *data);
+static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *data);
 
 struct mon_cli_iface monitor_nss_methods = {
     { &mon_cli_iface_meta, 0 },
@@ -70,18 +70,11 @@ struct mon_cli_iface monitor_nss_methods = {
     .clearEnumCache = nss_clear_netgroup_hash_table
 };
 
-struct sbus_interface monitor_nss_interface = {
-    MONITOR_PATH,
-    &monitor_nss_methods.vtable,
-    NULL,
-};
-
-static int nss_clear_memcache(struct sbus_request *dbus_req)
+static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
 {
     errno_t ret;
     int memcache_timeout;
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
-                                            struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
     struct nss_ctx *nctx = (struct nss_ctx*) rctx->pvt_ctx;
 
     ret = unlink(SSS_NSS_MCACHE_DIR"/"CLEAR_MC_FLAG);
@@ -134,11 +127,10 @@ done:
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
-static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req)
+static int nss_clear_netgroup_hash_table(struct sbus_request *dbus_req, void *data)
 {
     errno_t ret;
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
-                                            struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
     struct nss_ctx *nctx = (struct nss_ctx*) rctx->pvt_ctx;
 
     ret = nss_orphan_netgroups(nctx);
@@ -304,10 +296,9 @@ done:
     return ret;
 }
 
-static int nss_update_memcache(struct sbus_request *dbus_req)
+static int nss_update_memcache(struct sbus_request *dbus_req, void *data)
 {
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
-                                            struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
     struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
 
     nss_update_pw_memcache(nctx);
@@ -316,10 +307,9 @@ static int nss_update_memcache(struct sbus_request *dbus_req)
     return EOK;
 }
 
-static int nss_memcache_initgr_check(struct sbus_request *dbus_req)
+static int nss_memcache_initgr_check(struct sbus_request *dbus_req, void *data)
 {
-    struct resp_ctx *rctx = talloc_get_type(sbus_conn_get_private_data(dbus_req->conn),
-                                            struct resp_ctx);
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
     struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
     DBusError dbus_error;
     dbus_bool_t dbret;
@@ -358,13 +348,6 @@ static struct data_provider_rev_iface nss_dp_methods = {
     .updateCache = nss_update_memcache,
     .initgrCheck = nss_memcache_initgr_check
 };
-
-struct sbus_interface nss_dp_interface = {
-    DP_PATH,
-    &nss_dp_methods.vtable,
-    NULL
-};
-
 
 static void nss_dp_reconnect_init(struct sbus_connection *conn,
                                   int status, void *pvt)
@@ -417,8 +400,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                            CONFDB_NSS_CONF_ENTRY,
                            NSS_SBUS_SERVICE_NAME,
                            NSS_SBUS_SERVICE_VERSION,
-                           &monitor_nss_interface,
-                           "NSS", &nss_dp_interface,
+                           &monitor_nss_methods,
+                           "NSS", &nss_dp_methods.vtable,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");

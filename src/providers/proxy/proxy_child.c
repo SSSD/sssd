@@ -47,7 +47,7 @@
 
 #include "providers/dp_backend.h"
 
-static int pc_pam_handler(struct sbus_request *dbus_req);
+static int pc_pam_handler(struct sbus_request *dbus_req, void *user_data);
 
 struct data_provider_iface pc_methods = {
     { &data_provider_iface_meta, 0 },
@@ -58,12 +58,6 @@ struct data_provider_iface pc_methods = {
     .hostHandler = NULL,
     .getDomains = NULL,
     .getAccountInfo = NULL,
-};
-
-struct sbus_interface pc_interface = {
-    DP_PATH,
-    &pc_methods.vtable,
-    NULL
 };
 
 struct pc_ctx {
@@ -310,20 +304,14 @@ fail:
     return ret;
 }
 
-static int pc_pam_handler(struct sbus_request *dbus_req)
+static int pc_pam_handler(struct sbus_request *dbus_req, void *user_data)
 {
     DBusError dbus_error;
     DBusMessage *reply;
     struct pc_ctx *pc_ctx;
     errno_t ret;
-    void *user_data;
     struct pam_data *pd = NULL;
 
-    user_data = sbus_conn_get_private_data(dbus_req->conn);
-    if (!user_data) {
-        ret = EINVAL;
-        goto done;
-    }
     pc_ctx = talloc_get_type(user_data, struct pc_ctx);
     if (!pc_ctx) {
         ret = EINVAL;
@@ -393,6 +381,7 @@ int proxy_child_send_id(struct sbus_connection *conn,
                         uint32_t id);
 static int proxy_cli_init(struct pc_ctx *ctx)
 {
+    struct sbus_interface *intf;
     char *sbus_address;
     int ret;
 
@@ -404,11 +393,20 @@ static int proxy_cli_init(struct pc_ctx *ctx)
         return ENOMEM;
     }
 
-    ret = sbus_client_init(ctx, ctx->ev, sbus_address,
-                           &pc_interface, &ctx->conn,
-                           NULL, ctx);
+    ret = sbus_client_init(ctx, ctx->ev, sbus_address, &ctx->conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sbus_client_init failed.\n");
+        return ret;
+    }
+
+    intf = sbus_new_interface(ctx, DP_PATH, &pc_methods.vtable, ctx);
+    if (!intf) {
+        ret = ENOMEM;
+    } else {
+        ret = sbus_conn_add_interface(ctx->conn, intf);
+    }
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to export proxy.\n");
         return ret;
     }
 
