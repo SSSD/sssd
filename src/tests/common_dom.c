@@ -172,7 +172,7 @@ void test_dom_suite_cleanup(const char *tests_path,
 
     errno = 0;
     ret = rmdir(tests_path);
-    if (ret != 0) {
+    if (ret != 0 && errno != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not delete the test dir (%d) (%s)\n",
                errno, strerror(errno));
