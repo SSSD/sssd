@@ -249,7 +249,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
 
     /* Both check_file and chmod can handle both the symlink and
      * the socket */
-    ret = check_file(filename, 0, 0, -1, CHECK_SOCK, &stat_buf, true);
+    ret = check_file(filename, getuid(), getgid(), -1, CHECK_SOCK, &stat_buf, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "check_file failed for [%s].\n", filename);
         ret = EIO;
