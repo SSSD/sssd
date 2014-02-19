@@ -203,13 +203,13 @@ void debug_fn(const char *file,
               const char *format, ...)
 {
     va_list ap;
-
-#ifdef WITH_JOURNALD
-    errno_t ret;
     struct timeval tv;
     struct tm *tm;
     char datetime[20];
     int year;
+
+#ifdef WITH_JOURNALD
+    errno_t ret;
 
     if (!debug_file) {
         /* If we are not outputting logs to files, we should be sending them
