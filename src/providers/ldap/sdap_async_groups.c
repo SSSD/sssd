@@ -198,6 +198,7 @@ static int sdap_fill_memberships(struct sdap_options *opts,
 
     ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
     if (ret) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("sysdb_attrs_get_el failed\n"));
         goto done;
     }
 
@@ -205,6 +206,7 @@ static int sdap_fill_memberships(struct sdap_options *opts,
     el->values = talloc_realloc(group_attrs, el->values, struct ldb_val,
                                 el->num_values + num_values + nuserdns);
     if (!el->values) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("No memory to allocate group attrs\n"));
         ret = ENOMEM;
         goto done;
     }
@@ -243,6 +245,9 @@ static int sdap_fill_memberships(struct sdap_options *opts,
                 continue;
             }
             if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      ("'sdap_find_entry_by_origDN' failed for member [%s] ",
+                      (char *)values[i].data));
                 goto done;
             }
 
@@ -253,6 +258,8 @@ static int sdap_fill_memberships(struct sdap_options *opts,
             el->values[j].length = strlen((char *)el->values[j].data);
             j++;
         } else if (hret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("hash_lookup failed: [%d]: %s\n", hret, strerror(hret)));
             ret = EFAULT;
             goto done;
         }
@@ -755,6 +762,9 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
         ret = sdap_dn_by_primary_gid(memctx, attrs, ctx, dom, opts,
                                      &userdns, &nuserdns);
         if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  ("sdap_dn_by_primary_gid failed: [%d][%s].\n",
+                   ret, strerror(ret)));
             goto fail;
         }
     }
@@ -762,6 +772,8 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     ret = sysdb_attrs_get_el(attrs,
                     opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
     if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("sysdb_attrs_get_el failed: [%d][%s].\n",
+                                     ret, strerror(ret)));
         goto fail;
     }
 
@@ -774,6 +786,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
 
         group_attrs = sysdb_new_attrs(memctx);
         if (!group_attrs) {
+            DEBUG(SSSDBG_MINOR_FAILURE, ("sysdb_new_attrs failed\n"));
             ret = ENOMEM;
             goto fail;
         }
@@ -782,13 +795,20 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
                                     el->values, el->num_values,
                                     userdns, nuserdns);
         if (ret) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  ("sdap_fill_memberships failed with [%d]: %s\n", ret,
+                   strerror(ret)));
             goto fail;
         }
     }
 
     ret = sysdb_store_group(ctx, dom, group_name, 0, group_attrs,
                             dom->group_timeout, now);
-    if (ret) goto fail;
+    if (ret) {
+        DEBUG(SSSDBG_MINOR_FAILURE, ("sysdb_store_group failed: [%d][%s].\n",
+                                     ret, strerror(ret)));
+        goto fail;
+    }
 
     return EOK;
 
