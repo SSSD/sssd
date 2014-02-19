@@ -550,7 +550,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
     ret = apply_subdomain_homedir(state, state->user_dom,
                                   state->ar->filter_type,
                                   state->ar->filter_value);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "apply_subdomain_homedir failed: [%d]: [%s].\n",
                ret, sss_strerror(ret));
