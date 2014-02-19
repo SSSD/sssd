@@ -580,7 +580,6 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
 fail:
     state->dp_error = DP_ERR_FATAL;
     tevent_req_error(req, ret);
-    tevent_req_post(req, state->ev);
     return;
 }
 
