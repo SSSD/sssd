@@ -18,7 +18,7 @@
 %define __provides_exclude_from %{python_sitearch}/.*\.so$
 %endif
 
-%if (0%{?fedora} >= 16)
+%if (0%{?fedora} >= 16 || 0%{?rhel} >= 7)
     %global use_systemd 1
 %endif
 
@@ -585,8 +585,10 @@ rm -rf $RPM_BUILD_ROOT
 %attr(750,root,root) %dir %{_var}/log/%{name}
 %attr(711,root,root) %dir %{_sysconfdir}/sssd
 %ghost %attr(0600,root,root) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
+%if (0%{?use_systemd} == 1)
 %attr(755,root,root) %dir %{_sysconfdir}/systemd/system/sssd.service.d
 %config(noreplace) %{_sysconfdir}/systemd/system/sssd.service.d/journal.conf
+%endif
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
 %dir %{_datadir}/sssd
