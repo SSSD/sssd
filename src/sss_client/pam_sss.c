@@ -331,7 +331,7 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
 {
     int ret;
     int state = SSS_PAM_CONV_STD;
-    struct pam_conv *conv;
+    const struct pam_conv *conv;
     const struct pam_message *mesg[1];
     struct pam_message *pam_msg;
     struct pam_response *resp=NULL;
@@ -1457,7 +1457,7 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
                                            int pam_flags)
 {
     int ret;
-    int *exp_data = NULL;
+    const int *exp_data = NULL;
     pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data);
 
     /* we query for the old password during PAM_PRELIM_CHECK to make
@@ -1536,7 +1536,8 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
     int pam_status;
     struct pam_items pi;
     uint32_t flags = 0;
-    int *exp_data;
+    const int *exp_data;
+    int *pw_exp_data;
     bool retry = false;
     bool quiet_mode = false;
     int retries = 0;
@@ -1620,15 +1621,15 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 if (pam_status == PAM_NEW_AUTHTOK_REQD) {
                     D(("Authtoken expired, trying to change it"));
 
-                    exp_data = malloc(sizeof(int));
-                    if (exp_data == NULL) {
+                    pw_exp_data = malloc(sizeof(int));
+                    if (pw_exp_data == NULL) {
                         D(("malloc failed."));
                         pam_status = PAM_BUF_ERR;
                         break;
                     }
-                    *exp_data = 1;
+                    *pw_exp_data = 1;
 
-                    pam_status = pam_set_data(pamh, PWEXP_FLAG, exp_data,
+                    pam_status = pam_set_data(pamh, PWEXP_FLAG, pw_exp_data,
                                               free_exp_data);
                     if (pam_status != PAM_SUCCESS) {
                         D(("pam_set_data failed."));
