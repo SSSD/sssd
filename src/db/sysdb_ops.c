@@ -1909,6 +1909,9 @@ int sysdb_store_group(struct sss_domain_info *domain,
 
     ret = sysdb_search_group_by_name(tmp_ctx, domain, name, src_attrs, &msg);
     if (ret && ret != ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sysdb_search_group_by_name failed for %s with: [%d][%s].\n",
+              name, ret, strerror(ret));
         goto done;
     }
     if (ret == ENOENT) {
