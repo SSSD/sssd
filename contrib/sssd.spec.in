@@ -18,7 +18,7 @@
 %define __provides_exclude_from %{python_sitearch}/.*\.so$
 %endif
 
-%if (0%{?fedora} >= 16)
+%if (0%{?fedora} >= 16 || 0%{?rhel} >= 7)
     %global use_systemd 1
 %endif
 
