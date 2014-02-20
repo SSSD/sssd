@@ -203,6 +203,7 @@ void debug_fn(const char *file,
               const char *format, ...)
 {
     va_list ap;
+    va_list ap_fallback;
     struct timeval tv;
     struct tm *tm;
     char datetime[20];
@@ -220,13 +221,15 @@ void debug_fn(const char *file,
          * searchable.
          */
         va_start(ap, format);
+        va_copy(ap_fallback, ap);
         ret = journal_send(file, line, function, level, format, ap);
+        va_end(ap);
         if (ret != EOK) {
             /* Emergency fallback, send to STDERR */
-            debug_vprintf(format, ap);
+            debug_vprintf(format, ap_fallback);
             debug_fflush();
         }
-        va_end(ap);
+        va_end(ap_fallback);
         return;
     }
 #endif
