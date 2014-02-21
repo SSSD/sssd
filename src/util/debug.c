@@ -203,7 +203,6 @@ void debug_fn(const char *file,
               const char *format, ...)
 {
     va_list ap;
-    va_list ap_fallback;
     struct timeval tv;
     struct tm *tm;
     char datetime[20];
@@ -211,6 +210,7 @@ void debug_fn(const char *file,
 
 #ifdef WITH_JOURNALD
     errno_t ret;
+    va_list ap_fallback;
 
     if (!debug_file) {
         /* If we are not outputting logs to files, we should be sending them
