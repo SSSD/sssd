@@ -110,3 +110,109 @@ int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
     dbus_message_unref(reply);
     return ret;
 }
+
+struct array_arg {
+    char **dbus_array;
+};
+
+static int array_arg_destructor(struct array_arg *arg)
+{
+    dbus_free_string_array(arg->dbus_array);
+    return 0;
+}
+
+static bool
+parent_dbus_string_arrays(struct sbus_request *request, int first_arg_type,
+                          va_list va)
+{
+    struct array_arg *array_arg;
+    int arg_type;
+    void **arg_ptr;
+
+    /*
+     * Here we iterate through the entire thing again and look for
+     * things we need to fix allocation for. Normally certain types
+     * returned from dbus_message_get_args() and friends require
+     * later freeing. We tie those to the talloc context here.
+     *
+     * The list of argument has already been validated by the previous
+     * dbus_message_get_args() call, so we can be cheap.
+     */
+
+    arg_type = first_arg_type;
+    while (arg_type != DBUS_TYPE_INVALID) {
+
+        if (arg_type == DBUS_TYPE_ARRAY) {
+            arg_type = va_arg(va, int);     /* the array element type */
+            arg_ptr = va_arg(va, void **);  /* the array elements */
+            va_arg(va, int *);              /* the array length */
+
+            /* Arrays of these things need to be freed */
+            if (arg_type == DBUS_TYPE_STRING ||
+                arg_type == DBUS_TYPE_OBJECT_PATH ||
+                arg_type == DBUS_TYPE_SIGNATURE) {
+
+                array_arg = talloc_zero(request, struct array_arg);
+                if(array_arg == NULL) {
+                    /* no kidding ... */
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory while trying not to leak memory\n");
+                    return false;
+                }
+
+                array_arg->dbus_array = *arg_ptr;
+                talloc_set_destructor(array_arg, array_arg_destructor);
+            }
+
+        /* A non array argument */
+        } else {
+            arg_ptr = va_arg(va, void**);
+        }
+
+        /* The next type */
+        arg_type = va_arg(va, int);
+    }
+
+    return true;
+}
+
+bool
+sbus_request_parse_or_finish(struct sbus_request *request,
+                             int first_arg_type,
+                             ...)
+{
+    DBusError error = DBUS_ERROR_INIT;
+    bool ret = true;
+    va_list va2;
+    va_list va;
+
+    va_start(va, first_arg_type);
+    va_copy(va2, va);
+
+    if (dbus_message_get_args_valist(request->message, &error,
+                                     first_arg_type, va)) {
+        ret = parent_dbus_string_arrays (request, first_arg_type, va2);
+
+    } else {
+        /* Trying to send the error back to the caller in this case is a joke */
+        if (!dbus_error_is_set(&error) || dbus_error_has_name(&error, DBUS_ERROR_NO_MEMORY)) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory parsing DBus message\n");
+            sbus_request_finish(request, NULL);
+
+        /* Log other errors and send them back, this include o.f.d.InvalidArgs */
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "Couldn't parse DBus message %s.%s: %s\n",
+                  dbus_message_get_interface(request->message),
+                  dbus_message_get_member(request->message),
+                  error.message);
+            sbus_request_fail_and_finish(request, &error);
+        }
+
+        dbus_error_free(&error);
+        ret = false;
+    }
+
+    va_end(va2);
+    va_end(va);
+
+    return ret;
+}

@@ -42,11 +42,13 @@
 
 #define PILOT_IFACE "test.Pilot"
 #define PILOT_BLINK "Blink"
+#define PILOT_EAT "Eat"
 
 /* our vtable */
 struct pilot_vtable {
     struct sbus_vtable vtable;
     sbus_msg_handler_fn Blink;
+    sbus_msg_handler_fn Eat;
 };
 
 const struct sbus_method_meta pilot_methods[] = {
@@ -55,6 +57,12 @@ const struct sbus_method_meta pilot_methods[] = {
         NULL, /* in args: manually parsed */
         NULL, /* out args: manually parsed */
         offsetof(struct pilot_vtable, Blink),
+    },
+    {
+        PILOT_EAT, /* method name */
+        NULL, /* in args: manually parsed */
+        NULL, /* out args: manually parsed */
+        offsetof(struct pilot_vtable, Eat),
     },
     { NULL, }
 };
@@ -104,9 +112,35 @@ static int blink_handler(struct sbus_request *req, void *data)
                                           DBUS_TYPE_INVALID);
 }
 
+static int eat_handler(struct sbus_request *req, void *data)
+{
+    dbus_int32_t integer;
+    dbus_bool_t boolean;
+    const char **array;
+    int count;
+
+    if (!sbus_request_parse_or_finish (req,
+                                       DBUS_TYPE_INT32, &integer,
+                                       DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, &count,
+                                       DBUS_TYPE_BOOLEAN, &boolean,
+                                       DBUS_TYPE_INVALID)) {
+        return EOK; /* handled */
+    }
+
+    ck_assert_int_eq(integer, 5);
+    ck_assert(boolean == TRUE);
+    ck_assert_int_eq(count, 3);
+    ck_assert_str_eq(array[0], "one");
+    ck_assert_str_eq(array[1], "two");
+    ck_assert_str_eq(array[2], "three");
+
+    return sbus_request_return_and_finish(req, DBUS_TYPE_INVALID);
+}
+
 struct pilot_vtable pilot_impl = {
     { &pilot_meta, 0 },
     .Blink = blink_handler,
+    .Eat = eat_handler,
 };
 
 static int pilot_test_server_init(struct sbus_connection *server, void *unused)
@@ -179,11 +213,76 @@ START_TEST(test_raw_handler)
 }
 END_TEST
 
+START_TEST(test_request_parse_ok)
+{
+    const char *args[] = { "one", "two", "three" };
+    const char **array;
+    TALLOC_CTX *ctx;
+    DBusConnection *client;
+    DBusError error = DBUS_ERROR_INIT;
+    DBusMessage *reply;
+    dbus_bool_t boolean;
+    dbus_int32_t integer;
+    int count;
+
+    ctx = talloc_new(NULL);
+    client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
+
+    boolean = TRUE;
+    integer = 5;
+    count = 3;
+    array = args;
+    reply = test_dbus_call_sync(client,
+                                "/test/leela",
+                                PILOT_IFACE,
+                                PILOT_EAT,
+                                &error,
+                                DBUS_TYPE_INT32, &integer,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, count,
+                                DBUS_TYPE_BOOLEAN, &boolean,
+                                DBUS_TYPE_INVALID);
+    ck_assert(reply != NULL);
+    ck_assert(!dbus_error_is_set(&error));
+    ck_assert(dbus_message_get_args(reply, NULL,
+                                    DBUS_TYPE_INVALID));
+    dbus_message_unref (reply);
+
+    talloc_free(ctx);
+}
+END_TEST
+
+START_TEST(test_request_parse_bad_args)
+{
+    TALLOC_CTX *ctx;
+    DBusConnection *client;
+    DBusError error = DBUS_ERROR_INIT;
+    DBusMessage *reply;
+
+    ctx = talloc_new(NULL);
+    client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
+
+    reply = test_dbus_call_sync(client,
+                                "/test/leela",
+                                PILOT_IFACE,
+                                PILOT_EAT,
+                                &error,
+                                DBUS_TYPE_INVALID); /* bad agruments */
+    ck_assert(reply == NULL);
+    ck_assert(dbus_error_is_set(&error));
+    ck_assert(dbus_error_has_name(&error, DBUS_ERROR_INVALID_ARGS));
+    dbus_error_free(&error);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 TCase *create_sbus_tests(void)
 {
     TCase *tc = tcase_create("tests");
 
     tcase_add_test(tc, test_raw_handler);
+    tcase_add_test(tc, test_request_parse_ok);
+    tcase_add_test(tc, test_request_parse_bad_args);
 
     return tc;
 }
