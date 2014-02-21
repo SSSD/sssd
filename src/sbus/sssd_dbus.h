@@ -252,4 +252,53 @@ int sbus_request_return_and_finish(struct sbus_request *dbus_req,
 int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
                                  const DBusError *error);
 
+/*
+ * Parse a DBus method call request.
+ *
+ * If parsing the method call message does not succeed, then an error is
+ * sent to the DBus caller and the request is finished. If this function
+ * returns false then @request is no longer valid.
+ *
+ * This also means if this method returns false within a handler, you should
+ * return EOK from the handler. The message has been handled, appropriate
+ * logs have been written, and everything should just move on.
+ *
+ * If the method call does not match the expected arguments, then a
+ * org.freedesktop.DBus.Error.InvalidArgs is returned to the caller as
+ * expected.
+ *
+ * The variable arguments are (unfortunately) formatted exactly the same
+ * as those of the dbus_message_get_args() function. Documented here:
+ *
+ * http://dbus.freedesktop.org/doc/api/html/group__DBusMessage.html
+ *
+ * Exception: You don't need to free string arrays returned by this
+ * function. They are automatically talloc parented to the request memory
+ * context and can be used until the request has been finished.
+ *
+ * Important: don't pass int or bool or such types as values to this
+ * function. That's not portable. Use actual dbus types. You must also pass
+ * pointers as the values:
+ *
+ *    dbus_bool_t val1;
+ *    dbus_int32_t val2;
+ *    ret = sbus_request_parse_or_finish(request,
+ *                                       DBUS_TYPE_BOOLEAN, &val1,
+ *                                       DBUS_TYPE_INT32, &val2,
+ *                                       DBUS_TYPE_INVALID);
+ *
+ * To pass arrays to this function, use the following syntax. Never
+ * pass actual C arrays with [] syntax to this function. The C standard is
+ * rather vague with C arrays and varargs, and it just plain doesn't work.
+ *
+ *    int count; // yes, a plain int
+ *    const char **array;
+ *    ret = sbus_request_parse_or_finish(request,
+ *                                       DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &array, &count,
+ *                                       DBUS_TYPE_INVALID);
+ */
+bool sbus_request_parse_or_finish(struct sbus_request *request,
+                                  int first_arg_type,
+                                  ...);
+
 #endif /* _SSSD_DBUS_H_*/

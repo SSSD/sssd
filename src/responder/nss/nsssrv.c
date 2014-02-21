@@ -311,28 +311,17 @@ static int nss_memcache_initgr_check(struct sbus_request *dbus_req, void *data)
 {
     struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
     struct nss_ctx *nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
-    DBusError dbus_error;
-    dbus_bool_t dbret;
     char *user;
     char *domain;
     uint32_t *groups;
     int gnum;
 
-    dbus_error_init(&dbus_error);
-
-    dbret = dbus_message_get_args(dbus_req->message, &dbus_error,
-                                  DBUS_TYPE_STRING, &user,
-                                  DBUS_TYPE_STRING, &domain,
-                                  DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32,
-                                  &groups, &gnum,
-                                  DBUS_TYPE_INVALID);
-
-    if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse message!\n");
-        if (dbus_error_is_set(&dbus_error)) {
-            dbus_error_free(&dbus_error);
-        }
-        return EIO;
+    if (!sbus_request_parse_or_finish(dbus_req,
+                                      DBUS_TYPE_STRING, &user,
+                                      DBUS_TYPE_STRING, &domain,
+                                      DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32, &groups, &gnum,
+                                      DBUS_TYPE_INVALID)) {
+        return EOK; /* handled */
     }
 
     DEBUG(SSSDBG_TRACE_LIBS,

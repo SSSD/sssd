@@ -564,7 +564,6 @@ static int be_get_subdomains(struct sbus_request *dbus_req, void *user_data)
     struct be_subdom_req *req;
     struct be_req *be_req = NULL;
     struct be_client *becli;
-    DBusError dbus_error;
     dbus_bool_t force;
     char *domain_hint;
     dbus_uint16_t err_maj;
@@ -575,17 +574,11 @@ static int be_get_subdomains(struct sbus_request *dbus_req, void *user_data)
     becli = talloc_get_type(user_data, struct be_client);
     if (!becli) return EINVAL;
 
-    dbus_error_init(&dbus_error);
-
-    ret = dbus_message_get_args(dbus_req->message, &dbus_error,
-                                DBUS_TYPE_BOOLEAN, &force,
-                                DBUS_TYPE_STRING, &domain_hint,
-                                DBUS_TYPE_INVALID);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,"Failed, to parse message!\n");
-        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-        return EIO;
-    }
+    if (!sbus_request_parse_or_finish(dbus_req,
+                                      DBUS_TYPE_BOOLEAN, &force,
+                                      DBUS_TYPE_STRING, &domain_hint,
+                                      DBUS_TYPE_INVALID))
+        return EOK; /* handled */
 
     /* return an error if corresponding backend target is not configured */
     if (becli->bectx->bet_info[BET_SUBDOMAINS].bet_ops == NULL) {
@@ -1042,7 +1035,6 @@ static int be_get_account_info(struct sbus_request *dbus_req, void *user_data)
     struct be_acct_req *req;
     struct be_req *be_req;
     struct be_client *becli;
-    DBusError dbus_error;
     uint32_t type;
     char *filter;
     char *domain;
@@ -1057,19 +1049,13 @@ static int be_get_account_info(struct sbus_request *dbus_req, void *user_data)
     becli = talloc_get_type(user_data, struct be_client);
     if (!becli) return EINVAL;
 
-    dbus_error_init(&dbus_error);
-
-    ret = dbus_message_get_args(dbus_req->message, &dbus_error,
-                                DBUS_TYPE_UINT32, &type,
-                                DBUS_TYPE_UINT32, &attr_type,
-                                DBUS_TYPE_STRING, &filter,
-                                DBUS_TYPE_STRING, &domain,
-                                DBUS_TYPE_INVALID);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,"Failed, to parse message!\n");
-        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-        return EIO;
-    }
+    if (!sbus_request_parse_or_finish(dbus_req,
+                                      DBUS_TYPE_UINT32, &type,
+                                      DBUS_TYPE_UINT32, &attr_type,
+                                      DBUS_TYPE_STRING, &filter,
+                                      DBUS_TYPE_STRING, &domain,
+                                      DBUS_TYPE_INVALID))
+        return EOK; /* handled */
 
     DEBUG(SSSDBG_CONF_SETTINGS,
           "Got request for [%u][%d][%s]\n", type, attr_type, filter);
@@ -1613,7 +1599,6 @@ static void be_autofs_handler_callback(struct be_req *req,
 
 static int be_autofs_handler(struct sbus_request *dbus_req, void *user_data)
 {
-    DBusError dbus_error;
     struct be_client *be_cli = NULL;
     struct be_req *be_req = NULL;
     struct be_autofs_req *be_autofs_req = NULL;
@@ -1633,17 +1618,11 @@ static int be_autofs_handler(struct sbus_request *dbus_req, void *user_data)
         return EINVAL;
     }
 
-    dbus_error_init(&dbus_error);
-
-    ret = dbus_message_get_args(dbus_req->message, &dbus_error,
-                                DBUS_TYPE_UINT32, &type,
-                                DBUS_TYPE_STRING, &filter,
-                                DBUS_TYPE_INVALID);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse message!\n");
-        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-        return EIO;
-    }
+    if (!sbus_request_parse_or_finish(dbus_req,
+                                      DBUS_TYPE_UINT32, &type,
+                                      DBUS_TYPE_STRING, &filter,
+                                      DBUS_TYPE_INVALID))
+        return EOK; /* handled */
 
     /* If we are offline and fast reply was requested
      * return offline immediately
@@ -1817,7 +1796,6 @@ static int be_host_handler(struct sbus_request *dbus_req, void *user_data)
     struct be_host_req *req;
     struct be_req *be_req;
     struct be_client *becli;
-    DBusError dbus_error;
     uint32_t flags;
     char *filter;
     int ret;
@@ -1830,17 +1808,11 @@ static int be_host_handler(struct sbus_request *dbus_req, void *user_data)
     becli = talloc_get_type(user_data, struct be_client);
     if (!becli) return EINVAL;
 
-    dbus_error_init(&dbus_error);
-
-    ret = dbus_message_get_args(dbus_req->message, &dbus_error,
-                                DBUS_TYPE_UINT32, &flags,
-                                DBUS_TYPE_STRING, &filter,
-                                DBUS_TYPE_INVALID);
-    if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse message!\n");
-        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-        return EIO;
-    }
+    if (!sbus_request_parse_or_finish(dbus_req,
+                                      DBUS_TYPE_UINT32, &flags,
+                                      DBUS_TYPE_STRING, &filter,
+                                      DBUS_TYPE_INVALID))
+        return EOK; /* request finished */
 
     DEBUG(SSSDBG_TRACE_LIBS,
           "Got request for [%u][%s]\n", flags, filter);

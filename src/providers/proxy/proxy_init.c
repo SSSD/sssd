@@ -397,10 +397,8 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     struct sbus_connection *conn;
     struct proxy_client *proxy_cli;
-    DBusError dbus_error;
     dbus_uint16_t cli_ver;
     uint32_t cli_id;
-    dbus_bool_t dbret;
     int hret;
     hash_key_t key;
     hash_value_t value;
@@ -421,19 +419,12 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
           "Cancel proxy client ID timeout [%p]\n", proxy_cli->timeout);
     talloc_zfree(proxy_cli->timeout);
 
-    dbus_error_init(&dbus_error);
-
-    dbret = dbus_message_get_args(dbus_req->message, &dbus_error,
-                                  DBUS_TYPE_UINT16, &cli_ver,
-                                  DBUS_TYPE_UINT32, &cli_id,
-                                  DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to parse message, killing connection\n");
-        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+    if (!sbus_request_parse_or_finish(dbus_req,
+                                      DBUS_TYPE_UINT16, &cli_ver,
+                                      DBUS_TYPE_UINT32, &cli_id,
+                                      DBUS_TYPE_INVALID)) {
         sbus_disconnect(conn);
-        /* FIXME: should we just talloc_zfree(conn) ? */
-        return EIO;
+        return EOK; /* handled */
     }
 
     DEBUG(SSSDBG_FUNC_DATA, "Proxy client [%"PRIu32"] connected\n", cli_id);
