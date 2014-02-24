@@ -78,6 +78,9 @@ int dp_get_options(TALLOC_CTX *memctx,
             if (tmp) {
                 opts[i].val.blob.data = (uint8_t *)tmp;
                 opts[i].val.blob.length = strlen(tmp);
+            } else if (opts[i].def_val.blob.data != NULL) {
+                opts[i].val.blob.data = opts[i].def_val.blob.data;
+                opts[i].val.blob.length = opts[i].def_val.blob.length;
             } else {
                 opts[i].val.blob.data = NULL;
                 opts[i].val.blob.length = 0;
