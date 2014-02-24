@@ -44,10 +44,10 @@ ad_create_default_sdap_options(TALLOC_CTX *mem_ctx)
         return NULL;
     }
 
-    ret = dp_copy_options(id_opts,
-                          ad_def_ldap_opts,
-                          SDAP_OPTS_BASIC,
-                          &id_opts->basic);
+    ret = dp_copy_defaults(id_opts,
+                           ad_def_ldap_opts,
+                           SDAP_OPTS_BASIC,
+                           &id_opts->basic);
     if (ret != EOK) {
         goto fail;
     }
@@ -117,10 +117,10 @@ ad_create_default_options(TALLOC_CTX *mem_ctx,
     ad_options = talloc_zero(mem_ctx, struct ad_options);
     if (ad_options == NULL) return NULL;
 
-    ret = dp_copy_options(ad_options,
-                          ad_basic_opts,
-                          AD_OPTS_BASIC,
-                          &ad_options->basic);
+    ret = dp_copy_defaults(ad_options,
+                           ad_basic_opts,
+                           AD_OPTS_BASIC,
+                           &ad_options->basic);
     if (ret != EOK) {
         talloc_free(ad_options);
         return NULL;
