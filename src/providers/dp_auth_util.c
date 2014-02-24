@@ -29,11 +29,13 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
     const char *ruser;
     const char *rhost;
     uint32_t authtok_type;
-    uint32_t authtok_length;
+    int authtok_length;
     uint8_t *authtok_data;
     uint32_t new_authtok_type;
-    uint32_t new_authtok_length;
+    int new_authtok_length;
     uint8_t *new_authtok_data;
+    int32_t pd_priv;
+    int32_t pd_cmd;
 
     if (pd->user == NULL) return false;
     service = pd->service ? pd->service : "";
@@ -46,9 +48,11 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
     new_authtok_type = (uint32_t)sss_authtok_get_type(pd->newauthtok);
     new_authtok_data = sss_authtok_get_data(pd->newauthtok);
     new_authtok_length = sss_authtok_get_size(pd->newauthtok);
+    pd_priv = pd->priv;
+    pd_cmd = pd->cmd;
 
     db_ret = dbus_message_append_args(msg,
-                                      DBUS_TYPE_INT32,  &(pd->cmd),
+                                      DBUS_TYPE_INT32,  &pd_cmd,
                                       DBUS_TYPE_STRING, &(pd->user),
                                       DBUS_TYPE_STRING, &(pd->domain),
                                       DBUS_TYPE_STRING, &service,
@@ -61,7 +65,7 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
                                       DBUS_TYPE_UINT32, &new_authtok_type,
                                       DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
                                       &new_authtok_data, new_authtok_length,
-                                      DBUS_TYPE_INT32, &(pd->priv),
+                                      DBUS_TYPE_INT32, &pd_priv,
                                       DBUS_TYPE_UINT32, &(pd->cli_pid),
                                       DBUS_TYPE_INVALID);
 
@@ -75,16 +79,18 @@ bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
     int ret;
     struct pam_data pd;
     uint32_t authtok_type;
-    uint32_t authtok_length;
+    int authtok_length;
     uint8_t *authtok_data;
     uint32_t new_authtok_type;
-    uint32_t new_authtok_length;
+    int new_authtok_length;
     uint8_t *new_authtok_data;
+    int32_t pd_cmd;
+    int32_t pd_priv;
 
     memset(&pd, 0, sizeof(pd));
 
     db_ret = dbus_message_get_args(msg, dbus_error,
-                                   DBUS_TYPE_INT32,  &(pd.cmd),
+                                   DBUS_TYPE_INT32,  &pd_cmd,
                                    DBUS_TYPE_STRING, &(pd.user),
                                    DBUS_TYPE_STRING, &(pd.domain),
                                    DBUS_TYPE_STRING, &(pd.service),
@@ -97,7 +103,7 @@ bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
                                    DBUS_TYPE_UINT32, &new_authtok_type,
                                    DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
                                    &new_authtok_data, &new_authtok_length,
-                                   DBUS_TYPE_INT32, &(pd.priv),
+                                   DBUS_TYPE_INT32, &pd_priv,
                                    DBUS_TYPE_UINT32, &(pd.cli_pid),
                                    DBUS_TYPE_INVALID);
 
@@ -105,6 +111,9 @@ bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
         DEBUG(1, ("dbus_message_get_args failed.\n"));
         return false;
     }
+
+    pd.cmd = pd_cmd;
+    pd.priv = pd_priv;
 
     ret = copy_pam_data(mem_ctx, &pd, new_pd);
     if (ret != EOK) {
@@ -136,12 +145,15 @@ bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)
     DBusMessageIter array_iter;
     DBusMessageIter struct_iter;
     DBusMessageIter data_iter;
+    uint32_t pam_status;
+    uint32_t resp_type;
 
     dbus_message_iter_init_append(msg, &iter);
 
     /* Append the PAM status */
+    pam_status = pd->pam_status;
     dbret = dbus_message_iter_append_basic(&iter,
-                                   DBUS_TYPE_UINT32, &(pd->pam_status));
+                                   DBUS_TYPE_UINT32, &pam_status);
     if (!dbret) {
         return false;
     }
@@ -165,9 +177,10 @@ bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)
         }
 
         /* Add the response type */
+        resp_type = resp->type;
         dbret = dbus_message_iter_append_basic(&struct_iter,
                                                DBUS_TYPE_UINT32,
-                                               &(resp->type));
+                                               &resp_type);
         if (!dbret) {
             return false;
         }
