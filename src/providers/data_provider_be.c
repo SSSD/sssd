@@ -618,7 +618,7 @@ static int be_get_subdomains(DBusMessage *message, struct sbus_connection *conn)
     DBusError dbus_error;
     dbus_bool_t dbret;
     void *user_data;
-    bool force;
+    dbus_bool_t force;
     char *domain_hint;
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
@@ -841,6 +841,7 @@ static void acctinfo_initgroups_callback(struct be_req *be_req,
                                                   struct be_initgr_prereq);
     DBusMessage *msg = NULL;
     dbus_bool_t dbret;
+    int num;
     int ret;
 
     pr->orig_dp_err_type = dp_err_type;
@@ -864,11 +865,12 @@ static void acctinfo_initgroups_callback(struct be_req *be_req,
         goto done;
     }
 
+    num = pr->gnum;
     dbret = dbus_message_append_args(msg,
                                      DBUS_TYPE_STRING, &pr->user,
                                      DBUS_TYPE_STRING, &pr->domain,
                                      DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32,
-                                     &pr->groups, pr->gnum,
+                                     &pr->groups, num,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
