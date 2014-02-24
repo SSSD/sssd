@@ -1775,19 +1775,20 @@
                             and this option is not set, it will result in all
                             users being denied access.
                             Use access_provider = permit to change this default
-                            behavior.
+                            behavior. Please note that this filter is applied on
+                            the LDAP user entry only.
                         </para>
                         <para>
                             Example:
                         </para>
                         <programlisting>
 access_provider = ldap
-ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
+ldap_access_filter = (employeeType=admin)
                         </programlisting>
                         <para>
                             This example means that access to this host is
-                            restricted to members of the "allowedusers" group
-                            in ldap.
+                            restricted to users whose employeeType
+                            attribute is set to "admin".
                         </para>
                         <para>
                             Offline caching for this feature is limited to
