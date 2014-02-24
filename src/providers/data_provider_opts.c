@@ -131,11 +131,11 @@ done:
 }
 
 /* =Basic-Option-Helpers================================================== */
-
-int dp_copy_options(TALLOC_CTX *memctx,
-                    struct dp_option *src_opts,
-                    int num_opts,
-                    struct dp_option **_opts)
+static int dp_copy_options_ex(TALLOC_CTX *memctx,
+                              bool copy_values,
+                              struct dp_option *src_opts,
+                              int num_opts,
+                              struct dp_option **_opts)
 {
     struct dp_option *opts;
     int i, ret = EOK;
@@ -151,9 +151,9 @@ int dp_copy_options(TALLOC_CTX *memctx,
 
         switch (src_opts[i].type) {
         case DP_OPT_STRING:
-            if (src_opts[i].val.string) {
+            if (copy_values) {
                 ret = dp_opt_set_string(opts, i, src_opts[i].val.string);
-            } else if (src_opts[i].def_val.string) {
+            } else {
                 ret = dp_opt_set_string(opts, i, src_opts[i].def_val.string);
             }
             if (ret != EOK) {
@@ -169,9 +169,9 @@ int dp_copy_options(TALLOC_CTX *memctx,
             break;
 
         case DP_OPT_BLOB:
-            if (src_opts[i].val.blob.data) {
+            if (copy_values) {
                 ret = dp_opt_set_blob(opts, i, src_opts[i].val.blob);
-            } else if (src_opts[i].def_val.blob.data) {
+            } else {
                 ret = dp_opt_set_blob(opts, i, src_opts[i].def_val.blob);
             }
             if (ret != EOK) {
@@ -185,9 +185,9 @@ int dp_copy_options(TALLOC_CTX *memctx,
             break;
 
         case DP_OPT_NUMBER:
-            if (src_opts[i].val.number) {
+            if (copy_values) {
                 ret = dp_opt_set_int(opts, i, src_opts[i].val.number);
-            } else if (src_opts[i].def_val.number) {
+            } else {
                 ret = dp_opt_set_int(opts, i, src_opts[i].def_val.number);
             }
             if (ret != EOK) {
@@ -201,9 +201,9 @@ int dp_copy_options(TALLOC_CTX *memctx,
             break;
 
         case DP_OPT_BOOL:
-            if (src_opts[i].val.boolean) {
+            if (copy_values) {
                 ret = dp_opt_set_bool(opts, i, src_opts[i].val.boolean);
-            } else if (src_opts[i].def_val.boolean) {
+            } else {
                 ret = dp_opt_set_bool(opts, i, src_opts[i].def_val.boolean);
             }
             if (ret != EOK) {
@@ -223,6 +223,22 @@ int dp_copy_options(TALLOC_CTX *memctx,
 done:
     if (ret != EOK) talloc_zfree(opts);
     return ret;
+}
+
+int dp_copy_options(TALLOC_CTX *memctx,
+                    struct dp_option *src_opts,
+                    int num_opts,
+                    struct dp_option **_opts)
+{
+    return dp_copy_options_ex(memctx, true, src_opts, num_opts, _opts);
+}
+
+int dp_copy_defaults(TALLOC_CTX *memctx,
+                     struct dp_option *src_opts,
+                     int num_opts,
+                     struct dp_option **_opts)
+{
+    return dp_copy_options_ex(memctx, false, src_opts, num_opts, _opts);
 }
 
 static const char *dp_opt_type_to_string(enum dp_opt_type type)

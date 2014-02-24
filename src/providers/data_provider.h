@@ -281,6 +281,11 @@ int dp_copy_options(TALLOC_CTX *memctx,
                     int num_opts,
                     struct dp_option **_opts);
 
+int dp_copy_defaults(TALLOC_CTX *memctx,
+                     struct dp_option *src_opts,
+                     int num_opts,
+                     struct dp_option **_opts);
+
 const char *_dp_opt_get_cstring(struct dp_option *opts,
                                     int id, const char *location);
 char *_dp_opt_get_string(struct dp_option *opts,

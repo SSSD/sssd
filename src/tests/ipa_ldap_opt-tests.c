@@ -170,7 +170,7 @@ START_TEST(test_copy_opts)
     tmp_ctx = talloc_new(NULL);
     fail_unless(tmp_ctx != NULL, "talloc_new failed");
 
-    ret = dp_copy_options(tmp_ctx, ad_def_ldap_opts, SDAP_OPTS_BASIC, &opts);
+    ret = dp_copy_defaults(tmp_ctx, ad_def_ldap_opts, SDAP_OPTS_BASIC, &opts);
     fail_unless(ret == EOK, "[%s]", strerror(ret));
 
     for (int i=0; i < SDAP_OPTS_BASIC; i++) {

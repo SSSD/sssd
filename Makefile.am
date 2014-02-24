@@ -166,6 +166,7 @@ if HAVE_CMOCKA
         test_utils \
         ad_access_filter_tests \
         ad_common_tests \
+        dp_opt_tests \
         test_search_bases
 endif
 
@@ -1603,6 +1604,17 @@ ad_common_tests_LDADD = \
     libsss_ldap_common.la \
     libsss_idmap.la \
     libsss_krb5_common.la \
+    libsss_test_common.la
+
+dp_opt_tests_SOURCES = \
+    src/providers/data_provider_opts.c \
+    src/tests/cmocka/test_dp_opts.c
+dp_opt_tests_CFLAGS = \
+    $(AM_CFLAGS)
+dp_opt_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
 endif
