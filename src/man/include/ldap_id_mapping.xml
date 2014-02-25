@@ -12,6 +12,48 @@
         need to use manually-assigned values, ALL values must be
         manually-assigned.
     </para>
+    <para>
+        Please note that changing the ID mapping related configuration
+        options will cause user and group IDs to change. At the moment,
+        SSSD does not support changing IDs, so the SSSD database must
+        be removed. Because cached passwords are also stored in the
+        database, removing the database should only be performed while
+        the authentication servers are reachable, otherwise users might
+        get locked out. In order to cache the password, an authentication
+        must be performed. It is not sufficient to use
+        <citerefentry>
+            <refentrytitle>sss_cache</refentrytitle>
+            <manvolnum>8</manvolnum>
+        </citerefentry>
+        to remove the database, rather the process
+        consists of:
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        Making sure the remote servers are reachable
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        Stopping the SSSD service
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        Removing the database
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        Starting the SSSD service
+                    </para>
+                </listitem>
+            </itemizedlist>
+        Moreover, as the change of IDs might necessitate the adjustment
+        of other system properties such as file and directory ownership,
+        it's advisable to plan ahead and test the ID mapping configuration
+        thoroughly.
+    </para>
 
     <refsect2 id='idmap_algorithm'>
         <title>Mapping Algorithm</title>
