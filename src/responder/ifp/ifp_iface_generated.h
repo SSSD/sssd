@@ -16,15 +16,21 @@
 #define INFOPIPE_IFACE_PING "Ping"
 
 /* ------------------------------------------------------------------------
- * DBus Vtable handler structures
+ * DBus handlers
  *
  * These structures are filled in by implementors of the different
  * dbus interfaces to handle method calls.
  *
  * Handler functions of type sbus_msg_handler_fn accept raw messages,
- * other handlers will be typed appropriately. If a handler that is
+ * other handlers are typed appropriately. If a handler that is
  * set to NULL is invoked it will result in a
  * org.freedesktop.DBus.Error.NotSupported error for the caller.
+ *
+ * Handlers have a matching xxx_finish() function (unless the method has
+ * accepts raw messages). These finish functions the
+ * sbus_request_return_and_finish() with the appropriate arguments to
+ * construct a valid reply. Once a finish function has been called, the
+ * @dbus_req it was called with is freed and no longer valid.
  */
 
 /* vtable for org.freedesktop.sssd.infopipe */

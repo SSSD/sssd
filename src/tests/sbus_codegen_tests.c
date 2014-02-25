@@ -68,7 +68,7 @@ START_TEST(test_interfaces)
 
     /* Explicit C Symbol */
     ck_assert_str_eq(test_pilot_meta.name, "com.planetexpress.Pilot");
-    ck_assert(test_pilot_meta.methods == NULL); /* no methods */
+    ck_assert(test_pilot_meta.methods != NULL);
     ck_assert(test_pilot_meta.signals == NULL); /* no signals */
     ck_assert(test_pilot_meta.properties != NULL);
 
@@ -128,16 +128,42 @@ START_TEST(test_signals)
 END_TEST
 
 static int
-mock_move_universe(struct sbus_request *dbus_req, void *data)
+mock_move_universe(struct sbus_request *dbus_req, void *data,
+                   bool arg_smoothly, uint32_t arg_speed_factor)
 {
-    /* not called */
-    return 0;
+    /*
+     * The above arguments should match the handler signature,
+     * and the below finish function should have the right signature.
+     *
+     * Not called, just testing compilation
+     */
+    ck_assert(FALSE);
+    return com_planetexpress_Ship_MoveUniverse_finish(dbus_req, "here");
 }
 
 static int
-mock_crash_now(struct sbus_request *dbus_req, void *data)
+mock_crash_now(struct sbus_request *dbus_req, void *data,
+               const char *where)
 {
-    /* not called */
+    /*
+     * One argument, no return value, yet a finish function should
+     * have been generated.
+     *
+     * Not called, just testing compilation
+     */
+    ck_assert(FALSE);
+    return com_planetexpress_Ship_crash_now_finish(dbus_req);
+}
+
+static int
+mock_land(struct sbus_request *req, void *data)
+{
+    /*
+     * Raw handler, no finish function, no special arguments.
+     *
+     * Not called, just testing compilation
+     */
+    ck_assert(FALSE);
     return 0;
 }
 
@@ -147,6 +173,7 @@ START_TEST(test_vtable)
         { &com_planetexpress_Ship_meta, 0 },
         mock_move_universe,
         mock_crash_now,
+        mock_land,
     };
 
     /*
@@ -156,6 +183,7 @@ START_TEST(test_vtable)
      */
     ck_assert(vtable.crash_now == mock_crash_now);
     ck_assert(vtable.MoveUniverse == mock_move_universe);
+    ck_assert(vtable.Land == mock_land);
 }
 END_TEST
 

@@ -33,6 +33,12 @@
         <!-- A method with a specific c name -->
         <method name="Crash">
             <annotation value="crash_now" name="org.freedesktop.DBus.GLib.CSymbol"/>
+            <arg name="where" type="s" direction="in"/>
+        </method>
+
+        <!-- A method without a type-safe handler -->
+        <method name="Land">
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
     </interface>
 
@@ -45,6 +51,15 @@
 
         <!-- A property -->
         <property name="FullName" type="s" access="readwrite"/>
+
+        <!-- A simple method -->
+        <method name="Blink">
+            <!-- This is an uint32 arg -->
+            <arg name="duration" type="u" direction="in"/>
+            <!-- This is a boolean return value -->
+            <arg name="crashed" type="b" direction="out"/>
+        </method>
+
     </interface>
 
 </node>

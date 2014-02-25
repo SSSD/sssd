@@ -12,42 +12,49 @@ const struct sbus_method_meta data_provider_iface__methods[] = {
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct data_provider_iface, RegisterService),
+        NULL, /* no invoker */
     },
     {
         "pamHandler", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct data_provider_iface, pamHandler),
+        NULL, /* no invoker */
     },
     {
         "sudoHandler", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct data_provider_iface, sudoHandler),
+        NULL, /* no invoker */
     },
     {
         "autofsHandler", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct data_provider_iface, autofsHandler),
+        NULL, /* no invoker */
     },
     {
         "hostHandler", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct data_provider_iface, hostHandler),
+        NULL, /* no invoker */
     },
     {
         "getDomains", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct data_provider_iface, getDomains),
+        NULL, /* no invoker */
     },
     {
         "getAccountInfo", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct data_provider_iface, getAccountInfo),
+        NULL, /* no invoker */
     },
     { NULL, }
 };
@@ -67,12 +74,14 @@ const struct sbus_method_meta data_provider_rev_iface__methods[] = {
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct data_provider_rev_iface, updateCache),
+        NULL, /* no invoker */
     },
     {
         "initgrCheck", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct data_provider_rev_iface, initgrCheck),
+        NULL, /* no invoker */
     },
     { NULL, }
 };
