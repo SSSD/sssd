@@ -68,6 +68,10 @@ struct sbus_connection {
     struct sbus_watch_ctx *watch_list;
 };
 
+/* Looks up a vtable func, in a struct derived from struct sbus_vtable */
+#define VTABLE_FUNC(vtable, offset) \
+    (*((void **)((char *)(vtable) + (offset))))
+
 /* =Watches=============================================================== */
 
 struct sbus_watch_ctx {
@@ -136,5 +140,9 @@ struct tevent_req *sbus_get_sender_id_send(TALLOC_CTX *mem_ctx,
                                            struct sbus_connection *conn,
                                            const char *sender);
 int sbus_get_sender_id_recv(struct tevent_req *req, int64_t *_uid);
+
+/* =Properties============================================================ */
+
+int sbus_properties_dispatch(struct sbus_request *dbus_req);
 
 #endif /* _SSSD_DBUS_PRIVATE_H_ */

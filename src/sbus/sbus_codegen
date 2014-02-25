@@ -114,10 +114,9 @@ BASIC_TYPES = {
  'o': ( "DBUS_TYPE_OBJECT_PATH", "const char *", "const char *" ),
 }
 
-class Arg(Base):
-    def __init__(self, method, name, type):
+class Typed(Base):
+    def __init__(self, name, type):
         Base.__init__(self, name)
-        self.method = method
         self.type = type
         self.is_basic = False
         self.is_array = False
@@ -134,6 +133,11 @@ class Arg(Base):
                 self.is_basic = (self.dbus_type == self.sssd_type)
             else:
                 self.is_basic = True
+
+class Arg(Typed):
+    def __init__(self, method, name, type):
+        Typed.__init__(self, name, type)
+        self.method = method
 
 class Method(Base):
     def __init__(self, iface, name):
@@ -166,11 +170,10 @@ class Signal(Base):
     def fq_c_name(self):
         return "%s_%s" % (self.iface.c_name(), self.c_name())
 
-class Property(Base):
-    def __init__(self, iface, name, signature, access):
-        Base.__init__(self, name)
+class Property(Typed):
+    def __init__(self, iface, name, type, access):
+        Typed.__init__(self, name, type)
         self.iface = iface
-        self.signature = signature
         self.readable = False
         self.writable = False
         if access == 'readwrite':
@@ -234,7 +237,7 @@ def method_function_pointer(meth, name, with_names=False):
              with_names and "data" or "",
              method_arg_types(meth.in_args, with_names))
 
-def forward_invoker(signature, args):
+def forward_method_invoker(signature, args):
     out("")
     out("/* invokes a handler with a '%s' DBus signature */", signature)
     out("static int invoke_%s_method(struct sbus_request *dbus_req, void *function_ptr);", signature)
@@ -275,6 +278,53 @@ def source_method_invoker(signature, args):
     out(");")
     out("}")
 
+def source_getter_invoker(prop):
+    out("")
+    out("/* invokes a getter with a '%s' DBus type */", type)
+    out("static int invoke_%s_getter(struct sbus_request *request, struct sbus_interface *intf, void *function_ptr)", prop.type)
+    out("{")
+    out("    DBusError error = DBUS_ERROR_INIT;")
+    out("    int ret;")
+    for i in range(0, len(args)):
+        arg = args[i]
+        if arg.is_array:
+            out("    %s *arg_%d;", arg.dbus_type, i)
+            out("    int len_%d;", i)
+        else:
+            out("    %s arg_%d;", arg.dbus_type, i)
+    out("    int (*handler)(struct sbus_request *, void *%s) = function_ptr;", method_arg_types(args))
+    out("")
+    out("    if (!dbus_message_get_args(request->message, &error,")
+    for i in range(0, len(args)):
+        arg = args[i]
+        if arg.is_array:
+            out("                               DBUS_TYPE_ARRAY, %s, &arg_%d, &len_%d,",
+                arg.dbus_constant, i, i)
+        else:
+            out("                               %s, &arg_%d,", arg.dbus_constant, i)
+    out("                               DBUS_TYPE_INVALID)) {")
+    out("         ret = sbus_request_fail_and_finish(request, error.name, error.message);")
+    out("         dbus_error_free(&error);")
+    out("         return ret;")
+    out("    }")
+    out("")
+
+    out("    ret = (handler)(request, intf", new_line=False)
+    for i in range(0, len(args)):
+        arg = args[i]
+        out(",\n                    arg_%d", i, new_line=False)
+        if arg.is_array:
+            out(",\n                    len_%d", i, new_line=False)
+    out(");")
+    out("")
+
+    for i in range(0, len(args)):
+        arg = args[i]
+        if arg.type in ["as", "ao"]:
+            out("    dbus_free_string_array((char **)arg_%d);", i)
+    out("    return ret;")
+    out("}")
+
 def forward_method_invokers(ifaces):
     invokers = { }
     for iface in ifaces:
@@ -284,7 +334,7 @@ def forward_method_invokers(ifaces):
             signature = meth.in_signature()
             if signature in invokers:
                 continue
-            forward_invoker(signature, meth.in_args)
+            forward_method_invoker(signature, meth.in_args)
             invokers[signature] = meth
     return invokers
 
@@ -392,7 +442,7 @@ def source_properties(iface, properties):
     for prop in properties:
         out("    {")
         out("        \"%s\", /* name */", prop.name)
-        out("        \"%s\", /* signature */", prop.signature)
+        out("        \"%s\", /* type */", prop.type)
         if prop.readable and prop.writable:
             out("        SBUS_PROPERTY_READABLE | SBUS_PROPERTY_WRITABLE,")
         elif prop.readable:
@@ -479,8 +529,6 @@ def header_vtable(iface, methods):
     # All methods
     for meth in iface.methods:
         out("    %s;", method_function_pointer(meth, meth.c_name(), with_names=True))
-
-    # TODO: Property getters and setters will go here
 
     out("};")
 

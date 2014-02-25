@@ -94,7 +94,7 @@ const struct sbus_signal_meta com_planetexpress_Ship__signals[] = {
 const struct sbus_property_meta com_planetexpress_Ship__properties[] = {
     {
         "Color", /* name */
-        "s", /* signature */
+        "s", /* type */
         SBUS_PROPERTY_READABLE,
     },
     { NULL, }
@@ -231,7 +231,7 @@ const struct sbus_method_meta test_pilot__methods[] = {
 const struct sbus_property_meta test_pilot__properties[] = {
     {
         "FullName", /* name */
-        "s", /* signature */
+        "s", /* type */
         SBUS_PROPERTY_READABLE | SBUS_PROPERTY_WRITABLE,
     },
     { NULL, }

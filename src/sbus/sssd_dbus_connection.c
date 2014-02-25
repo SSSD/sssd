@@ -437,6 +437,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
 
     /* Validate the method interface */
     if (strcmp(msg_interface, intf_p->intf->vtable->meta->name) == 0 ||
+             strcmp(msg_interface, DBUS_PROPERTIES_INTERFACE) == 0 ||
             (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
                 strcmp(msg_method, DBUS_INTROSPECT_METHOD) == 0)) {
 
@@ -510,11 +511,7 @@ static void sbus_handler_got_caller_id(struct tevent_req *req)
             dbus_error = DBUS_ERROR_NOT_SUPPORTED;
             goto fail;
         }
-    } else {
-        /* Special case: check for Introspection request
-         * This is usually only useful for system bus connections
-         */
-        if (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
+    } else if (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
                 strcmp(msg_method, DBUS_INTROSPECT_METHOD) == 0) {
             DEBUG(SSSDBG_TRACE_LIBS, "Got introspection request\n");
             ictx = talloc(dbus_req->conn, struct sbus_introspect_ctx);
@@ -527,7 +524,17 @@ static void sbus_handler_got_caller_id(struct tevent_req *req)
             ictx->iface = interface;
             handler_data = ictx;
             method = &introspect_method;
+    } else if (strcmp(msg_interface, DBUS_PROPERTIES_INTERFACE) == 0) {
+        ret = sbus_properties_dispatch(dbus_req);
+        if (ret == ERR_SBUS_NOSUP) {
+            /* No known method matched */
+            dbus_error = DBUS_ERROR_NOT_SUPPORTED;
+            goto fail;
         }
+        /* sbus_properties_dispatch handles all other errors
+         * or success internally
+         */
+        return;
     }
 
     if (handler_fn == NULL) {
