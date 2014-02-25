@@ -91,14 +91,49 @@ class Base:
             raise DBusXmlException('No name on element')
         self.name = name
         self.annotations = { }
+    def validate(self):
+        pass
     def c_name(self):
         return self.annotations.get("org.freedesktop.DBus.GLib.CSymbol", self.name)
 
+# The basic types that we support marshalling right now. These
+# are the ones we can pass as basic arguments to libdbus directly.
+# If the dbus and sssd types are identical we pass things directly.
+# otherwise some copying is necessary.
+BASIC_TYPES = {
+ 'y': ( "DBUS_TYPE_BYTE", "uint8_t", "uint8_t" ),
+ 'b': ( "DBUS_TYPE_BOOLEAN", "dbus_bool_t", "bool" ),
+ 'n': ( "DBUS_TYPE_INT16", "int16_t", "int16_t" ),
+ 'q': ( "DBUS_TYPE_UINT16", "uint16_t", "uint16_t" ),
+ 'i': ( "DBUS_TYPE_INT32", "int32_t", "int32_t" ),
+ 'u': ( "DBUS_TYPE_UINT32", "uint32_t", "uint32_t" ),
+ 'x': ( "DBUS_TYPE_INT64", "int64_t", "int64_t" ),
+ 't': ( "DBUS_TYPE_UINT64", "uint64_t", "uint64_t" ),
+ 'd': ( "DBUS_TYPE_DOUBLE", "double", "double" ),
+ 's': ( "DBUS_TYPE_STRING", "const char *", "const char *" ),
+ 'o': ( "DBUS_TYPE_OBJECT_PATH", "const char *", "const char *" ),
+}
+
 class Arg(Base):
-    def __init__(self, method, name, signature):
+    def __init__(self, method, name, type):
         Base.__init__(self, name)
         self.method = method
-        self.signature = signature
+        self.type = type
+        self.is_basic = False
+        self.is_array = False
+        self.dbus_constant = None
+        self.dbus_type = None
+        self.sssd_type = None
+        if type[0] == 'a':
+            type = type[1:]
+            self.is_array = True
+        if type in BASIC_TYPES:
+            (self.dbus_constant, self.dbus_type, self.sssd_type) = BASIC_TYPES[type]
+            # If types are not identical, we can't do array (yet)
+            if self.is_array:
+                self.is_basic = (self.dbus_type == self.sssd_type)
+            else:
+                self.is_basic = True
 
 class Method(Base):
     def __init__(self, iface, name):
@@ -106,8 +141,22 @@ class Method(Base):
         self.iface = iface
         self.in_args = []
         self.out_args = []
+    def validate(self):
+        if not self.only_basic_args() and not self.use_raw_handler():
+            raise DBusXmlException("Method has complex arguments and requires " +
+                                   "the 'org.freedesktop.sssd.RawHandler' annotation")
     def fq_c_name(self):
         return "%s_%s" % (self.iface.c_name(), self.c_name())
+    def use_raw_handler(self):
+        anno = 'org.freedesktop.sssd.RawHandler'
+        return self.annotations.get(anno, self.iface.annotations.get(anno)) == 'true'
+    def in_signature(self):
+        return "".join([arg.type for arg in self.in_args])
+    def only_basic_args(self):
+        for arg in self.in_args + self.out_args:
+            if not arg.is_basic:
+                return False
+        return True
 
 class Signal(Base):
     def __init__(self, iface, name):
@@ -149,17 +198,138 @@ class Interface(Base):
 # -----------------------------------------------------------------------------
 # Code Generation
 
-def out(format, *args):
+def out(format, *args, **kwargs):
     str = format % args
     sys.stdout.write(str)
-    sys.stdout.write("\n")
+    # NOTE: Would like to use the following syntax for this function
+    # but need to wait until python3 until it is supported:
+    #  def out(format, *args, new_line=True)
+    if kwargs.pop("new_line", True):
+        sys.stdout.write("\n")
+    assert not kwargs, "unknown keyword argument(s): %s" % str(kwargs)
+
+def method_arg_types(args, with_names=False):
+    str = ""
+    for arg in args:
+        str += ", "
+        str += arg.sssd_type
+        if with_names:
+            if str[-1] != '*':
+                str += " "
+            str += "arg_"
+            str += arg.c_name()
+        if arg.is_array:
+            str += "[], int"
+            if with_names:
+                str += " len_"
+                str += arg.c_name()
+    return str
+
+def method_function_pointer(meth, name, with_names=False):
+    if meth.use_raw_handler():
+        return "sbus_msg_handler_fn " + name
+    else:
+        return "int (*%s)(struct sbus_request *%s, void *%s%s)" % \
+            (name, with_names and "req" or "",
+             with_names and "data" or "",
+             method_arg_types(meth.in_args, with_names))
+
+def forward_invoker(signature, args):
+    out("")
+    out("/* invokes a handler with a '%s' DBus signature */", signature)
+    out("static int invoke_%s_method(struct sbus_request *dbus_req, void *function_ptr);", signature)
+
+def source_method_invoker(signature, args):
+    out("")
+    out("/* invokes a handler with a '%s' DBus signature */", signature)
+    out("static int invoke_%s_method(struct sbus_request *dbus_req, void *function_ptr)", signature)
+    out("{")
+    for i in range(0, len(args)):
+        arg = args[i]
+        if arg.is_array:
+            out("    %s *arg_%d;", arg.dbus_type, i)
+            out("    int len_%d;", i)
+        else:
+            out("    %s arg_%d;", arg.dbus_type, i)
+    out("    int (*handler)(struct sbus_request *, void *%s) = function_ptr;", method_arg_types(args))
+    out("")
+    out("    if (!sbus_request_parse_or_finish(dbus_req,")
+    for i in range(0, len(args)):
+        arg = args[i]
+        if arg.is_array:
+            out("                               DBUS_TYPE_ARRAY, %s, &arg_%d, &len_%d,",
+                arg.dbus_constant, i, i)
+        else:
+            out("                               %s, &arg_%d,", arg.dbus_constant, i)
+    out("                               DBUS_TYPE_INVALID)) {")
+    out("         return EOK; /* request handled */")
+    out("    }")
+    out("")
+
+    out("    return (handler)(dbus_req, dbus_req->intf->instance_data", new_line=False)
+    for i in range(0, len(args)):
+        arg = args[i]
+        out(",\n                     arg_%d", i, new_line=False)
+        if arg.is_array:
+            out(",\n                     len_%d", i, new_line=False)
+    out(");")
+    out("}")
+
+def forward_method_invokers(ifaces):
+    invokers = { }
+    for iface in ifaces:
+        for meth in iface.methods:
+            if meth.use_raw_handler() or not meth.in_args:
+                continue
+            signature = meth.in_signature()
+            if signature in invokers:
+                continue
+            forward_invoker(signature, meth.in_args)
+            invokers[signature] = meth
+    return invokers
+
+def source_method_invokers(invokers):
+    for (signature, meth) in invokers.items():
+        source_method_invoker(signature, meth.in_args)
+
+def source_finisher(meth):
+    out("")
+    out("int %s_finish(struct sbus_request *req%s)",
+        meth.fq_c_name(), method_arg_types(meth.out_args, with_names=True))
+    out("{")
+
+    for arg in meth.out_args:
+        if arg.dbus_type != arg.sssd_type:
+            out("    %s cast_%s = arg_%s;", arg.dbus_type, arg.c_name(), arg.c_name())
+
+    out("   return sbus_request_return_and_finish(req,")
+    for arg in meth.out_args:
+        out("                                         ", new_line=False)
+        if arg.is_array:
+            out("DBUS_TYPE_ARRAY, %s, &arg_%s, len_%s,",
+                arg.dbus_constant, arg.c_name(), arg.c_name())
+        elif arg.dbus_type != arg.sssd_type:
+            out("%s, &cast_%s,", arg.dbus_constant, arg.c_name())
+        else:
+            out("%s, &arg_%s,", arg.dbus_constant, arg.c_name())
+    out("                                         DBUS_TYPE_INVALID);")
+    out("}")
+
+def header_reply(meth):
+    for arg in meth.out_args:
+        if arg.is_array:
+            out("    %s *%s", arg.dbus_type, arg.c_name())
+            out("    int %s__len", arg.c_name())
+        else:
+            out("    %s %s;", arg.dbus_type, arg.c_name())
+    types = [arg.sssd_type for arg in meth.in_args]
 
 def source_args(parent, args, suffix):
     out("")
     out("/* arguments for %s.%s */", parent.iface.name, parent.name)
     out("const struct sbus_arg_meta %s%s[] = {", parent.fq_c_name(), suffix)
     for arg in args:
-        out("    { \"%s\", \"%s\" },", arg.name, arg.signature)
+        out("    { \"%s\", \"%s\" },", arg.name, arg.type)
     out("    { NULL, }")
     out("};")
 
@@ -169,6 +339,9 @@ def source_methods(iface, methods):
             source_args(meth, meth.in_args, "__in")
         if meth.out_args:
             source_args(meth, meth.out_args, "__out")
+
+        if not meth.use_raw_handler():
+            source_finisher(meth)
 
     out("")
     out("/* methods for %s */", iface.name)
@@ -185,6 +358,10 @@ def source_methods(iface, methods):
         else:
             out("        NULL, /* no out_args */")
         out("        offsetof(struct %s, %s),", iface.c_name(), meth.c_name())
+        if meth.use_raw_handler() or not meth.in_args:
+            out("        NULL, /* no invoker */")
+        else:
+            out("        invoke_%s_method,", meth.in_signature())
         out("    },")
     out("    { NULL, }")
     out("};")
@@ -264,6 +441,8 @@ def generate_source(ifaces, filename, include_header=None):
     if include_header:
         out("#include \"%s\"", os.path.basename(include_header))
 
+    invokers = forward_method_invokers(ifaces)
+
     for iface in ifaces:
 
         # The methods
@@ -281,6 +460,16 @@ def generate_source(ifaces, filename, include_header=None):
         # The sbus_interface structure
         source_interface(iface)
 
+    source_method_invokers(invokers)
+
+def header_finisher(iface, meth):
+    if meth.use_raw_handler():
+        return
+    out("")
+    out("/* finish function for %s */", meth.name)
+    out("int %s_finish(struct sbus_request *req%s);",
+        meth.fq_c_name(), method_arg_types(meth.out_args, with_names=True))
+
 def header_vtable(iface, methods):
     out("")
     out("/* vtable for %s */", iface.name)
@@ -289,7 +478,7 @@ def header_vtable(iface, methods):
 
     # All methods
     for meth in iface.methods:
-        out("    sbus_msg_handler_fn %s;", meth.c_name())
+        out("    %s;", method_function_pointer(meth, meth.c_name(), with_names=True))
 
     # TODO: Property getters and setters will go here
 
@@ -329,20 +518,28 @@ def generate_header(ifaces, filename):
 
     out("")
     out("/* ------------------------------------------------------------------------")
-    out(" * DBus Vtable handler structures")
+    out(" * DBus handlers")
     out(" *")
     out(" * These structures are filled in by implementors of the different")
     out(" * dbus interfaces to handle method calls.")
     out(" *")
     out(" * Handler functions of type sbus_msg_handler_fn accept raw messages,")
-    out(" * other handlers will be typed appropriately. If a handler that is")
+    out(" * other handlers are typed appropriately. If a handler that is")
     out(" * set to NULL is invoked it will result in a")
     out(" * org.freedesktop.DBus.Error.NotSupported error for the caller.")
+    out(" *")
+    out(" * Handlers have a matching xxx_finish() function (unless the method has")
+    out(" * accepts raw messages). These finish functions the")
+    out(" * sbus_request_return_and_finish() with the appropriate arguments to")
+    out(" * construct a valid reply. Once a finish function has been called, the")
+    out(" * @dbus_req it was called with is freed and no longer valid.")
     out(" */")
 
     for iface in ifaces:
         if iface.methods:
             header_vtable(iface, iface.methods)
+            for meth in iface.methods:
+                header_finisher(iface, meth)
 
     out("")
     out("/* ------------------------------------------------------------------------")
@@ -505,6 +702,8 @@ class DBusXMLParser:
         self.cur_object_stack.append(old_cur_object)
 
     def handle_end_element(self, name):
+        if self.cur_object:
+            self.cur_object.validate()
         self.state = self.state_stack.pop()
         self.cur_object = self.cur_object_stack.pop()
 

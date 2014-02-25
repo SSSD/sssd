@@ -4,38 +4,48 @@
     <interface name="org.freedesktop.sssd.monitor">
         <annotation value="mon_srv_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
         <method name="getVersion">
-            <!-- manual argument parsing -->
+            <!-- manual argument parsing, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="RegisterService">
-            <!-- manual argument parsing -->
+            <!-- manual argument parsing, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
     </interface>
 
     <interface name="org.freedesktop.sssd.service">
         <annotation value="mon_cli_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
         <method name="ping">
-            <!-- no arguments -->
+            <!-- no arguments, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="resInit">
-            <!-- no arguments -->
+            <!-- no arguments, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="shutDown">
-            <!-- no arguments -->
+            <!-- no arguments, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="goOffline">
-            <!-- no arguments -->
+            <!-- no arguments, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="resetOffline">
-            <!-- no arguments -->
+            <!-- no arguments, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="rotateLogs">
-            <!-- no arguments -->
+            <!-- no arguments, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="clearMemcache">
-            <!-- no arguments -->
+            <!-- no arguments, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="clearEnumCache">
-            <!-- no arguments -->
+            <!-- no arguments, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
     </interface>
 </node>

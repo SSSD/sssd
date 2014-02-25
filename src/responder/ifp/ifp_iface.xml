@@ -4,7 +4,8 @@
     <interface name="org.freedesktop.sssd.infopipe">
         <annotation value="infopipe_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
         <method name="Ping">
-            <!-- arguments parsed manually -->
+            <!-- manual argument parsing, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
     </interface>
 </node>

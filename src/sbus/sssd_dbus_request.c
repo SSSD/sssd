@@ -20,9 +20,12 @@
 
 #include "util/util.h"
 #include "sbus/sssd_dbus.h"
+#include "sbus/sssd_dbus_private.h"
 
 #include <sys/time.h>
 #include <dbus/dbus.h>
+
+static const DBusError error_internal = { DBUS_ERROR_FAILED, "Internal Error" };
 
 static int sbus_request_destructor(struct sbus_request *dbus_req)
 {
@@ -49,6 +52,33 @@ sbus_new_request(struct sbus_connection *conn,
     talloc_set_destructor(dbus_req, sbus_request_destructor);
 
     return dbus_req;
+}
+
+void
+sbus_request_invoke_or_finish(struct sbus_request *dbus_req,
+                              sbus_msg_handler_fn handler_fn,
+                              void *handler_data,
+                              sbus_method_invoker_fn invoker_fn)
+{
+    int ret;
+
+    if (invoker_fn) {
+        ret = invoker_fn(dbus_req, handler_fn);
+    } else {
+        ret = handler_fn(dbus_req, handler_data);
+    }
+
+    switch(ret) {
+    case EOK:
+        return;
+    case ENOMEM:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory handling DBus message\n");
+        sbus_request_finish(dbus_req, NULL);
+        break;
+    default:
+        sbus_request_fail_and_finish(dbus_req, &error_internal);
+        break;
+    }
 }
 
 int sbus_request_finish(struct sbus_request *dbus_req,

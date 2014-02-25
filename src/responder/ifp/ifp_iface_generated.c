@@ -12,6 +12,7 @@ const struct sbus_method_meta infopipe_iface__methods[] = {
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct infopipe_iface, Ping),
+        NULL, /* no invoker */
     },
     { NULL, }
 };

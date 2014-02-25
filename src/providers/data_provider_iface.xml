@@ -4,25 +4,32 @@
     <interface name="org.freedesktop.sssd.dataprovider">
         <annotation value="data_provider_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
         <method name="RegisterService">
-            <!-- arguments parsed manually -->
+            <!-- arguments parsed manually, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="pamHandler">
-            <!-- arguments parsed manually -->
+            <!-- arguments parsed manually, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="sudoHandler">
-            <!-- arguments parsed manually -->
+            <!-- arguments parsed manually, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="autofsHandler">
-            <!-- arguments parsed manually -->
+            <!-- arguments parsed manually, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="hostHandler">
-            <!-- arguments parsed manually -->
+            <!-- arguments parsed manually, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="getDomains">
-            <!-- arguments parsed manually -->
+            <!-- arguments parsed manually, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="getAccountInfo">
-            <!-- arguments parsed manually -->
+            <!-- arguments parsed manually, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
     </interface>
 
@@ -35,10 +42,12 @@
     <interface name="org.freedesktop.sssd.dataprovider_rev">
         <annotation value="data_provider_rev_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
         <method name="updateCache">
-            <!-- manual argument parsing -->
+            <!-- arguments parsed manually, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
         <method name="initgrCheck">
-            <!-- manual argument parsing -->
+            <!-- arguments parsed manually, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
     </interface>
 </node>

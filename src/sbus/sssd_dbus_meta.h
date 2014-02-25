@@ -38,11 +38,17 @@ struct sbus_arg_meta {
     const char *type;
 };
 
+struct sbus_request;
+struct sbus_interface;
+
+typedef int (* sbus_method_invoker_fn)(struct sbus_request *dbus_req, void *handler_fn);
+
 struct sbus_method_meta {
     const char *name;
     const struct sbus_arg_meta *in_args;
     const struct sbus_arg_meta *out_args;
     size_t vtable_offset;
+    sbus_method_invoker_fn invoker;
 };
 
 enum {

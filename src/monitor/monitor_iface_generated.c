@@ -12,12 +12,14 @@ const struct sbus_method_meta mon_srv_iface__methods[] = {
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_srv_iface, getVersion),
+        NULL, /* no invoker */
     },
     {
         "RegisterService", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_srv_iface, RegisterService),
+        NULL, /* no invoker */
     },
     { NULL, }
 };
@@ -37,48 +39,56 @@ const struct sbus_method_meta mon_cli_iface__methods[] = {
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_cli_iface, ping),
+        NULL, /* no invoker */
     },
     {
         "resInit", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_cli_iface, resInit),
+        NULL, /* no invoker */
     },
     {
         "shutDown", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_cli_iface, shutDown),
+        NULL, /* no invoker */
     },
     {
         "goOffline", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_cli_iface, goOffline),
+        NULL, /* no invoker */
     },
     {
         "resetOffline", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_cli_iface, resetOffline),
+        NULL, /* no invoker */
     },
     {
         "rotateLogs", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_cli_iface, rotateLogs),
+        NULL, /* no invoker */
     },
     {
         "clearMemcache", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_cli_iface, clearMemcache),
+        NULL, /* no invoker */
     },
     {
         "clearEnumCache", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
         offsetof(struct mon_cli_iface, clearEnumCache),
+        NULL, /* no invoker */
     },
     { NULL, }
 };

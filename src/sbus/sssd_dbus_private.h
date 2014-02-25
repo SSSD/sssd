@@ -22,6 +22,8 @@
 #ifndef _SSSD_DBUS_PRIVATE_H_
 #define _SSSD_DBUS_PRIVATE_H_
 
+#include "sssd_dbus_meta.h"
+
 union dbus_conn_pointer {
     DBusServer *server;
     DBusConnection *conn;
@@ -106,5 +108,11 @@ struct sbus_introspect_ctx {
 };
 
 int sbus_introspect(struct sbus_request *dbus_req, void *pvt);
+
+void
+sbus_request_invoke_or_finish(struct sbus_request *dbus_req,
+                              sbus_msg_handler_fn handler_fn,
+                              void *handler_data,
+                              sbus_method_invoker_fn invoker_fn);
 
 #endif /* _SSSD_DBUS_PRIVATE_H_ */
