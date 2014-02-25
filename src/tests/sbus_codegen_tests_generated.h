@@ -22,6 +22,7 @@
 /* constants for com.planetexpress.Pilot */
 #define TEST_PILOT "com.planetexpress.Pilot"
 #define TEST_PILOT_BLINK "Blink"
+#define TEST_PILOT_EJECT "Eject"
 #define TEST_PILOT_FULLNAME "FullName"
 
 /* ------------------------------------------------------------------------
@@ -60,10 +61,14 @@ int com_planetexpress_Ship_crash_now_finish(struct sbus_request *req);
 struct test_pilot {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
     int (*Blink)(struct sbus_request *req, void *data, uint32_t arg_duration);
+    int (*Eject)(struct sbus_request *req, void *data, uint8_t arg_byte, bool arg_boolean, int16_t arg_int16, uint16_t arg_uint16, int32_t arg_int32, uint32_t arg_uint32, int64_t arg_int64, uint64_t arg_uint64, double arg_double, const char *arg_string, const char *arg_object_path, uint8_t arg_byte_array[], int len_byte_array, int16_t arg_int16_array[], int len_int16_array, uint16_t arg_uint16_array[], int len_uint16_array, int32_t arg_int32_array[], int len_int32_array, uint32_t arg_uint32_array[], int len_uint32_array, int64_t arg_int64_array[], int len_int64_array, uint64_t arg_uint64_array[], int len_uint64_array, double arg_double_array[], int len_double_array, const char *arg_string_array[], int len_string_array, const char *arg_object_path_array[], int len_object_path_array);
 };
 
 /* finish function for Blink */
 int test_pilot_Blink_finish(struct sbus_request *req, bool arg_crashed);
+
+/* finish function for Eject */
+int test_pilot_Eject_finish(struct sbus_request *req, uint8_t arg_byte, bool arg_boolean, int16_t arg_int16, uint16_t arg_uint16, int32_t arg_int32, uint32_t arg_uint32, int64_t arg_int64, uint64_t arg_uint64, double arg_double, const char *arg_string, const char *arg_object_path, uint8_t arg_byte_array[], int len_byte_array, int16_t arg_int16_array[], int len_int16_array, uint16_t arg_uint16_array[], int len_uint16_array, int32_t arg_int32_array[], int len_int32_array, uint32_t arg_uint32_array[], int len_uint32_array, int64_t arg_int64_array[], int len_int64_array, uint64_t arg_uint64_array[], int len_uint64_array, double arg_double_array[], int len_double_array, const char *arg_string_array[], int len_string_array, const char *arg_object_path_array[], int len_object_path_array);
 
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata

@@ -1350,6 +1350,7 @@ sbus_tests_LDADD = \
     $(CHECK_LIBS)
 
 sbus_codegen_tests_SOURCES = \
+   src/tests/common_dbus.c \
    src/tests/sbus_codegen_tests.c \
    src/tests/sbus_codegen_tests_generated.c \
    src/tests/sbus_codegen_tests_generated.h
