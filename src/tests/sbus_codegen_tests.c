@@ -29,7 +29,9 @@
 #include <popt.h>
 
 #include "sbus/sssd_dbus_meta.h"
+#include "tests/common.h"
 #include "tests/sbus_codegen_tests_generated.h"
+#include "util/util_errors.h"
 
 static const struct sbus_arg_meta *
 find_arg(const struct sbus_arg_meta *args,
@@ -186,10 +188,8 @@ START_TEST(test_constants)
 }
 END_TEST
 
-Suite *create_suite(void)
+TCase *create_defs_tests(void)
 {
-    Suite *s = suite_create("sbus_codegen");
-
     TCase *tc = tcase_create("defs");
 
     /* Do some testing */
@@ -200,8 +200,332 @@ Suite *create_suite(void)
     tcase_add_test(tc, test_vtable);
     tcase_add_test(tc, test_constants);
 
-    /* Add all test cases to the test suite */
-    suite_add_tcase(s, tc);
+    return tc;
+}
+
+/* This is a handler which has all the basic arguments types */
+static int eject_handler(struct sbus_request *req, void *instance_data,
+                         uint8_t arg_byte, bool arg_boolean,
+                         int16_t arg_int16, uint16_t arg_uint16, int32_t arg_int32,
+                         uint32_t arg_uint32, int64_t arg_int64, uint64_t arg_uint64,
+                         double arg_double, const char *arg_string, const char *arg_object_path,
+                         uint8_t arg_byte_array[], int len_byte_array,
+                         int16_t arg_int16_array[], int len_int16_array,
+                         uint16_t arg_uint16_array[], int len_uint16_array,
+                         int32_t arg_int32_array[], int len_int32_array,
+                         uint32_t arg_uint32_array[], int len_uint32_array,
+                         int64_t arg_int64_array[], int len_int64_array,
+                         uint64_t arg_uint64_array[], int len_uint64_array,
+                         double arg_double_array[], int len_double_array,
+                         const char *arg_string_array[], int len_string_array,
+                         const char *arg_object_path_array[], int len_object_path_array)
+{
+    int i;
+
+    /* Only called for leela, so double check here */
+    ck_assert_str_eq(instance_data, "Crash into the billboard");
+
+    /* Murge the various values for test case */
+    ck_assert_uint_eq(arg_byte, 11);
+    arg_byte++;
+    ck_assert(arg_boolean == TRUE);
+    arg_boolean = !arg_boolean;
+    ck_assert_int_eq(arg_int16, -2222);
+    arg_int16++;
+    ck_assert_uint_eq(arg_uint16, 3333);
+    arg_uint16++;
+    ck_assert_int_eq(arg_int32, -44444444);
+    arg_int32++;
+    ck_assert_uint_eq(arg_uint32, 55555555);
+    arg_uint32++;
+    ck_assert(arg_int64 == -6666666666666666);
+    arg_int64++;
+    ck_assert(arg_uint64 == 7777777777777777);
+    arg_uint64++;
+    ck_assert(arg_double == 1.1);
+    arg_double++;
+
+    ck_assert_str_eq(arg_string, "hello");
+    arg_string = "bears, beets, battlestar galactica";
+    ck_assert_str_eq(arg_object_path, "/original/object/path");
+    arg_object_path = "/another/object/path";
+
+    arg_byte_array = talloc_memdup(req, arg_byte_array, sizeof(uint8_t) * len_byte_array);
+    for (i = 0; i < len_byte_array; i++)
+        arg_byte_array[i]++;
+
+    arg_int16_array = talloc_memdup(req, arg_int16_array, sizeof(int16_t) * len_int16_array);
+    for (i = 0; i < len_int16_array; i++)
+        arg_int16_array[i]++;
+    len_int16_array--;
+
+    arg_uint16_array = talloc_memdup(req, arg_uint16_array, sizeof(uint16_t) * len_uint16_array);
+    for (i = 0; i < len_uint16_array; i++)
+        arg_uint16_array[i]++;
+
+    arg_int32_array = talloc_memdup(req, arg_int32_array, sizeof(int32_t) * len_int32_array);
+    for (i = 0; i < len_int32_array; i++)
+        arg_int32_array[i]++;
+    len_int32_array--;
+
+    arg_uint32_array = talloc_memdup(req, arg_uint32_array, sizeof(uint32_t) * len_uint32_array);
+    for (i = 0; i < len_uint32_array; i++)
+        arg_uint32_array[i]++;
+
+    arg_int64_array = talloc_memdup(req, arg_int64_array, sizeof(int64_t) * len_int64_array);
+    for (i = 0; i < len_int64_array; i++)
+        arg_int64_array[i]++;
+
+    arg_uint64_array = talloc_memdup(req, arg_uint64_array, sizeof(uint64_t) * len_uint64_array);
+    for (i = 0; i < len_uint64_array; i++)
+        arg_uint64_array[i]++;
+
+    arg_double_array = talloc_memdup(req, arg_double_array, sizeof(double) * len_double_array);
+    for (i = 0; i < len_double_array; i++)
+        arg_double_array[i]++;
+
+    arg_string_array = talloc_memdup(req, arg_string_array, sizeof(char *) * len_string_array);
+    for (i = 0; i < len_double_array; i++) {
+        ck_assert_str_eq(arg_string_array[i], "bears");
+        arg_string_array[i] = "beets";
+    }
+    len_string_array--;
+
+    arg_object_path_array = talloc_memdup(req, arg_object_path_array, sizeof(char *) * len_object_path_array);
+    for (i = 0; i < len_object_path_array; i++) {
+        ck_assert_str_eq(arg_object_path_array[i], "/original");
+        arg_object_path_array[i] = "/changed";
+    }
+
+    /* And reply with those values */
+    return test_pilot_Eject_finish(req, arg_byte, arg_boolean, arg_int16,
+                                   arg_uint16, arg_int32, arg_uint32,
+                                   arg_int64, arg_uint64, arg_double,
+                                   arg_string, arg_object_path,
+                                   arg_byte_array, len_byte_array,
+                                   arg_int16_array, len_int16_array,
+                                   arg_uint16_array, len_uint16_array,
+                                   arg_int32_array, len_int32_array,
+                                   arg_uint32_array, len_uint32_array,
+                                   arg_int64_array, len_int64_array,
+                                   arg_uint64_array, len_uint64_array,
+                                   arg_double_array, len_double_array,
+                                   arg_string_array, len_string_array,
+                                   arg_object_path_array, len_object_path_array);
+}
+
+#define N_ELEMENTS(arr) \
+    (sizeof(arr) / sizeof(arr[0]))
+
+struct test_pilot pilot_methods = {
+    { &test_pilot_meta, 0 },
+    .Eject = eject_handler,
+};
+
+static int pilot_test_server_init(struct sbus_connection *server, void *unused)
+{
+    int ret;
+
+    ret = sbus_conn_add_interface(server,
+                                  sbus_new_interface(server, "/test/leela",
+                                                     &pilot_methods.vtable,
+                                                     "Crash into the billboard"));
+    ck_assert_int_eq(ret, EOK);
+
+    return EOK;
+}
+
+START_TEST(test_marshal_basic_types)
+{
+    unsigned char arg_byte = 11;
+    dbus_bool_t arg_boolean = TRUE;
+    dbus_int16_t arg_int16 = -2222;
+    dbus_uint16_t arg_uint16 = 3333;
+    dbus_int32_t arg_int32 = -44444444;
+    dbus_uint32_t arg_uint32 = 55555555;
+    dbus_int64_t arg_int64 = -6666666666666666;
+    dbus_uint64_t arg_uint64 = 7777777777777777;
+    double arg_double = 1.1;
+    const char *arg_string = "hello";
+    const char *arg_object_path = "/original/object/path";
+
+    unsigned char v_byte[] = { 11, 12 };
+    dbus_int16_t v_int16[] = { 1, -22, 333, -4444 };
+    dbus_uint16_t v_uint16[] = { 1, 2, 3, 4, 5 };
+    dbus_int32_t v_int32[] = { -1, -23, 34, -56, -90000000, 78 };
+    dbus_uint32_t v_uint32[] = { 11111111, 22222222, 33333333 };
+    dbus_int64_t v_int64[] = { -6666666666666666, 7777777777777777 };
+    dbus_uint64_t v_uint64[] = { 7777777777777777, 888888888888888888 };
+    double v_double[] = { 1.1, 2.2, 3.3 };
+    char *v_string[] = { "bears", "bears", "bears" };
+    char *v_object_path[] = { "/original", "/original" };
+
+    unsigned char *arr_byte = v_byte;
+    dbus_int16_t *arr_int16 = v_int16;
+    dbus_uint16_t *arr_uint16 = v_uint16;
+    dbus_int32_t *arr_int32 = v_int32;
+    dbus_uint32_t *arr_uint32 = v_uint32;
+    dbus_int64_t *arr_int64 = v_int64;
+    dbus_uint64_t *arr_uint64 = v_uint64;
+    double *arr_double = v_double;
+    char **arr_string = v_string;
+    char **arr_object_path = v_object_path;
+
+    int len_byte = N_ELEMENTS(v_byte);
+    int len_int16 = N_ELEMENTS(v_int16);
+    int len_uint16 = N_ELEMENTS(v_uint16);
+    int len_int32 = N_ELEMENTS(v_int32);
+    int len_uint32 = N_ELEMENTS(v_uint32);
+    int len_int64 = N_ELEMENTS(v_int64);
+    int len_uint64 = N_ELEMENTS(v_uint64);
+    int len_double = N_ELEMENTS(v_double);
+    int len_string = N_ELEMENTS(v_string);
+    int len_object_path = N_ELEMENTS(v_object_path);
+
+    TALLOC_CTX *ctx;
+    DBusConnection *client;
+    DBusError error = DBUS_ERROR_INIT;
+    DBusMessage *reply;
+
+    ctx = talloc_new(NULL);
+    client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
+
+    reply = test_dbus_call_sync(client,
+                                "/test/leela",
+                                TEST_PILOT,
+                                TEST_PILOT_EJECT,
+                                &error,
+                                DBUS_TYPE_BYTE, &arg_byte,
+                                DBUS_TYPE_BOOLEAN, &arg_boolean,
+                                DBUS_TYPE_INT16, &arg_int16,
+                                DBUS_TYPE_UINT16, &arg_uint16,
+                                DBUS_TYPE_INT32, &arg_int32,
+                                DBUS_TYPE_UINT32, &arg_uint32,
+                                DBUS_TYPE_INT64, &arg_int64,
+                                DBUS_TYPE_UINT64, &arg_uint64,
+                                DBUS_TYPE_DOUBLE, &arg_double,
+                                DBUS_TYPE_STRING, &arg_string,
+                                DBUS_TYPE_OBJECT_PATH, &arg_object_path,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE, &arr_byte, len_byte,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_INT16, &arr_int16, len_int16,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_UINT16, &arr_uint16, len_uint16,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_INT32, &arr_int32, len_int32,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32, &arr_uint32, len_uint32,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_INT64, &arr_int64, len_int64,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_UINT64, &arr_uint64, len_uint64,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_DOUBLE, &arr_double, len_double,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &arr_string, len_string,
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arr_object_path, len_object_path,
+                                DBUS_TYPE_INVALID);
+    ck_assert(reply != NULL);
+    ck_assert(!dbus_error_is_set(&error));
+    ck_assert(dbus_message_get_args(reply, NULL,
+                                    DBUS_TYPE_BYTE, &arg_byte,
+                                    DBUS_TYPE_BOOLEAN, &arg_boolean,
+                                    DBUS_TYPE_INT16, &arg_int16,
+                                    DBUS_TYPE_UINT16, &arg_uint16,
+                                    DBUS_TYPE_INT32, &arg_int32,
+                                    DBUS_TYPE_UINT32, &arg_uint32,
+                                    DBUS_TYPE_INT64, &arg_int64,
+                                    DBUS_TYPE_UINT64, &arg_uint64,
+                                    DBUS_TYPE_DOUBLE, &arg_double,
+                                    DBUS_TYPE_STRING, &arg_string,
+                                    DBUS_TYPE_OBJECT_PATH, &arg_object_path,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE, &arr_byte, &len_byte,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_INT16, &arr_int16, &len_int16,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_UINT16, &arr_uint16, &len_uint16,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_INT32, &arr_int32, &len_int32,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32, &arr_uint32, &len_uint32,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_INT64, &arr_int64, &len_int64,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_UINT64, &arr_uint64, &len_uint64,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_DOUBLE, &arr_double, &len_double,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &arr_string, &len_string,
+                                    DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arr_object_path, &len_object_path,
+                                    DBUS_TYPE_INVALID));
+
+    ck_assert_uint_eq(arg_byte, 12);
+    ck_assert(arg_boolean == FALSE);
+    ck_assert_int_eq(arg_int16, -2221);
+    ck_assert_uint_eq(arg_uint16, 3334);
+    ck_assert_int_eq(arg_int32, -44444443);
+    ck_assert_uint_eq(arg_uint32, 55555556);
+    ck_assert(arg_int64 ==-6666666666666665);
+    ck_assert(arg_uint64 == 7777777777777778);
+    ck_assert(arg_double == 2.1);
+    ck_assert_str_eq(arg_string, "bears, beets, battlestar galactica");
+    ck_assert_str_eq(arg_object_path, "/another/object/path");
+
+    ck_assert_int_eq(len_byte, 2);
+    ck_assert_int_eq(arr_byte[0], 12);
+    ck_assert_int_eq(arr_byte[1], 13);
+
+    ck_assert_int_eq(len_int16, 3);
+    ck_assert_int_eq(arr_int16[0], 2);
+    ck_assert_int_eq(arr_int16[1], -21);
+    ck_assert_int_eq(arr_int16[2], 334);
+
+    ck_assert_int_eq(len_uint16, 5);
+    ck_assert_uint_eq(arr_uint16[0], 2);
+    ck_assert_uint_eq(arr_uint16[1], 3);
+    ck_assert_uint_eq(arr_uint16[2], 4);
+    ck_assert_uint_eq(arr_uint16[3], 5);
+    ck_assert_uint_eq(arr_uint16[4], 6);
+
+    ck_assert_int_eq(len_int32, 5);
+    ck_assert_int_eq(arr_int32[0], 0);
+    ck_assert_int_eq(arr_int32[1], -22);
+    ck_assert_int_eq(arr_int32[2], 35);
+    ck_assert_int_eq(arr_int32[3], -55);
+    ck_assert_int_eq(arr_int32[4], -89999999);
+
+    ck_assert_int_eq(len_uint32, 3);
+    ck_assert_uint_eq(arr_uint32[0], 11111112);
+    ck_assert_uint_eq(arr_uint32[1], 22222223);
+    ck_assert_uint_eq(arr_uint32[2], 33333334);
+
+    ck_assert_int_eq(len_int64, 2);
+    ck_assert(arr_int64[0] == -6666666666666665);
+    ck_assert(arr_int64[1] == 7777777777777778);
+
+    ck_assert_int_eq(len_uint64, 2);
+    ck_assert(arr_uint64[0] == 7777777777777778);
+    ck_assert(arr_uint64[1] == 888888888888888889);
+
+    ck_assert_int_eq(len_double, 3);
+    ck_assert(arr_double[0] == 2.1);
+    ck_assert(arr_double[1] == 3.2);
+    ck_assert(arr_double[2] == 4.3);
+
+    ck_assert_int_eq(len_string, 2);
+    ck_assert_str_eq(arr_string[0], "beets");
+    ck_assert_str_eq(arr_string[1], "beets");
+    dbus_free_string_array(arr_string);
+
+    ck_assert_int_eq(len_object_path, 2);
+    ck_assert_str_eq(arr_object_path[0], "/changed");
+    ck_assert_str_eq(arr_object_path[1], "/changed");
+    dbus_free_string_array(arr_object_path);
+
+    dbus_message_unref (reply);
+    talloc_free(ctx);
+}
+END_TEST
+
+TCase *create_handler_tests(void)
+{
+    TCase *tc = tcase_create("handler");
+
+    tcase_add_test(tc, test_marshal_basic_types);
+
+    return tc;
+}
+
+Suite *create_suite(void)
+{
+    Suite *s = suite_create("sbus_codegen");
+
+    suite_add_tcase(s, create_defs_tests ());
+    suite_add_tcase(s, create_handler_tests ());
 
     return s;
 }

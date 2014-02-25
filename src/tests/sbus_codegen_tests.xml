@@ -52,12 +52,59 @@
         <!-- A property -->
         <property name="FullName" type="s" access="readwrite"/>
 
+
         <!-- A simple method -->
         <method name="Blink">
             <!-- This is an uint32 arg -->
             <arg name="duration" type="u" direction="in"/>
             <!-- This is a boolean return value -->
             <arg name="crashed" type="b" direction="out"/>
+        </method>
+
+        <!-- A method with every type of basic argument, in both directions -->
+        <method name="Eject">
+            <arg name="byte" type="y" direction="in"/>
+            <arg name="boolean" type="b" direction="in"/>
+            <arg name="int16" type="n" direction="in"/>
+            <arg name="uint16" type="q" direction="in"/>
+            <arg name="int32" type="i" direction="in"/>
+            <arg name="uint32" type="u" direction="in"/>
+            <arg name="int64" type="x" direction="in"/>
+            <arg name="uint64" type="t" direction="in"/>
+            <arg name="double" type="d" direction="in"/>
+            <arg name="string" type="s" direction="in"/>
+            <arg name="object_path" type="o" direction="in"/>
+            <arg name="byte_array" type="ay" direction="in"/>
+            <arg name="int16_array" type="an" direction="in"/>
+            <arg name="uint16_array" type="aq" direction="in"/>
+            <arg name="int32_array" type="ai" direction="in"/>
+            <arg name="uint32_array" type="au" direction="in"/>
+            <arg name="int64_array" type="ax" direction="in"/>
+            <arg name="uint64_array" type="at" direction="in"/>
+            <arg name="double_array" type="ad" direction="in"/>
+            <arg name="string_array" type="as" direction="in"/>
+            <arg name="object_path_array" type="ao" direction="in"/>
+            <arg name="byte" type="y" direction="out"/>
+            <arg name="boolean" type="b" direction="out"/>
+            <arg name="int16" type="n" direction="out"/>
+            <arg name="uint16" type="q" direction="out"/>
+            <arg name="int32" type="i" direction="out"/>
+            <arg name="uint32" type="u" direction="out"/>
+            <arg name="int64" type="x" direction="out"/>
+            <arg name="uint64" type="t" direction="out"/>
+            <arg name="double" type="d" direction="out"/>
+            <arg name="string" type="s" direction="out"/>
+            <arg name="object_path" type="o" direction="out"/>
+            <arg name="byte_array" type="ay" direction="out"/>
+            <arg name="int16_array" type="an" direction="out"/>
+            <arg name="uint16_array" type="aq" direction="out"/>
+            <arg name="int32_array" type="ai" direction="out"/>
+            <arg name="uint32_array" type="au" direction="out"/>
+            <arg name="int64_array" type="ax" direction="out"/>
+            <arg name="uint64_array" type="at" direction="out"/>
+            <arg name="double_array" type="ad" direction="out"/>
+            <arg name="string_array" type="as" direction="out"/>
+            <arg name="object_path_array" type="ao" direction="out"/>
         </method>
 
     </interface>
