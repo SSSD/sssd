@@ -167,7 +167,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
 
     if (ctx->dyndns_ctx->last_refresh + 60 > time(NULL) ||
         ctx->dyndns_ctx->timer_in_progress) {
-        DEBUG(SSSDBG_FUNC_DATA, "Last periodic update ran recently or timer"
+        DEBUG(SSSDBG_FUNC_DATA, "Last periodic update ran recently or timer "
               "in progress, not scheduling another update\n");
         tevent_req_done(req);
         tevent_req_post(req, sdap_ctx->be->ev);
