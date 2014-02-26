@@ -522,7 +522,7 @@ START_TEST(test_murmurhash3_random)
     }
     test[len] = '\0'; /* null terminate */
 
-    fprintf(stdout, "test_murmurhash3_random seed: %d\n", init_seed);
+    fprintf(stdout, "test_murmurhash3_random seed: %u\n", init_seed);
 
     result1 = murmurhash3(test, len + 1, init_seed);
     result2 = murmurhash3(test, len + 1, init_seed);
