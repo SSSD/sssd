@@ -422,7 +422,7 @@ errno_t write_krb5info_file(const char *realm, const char *server,
     mode_t old_umask;
 
     if (realm == NULL || *realm == '\0' || server == NULL || *server == '\0' ||
-        service == NULL || service == '\0') {
+        service == NULL || *service == '\0') {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Missing or empty realm, server or service.\n");
         return EINVAL;
