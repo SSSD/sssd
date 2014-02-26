@@ -2308,6 +2308,8 @@ if BUILD_PYTHON_BINDINGS
 		rm -f $(builddir)/src/config/SSSDConfig/sssd_upgrade_config.py ; \
 	fi
 
+	rm -f $(builddir)/src/config/SSSDConfig/*.pyc
+
 	cd $(builddir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config clean --all
 endif
 	for doc in $(SSSD_DOCS); do \

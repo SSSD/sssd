@@ -12,7 +12,7 @@ import sys
 
 srcdir = os.getenv('srcdir')
 if srcdir:
-    sys.path.append("./src/config")
+    sys.path.insert(0, "./src/config")
     srcdir = srcdir + "/src/config"
 else:
     srcdir = "."
