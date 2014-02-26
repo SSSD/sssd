@@ -782,11 +782,10 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_NETGR_ATTRS;
     struct ldb_dn *base_dn;
-    struct ldb_result *result;
+    struct ldb_result *result = NULL;
     char *sanitized_netgroup;
     char *lc_sanitized_netgroup;
     char *netgroup_dn;
-    int lret;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -816,18 +815,15 @@ errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &result, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs,
-                     SYSDB_NETGR_TRIPLES_FILTER, lc_sanitized_netgroup,
-                     sanitized_netgroup, sanitized_netgroup,
-                     netgroup_dn);
-    ret = sysdb_error_to_errno(lret);
-    if (ret != EOK) {
-        goto done;
-    }
+    ret = sss_ldb_search(domain->sysdb->ldb, tmp_ctx, &result, base_dn,
+                         LDB_SCOPE_SUBTREE, attrs,
+                         SYSDB_NETGR_TRIPLES_FILTER, lc_sanitized_netgroup,
+                         sanitized_netgroup, sanitized_netgroup,
+                         netgroup_dn);
 
-    *res = talloc_steal(mem_ctx, result);
-    ret = EOK;
+    if (ret == EOK || ret == ENOENT) {
+        *res = talloc_steal(mem_ctx, result);
+    }
 
 done:
     talloc_zfree(tmp_ctx);
