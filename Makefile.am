@@ -615,7 +615,7 @@ libsss_idmap_la_SOURCES = \
     src/lib/idmap/sss_idmap_conv.c \
     src/util/murmurhash3.c
 libsss_idmap_la_LDFLAGS = \
-    -version-info 3:0:3
+    -version-info 4:0:4
 
 dist_pkgconfig_DATA += src/sss_client/idmap/sss_nss_idmap.pc
 libsss_nss_idmap_la_SOURCES = \
