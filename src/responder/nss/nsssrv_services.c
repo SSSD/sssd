@@ -908,7 +908,7 @@ errno_t parse_getservbyname(TALLOC_CTX *mem_ctx,
     i = j = 0;
 
     /* Copy in the service name */
-    while (body[i] && i < (blen - 1)) {
+    while (i < (blen - 1) && body[i]) {
         rawname[j] = body[i];
         i++;
         j++;
@@ -943,7 +943,7 @@ errno_t parse_getservbyname(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        while (body[i] && i < blen) {
+        while (i < blen && body[i]) {
             protocol[j] = body[i];
             i++;
             j++;
@@ -1071,7 +1071,7 @@ errno_t parse_getservbyport(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        while (body[i] && i < blen) {
+        while (i < blen && body[i]) {
             protocol[j] = body[i];
             i++;
             j++;
