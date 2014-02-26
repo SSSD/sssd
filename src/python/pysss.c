@@ -76,17 +76,6 @@ typedef struct {
 } PySssLocalObject;
 
 /*
- * The transaction object
- */
-struct py_sss_transaction {
-    PySssLocalObject *self;
-    struct ops_ctx *ops;
-
-    bool transaction_done;
-    int error;
-};
-
-/*
  * Error reporting
  */
 static void PyErr_SetSssErrorWithMessage(int ret, const char *message)

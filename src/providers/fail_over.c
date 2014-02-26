@@ -1384,11 +1384,6 @@ resolve_srv_recv(struct tevent_req *req, struct fo_server **server)
 /*******************************************************************
  *     Get Fully Qualified Domain Name of the host machine         *
  *******************************************************************/
-struct resolve_get_domain_state {
-    char *fqdn;
-    char hostname[HOST_NAME_MAX];
-};
-
 static void
 set_server_common_status(struct server_common *common,
                          enum server_status status)

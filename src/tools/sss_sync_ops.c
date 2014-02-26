@@ -43,12 +43,6 @@
         } \
 } while(0)
 
-struct sync_op_res {
-    struct ops_ctx *data;
-    int error;
-    bool done;
-};
-
 /*
  * Generic modify groups member
  */
