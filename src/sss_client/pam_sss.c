@@ -124,7 +124,6 @@ static void logger(pam_handle_t *pamh, int level, const char *fmt, ...) {
 static void free_exp_data(pam_handle_t *pamh, void *ptr, int err)
 {
     free(ptr);
-    ptr = NULL;
 }
 
 static void close_fd(pam_handle_t *pamh, void *ptr, int err)

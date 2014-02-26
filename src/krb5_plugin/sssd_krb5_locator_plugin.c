@@ -250,7 +250,6 @@ void sssd_krb5_locator_close(void *private_data)
     free(ctx->kpasswd_addr);
     free(ctx->sssd_realm);
     free(ctx);
-    private_data = NULL;
 
     return;
 }

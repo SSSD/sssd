@@ -315,7 +315,6 @@ void hbac_free_info(struct hbac_info *info)
 
     free(info->rule_name);
     free(info);
-    info = NULL;
 }
 
 const char *hbac_error_string(enum hbac_error_code code)
