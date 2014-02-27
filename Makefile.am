@@ -274,7 +274,8 @@ dist_noinst_DATA = \
     src/config/testconfigs/sssd-noversion.conf \
     src/config/testconfigs/sssd-badversion.conf \
     src/config/testconfigs/sssd-invalid.conf \
-    src/config/testconfigs/sssd-invalid-badbool.conf
+    src/config/testconfigs/sssd-invalid-badbool.conf \
+    src/config/etc/sssd.api.d/crash_test_dummy
 
 ###############################
 # Global compilation settings #

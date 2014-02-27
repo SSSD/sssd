@@ -7,6 +7,7 @@ Created on Sep 18, 2009
 import os
 import gettext
 import exceptions
+import re
 from ipachangeconf import SSSDChangeConf
 
 # Exceptions
@@ -399,7 +400,8 @@ class SSSDConfigSchema(SSSDChangeConf):
             self.readfp(fd)
             fd.close()
             # Read in the provider files
-            for file in os.listdir(schemaplugindir):
+            for file in filter(lambda f: re.search('^sssd-.*\.conf$', f),
+                                         os.listdir(schemaplugindir)):
                 fd = open(schemaplugindir+ "/" + file)
                 self.readfp(fd)
                 fd.close()
