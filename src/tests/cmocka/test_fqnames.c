@@ -28,6 +28,7 @@
 #define NAME        "name"
 #define DOMNAME     "domname"
 #define FLATNAME    "flatname"
+#define SPECIALNAME "[]{}();:'|\",<.>/?!#$%^&*_+~`"
 #define PROVIDER    "local"
 #define CONNNAME    "conn"
 
@@ -323,11 +324,74 @@ void parse_name_test_teardown(void **state)
     assert_true(leak_check_teardown());
 }
 
+void sss_parse_name_check(struct parse_name_test_ctx *test_ctx,
+                          const char *input_name,
+                          const char exp_ret,
+                          const char *exp_name,
+                          const char *exp_domain)
+{
+    errno_t ret;
+    char *domain = NULL;
+    char *name = NULL;
+    const char *domain_const = NULL;
+    const char *name_const = NULL;
+
+
+    check_leaks_push(test_ctx);
+    ret = sss_parse_name(test_ctx, test_ctx->nctx, input_name,
+                         &domain, &name);
+    assert_int_equal(ret, exp_ret);
+
+    if (exp_name) {
+        assert_non_null(name);
+        assert_string_equal(name, exp_name);
+    }
+
+    if (exp_domain) {
+        assert_non_null(domain);
+        assert_string_equal(domain, exp_domain);
+    }
+
+    talloc_zfree(name);
+    talloc_zfree(domain);
+
+    ret = sss_parse_name_const(test_ctx, test_ctx->nctx, input_name,
+                               &domain_const, &name_const);
+    assert_int_equal(ret, exp_ret);
+
+    if (exp_name) {
+        assert_non_null(name_const);
+        assert_string_equal(name_const, exp_name);
+    }
+
+    if (exp_domain) {
+        assert_non_null(domain_const);
+        assert_string_equal(domain_const, exp_domain);
+    }
+
+    talloc_free(discard_const(name_const));
+    talloc_free(discard_const(domain_const));
+
+    assert_true(check_leaks_pop(test_ctx) == true);
+}
+
 void parse_name_plain(void **state)
 {
     struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
                                                            struct parse_name_test_ctx);
+    int ret;
+
     parse_name_check(test_ctx, NAME, NULL, EOK, NAME, NULL);
+
+    ret = sss_parse_name(test_ctx, test_ctx->nctx, NAME,
+                         NULL, NULL);
+    assert_int_equal(ret, EOK);
+    ret = sss_parse_name_const(test_ctx, test_ctx->nctx, NAME,
+                               NULL, NULL);
+    assert_int_equal(ret, EOK);
+
+    sss_parse_name_check(test_ctx, NAME, EOK, NAME, NULL);
+    sss_parse_name_check(test_ctx, SPECIALNAME, EOK, SPECIALNAME, NULL);
 }
 
 void parse_name_fqdn(void **state)
@@ -336,6 +400,11 @@ void parse_name_fqdn(void **state)
                                                            struct parse_name_test_ctx);
     parse_name_check(test_ctx, NAME"@"DOMNAME, NULL, EOK, NAME, DOMNAME);
     parse_name_check(test_ctx, NAME"@"DOMNAME2, NULL, EOK, NAME, DOMNAME2);
+
+    sss_parse_name_check(test_ctx, NAME"@"DOMNAME, EOK, NAME, DOMNAME);
+    sss_parse_name_check(test_ctx, NAME"@"DOMNAME2, EOK, NAME, DOMNAME2);
+    sss_parse_name_check(test_ctx, DOMNAME"\\"NAME, EOK, NAME, DOMNAME);
+    sss_parse_name_check(test_ctx, DOMNAME2"\\"NAME, EOK, NAME, DOMNAME2);
 }
 
 void parse_name_sub(void **state)
@@ -397,6 +466,20 @@ void test_init_nouser(void **state)
     assert_int_not_equal(ret, EOK);
 }
 
+void sss_parse_name_fail(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                           struct parse_name_test_ctx);
+
+    sss_parse_name_check(test_ctx, "", EINVAL, NULL, NULL);
+    sss_parse_name_check(test_ctx, "@", EINVAL, NULL, NULL);
+    sss_parse_name_check(test_ctx, "\\", EINVAL, NULL, NULL);
+    sss_parse_name_check(test_ctx, "\\"NAME, EINVAL, NULL, NULL);
+    sss_parse_name_check(test_ctx, "@"NAME, EINVAL, NULL, NULL);
+    sss_parse_name_check(test_ctx, NAME"@", EINVAL, NULL, NULL);
+    sss_parse_name_check(test_ctx, NAME"\\", EINVAL, NULL, NULL);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -432,6 +515,9 @@ int main(int argc, const char *argv[])
                                  parse_name_test_setup,
                                  parse_name_test_teardown),
         unit_test_setup_teardown(parse_name_default,
+                                 parse_name_test_setup,
+                                 parse_name_test_teardown),
+        unit_test_setup_teardown(sss_parse_name_fail,
                                  parse_name_test_setup,
                                  parse_name_test_teardown),
     };

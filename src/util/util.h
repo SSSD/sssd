@@ -280,6 +280,10 @@ int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **_domain, char **_name);
 
+int sss_parse_name_const(TALLOC_CTX *memctx,
+                         struct sss_names_ctx *snctx, const char *orig,
+                         const char **_domain, const char **_name);
+
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                                struct sss_domain_info *domains,
                                const char *default_domain,

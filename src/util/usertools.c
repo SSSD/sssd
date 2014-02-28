@@ -366,6 +366,30 @@ int sss_parse_name(TALLOC_CTX *memctx,
     return EOK;
 }
 
+int sss_parse_name_const(TALLOC_CTX *memctx,
+                         struct sss_names_ctx *snctx, const char *orig,
+                         const char **_domain, const char **_name)
+{
+    char *domain;
+    char *name;
+    int ret;
+
+    ret = sss_parse_name(memctx, snctx, orig,
+                         (_domain == NULL) ? NULL : &domain,
+                         (_name == NULL) ? NULL : &name);
+    if (ret == EOK) {
+        if (_domain != NULL) {
+            *_domain = domain;
+        }
+
+        if (_name != NULL) {
+            *_name = name;
+        }
+    }
+
+    return ret;
+}
+
 static struct sss_domain_info * match_any_domain_or_subdomain_name(
                                                 struct sss_domain_info *dom,
                                                 const char *dmatch)
