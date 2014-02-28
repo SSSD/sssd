@@ -1465,14 +1465,23 @@ fallback_homedir = /home/%u
                             <citerefentry>
                                 <refentrytitle>sssd-ldap</refentrytitle>
                                 <manvolnum>5</manvolnum>
-                            </citerefentry> for more information on configuring LDAP.
+                            </citerefentry> for more information on configuring
+                            LDAP.
+                        </para>
+                        <para>
+                            <quote>ipa</quote> the same as <quote>ldap</quote>
+                            but with IPA default settings.
+                        </para>
+                        <para>
+                            <quote>ad</quote> the same as <quote>ldap</quote>
+                            but with AD default settings.
                         </para>
                         <para>
                             <quote>none</quote> disables SUDO explicitly.
                         </para>
                         <para>
-                            Default: The value of <quote>id_provider</quote> is used if it
-                            is set.
+                            Default: The value of <quote>id_provider</quote> is
+                            used if it is set.
                         </para>
                     </listitem>
                 </varlistentry>

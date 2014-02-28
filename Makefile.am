@@ -1970,6 +1970,11 @@ libsss_ad_la_SOURCES = \
     src/util/sss_krb5.c \
     src/util/sss_ldap.c
 
+if BUILD_SUDO
+libsss_ad_la_SOURCES += \
+    src/providers/ad/ad_sudo.c
+endif
+
 libsss_ad_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(SYSTEMD_LOGIN_CFLAGS) \
