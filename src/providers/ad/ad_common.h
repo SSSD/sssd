@@ -128,4 +128,8 @@ errno_t ad_dyndns_init(struct be_ctx *be_ctx,
                        struct ad_options *ctx);
 void ad_dyndns_timer(void *pvt);
 
+int ad_sudo_init(struct be_ctx *be_ctx,
+                 struct ad_id_ctx *id_ctx,
+                 struct bet_ops **ops,
+                 void **pvt_data);
 #endif /* AD_COMMON_H_ */
