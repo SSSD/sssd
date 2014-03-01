@@ -558,7 +558,8 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock_sysdb_objects.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
-    src/lib/idmap/sss_idmap_private.h
+    src/lib/idmap/sss_idmap_private.h \
+    src/lib/sifp/sss_sifp_private.h
 
 
 if HAVE_NSS
@@ -573,6 +574,10 @@ SSSD_DOCS = \
 
 if BUILD_SUDO
     SSSD_DOCS += libsss_sudo_doc
+endif
+
+if BUILD_IFP
+    SSSD_DOCS += libsss_simpleifp_doc
 endif
 
 CLIENT_LIBS = $(LTLIBINTL)
@@ -724,6 +729,32 @@ include_HEADERS = \
     src/providers/ipa/ipa_hbac.h \
     src/lib/idmap/sss_idmap.h \
     src/sss_client/idmap/sss_nss_idmap.h
+
+if BUILD_IFP
+lib_LTLIBRARIES += libsss_simpleifp.la
+pkgconfig_DATA += src/lib/sifp/sss_simpleifp.pc
+
+libsss_simpleifp_la_SOURCES = \
+    src/lib/sifp/sss_sifp.c \
+    src/lib/sifp/sss_sifp_dbus.c \
+    src/lib/sifp/sss_sifp_attrs.c \
+    src/lib/sifp/sss_sifp_parser.c \
+    src/lib/sifp/sss_sifp_utils.c
+libsss_simpleifp_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    -I$(top_srcdir)/src/lib/sifp
+libsss_simpleifp_la_LIBADD = \
+    $(DBUS_LIBS)
+libsss_simpleifp_la_LDFLAGS = \
+    -Wl,--version-script,$(srcdir)/src/lib/sifp/sss_simpleifp.exports \
+    -version-info 0:0:0
+
+dist_noinst_DATA += src/lib/sifp/sss_simpleifp.exports
+
+include_HEADERS += \
+    src/lib/sifp/sss_sifp.h \
+    src/lib/sifp/sss_sifp_dbus.h
+endif
 
 ####################
 # Sbus Codegen     #
@@ -2431,6 +2462,9 @@ docs:
 	$(DOXYGEN) src/providers/ipa/ipa_hbac.doxy
 	$(DOXYGEN) src/lib/idmap/sss_idmap.doxy
 	$(DOXYGEN) src/sss_client/idmap/sss_nss_idmap.doxy
+if BUILD_IFP
+	$(DOXYGEN) src/lib/sifp/sss_simpleifp.doxy
+endif
 else !HAVE_DOXYGEN
 docs:
 	@echo "Doxygen not installed, cannot generate documentation"

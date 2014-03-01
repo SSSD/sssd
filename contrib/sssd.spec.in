@@ -405,6 +405,27 @@ Requires: sssd-common = %{version}-%{release}
 Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
 the information from the SSSD to be transmitted over the system bus.
 
+%package -n libsss_simpleifp
+Summary: The SSSD D-Bus responder helper library
+Group: Development/Libraries
+License: GPLv3+
+Requires: dbus-libs
+Requires(post): /sbin/ldconfig
+Requires(postun): /sbin/ldconfig
+
+%description -n libsss_simpleifp
+Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
+
+%package -n libsss_simpleifp-devel
+Summary: The SSSD D-Bus responder helper library
+Group: Development/Libraries
+License: GPLv3+
+Requires: dbus-devel
+Requires: libsss_simpleifp = %{version}-%{release}
+
+%description -n libsss_simpleifp-devel
+Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -672,6 +693,23 @@ rm -rf $RPM_BUILD_ROOT
 # InfoPipe DBus plumbing
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 %{_libdir}/%{name}/libsss_config.so
+
+%files -n libsss_simpleifp
+%defattr(-,root,root,-)
+%{_libdir}/libsss_simpleifp.so.*
+
+%files -n libsss_simpleifp-devel
+%defattr(-,root,root,-)
+%if 0%{?fedora}
+%doc sss_simpleifp_doc/html
+%endif
+%if 0%{?rhel} >= 6
+%doc sss_simpleifp_doc/html
+%endif
+%{_includedir}/sss_sifp.h
+%{_includedir}/sss_sifp_dbus.h
+%{_libdir}/libsss_simpleifp.so
+%{_libdir}/pkgconfig/sss_simpleifp.pc
 
 %files client -f sssd_client.lang
 %defattr(-,root,root,-)
