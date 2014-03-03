@@ -358,6 +358,7 @@ get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
 {
     errno_t ret;
     char *name;
+    char *lc_name;
     const char *homedir;
     TALLOC_CTX *tmp_ctx;
 
@@ -372,7 +373,15 @@ get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
-    homedir = expand_homedir_template(tmp_ctx, dom->subdomain_homedir, name,
+    /* To be compatible with the old winbind based user lookups and IPA
+     * clients the user name in the home directory path will be lower-case. */
+    lc_name = sss_tc_utf8_str_tolower(tmp_ctx, name);
+    if (lc_name == NULL) {
+        ret =ENOMEM;
+        goto done;
+    }
+
+    homedir = expand_homedir_template(tmp_ctx, dom->subdomain_homedir, lc_name,
                                       uid, NULL, dom->name, dom->flat_name);
 
     if (homedir == NULL) {
