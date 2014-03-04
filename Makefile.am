@@ -177,7 +177,6 @@ if HAVE_CMOCKA
         test_sss_idmap \
         test_ipa_idmap \
         test_utils \
-        ad_access_filter_tests \
         ad_common_tests \
         dp_opt_tests \
         responder-get-domains-tests \
@@ -187,6 +186,10 @@ if HAVE_CMOCKA
 if BUILD_IFP
 non_interactive_cmocka_based_tests += ifp_tests
 endif   # BUILD_IFP
+
+if BUILD_SAMBA
+non_interactive_cmocka_based_tests += ad_access_filter_tests
+endif
 
 endif   # HAVE_CMOCKA
 
@@ -214,9 +217,13 @@ sssdlib_LTLIBRARIES = \
     libsss_ldap.la \
     libsss_krb5.la \
     libsss_proxy.la \
-    libsss_ipa.la \
-    libsss_ad.la \
     libsss_simple.la
+
+if BUILD_SAMBA
+sssdlib_LTLIBRARIES += \
+    libsss_ipa.la \
+    libsss_ad.la
+endif
 
 ldblib_LTLIBRARIES = \
     memberof.la
@@ -1943,7 +1950,9 @@ libsss_ldap_common_la_SOURCES += \
     src/providers/ldap/sdap_async_autofs.c
 endif
 
+if BUILD_SAMBA
 pkglib_LTLIBRARIES += libsss_ad_common.la
+endif
 libsss_ad_common_la_SOURCES = \
     $(libsss_ad_la_SOURCES)
 libsss_ad_common_la_LDFLAGS = \

@@ -74,10 +74,12 @@ struct so {
                            LIBPFX"libsss_util.so", NULL } },
     { "libsss_simple.so", { LIBPFX"libdlopen_test_providers.so",
                             LIBPFX"libsss_simple.so", NULL } },
+#ifdef BUILD_SAMBA
     { "libsss_ad.so", { LIBPFX"libdlopen_test_providers.so",
                         LIBPFX"libsss_ad.so", NULL } },
     { "libsss_ipa.so", { LIBPFX"libdlopen_test_providers.so",
                          LIBPFX"libsss_ipa.so", NULL } },
+#endif /* BUILD_SAMBA */
     { "libsss_krb5.so", { LIBPFX"libdlopen_test_providers.so",
                           LIBPFX"libsss_krb5.so", NULL } },
     { "libsss_krb5_common.so", { LIBPFX"libdlopen_test_providers.so",

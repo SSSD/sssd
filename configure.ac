@@ -127,6 +127,7 @@ WITH_SSH
 WITH_IFP
 WITH_CRYPTO
 WITH_SYSLOG
+WITH_SAMBA
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
