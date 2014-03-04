@@ -251,34 +251,6 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
         goto fail;
     }
 
-    /* Process the maps and return list of best matches (maps with
-     * highest priority). The input maps are also parent memory
-     * context for the output list of best matches. The best match
-     * maps should never be freed explicitly but always through
-     * their parent (or any indirect parent) */
-    ret = ipa_selinux_process_maps(maps, op_ctx->user, op_ctx->host,
-                                   maps, map_count,
-                                   hbac_rules, hbac_count, &best_match_maps);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    ret = create_order_array(op_ctx, map_order,
-                             &order_array, &order_count);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to create ordered SELinux users array.\n"));
-        goto fail;
-    }
-
-    ret = choose_best_seuser(best_match_maps, pd, order_array, order_count,
-                             default_user);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to evaluate ordered SELinux users array.\n"));
-        goto fail;
-    }
-
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, ("Failed to start transaction\n"));
@@ -312,6 +284,34 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
         goto fail;
     }
     in_transaction = false;
+
+    /* Process the maps and return list of best matches (maps with
+     * highest priority). The input maps are also parent memory
+     * context for the output list of best matches. The best match
+     * maps should never be freed explicitly but always through
+     * their parent (or any indirect parent) */
+    ret = ipa_selinux_process_maps(maps, op_ctx->user, op_ctx->host,
+                                   maps, map_count,
+                                   hbac_rules, hbac_count, &best_match_maps);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = create_order_array(op_ctx, map_order,
+                             &order_array, &order_count);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to create ordered SELinux users array.\n"));
+        goto fail;
+    }
+
+    ret = choose_best_seuser(best_match_maps, pd, order_array, order_count,
+                             default_user);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              ("Failed to evaluate ordered SELinux users array.\n"));
+        goto fail;
+    }
 
     /* If we got here in online mode, set last_update to current time */
     if (!be_is_offline(be_ctx)) {
