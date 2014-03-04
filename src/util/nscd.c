@@ -19,12 +19,14 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
+#include <stdio.h>
 #include <talloc.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include "config.h"
 #include "util/util.h"
 #include "tools/tools_util.h"
 
