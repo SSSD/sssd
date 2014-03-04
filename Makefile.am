@@ -181,9 +181,13 @@ sssdlib_LTLIBRARIES = \
     libsss_ldap.la \
     libsss_krb5.la \
     libsss_proxy.la \
-    libsss_ipa.la \
-    libsss_ad.la \
     libsss_simple.la
+
+if BUILD_SAMBA
+sssdlib_LTLIBRARIES += \
+    libsss_ipa.la \
+    libsss_ad.la
+endif
 
 ldblib_LTLIBRARIES = \
     memberof.la
