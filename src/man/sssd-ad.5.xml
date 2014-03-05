@@ -232,11 +232,19 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                     <listitem>
                         <para>
                             By default, the SSSD connects to the Global
-                            Catalog first to retrieve users and uses the
-                            LDAP port to retrieve group memberships or
-                            as a fallback. Disabling this option makes
-                            the SSSD only connect to the LDAP port of the
-                            current AD server.
+                            Catalog first to retrieve users from trusted
+                            domains and uses the LDAP port to retrieve
+                            group memberships or as a fallback. Disabling
+                            this option makes the SSSD only connect to
+                            the LDAP port of the current AD server.
+                        </para>
+                        <para>
+                            Please note that disabling Global Catalog support
+                            does not disable retrieving users from trusted
+                            domains. The SSSD would connect to the LDAP port
+                            of trusted domains instead. However, Global
+                            Catalog must be used in order to resolve
+                            cross-domain group memberships.
                         </para>
                         <para>
                             Default: true
