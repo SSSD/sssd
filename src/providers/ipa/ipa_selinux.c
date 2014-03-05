@@ -56,7 +56,8 @@ static errno_t ipa_get_selinux_recv(struct tevent_req *req,
 
 static struct ipa_selinux_op_ctx *
 ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                          struct sss_domain_info *domain,
+                          struct sss_domain_info *ipa_domain,
+                          struct sss_domain_info *user_domain,
                           struct be_req *be_req, const char *username,
                           const char *hostname,
                           struct ipa_selinux_ctx *selinux_ctx);
@@ -79,7 +80,8 @@ static errno_t ipa_selinux_process_maps(TALLOC_CTX *mem_ctx,
 
 struct ipa_selinux_op_ctx {
     struct be_req *be_req;
-    struct sss_domain_info *domain;
+    struct sss_domain_info *user_domain;
+    struct sss_domain_info *ipa_domain;
     struct ipa_selinux_ctx *selinux_ctx;
 
     struct sysdb_attrs *user;
@@ -130,6 +132,7 @@ void ipa_selinux_handler(struct be_req *be_req)
     }
 
     op_ctx = ipa_selinux_create_op_ctx(be_req, user_domain->sysdb,
+                                       be_ctx->domain,
                                        user_domain,
                                        be_req, pd->user, hostname,
                                        selinux_ctx);
@@ -200,7 +203,8 @@ done:
 
 static struct ipa_selinux_op_ctx *
 ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
-                          struct sss_domain_info *domain,
+                          struct sss_domain_info *ipa_domain,
+                          struct sss_domain_info *user_domain,
                           struct be_req *be_req, const char *username,
                           const char *hostname,
                           struct ipa_selinux_ctx *selinux_ctx)
@@ -220,15 +224,16 @@ ipa_selinux_create_op_ctx(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
         return NULL;
     }
     op_ctx->be_req = be_req;
-    op_ctx->domain = domain;
+    op_ctx->ipa_domain = ipa_domain;
+    op_ctx->user_domain = user_domain;
     op_ctx->selinux_ctx = selinux_ctx;
 
-    ret = sss_selinux_extract_user(op_ctx, domain, username, &op_ctx->user);
+    ret = sss_selinux_extract_user(op_ctx, user_domain, username, &op_ctx->user);
     if (ret != EOK) {
         goto fail;
     }
 
-    host_dn = sysdb_custom_dn(op_ctx, domain, hostname, HBAC_HOSTS_SUBDIR);
+    host_dn = sysdb_custom_dn(op_ctx, ipa_domain, hostname, HBAC_HOSTS_SUBDIR);
     if (host_dn == NULL) {
         goto fail;
     }
@@ -274,7 +279,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     struct ipa_selinux_op_ctx *op_ctx = tevent_req_callback_data(req, struct ipa_selinux_op_ctx);
     struct be_req *breq = op_ctx->be_req;
     struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
-    struct sysdb_ctx *sysdb = op_ctx->domain->sysdb;
+    struct sysdb_ctx *sysdb = op_ctx->ipa_domain->sysdb;
     errno_t ret, sret;
     size_t map_count = 0;
     struct sysdb_attrs **maps = NULL;
@@ -303,21 +308,21 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     }
     in_transaction = true;
 
-    ret = sysdb_delete_usermaps(op_ctx->domain);
+    ret = sysdb_delete_usermaps(op_ctx->ipa_domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Cannot delete existing maps from sysdb\n");
         goto fail;
     }
 
-    ret = sysdb_store_selinux_config(op_ctx->domain,
+    ret = sysdb_store_selinux_config(op_ctx->ipa_domain,
                                      default_user, map_order);
     if (ret != EOK) {
         goto fail;
     }
 
     if (map_count > 0 && maps != NULL) {
-        ret = ipa_save_user_maps(sysdb, op_ctx->domain, map_count, maps);
+        ret = ipa_save_user_maps(sysdb, op_ctx->ipa_domain, map_count, maps);
         if (ret != EOK) {
             goto fail;
         }
