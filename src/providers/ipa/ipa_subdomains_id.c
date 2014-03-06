@@ -307,13 +307,22 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     /* Currently only LDAP port for AD is used because POSIX
      * attributes are not replicated to GC by default
      */
-    clist = talloc_zero_array(req, struct sdap_id_conn_ctx *, 2);
-    if (clist == NULL) {
-        ret = ENOMEM;
-        goto fail;
+
+    if ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_INITGROUPS) {
+        clist = ad_gc_conn_list(req, ad_id_ctx, state->user_dom);
+        if (clist == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+    } else {
+        clist = talloc_zero_array(req, struct sdap_id_conn_ctx *, 2);
+        if (clist == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+        clist[0] = ad_id_ctx->ldap_ctx;
+        clist[1] = NULL;
     }
-    clist[0] = ad_id_ctx->ldap_ctx;
-    clist[1] = NULL;
 
     /* Now we already need ad_id_ctx in particular sdap_id_conn_ctx */
     sdom = sdap_domain_get(sdap_id_ctx->opts, state->user_dom);
