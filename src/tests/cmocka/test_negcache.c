@@ -50,7 +50,7 @@
 #define SHORTSPAN 1
 #define NAME "foo_name"
 #define UID "U-1-2-3-4-5"
-#define TESTS_PATH "tests_nss"
+#define TESTS_PATH "tests_ncache"
 #define TEST_CONF_DB "test_nss_conf.ldb"
 #define TEST_SYSDB_FILE "cache_nss_test.ldb"
 #define TEST_DOM_NAME "nss_test"
