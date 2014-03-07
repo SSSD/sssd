@@ -1632,6 +1632,7 @@ dp_opt_tests_CFLAGS = \
 dp_opt_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
