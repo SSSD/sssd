@@ -31,8 +31,8 @@
 
 #define TESTS_PATH "tests_ldap_nested_groups"
 #define TEST_CONF_DB "test_ldap_nested_groups_conf.ldb"
-#define TEST_SYSDB_FILE "cache_ldap_nested_groups_test.ldb"
 #define TEST_DOM_NAME "ldap_nested_groups_test"
+#define TEST_SYSDB_FILE "cache_"TEST_DOM_NAME".ldb"
 #define TEST_ID_PROVIDER "ldap"
 
 #define new_test(test) \
@@ -129,7 +129,7 @@ void nested_groups_test_setup(void **state)
 
     /* initialize domain */
     test_ctx->tctx = create_dom_test_ctx(test_ctx, TESTS_PATH, TEST_CONF_DB,
-                                         TEST_SYSDB_FILE, TEST_DOM_NAME,
+                                         TEST_DOM_NAME,
                                          TEST_ID_PROVIDER, params);
     assert_non_null(test_ctx->tctx);
 

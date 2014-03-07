@@ -37,8 +37,8 @@
 
 #define TESTS_PATH "tests_dyndns"
 #define TEST_CONF_DB "test_dyndns_conf.ldb"
-#define TEST_SYSDB_FILE "cache_dyndns_test.ldb"
 #define TEST_DOM_NAME "dyndns_test"
+#define TEST_SYSDB_FILE "cache_"TEST_DOM_NAME".ldb"
 #define TEST_ID_PROVIDER "ldap"
 
 enum mock_nsupdate_states {
@@ -360,9 +360,8 @@ void dyndns_test_setup(void **state)
     assert_non_null(dyndns_test_ctx);
 
     dyndns_test_ctx->tctx = create_dom_test_ctx(dyndns_test_ctx, TESTS_PATH,
-                                                TEST_CONF_DB, TEST_SYSDB_FILE,
-                                                TEST_DOM_NAME, TEST_ID_PROVIDER,
-                                                params);
+                                                TEST_CONF_DB, TEST_DOM_NAME,
+                                                TEST_ID_PROVIDER, params);
     assert_non_null(dyndns_test_ctx->tctx);
 
     dyndns_test_ctx->be_ctx = talloc_zero(dyndns_test_ctx, struct be_ctx);

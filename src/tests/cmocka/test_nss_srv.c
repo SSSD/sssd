@@ -35,8 +35,8 @@
 
 #define TESTS_PATH "tests_nss"
 #define TEST_CONF_DB "test_nss_conf.ldb"
-#define TEST_SYSDB_FILE "cache_nss_test.ldb"
 #define TEST_DOM_NAME "nss_test"
+#define TEST_SYSDB_FILE "cache_"TEST_DOM_NAME".ldb"
 #define TEST_SUBDOM_NAME "test.sub"
 #define TEST_ID_PROVIDER "ldap"
 
@@ -596,8 +596,8 @@ void test_nss_setup(struct sss_test_conf_param params[],
     nss_test_ctx = talloc_zero(NULL, struct nss_test_ctx);
     assert_non_null(nss_test_ctx);
 
-    nss_test_ctx->tctx = create_dom_test_ctx(nss_test_ctx, TESTS_PATH, TEST_CONF_DB,
-                                             TEST_SYSDB_FILE, TEST_DOM_NAME,
+    nss_test_ctx->tctx = create_dom_test_ctx(nss_test_ctx, TESTS_PATH,
+                                             TEST_CONF_DB, TEST_DOM_NAME,
                                              TEST_ID_PROVIDER, params);
     assert_non_null(nss_test_ctx->tctx);
 

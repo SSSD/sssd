@@ -79,7 +79,6 @@ struct sss_test_ctx *
 create_dom_test_ctx(TALLOC_CTX *mem_ctx,
                     const char *tests_path,
                     const char *confdb_path,
-                    const char *sysdb_path,
                     const char *domain_name,
                     const char *id_provider,
                     struct sss_test_conf_param *params);

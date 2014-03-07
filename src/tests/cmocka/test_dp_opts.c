@@ -32,8 +32,8 @@
 
 #define TESTS_PATH "tests_opts"
 #define TEST_CONF_DB "test_opt_conf.ldb"
-#define TEST_SYSDB_FILE "cache_opt_test.ldb"
 #define TEST_DOM_NAME "opt_test"
+#define TEST_SYSDB_FILE "cache_"TEST_DOM_NAME".ldb"
 #define TEST_ID_PROVIDER "ldap"
 
 enum test_opts {
@@ -224,8 +224,7 @@ void opt_test_get(void **state)
     bool bo;
 
     tctx = create_dom_test_ctx(global_talloc_context, TESTS_PATH, TEST_CONF_DB,
-                               TEST_SYSDB_FILE, TEST_DOM_NAME,
-                               TEST_ID_PROVIDER, params);
+                               TEST_DOM_NAME, TEST_ID_PROVIDER, params);
     assert_non_null(tctx);
 
     dompath = talloc_asprintf(tctx, "config/domain/%s", TEST_DOM_NAME);

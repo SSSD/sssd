@@ -52,8 +52,8 @@
 #define UID "U-1-2-3-4-5"
 #define TESTS_PATH "tests_ncache"
 #define TEST_CONF_DB "test_nss_conf.ldb"
-#define TEST_SYSDB_FILE "cache_nss_test.ldb"
 #define TEST_DOM_NAME "nss_test"
+#define TEST_SYSDB_FILE "cache_"TEST_DOM_NAME".ldb"
 #define TEST_SUBDOM_NAME "test.sub"
 #define TEST_ID_PROVIDER "ldap"
 
@@ -598,8 +598,7 @@ static void test_sss_ncache_prepopulate(void **state)
     assert_non_null(ts->nctx);
 
     tc = create_dom_test_ctx(ts, TESTS_PATH, TEST_CONF_DB,
-                             TEST_SYSDB_FILE, NAME,
-                             TEST_ID_PROVIDER, params);
+                             NAME, TEST_ID_PROVIDER, params);
     assert_non_null(tc);
 
     ncache = ts->ctx;
