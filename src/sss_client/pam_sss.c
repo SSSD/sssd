@@ -1368,6 +1368,10 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
         }
     } else {
         pi->pam_authtok = strdup(pi->pamstack_oldauthtok);
+        if (pi->pam_authtok == NULL) {
+            D(("strdup failed"));
+            return PAM_BUF_ERR;
+        }
         pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
         pi->pam_authtok_size = strlen(pi->pam_authtok);
     }

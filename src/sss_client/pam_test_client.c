@@ -53,6 +53,11 @@ int main(int argc, char *argv[]) {
         user = strdup(argv[2]);
     }
 
+    if (action == NULL || user == NULL) {
+        fprintf(stderr, "Out of memory!\n");
+        return 1;
+    }
+
     fprintf(stdout, "action: %s\nuser: %s\n", action,user);
 
     ret = pam_start("sss_test", user, &conv, &pamh);
