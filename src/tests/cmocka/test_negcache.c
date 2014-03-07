@@ -333,7 +333,7 @@ static void test_sss_ncache_user(void **state)
     ttl = LIFETIME;
     ts = talloc_get_type_abort(*state, struct test_state);
     dom = talloc(ts, struct sss_domain_info);
-    dom->name = discard_const(NAME);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
 
     /* test when domain name is not present in database */
     dom->case_sensitive = false;
@@ -380,7 +380,7 @@ static void test_sss_ncache_group(void **state)
     ttl = LIFETIME;
     ts = talloc_get_type_abort(*state, struct test_state);
     dom = talloc(ts, struct sss_domain_info);
-    dom->name = discard_const(NAME);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
 
     /* test when domain name is not present in database */
     dom->case_sensitive = false;
@@ -427,7 +427,7 @@ static void test_sss_ncache_netgr(void **state)
     ttl = LIFETIME;
     ts = talloc_get_type_abort(*state, struct test_state);
     dom = talloc(ts, struct sss_domain_info);
-    dom->name = discard_const(NAME);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
 
     /* test when domain name is not present in database */
     dom->case_sensitive = false;
@@ -474,7 +474,7 @@ static void test_sss_ncache_service_name(void **state)
     ttl = LIFETIME;
     ts = talloc_get_type_abort(*state, struct test_state);
     dom = talloc(ts, struct sss_domain_info);
-    dom->name = discard_const(NAME);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
 
     /* test when domain name and protocol are not present in database */
     dom->case_sensitive = false;
@@ -520,7 +520,7 @@ static void test_sss_ncache_service_port(void **state)
     ttl = LIFETIME;
     ts = talloc_get_type_abort(*state, struct test_state);
     dom = talloc(ts, struct sss_domain_info);
-    dom->name = discard_const(NAME);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
 
     /* test when domain name, port and protocol are not present in database */
     dom->case_sensitive = false;
@@ -592,13 +592,13 @@ static void test_sss_ncache_prepopulate(void **state)
 
     dom = talloc_zero(ts, struct sss_domain_info);
     assert_non_null(dom);
-    dom->name = discard_const(NAME);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
 
     ts->nctx = mock_nctx(ts);
     assert_non_null(ts->nctx);
 
     tc = create_dom_test_ctx(ts, TESTS_PATH, TEST_CONF_DB,
-                             NAME, TEST_ID_PROVIDER, params);
+                             TEST_DOM_NAME, TEST_ID_PROVIDER, params);
     assert_non_null(tc);
 
     ncache = ts->ctx;
