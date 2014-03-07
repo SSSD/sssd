@@ -65,27 +65,14 @@ struct krb5_req {
 static krb5_context krb5_error_ctx;
 #define KRB5_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
-static krb5_error_code get_changepw_options(krb5_context ctx,
-                                            krb5_get_init_creds_opt **_options)
+static void set_changepw_options(krb5_context ctx,
+                                 krb5_get_init_creds_opt *options)
 {
-    krb5_get_init_creds_opt *options;
-    krb5_error_code kerr;
-
-    kerr = sss_krb5_get_init_creds_opt_alloc(ctx, &options);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        return kerr;
-    }
-
     sss_krb5_get_init_creds_opt_set_canonicalize(options, 0);
     krb5_get_init_creds_opt_set_forwardable(options, 0);
     krb5_get_init_creds_opt_set_proxiable(options, 0);
     krb5_get_init_creds_opt_set_renew_life(options, 0);
     krb5_get_init_creds_opt_set_tkt_life(options, 5*60);
-
-    *_options = options;
-
-    return 0;
 }
 
 static errno_t sss_send_pac(krb5_authdata **pac_authdata)
@@ -1027,7 +1014,6 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
     krb5_prompter_fct prompter = NULL;
     const char *realm_name;
     int realm_length;
-    krb5_get_init_creds_opt *chagepw_options;
     size_t msg_len;
     uint8_t *msg;
 
@@ -1046,12 +1032,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
         prompter = sss_krb5_prompter;
     }
 
-    kerr = get_changepw_options(kr->ctx, &chagepw_options);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "get_changepw_options failed.\n");
-        return kerr;
-    }
-
+    set_changepw_options(kr->ctx, kr->options);
     sss_krb5_princ_realm(kr->ctx, kr->princ, &realm_name, &realm_length);
 
     DEBUG(SSSDBG_TRACE_FUNC,
@@ -1060,8 +1041,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
                                         discard_const(password),
                                         prompter, kr, 0,
                                         SSSD_KRB5_CHANGEPW_PRINCIPAL,
-                                        chagepw_options);
-    sss_krb5_get_init_creds_opt_free(kr->ctx, chagepw_options);
+                                        kr->options);
     if (kerr != 0) {
         ret = pack_user_info_chpass_error(kr->pd, "Old password not accepted.",
                                           &msg_len, &msg);
@@ -1173,7 +1153,6 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
 
 static errno_t tgt_req_child(struct krb5_req *kr)
 {
-    krb5_get_init_creds_opt *chagepw_options;
     const char *password = NULL;
     krb5_error_code kerr;
     int ret;
@@ -1220,19 +1199,12 @@ static errno_t tgt_req_child(struct krb5_req *kr)
               "Failed to unset expire callback, continue ...\n");
     }
 
-    kerr = get_changepw_options(kr->ctx, &chagepw_options);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "get_changepw_options failed.\n");
-        return kerr;
-    }
-
+    set_changepw_options(kr->ctx, kr->options);
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         discard_const(password),
                                         sss_krb5_prompter, kr, 0,
                                         SSSD_KRB5_CHANGEPW_PRINCIPAL,
-                                        chagepw_options);
-
-    sss_krb5_get_init_creds_opt_free(kr->ctx, chagepw_options);
+                                        kr->options);
 
     krb5_free_cred_contents(kr->ctx, kr->creds);
     if (kerr == 0) {
