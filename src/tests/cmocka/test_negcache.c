@@ -49,12 +49,10 @@
 #define LIFETIME 200
 #define SHORTSPAN 1
 #define NAME "foo_name"
-#define UID "U-1-2-3-4-5"
 #define TESTS_PATH "tests_ncache"
 #define TEST_CONF_DB "test_nss_conf.ldb"
 #define TEST_DOM_NAME "nss_test"
 #define TEST_SYSDB_FILE "cache_"TEST_DOM_NAME".ldb"
-#define TEST_SUBDOM_NAME "test.sub"
 #define TEST_ID_PROVIDER "ldap"
 
 /* register_cli_protocol_version is required in test since it links with

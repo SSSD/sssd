@@ -43,13 +43,6 @@ extern struct dp_option default_krb5_opts[];
 static krb5_context krb5_error_ctx;
 #define KRB5_CHILD_TEST_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
-#define CHECK_KRET(kret, err) do {              \
-    if (kret) {                                 \
-        KRB5_CHILD_TEST_DEBUG(SSSDBG_OP_FAILURE, kret);    \
-        return err;                             \
-    }                                           \
-} while(0)                                      \
-
 #define CHECK_KRET_L(kret, err, label) do {     \
     if (kret) {                                 \
         KRB5_CHILD_TEST_DEBUG(SSSDBG_OP_FAILURE, kret);    \
