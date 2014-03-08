@@ -645,6 +645,8 @@ int main(void)
     test_dom_suite_setup(TESTS_PATH);
 
     rv = run_tests(tests);
-    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+    if (rv == 0) {
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+    }
     return rv;
 }
