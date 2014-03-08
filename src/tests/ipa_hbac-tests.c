@@ -164,16 +164,18 @@ static void get_test_srchost(TALLOC_CTX *mem_ctx,
     new_srchost = talloc_zero(mem_ctx, struct hbac_request_element);
     fail_if (new_srchost == NULL);
 
-    new_srchost->name = talloc_strdup(new_srchost, "client.example.com");
+    new_srchost->name = talloc_strdup(new_srchost, HBAC_TEST_SRCHOST);
     fail_if(new_srchost->name == NULL);
 
     new_srchost->groups = talloc_array(new_srchost, const char *, 3);
     fail_if(new_srchost->groups == NULL);
 
-    new_srchost->groups[0] = talloc_strdup(new_srchost->groups, "site_hosts");
+    new_srchost->groups[0] = talloc_strdup(new_srchost->groups,
+                                           HBAC_TEST_SRCHOSTGROUP1);
     fail_if(new_srchost->groups[0] == NULL);
 
-    new_srchost->groups[1] = talloc_strdup(new_srchost->groups, "corp_hosts");
+    new_srchost->groups[1] = talloc_strdup(new_srchost->groups,
+                                           HBAC_TEST_SRCHOSTGROUP2);
     fail_if(new_srchost->groups[1] == NULL);
 
     new_srchost->groups[2] = NULL;
