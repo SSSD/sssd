@@ -883,8 +883,8 @@ sdap_attrs_get_sid_str(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_attrs_get_el(sysdb_attrs, sid_attr, &el);
     if (ret != EOK || el->num_values != 1) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "No [%s] attribute while id-mapping. [%d][%s]\n",
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "No [%s] attribute. [%d][%s]\n",
                sid_attr, el->num_values, strerror(ret));
         return ENOENT;
     }
