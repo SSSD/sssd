@@ -265,9 +265,11 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
         }
     }
 
-    ret = sysdb_attrs_get_uint32_t(group, map[SDAP_AT_GROUP_GID].sys_name,
-                                   &gid);
-    if (ret == ENOENT || (ret == EOK && gid == 0) || !posix_group) {
+    if (posix_group) {
+        ret = sysdb_attrs_get_uint32_t(group, map[SDAP_AT_GROUP_GID].sys_name,
+                                       &gid);
+    }
+    if (!posix_group || ret == ENOENT || (ret == EOK && gid == 0)) {
         DEBUG(SSSDBG_TRACE_ALL,
              "The group's gid was %s\n", ret == ENOENT ? "missing" : "zero");
         DEBUG(SSSDBG_TRACE_INTERNAL,
