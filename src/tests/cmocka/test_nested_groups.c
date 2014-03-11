@@ -26,7 +26,9 @@
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_sdap.h"
 #include "tests/cmocka/common_mock_sysdb_objects.h"
+#include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
+#include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_async_private.h"
 
 #define TESTS_PATH "tests_ldap_nested_groups"
@@ -55,6 +57,8 @@ struct nested_groups_test_ctx {
     struct sdap_options *sdap_opts;
     struct sdap_handle *sdap_handle;
     struct sdap_domain *sdap_domain;
+    struct sdap_idmap_ctx *idmap_ctx;
+    struct sdap_id_ctx *sdap_id_ctx;
 
     struct sysdb_attrs **users;
     struct sysdb_attrs **groups;
@@ -391,6 +395,7 @@ static void nested_groups_test_one_group_dup_group_members(void **state)
 
 void nested_groups_test_setup(void **state)
 {
+    errno_t ret;
     struct nested_groups_test_ctx *test_ctx = NULL;
     static struct sss_test_conf_param params[] = {
         { "ldap_schema", "rfc2307bis" }, /* enable nested groups */
@@ -419,6 +424,21 @@ void nested_groups_test_setup(void **state)
     test_ctx->sdap_domain = test_ctx->sdap_opts->sdom;
     test_ctx->sdap_handle = mock_sdap_handle(test_ctx);
     assert_non_null(test_ctx->sdap_handle);
+
+    test_ctx->sdap_id_ctx = talloc_zero(test_ctx,
+                                        struct sdap_id_ctx);
+    assert_non_null(test_ctx->sdap_id_ctx);
+
+    test_ctx->sdap_id_ctx->be = talloc_zero(test_ctx->sdap_id_ctx,
+                                            struct be_ctx);
+    assert_non_null(test_ctx->sdap_id_ctx->be);
+
+    test_ctx->sdap_id_ctx->opts = test_ctx->sdap_opts;
+    test_ctx->sdap_id_ctx->be->domain = test_ctx->tctx->dom;
+
+    ret = sdap_idmap_init(test_ctx, test_ctx->sdap_id_ctx, &test_ctx->idmap_ctx);
+    assert_int_equal(ret, EOK);
+    test_ctx->sdap_opts->idmap_ctx = test_ctx->idmap_ctx;
 }
 
 void nested_groups_test_teardown(void **state)

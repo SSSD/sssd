@@ -34,6 +34,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/ldap/sdap_idmap.h"
 
 #define sdap_nested_group_sysdb_search_users(domain, filter) \
     sdap_nested_group_sysdb_search((domain), (filter), true)
@@ -242,6 +243,7 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
     errno_t ret;
     int32_t ad_group_type;
     bool posix_group = true;
+    bool use_id_mapping;
 
     if (group_ctx->opts->schema_type == SDAP_SCHEMA_AD) {
         ret = sysdb_attrs_get_int32_t(group, SYSDB_GROUP_TYPE, &ad_group_type);
@@ -265,7 +267,12 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
         }
     }
 
-    if (posix_group) {
+    use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(
+                                                          group_ctx->opts->idmap_ctx,
+                                                          group_ctx->domain->name,
+                                                          group_ctx->domain->domain_id);
+
+    if (posix_group && !use_id_mapping) {
         ret = sysdb_attrs_get_uint32_t(group, map[SDAP_AT_GROUP_GID].sys_name,
                                        &gid);
     }

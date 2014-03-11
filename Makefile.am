@@ -1740,15 +1740,20 @@ fqnames_tests_LDADD = \
 nestedgroups_tests_SOURCES = \
     $(TEST_MOCK_OBJ) \
     $(TEST_MOCK_PROVIDER_OBJ) \
+    src/providers/ldap/sdap_idmap.c \
     src/tests/cmocka/test_nested_groups.c \
-    src/providers/ldap/sdap_async_nested_groups.c
+    src/providers/ldap/sdap_async_nested_groups.c \
+    $(NULL)
 nestedgroups_tests_CFLAGS = \
-    $(AM_CFLAGS)
+    $(AM_CFLAGS) \
+    $(NULL)
 nestedgroups_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_test_common.la
+    libsss_idmap.la \
+    libsss_test_common.la \
+    $(NULL)
 
 test_sss_idmap_SOURCES = \
     src/tests/cmocka/test_sss_idmap.c
