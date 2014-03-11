@@ -52,6 +52,7 @@
 #define FLAGS_USE_FIRST_PASS (1 << 0)
 #define FLAGS_FORWARD_PASS   (1 << 1)
 #define FLAGS_USE_AUTHTOK    (1 << 2)
+#define FLAGS_IGNORE_UNKNOWN_USER (1 << 3)
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
 #define FD_DESTRUCTOR "pam_sss:fd_destructor"
@@ -1292,6 +1293,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             }
         } else if (strcmp(*argv, "quiet") == 0) {
             *quiet_mode = true;
+        } else if (strcmp(*argv, "ignore_unknown_user") == 0) {
+            *flags |= FLAGS_IGNORE_UNKNOWN_USER;
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
@@ -1429,6 +1432,9 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
     ret = get_pam_items(pamh, &pi);
     if (ret != PAM_SUCCESS) {
         D(("get items returned error: %s", pam_strerror(pamh,ret)));
+        if (flags & FLAGS_IGNORE_UNKNOWN_USER && ret == PAM_USER_UNKNOWN) {
+            ret = PAM_IGNORE;
+        }
         return ret;
     }
 
@@ -1466,6 +1472,11 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
         }
 
         pam_status = send_and_receive(pamh, &pi, task, quiet_mode);
+
+        if (flags & FLAGS_IGNORE_UNKNOWN_USER
+                && pam_status == PAM_USER_UNKNOWN) {
+            pam_status = PAM_IGNORE;
+        }
 
         switch (task) {
             case SSS_PAM_AUTHENTICATE:
