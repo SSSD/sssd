@@ -990,6 +990,10 @@ static errno_t map_krb5_error(krb5_error_code kerr)
     case KRB5KRB_AP_ERR_BAD_INTEGRITY:
         return ERR_AUTH_FAILED;
 
+    /* ERR_CREDS_INVALID is used to indicate to the IPA provider that trying
+     * password migration would make sense. All Kerberos error codes which can
+     * be seen while migrating LDAP users to IPA should be added here. */
+    case KRB5_PROG_ETYPE_NOSUPP:
     case KRB5_PREAUTH_FAILED:
     case KRB5KDC_ERR_PREAUTH_FAILED:
         return ERR_CREDS_INVALID;
