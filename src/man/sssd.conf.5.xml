@@ -55,6 +55,68 @@
         </para>
     </refsect1>
 
+    <refsect1 id='general-options'>
+        <title>GENERAL OPTIONS</title>
+        <para>
+            Following options are usable in more than one configuration
+            sections.
+        </para>
+        <refsect2 id='all-section-options'>
+            <title>Options usable in all sections</title>
+            <para>
+              <variablelist>
+                <varlistentry>
+                    <term>debug_level (integer)</term>
+                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
+                </varlistentry>
+                <varlistentry>
+                    <term>debug_timestamps (bool)</term>
+                    <listitem>
+                        <para>
+                            Add a timestamp to the debug messages
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>debug_microseconds (bool)</term>
+                    <listitem>
+                        <para>
+                            Add microseconds to the timestamp in debug messages
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+              </variablelist>
+            </para>
+        </refsect2>
+
+        <refsect2 id='services-and-domains-section-options'>
+            <title>Options usable in SERVICE and DOMAIN sections</title>
+            <para>
+              <variablelist>
+                <varlistentry>
+                    <term>timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Timeout in seconds between heartbeats for this
+                            service. This is used to ensure that the process
+                            is alive and capable of answering requests.
+                        </para>
+                        <para>
+                            Default: 10
+                        </para>
+                    </listitem>
+                </varlistentry>
+              </variablelist>
+            </para>
+        </refsect2>
+    </refsect1>
+
     <refsect1 id='special-sections'>
         <title>SPECIAL SECTIONS</title>
 
@@ -278,45 +340,6 @@
                 These options can be used to configure any service.
             </para>
             <variablelist>
-                <varlistentry>
-                    <term>debug_level (integer)</term>
-                    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
-                </varlistentry>
-                <varlistentry>
-                    <term>debug_timestamps (bool)</term>
-                    <listitem>
-                        <para>
-                            Add a timestamp to the debug messages
-                        </para>
-                        <para>
-                            Default: true
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>debug_microseconds (bool)</term>
-                    <listitem>
-                        <para>
-                            Add microseconds to the timestamp in debug messages
-                        </para>
-                        <para>
-                            Default: false
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            Timeout in seconds between heartbeats for this
-                            service. This is used to ensure that the process
-                            is alive and capable of answering requests.
-                        </para>
-                        <para>
-                            Default: 10
-                        </para>
-                    </listitem>
-                </varlistentry>
                 <varlistentry>
                     <term>reconnection_retries (integer)</term>
                     <listitem>
