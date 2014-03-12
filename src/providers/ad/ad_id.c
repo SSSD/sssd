@@ -772,6 +772,7 @@ ad_enum_cross_dom_members(struct sdap_options *opts,
         ret = ad_group_extra_members(tmp_ctx, msgs[i], dom, &group_only);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, ("Failed to check extra members\n"));
+            continue;
         } else if (group_only == NULL) {
             DEBUG(SSSDBG_TRACE_INTERNAL, ("No extra members\n"));
             continue;
