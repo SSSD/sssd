@@ -975,8 +975,10 @@ errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
     ret = ERR_NOT_FOUND;
 
 done:
-    krb5_free_principal(cc->context, ccprinc);
-    krb5_free_principal(cc->context, kprinc);
+    if (cc) {
+        krb5_free_principal(cc->context, ccprinc);
+        krb5_free_principal(cc->context, kprinc);
+    }
     talloc_free(tmp_ctx);
     return ret;
 }
