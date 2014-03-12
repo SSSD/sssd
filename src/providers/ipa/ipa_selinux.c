@@ -270,6 +270,7 @@ static errno_t create_order_array(TALLOC_CTX *mem_ctx, const char *map_order,
                                   char ***_order_array, size_t *_order_count);
 static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
                                   struct pam_data *pd,
+                                  struct sss_domain_info *user_domain,
                                   char **order_array, int order_count,
                                   const char *default_user);
 
@@ -355,8 +356,8 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
         goto fail;
     }
 
-    ret = choose_best_seuser(best_match_maps, pd, order_array, order_count,
-                             default_user);
+    ret = choose_best_seuser(best_match_maps, pd, op_ctx->user_domain,
+                             order_array, order_count, default_user);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to evaluate ordered SELinux users array.\n");
@@ -645,13 +646,16 @@ done:
     return ret;
 }
 
-static errno_t write_selinux_login_file(const char *username, char *string);
+static errno_t write_selinux_login_file(const char *orig_name,
+                                        struct sss_domain_info *dom,
+                                        char *string);
 static errno_t remove_selinux_login_file(const char *username);
 
 /* Choose best selinux user based on given order and write
  * the user to selinux login file. */
 static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
                                   struct pam_data *pd,
+                                  struct sss_domain_info *user_domain,
                                   char **order_array, int order_count,
                                   const char *default_user)
 {
@@ -706,7 +710,7 @@ static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
         }
     }
 
-    ret = write_selinux_login_file(pd->user, file_content);
+    ret = write_selinux_login_file(pd->user, user_domain, file_content);
 done:
     if (!file_content) {
         err = remove_selinux_login_file(pd->user);
@@ -717,7 +721,9 @@ done:
     return ret;
 }
 
-static errno_t write_selinux_login_file(const char *username, char *string)
+static errno_t write_selinux_login_file(const char *orig_name,
+                                        struct sss_domain_info *dom,
+                                        char *string)
 {
     char *path = NULL;
     char *tmp_path = NULL;
@@ -729,6 +735,7 @@ static errno_t write_selinux_login_file(const char *username, char *string)
     char *full_string = NULL;
     int enforce;
     errno_t ret = EOK;
+    const char *username;
 
     len = strlen(string);
     if (len == 0) {
@@ -739,6 +746,15 @@ static errno_t write_selinux_login_file(const char *username, char *string)
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
+    }
+
+    /* pam_selinux needs the username in the same format getpwnam() would
+     * return it
+     */
+    username = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+    if (username == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
     path = selogin_path(tmp_ctx, username);
