@@ -170,6 +170,22 @@ ldap_schema = ad
                             as it can.
                         </para>
                         <para>
+                            NOTE: The value of this option must be at least as large as the
+                            highest user RID planned for use on the Active Directory server. User
+                            lookups and login will fail for any user whose RID is greater than
+                            this value.
+                        </para>
+                        <para>
+                            For example, if your most recently-added Active Directory user has
+                            objectSid=S-1-5-21-2153326666-2176343378-3404031434-1107,
+                            <quote>ldap_idmap_range_size</quote> must be at least 1107.
+                        </para>
+                        <para>
+                            It is important to plan ahead for future expansion, as changing this
+                            value will result in changing all of the ID mappings on the system,
+                            leading to users with different local IDs than they previously had.
+                        </para>
+                        <para>
                             Default: 200000
                         </para>
                     </listitem>
