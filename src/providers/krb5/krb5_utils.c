@@ -591,8 +591,9 @@ create_ccache_dir(const char *ccdirname, pcre *illegal_re,
 
     ret = check_parent_stat(&parent_stat, uid, gid);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "check_parent_stat failed for directory [%s].\n", ccdirname);
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Check the ownership and permissions of krb5_ccachedir: [%s].\n",
+              ccdirname);
         goto done;
     }
 
