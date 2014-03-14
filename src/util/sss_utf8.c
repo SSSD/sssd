@@ -20,7 +20,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "util/util.h"
+#include "config.h"
+
+#ifdef HAVE_LIBUNISTRING
+#include <unistr.h>
+#include <unicase.h>
+#elif defined(HAVE_GLIB2)
+#include <glib.h>
+#endif
+
 #include "sss_utf8.h"
 
 #ifdef HAVE_LIBUNISTRING

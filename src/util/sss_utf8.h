@@ -23,12 +23,6 @@
 #ifndef SSS_UTF8_H_
 #define SSS_UTF8_H_
 
-#ifdef HAVE_LIBUNISTRING
-#include <unistr.h>
-#include <unicase.h>
-#elif HAVE_GLIB2
-#include <glib.h>
-#endif
 #include "util/util.h"
 
 #ifndef ENOMATCH
