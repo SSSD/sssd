@@ -185,7 +185,7 @@
                                 </varlistentry>
                                 <varlistentry>
                                     <term>%d</term>
-                                    <listitem><para>value of krb5ccache_dir
+                                    <listitem><para>value of krb5_ccachedir
                                               </para>
                                     </listitem>
                                 </varlistentry>
