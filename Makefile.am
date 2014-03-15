@@ -621,12 +621,17 @@ libsss_util_la_SOURCES = \
     src/util/domain_info_utils.c \
     src/util/util_lock.c \
     src/util/util_errors.c \
+    src/util/find_uid.c \
     src/util/sss_ini.c \
     src/util/io.c \
     src/util/util_sss_idmap.c \
     src/util/well_known_sids.c
+libsss_util_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS)
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
     $(UNICODE_LIBS)
 if BUILD_SUDO
     libsss_util_la_SOURCES += src/db/sysdb_sudo.c
@@ -875,16 +880,13 @@ sss_useradd_LDADD = \
 
 sss_userdel_SOURCES = \
     src/tools/sss_userdel.c \
-    src/util/find_uid.c \
     $(SSSD_LCL_TOOLS_OBJ)
 sss_userdel_LDADD = \
     $(TOOLS_LIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(CLIENT_LIBS)
 sss_userdel_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS)
+    $(AM_CFLAGS)
 
 sss_groupadd_SOURCES = \
     src/tools/sss_groupadd.c \
@@ -1079,7 +1081,6 @@ krb5_utils_tests_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_common.c \
     src/util/sss_krb5.c \
-    src/util/find_uid.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
@@ -1087,14 +1088,12 @@ krb5_utils_tests_SOURCES = \
 krb5_utils_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS) \
-    $(CHECK_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS)
+    $(CHECK_CFLAGS)
 krb5_utils_tests_LDADD = \
     $(SSSD_LIBS)\
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(CHECK_LIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
@@ -1359,7 +1358,6 @@ krb5_child_test_SOURCES = \
     src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_common.c \
     src/util/sss_krb5.c \
-    src/util/find_uid.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
@@ -1368,14 +1366,12 @@ krb5_child_test_CFLAGS = \
     $(AM_CFLAGS) \
     -DKRB5_CHILD_DIR=\"$(builddir)\" \
     $(KRB5_CFLAGS) \
-    $(CHECK_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS)
+    $(CHECK_CFLAGS)
 krb5_child_test_LDADD = \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(CHECK_LIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
@@ -1591,7 +1587,6 @@ test_search_bases_SOURCES = \
     $(sssd_be_SOURCES) \
     src/util/sss_ldap.c \
     src/util/sss_krb5.c \
-    src/util/find_uid.c \
     src/util/user_info_msg.c \
     src/tests/cmocka/test_search_bases.c
 test_search_bases_CFLAGS = \
@@ -1605,7 +1600,6 @@ test_search_bases_LDADD = \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     libsss_ldap_common.la \
     libsss_idmap.la \
     libsss_krb5_common.la \
@@ -1615,13 +1609,11 @@ ad_access_filter_tests_SOURCES = \
     $(sssd_be_SOURCES) \
     src/util/sss_ldap.c \
     src/util/sss_krb5.c \
-    src/util/find_uid.c \
     src/util/user_info_msg.c \
     src/providers/ad/ad_common.c \
     src/tests/cmocka/test_ad_access_filter.c
 ad_access_filter_tests_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS) \
     -DUNIT_TESTING
 ad_access_filter_tests_LDADD = \
     $(PAM_LIBS) \
@@ -1630,7 +1622,6 @@ ad_access_filter_tests_LDADD = \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     libsss_ldap_common.la \
     libsss_idmap.la \
     libsss_krb5_common.la \
@@ -1640,12 +1631,10 @@ ad_common_tests_SOURCES = \
     $(sssd_be_SOURCES) \
     src/util/sss_ldap.c \
     src/util/sss_krb5.c \
-    src/util/find_uid.c \
     src/util/user_info_msg.c \
     src/tests/cmocka/test_ad_common.c
 ad_common_tests_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS) \
     -DUNIT_TESTING
 ad_common_tests_LDFLAGS = \
     -Wl,-wrap,sdap_set_sasl_options
@@ -1656,7 +1645,6 @@ ad_common_tests_LDADD = \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
     libsss_ldap_common.la \
     libsss_idmap.la \
     libsss_krb5_common.la \
@@ -1867,7 +1855,6 @@ libsss_krb5_common_la_CFLAGS = \
     $(KRB5_CFLAGS)
 
 libsss_ldap_la_SOURCES = \
-    src/util/find_uid.c \
     src/providers/ldap/ldap_init.c \
     src/providers/ldap/ldap_access.c \
     src/providers/krb5/krb5_common.c \
@@ -1878,14 +1865,13 @@ libsss_ldap_la_SOURCES = \
     src/util/sss_krb5.c
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS) \
     $(OPENLDAP_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ldap_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
-    $(SYSTEMD_LOGIN_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la
 libsss_ldap_la_LDFLAGS = \
     -avoid-version \
@@ -1921,17 +1907,15 @@ libsss_simple_la_LDFLAGS = \
 
 libsss_krb5_la_SOURCES = \
     src/providers/krb5/krb5_init.c \
-    src/util/find_uid.c \
     src/util/sss_krb5.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_krb5_la_LIBADD = \
-    $(SYSTEMD_LOGIN_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_krb5_common.la
 libsss_krb5_la_LDFLAGS = \
     -avoid-version \
@@ -1969,23 +1953,21 @@ libsss_ipa_la_SOURCES = \
     src/providers/ad/ad_srv.c \
     src/providers/ad/ad_domain_info.c \
     src/util/user_info_msg.c \
-    src/util/find_uid.c \
     src/util/sss_ldap.c \
     src/util/sss_krb5.c
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS) \
     $(OPENLDAP_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ipa_la_LIBADD = \
-    $(SYSTEMD_LOGIN_LIBS) \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(NDR_NBT_LIBS) \
     $(KRB5_LIBS) \
     $(SELINUX_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
     libipa_hbac.la \
@@ -2023,7 +2005,6 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_subdomains.h \
     src/providers/ad/ad_domain_info.c \
     src/providers/ad/ad_domain_info.h \
-    src/util/find_uid.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
     src/util/sss_ldap.c
@@ -2035,19 +2016,18 @@ endif
 
 libsss_ad_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS) \
     $(OPENLDAP_CFLAGS) \
     $(SASL_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS) \
     $(NDR_NBT_CFLAGS)
 libsss_ad_la_LIBADD = \
-    $(SYSTEMD_LOGIN_LIBS) \
     $(OPENLDAP_LIBS) \
     $(SASL_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
     $(NDR_NBT_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
     libsss_idmap.la
