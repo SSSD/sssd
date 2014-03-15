@@ -1586,7 +1586,6 @@ test_utils_LDADD = \
 test_search_bases_SOURCES = \
     $(sssd_be_SOURCES) \
     src/util/sss_ldap.c \
-    src/util/sss_krb5.c \
     src/util/user_info_msg.c \
     src/tests/cmocka/test_search_bases.c
 test_search_bases_CFLAGS = \
@@ -1608,7 +1607,6 @@ test_search_bases_LDADD = \
 ad_access_filter_tests_SOURCES = \
     $(sssd_be_SOURCES) \
     src/util/sss_ldap.c \
-    src/util/sss_krb5.c \
     src/util/user_info_msg.c \
     src/providers/ad/ad_common.c \
     src/tests/cmocka/test_ad_access_filter.c
@@ -1630,7 +1628,6 @@ ad_access_filter_tests_LDADD = \
 ad_common_tests_SOURCES = \
     $(sssd_be_SOURCES) \
     src/util/sss_ldap.c \
-    src/util/sss_krb5.c \
     src/util/user_info_msg.c \
     src/tests/cmocka/test_ad_common.c
 ad_common_tests_CFLAGS = \
@@ -1846,33 +1843,30 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_auth.c \
     src/providers/krb5/krb5_access.c \
     src/providers/krb5/krb5_child_handler.c \
-    src/providers/krb5/krb5_init_shared.c
-libsss_krb5_common_la_LIBADD = \
-    $(KEYUTILS_LIBS)
-libsss_krb5_common_la_LDFLAGS = \
-    -avoid-version
+    src/providers/krb5/krb5_init_shared.c \
+    src/util/sss_krb5.c
 libsss_krb5_common_la_CFLAGS = \
     $(KRB5_CFLAGS)
+libsss_krb5_common_la_LIBADD = \
+    $(KEYUTILS_LIBS) \
+    $(DHASH_LIBS) \
+    $(KRB5_LIBS)
+libsss_krb5_common_la_LDFLAGS = \
+    -avoid-version
 
 libsss_ldap_la_SOURCES = \
     src/providers/ldap/ldap_init.c \
     src/providers/ldap/ldap_access.c \
-    src/providers/krb5/krb5_common.c \
-    src/providers/krb5/krb5_utils.c \
-    src/providers/krb5/krb5_become_user.c \
     src/util/user_info_msg.c \
-    src/util/sss_ldap.c \
-    src/util/sss_krb5.c
+    src/util/sss_ldap.c
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(OPENLDAP_CFLAGS) \
-    $(KRB5_CFLAGS)
+    $(OPENLDAP_CFLAGS)
 libsss_ldap_la_LIBADD = \
     $(OPENLDAP_LIBS) \
-    $(DHASH_LIBS) \
-    $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_ldap_common.la
+    libsss_ldap_common.la \
+    libsss_krb5_common.la
 libsss_ldap_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -1906,8 +1900,7 @@ libsss_simple_la_LDFLAGS = \
     -module
 
 libsss_krb5_la_SOURCES = \
-    src/providers/krb5/krb5_init.c \
-    src/util/sss_krb5.c
+    src/providers/krb5/krb5_init.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(DHASH_CFLAGS) \
@@ -1953,8 +1946,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ad/ad_srv.c \
     src/providers/ad/ad_domain_info.c \
     src/util/user_info_msg.c \
-    src/util/sss_ldap.c \
-    src/util/sss_krb5.c
+    src/util/sss_ldap.c
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(OPENLDAP_CFLAGS) \
@@ -2006,7 +1998,6 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_domain_info.c \
     src/providers/ad/ad_domain_info.h \
     src/util/user_info_msg.c \
-    src/util/sss_krb5.c \
     src/util/sss_ldap.c
 
 if BUILD_SUDO
