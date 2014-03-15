@@ -1585,8 +1585,6 @@ test_utils_LDADD = \
 
 test_search_bases_SOURCES = \
     $(sssd_be_SOURCES) \
-    src/util/sss_ldap.c \
-    src/util/user_info_msg.c \
     src/tests/cmocka/test_search_bases.c
 test_search_bases_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1606,8 +1604,6 @@ test_search_bases_LDADD = \
 
 ad_access_filter_tests_SOURCES = \
     $(sssd_be_SOURCES) \
-    src/util/sss_ldap.c \
-    src/util/user_info_msg.c \
     src/providers/ad/ad_common.c \
     src/tests/cmocka/test_ad_access_filter.c
 ad_access_filter_tests_CFLAGS = \
@@ -1627,8 +1623,6 @@ ad_access_filter_tests_LDADD = \
 
 ad_common_tests_SOURCES = \
     $(sssd_be_SOURCES) \
-    src/util/sss_ldap.c \
-    src/util/user_info_msg.c \
     src/tests/cmocka/test_ad_common.c
 ad_common_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1774,6 +1768,10 @@ endif
 # Plugin Libraries #
 ####################
 
+# libsss_krb5_common must be installed before libsss_ldap_common
+# because libtool tries to relink libsss_ldap_common when installing
+# libsss_ldap_common and therefore make distcheck fails
+pkglib_LTLIBRARIES += libsss_krb5_common.la
 pkglib_LTLIBRARIES += libsss_ldap_common.la
 libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_id.c \
@@ -1807,8 +1805,14 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_refresh.c \
     src/providers/ldap/sdap_utils.c \
     src/providers/ldap/sdap_domain.c \
-    src/providers/ldap/sdap.c
+    src/providers/ldap/sdap.c \
+    src/util/user_info_msg.c \
+    src/util/sss_ldap.c
+libsss_ldap_common_la_CFLAGS = \
+    $(KRB5_CFLAGS)
 libsss_ldap_common_la_LIBADD = \
+    $(KRB5_LIBS) \
+    libsss_krb5_common.la \
     libsss_idmap.la
 libsss_ldap_common_la_LDFLAGS = \
     -avoid-version
@@ -1828,11 +1832,7 @@ libsss_ldap_common_la_SOURCES += \
     src/providers/ldap/sdap_async_autofs.c
 endif
 
-libsss_ldap_common_la_CFLAGS = \
-    $(KRB5_CFLAGS)
 
-
-pkglib_LTLIBRARIES += libsss_krb5_common.la
 libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_utils.c \
     src/providers/krb5/krb5_become_user.c \
@@ -1856,9 +1856,7 @@ libsss_krb5_common_la_LDFLAGS = \
 
 libsss_ldap_la_SOURCES = \
     src/providers/ldap/ldap_init.c \
-    src/providers/ldap/ldap_access.c \
-    src/util/user_info_msg.c \
-    src/util/sss_ldap.c
+    src/providers/ldap/ldap_access.c
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(OPENLDAP_CFLAGS)
@@ -1944,9 +1942,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ad/ad_dyndns.c \
     src/providers/ad/ad_id.c \
     src/providers/ad/ad_srv.c \
-    src/providers/ad/ad_domain_info.c \
-    src/util/user_info_msg.c \
-    src/util/sss_ldap.c
+    src/providers/ad/ad_domain_info.c
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(OPENLDAP_CFLAGS) \
@@ -1996,9 +1992,7 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_subdomains.c \
     src/providers/ad/ad_subdomains.h \
     src/providers/ad/ad_domain_info.c \
-    src/providers/ad/ad_domain_info.h \
-    src/util/user_info_msg.c \
-    src/util/sss_ldap.c
+    src/providers/ad/ad_domain_info.h
 
 if BUILD_SUDO
 libsss_ad_la_SOURCES += \
