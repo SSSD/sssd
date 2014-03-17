@@ -1823,6 +1823,8 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_utils.c \
     src/providers/ldap/sdap_domain.c \
     src/providers/ldap/sdap.c
+libsss_ldap_common_la_LIBADD = \
+    libsss_idmap.la
 libsss_ldap_common_la_LDFLAGS = \
     -avoid-version
 
@@ -1884,8 +1886,7 @@ libsss_ldap_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
-    libsss_ldap_common.la \
-    libsss_idmap.la
+    libsss_ldap_common.la
 libsss_ldap_la_LDFLAGS = \
     -avoid-version \
     -module
