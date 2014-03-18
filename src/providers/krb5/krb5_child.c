@@ -45,6 +45,7 @@ struct krb5_req {
     krb5_principal princ;
     char* name;
     krb5_creds *creds;
+    bool otp;
     krb5_get_init_creds_opt *options;
 
     struct pam_data *pd;
@@ -370,6 +371,8 @@ static krb5_error_code answer_otp(krb5_context ctx,
         goto done;
     }
 
+    kr->otp = true;
+
     /* Validate our assumptions about the contents of authtok. */
     ret = sss_authtok_get_password(kr->pd->authtok, &pwd, &len);
     if (ret != EOK)
@@ -693,6 +696,8 @@ static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error)
     uint8_t *buf;
     size_t len;
     int ret;
+
+    DEBUG(SSSDBG_FUNC_DATA, ("Received error code %d\n", error));
 
     ret = pack_response_packet(kr, error, kr->pd->resp_list, &buf, &len);
     if (ret != EOK) {
@@ -1110,6 +1115,8 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
                                         prompter, kr, 0,
                                         SSSD_KRB5_CHANGEPW_PRINCIPAL,
                                         kr->options);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          ("chpass is%s using OTP\n", kr->otp ? "" : " not"));
     if (kerr != 0) {
         ret = pack_user_info_chpass_error(kr->pd, "Old password not accepted.",
                                           &msg_len, &msg);
@@ -1204,6 +1211,11 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
     }
 
     krb5_free_cred_contents(kr->ctx, kr->creds);
+
+    if (kr->otp == true) {
+        sss_authtok_set_empty(kr->pd->newauthtok);
+        return map_krb5_error(kerr);
+    }
 
     /* We changed some of the gic options for the password change, now we have
      * to change them back to get a fresh TGT. */
