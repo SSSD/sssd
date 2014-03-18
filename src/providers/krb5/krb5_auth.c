@@ -827,6 +827,7 @@ static void krb5_auth_done(struct tevent_req *subreq)
     char *renew_interval_str;
     time_t renew_interval_time = 0;
     bool use_enterprise_principal;
+    uint32_t user_info_type;
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(subreq);
@@ -1076,9 +1077,23 @@ static void krb5_auth_done(struct tevent_req *subreq)
 
     ret = sss_krb5_check_ccache_princ(kr->uid, kr->gid, kr->ccname, kr->upn);
     if (ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-                "No ccache for %s in %s?\n", kr->upn, kr->ccname);
-        goto done;
+        if (res->otp == true && pd->cmd == SSS_PAM_CHAUTHTOK) {
+            DEBUG(SSSDBG_IMPORTANT_INFO,
+                  "Password change succeeded but currently "
+                  "post-chpass kinit is not implemented\n");
+
+            user_info_type = SSS_PAM_USER_INFO_OTP_CHPASS;
+            ret = pam_add_response(pd, SSS_PAM_USER_INFO, sizeof(uint32_t),
+                                   (const uint8_t *) &user_info_type);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+                /* Not fatal */
+            }
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "No ccache for %s in %s?\n", kr->upn, kr->ccname);
+            goto done;
+        }
     }
 
     if (kr->old_ccname) {
