@@ -141,17 +141,21 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
     }
 
     result_len = ctlen + digestlen;
+    if (result_len < 0 || result_len > UINT16_MAX) {
+        ret = ERANGE;
+        goto done;
+    }
 
     /* Pack the obfuscation buffer */
     /* The buffer consists of:
      * uint16_t      the type of the cipher
-     * uint32_t      length of the cryptotext in bytes (clen)
+     * uint16_t      length of the cryptotext in bytes (clen)
      * uint8_t[klen] key
      * uint8_t[blen] IV
      * uint8_t[clen] cryptotext
      * 4 bytes of "sentinel" denoting end of the buffer
      */
-    obufsize = sizeof(uint16_t) + sizeof(uint32_t) +
+    obufsize = sizeof(uint16_t) + sizeof(uint16_t) +
                mech_props->keylen + mech_props->bsize +
                result_len + OBF_BUFFER_SENTINEL_SIZE;
     obfbuf = talloc_array(tmp_ctx, unsigned char, obufsize);
