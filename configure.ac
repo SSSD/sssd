@@ -95,7 +95,6 @@ AC_SUBST(pammoddir)
 m4_include([src/external/platform.m4])
 
 m4_include(src/conf_macros.m4)
-WITH_DISTRO_VERSION
 WITH_DB_PATH
 WITH_PLUGIN_PATH
 WITH_PID_PATH

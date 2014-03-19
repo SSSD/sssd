@@ -2690,7 +2690,7 @@ int main(int argc, const char *argv[])
     DEBUG_INIT(debug_level);
 
     if (opt_version) {
-        puts(VERSION""DISTRO_VERSION""PRERELEASE_VERSION);
+        puts(VERSION""PRERELEASE_VERSION);
         return EXIT_SUCCESS;
     }
 

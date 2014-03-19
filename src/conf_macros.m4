@@ -1,14 +1,3 @@
-AC_DEFUN([WITH_DISTRO_VERSION],
-  [ AC_ARG_WITH([distro-version],
-                [AC_HELP_STRING([--with-distro-version=VERSION],
-                                [Distro version number []]
-                               )
-                ]
-               )
-    AC_DEFINE_UNQUOTED(DISTRO_VERSION, "$with_distro_version",
-                           [Distro version number])
-  ])
-
 AC_DEFUN([WITH_DB_PATH],
   [ AC_ARG_WITH([db-path],
                 [AC_HELP_STRING([--with-db-path=PATH],
