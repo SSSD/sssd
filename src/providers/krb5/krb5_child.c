@@ -1667,7 +1667,7 @@ static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline)
     return ret;
 }
 
-static int k5c_setup_fast(struct krb5_req *kr, char *lifetime_str, bool demand)
+static int k5c_setup_fast(struct krb5_req *kr, bool demand)
 {
     krb5_principal fast_princ_struct;
     krb5_data *realm_data;
@@ -1675,9 +1675,6 @@ static int k5c_setup_fast(struct krb5_req *kr, char *lifetime_str, bool demand)
     char *fast_principal;
     krb5_error_code kerr;
     char *tmp_str;
-
-    DEBUG(SSSDBG_CONF_SETTINGS, ("%s is set to [%s]\n",
-                                 SSSD_KRB5_LIFETIME, lifetime_str));
 
     tmp_str = getenv(SSSD_KRB5_FAST_PRINCIPAL);
     if (tmp_str) {
@@ -1870,9 +1867,9 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
         if (use_fast_str == NULL || strcasecmp(use_fast_str, "never") == 0) {
             DEBUG(SSSDBG_CONF_SETTINGS, ("Not using FAST.\n"));
         } else if (strcasecmp(use_fast_str, "try") == 0) {
-            kerr = k5c_setup_fast(kr, lifetime_str, false);
+            kerr = k5c_setup_fast(kr, false);
         } else if (strcasecmp(use_fast_str, "demand") == 0) {
-            kerr = k5c_setup_fast(kr, lifetime_str, true);
+            kerr = k5c_setup_fast(kr, true);
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   ("Unsupported value [%s] for krb5_use_fast.\n",
