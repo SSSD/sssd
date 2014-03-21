@@ -844,7 +844,8 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
 
             j++;
         }
-        ldap_entrylist[state->entries_count] = NULL;
+        /* terminate array with NULL after the last retrieved entry */
+        ldap_entrylist[j] = NULL;
     }
 
     ret = sysdb_autofs_entries_by_map(tmp_ctx, state->dom, state->mapname,
