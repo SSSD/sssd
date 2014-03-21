@@ -739,6 +739,7 @@ libsss_simpleifp_la_SOURCES = \
     src/lib/sifp/sss_sifp.c \
     src/lib/sifp/sss_sifp_dbus.c \
     src/lib/sifp/sss_sifp_attrs.c \
+    src/lib/sifp/sss_sifp_common.c \
     src/lib/sifp/sss_sifp_parser.c \
     src/lib/sifp/sss_sifp_utils.c
 libsss_simpleifp_la_CFLAGS = \
@@ -1816,6 +1817,7 @@ ifp_tests_LDADD = \
 sss_sifp_tests_SOURCES = \
     src/tests/cmocka/test_sss_sifp.c \
     src/lib/sifp/sss_sifp_attrs.c \
+    src/lib/sifp/sss_sifp_common.c \
     src/lib/sifp/sss_sifp_parser.c \
     src/lib/sifp/sss_sifp_utils.c \
     src/lib/sifp/sss_sifp_dbus.c \

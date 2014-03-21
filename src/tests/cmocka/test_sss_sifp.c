@@ -1648,6 +1648,170 @@ void test_sss_sifp_invoke_find_withargs(void **state)
     assert_null(path_out);
 }
 
+void test_sss_sifp_list_domains(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *msg_paths = NULL;
+    DBusMessage *msg_ldap = NULL;
+    DBusMessage *msg_ipa = NULL;
+    dbus_bool_t bret;
+    sss_sifp_error ret;
+    const char *in[] = {SSS_SIFP_PATH_IFP "/Domains/LDAP",
+                        SSS_SIFP_PATH_IFP "/Domains/IPA"};
+    const char **paths = in;
+    const char *names[] = {"LDAP", "IPA"};
+    char **out = NULL;
+    int in_len = 2;
+    int i;
+
+    msg_paths = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+    assert_non_null(msg_paths);
+
+    msg_ldap = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+    assert_non_null(msg_ldap);
+
+    msg_ipa = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+    assert_non_null(msg_ipa);
+
+    /* prepare message */
+    bret = dbus_message_append_args(msg_paths, DBUS_TYPE_ARRAY,
+                                               DBUS_TYPE_OBJECT_PATH,
+                                               &paths, in_len,
+                                               DBUS_TYPE_INVALID);
+    assert_true(bret);
+
+    reply_variant_basic(msg_ldap, DBUS_TYPE_STRING_AS_STRING, &names[0]);
+    reply_variant_basic(msg_ipa, DBUS_TYPE_STRING_AS_STRING, &names[1]);
+
+    will_return(__wrap_dbus_connection_send_with_reply_and_block, msg_paths);
+    will_return(__wrap_dbus_connection_send_with_reply_and_block, msg_ldap);
+    will_return(__wrap_dbus_connection_send_with_reply_and_block, msg_ipa);
+
+    /* test */
+    ret = sss_sifp_list_domains(ctx, &out);
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(out);
+
+    for (i = 0; i < in_len; i++) {
+        assert_non_null(out[i]);
+        assert_string_equal(out[i], names[i]);
+    }
+
+    assert_null(out[i]);
+
+    sss_sifp_free_string_array(ctx, &out);
+    assert_null(out);
+
+    /* messages are unrefed in the library */
+}
+
+void test_sss_sifp_fetch_domain_by_name(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *msg_path = NULL;
+    DBusMessage *msg_props = NULL;
+    DBusMessageIter iter;
+    DBusMessageIter array_iter;
+    DBusMessageIter dict_iter;
+    DBusMessageIter var_iter;
+    dbus_bool_t bret;
+    sss_sifp_error ret;
+    const char *in =SSS_SIFP_PATH_IFP "/Domains/LDAP";
+    const char *name = "LDAP";
+    const char *prop = NULL;
+    sss_sifp_object *out = NULL;
+    struct {
+        const char *name;
+        const char *value;
+    } props[] = {{"name", name}, {"a1", "a"}, {"a2", "b"}, {NULL, 0}};
+    int i;
+
+
+    msg_path = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+    assert_non_null(msg_path);
+
+    msg_props = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
+    assert_non_null(msg_props);
+
+    /* prepare message */
+    bret = dbus_message_append_args(msg_path, DBUS_TYPE_OBJECT_PATH, &in,
+                                              DBUS_TYPE_INVALID);
+    assert_true(bret);
+
+    dbus_message_iter_init_append(msg_props, &iter);
+
+    bret = dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY,
+                                            DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
+                                            DBUS_TYPE_STRING_AS_STRING
+                                            DBUS_TYPE_VARIANT_AS_STRING
+                                            DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+                                            &array_iter);
+    assert_true(bret);
+
+    for (i = 0; props[i].name != NULL; i++) {
+        bret = dbus_message_iter_open_container(&array_iter,
+                                                DBUS_TYPE_DICT_ENTRY,
+                                                NULL, &dict_iter);
+        assert_true(bret);
+
+        bret = dbus_message_iter_append_basic(&dict_iter, DBUS_TYPE_STRING,
+                                              &props[i].name);
+        assert_true(bret);
+
+        bret = dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_VARIANT,
+                                                DBUS_TYPE_STRING_AS_STRING,
+                                                &var_iter);
+        assert_true(bret);
+
+        bret = dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_STRING,
+                                              &props[i].value);
+        assert_true(bret);
+
+        bret = dbus_message_iter_close_container(&dict_iter, &var_iter);
+        assert_true(bret);
+
+        bret = dbus_message_iter_close_container(&array_iter, &dict_iter);
+        assert_true(bret);
+    }
+
+    bret = dbus_message_iter_close_container(&iter, &array_iter);
+    assert_true(bret);
+
+    will_return(__wrap_dbus_connection_send_with_reply_and_block, msg_path);
+    will_return(__wrap_dbus_connection_send_with_reply_and_block, msg_props);
+
+    /* test */
+    ret = sss_sifp_fetch_domain_by_name(ctx, name, &out);
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(out);
+    assert_non_null(out->attrs);
+    assert_non_null(out->name);
+    assert_non_null(out->object_path);
+    assert_non_null(out->interface);
+
+    assert_string_equal(out->name, name);
+    assert_string_equal(out->object_path, in);
+    assert_string_equal(out->interface, SSS_SIFP_IFACE_DOMAINS);
+
+    for (i = 0; props[i].name != NULL; i++) {
+        assert_non_null(out->attrs[i]);
+        assert_int_equal(out->attrs[i]->num_values, 1);
+        assert_int_equal(out->attrs[i]->type, SSS_SIFP_ATTR_TYPE_STRING);
+        assert_string_equal(out->attrs[i]->name, props[i].name);
+
+        ret = sss_sifp_find_attr_as_string(out->attrs, props[i].name, &prop);
+        assert_int_equal(ret, SSS_SIFP_OK);
+        assert_string_equal(props[i].value, prop);
+    }
+
+    assert_null(out->attrs[i]);
+
+    sss_sifp_free_object(ctx, &out);
+    assert_null(out);
+
+    /* messages are unrefed in the library */
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -1737,6 +1901,10 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_sss_sifp_invoke_find_zeroargs,
                                  test_setup, test_teardown_api),
         unit_test_setup_teardown(test_sss_sifp_invoke_find_withargs,
+                                 test_setup, test_teardown_api),
+        unit_test_setup_teardown(test_sss_sifp_list_domains,
+                                 test_setup, test_teardown_api),
+        unit_test_setup_teardown(test_sss_sifp_fetch_domain_by_name,
                                  test_setup, test_teardown_api),
     };
 

@@ -481,4 +481,60 @@ sss_sifp_free_string_array(sss_sifp_ctx *ctx,
 /**
  * @}
  */
+
+/**
+ * @defgroup common Most common use cases of SSSD InfoPipe responder.
+ * @{
+ */
+
+/**
+ * @brief List names of available domains.
+ *
+ * @param[in] ctx       sss_sifp context
+ * @param[out] _domains List of domain names
+ */
+sss_sifp_error
+sss_sifp_list_domains(sss_sifp_ctx *ctx,
+                      char ***_domains);
+
+/**
+ * @brief Fetch all information about domain by name.
+ *
+ * @param[in] ctx      sss_sifp context
+ * @param[in] name     Domain name
+ * @param[out] _domain Domain object
+ */
+sss_sifp_error
+sss_sifp_fetch_domain_by_name(sss_sifp_ctx *ctx,
+                              const char *name,
+                              sss_sifp_object **_domain);
+
+/**
+ * @brief Fetch all information about user by uid.
+ *
+ * @param[in] ctx    sss_sifp context
+ * @param[in] uid    User ID
+ * @param[out] _user User object
+ */
+sss_sifp_error
+sss_sifp_fetch_user_by_uid(sss_sifp_ctx *ctx,
+                           uid_t uid,
+                           sss_sifp_object **_user);
+
+/**
+ * @brief Fetch all information about user by name.
+ *
+ * @param[in] ctx    sss_sifp context
+ * @param[in] name   User name
+ * @param[out] _user User object
+ */
+sss_sifp_error
+sss_sifp_fetch_user_by_name(sss_sifp_ctx *ctx,
+                            const char *name,
+                            sss_sifp_object **_user);
+
+/**
+ * @}
+ */
+
 #endif /* SSS_SIFP_H_ */

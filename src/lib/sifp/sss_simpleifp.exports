@@ -37,6 +37,10 @@ SSS_SIMPLEIFP_0.0 {
         sss_sifp_free_object;
         sss_sifp_free_string;
         sss_sifp_free_string_array;
+        sss_sifp_list_domains;
+        sss_sifp_fetch_domain_by_name;
+        sss_sifp_fetch_user_by_uid;
+        sss_sifp_fetch_user_by_name;
 
     # everything else is local
     local:
