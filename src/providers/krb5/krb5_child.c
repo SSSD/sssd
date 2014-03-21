@@ -65,6 +65,57 @@ struct krb5_req {
 static krb5_context krb5_error_ctx;
 #define KRB5_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
 
+static krb5_error_code set_lifetime_options(krb5_get_init_creds_opt *options)
+{
+    char *lifetime_str;
+    krb5_error_code kerr;
+    krb5_deltat lifetime;
+
+    lifetime_str = getenv(SSSD_KRB5_RENEWABLE_LIFETIME);
+    if (lifetime_str == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Cannot read [%s] from environment.\n",
+              SSSD_KRB5_RENEWABLE_LIFETIME);
+
+        /* Unset option flag to make sure defaults from krb5.conf are used. */
+        options->flags &= ~(KRB5_GET_INIT_CREDS_OPT_RENEW_LIFE);
+    } else {
+        kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "krb5_string_to_deltat failed for [%s].\n",
+                      lifetime_str);
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            return kerr;
+        }
+        DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
+              SSSD_KRB5_RENEWABLE_LIFETIME, lifetime_str);
+        krb5_get_init_creds_opt_set_renew_life(options, lifetime);
+    }
+
+    lifetime_str = getenv(SSSD_KRB5_LIFETIME);
+    if (lifetime_str == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Cannot read [%s] from environment.\n",
+              SSSD_KRB5_LIFETIME);
+
+        /* Unset option flag to make sure defaults from krb5.conf are used. */
+        options->flags &= ~(KRB5_GET_INIT_CREDS_OPT_TKT_LIFE);
+    } else {
+        kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "krb5_string_to_deltat failed for [%s].\n",
+                      lifetime_str);
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            return kerr;
+        }
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "%s is set to [%s]\n", SSSD_KRB5_LIFETIME, lifetime_str);
+        krb5_get_init_creds_opt_set_tkt_life(options, lifetime);
+    }
+
+    return 0;
+}
+
 static void set_changepw_options(krb5_context ctx,
                                  krb5_get_init_creds_opt *options)
 {
@@ -1758,9 +1809,7 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
 static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 {
     krb5_error_code kerr;
-    char *lifetime_str;
     char *use_fast_str;
-    krb5_deltat lifetime;
     int parse_flags;
 
     kr->realm = getenv(SSSD_KRB5_REALM);
@@ -1839,40 +1888,10 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     krb5_get_init_creds_opt_set_change_password_prompt(kr->options, 0);
 #endif
 
-    lifetime_str = getenv(SSSD_KRB5_RENEWABLE_LIFETIME);
-    if (lifetime_str == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "Cannot read [%s] from environment.\n",
-              SSSD_KRB5_RENEWABLE_LIFETIME);
-    } else {
-        kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "krb5_string_to_deltat failed for [%s].\n",
-                      lifetime_str);
-            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-            return kerr;
-        }
-        DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
-              SSSD_KRB5_RENEWABLE_LIFETIME, lifetime_str);
-        krb5_get_init_creds_opt_set_renew_life(kr->options, lifetime);
-    }
-
-    lifetime_str = getenv(SSSD_KRB5_LIFETIME);
-    if (lifetime_str == NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "Cannot read [%s] from environment.\n",
-              SSSD_KRB5_LIFETIME);
-    } else {
-        kerr = krb5_string_to_deltat(lifetime_str, &lifetime);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "krb5_string_to_deltat failed for [%s].\n",
-                      lifetime_str);
-            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-            return kerr;
-        }
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "%s is set to [%s]\n", SSSD_KRB5_LIFETIME, lifetime_str);
-        krb5_get_init_creds_opt_set_tkt_life(kr->options, lifetime);
+    kerr = set_lifetime_options(kr->options);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("set_lifetime_options failed.\n"));
+        return kerr;
     }
 
     if (!offline) {
