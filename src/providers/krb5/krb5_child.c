@@ -140,6 +140,24 @@ static void set_changepw_options(krb5_context ctx,
     krb5_get_init_creds_opt_set_tkt_life(options, 5*60);
 }
 
+static void revert_changepw_options(krb5_get_init_creds_opt *options)
+{
+    krb5_error_code kerr;
+
+    set_canonicalize_option(options);
+
+    /* Currently we do not set forwardable and proxiable explicitly, the flags
+     * must be removed so that libkrb5 can take the defaults from krb5.conf */
+    options->flags &= ~(KRB5_GET_INIT_CREDS_OPT_FORWARDABLE);
+    options->flags &= ~(KRB5_GET_INIT_CREDS_OPT_PROXIABLE);
+
+    kerr = set_lifetime_options(options);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, ("set_lifetime_options failed.\n"));
+    }
+}
+
+
 static errno_t sss_send_pac(krb5_authdata **pac_authdata)
 {
     struct sss_cli_req_data sss_data;
@@ -1195,6 +1213,10 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
     }
 
     krb5_free_cred_contents(kr->ctx, kr->creds);
+
+    /* We changed some of the gic options for the password change, now we have
+     * to change them back to get a fresh TGT. */
+    revert_changepw_options(kr->options);
 
     kerr = get_and_save_tgt(kr, newpassword);
 
