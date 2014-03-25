@@ -294,9 +294,7 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
     struct ipa_get_netgroups_state *state = tevent_req_data(req,
                                                struct ipa_get_netgroups_state);
     int i, ret;
-    struct ldb_message_element *ng_found;
-    struct ldb_message_element *host_found;
-    struct ldb_message_element *user_found;
+    struct ldb_message_element *el;
     struct sdap_search_base **netgr_bases;
     struct sysdb_attrs **netgroups;
     size_t netgroups_count;
@@ -342,16 +340,19 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
 
     for (i = 0; i < netgroups_count; i++) {
         ret = sysdb_attrs_get_el(netgroups[i], SYSDB_ORIG_NETGROUP_MEMBER,
-                                 &ng_found);
+                                 &el);
         if (ret != EOK) goto done;
+        if (el->num_values) state->entities_found |= ENTITY_NG;
 
         ret = sysdb_attrs_get_el(netgroups[i], SYSDB_ORIG_MEMBER_USER,
-                                 &user_found);
+                                 &el);
         if (ret != EOK) goto done;
+        if (el->num_values) state->entities_found |= ENTITY_USER;
 
         ret = sysdb_attrs_get_el(netgroups[i], SYSDB_ORIG_MEMBER_HOST,
-                                 &host_found);
+                                 &el);
         if (ret != EOK) goto done;
+        if (el->num_values) state->entities_found |= ENTITY_HOST;
 
         ret = sysdb_attrs_get_string(netgroups[i], SYSDB_ORIG_DN, &orig_dn);
         if (ret != EOK) {
@@ -367,10 +368,6 @@ static void ipa_get_netgroups_process(struct tevent_req *subreq)
             ret = ENOMEM;
             goto done;
         }
-
-        if (ng_found->num_values) state->entities_found |= ENTITY_NG;
-        if (user_found->num_values) state->entities_found |= ENTITY_USER;
-        if (host_found->num_values) state->entities_found |= ENTITY_HOST;
 
         if (state->entities_found == 0) {
             continue;
