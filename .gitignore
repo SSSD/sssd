@@ -111,3 +111,4 @@ sss_ssh_authorizedkeys
 sss_ssh_knownhostsproxy
 sssd_ssh
 test-authtok
+/ci-build-*

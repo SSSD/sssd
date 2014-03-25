@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+# Build a make check target, prepending test commands with specified command
+# and arguments.
+# Args: [make_arg...] [-- wrap_cmd wrap_arg...]
+#
+# Copyright (C) 2014 Red Hat
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -o nounset -o pipefail -o errexit
+
+declare -a argv=("make")
+declare arg
+
+while [ $# != 0 ]; do
+    arg="$1"
+    shift
+    if [ "$arg" == "--" ]; then
+        break
+    fi
+    argv+=("$arg")
+done
+
+if [ $# != 0 ]; then
+    # If Makefile supports LOG_COMPILER
+    if grep -q -w LOG_COMPILER Makefile; then
+        printf -v arg 'LOG_COMPILER=%q' $1
+        argv+=("$arg")
+        shift
+        if [ $# != 0 ]; then
+            printf -v arg ' %q' "$@"
+            argv+=("LOG_FLAGS=$arg")
+        fi
+    else
+        printf -v arg ' %q' "$@"
+        argv+=("AUX_TESTS_ENVIRONMENT=$arg")
+    fi
+fi
+
+"${argv[@]}"

@@ -318,6 +318,11 @@ dist_noinst_SCRIPTS = \
     contrib/rhel/update_debug_levels.py \
     contrib/fedora/bashrc_sssd \
     contrib/fedora/make_srpm.sh \
+    contrib/ci/clean \
+    contrib/ci/make-check-wrap \
+    contrib/ci/rpm-spec-builddeps \
+    contrib/ci/run \
+    contrib/ci/valgrind-condense \
     src/tests/pyhbac-test.py \
     src/tests/pysss_murmur-test.py
 
@@ -328,7 +333,12 @@ dist_noinst_DATA = \
     src/config/testconfigs/sssd-badversion.conf \
     src/config/testconfigs/sssd-invalid.conf \
     src/config/testconfigs/sssd-invalid-badbool.conf \
-    src/config/etc/sssd.api.d/crash_test_dummy
+    src/config/etc/sssd.api.d/crash_test_dummy \
+    contrib/ci/README.md \
+    contrib/ci/configure.sh \
+    contrib/ci/deps.sh \
+    contrib/ci/distro.sh \
+    contrib/ci/misc.sh
 
 ###############################
 # Global compilation settings #

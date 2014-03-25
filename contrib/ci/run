@@ -1,0 +1,371 @@
+#!/bin/bash
+#
+# Run continuous integration tests.
+#
+# Copyright (C) 2014 Red Hat
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -o nounset -o pipefail -o errexit
+export PATH=`dirname "\`readlink -f \"\$0\"\`"`:$PATH
+export LC_ALL=C
+
+. deps.sh
+. distro.sh
+. configure.sh
+. misc.sh
+
+declare -r DEBUG_CFLAGS="-g3 -O2"
+declare -r COVERAGE_CFLAGS="-g3 -O0 --coverage"
+declare -r ARCH=`uname -m`
+declare -r CPU_NUM=`getconf _NPROCESSORS_ONLN`
+declare -r TITLE_WIDTH=24
+declare -r RESULT_WIDTH=18
+
+# Minimum percentage of code lines covered by tests
+declare -r COVERAGE_MIN_LINES=15
+# Minimum percentage of code functions covered by tests
+declare -r COVERAGE_MIN_FUNCS=0
+
+declare BASE_PFX=""
+declare DEPS=true
+declare BASE_DIR=`pwd`
+declare MODERATE=false
+declare RIGOROUS=false
+
+# Output program usage information.
+function usage()
+{
+    cat <<EOF
+Usage: `basename "$0"` [OPTION...]
+Run continuous integration tests.
+
+Options:
+    -h, --help          Output this help message and exit.
+    -p, --prefix=STRING Use STRING as the prefix to prepend to file and
+                        directory paths in output.
+    -n, --no-deps       Don't attempt to install dependencies.
+    -e, --essential     Run the essential subset of tests.
+    -m, --moderate      Run the moderate subset of tests.
+    -r, --rigorous,
+    -f, --full          Run the rigorous (full) set of tests.
+
+Default options: --essential
+EOF
+}
+
+# Output a file display path: a path relocated from base directory (BASE_DIR)
+# to base prefix (BASE_PFX).
+# Args: path
+function disppath()
+{
+    declare -r path=`readlink -f "$1"`
+    printf "%s" "$BASE_PFX${path:${#BASE_DIR}+1}"
+}
+
+# Run a stage.
+# Args: id cmd [arg...]
+function stage()
+{
+    declare -r id="$1";     shift
+    declare -r log="ci-$id.log"
+    declare status
+    declare start
+    declare end
+    declare duration
+
+    printf "%-${TITLE_WIDTH}s" "$id:"
+
+    {
+        printf "Start: "
+        start=`date +%s`
+        date --date="@$start"
+        set +o errexit
+        (
+            set -o errexit -o xtrace
+            "$@"
+        )
+        status=$?
+        set -o errexit
+        printf "End: "
+        end=`date +%s`
+        date --date="@$end"
+    } &> "$log"
+
+    duration=$((end - start))
+
+    if [ "$status" == 0 ]; then
+        printf 'success  '
+    else
+        printf 'failure  '
+    fi
+    printf "%02u:%02u:%02u " \
+           $((duration / (60 * 60))) \
+           $((duration / 60 % 60)) \
+           $((duration % 60))
+    disppath "$log"
+    printf "\n"
+
+    return "$status"
+}
+
+# Execute mock as is, or, if the user is not in the "mock" group, under sudo,
+# which has password prompt/input on the console, instead of stderr/stdin.
+# Args: [mock_arg...]
+function mock_privileged()
+{
+    if memberof mock; then
+        mock "$@"
+    else
+        declare prompt=$'Not a "mock" group member.\n'
+        prompt+="To run mock enter sudo password for $USER: "
+        sudo -p "$prompt" mock "$@"
+    fi
+}
+
+# Execute mock_privileged with extra chroot configuration added.
+# Args: chroot [mock_arg...]
+# Input: extra configuration
+function mock_privileged_conf()
+{
+    declare -r chroot="$1"; shift
+    declare conf_dir
+
+    conf_dir=`mktemp --tmpdir --directory mock-config.XXXXXXXX`
+    trap 'trap - RETURN; rm -R "$conf_dir";' RETURN
+    cp -r /etc/mock/* "$conf_dir"/
+    cat >> "${conf_dir}/${chroot}.cfg"
+    mock_privileged --configdir="$conf_dir" --root="$chroot" "$@"
+}
+
+# Execute mock_privileged with dependency package source configuration added.
+# Args: chroot [mock_arg...]
+function mock_privileged_deps()
+{
+    declare -r chroot="$1"; shift
+    declare repo
+
+    if [[ "$chroot" == fedora-* ]]; then
+        repo='fedora-$releasever-$basearch'
+    elif [[ "$chroot" =~ epel-([0-9]+) ]]; then
+        repo="epel-${BASH_REMATCH[1]}-\$basearch"
+    else
+        echo "Unknown chroot config: $chroot" >&2
+        exit 1
+    fi
+
+    mock_privileged_conf "$chroot" "$@" <<<"
+config_opts['yum.conf'] += '''
+[sssd-deps]
+name=Extra SSSD dependencies
+baseurl=http://copr-be.cloud.fedoraproject.org/results/lslebodn/sssd-deps/$repo/
+skip_if_unavailable=true
+gpgcheck=0
+enabled=1
+'''
+"
+}
+
+# Run debug build checks.
+function build_debug()
+{
+    export CFLAGS="$DEBUG_CFLAGS"
+    declare test_dir
+    declare test_dir_distcheck
+    declare distcheck_configure_args
+    declare status
+
+    test_dir=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
+    stage configure         "$BASE_DIR/configure" \
+                                "${CONFIGURE_ARG_LIST[@]}" \
+                                --with-test-dir="$test_dir"
+
+    # Not building "tests" due to https://fedorahosted.org/sssd/ticket/2350
+    stage make-tests        make-check-wrap -j $CPU_NUM check -- true
+
+    # Ignored until issues found by Valgrind are fixed
+    status=0
+    CK_FORK=no \
+        stage make-check-valgrind \
+                make-check-wrap -j $CPU_NUM check -- \
+                                libtool --mode=execute \
+                                    valgrind-condense 99 '!(*.py)' -- \
+                                    --vgdb=no \
+                                    --trace-children=yes \
+                                    --trace-children-skip='*/bin/*,*/sbin/*' \
+                                    --leak-check=full ||
+            status=$?
+    mv "$test_dir" ci-test-dir
+
+    if "$MODERATE"; then
+        test_dir_distcheck=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
+        # Single thread due to https://fedorahosted.org/sssd/ticket/2354
+        status=0
+        printf -v distcheck_configure_args " %q" \
+                    "${CONFIGURE_ARG_LIST[@]}" \
+                    "--with-test-dir=$test_dir_distcheck"
+        stage make-distcheck    make distcheck \
+                                    AUX_DISTCHECK_CONFIGURE_FLAGS=" \
+                                        $distcheck_configure_args" ||
+                status=$?
+        mv "$test_dir_distcheck" ci-test-dir-distcheck
+        ((status == 0))
+
+        if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
+            stage make-srpm     env -u CFLAGS -- make srpm
+            stage mock-epel6    mock_privileged_deps "epel-6-$ARCH" \
+                                     --resultdir ci-mock-result-epel6 \
+                                     rpmbuild/SRPMS/*.src.rpm
+            stage mock-fedora20 mock_privileged_deps "fedora-20-$ARCH" \
+                                     --resultdir ci-mock-result-fedora20 \
+                                     rpmbuild/SRPMS/*.src.rpm
+        fi
+    fi
+
+    unset CFLAGS
+}
+
+# Run coverage build checks.
+function build_coverage()
+{
+    declare -r scan_report_dir="ci-report-scan"
+    declare -r coverage_report_dir="ci-report-coverage"
+    declare test_dir
+
+    export CFLAGS="$COVERAGE_CFLAGS"
+
+    test_dir=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
+    stage configure         scan-build "$BASE_DIR/configure" \
+                                           "${CONFIGURE_ARG_LIST[@]}" \
+                                           --with-test-dir="$test_dir"
+
+    # Build everything, including tests
+    # Not building "tests" due to https://fedorahosted.org/sssd/ticket/2350
+    stage scan-make-tests   scan_build_single \
+                                "$scan_report_dir" \
+                                -plist-html \
+                                --html-title="sssd - scan-build report" \
+                                make-check-wrap -j $CPU_NUM check -- true
+    printf "%-$((TITLE_WIDTH + RESULT_WIDTH))s%s\n" \
+            "scan report:" \
+            "`disppath \"\$scan_report_dir/index.html\"`"
+    # Ignored until issues found by the scanner are fixed
+    stage scan-check        scan_check "$scan_report_dir" ||
+                            true
+
+    stage lcov-pre          lcov --capture --initial --directory . \
+                                 --base-directory "$BASE_DIR" \
+                                 --output-file ci-base.info
+    # Run tests
+    stage make-check        scan-build make -j $CPU_NUM check || true
+    mv "$test_dir" ci-test-dir
+
+    stage lcov-post         lcov --capture --directory . \
+                                 --base-directory "$BASE_DIR" \
+                                 --output-file ci-check.info
+    stage lcov-merge        lcov --add-tracefile ci-base.info \
+                                 --add-tracefile ci-check.info \
+                                 --output-file ci-dirty.info
+    stage lcov-clean        lcov --remove ci-dirty.info \
+                                 "/usr/*" "src/tests/*" \
+                                 --output-file ci.info
+    stage genhtml           eval 'genhtml --output-directory \
+                                          "$coverage_report_dir" \
+                                          --title "sssd" --show-details \
+                                          --legend --prefix "$BASE_DIR" \
+                                          ci.info |& tee ci-genhtml.out'
+    printf "%-$((TITLE_WIDTH + RESULT_WIDTH))s%s\n" \
+            "coverage report:" \
+            "`disppath \"\$coverage_report_dir/index.html\"`"
+
+    # If dependencies for all tests are satisfied
+    # and so all the tests should have been built and ran.
+    if "$DEPS_TESTS_SATISFIED"; then
+        stage lcov-check        eval 'lcov_check "$COVERAGE_MIN_LINES" \
+                                                 "$COVERAGE_MIN_FUNCS" \
+                                        < ci-genhtml.out'
+    fi
+
+    unset CFLAGS
+}
+
+# Run a build inside a sub-directory.
+# Args: id cmd [arg...]
+function run_build()
+{
+    declare -r id="$1"; shift
+    declare -r dir="ci-build-$id"
+
+    mkdir "$dir"
+    printf "%-$((TITLE_WIDTH + RESULT_WIDTH))s%s\n" \
+           "${id^^} BUILD:" "`disppath \"\$dir\"`"
+
+    cd "$dir"
+    "$@"
+    cd ..
+}
+
+#
+# Main routine
+#
+declare args_expr
+args_expr=`getopt --name \`basename "\$0"\` \
+                  --options hp:nemrf \
+                  --longoptions help,prefix:,no-deps \
+                  --longoptions essential,moderate,rigorous,full \
+                  -- "$@"`
+eval set -- "$args_expr"
+
+while true; do
+    case "$1" in
+        -h|--help)
+            usage;          exit 0;;
+        -p|--prefix)
+            BASE_PFX="$2";  shift 2;;
+        -n|--no-deps)
+            DEPS=false;     shift;;
+        -e|--essential)
+            MODERATE=false; RIGOROUS=false; shift;;
+        -m|--moderate)
+            MODERATE=true;  RIGOROUS=false; shift;;
+        -r|--rigorous|-f|--full)
+            MODERATE=true;  RIGOROUS=true;  shift;;
+        --)
+            shift;          break;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1;;
+    esac
+done
+
+if [ $# != 0 ]; then
+    echo "Positional arguments are not accepted." >&2
+    usage >&2
+    exit 1
+fi
+
+trap 'echo FAILURE' EXIT
+rm_rf_ro ci-*
+export V=1
+if "$DEPS"; then
+    stage install-deps  deps_install
+fi
+stage autoreconf    autoreconf --install --force
+run_build debug     build_debug
+if "$RIGOROUS"; then
+    run_build coverage  build_coverage
+fi
+unset V
+trap - EXIT
+echo SUCCESS
