@@ -325,7 +325,6 @@ AM_CPPFLAGS = \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
     -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
     -DSSS_SSH_SOCKET_NAME=\"$(pipepath)/ssh\" \
-    -DSSS_IFP_SOCKET_NAME=\"$(pipepath)/ifp\" \
     -DLOCALEDIR=\"$(localedir)\"
 
 EXTRA_DIST = build/config.rpath
