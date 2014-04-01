@@ -54,7 +54,9 @@
  * the same forest. See http://msdn.microsoft.com/en-us/library/cc223786.aspx
  * for more information.
  */
-#define SLAVE_DOMAIN_FILTER "(&(objectclass=trustedDomain)(trustType=2)(!(msDS-TrustForestTrustInfo=*)))"
+#define SLAVE_DOMAIN_FILTER_BASE "(objectclass=trustedDomain)(trustType=2)(!(msDS-TrustForestTrustInfo=*))"
+#define SLAVE_DOMAIN_FILTER      "(&"SLAVE_DOMAIN_FILTER_BASE")"
+#define FOREST_ROOT_FILTER_FMT   "(&"SLAVE_DOMAIN_FILTER_BASE"(cn=%s))"
 
 /* do not refresh more often than every 5 seconds for now */
 #define AD_SUBDOMAIN_REFRESH_LIMIT 5
@@ -79,6 +81,11 @@ struct ad_subdomains_req_ctx {
 
     char *current_filter;
     size_t base_iter;
+
+    struct ad_id_ctx *root_id_ctx;
+    struct sdap_id_op *root_op;
+    size_t root_base_iter;
+    struct sysdb_attrs *root_domain;
 
     size_t reply_count;
     struct sysdb_attrs **reply;
@@ -461,6 +468,7 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *ctx)
 
 static void ad_subdomains_get_conn_done(struct tevent_req *req);
 static void ad_subdomains_master_dom_done(struct tevent_req *req);
+static errno_t ad_subdomains_get_root(struct ad_subdomains_req_ctx *ctx);
 static errno_t ad_subdomains_get_slave(struct ad_subdomains_req_ctx *ctx);
 
 static void ad_subdomains_retrieve(struct ad_subdomains_ctx *ctx,
@@ -481,6 +489,10 @@ static void ad_subdomains_retrieve(struct ad_subdomains_ctx *ctx,
     req_ctx->sd_ctx = ctx;
     req_ctx->current_filter = NULL;
     req_ctx->base_iter = 0;
+    req_ctx->root_base_iter = 0;
+    req_ctx->root_id_ctx = NULL;
+    req_ctx->root_op = NULL;
+    req_ctx->root_domain = NULL;
     req_ctx->reply_count = 0;
     req_ctx->reply = NULL;
 
@@ -575,7 +587,20 @@ static void ad_subdomains_master_dom_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = ad_subdomains_get_slave(ctx);
+    if (strcasecmp(ctx->sd_ctx->be_ctx->domain->name, ctx->forest) != 0) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "SSSD needs to look up the forest root domain\n");
+        ret = ad_subdomains_get_root(ctx);
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Connected to forest root, looking up child domains..\n");
+
+        ctx->root_op = ctx->sdap_op;
+        ctx->root_id_ctx = ctx->sd_ctx->ad_id_ctx;
+
+        ret = ad_subdomains_get_slave(ctx);
+    }
+
     if (ret == EAGAIN) {
         return;
     } else if (ret != EOK) {
@@ -584,6 +609,243 @@ static void ad_subdomains_master_dom_done(struct tevent_req *req)
 
 done:
     be_req_terminate(ctx->be_req, DP_ERR_FATAL, ret, NULL);
+}
+
+static void ad_subdomains_get_root_domain_done(struct tevent_req *req);
+
+static errno_t ad_subdomains_get_root(struct ad_subdomains_req_ctx *ctx)
+{
+    struct tevent_req *req;
+    struct sdap_search_base *base;
+    struct sdap_id_ctx *sdap_id_ctx;
+    char *filter;
+    const char *forest_root_attrs[] = { AD_AT_FLATNAME, AD_AT_TRUST_PARTNER,
+                                        AD_AT_SID, AD_AT_TRUST_TYPE,
+                                        AD_AT_TRUST_ATTRS, NULL };
+
+    sdap_id_ctx = ctx->sd_ctx->sdap_id_ctx;
+    base = sdap_id_ctx->opts->sdom->search_bases[ctx->root_base_iter];
+    if (base == NULL) {
+        return EOK;
+    }
+
+    filter = talloc_asprintf(ctx, FOREST_ROOT_FILTER_FMT, ctx->forest);
+    if (filter == NULL) {
+        return ENOMEM;
+    }
+
+    req = sdap_get_generic_send(ctx, ctx->sd_ctx->be_ctx->ev,
+                                sdap_id_ctx->opts,
+                                sdap_id_op_handle(ctx->sdap_op),
+                                base->basedn, LDAP_SCOPE_SUBTREE,
+                                filter, forest_root_attrs,
+                                NULL, 0,
+                                dp_opt_get_int(sdap_id_ctx->opts->basic,
+                                                SDAP_SEARCH_TIMEOUT),
+                                false);
+
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, ad_subdomains_get_root_domain_done, ctx);
+    return EAGAIN;
+}
+
+static struct ad_id_ctx *ads_get_root_id_ctx(struct ad_subdomains_req_ctx *ctx);
+static void ad_subdomains_root_conn_done(struct tevent_req *req);
+
+static void ad_subdomains_get_root_domain_done(struct tevent_req *req)
+{
+    int ret;
+    size_t reply_count;
+    struct sysdb_attrs **reply = NULL;
+    struct ad_subdomains_req_ctx *ctx;
+    int dp_error = DP_ERR_FATAL;
+    bool has_changes;
+
+    ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
+
+    ret = sdap_get_generic_recv(req, ctx, &reply_count, &reply);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send request failed.\n");
+        goto fail;
+    }
+
+    if (reply_count == 0) {
+        /* If no root domain was found in the default search base, try the
+         * next one, if available
+         */
+        ctx->root_base_iter++;
+        ret = ad_subdomains_get_root(ctx);
+        if (ret == EAGAIN) {
+            return;
+        }
+
+        goto fail;
+    } else if (reply_count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Multiple results for root domain search, "
+              "domain list might be incomplete!\n");
+
+        ctx->root_op = ctx->sdap_op;
+        ctx->root_id_ctx = ctx->sd_ctx->ad_id_ctx;
+
+        ret = ad_subdomains_get_slave(ctx);
+        if (ret == EAGAIN) {
+            return;
+        }
+
+        goto fail;
+    }
+    /* Exactly one result, good. */
+
+    /* We won't use the operation to the local LDAP anymore, but
+     * read from the forest root
+     */
+    ret = sdap_id_op_done(ctx->sdap_op, ret, &dp_error);
+    if (ret != EOK) {
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "No AD server is available, cannot get the "
+                   "subdomain list while offline\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to search the AD server: [%d](%s)\n",
+                  ret, strerror(ret));
+        }
+        goto fail;
+    }
+
+    ret = ad_subdomains_refresh(ctx->sd_ctx, 1, reply, &has_changes);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ad_subdomains_refresh failed.\n");
+        goto fail;
+    }
+
+    if (has_changes) {
+        ret = ad_subdom_reinit(ctx->sd_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not reinitialize subdomains\n");
+            goto fail;
+        }
+    }
+
+    ctx->root_domain = reply[0];
+    ctx->root_id_ctx = ads_get_root_id_ctx(ctx);
+    if (ctx->root_id_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot create id ctx for the root domain\n");
+        ret = EFAULT;
+        goto fail;
+    }
+
+    ctx->root_op = sdap_id_op_create(ctx,
+                                     ctx->root_id_ctx->ldap_ctx->conn_cache);
+    if (ctx->root_op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    req = sdap_id_op_connect_send(ctx->root_op, ctx, &ret);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
+                                  ret, strerror(ret));
+        goto fail;
+    }
+
+    tevent_req_set_callback(req, ad_subdomains_root_conn_done, ctx);
+    return;
+
+fail:
+    if (ret == EOK) {
+        ctx->sd_ctx->last_refreshed = time(NULL);
+        dp_error = DP_ERR_OK;
+    }
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
+}
+
+static struct ad_id_ctx *ads_get_root_id_ctx(struct ad_subdomains_req_ctx *ctx)
+{
+    errno_t ret;
+    const char *name;
+    struct sss_domain_info *root;
+    struct sdap_domain *sdom;
+    struct ad_id_ctx *root_id_ctx;
+
+    ret = sysdb_attrs_get_string(ctx->root_domain, AD_AT_TRUST_PARTNER, &name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+        return NULL;
+    }
+
+    /* With a subsequent run, the root should already be known */
+    root = find_subdomain_by_name(ctx->sd_ctx->be_ctx->domain,
+                                  name, false);
+    if (root == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not find the root domain\n");
+        return NULL;
+    }
+
+    sdom = sdap_domain_get(ctx->sd_ctx->ad_id_ctx->sdap_id_ctx->opts, root);
+    if (sdom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get the sdom for %s!\n", root->name);
+        return NULL;
+    }
+
+    if (sdom->pvt == NULL) {
+        ret = ad_subdom_ad_ctx_new(ctx->sd_ctx->be_ctx,
+                                   ctx->sd_ctx->ad_id_ctx,
+                                   root,
+                                   &root_id_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "ad_subdom_ad_ctx_new failed.\n");
+            return NULL;
+        }
+        sdom->pvt = root_id_ctx;
+    } else {
+        root_id_ctx = sdom->pvt;
+    }
+
+    return root_id_ctx;
+}
+
+static void ad_subdomains_root_conn_done(struct tevent_req *req)
+{
+    int ret;
+    int dp_error = DP_ERR_FATAL;
+    struct ad_subdomains_req_ctx *ctx;
+
+    ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
+
+    ret = sdap_id_op_connect_recv(req, &dp_error);
+    talloc_zfree(req);
+    if (ret) {
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "No AD server is available, cannot get the "
+                  "subdomain list while offline\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to connect to AD server: [%d](%s)\n",
+                  ret, strerror(ret));
+        }
+
+        goto fail;
+    }
+
+    ret = ad_subdomains_get_slave(ctx);
+    if (ret == EAGAIN) {
+        return;
+    } else if (ret != EOK) {
+        goto fail;
+    }
+
+fail:
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
 }
 
 static void ad_subdomains_get_slave_domain_done(struct tevent_req *req);
@@ -596,18 +858,18 @@ static errno_t ad_subdomains_get_slave(struct ad_subdomains_req_ctx *ctx)
                                       AD_AT_SID, AD_AT_TRUST_TYPE,
                                       AD_AT_TRUST_ATTRS, NULL };
 
-    base = ctx->sd_ctx->sdap_id_ctx->opts->sdom->search_bases[ctx->base_iter];
+    base = ctx->root_id_ctx->sdap_id_ctx->opts->sdom->search_bases[ctx->base_iter];
     if (base == NULL) {
         return EOK;
     }
 
     req = sdap_get_generic_send(ctx, ctx->sd_ctx->be_ctx->ev,
-                           ctx->sd_ctx->sdap_id_ctx->opts,
-                           sdap_id_op_handle(ctx->sdap_op),
+                           ctx->root_id_ctx->sdap_id_ctx->opts,
+                           sdap_id_op_handle(ctx->root_op),
                            base->basedn, LDAP_SCOPE_SUBTREE,
                            SLAVE_DOMAIN_FILTER, slave_dom_attrs,
                            NULL, 0,
-                           dp_opt_get_int(ctx->sd_ctx->sdap_id_ctx->opts->basic,
+                           dp_opt_get_int(ctx->root_id_ctx->sdap_id_ctx->opts->basic,
                                           SDAP_SEARCH_TIMEOUT),
                            false);
 
@@ -620,6 +882,68 @@ static errno_t ad_subdomains_get_slave(struct ad_subdomains_req_ctx *ctx)
     return EAGAIN;
 }
 
+static errno_t ad_subdomains_process(TALLOC_CTX *mem_ctx,
+                                     struct sss_domain_info *domain,
+                                     size_t nsd, struct sysdb_attrs **sd,
+                                     struct sysdb_attrs *root,
+                                     size_t *_nsd_out,
+                                     struct sysdb_attrs ***_sd_out)
+{
+    size_t i, sdi;
+    struct sysdb_attrs **sd_out;
+    const char *sd_name;
+    errno_t ret;
+
+    if (root == NULL) {
+        /* We are connected directly to the root domain. The 'sd'
+         * list is complete and we can just use it
+         */
+        *_nsd_out = nsd;
+        *_sd_out = sd;
+        return EOK;
+    }
+
+    /* If we searched for root separately, we must:
+     *  a) treat the root domain as a subdomain
+     *  b) filter the subdomain we are connected to from the subdomain
+     *     list, from our point of view, it's the master domain
+     */
+    sd_out = talloc_zero_array(mem_ctx, struct sysdb_attrs *, nsd+1);
+    if (sd_out == NULL) {
+        return ENOMEM;
+    }
+
+    sdi = 0;
+    for (i = 0; i < nsd; i++) {
+        ret = sysdb_attrs_get_string(sd[i], AD_AT_TRUST_PARTNER, &sd_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto fail;
+        }
+
+        if (strcasecmp(sd_name, domain->name) == 0) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Not including primary domain %s in the subdomain list\n",
+                  domain->name);
+            continue;
+        }
+
+        sd_out[sdi] = talloc_steal(sd_out, sd[i]);
+        sdi++;
+    }
+
+    /* Now include the root */
+    sd_out[sdi] = talloc_steal(sd_out, root);
+
+    *_nsd_out = sdi+1;
+    *_sd_out = sd_out;
+    return EOK;
+
+fail:
+    talloc_free(sd_out);
+    return ret;
+}
+
 static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
 {
     int ret;
@@ -628,6 +952,8 @@ static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
     struct ad_subdomains_req_ctx *ctx;
     int dp_error = DP_ERR_FATAL;
     bool refresh_has_changes = false;
+    size_t nsubdoms;
+    struct sysdb_attrs **subdoms;
 
     ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
 
@@ -653,13 +979,40 @@ static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
     ctx->base_iter++;
     ret = ad_subdomains_get_slave(ctx);
     if (ret == EAGAIN) {
+        /* Search in progress */
         return;
-    } else if (ret != EOK) {
-        goto done;
+    }
+
+    ret = sdap_id_op_done(ctx->root_op, ret, &dp_error);
+    if (ret != EOK) {
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "No AD server is available, cannot get the "
+                   "subdomain list while offline\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to search the AD server: [%d](%s)\n",
+                  ret, strerror(ret));
+        }
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Based on whether we are connected to the forest root or not, we might
+     * need to exclude the subdomain we are connected to from the list of
+     * subdomains
+     */
+    ret = ad_subdomains_process(ctx, ctx->sd_ctx->be_ctx->domain,
+                                ctx->reply_count, ctx->reply,
+                                ctx->root_domain, &nsubdoms, &subdoms);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, ("Cannot process subdomain list\n"));
+        tevent_req_error(req, ret);
+        return;
     }
 
     /* Got all the subdomains, let's process them */
-    ret = ad_subdomains_refresh(ctx->sd_ctx, ctx->reply_count, ctx->reply,
+    ret = ad_subdomains_refresh(ctx->sd_ctx, nsubdoms, subdoms,
                                 &refresh_has_changes);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to refresh subdomains.\n");
