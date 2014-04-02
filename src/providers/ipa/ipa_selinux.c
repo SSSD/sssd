@@ -601,25 +601,25 @@ static errno_t create_order_array(TALLOC_CTX *mem_ctx, const char *map_order,
         goto done;
     }
 
-    order = talloc_strdup(tmp_ctx, map_order);
-    if (order == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    len = strlen(order);
-
     /* The "order" string contains one or more SELinux user records
      * separated by $. Now we need to create an array of string from
      * this one string. First find out how many elements in the array
      * will be. This way only one alloc will be necessary for the array
      */
     order_count = 1;
+    len = strlen(map_order);
     for (i = 0; i < len; i++) {
-        if (order[i] == '$') order_count++;
+        if (map_order[i] == '$') order_count++;
     }
 
     order_array = talloc_array(tmp_ctx, char *, order_count);
     if (order_array == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    order = talloc_strdup(order_array, map_order);
+    if (order == NULL) {
         ret = ENOMEM;
         goto done;
     }
