@@ -2032,6 +2032,26 @@ dist_sssdapiplugin_DATA = \
     src/config/etc/sssd.api.d/sssd-proxy.conf \
     src/config/etc/sssd.api.d/sssd-simple.conf
 
+edit_cmd = $(SED) \
+        -e 's|@sbindir[@]|$(sbindir)|g' \
+        -e 's|@environment_file[@]|$(environment_file)|g' \
+        -e 's|@localstatedir[@]|$(localstatedir)|g' \
+        -e 's|@prefix[@]|$(prefix)|g'
+
+replace_script = \
+    @rm -f $@ $@.tmp; \
+    srcdir=''; \
+        test -f ./$@.in || srcdir=$(srcdir)/; \
+        $(edit_cmd) $${srcdir}$@.in >$@.tmp; \
+    mv $@.tmp $@
+
+EXTRA_DIST += \
+    src/sysv/systemd/sssd.service.in
+
+src/sysv/systemd/sssd.service: src/sysv/systemd/sssd.service.in Makefile
+	@$(MKDIR_P) src/sysv/systemd/
+	$(replace_script)
+
 installsssddirs::
 	mkdir -p \
     $(DESTDIR)$(includedir) \
@@ -2139,6 +2159,7 @@ endif
 		rm -Rf $$doc; \
 	done;
 	rm -Rf ldb_mod_test_dir
+	rm -f $(builddir)/src/sysv/systemd/sssd.service
 
 CLEANFILES = *.X */*.X */*/*.X
 
