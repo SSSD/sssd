@@ -1314,52 +1314,37 @@ ipa_get_selinux_recv(struct tevent_req *req,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (state->defaults != NULL) {
-        ret = sysdb_attrs_get_string(state->defaults,
-                                     IPA_CONFIG_SELINUX_DEFAULT_USER_CTX,
-                                     &tmp_str);
-        if (ret != EOK && ret != ENOENT) {
-            return ret;
-        }
+    ret = sysdb_attrs_get_string(state->defaults,
+                                 IPA_CONFIG_SELINUX_DEFAULT_USER_CTX,
+                                 &tmp_str);
+    if (ret != EOK && ret != ENOENT) {
+        return ret;
+    }
 
-        if (ret == EOK) {
-            *default_user = talloc_strdup(mem_ctx, tmp_str);
-            if (*default_user == NULL) {
-                return ENOMEM;
-            }
-        }
-
-        ret = sysdb_attrs_get_string(state->defaults, IPA_CONFIG_SELINUX_MAP_ORDER,
-                                     &tmp_str);
-        if (ret != EOK) {
-            return ret;
-        }
-
-        *map_order = talloc_strdup(mem_ctx, tmp_str);
-        if (*map_order == NULL) {
-            talloc_zfree(*default_user);
+    if (ret == EOK) {
+        *default_user = talloc_strdup(mem_ctx, tmp_str);
+        if (*default_user == NULL) {
             return ENOMEM;
         }
-    } else {
-        *map_order = NULL;
-        *default_user = NULL;
     }
 
-    if (state->selinuxmaps != NULL && state->nmaps != 0) {
-        *count = state->nmaps;
-        *maps = talloc_steal(mem_ctx, state->selinuxmaps);
-    } else {
-        *count = 0;
-        *maps = NULL;
+    ret = sysdb_attrs_get_string(state->defaults, IPA_CONFIG_SELINUX_MAP_ORDER,
+                                 &tmp_str);
+    if (ret != EOK) {
+        return ret;
     }
 
-    if (state->hbac_rules != NULL) {
-        *hbac_count = state->hbac_rule_count;
-        *hbac_rules = talloc_steal(mem_ctx, state->hbac_rules);
-    } else {
-        *hbac_count = 0;
-        *hbac_rules = NULL;
+    *map_order = talloc_strdup(mem_ctx, tmp_str);
+    if (*map_order == NULL) {
+        talloc_zfree(*default_user);
+        return ENOMEM;
     }
+
+    *count = state->nmaps;
+    *maps = talloc_steal(mem_ctx, state->selinuxmaps);
+
+    *hbac_count = state->hbac_rule_count;
+    *hbac_rules = talloc_steal(mem_ctx, state->hbac_rules);
 
     return EOK;
 }
