@@ -278,7 +278,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
         goto fail;
     }
 
-    if (map_count > 0 && maps != NULL) {
+    if (map_count > 0) {
         ret = ipa_save_user_maps(sysdb, op_ctx->ipa_domain, map_count, maps);
         if (ret != EOK) {
             goto fail;
@@ -1302,7 +1302,7 @@ ipa_get_selinux_recv(struct tevent_req *req,
         *default_user = NULL;
     }
 
-    if (state->selinuxmaps != NULL) {
+    if (state->selinuxmaps != NULL && state->nmaps != 0) {
         *count = state->nmaps;
         *maps = talloc_steal(mem_ctx, state->selinuxmaps);
     } else {
