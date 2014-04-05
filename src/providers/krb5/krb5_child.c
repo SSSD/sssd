@@ -131,8 +131,7 @@ static void set_canonicalize_option(krb5_get_init_creds_opt *opts)
     sss_krb5_get_init_creds_opt_set_canonicalize(opts, canonicalize);
 }
 
-static void set_changepw_options(krb5_context ctx,
-                                 krb5_get_init_creds_opt *options)
+static void set_changepw_options(krb5_get_init_creds_opt *options)
 {
     sss_krb5_get_init_creds_opt_set_canonicalize(options, 0);
     krb5_get_init_creds_opt_set_forwardable(options, 0);
@@ -1110,7 +1109,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
         prompter = sss_krb5_prompter;
     }
 
-    set_changepw_options(kr->ctx, kr->options);
+    set_changepw_options(kr->options);
     sss_krb5_princ_realm(kr->ctx, kr->princ, &realm_name, &realm_length);
 
     DEBUG(SSSDBG_TRACE_FUNC,
@@ -1288,7 +1287,7 @@ static errno_t tgt_req_child(struct krb5_req *kr)
               "Failed to unset expire callback, continue ...\n");
     }
 
-    set_changepw_options(kr->ctx, kr->options);
+    set_changepw_options(kr->options);
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         discard_const(password),
                                         sss_krb5_prompter, kr, 0,
