@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2014-02-17 19:53+0100\n"
+"POT-Creation-Date: 2014-04-08 12:56+0200\n"
 "PO-Revision-Date: 2013-11-20 12:56+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish (http://www.transifex.com/projects/p/fedora/language/"
@@ -1165,26 +1165,26 @@ msgstr "Podaje niedomyślny plik konfiguracji"
 msgid "Print version number and exit"
 msgstr "Wyświetla numer wersji i kończy działanie"
 
-#: src/providers/krb5/krb5_child.c:1934 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:1962 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:100
 msgid "Debug level"
 msgstr "Poziom debugowania"
 
-#: src/providers/krb5/krb5_child.c:1936 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:1964 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:104
 msgid "Add debug timestamps"
 msgstr "Dodaje czasy debugowania"
 
-#: src/providers/krb5/krb5_child.c:1938 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:1966 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:106
 msgid "Show timestamps with microseconds"
 msgstr "Wyświetlanie dat z mikrosekundami"
 
-#: src/providers/krb5/krb5_child.c:1940 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:1968 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
-#: src/providers/data_provider_be.c:2930
+#: src/providers/data_provider_be.c:2932
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
@@ -1212,65 +1212,71 @@ msgstr "Wystąpił błąd, ale nie odnaleziono jego opisu."
 msgid "Unexpected error while looking for an error description"
 msgstr "Nieoczekiwany błąd podczas wyszukiwania opisu błędu"
 
-#: src/sss_client/pam_sss.c:387
+#: src/sss_client/pam_sss.c:388
 msgid "Passwords do not match"
 msgstr "Hasła nie zgadzają się"
 
-#: src/sss_client/pam_sss.c:575
+#: src/sss_client/pam_sss.c:576
 msgid "Password reset by root is not supported."
 msgstr "Przywrócenie hasła przez użytkownika root nie jest obsługiwane."
 
-#: src/sss_client/pam_sss.c:616
+#: src/sss_client/pam_sss.c:617
 msgid "Authenticated with cached credentials"
 msgstr "Uwierzytelniono za pomocą danych z pamięci podręcznej"
 
-#: src/sss_client/pam_sss.c:617
+#: src/sss_client/pam_sss.c:618
 msgid ", your cached password will expire at: "
 msgstr ", hasło w pamięci podręcznej wygaśnie za: "
 
-#: src/sss_client/pam_sss.c:647
+#: src/sss_client/pam_sss.c:648
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "Hasło wygasło. Pozostało %1$d możliwych logowań."
 
-#: src/sss_client/pam_sss.c:693
+#: src/sss_client/pam_sss.c:694
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Hasło wygaśnie za %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:742
+#: src/sss_client/pam_sss.c:743
 msgid "Authentication is denied until: "
 msgstr "Uwierzytelnianie jest zabronione do: "
 
-#: src/sss_client/pam_sss.c:763
+#: src/sss_client/pam_sss.c:764
 msgid "System is offline, password change not possible"
 msgstr "System jest w trybie offline, zmiana hasła nie jest możliwa"
 
-#: src/sss_client/pam_sss.c:793 src/sss_client/pam_sss.c:806
+#: src/sss_client/pam_sss.c:779
+msgid ""
+"After changing the OTP password, you need to log out and back in order to "
+"acquire a ticket"
+msgstr ""
+
+#: src/sss_client/pam_sss.c:810 src/sss_client/pam_sss.c:823
 msgid "Password change failed. "
 msgstr "Zmiana hasła nie powiodła się. "
 
-#: src/sss_client/pam_sss.c:796 src/sss_client/pam_sss.c:807
+#: src/sss_client/pam_sss.c:813 src/sss_client/pam_sss.c:824
 msgid "Server message: "
 msgstr "Komunikat serwera: "
 
-#: src/sss_client/pam_sss.c:1231
+#: src/sss_client/pam_sss.c:1251
 msgid "New Password: "
 msgstr "Nowe hasło: "
 
-#: src/sss_client/pam_sss.c:1232
+#: src/sss_client/pam_sss.c:1252
 msgid "Reenter new Password: "
 msgstr "Proszę ponownie podać nowe hasło: "
 
-#: src/sss_client/pam_sss.c:1318
+#: src/sss_client/pam_sss.c:1340
 msgid "Password: "
 msgstr "Hasło: "
 
-#: src/sss_client/pam_sss.c:1350
+#: src/sss_client/pam_sss.c:1372
 msgid "Current Password: "
 msgstr "Bieżące hasło: "
 
-#: src/sss_client/pam_sss.c:1497
+#: src/sss_client/pam_sss.c:1527
 msgid "Password expired. Change your password now."
 msgstr "Hasło wygasło. Proszę je zmienić teraz."
 
