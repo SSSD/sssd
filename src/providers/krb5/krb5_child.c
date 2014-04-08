@@ -1999,14 +1999,9 @@ int main(int argc, const char *argv[])
 
     DEBUG_INIT(debug_level);
 
-    kr = talloc_zero(NULL, struct krb5_req);
-    if (kr == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
-        exit(-1);
-    }
-
-    debug_prg_name = talloc_asprintf(kr, "[sssd[krb5_child[%d]]]", getpid());
+    debug_prg_name = talloc_asprintf(NULL, "[sssd[krb5_child[%d]]]", getpid());
     if (!debug_prg_name) {
+        debug_prg_name = "[sssd[krb5_child]]";
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
         ret = ENOMEM;
         goto done;
@@ -2020,6 +2015,14 @@ int main(int argc, const char *argv[])
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "krb5_child started.\n");
+
+    kr = talloc_zero(NULL, struct krb5_req);
+    if (kr == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    talloc_steal(kr, debug_prg_name);
 
     ret = k5c_recv_data(kr, STDIN_FILENO, &offline);
     if (ret != EOK) {
@@ -2079,13 +2082,14 @@ int main(int argc, const char *argv[])
     }
 
 done:
-    krb5_cleanup(kr);
-    talloc_free(kr);
     if (ret == EOK) {
         DEBUG(SSSDBG_TRACE_FUNC, "krb5_child completed successfully\n");
-        exit(0);
+        ret = 0;
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_child failed!\n");
-        exit(-1);
+        ret = -1;
     }
+    krb5_cleanup(kr);
+    talloc_free(kr);
+    exit(ret);
 }
