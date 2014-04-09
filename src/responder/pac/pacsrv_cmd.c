@@ -1084,6 +1084,14 @@ static void pac_lookup_sids_next_done(struct tevent_req *subreq)
     ret = sss_dp_get_account_recv(req, subreq,
                                   &err_maj, &err_min,
                                   &err_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to get information from Data Provider\n"
+              "dp_error: [%u], errno: [%u], error_msg: [%s]\n",
+              (unsigned int)err_maj, (unsigned int)err_min,
+              err_msg ? err_msg : "none");
+    }
+
     talloc_zfree(subreq);
     talloc_zfree(err_msg);
     /* Errors during individual lookups are ignored. */
