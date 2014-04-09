@@ -587,7 +587,8 @@ static void ad_subdomains_master_dom_done(struct tevent_req *req)
         goto done;
     }
 
-    if (strcasecmp(ctx->sd_ctx->be_ctx->domain->name, ctx->forest) != 0) {
+    if (ctx->forest == NULL ||
+          strcasecmp(ctx->sd_ctx->be_ctx->domain->name, ctx->forest) != 0) {
         DEBUG(SSSDBG_TRACE_FUNC,
               ("SSSD needs to look up the forest root domain\n"));
         ret = ad_subdomains_get_root(ctx);
