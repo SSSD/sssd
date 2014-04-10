@@ -2001,9 +2001,9 @@ endif
 #######################
 
 dist_init_SCRIPTS =
-dist_systemdunit_DATA =
+systemdunit_DATA =
 if HAVE_SYSTEMD_UNIT
-    dist_systemdunit_DATA += \
+    systemdunit_DATA += \
         src/sysv/systemd/sssd.service
 else
 if HAVE_SUSE
