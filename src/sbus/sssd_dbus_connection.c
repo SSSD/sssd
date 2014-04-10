@@ -378,6 +378,8 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
     const struct sbus_interface_meta *interface;
     struct sbus_request *dbus_req = NULL;
     sbus_msg_handler_fn handler_fn = NULL;
+    void *handler_data = NULL; /* Must be a talloc pointer! */
+    struct sbus_introspect_ctx *ictx = NULL;
     DBusHandlerResult result;
     int ret;
 
@@ -425,19 +427,46 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
             dbus_message_unref(reply);
             result = DBUS_HANDLER_RESULT_HANDLED;
         }
+    } else {
+        /* Special case: check for Introspection request
+         * This is usually only useful for system bus connections
+         */
+        if (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
+                strcmp(msg_method, DBUS_INTROSPECT_METHOD) == 0) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Got introspection request\n");
+            ictx = talloc(intf_p->conn, struct sbus_introspect_ctx);
+            if (ictx == NULL) {
+                result = sbus_reply_internal_error(message, intf_p->conn);
+            } else {
+                handler_fn = sbus_introspect;
+                ictx->iface = interface;
+                handler_data = ictx;
+            }
+        }
     }
 
     if (handler_fn) {
         dbus_req = sbus_new_request(intf_p->conn, intf_p->intf, message);
         if (!dbus_req) {
+            talloc_zfree(handler_data);
             ret = ENOMEM;
         } else {
             dbus_req->method = method;
-            ret = handler_fn(dbus_req, intf_p->intf->instance_data);
+            if (handler_data) {
+                /* If the handler uses private instance data, make
+                 * sure they go away when the request does
+                 */
+                talloc_steal(dbus_req, handler_data);
+            } else {
+                /* If no custom handler data is set, pass on the
+                 * interface data
+                 */
+                handler_data = intf_p->intf->instance_data;
+            }
+            ret = handler_fn(dbus_req, handler_data);
         }
         if (ret != EOK) {
-            if (dbus_req)
-                talloc_free(dbus_req);
+            talloc_free(dbus_req);
             result = sbus_reply_internal_error(message, intf_p->conn);
         } else {
             result = DBUS_HANDLER_RESULT_HANDLED;
