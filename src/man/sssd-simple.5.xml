@@ -144,6 +144,20 @@
         </para>
     </refsect1>
 
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+          The complete group membership hierarchy is resolved
+          before the access check, thus even nested groups can be
+          included in the access lists.  Please be aware that the
+          <quote>ldap_group_nesting_level</quote> option may impact the
+          results and should be set to a sufficient value.
+          (<citerefentry>
+               <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum>
+          </citerefentry>) option.
+        </para>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>

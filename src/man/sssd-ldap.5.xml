@@ -1854,7 +1854,14 @@
                             users being denied access.
                             Use access_provider = permit to change this default
                             behavior. Please note that this filter is applied on
-                            the LDAP user entry only.
+                            the LDAP user entry only and thus filtering based
+                            on nested groups may not work (e.g. memberOf
+                            attribute on AD entries points only to direct
+                            parents). If filtering based on nested groups
+                            is required, please see
+                            <citerefentry>
+                              <refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum>
+                            </citerefentry>.
                         </para>
                         <para>
                             Example:
