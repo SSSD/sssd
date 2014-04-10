@@ -44,6 +44,23 @@
 #define PILOT_BLINK "Blink"
 #define PILOT_EAT "Eat"
 
+#define PILOT_IFACE_INTROSPECT \
+        "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n" \
+        "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"                \
+        "<node>\n"                                                                           \
+        "  <interface name=\"test.Pilot\">\n"                                                \
+        "    <method name=\"Blink\">\n"                                                      \
+        "    </method>\n"                                                                    \
+        "    <method name=\"Eat\">\n"                                                        \
+        "    </method>\n"                                                                    \
+        "  </interface>\n"                                                                   \
+        " <interface name=\"org.freedesktop.DBus.Introspectable\">\n"                        \
+        "   <method name=\"Introspect\">\n"                                                  \
+        "     <arg name=\"data\" type=\"s\" direction=\"out\"/>\n"                           \
+        "   </method>\n"                                                                     \
+        " </interface>\n"                                                                    \
+        "</node>\n"
+
 /* our vtable */
 struct pilot_vtable {
     struct sbus_vtable vtable;
@@ -276,6 +293,37 @@ START_TEST(test_request_parse_bad_args)
 }
 END_TEST
 
+START_TEST(test_introspection)
+{
+    TALLOC_CTX *ctx;
+    DBusConnection *client;
+    DBusError error = DBUS_ERROR_INIT;
+    DBusMessage *reply;
+    char *xml;
+
+    ctx = talloc_new(NULL);
+    client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
+
+    reply = test_dbus_call_sync(client,
+                                "/test/leela",
+                                DBUS_INTROSPECT_INTERFACE,
+                                DBUS_INTROSPECT_METHOD,
+                                &error,
+                                DBUS_TYPE_INVALID); /* bad agruments */
+
+    ck_assert(reply != NULL);
+    ck_assert(!dbus_error_is_set(&error));
+    ck_assert(dbus_message_get_args(reply, NULL,
+                                    DBUS_TYPE_STRING, &xml,
+                                    DBUS_TYPE_INVALID));
+    ck_assert_str_eq(PILOT_IFACE_INTROSPECT, xml);
+
+    dbus_message_unref(reply);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 TCase *create_sbus_tests(void)
 {
     TCase *tc = tcase_create("tests");
@@ -283,6 +331,7 @@ TCase *create_sbus_tests(void)
     tcase_add_test(tc, test_raw_handler);
     tcase_add_test(tc, test_request_parse_ok);
     tcase_add_test(tc, test_request_parse_bad_args);
+    tcase_add_test(tc, test_introspection);
 
     return tc;
 }

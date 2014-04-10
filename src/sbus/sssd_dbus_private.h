@@ -98,4 +98,10 @@ struct sbus_request *
 sbus_new_request(struct sbus_connection *conn, struct sbus_interface *intf,
                  DBusMessage *message);
 
+struct sbus_introspect_ctx {
+    const struct sbus_interface_meta *iface;
+};
+
+int sbus_introspect(struct sbus_request *dbus_req, void *pvt);
+
 #endif /* _SSSD_DBUS_PRIVATE_H_ */
