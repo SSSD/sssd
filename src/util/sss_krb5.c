@@ -227,6 +227,12 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
     }
 
 done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to read keytab [%s]: %s\n",
+               KEYTAB_CLEAN_NAME, strerror(ret));
+        sss_log(SSS_LOG_ERR, "Failed to read keytab [%s]: %s\n",
+                KEYTAB_CLEAN_NAME, strerror(ret));
+    }
     if (keytab) krb5_kt_close(krb_ctx, keytab);
     if (krb_ctx) krb5_free_context(krb_ctx);
     if (client_princ != NULL) {
