@@ -266,12 +266,18 @@ fail:
     return NULL;
 }
 
-static errno_t create_order_array(TALLOC_CTX *mem_ctx, const char *map_order,
-                                  char ***_order_array, size_t *_order_count);
+struct map_order_ctx {
+    char *order;
+    char **order_array;
+    size_t order_count;
+};
+
+static errno_t init_map_order_ctx(TALLOC_CTX *mem_ctx, const char *map_order,
+                                  struct map_order_ctx **_mo_ctx);
 static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
                                   struct pam_data *pd,
                                   struct sss_domain_info *user_domain,
-                                  char **order_array, int order_count,
+                                  struct map_order_ctx *mo_ctx,
                                   const char *default_user);
 
 
@@ -292,8 +298,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     size_t hbac_count = 0;
     struct sysdb_attrs **hbac_rules = 0;
     struct sysdb_attrs **best_match_maps;
-    size_t order_count;
-    char **order_array;
+    struct map_order_ctx *map_order_ctx;
 
     ret = ipa_get_selinux_recv(req, breq, &map_count, &maps,
                                &hbac_count, &hbac_rules,
@@ -348,8 +353,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
         goto fail;
     }
 
-    ret = create_order_array(op_ctx, map_order,
-                             &order_array, &order_count);
+    ret = init_map_order_ctx(op_ctx, map_order, &map_order_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to create ordered SELinux users array.\n");
@@ -357,7 +361,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     }
 
     ret = choose_best_seuser(best_match_maps, pd, op_ctx->user_domain,
-                             order_array, order_count, default_user);
+                             map_order_ctx, default_user);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to evaluate ordered SELinux users array.\n");
@@ -584,19 +588,23 @@ ipa_selinux_process_seealso_maps(struct sysdb_attrs *user,
     return EOK;
 }
 
-static errno_t create_order_array(TALLOC_CTX *mem_ctx, const char *map_order,
-                                  char ***_order_array, size_t *_order_count)
+static errno_t init_map_order_ctx(TALLOC_CTX *mem_ctx, const char *map_order,
+                                  struct map_order_ctx **_mo_ctx)
 {
     TALLOC_CTX *tmp_ctx;
-    char *order = NULL;
-    char **order_array;
     errno_t ret;
     int i;
     int len;
-    size_t order_count;
+    struct map_order_ctx *mo_ctx;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    mo_ctx = talloc(tmp_ctx, struct map_order_ctx);
+    if (mo_ctx == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -606,20 +614,20 @@ static errno_t create_order_array(TALLOC_CTX *mem_ctx, const char *map_order,
      * this one string. First find out how many elements in the array
      * will be. This way only one alloc will be necessary for the array
      */
-    order_count = 1;
+    mo_ctx->order_count = 1;
     len = strlen(map_order);
     for (i = 0; i < len; i++) {
-        if (map_order[i] == '$') order_count++;
+        if (map_order[i] == '$') mo_ctx->order_count++;
     }
 
-    order_array = talloc_array(tmp_ctx, char *, order_count);
-    if (order_array == NULL) {
+    mo_ctx->order_array = talloc_array(mo_ctx, char *, mo_ctx->order_count);
+    if (mo_ctx->order_array == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    order = talloc_strdup(order_array, map_order);
-    if (order == NULL) {
+    mo_ctx->order = talloc_strdup(mo_ctx, map_order);
+    if (mo_ctx->order == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -627,19 +635,17 @@ static errno_t create_order_array(TALLOC_CTX *mem_ctx, const char *map_order,
     /* Now fill the array with pointers to the original string. Also
      * use binary zeros to make multiple string out of the one.
      */
-    order_array[0] = order;
-    order_count = 1;
+    mo_ctx->order_array[0] = mo_ctx->order;
+    mo_ctx->order_count = 1;
     for (i = 0; i < len; i++) {
-        if (order[i] == '$') {
-            order[i] = '\0';
-            order_array[order_count] = &order[i+1];
-            order_count++;
+        if (mo_ctx->order[i] == '$') {
+            mo_ctx->order[i] = '\0';
+            mo_ctx->order_array[mo_ctx->order_count] = &mo_ctx->order[i+1];
+            mo_ctx->order_count++;
         }
     }
 
-    *_order_array = talloc_steal(mem_ctx, order_array);
-    *_order_count = order_count;
-
+    *_mo_ctx = talloc_steal(mem_ctx, mo_ctx);
     ret = EOK;
 done:
     talloc_free(tmp_ctx);
@@ -656,7 +662,7 @@ static errno_t remove_selinux_login_file(const char *username);
 static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
                                   struct pam_data *pd,
                                   struct sss_domain_info *user_domain,
-                                  char **order_array, int order_count,
+                                  struct map_order_ctx *mo_ctx,
                                   const char *default_user)
 {
     TALLOC_CTX *tmp_ctx;
@@ -691,11 +697,11 @@ static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
      * the order array and user maps applicable to the user who is
      * logging in.
      */
-    for (i = 0; i < order_count; i++) {
+    for (i = 0; i < mo_ctx->order_count; i++) {
         for (j = 0; usermaps[j] != NULL; j++) {
             tmp_str = sss_selinux_map_get_seuser(usermaps[j]);
 
-            if (tmp_str && !strcasecmp(tmp_str, order_array[i])) {
+            if (tmp_str && !strcasecmp(tmp_str, mo_ctx->order_array[i])) {
                 /* If file_content contained something, overwrite it.
                  * This record has higher priority.
                  */
