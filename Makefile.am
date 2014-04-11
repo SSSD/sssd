@@ -68,7 +68,7 @@ if HAVE_GCC
                  -std=gnu99
 endif
 
-dist_pkgconfig_DATA =
+pkgconfig_DATA =
 
 ACLOCAL_AMFLAGS = -I m4 -I .
 
@@ -600,7 +600,7 @@ SSSD_INTERNAL_LTLIBS = \
     libsss_child.la
 
 lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la libsss_nss_idmap.la
-dist_pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
+pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
 libipa_hbac_la_SOURCES = \
     src/providers/ipa/hbac_evaluator.c \
     src/util/sss_utf8.c
@@ -609,7 +609,7 @@ libipa_hbac_la_LIBADD = \
 libipa_hbac_la_LDFLAGS = \
     -version-info 0:1:0
 
-dist_pkgconfig_DATA += src/lib/idmap/sss_idmap.pc
+pkgconfig_DATA += src/lib/idmap/sss_idmap.pc
 libsss_idmap_la_SOURCES = \
     src/lib/idmap/sss_idmap.c \
     src/lib/idmap/sss_idmap_conv.c \
@@ -617,7 +617,7 @@ libsss_idmap_la_SOURCES = \
 libsss_idmap_la_LDFLAGS = \
     -version-info 4:0:4
 
-dist_pkgconfig_DATA += src/sss_client/idmap/sss_nss_idmap.pc
+pkgconfig_DATA += src/sss_client/idmap/sss_nss_idmap.pc
 libsss_nss_idmap_la_SOURCES = \
     src/sss_client/idmap/sss_nss_idmap.c \
     src/sss_client/common.c \
@@ -2000,21 +2000,21 @@ endif
 # Installation Extras #
 #######################
 
-dist_init_SCRIPTS =
+init_SCRIPTS =
 systemdunit_DATA =
 if HAVE_SYSTEMD_UNIT
     systemdunit_DATA += \
         src/sysv/systemd/sssd.service
 else
 if HAVE_SUSE
-    dist_init_SCRIPTS += \
+    init_SCRIPTS += \
         src/sysv/SUSE/sssd
 else
 if HAVE_GENTOO
-    dist_init_SCRIPTS += \
+    init_SCRIPTS += \
         src/sysv/gentoo/sssd
 else
-    dist_init_SCRIPTS += \
+    init_SCRIPTS += \
         src/sysv/sssd
 endif
 endif
