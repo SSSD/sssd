@@ -262,8 +262,8 @@ static int sdap_fill_memberships(struct sdap_options *opts,
             }
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      "'sdap_find_entry_by_origDN' failed for member [%s] ",
-                       (char *)values[i].data);
+                      "'sdap_find_entry_by_origDN' failed for member [%s].\n",
+                      (char *)values[i].data);
                 goto done;
             }
 
