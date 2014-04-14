@@ -1433,7 +1433,14 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
         ret = sysdb_search_user_by_name(tmp_ctx, sysdb, domain,
                                         name, NULL, &msg);
         if (ret != ENOENT) {
-            if (ret == EOK) ret = EEXIST;
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_LIBS, "MPG domain contains a user "
+                      "with the same name - %s.\n", name);
+                ret = EEXIST;
+            } else {
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      "sysdb_search_user_by_name failed for user %s.\n", name);
+            }
             goto done;
         }
     }
@@ -1443,18 +1450,32 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
         ret = sysdb_search_group_by_gid(tmp_ctx, sysdb, domain,
                                         gid, NULL, &msg);
         if (ret != ENOENT) {
-            if (ret == EOK) ret = EEXIST;
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      "Group with the same gid exists: [%"SPRIgid"].\n", gid);
+                ret = EEXIST;
+            } else {
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      "sysdb_search_group_by_gid failed for gid: "
+                      "[%"SPRIgid"].\n", gid);
+            }
             goto done;
         }
     }
 
     /* try to add the group */
     ret = sysdb_add_basic_group(sysdb, domain, name, gid);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "sysdb_add_basic_group failed for: %s with gid: "
+              "[%"SPRIgid"].\n", name, gid);
+        goto done;
+    }
 
     if (!attrs) {
         attrs = sysdb_new_attrs(tmp_ctx);
         if (!attrs) {
+            DEBUG(SSSDBG_TRACE_LIBS, "sysdb_new_attrs failed.\n");
             ret = ENOMEM;
             goto done;
         }
@@ -1464,17 +1485,27 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
     if (ret == ENOENT) {
         posix = true;
         ret = sysdb_attrs_add_bool(attrs, SYSDB_POSIX, true);
-        if (ret) goto done;
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Failed to add posix attribute.\n");
+            goto done;
+        }
     } else if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to get posix attribute.\n");
         goto done;
     }
 
     if (posix && gid == 0) {
         ret = sysdb_get_new_id(sysdb, domain, &id);
-        if (ret) goto done;
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_LIBS, "sysdb_get_new_id failed.\n");
+            goto done;
+        }
 
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, id);
-        if (ret) goto done;
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Failed to add new gid.\n");
+            goto done;
+        }
     }
 
     if (!now) {
@@ -1482,14 +1513,24 @@ int sysdb_add_group(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to add sysdb-last-update.\n");
+        goto done;
+    }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
                                  ((cache_timeout) ?
                                   (now + cache_timeout) : 0));
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to add sysdb-cache-expire.\n");
+        goto done;
+    }
 
     ret = sysdb_set_group_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS, "sysdb_set_group_attr failed.\n");
+        goto done;
+    }
 
 done:
     if (ret == EOK) {
@@ -1938,6 +1979,7 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
         goto done;
     }
     if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Group %s does not exist.\n", name);
         new_group = true;
     }
 
@@ -1965,20 +2007,31 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
             /* This may be a group rename. If there is a group with the
              * same GID, remove it and try to add the basic group again
              */
+            DEBUG(SSSDBG_TRACE_LIBS, "sysdb_add_group failed: [EEXIST].\n");
             ret = sysdb_delete_group(sysdb, domain, NULL, gid);
             if (ret == ENOENT) {
                 /* Not found by GID, return the original EEXIST,
                  * this may be a conflict in MPG domain or something
                  * else */
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      "sysdb_delete_group failed (while renaming group). Not "
+                      "found by gid: [%"SPRIgid"].\n", gid);
                 return EEXIST;
             } else if (ret != EOK) {
+                DEBUG(SSSDBG_TRACE_LIBS, "sysdb_add_group failed.\n");
                 goto done;
             }
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "A group with the same GID [%llu] was removed from the "
-                   "cache\n", (unsigned long long) gid);
+                  "A group with the same GID [%"SPRIgid"] was removed from "
+                   "the cache\n", gid);
+
             ret = sysdb_add_group(sysdb, domain, name, gid,
                                   attrs, cache_timeout, now);
+            if (ret) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "sysdb_add_group failed (while renaming group) for: "
+                      "%s [%"SPRIgid"].\n", name, gid);
+            }
         }
         goto done;
     }
@@ -1986,18 +2039,31 @@ int sysdb_store_group(struct sysdb_ctx *sysdb,
     /* the group exists, let's just replace attributes when set */
     if (gid) {
         ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
-        if (ret) goto done;
+        if (ret) {
+            DEBUG(SSSDBG_TRACE_LIBS, "Failed to add GID.\n");
+            goto done;
+        }
     }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to add sysdb-last-update.\n");
+        goto done;
+    }
 
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
                                  ((cache_timeout) ?
                                   (now + cache_timeout) : 0));
-    if (ret) goto done;
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Failed to add sysdb-cache-expire.\n");
+        goto done;
+    }
 
     ret = sysdb_set_group_attr(sysdb, domain, name, attrs, SYSDB_MOD_REP);
+    if (ret) {
+        DEBUG(SSSDBG_TRACE_LIBS, "sysdb_set_group_attr failed.\n");
+        goto done;
+    }
 
 done:
     if (ret) {
@@ -3161,7 +3227,7 @@ int sysdb_cache_auth(struct sysdb_ctx *sysdb,
                                      SYSDB_LAST_FAILED_LOGIN,
                                      time(NULL));
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "sysdb_attrs_add_time_t failed\n.");
+            DEBUG(SSSDBG_MINOR_FAILURE, "sysdb_attrs_add_time_t failed.\n");
             goto done;
         }
 
