@@ -79,6 +79,22 @@ void mock_account_recv_simple(void)
     return mock_account_recv(0, 0, NULL, NULL, NULL);
 }
 
+struct tevent_req *
+sss_parse_inp_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
+                   const char *rawinp)
+{
+    return test_req_succeed_send(mem_ctx, rctx->ev);
+}
+
+errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                           char **_name, char **_domname)
+{
+    *_name = sss_mock_ptr_type(char *);
+    *_domname = sss_mock_ptr_type(char *);
+
+    return test_request_recv(req);
+}
+
 void mock_parse_inp(const char *name, const char *domname)
 {
     will_return(sss_parse_inp_recv, name);

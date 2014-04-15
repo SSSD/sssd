@@ -313,4 +313,11 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *cvs_string,
 
 errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
                            uid_t *allowed_uids);
+
+struct tevent_req *
+sss_parse_inp_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
+                   const char *rawinp);
+errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                           char **_name, char **_domname);
+
 #endif /* __SSS_RESPONDER_H__ */
