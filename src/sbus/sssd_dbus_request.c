@@ -143,6 +143,33 @@ int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
     return ret;
 }
 
+DBusError *sbus_error_new(TALLOC_CTX *mem_ctx,
+                          const char *dbus_err_name,
+                          const char *fmt,
+                          ...)
+{
+    DBusError *dberr;
+    const char *err_msg_dup = NULL;
+    va_list ap;
+
+    dberr = talloc(mem_ctx, DBusError);
+    if (dberr == NULL) return NULL;
+
+    if (fmt) {
+        va_start(ap, fmt);
+        err_msg_dup = talloc_vasprintf(dberr, fmt, ap);
+        va_end(ap);
+        if (err_msg_dup == NULL) {
+            talloc_free(dberr);
+            return NULL;
+        }
+    }
+
+    dbus_error_init(dberr);
+    dbus_set_error_const(dberr, dbus_err_name, err_msg_dup);
+    return dberr;
+}
+
 struct array_arg {
     char **dbus_array;
 };
