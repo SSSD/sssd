@@ -14,6 +14,7 @@
 /* constants for org.freedesktop.sssd.infopipe */
 #define INFOPIPE_IFACE "org.freedesktop.sssd.infopipe"
 #define INFOPIPE_IFACE_PING "Ping"
+#define INFOPIPE_IFACE_GETUSERATTR "GetUserAttr"
 
 /* ------------------------------------------------------------------------
  * DBus handlers
@@ -37,6 +38,7 @@
 struct infopipe_iface {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
     sbus_msg_handler_fn Ping;
+    sbus_msg_handler_fn GetUserAttr;
 };
 
 /* ------------------------------------------------------------------------

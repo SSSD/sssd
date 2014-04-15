@@ -49,6 +49,8 @@ struct ifp_ctx {
  * It will be removed later */
 int ifp_ping(struct sbus_request *dbus_req, void *data);
 
+int ifp_user_get_attr(struct sbus_request *dbus_req, void *data);
+
 /* == Utility functions == */
 struct ifp_req {
     struct sbus_request *dbus_req;

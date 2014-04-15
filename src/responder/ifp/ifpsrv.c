@@ -66,6 +66,7 @@ static struct data_provider_iface ifp_dp_methods = {
 struct infopipe_iface ifp_iface = {
     { &infopipe_iface_meta, 0 },
     .Ping = ifp_ping,
+    .GetUserAttr = ifp_user_get_attr,
 };
 
 struct sss_cmd_table *get_ifp_cmds(void)
