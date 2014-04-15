@@ -326,6 +326,37 @@ START_TEST(test_introspection)
 }
 END_TEST
 
+START_TEST(test_sbus_new_error)
+{
+    TALLOC_CTX *ctx;
+    DBusError *error;
+
+    ctx = talloc_new(NULL);
+
+    error = sbus_error_new(ctx, DBUS_ERROR_IO_ERROR, "Input-output error");
+    ck_assert(error != NULL);
+    ck_assert(dbus_error_is_set(error));
+    ck_assert(dbus_error_has_name(error, DBUS_ERROR_IO_ERROR));
+    talloc_free(error);
+
+    error = sbus_error_new(ctx, DBUS_ERROR_IO_ERROR,
+                           "The answer should have been %d", 42);
+    ck_assert(error != NULL);
+    ck_assert(dbus_error_is_set(error));
+    ck_assert(dbus_error_has_name(error, DBUS_ERROR_IO_ERROR));
+    talloc_free(error);
+
+    /* NULL message must also work */
+    error = sbus_error_new(ctx, DBUS_ERROR_IO_ERROR, NULL);
+    ck_assert(error != NULL);
+    ck_assert(dbus_error_is_set(error));
+    ck_assert(dbus_error_has_name(error, DBUS_ERROR_IO_ERROR));
+    talloc_free(error);
+
+    talloc_free(ctx);
+}
+END_TEST
+
 TCase *create_sbus_tests(void)
 {
     TCase *tc = tcase_create("tests");
@@ -334,6 +365,7 @@ TCase *create_sbus_tests(void)
     tcase_add_test(tc, test_request_parse_ok);
     tcase_add_test(tc, test_request_parse_bad_args);
     tcase_add_test(tc, test_introspection);
+    tcase_add_test(tc, test_sbus_new_error);
 
     return tc;
 }

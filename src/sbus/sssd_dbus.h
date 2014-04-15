@@ -27,6 +27,7 @@ struct sbus_interface;
 struct sbus_request;
 
 #include <dbus/dbus.h>
+#include "util/util.h"
 
 typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req,
                                    void *instance_data);
@@ -251,6 +252,21 @@ int sbus_request_return_and_finish(struct sbus_request *dbus_req,
  */
 int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
                                  const DBusError *error);
+
+/*
+ * Construct a new DBusError instance which can be consumed by functions such
+ * as @sbus_request_fail_and_finish().
+ *
+ * The @error is a string constant representing a DBus error as documented at
+ * http://dbus.freedesktop.org/doc/api/html/group__DBusProtocol.html.
+ * The parameter @err_msg is a human-readable error representation (or
+ * NULL for none). The returned DBusError is a talloc context and the err_msg
+ * is duplicated using the returned DBusError instance as a talloc parent.
+ */
+DBusError *sbus_error_new(TALLOC_CTX *mem_ctx,
+                          const char *dbus_err_name,
+                          const char *fmt,
+                          ...) SSS_ATTRIBUTE_PRINTF(3,4);
 
 /*
  * Parse a DBus method call request.
