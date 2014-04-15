@@ -162,6 +162,7 @@ if HAVE_CMOCKA
         ad_access_filter_tests \
         ad_common_tests \
         dp_opt_tests \
+        responder-get-domains-tests \
         test_search_bases
 endif
 
@@ -1387,6 +1388,22 @@ nss_srv_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libsss_idmap.la
+
+EXTRA_responder_get_domains_tests_DEPENDENCIES = \
+     $(ldblib_LTLIBRARIES)
+responder_get_domains_tests_SOURCES = \
+     src/responder/common/responder_get_domains.c \
+     src/tests/cmocka/test_responder_common.c \
+     src/tests/cmocka/common_mock_resp.c
+responder_get_domains_tests_CFLAGS = \
+    $(AM_CFLAGS)
+responder_get_domains_tests_LDFLAGS = \
+    -Wl,-wrap,sss_parse_name_for_domains
+responder_get_domains_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
 
 test_find_uid_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
