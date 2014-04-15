@@ -416,15 +416,12 @@ done:
     return res;
 }
 
-static errno_t check_parent_stat(struct stat *parent_stat,
-                                 uid_t uid, gid_t gid)
+static errno_t check_parent_stat(struct stat *parent_stat, uid_t uid)
 {
-    if (!((parent_stat->st_uid == 0 && parent_stat->st_gid == 0) ||
-           parent_stat->st_uid == uid)) {
+    if (parent_stat->st_uid != 0 && parent_stat->st_uid != uid) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Private directory can only be created below a directory "
-               "belonging to root or to [%"SPRIuid"][%"SPRIgid"].\n",
-               uid, gid);
+              "belonging to root or to [%"SPRIuid"].\n", uid);
         return EINVAL;
     }
 
@@ -589,7 +586,7 @@ create_ccache_dir(const char *ccdirname, pcre *illegal_re,
         goto done;
     }
 
-    ret = check_parent_stat(&parent_stat, uid, gid);
+    ret = check_parent_stat(&parent_stat, uid);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Check the ownership and permissions of krb5_ccachedir: [%s].\n",
