@@ -29,16 +29,11 @@ static DBusMessage *sss_dp_get_domains_msg(void *pvt);
 struct sss_dp_domains_info {
     struct sss_domain_info *dom;
     const char *hint;
-    /* The DBus API expects its own Boolean type when formatting argument
-     * with DBUS_TYPE_BOOLEAN
-     */
-    dbus_bool_t force;
 };
 
 static struct tevent_req *
 get_subdomains_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
                     struct sss_domain_info *dom,
-                    const bool force,
                     const char *hint)
 {
     errno_t ret;
@@ -58,7 +53,6 @@ get_subdomains_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
         goto fail;
     }
     info->hint = hint;
-    info->force = force ? TRUE : FALSE;
     info->dom = dom;
 
     key = talloc_asprintf(state, "domains@%s", dom->name);
@@ -102,15 +96,14 @@ sss_dp_get_domains_msg(void *pvt)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Sending get domains request for [%s][%sforced][%s]\n",
-           info->dom->name, info->force ? "" : "not ", info->hint);
+          "Sending get domains request for [%s][%s]\n",
+           info->dom->name, info->hint);
 
     /* Send the hint argument to provider as well. This will
      * be useful for some cases of transitional trust where
      * the server might not know all trusted domains
      */
     dbret = dbus_message_append_args(msg,
-                                     DBUS_TYPE_BOOLEAN, &info->force,
                                      DBUS_TYPE_STRING, &info->hint,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
@@ -141,7 +134,6 @@ struct sss_dp_get_domains_state {
     struct resp_ctx *rctx;
     struct sss_domain_info *dom;
     const char *hint;
-    bool force;
 };
 
 static void
@@ -182,7 +174,6 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
     }
 
     state->rctx = rctx;
-    state->force = force;
     if (hint != NULL) {
         state->hint = hint;
     } else {
@@ -204,8 +195,7 @@ struct tevent_req *sss_dp_get_domains_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    subreq = get_subdomains_send(req, rctx, state->dom,
-                                 state->force, state->hint);
+    subreq = get_subdomains_send(req, rctx, state->dom, state->hint);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -266,7 +256,7 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
         return;
     }
 
-    subreq = get_subdomains_send(req, state->rctx, state->dom, state->force, state->hint);
+    subreq = get_subdomains_send(req, state->rctx, state->dom, state->hint);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto fail;

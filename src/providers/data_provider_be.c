@@ -564,7 +564,6 @@ static int be_get_subdomains(struct sbus_request *dbus_req, void *user_data)
     struct be_subdom_req *req;
     struct be_req *be_req = NULL;
     struct be_client *becli;
-    dbus_bool_t force;
     char *domain_hint;
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
@@ -575,7 +574,6 @@ static int be_get_subdomains(struct sbus_request *dbus_req, void *user_data)
     if (!becli) return EINVAL;
 
     if (!sbus_request_parse_or_finish(dbus_req,
-                                      DBUS_TYPE_BOOLEAN, &force,
                                       DBUS_TYPE_STRING, &domain_hint,
                                       DBUS_TYPE_INVALID))
         return EOK; /* handled */
@@ -589,9 +587,8 @@ static int be_get_subdomains(struct sbus_request *dbus_req, void *user_data)
         goto immediate;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Got get subdomains [%sforced][%s]\n", force ? "" : "not ",
-          domain_hint == NULL ? "no hint": domain_hint );
+    DEBUG(SSSDBG_TRACE_FUNC, "Got get subdomains [%s]\n",
+                             domain_hint == NULL ? "no hint": domain_hint );
 
     /* If we are offline return immediately
      */
@@ -621,7 +618,6 @@ static int be_get_subdomains(struct sbus_request *dbus_req, void *user_data)
         err_msg = "Out of memory";
         goto immediate;
     }
-    req->force = force;
     req->domain_hint = talloc_strdup(req, domain_hint);
     if (!req->domain_hint) {
         err_maj = DP_ERR_FATAL;
