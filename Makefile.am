@@ -3,7 +3,7 @@ if HAVE_DEVSHM
     extra_distcheck_flags += --with-test-dir=/dev/shm
 endif
 
-if HAVE_SYSTEMD_UNIT
+if WITH_JOURNALD
     extra_distcheck_flags += --with-syslog=journald
 endif
 
@@ -2198,8 +2198,10 @@ systemdconf_DATA =
 if HAVE_SYSTEMD_UNIT
     systemdunit_DATA += \
         src/sysv/systemd/sssd.service
+if WITH_JOURNALD
     systemdconf_DATA += \
         src/sysv/systemd/journal.conf
+endif
 else
 if HAVE_SUSE
     init_SCRIPTS += \
