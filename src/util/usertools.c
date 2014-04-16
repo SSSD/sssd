@@ -393,8 +393,9 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
     int ret;
 
     tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL)
+    if (tmp_ctx == NULL) {
         return ENOMEM;
+    }
 
     rname = NULL;
     rdomain = NULL;
@@ -433,7 +434,7 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                     }
                     rname = nmatch;
                     break;
-                } else if (candidate_name == NULL) {
+                } else if (candidate_domain == NULL) {
                     candidate_domain = dmatch;
                 }
             }
@@ -465,18 +466,22 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                 }
                 if (match == NULL) {
                     DEBUG(SSSDBG_FUNC_DATA, "default domain [%s] is currently " \
-                                             "not know, trying to look it up.\n",
-                                             rdomain);
+                                            "not known, trying to look it up.\n",
+                                            rdomain);
                     *domain = talloc_steal(memctx, rdomain);
                     ret = EAGAIN;
                     goto done;
                 }
+                DEBUG(SSSDBG_FUNC_DATA, "using default domain [%s]\n", rdomain);
             }
-
-            DEBUG(SSSDBG_FUNC_DATA, "using default domain [%s]\n", rdomain);
 
             rname = candidate_name;
         } else if (candidate_domain) {
+            /* This branch is taken when the input matches the configured
+             * regular expression, but the domain is now known. Normally, this
+             * is the case with a FQDN of a user from subdomain that was not
+             * yet discovered
+             */
             *domain = talloc_steal(memctx, candidate_domain);
             ret = EAGAIN;
             goto done;
