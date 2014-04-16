@@ -161,6 +161,8 @@ option_strings = {
     'ad_backup_server' : _('Active Directory backup server address'),
     'ad_hostname' : _('Active Directory client hostname'),
     'ad_enable_dns_sites' : _('Enable DNS sites - location based service discovery'),
+    'ad_access_filter' : _('LDAP filter to determine access privileges'),
+    'ad_enable_gc' : _('Whether to use the Global Catalog for lookups'),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),
