@@ -40,42 +40,123 @@
 #include "util/util.h"
 #include "tests/common.h"
 
-#define FILE_PATH TEST_DIR"/test_io.XXXXXX"
-#define NON_EX_PATH "non-existent-path"
+#define TESTS_PATH "tests_io"
+#define FILE_TEMPLATE TESTS_PATH"/test_io.XXXXXX"
+#define NON_EX_PATH TESTS_PATH"/non-existent-path"
 
 /* Creates a unique temporary file inside TEST_DIR and returns its path*/
-static char *get_filepath(char path[])
+static char *get_random_filepath(const char *template)
 {
     int ret;
+    char *path;
 
-    strncpy(path, FILE_PATH, PATH_MAX-1);
+    path = strdup(template);
+    assert_non_null(path);
+
     ret = mkstemp(path);
-
     if (ret == -1) {
         int err = errno;
         fprintf(stderr, "mkstemp failed with path:'%s' [%s]\n",
                 path, strerror(err));
     }
-    assert_false(ret == -1);
+    assert_int_not_equal(ret, -1);
+
+    /* We do not need this file descriptor */
+    close(ret);
 
     return path;
 }
 
-void setup_dirp(void **state)
+void test_file_setup(void **state)
 {
-    DIR *dirp = opendir(TEST_DIR);
-    if (dirp == NULL) {
-        int err = errno;
-        fprintf(stderr, "Could not open directory:'%s' [%s]\n",
-                TEST_DIR, strerror(err));
-    }
-    assert_non_null(dirp);
-    *state = (void *)dirp;
+    int ret;
+    char *file_path;
+
+    ret = mkdir(TESTS_PATH, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    assert_int_equal(ret, EOK);
+
+    file_path = get_random_filepath(FILE_TEMPLATE);
+    assert_non_null(file_path);
+
+    ret = unlink(NON_EX_PATH);
+    ret = errno;
+    assert_int_equal(ret, ENOENT);
+
+    *state = file_path;
 }
 
-void teardown_dirp(void **state)
+void test_file_teardown(void **state)
 {
-    closedir((DIR *)*state);
+    int ret;
+    char *file_path = (char *)*state;
+
+    ret = unlink(file_path);
+    assert_int_equal(ret, EOK);
+    free(file_path);
+
+    ret = rmdir(TESTS_PATH);
+    assert_int_equal(ret, EOK);
+}
+
+struct dir_state {
+    int dir_fd;
+    char *basename;
+
+    /* resources for cleanup*/
+    DIR *dirp;
+    char *filename;
+};
+
+void test_dir_setup(void **state)
+{
+    struct dir_state *data;
+    int ret;
+
+    data = (struct dir_state *)calloc(1, sizeof(struct dir_state));
+    assert_non_null(data);
+
+    ret = mkdir(TESTS_PATH, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    assert_int_equal(ret, EOK);
+
+    data->dirp = opendir(TESTS_PATH);
+    if (data->dirp == NULL) {
+        int err = errno;
+        fprintf(stderr, "Could not open directory:'%s' [%s]\n",
+                TESTS_PATH, strerror(err));
+    }
+    assert_non_null(data->dirp);
+
+    data->dir_fd = dirfd(data->dirp);
+    assert_int_not_equal(data->dir_fd, -1);
+
+    data->filename = get_random_filepath(FILE_TEMPLATE);
+    assert_non_null(data->filename);
+
+    data->basename = basename(data->filename);
+
+    ret = unlink(NON_EX_PATH);
+    ret = errno;
+    assert_int_equal(ret, ENOENT);
+
+    *state = data;
+}
+
+void test_dir_teardown(void **state)
+{
+    int ret;
+    struct dir_state *data = (struct dir_state *) *state;
+
+    ret = unlink(data->filename);
+    assert_int_equal(ret, EOK);
+    free(data->filename);
+
+    ret = closedir(data->dirp);
+    assert_int_equal(ret, EOK);
+
+    ret = rmdir(TESTS_PATH);
+    assert_int_equal(ret, EOK);
+
+    free(data);
 }
 
 void test_sss_open_cloexec_success(void **state)
@@ -85,17 +166,16 @@ void test_sss_open_cloexec_success(void **state)
     int ret_flag;
     int expec_flag;
     int flags = O_RDWR;
-    char path[PATH_MAX] = {'\0'};
+    char *file_path = (char *) *state;
 
-    fd = sss_open_cloexec(get_filepath(path), flags, &ret);
-    assert_true(fd != -1);
+    fd = sss_open_cloexec(file_path, flags, &ret);
+    assert_int_not_equal(fd, -1);
 
     ret_flag = fcntl(fd, F_GETFD, 0);
     expec_flag = FD_CLOEXEC;
     assert_true(ret_flag & expec_flag);
 
     close(fd);
-    unlink(path);
 }
 
 void test_sss_open_cloexec_fail(void **state)
@@ -108,8 +188,6 @@ void test_sss_open_cloexec_fail(void **state)
 
     assert_true(fd == -1);
     assert_int_not_equal(ret, 0);
-
-    close(fd);
 }
 
 void test_sss_openat_cloexec_success(void **state)
@@ -118,53 +196,42 @@ void test_sss_openat_cloexec_success(void **state)
     int ret;
     int ret_flag;
     int expec_flag;
-    int dir_fd;
-    int flags = O_RDWR;
-    char path[PATH_MAX] = {'\0'};
-    char *basec;
-    const char *relativepath;
+    const int flags = O_RDWR;
+    struct dir_state *data = (struct dir_state *) *state;
 
-    dir_fd = dirfd((DIR *)*state);
-    basec = strdup(get_filepath(path));
-    assert_non_null(basec);
-    relativepath = basename(basec);
-    fd = sss_openat_cloexec(dir_fd, relativepath, flags, &ret);
-    free(basec);
-    assert_true(fd != -1);
+    fd = sss_openat_cloexec(data->dir_fd, data->basename, flags, &ret);
+    assert_int_not_equal(fd, -1);
 
     ret_flag = fcntl(fd, F_GETFD, 0);
     expec_flag = FD_CLOEXEC;
     assert_true(ret_flag & expec_flag);
 
     close(fd);
-    unlink(path);
 }
 
 void test_sss_openat_cloexec_fail(void **state)
 {
     int fd;
     int ret;
-    int dir_fd;
     int flags = O_RDWR;
+    struct dir_state *data = (struct dir_state *) *state;
 
-    dir_fd = dirfd((DIR *)*state);
-    fd = sss_openat_cloexec(dir_fd, NON_EX_PATH, flags, &ret);
-
-    assert_true(fd == -1);
-    assert_int_not_equal(ret, 0);
-
-    close(fd);
+    fd = sss_openat_cloexec(data->dir_fd, NON_EX_PATH, flags, &ret);
+    assert_int_equal(fd, -1);
+    assert_int_equal(ret, ENOENT);
 }
 
 int main(void)
 {
     const UnitTest tests[] = {
-        unit_test(test_sss_open_cloexec_success),
-        unit_test(test_sss_open_cloexec_fail),
-        unit_test_setup_teardown(test_sss_openat_cloexec_success, setup_dirp,
-                                 teardown_dirp),
-        unit_test_setup_teardown(test_sss_openat_cloexec_fail, setup_dirp,
-                                 teardown_dirp)
+        unit_test_setup_teardown(test_sss_open_cloexec_success,
+                                 test_file_setup, test_file_teardown),
+        unit_test_setup_teardown(test_sss_open_cloexec_fail,
+                                  test_file_setup, test_file_teardown),
+        unit_test_setup_teardown(test_sss_openat_cloexec_success,
+                                 test_dir_setup, test_dir_teardown),
+        unit_test_setup_teardown(test_sss_openat_cloexec_fail,
+                                 test_dir_setup, test_dir_teardown)
     };
 
     tests_set_cwd();
