@@ -22,11 +22,45 @@
 
 #include <popt.h>
 
+#include "db/sysdb_private.h"
 #include "tests/cmocka/common_mock.h"
 
 #define NAME        "name"
 #define DOMNAME     "domname"
 #define FLATNAME    "flatname"
+#define PROVIDER    "local"
+#define CONNNAME    "conn"
+
+#define DOMNAME2    "domname2"
+#define FLATNAME2   "flatname2"
+
+#define SUBDOMNAME    "subdomname"
+#define SUBFLATNAME   "subflatname"
+
+static struct sss_domain_info *create_test_domain(TALLOC_CTX *mem_ctx,
+                                                  const char *name,
+                                                  const char *flatname,
+                                                  struct sss_domain_info *parent,
+                                                  struct sss_names_ctx *nctx)
+{
+    struct sss_domain_info *dom;
+
+    dom = talloc_zero(mem_ctx, struct sss_domain_info);
+    assert_non_null(dom);
+
+    /* just to make new_subdomain happy */
+    dom->sysdb = talloc_zero(dom, struct sysdb_ctx);
+    assert_non_null(dom->sysdb);
+
+    dom->name = discard_const(name);
+    dom->flat_name = discard_const(flatname);
+    dom->parent = parent;
+    dom->names = nctx;
+    dom->provider = discard_const(PROVIDER);
+    dom->conn_name = discard_const(CONNNAME);
+
+    return dom;
+}
 
 struct fqdn_test_ctx {
     struct sss_domain_info *dom;
@@ -43,10 +77,8 @@ void fqdn_test_setup(void **state)
     test_ctx = talloc_zero(global_talloc_context, struct fqdn_test_ctx);
     assert_non_null(test_ctx);
 
-    test_ctx->dom = talloc_zero(test_ctx, struct sss_domain_info);
-    assert_non_null(test_ctx->dom);
-    test_ctx->dom->name = discard_const(DOMNAME);
-    test_ctx->dom->flat_name = discard_const(FLATNAME);
+    test_ctx->dom = create_test_domain(test_ctx, DOMNAME, FLATNAME,
+                                       NULL, NULL);
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
@@ -221,6 +253,153 @@ void test_flat_fallback(void **state)
     talloc_free(test_ctx->nctx);
 }
 
+struct parse_name_test_ctx {
+    struct sss_domain_info *dom;
+    struct sss_domain_info *subdom;
+    struct sss_names_ctx *nctx;
+};
+
+void parse_name_check(struct parse_name_test_ctx *test_ctx,
+                      const char *full_name,
+                      const char *default_domain,
+                      const char exp_ret,
+                      const char *exp_name,
+                      const char *exp_domain)
+{
+    errno_t ret;
+    char *domain = NULL;
+    char *name = NULL;
+
+    check_leaks_push(test_ctx);
+    ret = sss_parse_name_for_domains(test_ctx, test_ctx->dom, default_domain,
+                                     full_name, &domain, &name);
+    assert_int_equal(ret, exp_ret);
+
+    if (exp_name) {
+        assert_non_null(name);
+        assert_string_equal(name, exp_name);
+    }
+
+    if (exp_domain) {
+        assert_non_null(domain);
+        assert_string_equal(domain, exp_domain);
+    }
+
+    talloc_free(name);
+    talloc_free(domain);
+    assert_true(check_leaks_pop(test_ctx) == true);
+}
+
+void parse_name_test_setup(void **state)
+{
+    struct parse_name_test_ctx *test_ctx;
+    struct sss_domain_info *dom;
+    errno_t ret;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context, struct parse_name_test_ctx);
+    assert_non_null(test_ctx);
+
+    /* Init with an AD-style regex to be able to test flat name */
+    ret = sss_names_init_from_args(test_ctx,
+                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
+                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+                                   "(^(?P<name>[^@\\\\]+)$))",
+                                   "%1$s@%2$s", &test_ctx->nctx);
+    assert_int_equal(ret, EOK);
+
+    /* The setup is two domains, first one with no subdomains,
+     * second one with a single subdomain
+     */
+    dom = create_test_domain(test_ctx, DOMNAME, FLATNAME,
+                                       NULL, test_ctx->nctx);
+    assert_non_null(dom);
+    DLIST_ADD_END(test_ctx->dom, dom, struct sss_domain_info *);
+
+    dom = create_test_domain(test_ctx, DOMNAME2,
+                             FLATNAME2, NULL, test_ctx->nctx);
+    assert_non_null(dom);
+    DLIST_ADD_END(test_ctx->dom, dom, struct sss_domain_info *);
+
+    /* Create the subdomain, but don't add it yet, we want to be able to
+     * test sss_parse_name_for_domains() signaling that domains must be
+     * discovered
+     */
+    test_ctx->subdom = new_subdomain(dom, dom, SUBDOMNAME, NULL, SUBFLATNAME,
+                                     NULL, false, false, NULL);
+    assert_non_null(test_ctx->subdom);
+
+    check_leaks_push(test_ctx);
+    *state = test_ctx;
+}
+
+void parse_name_test_teardown(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                           struct parse_name_test_ctx);
+
+    assert_true(check_leaks_pop(test_ctx) == true);
+    talloc_free(test_ctx);
+    assert_true(leak_check_teardown());
+}
+
+void parse_name_plain(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                           struct parse_name_test_ctx);
+    parse_name_check(test_ctx, NAME, NULL, EOK, NAME, NULL);
+}
+
+void parse_name_fqdn(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                           struct parse_name_test_ctx);
+    parse_name_check(test_ctx, NAME"@"DOMNAME, NULL, EOK, NAME, DOMNAME);
+    parse_name_check(test_ctx, NAME"@"DOMNAME2, NULL, EOK, NAME, DOMNAME2);
+}
+
+void parse_name_sub(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                           struct parse_name_test_ctx);
+    /* The subdomain name is valid, but not known */
+    parse_name_check(test_ctx, NAME"@"SUBDOMNAME, NULL, EAGAIN, NULL, NULL);
+
+    /* Link the subdomain (simulating subdom handler) and retry */
+    test_ctx->dom->subdomains = test_ctx->subdom;
+    parse_name_check(test_ctx, NAME"@"SUBDOMNAME, NULL, EOK, NAME, SUBDOMNAME);
+}
+
+void parse_name_flat(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                           struct parse_name_test_ctx);
+
+    /* Link the subdomain (simulating subdom handler) */
+    parse_name_check(test_ctx, FLATNAME"\\"NAME, NULL, EOK, NAME, DOMNAME);
+    parse_name_check(test_ctx, FLATNAME2"\\"NAME, NULL, EOK, NAME, DOMNAME2);
+
+    /* The subdomain name is valid, but not known */
+    parse_name_check(test_ctx, SUBFLATNAME"\\"NAME, NULL, EAGAIN, NULL, NULL);
+    test_ctx->dom->subdomains = test_ctx->subdom;
+    parse_name_check(test_ctx, SUBFLATNAME"\\"NAME, NULL, EOK, NAME, SUBDOMNAME);
+}
+
+void parse_name_default(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                           struct parse_name_test_ctx);
+    struct sss_domain_info *dom2;
+
+    parse_name_check(test_ctx, NAME, DOMNAME2, EOK, NAME, DOMNAME2);
+    dom2 = test_ctx->dom->next;
+
+    /* Simulate uknown default domain */
+    DLIST_REMOVE(test_ctx->dom, dom2);
+    parse_name_check(test_ctx, NAME, DOMNAME2, EAGAIN, NULL, NULL);
+}
+
 void test_init_nouser(void **state)
 {
     struct fqdn_test_ctx *test_ctx = talloc_get_type(*state,
@@ -260,6 +439,22 @@ int main(int argc, const char *argv[])
                                  fqdn_test_setup, fqdn_test_teardown),
         unit_test_setup_teardown(test_init_nouser,
                                  fqdn_test_setup, fqdn_test_teardown),
+
+        unit_test_setup_teardown(parse_name_plain,
+                                 parse_name_test_setup,
+                                 parse_name_test_teardown),
+        unit_test_setup_teardown(parse_name_fqdn,
+                                 parse_name_test_setup,
+                                 parse_name_test_teardown),
+        unit_test_setup_teardown(parse_name_sub,
+                                 parse_name_test_setup,
+                                 parse_name_test_teardown),
+        unit_test_setup_teardown(parse_name_flat,
+                                 parse_name_test_setup,
+                                 parse_name_test_teardown),
+        unit_test_setup_teardown(parse_name_default,
+                                 parse_name_test_setup,
+                                 parse_name_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
