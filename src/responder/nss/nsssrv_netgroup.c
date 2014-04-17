@@ -500,7 +500,8 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
                                   dom->case_sensitive);
         if (!name) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sss_get_cased_name failed\n");
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
 
         DEBUG(SSSDBG_CONF_SETTINGS, "Requesting info for [%s@%s]\n",
@@ -509,7 +510,8 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         if (sysdb == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Fatal: Sysdb CTX not found for this domain!\n");
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
         /* Look up the netgroup in the cache */
@@ -530,13 +532,15 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to make request to our cache!\n");
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
         if (step_ctx->dctx->res->count > 1) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "getnetgr call returned more than one result !?!\n");
-            return EMSGSIZE;
+            ret = EMSGSIZE;
+            goto done;
         }
 
         ret = get_netgroup_entry(step_ctx->nctx, step_ctx->name,
@@ -544,7 +548,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         if (ret != EOK) {
             /* Something really bad happened! */
             DEBUG(SSSDBG_FATAL_FAILURE, "Netgroup entry was lost!\n");
-            return ret;
+            goto done;
         }
 
         /* Convert the result to a list of entries */
@@ -571,7 +575,8 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
             netgr->ready = true;
             netgr->found = false;
             set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
-            return EIO;
+            ret = EIO;
+            goto done;
         }
 
         /* if this is a caching provider (or if we haven't checked the cache
@@ -588,7 +593,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
                 /* May return EAGAIN legitimately to indicate that
                  * we need to reenter the mainloop
                  */
-                return ret;
+                goto done;
             }
         }
 
@@ -605,7 +610,9 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         }
         if (lifetime < 10) lifetime = 10;
         set_netgr_lifetime(lifetime, step_ctx, netgr);
-        return EOK;
+
+        ret = EOK;
+        goto done;
     }
 
     /* If we've gotten here, then no domain contained this netgroup */
@@ -621,8 +628,11 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
               "create_negcache_netgr failed with: %d:[%s], ignored.\n",
               ret, sss_strerror(ret));
     }
+    ret = ENOENT;
 
-    return ENOENT;
+done:
+    talloc_free(name);
+    return ret;
 }
 
 static void lookup_netgr_dp_callback(uint16_t err_maj, uint32_t err_min,
