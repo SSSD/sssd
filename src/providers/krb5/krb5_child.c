@@ -1049,6 +1049,7 @@ static errno_t map_krb5_error(krb5_error_code kerr)
     case KRB5_LIBOS_CANTREADPWD:
         return ERR_NO_CREDS;
 
+    case KRB5KRB_ERR_GENERIC:
     case KRB5KRB_AP_ERR_SKEW:
     case KRB5_KDC_UNREACH:
     case KRB5_REALM_CANT_RESOLVE:
