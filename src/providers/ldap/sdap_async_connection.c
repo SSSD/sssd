@@ -926,6 +926,13 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
     /* FIXME: Warning, this is a sync call!
      * No async variant exist in openldap libraries yet */
 
+    if (state->sh == NULL || state->sh->ldap == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Trying LDAP search while not connected.\n");
+        ret = ERR_NETWORK_IO;
+        goto fail;
+    }
+
     ret = ldap_sasl_interactive_bind_s(state->sh->ldap, NULL,
                                        sasl_mech, NULL, NULL,
                                        LDAP_SASL_QUIET,
@@ -2046,6 +2053,12 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
     TALLOC_CTX *tmp_ctx = NULL;
     struct sasl_bind_state *sasl_bind_state;
     int ret;
+
+    if (ldap == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Trying LDAP rebind while not connected.\n");
+        return ERR_NETWORK_IO;
+    }
 
     if (p->use_start_tls) {
         ret = synchronous_tls_setup(ldap);
