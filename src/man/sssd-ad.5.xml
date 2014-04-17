@@ -169,7 +169,7 @@ ldap_id_mapping = False
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ad_access_filter (boolean)</term>
+                    <term>ad_access_filter (string)</term>
                     <listitem>
                         <para>
                             This option specifies LDAP access control
