@@ -56,7 +56,7 @@ static errno_t get_netgroup_entry(struct nss_ctx *nctx,
     return EIO;
 }
 
-static int netgr_hash_remove (TALLOC_CTX *ctx);
+static int netgr_hash_remove(TALLOC_CTX *ctx);
 static errno_t set_netgroup_entry(struct nss_ctx *nctx,
                                   struct getent_ctx *netgr)
 {
@@ -138,7 +138,7 @@ done:
     return nss_cmd_done(cmdctx, ret);
 }
 
-static int netgr_hash_remove (TALLOC_CTX *ctx)
+static int netgr_hash_remove(TALLOC_CTX *ctx)
 {
     int hret;
     hash_key_t key;
@@ -656,14 +656,16 @@ static void lookup_netgr_dp_callback(uint16_t err_maj, uint32_t err_min,
 
     /* ok the backend returned, search to see if we have updated results */
     ret = lookup_netgr_step(step_ctx);
-    if (ret != EOK) {
-        if (ret == EAGAIN) {
-            return;
-        }
+    if (ret == EAGAIN) {
+        return;
     }
 
     /* We have results to return */
-    nss_setent_notify_error(dctx->netgr, ret);
+    if (ret == EOK) {
+        nss_setent_notify_done(dctx->netgr);
+    } else {
+        nss_setent_notify_error(dctx->netgr, ret);
+    }
 }
 
 static void setnetgrent_result_timeout(struct tevent_context *ev,
