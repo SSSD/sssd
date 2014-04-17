@@ -429,6 +429,44 @@ static void set_netgr_lifetime(uint32_t lifetime,
     }
 }
 
+/* Create dummy netgroup to speed up repeated negative queries */
+static errno_t create_negcache_netgr(struct setent_step_ctx *step_ctx)
+{
+    errno_t ret;
+    struct getent_ctx *netgr;
+
+    netgr = talloc_zero(step_ctx->nctx, struct getent_ctx);
+    if (netgr == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    } else {
+        netgr->ready = true;
+        netgr->found = false;
+        netgr->entries = NULL;
+        netgr->lookup_table = step_ctx->nctx->netgroups;
+        netgr->name = talloc_strdup(netgr, step_ctx->name);
+        if (netgr->name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = set_netgroup_entry(step_ctx->nctx, netgr);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "set_netgroup_entry failed.\n");
+            goto done;
+        }
+        set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
+    }
+
+done:
+    if (ret != EOK) {
+        talloc_free(netgr);
+    }
+    return ret;
+}
+
 static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 {
     errno_t ret;
@@ -572,26 +610,14 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
     DEBUG(SSSDBG_MINOR_FAILURE,
           "No matching domain found for [%s], fail!\n", step_ctx->name);
 
-    netgr = talloc_zero(step_ctx->nctx, struct getent_ctx);
-    if (netgr == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed, ignored.\n");
-    } else {
-        netgr->ready = true;
-        netgr->found = false;
-        netgr->entries = NULL;
-        netgr->lookup_table = step_ctx->nctx->netgroups;
-        netgr->name = talloc_strdup(netgr, step_ctx->name);
-        if (netgr->name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
-            talloc_free(netgr);
-            return ENOMEM;
-        }
-
-        ret = set_netgroup_entry(step_ctx->nctx, netgr);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "set_netgroup_entry failed, ignored.\n");
-        }
-        set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
+    ret = create_negcache_netgr(step_ctx);
+    if (ret != EOK) {
+        /* Failure can be ignored, because at worst, there will be a slowdown
+         * at the next lookup
+         */
+        DEBUG(SSSDBG_TRACE_ALL,
+              "create_negcache_netgr failed with: %d:[%s], ignored.\n",
+              ret, sss_strerror(ret));
     }
 
     return ENOENT;
