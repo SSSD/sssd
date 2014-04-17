@@ -440,6 +440,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
                 handler_fn = sbus_introspect;
                 ictx->iface = interface;
                 handler_data = ictx;
+                method = &introspect_method;
             }
         }
     }

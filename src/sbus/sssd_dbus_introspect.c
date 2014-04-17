@@ -28,6 +28,14 @@
 #include "sbus/sssd_dbus_private.h"
 #include "sbus/sssd_dbus_meta.h"
 
+static const struct sbus_arg_meta introspect_method_arg_out[] = {
+    { "data", "s" },
+    { NULL, }
+};
+
+const struct sbus_method_meta introspect_method =
+    { DBUS_INTROSPECT_METHOD, NULL, introspect_method_arg_out, 0 };
+
 #define SSS_INTROSPECT_DOCTYPE  \
     "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n" \
     "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"

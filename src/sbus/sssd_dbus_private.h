@@ -98,6 +98,9 @@ struct sbus_request *
 sbus_new_request(struct sbus_connection *conn, struct sbus_interface *intf,
                  DBusMessage *message);
 
+/* =Interface=introspection=============================================== */
+extern const struct sbus_method_meta introspect_method;
+
 struct sbus_introspect_ctx {
     const struct sbus_interface_meta *iface;
 };
