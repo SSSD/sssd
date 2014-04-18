@@ -62,6 +62,7 @@ struct sss_test_ctx {
     struct confdb_ctx *confdb;
     struct tevent_context *ev;
     struct sss_domain_info *dom;
+    struct sss_names_ctx *nctx;
     char *confdb_path;
 
     bool done;
