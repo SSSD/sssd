@@ -25,7 +25,7 @@
 #include <sys/time.h>
 #include <dbus/dbus.h>
 
-static const DBusError error_internal = { DBUS_ERROR_FAILED, "Internal Error" };
+#define INTERNAL_ERROR "Internal Error"
 
 static int sbus_request_destructor(struct sbus_request *dbus_req)
 {
@@ -60,6 +60,7 @@ sbus_request_invoke_or_finish(struct sbus_request *dbus_req,
                               void *handler_data,
                               sbus_method_invoker_fn invoker_fn)
 {
+    DBusError error;
     int ret;
 
     if (invoker_fn) {
@@ -76,7 +77,8 @@ sbus_request_invoke_or_finish(struct sbus_request *dbus_req,
         sbus_request_finish(dbus_req, NULL);
         break;
     default:
-        sbus_request_fail_and_finish(dbus_req, &error_internal);
+        dbus_set_error_const(&error, DBUS_ERROR_FAILED, INTERNAL_ERROR);
+        sbus_request_fail_and_finish(dbus_req, &error);
         break;
     }
 }
