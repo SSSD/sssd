@@ -191,6 +191,7 @@ PYTHON_TESTS += src/config/SSSDConfigTest.py \
                 src/tests/pysss_murmur-test.py
 endif
 
+TEST_EXTENSIONS = .py
 TESTS = \
     $(PYTHON_TESTS) \
     $(non_interactive_cmocka_based_tests) \
