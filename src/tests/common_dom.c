@@ -104,6 +104,18 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
     }
     test_ctx->sysdb = test_ctx->dom->sysdb;
 
+    /* Init with an AD-style regex to be able to test flat name */
+    ret = sss_names_init_from_args(test_ctx,
+                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
+                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+                                   "(^(?P<name>[^@\\\\]+)$))",
+                                   "%1$s@%2$s", &test_ctx->nctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cannot create names context\n");
+        goto fail;
+    }
+    test_ctx->dom->names = test_ctx->nctx;
+
     return test_ctx;
 
 fail:
