@@ -1358,6 +1358,7 @@ if HAVE_CMOCKA
 
 TEST_MOCK_RESP_OBJ = \
      src/tests/cmocka/common_mock_resp.c \
+     src/tests/cmocka/common_mock_resp_dp.c \
      src/responder/common/responder_packet.c \
      src/responder/common/responder_cmd.c \
      src/responder/common/negcache.c \
