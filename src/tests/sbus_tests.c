@@ -74,12 +74,14 @@ const struct sbus_method_meta pilot_methods[] = {
         NULL, /* in args: manually parsed */
         NULL, /* out args: manually parsed */
         offsetof(struct pilot_vtable, Blink),
+        NULL
     },
     {
         PILOT_EAT, /* method name */
         NULL, /* in args: manually parsed */
         NULL, /* out args: manually parsed */
         offsetof(struct pilot_vtable, Eat),
+        NULL
     },
     { NULL, }
 };
