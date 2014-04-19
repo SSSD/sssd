@@ -944,8 +944,7 @@ responder_get_domain(struct resp_ctx *rctx, const char *name)
     }
 
     if (!ret_dom) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unknown domain [%s], checking for "
-                                  "possible subdomains!\n", name);
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown domain [%s]\n", name);
     }
 
     return ret_dom;
