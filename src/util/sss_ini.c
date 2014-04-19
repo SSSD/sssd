@@ -120,7 +120,7 @@ int sss_ini_config_file_open(struct sss_ini_initdata *init_data,
                                 &init_data->file);
 #elif defined(HAVE_LIBINI_CONFIG_V0)
     return check_and_open_readonly(config_file, &init_data->file, 0, 0,
-                                   (S_IRUSR|S_IWUSR), CHECK_REG);
+                                   S_IFREG|S_IRUSR|S_IWUSR, 0);
 #endif
 }
 

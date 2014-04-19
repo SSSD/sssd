@@ -249,15 +249,16 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
 
     /* Both check_file and chmod can handle both the symlink and
      * the socket */
-    ret = check_file(filename, getuid(), getgid(), -1, CHECK_SOCK, &stat_buf, true);
+    ret = check_file(filename,
+                     getuid(), getgid(), S_IFSOCK, S_IFMT, &stat_buf, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "check_file failed for [%s].\n", filename);
         ret = EIO;
         goto done;
     }
 
-    if ((stat_buf.st_mode & ~S_IFMT) != 0600) {
-        ret = chmod(filename, 0600);
+    if ((stat_buf.st_mode & ~S_IFMT) != (S_IRUSR|S_IWUSR)) {
+        ret = chmod(filename, (S_IRUSR|S_IWUSR));
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "chmod failed for [%s]: [%d][%s].\n", filename, errno,

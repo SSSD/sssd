@@ -329,18 +329,6 @@ sss_get_domain_name(TALLOC_CTX *mem_ctx, const char *orig_name,
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 
-/* from check_and_open.c */
-enum check_file_type {
-    CHECK_DONT_CHECK_FILE_TYPE = -1,
-    CHECK_REG,
-    CHECK_DIR,
-    CHECK_CHR,
-    CHECK_BLK,
-    CHECK_FIFO,
-    CHECK_LNK,
-    CHECK_SOCK
-};
-
 /* check_file()
  * Verify that a file has certain permissions and/or is of a certain
  * file type. This function can be used to determine if a file is a
@@ -352,8 +340,8 @@ enum check_file_type {
  * inode to minimize impact. Permission changes may have occurred,
  * however.
  */
-errno_t check_file(const char *filename, const int uid, const int gid,
-                   const int mode, enum check_file_type type,
+errno_t check_file(const char *filename,
+                   uid_t uid, gid_t gid, mode_t mode, mode_t mask,
                    struct stat *caller_stat_buf, bool follow_symlink);
 
 /* check_fd()
@@ -363,8 +351,8 @@ errno_t check_file(const char *filename, const int uid, const int gid,
  * is the safer way to perform file checks and should be preferred
  * over check_file for nearly all situations.
  */
-errno_t check_fd(int fd, const int uid, const int gid,
-                 const int mode, enum check_file_type type,
+errno_t check_fd(int fd, uid_t uid, gid_t gid,
+                 mode_t mode, mode_t mask,
                  struct stat *caller_stat_buf);
 
 /* check_and_open_readonly()
@@ -372,9 +360,9 @@ errno_t check_fd(int fd, const int uid, const int gid,
  * permissions and is of a certain file type. This function wraps
  * check_fd(), and is considered race-condition safe.
  */
-errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
-                               const gid_t gid, const mode_t mode,
-                               enum check_file_type type);
+errno_t check_and_open_readonly(const char *filename, int *fd,
+                                uid_t uid, gid_t gid,
+                                mode_t mode, mode_t mask);
 
 /* from util.c */
 #define SSS_NO_LINKLOCAL 0x01

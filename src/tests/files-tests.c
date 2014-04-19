@@ -192,7 +192,7 @@ START_TEST(test_simple_copy)
     fail_unless(ret == 0, "destination directory not there\n");
 
     tmp = talloc_asprintf(test_ctx, "%s/bar", dst_path);
-    ret = check_and_open_readonly(tmp, &fd, uid, gid, 0700, CHECK_REG);
+    ret = check_and_open_readonly(tmp, &fd, uid, gid, S_IFREG|S_IRWXU, 0);
     fail_unless(ret == EOK, "Cannot open %s\n");
     close(fd);
     talloc_free(tmp);

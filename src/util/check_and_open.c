@@ -30,11 +30,11 @@
 #include "util/util.h"
 
 static errno_t perform_checks(struct stat *stat_buf,
-                              const int uid, const int gid,
-                              const int mode, enum check_file_type type);
+                              uid_t uid, gid_t gid,
+                              mode_t mode, mode_t mask);
 
-errno_t check_file(const char *filename, const int uid, const int gid,
-                   const int mode, enum check_file_type type,
+errno_t check_file(const char *filename,
+                   uid_t uid, uid_t gid, mode_t mode, mode_t mask,
                    struct stat *caller_stat_buf, bool follow_symlink)
 {
     int ret;
@@ -47,19 +47,22 @@ errno_t check_file(const char *filename, const int uid, const int gid,
         stat_buf = caller_stat_buf;
     }
 
-    ret = follow_symlink ? stat(filename, stat_buf) : \
-                           lstat(filename, stat_buf);
+    if (follow_symlink) {
+        ret = stat(filename, stat_buf);
+    } else {
+        ret = lstat(filename, stat_buf);
+    }
     if (ret == -1) {
-        DEBUG(SSSDBG_TRACE_FUNC, "lstat for [%s] failed: [%d][%s].\n", filename, errno,
-                                                                        strerror(errno));
+        DEBUG(SSSDBG_TRACE_FUNC, "lstat for [%s] failed: [%d][%s].\n",
+                                 filename, errno, strerror(errno));
         return errno;
     }
 
-    return perform_checks(stat_buf, uid, gid, mode, type);
+    return perform_checks(stat_buf, uid, gid, mode, mask);
 }
 
-errno_t check_fd(int fd, const int uid, const int gid,
-                 const int mode, enum check_file_type type,
+errno_t check_fd(int fd, uid_t uid, gid_t gid,
+                 mode_t mode, mode_t mask,
                  struct stat *caller_stat_buf)
 {
     int ret;
@@ -80,63 +83,39 @@ errno_t check_fd(int fd, const int uid, const int gid,
         return errno;
     }
 
-    return perform_checks(stat_buf, uid, gid, mode, type);
+    return perform_checks(stat_buf, uid, gid, mode, mask);
 }
 
 static errno_t perform_checks(struct stat *stat_buf,
-                              const int uid, const int gid,
-                              const int mode, enum check_file_type type)
+                              uid_t uid, gid_t gid,
+                              mode_t mode, mode_t mask)
 {
-    bool type_check;
+    mode_t st_mode;
 
-    switch (type) {
-        case CHECK_DONT_CHECK_FILE_TYPE:
-            type_check = true;
-            break;
-        case CHECK_REG:
-            type_check = S_ISREG(stat_buf->st_mode);
-            break;
-        case CHECK_DIR:
-            type_check = S_ISDIR(stat_buf->st_mode);
-            break;
-        case CHECK_CHR:
-            type_check = S_ISCHR(stat_buf->st_mode);
-            break;
-        case CHECK_BLK:
-            type_check = S_ISBLK(stat_buf->st_mode);
-            break;
-        case CHECK_FIFO:
-            type_check = S_ISFIFO(stat_buf->st_mode);
-            break;
-        case CHECK_LNK:
-            type_check = S_ISLNK(stat_buf->st_mode);
-            break;
-        case CHECK_SOCK:
-            type_check = S_ISSOCK(stat_buf->st_mode);
-            break;
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported file type.\n");
-            return EINVAL;
+    if (mask) {
+        st_mode = stat_buf->st_mode & mask;
+    } else {
+        st_mode = stat_buf->st_mode & (S_IFMT|ALLPERMS);
     }
 
-    if (!type_check) {
+    if ((mode & S_IFMT) != (st_mode & S_IFMT)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "File is not the right type.\n");
         return EINVAL;
     }
 
-    if (mode >= 0 && (stat_buf->st_mode & ~S_IFMT) != mode) {
+    if ((st_mode & ALLPERMS) != (mode & ALLPERMS)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "File has the wrong mode [%.7o], expected [%.7o].\n",
-                  (stat_buf->st_mode & ~S_IFMT), mode);
+                  (st_mode & ALLPERMS), (mode & ALLPERMS));
         return EINVAL;
     }
 
-    if (uid >= 0 && stat_buf->st_uid != uid) {
+    if (uid != (uid_t)(-1) && stat_buf->st_uid != uid) {
         DEBUG(SSSDBG_CRIT_FAILURE, "File must be owned by uid [%d].\n", uid);
         return EINVAL;
     }
 
-    if (gid >= 0 && stat_buf->st_gid != gid) {
+    if (gid != (gid_t)(-1) && stat_buf->st_gid != gid) {
         DEBUG(SSSDBG_CRIT_FAILURE, "File must be owned by gid [%d].\n", gid);
         return EINVAL;
     }
@@ -144,9 +123,9 @@ static errno_t perform_checks(struct stat *stat_buf,
     return EOK;
 }
 
-errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
-                               const gid_t gid, const mode_t mode,
-                               enum check_file_type type)
+errno_t check_and_open_readonly(const char *filename, int *fd,
+                                uid_t uid, gid_t gid,
+                                mode_t mode, mode_t mask)
 {
     int ret;
     struct stat stat_buf;
@@ -159,7 +138,7 @@ errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
         return errno;
     }
 
-    ret = check_fd(*fd, uid, gid, mode, type, &stat_buf);
+    ret = check_fd(*fd, uid, gid, mode, mask, &stat_buf);
     if (ret != EOK) {
         close(*fd);
         *fd = -1;

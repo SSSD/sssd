@@ -45,7 +45,8 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    ret = check_file(filename, 0, 0, 0600, CHECK_SOCK, NULL, true);
+    ret = check_file(filename,
+                     0, 0, S_IFSOCK|S_IRUSR|S_IWUSR, 0, NULL, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "check_file failed for [%s].\n", filename);
         return EIO;

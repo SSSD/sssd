@@ -2775,7 +2775,8 @@ int main(int argc, const char *argv[])
 #endif
 
     /* Warn if nscd seems to be running */
-    ret = check_file(NSCD_SOCKET_PATH, -1, -1, -1, CHECK_SOCK, NULL, false);
+    ret = check_file(NSCD_SOCKET_PATH,
+                     -1, -1, S_IFSOCK, S_IFMT, NULL, false);
     if (ret == EOK) {
         ret = sss_nscd_parse_conf(NSCD_CONF_PATH);
 
