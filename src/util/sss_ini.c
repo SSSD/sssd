@@ -120,7 +120,8 @@ int sss_ini_config_file_open(struct sss_ini_initdata *init_data,
                                 &init_data->file);
 #elif defined(HAVE_LIBINI_CONFIG_V0)
     return check_and_open_readonly(config_file, &init_data->file, 0, 0,
-                                   S_IFREG|S_IRUSR|S_IWUSR, 0);
+                                   S_IFREG|S_IRUSR, /* f r**------ */
+                                   S_IFMT|(ALLPERMS & ~(S_IWUSR|S_IXUSR)));
 #endif
 }
 
@@ -137,8 +138,8 @@ int sss_ini_config_access_check(struct sss_ini_initdata *init_data)
                                    INI_ACCESS_CHECK_GID,
                                    0, /* owned by root */
                                    0, /* owned by root */
-                                   (S_IRUSR|S_IWUSR), /* rw------- */
-                                   0); /* check all there parts */
+                                   S_IRUSR, /* r**------ */
+                                   ALLPERMS & ~(S_IWUSR|S_IXUSR));
 #elif defined(HAVE_LIBINI_CONFIG_V0)
     return EOK;
 #endif
