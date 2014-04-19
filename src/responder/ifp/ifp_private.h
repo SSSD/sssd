@@ -25,6 +25,7 @@
 #define _IFPSRV_PRIVATE_H_
 
 #include "responder/common/responder.h"
+#include "responder/common/negcache.h"
 #include "providers/data_provider.h"
 #include "responder/ifp/ifp_iface_generated.h"
 
@@ -38,6 +39,8 @@ struct sysbus_ctx {
 struct ifp_ctx {
     struct resp_ctx *rctx;
     struct sss_names_ctx *snctx;
+    struct sss_nc_ctx *ncache;
+    int neg_timeout;
 
     struct sysbus_ctx *sysbus;
 };
