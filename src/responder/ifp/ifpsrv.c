@@ -256,6 +256,20 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    /* Set up the negative cache */
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
+                         &ifp_ctx->neg_timeout);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = sss_ncache_init(rctx, &ifp_ctx->ncache);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("fatal error initializing negcache\n"));
+        goto fail;
+    }
+
     /* Enable automatic reconnection to the Data Provider */
     ret = confdb_get_int(ifp_ctx->rctx->cdb,
                          CONFDB_IFP_CONF_ENTRY,
