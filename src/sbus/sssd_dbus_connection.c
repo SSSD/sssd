@@ -302,7 +302,7 @@ DBusConnection *sbus_get_connection(struct sbus_connection *conn)
     return conn->dbus.conn;
 }
 
-void sbus_disconnect (struct sbus_connection *conn)
+void sbus_disconnect(struct sbus_connection *conn)
 {
     if (conn == NULL) {
         return;

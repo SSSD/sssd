@@ -28,8 +28,9 @@ sbus_meta_find_method(const struct sbus_interface_meta *interface,
     const struct sbus_method_meta *method;
 
     for (method = interface->methods; method && method->name; method++) {
-        if (strcmp(method_name, method->name) == 0)
+        if (strcmp(method_name, method->name) == 0) {
             return method;
+        }
     }
 
     return NULL;
@@ -42,8 +43,9 @@ sbus_meta_find_signal(const struct sbus_interface_meta *interface,
     const struct sbus_signal_meta *signal;
 
     for (signal = interface->signals; signal && signal->name; signal++) {
-        if (strcmp(signal_name, signal->name) == 0)
+        if (strcmp(signal_name, signal->name) == 0) {
             return signal;
+        }
     }
 
     return NULL;
@@ -56,8 +58,9 @@ sbus_meta_find_property(const struct sbus_interface_meta *interface,
     const struct sbus_property_meta *property;
 
     for (property = interface->properties; property && property->name; property++) {
-        if (strcmp(property_name, property->name) == 0)
+        if (strcmp(property_name, property->name) == 0) {
             return property;
+        }
     }
 
     return NULL;

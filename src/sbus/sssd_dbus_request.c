@@ -185,7 +185,7 @@ parent_dbus_string_arrays(struct sbus_request *request, int first_arg_type,
                 arg_type == DBUS_TYPE_SIGNATURE) {
 
                 array_arg = talloc_zero(request, struct array_arg);
-                if(array_arg == NULL) {
+                if (array_arg == NULL) {
                     /* no kidding ... */
                     DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory while trying not to leak memory\n");
                     return false;
@@ -222,7 +222,7 @@ sbus_request_parse_or_finish(struct sbus_request *request,
 
     if (dbus_message_get_args_valist(request->message, &error,
                                      first_arg_type, va)) {
-        ret = parent_dbus_string_arrays (request, first_arg_type, va2);
+        ret = parent_dbus_string_arrays(request, first_arg_type, va2);
 
     } else {
         /* Trying to send the error back to the caller in this case is a joke */
