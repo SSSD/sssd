@@ -48,6 +48,14 @@ struct test_domain test_domains[] = {
     { NULL, NULL}
 };
 
+/* Mock parsing search base without overlinking the test */
+errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
+                               struct dp_option *opts, int class,
+                               struct sdap_search_base ***_search_bases)
+{
+    return EOK;
+}
+
 START_TEST(test_domain_to_basedn)
 {
     int ret;
@@ -226,6 +234,49 @@ START_TEST(test_copy_opts)
 }
 END_TEST
 
+START_TEST(test_copy_sdap_map)
+{
+    errno_t ret;
+    struct sdap_attr_map *out_map;
+
+    ret = sdap_copy_map(global_talloc_context,
+                        rfc2307_user_map, SDAP_OPTS_USER, &out_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL);
+    talloc_free(out_map);
+
+    ret = sdap_copy_map(global_talloc_context,
+                        rfc2307bis_user_map, SDAP_OPTS_USER, &out_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL);
+    talloc_free(out_map);
+
+    ret = sdap_copy_map(global_talloc_context,
+                        ipa_user_map, SDAP_OPTS_USER, &out_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL);
+    talloc_free(out_map);
+
+    ret = sdap_copy_map(global_talloc_context,
+                        gen_ad2008r2_user_map, SDAP_OPTS_USER, &out_map);
+    fail_unless(ret == EOK, "[%s]", strerror(ret));
+    fail_unless(out_map[SDAP_OPTS_USER].name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].def_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].sys_name == NULL);
+    fail_unless(out_map[SDAP_OPTS_USER].opt_name == NULL);
+    talloc_free(out_map);
+}
+END_TEST
+
 Suite *ipa_ldap_opt_suite (void)
 {
     Suite *s = suite_create ("ipa_ldap_opt");
@@ -244,6 +295,10 @@ Suite *ipa_ldap_opt_suite (void)
     TCase *tc_dp_opts = tcase_create ("dp_opts");
     tcase_add_test (tc_dp_opts, test_copy_opts);
     suite_add_tcase (s, tc_dp_opts);
+
+    TCase *tc_sdap_opts = tcase_create ("sdap_opts");
+    tcase_add_test (tc_sdap_opts, test_copy_sdap_map);
+    suite_add_tcase (s, tc_sdap_opts);
 
     return s;
 }
