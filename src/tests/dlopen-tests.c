@@ -96,6 +96,9 @@ struct so {
     { "pysss_murmur.so", { LIBPFX"pysss_murmur.so", NULL } },
     { "pysss_nss_idmap.so", { LIBPFX"pysss_nss_idmap.so", NULL } },
 #endif
+#ifdef HAVE_CONFIG_LIB
+    { "libsss_config.so", { LIBPFX"libsss_config.so", NULL } },
+#endif
     { NULL }
 };
 

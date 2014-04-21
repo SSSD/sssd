@@ -443,6 +443,7 @@ dist_noinst_HEADERS = \
     src/util/sss_ssh.h \
     src/util/sss_ini.h \
     src/util/sss_format.h \
+    src/util/sss_config.h \
     src/util/refcount.h \
     src/util/find_uid.h \
     src/util/user_info_msg.h \
@@ -656,6 +657,22 @@ SSSD_INTERNAL_LTLIBS = \
     libsss_crypt.la \
     libsss_debug.la \
     libsss_child.la
+
+if BUILD_CONFIG_LIB
+pkglib_LTLIBRARIES += libsss_config.la
+libsss_config_la_SOURCES = \
+    src/util/sss_config.c
+libsss_config_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(AUGEAS_CFLAGS) \
+    $(TALLOC_CFLAGS)
+libsss_config_la_LIBADD = \
+    $(AUGEAS_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
+libsss_config_la_LDFLAGS = \
+    -avoid-version
+endif
 
 lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la libsss_nss_idmap.la
 pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc

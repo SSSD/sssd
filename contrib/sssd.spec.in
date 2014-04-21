@@ -138,6 +138,7 @@ BuildRequires: systemd-devel
 %if (0%{?with_cifs_utils_plugin} == 1)
 BuildRequires: cifs-utils-devel
 %endif
+BuildRequires: augeas-devel
 
 # RHEL 5 is too old to support samba4 and the PAC responder
 %if !0%{?is_rhel5}
@@ -573,6 +574,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/libsss_debug.so
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
+%{_libdir}/%{name}/libsss_config.so
 
 # 3rd party application libraries
 %{_libdir}/sssd/modules/libsss_autofs.so

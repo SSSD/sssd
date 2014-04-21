@@ -159,6 +159,11 @@ m4_include([src/external/signal.m4])
 m4_include([src/external/inotify.m4])
 m4_include([src/external/libndr_nbt.m4])
 m4_include([src/external/sasl.m4])
+m4_include([src/external/configlib.m4])
+
+if test x$build_config_lib = xyes; then
+    m4_include([src/external/libaugeas.m4])
+fi
 
 WITH_UNICODE_LIB
 if test x$unicode_lib = xlibunistring; then
