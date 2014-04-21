@@ -155,6 +155,10 @@ if BUILD_SSH
     non_interactive_check_based_tests += sysdb_ssh-tests
 endif
 
+if BUILD_CONFIG_LIB
+    non_interactive_check_based_tests += sss_config-tests
+endif
+
 endif
 
 if HAVE_CMOCKA
@@ -1426,6 +1430,21 @@ sbus_codegen_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SSSD_LIBS) \
     $(CHECK_LIBS)
+
+if BUILD_CONFIG_LIB
+sss_config_tests_SOURCES = \
+    src/tests/sss_config-tests.c \
+    src/tests/common.c
+sss_config_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+sss_config_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_config.la \
+    libsss_test_common.la
+endif
 
 if HAVE_CMOCKA
 
