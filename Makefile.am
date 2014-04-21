@@ -1215,6 +1215,9 @@ auth_tests_LDADD = \
 
 ipa_ldap_opt_tests_SOURCES = \
     src/providers/data_provider_opts.c \
+    src/providers/ldap/sdap.c \
+    src/providers/ldap/sdap_range.c \
+    src/util/sss_ldap.c \
     src/tests/ipa_ldap_opt-tests.c
 ipa_ldap_opt_tests_CFLAGS = \
     $(AM_CFLAGS) \

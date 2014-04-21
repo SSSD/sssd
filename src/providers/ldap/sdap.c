@@ -36,7 +36,7 @@ int sdap_copy_map(TALLOC_CTX *memctx,
     struct sdap_attr_map *map;
     int i;
 
-    map = talloc_array(memctx, struct sdap_attr_map, num_entries);
+    map = talloc_array(memctx, struct sdap_attr_map, num_entries + 1);
     if (!map) {
         return ENOMEM;
     }
@@ -63,6 +63,9 @@ int sdap_copy_map(TALLOC_CTX *memctx,
               map[i].opt_name, map[i].name ? "" : " no",
               map[i].name ? map[i].name : "");
     }
+
+    /* Include the sentinel */
+    memset(&map[num_entries], 0, sizeof(struct sdap_attr_map));
 
     *_map = map;
     return EOK;
