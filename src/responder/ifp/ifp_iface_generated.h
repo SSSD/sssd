@@ -16,6 +16,8 @@
 #define INFOPIPE_IFACE_PING "Ping"
 #define INFOPIPE_IFACE_GETUSERATTR "GetUserAttr"
 #define INFOPIPE_IFACE_GETUSERGROUPS "GetUserGroups"
+#define INFOPIPE_IFACE_FINDDOMAINBYNAME "FindDomainByName"
+#define INFOPIPE_IFACE_LISTDOMAINS "ListDomains"
 
 /* ------------------------------------------------------------------------
  * DBus handlers
@@ -41,10 +43,18 @@ struct infopipe_iface {
     sbus_msg_handler_fn Ping;
     sbus_msg_handler_fn GetUserAttr;
     int (*GetUserGroups)(struct sbus_request *req, void *data, const char *arg_user);
+    int (*FindDomainByName)(struct sbus_request *req, void *data, const char *arg_name);
+    int (*ListDomains)(struct sbus_request *req, void *data);
 };
 
 /* finish function for GetUserGroups */
 int infopipe_iface_GetUserGroups_finish(struct sbus_request *req, const char *arg_values[], int len_values);
+
+/* finish function for FindDomainByName */
+int infopipe_iface_FindDomainByName_finish(struct sbus_request *req, const char *arg_domain);
+
+/* finish function for ListDomains */
+int infopipe_iface_ListDomains_finish(struct sbus_request *req, const char *arg_domain[], int len_domain);
 
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata

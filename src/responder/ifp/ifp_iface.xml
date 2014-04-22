@@ -21,5 +21,14 @@
             <arg name="values" type="as" direction="out"/>
         </method>
 
+        <method name="FindDomainByName">
+            <arg name="name" type="s" direction="in" />
+            <arg name="domain" type="o" direction="out"/>
+        </method>
+
+        <method name="ListDomains">
+            <arg name="domain" type="ao" direction="out"/>
+        </method>
+
     </interface>
 </node>

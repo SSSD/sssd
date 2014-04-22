@@ -40,6 +40,38 @@ int infopipe_iface_GetUserGroups_finish(struct sbus_request *req, const char *ar
                                          DBUS_TYPE_INVALID);
 }
 
+/* arguments for org.freedesktop.sssd.infopipe.FindDomainByName */
+const struct sbus_arg_meta infopipe_iface_FindDomainByName__in[] = {
+    { "name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.FindDomainByName */
+const struct sbus_arg_meta infopipe_iface_FindDomainByName__out[] = {
+    { "domain", "o" },
+    { NULL, }
+};
+
+int infopipe_iface_FindDomainByName_finish(struct sbus_request *req, const char *arg_domain)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_OBJECT_PATH, &arg_domain,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.ListDomains */
+const struct sbus_arg_meta infopipe_iface_ListDomains__out[] = {
+    { "domain", "ao" },
+    { NULL, }
+};
+
+int infopipe_iface_ListDomains_finish(struct sbus_request *req, const char *arg_domain[], int len_domain)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_domain, len_domain,
+                                         DBUS_TYPE_INVALID);
+}
+
 /* methods for org.freedesktop.sssd.infopipe */
 const struct sbus_method_meta infopipe_iface__methods[] = {
     {
@@ -62,6 +94,20 @@ const struct sbus_method_meta infopipe_iface__methods[] = {
         infopipe_iface_GetUserGroups__out,
         offsetof(struct infopipe_iface, GetUserGroups),
         invoke_s_method,
+    },
+    {
+        "FindDomainByName", /* name */
+        infopipe_iface_FindDomainByName__in,
+        infopipe_iface_FindDomainByName__out,
+        offsetof(struct infopipe_iface, FindDomainByName),
+        invoke_s_method,
+    },
+    {
+        "ListDomains", /* name */
+        NULL, /* no in_args */
+        infopipe_iface_ListDomains__out,
+        offsetof(struct infopipe_iface, ListDomains),
+        NULL, /* no invoker */
     },
     { NULL, }
 };

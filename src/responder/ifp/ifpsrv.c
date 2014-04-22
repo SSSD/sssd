@@ -38,6 +38,7 @@
 #include "monitor/monitor_interfaces.h"
 #include "confdb/confdb.h"
 #include "responder/ifp/ifp_private.h"
+#include "responder/ifp/ifp_domains.h"
 #include "responder/common/responder_sbus.h"
 
 #define DEFAULT_ALLOWED_UIDS "0"
@@ -68,6 +69,8 @@ struct infopipe_iface ifp_iface = {
     .Ping = ifp_ping,
     .GetUserAttr = ifp_user_get_attr,
     .GetUserGroups = ifp_user_get_groups,
+    .ListDomains = ifp_list_domains,
+    .FindDomainByName = ifp_find_domain_by_name,
 };
 
 struct sysbus_iface {

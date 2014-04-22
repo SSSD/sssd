@@ -1,0 +1,234 @@
+/*
+    Authors:
+        Jakub Hrozek <jhrozek@redhat.com>
+        Pavel Březina <pbrezina@redhat.com>
+
+    Copyright (C) 2014 Red Hat
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <talloc.h>
+
+#include "db/sysdb.h"
+#include "util/util.h"
+#include "confdb/confdb.h"
+#include "responder/common/responder.h"
+#include "responder/ifp/ifp_domains.h"
+
+static void ifp_list_domains_process(struct tevent_req *req);
+
+int ifp_list_domains(struct sbus_request *dbus_req,
+                     void *data)
+{
+    struct ifp_ctx *ifp_ctx;
+    struct ifp_req *ireq;
+    struct tevent_req *req;
+    DBusError *error;
+    errno_t ret;
+
+    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ifp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
+        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
+                               "Invalid ifp context!");
+        return sbus_request_fail_and_finish(dbus_req, error);
+    }
+
+    ret = ifp_req_create(dbus_req, ifp_ctx, &ireq);
+    if (ret != EOK) {
+        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
+                               "%s", sss_strerror(ret));
+        return sbus_request_fail_and_finish(dbus_req, error);
+    }
+
+    req = sss_dp_get_domains_send(ireq, ifp_ctx->rctx, false, NULL);
+    if (req == NULL) {
+        return sbus_request_finish(ireq->dbus_req, NULL);
+    }
+
+    tevent_req_set_callback(req, ifp_list_domains_process, ireq);
+
+    return EOK;
+}
+
+static void ifp_list_domains_process(struct tevent_req *req)
+{
+    struct sss_domain_info *dom;
+    struct ifp_req *ireq;
+    const char **paths;
+    char *p;
+    DBusError *error;
+    size_t num_domains;
+    size_t pi;
+    errno_t ret;
+
+    ireq = tevent_req_callback_data(req, struct ifp_req);
+
+    ret = sss_dp_get_domains_recv(req);
+    talloc_free(req);
+    if (ret != EOK) {
+        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
+                               "Failed to refresh domain objects\n");
+        sbus_request_fail_and_finish(ireq->dbus_req, error);
+        return;
+    }
+
+    ret = sysdb_master_domain_update(ireq->ifp_ctx->rctx->domains);
+    if (ret != EOK) {
+        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
+                               "Failed to refresh subdomain list\n");
+        sbus_request_fail_and_finish(ireq->dbus_req, error);
+        return;
+    }
+
+    num_domains = 0;
+    for (dom = ireq->ifp_ctx->rctx->domains;
+            dom != NULL;
+            dom = get_next_domain(dom, true)) {
+        num_domains++;
+    }
+
+    paths = talloc_zero_array(ireq, const char *, num_domains);
+    if (paths == NULL) {
+        sbus_request_finish(ireq->dbus_req, NULL);
+        return;
+    }
+
+    pi = 0;
+    for (dom = ireq->ifp_ctx->rctx->domains;
+            dom != NULL;
+            dom = get_next_domain(dom, true)) {
+        p = ifp_reply_objpath(ireq, INFOPIPE_DOMAIN_PATH_PFX, dom->name);
+        if (p == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not create path for dom %s, skipping\n", dom->name);
+            continue;
+        }
+        paths[pi] = p;
+        pi++;
+    }
+
+    ret = infopipe_iface_ListDomains_finish(ireq->dbus_req, paths, num_domains);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not finish request!\n");
+    }
+}
+
+struct ifp_get_domain_state {
+    const char *name;
+    struct ifp_req *ireq;
+};
+
+static void ifp_find_domain_by_name_process(struct tevent_req *req);
+
+int ifp_find_domain_by_name(struct sbus_request *dbus_req,
+                            void *data,
+                            const char *arg_name)
+{
+    struct ifp_ctx *ifp_ctx;
+    struct ifp_req *ireq;
+    struct tevent_req *req;
+    struct ifp_get_domain_state *state;
+    DBusError *error;
+    errno_t ret;
+
+    ifp_ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ifp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
+                               "Invalid ifp context!");
+        return sbus_request_fail_and_finish(dbus_req, error);
+    }
+
+    ret = ifp_req_create(dbus_req, ifp_ctx, &ireq);
+    if (ret != EOK) {
+        error = sbus_error_new(dbus_req, DBUS_ERROR_FAILED,
+                               "%s", sss_strerror(ret));
+        return sbus_request_fail_and_finish(dbus_req, error);
+    }
+
+    state = talloc_zero(ireq, struct ifp_get_domain_state);
+    if (state == NULL) {
+        return sbus_request_finish(dbus_req, NULL);
+    }
+    state->name = arg_name;
+    state->ireq = ireq;
+
+    req = sss_dp_get_domains_send(ireq, ifp_ctx->rctx, false, NULL);
+    if (req == NULL) {
+        return sbus_request_finish(dbus_req, NULL);
+    }
+    tevent_req_set_callback(req, ifp_find_domain_by_name_process, state);
+    return EOK;
+}
+
+static void ifp_find_domain_by_name_process(struct tevent_req *req)
+{
+    errno_t ret;
+    struct ifp_req *ireq;
+    struct ifp_get_domain_state *state;
+    struct sss_domain_info *iter;
+    const char *path;
+    DBusError *error;
+
+    state = tevent_req_callback_data(req, struct ifp_get_domain_state);
+    ireq = state->ireq;
+
+    ret = sss_dp_get_domains_recv(req);
+    talloc_free(req);
+    if (ret != EOK) {
+        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
+                               "Failed to refresh domain objects\n");
+        sbus_request_fail_and_finish(ireq->dbus_req, error);
+        return;
+    }
+
+    ret = sysdb_master_domain_update(ireq->ifp_ctx->rctx->domains);
+    if (ret != EOK) {
+        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
+                               "Failed to refresh subdomain list\n");
+        sbus_request_fail_and_finish(ireq->dbus_req, error);
+        return;
+    }
+
+    /* Reply with the domain that was asked for */
+    for (iter = ireq->ifp_ctx->rctx->domains;
+            iter != NULL;
+            iter = get_next_domain(iter, true)) {
+        if (strcasecmp(iter->name, state->name) == 0) {
+            break;
+        }
+    }
+
+    if (iter == NULL) {
+        error = sbus_error_new(ireq->dbus_req, DBUS_ERROR_FAILED,
+                               "No such domain\n");
+        sbus_request_fail_and_finish(ireq->dbus_req, error);
+        return;
+    }
+
+    path = ifp_reply_objpath(ireq, INFOPIPE_DOMAIN_PATH_PFX, iter->name);
+    if (path == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+                "Could not create path for domain %s, skipping\n", iter->name);
+        sbus_request_finish(ireq->dbus_req, NULL);
+        return;
+    }
+
+    ret = infopipe_iface_FindDomainByName_finish(ireq->dbus_req, path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not finish request!\n");
+    }
+}
