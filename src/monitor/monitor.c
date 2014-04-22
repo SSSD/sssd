@@ -86,8 +86,8 @@
 
 /* Warning messages */
 #define CONF_FILE_PERM_ERROR_MSG "Cannot read config file %s. Please check "\
-                                 "if permissions are 0600 and the file is "\
-                                 "owned by root.root."
+                                 "that the file is accessible only by the "\
+                                 "owner and owned by root.root.\n"
 
 int cmdline_debug_level;
 int cmdline_debug_timestamps;
