@@ -37,6 +37,8 @@ struct sbus_interface_p {
     struct sbus_interface_p *prev, *next;
     struct sbus_connection *conn;
     struct sbus_interface *intf;
+
+    const char *reg_path;
 };
 
 static bool path_in_interface_list(struct sbus_interface_p *list,
@@ -355,6 +357,43 @@ void sbus_disconnect(struct sbus_connection *conn)
     DEBUG(SSSDBG_TRACE_FUNC ,"Disconnected %p\n", conn->dbus.conn);
 }
 
+static bool sbus_fb_path_has_prefix(const char *path, const char *prefix)
+{
+    /* strlen-1 because we don't want to match the trailing '*' */
+    if (strncmp(path, prefix, strlen(prefix)-1) == 0) {
+        return true;
+    }
+
+    return false;
+}
+
+static bool sbus_path_has_fallback(const char *path)
+{
+    char *wildcard;
+
+    wildcard = strrchr(path, '*');
+    if (wildcard != NULL) {
+        /* This path was registered as fallback */
+        if (*(wildcard + 1) != '\0') {
+            /* Wildcard is only allowed as the last character in the path */
+            return false;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+static bool sbus_iface_handles_path(struct sbus_interface_p *intf_p,
+                                    const char *path)
+{
+    if (sbus_path_has_fallback(intf_p->intf->path)) {
+        return sbus_fb_path_has_prefix(path, intf_p->intf->path);
+    }
+
+    return strcmp(path, intf_p->intf->path) == 0;
+}
+
 /* Looks up a vtable func, in a struct derived from struct sbus_vtable */
 #define VTABLE_FUNC(vtable, offset) \
     (*((void **)((char *)(vtable) + (offset))))
@@ -392,7 +431,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
     }
 
     /* Validate the D-BUS path */
-    if (strcmp(path, intf_p->intf->path) != 0) {
+    if (!sbus_iface_handles_path(intf_p, path)) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 
@@ -549,21 +588,38 @@ sbus_new_interface(TALLOC_CTX *mem_ctx,
     return intf;
 }
 
+static char *sbus_iface_get_reg_path(TALLOC_CTX *mem_ctx,
+                                     const char *path,
+                                     bool fallback)
+{
+    char *reg_path;
+
+    reg_path = talloc_strdup(mem_ctx, path);
+    if (reg_path == NULL) return NULL;
+
+    if (fallback) {
+        reg_path[strlen(path)-1] = '\0';
+    }
+    return reg_path;
+}
+
 /* Adds a new D-BUS path message handler to the connection
  * Note: this must be a unique path.
  */
 int sbus_conn_add_interface(struct sbus_connection *conn,
-                             struct sbus_interface *intf)
+                            struct sbus_interface *intf)
 {
     struct sbus_interface_p *intf_p;
     dbus_bool_t dbret;
     const char *path;
+    bool fallback;
 
     if (!conn || !intf || !intf->vtable || !intf->vtable->meta) {
         return EINVAL;
     }
 
     path = intf->path;
+    fallback = sbus_path_has_fallback(path);
 
     if (path_in_interface_list(conn->intf_list, path)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -577,11 +633,27 @@ int sbus_conn_add_interface(struct sbus_connection *conn,
     }
     intf_p->conn = conn;
     intf_p->intf = intf;
+    intf_p->reg_path = sbus_iface_get_reg_path(intf_p, path, fallback);
+    if (intf_p->reg_path == NULL) {
+        return ENOMEM;
+    }
 
     DLIST_ADD(conn->intf_list, intf_p);
 
-    dbret = dbus_connection_register_object_path(conn->dbus.conn,
-                                                 path, &dbus_object_path_vtable, intf_p);
+    DEBUG(SSSDBG_TRACE_LIBS, "Will register path %s with%s fallback\n",
+                             intf_p->reg_path, fallback ? "" : "out");
+
+    if (fallback) {
+        dbret = dbus_connection_register_fallback(conn->dbus.conn,
+                                                  intf_p->reg_path,
+                                                  &dbus_object_path_vtable,
+                                                  intf_p);
+    } else {
+        dbret = dbus_connection_register_object_path(conn->dbus.conn,
+                                                     intf_p->reg_path,
+                                                     &dbus_object_path_vtable,
+                                                     intf_p);
+    }
     if (!dbret) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Could not register object path to the connection.\n");
