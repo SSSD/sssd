@@ -31,6 +31,21 @@
 #include "sbus/sssd_dbus_meta.h"
 #include "tests/sbus_codegen_tests_generated.h"
 
+/* The following 2 macros were taken from check's project source files (0.9.10)
+ * http://check.sourceforge.net/
+ */
+#ifndef _ck_assert_uint
+#define _ck_assert_uint(X, OP, Y) do { \
+    uintmax_t _ck_x = (X); \
+    uintmax_t _ck_y = (Y); \
+    ck_assert_msg(_ck_x OP _ck_y, "Assertion '"#X#OP#Y"' failed: "#X"==%ju, "#Y"==%ju", _ck_x, _ck_y); \
+} while (0)
+#endif /* _ck_assert_uint */
+
+#ifndef ck_assert_uint_eq
+#define ck_assert_uint_eq(X, Y) _ck_assert_uint(X, ==, Y)
+#endif /* ck_assert_uint_eq */
+
 static const struct sbus_arg_meta *
 find_arg(const struct sbus_arg_meta *args,
          const char *name)
