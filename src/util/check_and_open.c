@@ -105,8 +105,9 @@ static errno_t perform_checks(struct stat *stat_buf,
 
     if ((st_mode & ALLPERMS) != (mode & ALLPERMS)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "File has the wrong mode [%.7o], expected [%.7o].\n",
-                  (st_mode & ALLPERMS), (mode & ALLPERMS));
+              "File has the wrong (bit masked) mode [%.7o], "
+              "expected [%.7o].\n",
+              (st_mode & ALLPERMS), (mode & ALLPERMS));
         return EINVAL;
     }
 
