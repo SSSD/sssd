@@ -1241,6 +1241,7 @@ done:
         if (mc_ctx && mc_ctx->file && mc_ctx->fd != -1) {
             dret = unlink(mc_ctx->file);
             if (dret == -1) {
+                dret = errno;
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to rm mmap file %s: %d(%s)\n", mc_ctx->file,
                        dret, strerror(dret));
