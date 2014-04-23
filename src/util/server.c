@@ -573,7 +573,7 @@ int server_setup(const char *name, int flags,
 #ifdef SIGTTIN
     signal(SIGTTIN, SIG_IGN);
 #endif
-    tevent_add_fd(event_ctx, event_ctx, 0, stdin_event_flags,
+    tevent_add_fd(event_ctx, event_ctx, STDIN_FILENO, stdin_event_flags,
                  server_stdin_handler, discard_const(name));
 
     *main_ctx = ctx;
