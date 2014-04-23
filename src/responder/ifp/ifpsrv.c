@@ -70,6 +70,16 @@ struct infopipe_iface ifp_iface = {
     .GetUserGroups = ifp_user_get_groups,
 };
 
+struct sysbus_iface {
+    const char *path;
+    struct sbus_vtable *iface_vtable;
+};
+
+static struct sysbus_iface ifp_ifaces[] = {
+    { INFOPIPE_PATH, &ifp_iface.vtable },
+    { NULL, NULL },
+};
+
 struct sss_cmd_table *get_ifp_cmds(void)
 {
     static struct sss_cmd_table ifp_cmds[] = {
@@ -110,8 +120,7 @@ static errno_t
 sysbus_init(TALLOC_CTX *mem_ctx,
             struct tevent_context *ev,
             const char *dbus_name,
-            const char *dbus_path,
-            struct sbus_vtable *iface_vtable,
+            struct sysbus_iface *sysbus_ifaces,
             void *pvt,
             struct sysbus_ctx **sysbus)
 {
@@ -119,6 +128,7 @@ sysbus_init(TALLOC_CTX *mem_ctx,
     DBusConnection *conn = NULL;
     struct sysbus_ctx *system_bus = NULL;
     struct sbus_interface *sif;
+    int i;
     errno_t ret;
 
     system_bus = talloc_zero(mem_ctx, struct sysbus_ctx);
@@ -162,21 +172,23 @@ sysbus_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    sif = sbus_new_interface(system_bus->conn,
-                             dbus_path,
-                             iface_vtable,
-                             pvt);
-    if (sif == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not add the sbus interface\n");
-        goto fail;
-    }
+    for (i = 0; sysbus_ifaces[i].path != NULL; i++) {
+        sif = sbus_new_interface(system_bus->conn,
+                                 sysbus_ifaces[i].path,
+                                 sysbus_ifaces[i].iface_vtable,
+                                 pvt);
+        if (sif == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not add the sbus interface\n");
+            goto fail;
+        }
 
-    ret = sbus_conn_add_interface(system_bus->conn, sif);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not add the interface\n");
-        goto fail;
+        ret = sbus_conn_add_interface(system_bus->conn, sif);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not add the interface\n");
+            goto fail;
+        }
     }
 
     *sysbus = system_bus;
@@ -308,8 +320,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     /* Connect to the D-BUS system bus and set up methods */
     ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
                       INFOPIPE_IFACE,
-                      INFOPIPE_PATH,
-                      &ifp_iface.vtable,
+                      ifp_ifaces,
                       ifp_ctx, &ifp_ctx->sysbus);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
