@@ -16,6 +16,27 @@ static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr);
 
 /* invokes a handler with a 'ybnqiuxtdsoayanaqaiauaxatadasao' DBus signature */
 static int invoke_ybnqiuxtdsoayanaqaiauaxatadasao_method(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_s(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_y(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_b(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_n(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_q(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_i(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_u(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_x(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_t(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_d(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_o(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_ay(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_an(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_aq(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_ai(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_au(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_ax(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_at(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_ad(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_as(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_ao(struct sbus_request *dbus_req, void *function_ptr);
 
 /* arguments for com.planetexpress.Ship.MoveUniverse */
 const struct sbus_arg_meta com_planetexpress_Ship_MoveUniverse__in[] = {
@@ -96,6 +117,10 @@ const struct sbus_property_meta com_planetexpress_Ship__properties[] = {
         "Color", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
+        offsetof(struct com_planetexpress_Ship, com_planetexpress_Ship_get_Color),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
     },
     { NULL, }
 };
@@ -233,6 +258,199 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "FullName", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE | SBUS_PROPERTY_WRITABLE,
+        offsetof(struct test_pilot, test_pilot_get_FullName),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "byte", /* name */
+        "y", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_byte),
+        invoke_get_y,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "boolean", /* name */
+        "b", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_boolean),
+        invoke_get_b,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "int16", /* name */
+        "n", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_int16),
+        invoke_get_n,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "uint16", /* name */
+        "q", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_uint16),
+        invoke_get_q,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "int32", /* name */
+        "i", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_int32),
+        invoke_get_i,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "uint32", /* name */
+        "u", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_uint32),
+        invoke_get_u,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "int64", /* name */
+        "x", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_int64),
+        invoke_get_x,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "uint64", /* name */
+        "t", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_uint64),
+        invoke_get_t,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "double", /* name */
+        "d", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_double),
+        invoke_get_d,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "string", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_string),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "object_path", /* name */
+        "o", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_object_path),
+        invoke_get_o,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "byte_array", /* name */
+        "ay", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_byte_array),
+        invoke_get_ay,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "int16_array", /* name */
+        "an", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_int16_array),
+        invoke_get_an,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "uint16_array", /* name */
+        "aq", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_uint16_array),
+        invoke_get_aq,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "int32_array", /* name */
+        "ai", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_int32_array),
+        invoke_get_ai,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "uint32_array", /* name */
+        "au", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_uint32_array),
+        invoke_get_au,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "int64_array", /* name */
+        "ax", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_int64_array),
+        invoke_get_ax,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "uint64_array", /* name */
+        "at", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_uint64_array),
+        invoke_get_at,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "double_array", /* name */
+        "ad", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_double_array),
+        invoke_get_ad,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "string_array", /* name */
+        "as", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_string_array),
+        invoke_get_as,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "object_path_array", /* name */
+        "ao", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_object_path_array),
+        invoke_get_ao,
+        0, /* not writable */
+        NULL, /* no invoker */
     },
     { NULL, }
 };
@@ -390,4 +608,308 @@ static int invoke_ybnqiuxtdsoayanaqaiauaxatadasao_method(struct sbus_request *db
                      len_19,
                      arg_20,
                      len_20);
+}
+
+/* invokes a getter with an array of 'uint16_t' DBus type */
+static int invoke_get_aq(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint16_t *prop_val;
+    int prop_len;
+    uint16_t *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, uint16_t * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_UINT16, (uint8_t*)out_val, prop_len, sizeof(uint16_t));
+}
+
+/* invokes a getter with a 'dbus_bool_t' DBus type */
+static int invoke_get_b(struct sbus_request *dbus_req, void *function_ptr)
+{
+    bool prop_val;
+    dbus_bool_t out_val;
+
+    void (*handler)(struct sbus_request *, void *data, bool *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_BOOLEAN, &out_val);
+}
+
+/* invokes a getter with a 'double' DBus type */
+static int invoke_get_d(struct sbus_request *dbus_req, void *function_ptr)
+{
+    double prop_val;
+    double out_val;
+
+    void (*handler)(struct sbus_request *, void *data, double *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_DOUBLE, &out_val);
+}
+
+/* invokes a getter with an array of 'const char *' DBus type */
+static int invoke_get_ao(struct sbus_request *dbus_req, void *function_ptr)
+{
+    const char * *prop_val;
+    int prop_len;
+    const char * *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, const char * * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_OBJECT_PATH, (uint8_t*)out_val, prop_len, sizeof(const char *));
+}
+
+/* invokes a getter with a 'int32_t' DBus type */
+static int invoke_get_i(struct sbus_request *dbus_req, void *function_ptr)
+{
+    int32_t prop_val;
+    int32_t out_val;
+
+    void (*handler)(struct sbus_request *, void *data, int32_t *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_INT32, &out_val);
+}
+
+/* invokes a getter with an array of 'const char *' DBus type */
+static int invoke_get_as(struct sbus_request *dbus_req, void *function_ptr)
+{
+    const char * *prop_val;
+    int prop_len;
+    const char * *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, const char * * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_STRING, (uint8_t*)out_val, prop_len, sizeof(const char *));
+}
+
+/* invokes a getter with a 'const char *' DBus type */
+static int invoke_get_o(struct sbus_request *dbus_req, void *function_ptr)
+{
+    const char * prop_val;
+    const char * out_val;
+
+    void (*handler)(struct sbus_request *, void *data, const char * *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_OBJECT_PATH, &out_val);
+}
+
+/* invokes a getter with a 'int16_t' DBus type */
+static int invoke_get_n(struct sbus_request *dbus_req, void *function_ptr)
+{
+    int16_t prop_val;
+    int16_t out_val;
+
+    void (*handler)(struct sbus_request *, void *data, int16_t *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_INT16, &out_val);
+}
+
+/* invokes a getter with a 'uint16_t' DBus type */
+static int invoke_get_q(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint16_t prop_val;
+    uint16_t out_val;
+
+    void (*handler)(struct sbus_request *, void *data, uint16_t *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_UINT16, &out_val);
+}
+
+/* invokes a getter with an array of 'uint8_t' DBus type */
+static int invoke_get_ay(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint8_t *prop_val;
+    int prop_len;
+    uint8_t *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, uint8_t * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_BYTE, (uint8_t*)out_val, prop_len, sizeof(uint8_t));
+}
+
+/* invokes a getter with a 'const char *' DBus type */
+static int invoke_get_s(struct sbus_request *dbus_req, void *function_ptr)
+{
+    const char * prop_val;
+    const char * out_val;
+
+    void (*handler)(struct sbus_request *, void *data, const char * *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_STRING, &out_val);
+}
+
+/* invokes a getter with a 'uint32_t' DBus type */
+static int invoke_get_u(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint32_t prop_val;
+    uint32_t out_val;
+
+    void (*handler)(struct sbus_request *, void *data, uint32_t *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_UINT32, &out_val);
+}
+
+/* invokes a getter with a 'uint64_t' DBus type */
+static int invoke_get_t(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint64_t prop_val;
+    uint64_t out_val;
+
+    void (*handler)(struct sbus_request *, void *data, uint64_t *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_UINT64, &out_val);
+}
+
+/* invokes a getter with an array of 'int64_t' DBus type */
+static int invoke_get_ax(struct sbus_request *dbus_req, void *function_ptr)
+{
+    int64_t *prop_val;
+    int prop_len;
+    int64_t *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, int64_t * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_INT64, (uint8_t*)out_val, prop_len, sizeof(int64_t));
+}
+
+/* invokes a getter with a 'uint8_t' DBus type */
+static int invoke_get_y(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint8_t prop_val;
+    uint8_t out_val;
+
+    void (*handler)(struct sbus_request *, void *data, uint8_t *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_BYTE, &out_val);
+}
+
+/* invokes a getter with a 'int64_t' DBus type */
+static int invoke_get_x(struct sbus_request *dbus_req, void *function_ptr)
+{
+    int64_t prop_val;
+    int64_t out_val;
+
+    void (*handler)(struct sbus_request *, void *data, int64_t *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+
+    out_val = prop_val;
+    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_INT64, &out_val);
+}
+
+/* invokes a getter with an array of 'uint32_t' DBus type */
+static int invoke_get_au(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint32_t *prop_val;
+    int prop_len;
+    uint32_t *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, uint32_t * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_UINT32, (uint8_t*)out_val, prop_len, sizeof(uint32_t));
+}
+
+/* invokes a getter with an array of 'int16_t' DBus type */
+static int invoke_get_an(struct sbus_request *dbus_req, void *function_ptr)
+{
+    int16_t *prop_val;
+    int prop_len;
+    int16_t *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, int16_t * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_INT16, (uint8_t*)out_val, prop_len, sizeof(int16_t));
+}
+
+/* invokes a getter with an array of 'double' DBus type */
+static int invoke_get_ad(struct sbus_request *dbus_req, void *function_ptr)
+{
+    double *prop_val;
+    int prop_len;
+    double *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, double * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_DOUBLE, (uint8_t*)out_val, prop_len, sizeof(double));
+}
+
+/* invokes a getter with an array of 'int32_t' DBus type */
+static int invoke_get_ai(struct sbus_request *dbus_req, void *function_ptr)
+{
+    int32_t *prop_val;
+    int prop_len;
+    int32_t *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, int32_t * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_INT32, (uint8_t*)out_val, prop_len, sizeof(int32_t));
+}
+
+/* invokes a getter with an array of 'uint64_t' DBus type */
+static int invoke_get_at(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint64_t *prop_val;
+    int prop_len;
+    uint64_t *out_val;
+
+    void (*handler)(struct sbus_request *, void *data, uint64_t * *, int *) = function_ptr;
+
+    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+
+    out_val = prop_val;
+    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_UINT64, (uint8_t*)out_val, prop_len, sizeof(uint64_t));
 }

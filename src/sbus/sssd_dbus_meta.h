@@ -60,6 +60,8 @@ struct sbus_property_meta {
     const char *name;
     const char *type;
     int flags;
+    size_t vtable_offset_get;
+    sbus_method_invoker_fn invoker_get;
     size_t vtable_offset_set;
     sbus_method_invoker_fn invoker_set;
 };

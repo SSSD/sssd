@@ -33,6 +33,9 @@
 #include "tests/sbus_codegen_tests_generated.h"
 #include "util/util_errors.h"
 
+#define N_ELEMENTS(arr) \
+    (sizeof(arr) / sizeof(arr[0]))
+
 /* The following 2 macros were taken from check's project source files (0.9.10)
  * http://check.sourceforge.net/
  */
@@ -329,12 +332,225 @@ static int eject_handler(struct sbus_request *req, void *instance_data,
                                    arg_object_path_array, len_object_path_array);
 }
 
-#define N_ELEMENTS(arr) \
-    (sizeof(arr) / sizeof(arr[0]))
+#define getter_body(in, out) do {           \
+    ck_assert(dbus_req != NULL);            \
+    ck_assert(out != NULL);                 \
+    *out = in;                              \
+} while(0);
 
-struct test_pilot pilot_methods = {
+static const bool pilot_bool = true;
+void pilot_get_boolean_handler(struct sbus_request *dbus_req,
+                               void *instance_data,
+                               bool *val)
+{
+    getter_body(pilot_bool, val);
+}
+
+static const char *pilot_full_name = "Turanga Leela";
+void pilot_get_full_name_handler(struct sbus_request *dbus_req,
+                                 void *instance_data,
+                                 const char **name)
+{
+    getter_body(pilot_full_name, name);
+}
+
+static const uint8_t pilot_byte = 42;
+void pilot_get_byte_handler(struct sbus_request *dbus_req,
+                            void *instance_data,
+                            uint8_t *byte)
+{
+    getter_body(pilot_byte, byte);
+}
+
+static const int16_t pilot_int16 = -123;
+void pilot_get_int16_handler(struct sbus_request *dbus_req,
+                             void *instance_data,
+                             int16_t *int16)
+{
+    getter_body(pilot_int16, int16);
+}
+
+static const uint16_t pilot_uint16 = 123;
+void pilot_get_uint16_handler(struct sbus_request *dbus_req,
+                              void *instance_data,
+                              uint16_t *uint16)
+{
+    getter_body(pilot_uint16, uint16);
+}
+
+static const int32_t pilot_int32 = -456;
+void pilot_get_int32_handler(struct sbus_request *dbus_req,
+                             void *instance_data,
+                             int32_t *int32)
+{
+    getter_body(pilot_int32, int32);
+}
+
+static const uint32_t pilot_uint32 = 456;
+void pilot_get_uint32_handler(struct sbus_request *dbus_req,
+                              void *instance_data,
+                              uint32_t *uint32)
+{
+    getter_body(pilot_uint32, uint32);
+}
+
+static const int64_t pilot_int64 = -456;
+void pilot_get_int64_handler(struct sbus_request *dbus_req,
+                             void *instance_data,
+                             int64_t *int64)
+{
+    getter_body(pilot_int64, int64);
+}
+
+static const uint64_t pilot_uint64 = 456;
+void pilot_get_uint64_handler(struct sbus_request *dbus_req,
+                              void *instance_data,
+                              uint64_t *uint64)
+{
+    getter_body(pilot_uint64, uint64);
+}
+
+static const double pilot_double = 3.14;
+void pilot_get_double_handler(struct sbus_request *dbus_req,
+                              void *instance_data,
+                              double *double_val)
+{
+    getter_body(pilot_double, double_val);
+}
+
+static const char *pilot_string = "leela";
+void pilot_get_string_handler(struct sbus_request *dbus_req,
+                              void *instance_data,
+                              const char **string_val)
+{
+    *string_val = pilot_string;
+}
+
+static const char *pilot_path = "/path/leela";
+void pilot_get_objpath_handler(struct sbus_request *dbus_req,
+                              void *instance_data,
+                              const char **path_val)
+{
+    *path_val = pilot_path;
+}
+
+#define array_getter_body(in, out, outlen) do {     \
+    ck_assert(dbus_req != NULL);                    \
+    ck_assert(out != NULL);                         \
+    ck_assert(outlen != NULL);                      \
+    *out = in;                                      \
+    *outlen = N_ELEMENTS(in);                       \
+} while(0);
+
+static uint8_t pilot_byte_array[] = { 42, 0 };
+void pilot_get_byte_array_handler(struct sbus_request *dbus_req,
+                                  void *instance_data,
+                                  uint8_t **arr_out, int *arr_len)
+{
+    array_getter_body(pilot_byte_array, arr_out, arr_len);
+}
+
+static int16_t pilot_int16_array[] = { -123, 0 };
+void pilot_get_int16_array_handler(struct sbus_request *dbus_req,
+                                  void *instance_data,
+                                  int16_t **arr_out, int *arr_len)
+{
+    array_getter_body(pilot_int16_array, arr_out, arr_len);
+}
+
+static uint16_t pilot_uint16_array[] = { 123, 0 };
+void pilot_get_uint16_array_handler(struct sbus_request *dbus_req,
+                                  void *instance_data,
+                                  uint16_t **arr_out, int *arr_len)
+{
+    array_getter_body(pilot_uint16_array, arr_out, arr_len);
+}
+
+static int32_t pilot_int32_array[] = { -456, 0 };
+void pilot_get_int32_array_handler(struct sbus_request *dbus_req,
+                                  void *instance_data,
+                                  int32_t **arr_out, int *arr_len)
+{
+    array_getter_body(pilot_int32_array, arr_out, arr_len);
+}
+
+static uint32_t pilot_uint32_array[] = { 456, 0 };
+void pilot_get_uint32_array_handler(struct sbus_request *dbus_req,
+                                  void *instance_data,
+                                  uint32_t **arr_out, int *arr_len)
+{
+    array_getter_body(pilot_uint32_array, arr_out, arr_len);
+}
+
+static int64_t pilot_int64_array[] = { -789, 0 };
+void pilot_get_int64_array_handler(struct sbus_request *dbus_req,
+                                  void *instance_data,
+                                  int64_t **arr_out, int *arr_len)
+{
+    array_getter_body(pilot_int64_array, arr_out, arr_len);
+}
+
+static uint64_t pilot_uint64_array[] = { 789, 0 };
+void pilot_get_uint64_array_handler(struct sbus_request *dbus_req,
+                                  void *instance_data,
+                                  uint64_t **arr_out, int *arr_len)
+{
+    array_getter_body(pilot_uint64_array, arr_out, arr_len);
+}
+
+static double pilot_double_array[] = { 3.14, 0 };
+void pilot_get_double_array_handler(struct sbus_request *dbus_req,
+                                    void *instance_data,
+                                    double **arr_out, int *arr_len)
+{
+    array_getter_body(pilot_double_array, arr_out, arr_len);
+}
+
+static const char *pilot_string_array[] = { "Turanga", "Leela" };
+void pilot_get_string_array_handler(struct sbus_request *dbus_req,
+                                    void *data,
+                                    const char ***arr_out,
+                                    int *arr_len)
+{
+    array_getter_body(pilot_string_array, arr_out, arr_len);
+}
+
+static const char *pilot_path_array[] = { "/some/path", "/another/path" };
+void pilot_get_path_array_handler(struct sbus_request *dbus_req,
+                                    void *data,
+                                    const char ***arr_out,
+                                    int *arr_len)
+{
+    array_getter_body(pilot_path_array, arr_out, arr_len);
+}
+
+struct test_pilot pilot_iface = {
     { &test_pilot_meta, 0 },
     .Eject = eject_handler,
+
+    .test_pilot_get_FullName = pilot_get_full_name_handler,
+    .test_pilot_get_byte = pilot_get_byte_handler,
+    .test_pilot_get_boolean = pilot_get_boolean_handler,
+    .test_pilot_get_int16 = pilot_get_int16_handler,
+    .test_pilot_get_uint16 = pilot_get_uint16_handler,
+    .test_pilot_get_int32 = pilot_get_int32_handler,
+    .test_pilot_get_uint32 = pilot_get_uint32_handler,
+    .test_pilot_get_int64 = pilot_get_int64_handler,
+    .test_pilot_get_uint64 = pilot_get_uint64_handler,
+    .test_pilot_get_double = pilot_get_double_handler,
+    .test_pilot_get_string = pilot_get_string_handler,
+    .test_pilot_get_object_path = pilot_get_objpath_handler,
+
+    .test_pilot_get_byte_array = pilot_get_byte_array_handler,
+    .test_pilot_get_int16_array = pilot_get_int16_array_handler,
+    .test_pilot_get_uint16_array = pilot_get_uint16_array_handler,
+    .test_pilot_get_int32_array = pilot_get_int32_array_handler,
+    .test_pilot_get_uint32_array = pilot_get_uint32_array_handler,
+    .test_pilot_get_int64_array = pilot_get_int64_array_handler,
+    .test_pilot_get_uint64_array = pilot_get_uint64_array_handler,
+    .test_pilot_get_double_array = pilot_get_double_array_handler,
+    .test_pilot_get_string_array = pilot_get_string_array_handler,
+    .test_pilot_get_object_path_array = pilot_get_path_array_handler,
 };
 
 static int pilot_test_server_init(struct sbus_connection *server, void *unused)
@@ -343,7 +559,7 @@ static int pilot_test_server_init(struct sbus_connection *server, void *unused)
 
     ret = sbus_conn_add_interface(server,
                                   sbus_new_interface(server, "/test/leela",
-                                                     &pilot_methods.vtable,
+                                                     &pilot_iface.vtable,
                                                      "Crash into the billboard"));
     ck_assert_int_eq(ret, EOK);
 
@@ -526,11 +742,277 @@ START_TEST(test_marshal_basic_types)
 }
 END_TEST
 
+static void parse_get_reply(DBusMessage *reply, const int type, void *val)
+{
+    DBusMessageIter iter;
+    DBusMessageIter variter;
+    dbus_bool_t dbret;
+
+    dbret = dbus_message_iter_init(reply, &iter);
+    ck_assert(dbret == TRUE);
+    ck_assert_int_eq(dbus_message_iter_get_arg_type(&iter), DBUS_TYPE_VARIANT);
+    dbus_message_iter_recurse(&iter, &variter);
+    ck_assert_int_eq(dbus_message_iter_get_arg_type(&variter), type);
+    dbus_message_iter_get_basic(&variter, val);
+}
+
+static void call_get(DBusConnection *client,
+                     const char *object_path,
+                     const char *iface,
+                     const char *prop,
+                     int type,
+                     void *val)
+{
+    DBusMessage *reply;
+    DBusError error = DBUS_ERROR_INIT;
+
+    reply = test_dbus_call_sync(client,
+                                object_path,
+                                DBUS_PROPERTIES_INTERFACE,
+                                "Get",
+                                &error,
+                                DBUS_TYPE_STRING, &iface,
+                                DBUS_TYPE_STRING, &prop,
+                                DBUS_TYPE_INVALID);
+    ck_assert(reply != NULL);
+    parse_get_reply(reply, type, val);
+}
+
+START_TEST(test_get_basic_types)
+{
+    TALLOC_CTX *ctx;
+    DBusConnection *client;
+    dbus_bool_t bool_val;
+    const char *string_val;
+    const char *path_val;
+    uint8_t byte_val;
+    int16_t int16_val;
+    uint16_t uint16_val;
+    int32_t int32_val;
+    uint32_t uint32_val;
+    int64_t int64_val;
+    uint64_t uint64_val;
+    double double_val;
+
+    ctx = talloc_new(NULL);
+    client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "boolean",
+             DBUS_TYPE_BOOLEAN, &bool_val);
+    ck_assert(bool_val == pilot_bool);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "FullName",
+             DBUS_TYPE_STRING, &string_val);
+    ck_assert_str_eq(string_val, pilot_full_name);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "byte",
+             DBUS_TYPE_BYTE, &byte_val);
+    ck_assert_int_eq(byte_val, pilot_byte);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "int16",
+             DBUS_TYPE_INT16, &int16_val);
+    ck_assert_int_eq(int16_val, pilot_int16);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "uint16",
+             DBUS_TYPE_UINT16, &uint16_val);
+    ck_assert_int_eq(uint16_val, pilot_uint16);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "int32",
+             DBUS_TYPE_INT32, &int32_val);
+    ck_assert_int_eq(int32_val, pilot_int32);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "uint32",
+             DBUS_TYPE_UINT32, &uint32_val);
+    ck_assert_int_eq(uint32_val, pilot_uint32);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "int64",
+             DBUS_TYPE_INT64, &int64_val);
+    ck_assert_int_eq(int64_val, pilot_int64);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "uint64",
+             DBUS_TYPE_UINT64, &uint64_val);
+    ck_assert_int_eq(uint64_val, pilot_uint64);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "double",
+             DBUS_TYPE_DOUBLE, &double_val);
+    ck_assert_int_eq(double_val, pilot_double);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "string",
+             DBUS_TYPE_STRING, &string_val);
+    ck_assert_str_eq(string_val, pilot_string);
+
+    call_get(client, "/test/leela", test_pilot_meta.name, "object_path",
+             DBUS_TYPE_OBJECT_PATH, &path_val);
+    ck_assert_str_eq(path_val, pilot_path);
+}
+END_TEST
+
+static void parse_get_array_reply(DBusMessage *reply, const int type,
+                                  void **values, int *nels)
+{
+    DBusMessageIter iter;
+    DBusMessageIter variter;
+    DBusMessageIter arriter;
+    dbus_bool_t dbret;
+
+    dbret = dbus_message_iter_init(reply, &iter);
+    ck_assert(dbret == TRUE);
+    ck_assert_int_eq(dbus_message_iter_get_arg_type(&iter), DBUS_TYPE_VARIANT);
+    dbus_message_iter_recurse(&iter, &variter);
+    ck_assert_int_eq(dbus_message_iter_get_arg_type(&variter), DBUS_TYPE_ARRAY);
+    ck_assert_int_eq(dbus_message_iter_get_element_type(&variter), type);
+    dbus_message_iter_recurse(&variter, &arriter);
+    if (type == DBUS_TYPE_STRING || type == DBUS_TYPE_OBJECT_PATH) {
+        int n = 0, i = 0;;
+        const char **strings;
+        const char *s;
+
+        do {
+            n++;
+        } while (dbus_message_iter_next(&arriter));
+
+        /* Allocating on NULL is bad, but this is unit test */
+        strings = talloc_array(NULL, const char *, n);
+        ck_assert(strings != NULL);
+
+        dbus_message_iter_recurse(&variter, &arriter);
+        do {
+            dbus_message_iter_get_basic(&arriter, &s);
+            strings[i] = talloc_strdup(strings, s);
+            ck_assert(strings[i] != NULL);
+            i++;
+        } while (dbus_message_iter_next(&arriter));
+
+        *nels = n;
+        *values = strings;
+    } else {
+        /* Fixed types are easy */
+        dbus_message_iter_get_fixed_array(&arriter, values, nels);
+    }
+}
+
+static void call_get_array(DBusConnection *client,
+                           const char *object_path,
+                           const char *iface,
+                           const char *prop,
+                           int type,
+                           void **values,
+                           int *nels)
+{
+    DBusMessage *reply;
+    DBusError error = DBUS_ERROR_INIT;
+
+    reply = test_dbus_call_sync(client,
+                                object_path,
+                                DBUS_PROPERTIES_INTERFACE,
+                                "Get",
+                                &error,
+                                DBUS_TYPE_STRING, &iface,
+                                DBUS_TYPE_STRING, &prop,
+                                DBUS_TYPE_INVALID);
+    ck_assert(reply != NULL);
+    parse_get_array_reply(reply, type, values, nels);
+}
+
+#define _check_array(reply, len, known, fn) do {    \
+    fn(len, 2);                                     \
+    fn(reply[0], known[0]);                         \
+    fn(reply[1], known[1]);                         \
+} while(0);                                         \
+
+#define check_int_array(reply, len, known) \
+    _check_array(reply, len, known, ck_assert_int_eq)
+#define check_uint_array(reply, len, known) \
+    _check_array(reply, len, known, ck_assert_uint_eq)
+
+START_TEST(test_get_basic_array_types)
+{
+    TALLOC_CTX *ctx;
+    DBusConnection *client;
+    const char **string_arr_val;
+    int string_arr_len;
+    const char **path_arr_val;
+    int path_arr_len;
+    uint8_t *byte_arr_val;
+    int byte_arr_len;
+    int16_t *int16_arr_val;
+    int int16_arr_len;
+    uint16_t *uint16_arr_val;
+    int uint16_arr_len;
+    int32_t *int32_arr_val;
+    int int32_arr_len;
+    uint32_t *uint32_arr_val;
+    int uint32_arr_len;
+    int64_t *int64_arr_val;
+    int int64_arr_len;
+    uint64_t *uint64_arr_val;
+    int uint64_arr_len;
+    double *double_arr_val;
+    int double_arr_len;
+
+    ctx = talloc_new(NULL);
+    client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "byte_array",
+                   DBUS_TYPE_BYTE, (void **) &byte_arr_val, &byte_arr_len);
+    check_uint_array(byte_arr_val, byte_arr_len, pilot_byte_array);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "int16_array",
+                   DBUS_TYPE_INT16, (void **) &int16_arr_val, &int16_arr_len);
+    check_int_array(int16_arr_val, int16_arr_len, pilot_int16_array);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "uint16_array",
+                   DBUS_TYPE_UINT16, (void **) &uint16_arr_val, &uint16_arr_len);
+    check_uint_array(uint16_arr_val, uint16_arr_len, pilot_uint16_array);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "int32_array",
+                   DBUS_TYPE_INT32, (void **) &int32_arr_val, &int32_arr_len);
+    check_int_array(int32_arr_val, int32_arr_len, pilot_int32_array);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "uint32_array",
+                   DBUS_TYPE_UINT32, (void **) &uint32_arr_val, &uint32_arr_len);
+    check_uint_array(uint32_arr_val, uint32_arr_len, pilot_uint32_array);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "int64_array",
+                   DBUS_TYPE_INT64, (void **) &int64_arr_val, &int64_arr_len);
+    check_int_array(int64_arr_val, int64_arr_len, pilot_int64_array);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "uint64_array",
+                   DBUS_TYPE_UINT64, (void **) &uint64_arr_val, &uint64_arr_len);
+    check_uint_array(uint64_arr_val, uint64_arr_len, pilot_uint64_array);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "double_array",
+                   DBUS_TYPE_DOUBLE, (void **) &double_arr_val, &double_arr_len);
+    check_int_array(double_arr_val, double_arr_len, pilot_double_array);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "string_array",
+                   DBUS_TYPE_STRING, (void **) &string_arr_val, &string_arr_len);
+    ck_assert_int_eq(string_arr_len, 2);
+    ck_assert_str_eq(string_arr_val[0], pilot_string_array[0]);
+    ck_assert_str_eq(string_arr_val[1], pilot_string_array[1]);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "string_array",
+                   DBUS_TYPE_STRING, (void **) &string_arr_val, &string_arr_len);
+    ck_assert_int_eq(string_arr_len, 2);
+    ck_assert_str_eq(string_arr_val[0], pilot_string_array[0]);
+    ck_assert_str_eq(string_arr_val[1], pilot_string_array[1]);
+
+    call_get_array(client, "/test/leela", test_pilot_meta.name, "object_path_array",
+                   DBUS_TYPE_OBJECT_PATH, (void **) &path_arr_val, &path_arr_len);
+    ck_assert_int_eq(path_arr_len, 2);
+    ck_assert_str_eq(path_arr_val[0], pilot_path_array[0]);
+    ck_assert_str_eq(path_arr_val[1], pilot_path_array[1]);
+
+}
+END_TEST
+
 TCase *create_handler_tests(void)
 {
     TCase *tc = tcase_create("handler");
 
     tcase_add_test(tc, test_marshal_basic_types);
+    tcase_add_test(tc, test_get_basic_types);
+    tcase_add_test(tc, test_get_basic_array_types);
 
     return tc;
 }

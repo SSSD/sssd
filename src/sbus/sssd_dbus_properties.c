@@ -105,6 +105,77 @@ dispatch_properties_set(struct sbus_connection *conn,
     return EOK;
 }
 
+static int
+dispatch_properties_get(struct sbus_connection *conn,
+                        struct sbus_interface *intf,
+                        DBusMessage *message)
+{
+    struct sbus_request *req;
+    const char *signature;
+    const struct sbus_interface_meta *meta;
+    DBusMessageIter iter;
+    sbus_msg_handler_fn handler_fn;
+    const struct sbus_property_meta *property;
+    const char *interface_name;
+    const char *property_name;
+
+    req = sbus_new_request(conn, intf, message);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+
+    meta = intf->vtable->meta;
+
+    signature = dbus_message_get_signature(message);
+    /* Interface name, property name */
+    if (strcmp(signature, "ss") != 0) {
+        return sbus_request_fail_and_finish(req,
+                 sbus_error_new(req,
+                                DBUS_ERROR_INVALID_ARGS,
+                                "Invalid argument types passed to Get method"));
+    }
+
+    dbus_message_iter_init(message, &iter);
+    dbus_message_iter_get_basic(&iter, &interface_name);
+    dbus_message_iter_next(&iter);
+    dbus_message_iter_get_basic(&iter, &property_name);
+
+    if (strcmp(interface_name, meta->name) != 0) {
+        return sbus_request_fail_and_finish(req,
+                    sbus_error_new(req,
+                                   DBUS_ERROR_UNKNOWN_INTERFACE,
+                                   "No such interface"));
+    }
+
+    property = sbus_meta_find_property(intf->vtable->meta, property_name);
+    if (property == NULL) {
+        return sbus_request_fail_and_finish(req,
+                    sbus_error_new(req,
+                                   DBUS_ERROR_UNKNOWN_PROPERTY,
+                                   "No such property"));
+    }
+
+    if (!(property->flags & SBUS_PROPERTY_READABLE)) {
+        return sbus_request_fail_and_finish(req,
+                    sbus_error_new(req,
+                                   DBUS_ERROR_ACCESS_DENIED,
+                                   "Property is not readable"));
+    }
+
+    handler_fn = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
+    if (!handler_fn) {
+        return sbus_request_fail_and_finish(req,
+                    sbus_error_new(req,
+                                   DBUS_ERROR_NOT_SUPPORTED,
+                                   "Not implemented"));
+    }
+
+    sbus_request_invoke_or_finish(req, handler_fn,
+                                  intf->instance_data,
+                                  property->invoker_get);
+    return EOK;
+}
+
 int sbus_properties_dispatch(struct sbus_request *dbus_req)
 {
     const char *member;
@@ -114,6 +185,10 @@ int sbus_properties_dispatch(struct sbus_request *dbus_req)
     /* Set is handled a lot like a method invocation */
     if (strcmp(member, "Set") == 0) {
         return dispatch_properties_set(dbus_req->conn,
+                                       dbus_req->intf,
+                                       dbus_req->message);
+    } else if (strcmp (member, "Get") == 0) {
+        return dispatch_properties_get(dbus_req->conn,
                                        dbus_req->intf,
                                        dbus_req->message);
     }

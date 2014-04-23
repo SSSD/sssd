@@ -107,6 +107,32 @@
             <arg name="object_path_array" type="ao" direction="out"/>
         </method>
 
+        <!-- Properties with every type of basic argument, so far read only -->
+        <property name="byte" type="y" access="read"/>
+        <property name="boolean" type="b" access="read"/>
+        <property name="int16" type="n" access="read"/>
+        <property name="uint16" type="q" access="read"/>
+        <property name="int32" type="i" access="read"/>
+        <property name="uint32" type="u" access="read"/>
+        <property name="int64" type="x" access="read"/>
+        <property name="uint64" type="t" access="read"/>
+        <property name="double" type="d" access="read"/>
+        <property name="string" type="s" access="read"/>
+        <property name="object_path" type="o" access="read"/>
+
+        <!-- Property arrays with every type of basic argument except boolean
+             which we can't do (yet) -->
+        <property name="byte_array" type="ay" access="read"/>
+        <property name="int16_array" type="an" access="read"/>
+        <property name="uint16_array" type="aq" access="read"/>
+        <property name="int32_array" type="ai" access="read"/>
+        <property name="uint32_array" type="au" access="read"/>
+        <property name="int64_array" type="ax" access="read"/>
+        <property name="uint64_array" type="at" access="read"/>
+        <property name="double_array" type="ad" access="read"/>
+        <property name="string_array" type="as" access="read"/>
+        <property name="object_path_array" type="ao" access="read"/>
+
     </interface>
 
 </node>
