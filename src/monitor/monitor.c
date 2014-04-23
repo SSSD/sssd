@@ -2835,6 +2835,9 @@ int main(int argc, const char *argv[])
 
     /* set up things like debug , signals, daemonization, etc... */
     monitor->conf_path = CONFDB_MONITOR_CONF_ENTRY;
+    ret = close(STDIN_FILENO);
+    if (ret != EOK) return 6;
+
     ret = server_setup(MONITOR_NAME, flags, monitor->conf_path, &main_ctx);
     if (ret != EOK) return 2;
 
