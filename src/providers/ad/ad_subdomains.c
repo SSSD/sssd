@@ -404,6 +404,7 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
     if (count == h) {
         /* all domains were already accounted for and have been updated */
         ret = EOK;
+        *changes = false;
         goto done;
     }
 
@@ -664,7 +665,7 @@ static void ad_subdomains_get_root_domain_done(struct tevent_req *req)
     struct sysdb_attrs **reply = NULL;
     struct ad_subdomains_req_ctx *ctx;
     int dp_error = DP_ERR_FATAL;
-    bool has_changes;
+    bool has_changes = false;
 
     ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
 
