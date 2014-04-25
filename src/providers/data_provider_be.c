@@ -193,7 +193,8 @@ void be_req_terminate(struct be_req *be_req,
 void be_terminate_domain_requests(struct be_ctx *be_ctx,
                                   const char *domain)
 {
-    struct be_req *be_req = NULL;
+    struct be_req *be_req;
+    struct be_req *next_be_req;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Terminating requests for domain [%s]\n",
                               domain);
@@ -203,11 +204,15 @@ void be_terminate_domain_requests(struct be_ctx *be_ctx,
         return;
     }
 
-    DLIST_FOR_EACH(be_req, be_ctx->active_requests) {
+    be_req = be_ctx->active_requests;
+    while (be_req) {
+        /* save pointer to next request in case be_req will be freed */
+        next_be_req = be_req->next;
         if (strcmp(domain, be_req->domain->name) == 0) {
             be_req_terminate(be_req, DP_ERR_FATAL, ERR_DOMAIN_NOT_FOUND,
                              sss_strerror(ERR_DOMAIN_NOT_FOUND));
         }
+        be_req = next_be_req;
     }
 }
 
