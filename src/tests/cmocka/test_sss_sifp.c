@@ -595,6 +595,99 @@ void test_sss_sifp_parse_attr_object_path(void **state)
     assert_null(attrs);
 }
 
+void test_sss_sifp_parse_attr_string_dict(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    DBusMessageIter iter;
+    DBusMessageIter var_iter;
+    DBusMessageIter array_iter;
+    DBusMessageIter dict_iter;
+    dbus_bool_t bret;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    struct {
+        const char *key;
+        const char *value;
+    } data = {"key", "value"};
+    hash_table_t *out;
+    hash_key_t key;
+    hash_value_t value;
+    char **values;
+    int hret;
+
+    /* prepare message */
+    dbus_message_iter_init_append(reply, &iter);
+
+    bret = dbus_message_iter_open_container(&iter, DBUS_TYPE_VARIANT,
+                                            DBUS_TYPE_ARRAY_AS_STRING
+                                            DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
+                                            DBUS_TYPE_STRING_AS_STRING
+                                            DBUS_TYPE_STRING_AS_STRING
+                                            DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+                                            &var_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_open_container(&var_iter, DBUS_TYPE_ARRAY,
+                                            DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
+                                            DBUS_TYPE_STRING_AS_STRING
+                                            DBUS_TYPE_STRING_AS_STRING
+                                            DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+                                            &array_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_open_container(&array_iter,
+                                            DBUS_TYPE_DICT_ENTRY,
+                                            NULL, &dict_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_append_basic(&dict_iter, DBUS_TYPE_STRING,
+                                          &data.key);
+    assert_true(bret);
+
+    bret = dbus_message_iter_append_basic(&dict_iter, DBUS_TYPE_STRING,
+                                          &data.value);
+    assert_true(bret);
+
+    bret = dbus_message_iter_close_container(&array_iter, &dict_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_close_container(&var_iter, &array_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_close_container(&iter, &var_iter);
+    assert_true(bret);
+
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, 1);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_STRING_DICT);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_string_dict(attrs, name, &out);
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_int_equal(hash_count(out), 1);
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(data.key);
+    hret = hash_lookup(out, &key, &value);
+    assert_int_equal(hret, HASH_SUCCESS);
+    assert_int_equal(value.type, HASH_VALUE_PTR);
+    assert_non_null(value.ptr);
+    values = value.ptr;
+    assert_non_null(values[0]);
+    assert_string_equal(values[0], data.value);
+    assert_null(values[1]);
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
 void test_sss_sifp_parse_attr_bool_array(void **state)
 {
     sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
@@ -968,6 +1061,120 @@ void test_sss_sifp_parse_attr_object_path_array(void **state)
     for (i = 0; i < num_values; i++) {
         assert_string_equal(in[i], out[i]);
     }
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
+void test_sss_sifp_parse_attr_string_dict_array(void **state)
+{
+    return;
+
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    DBusMessageIter iter;
+    DBusMessageIter var_iter;
+    DBusMessageIter array_iter;
+    DBusMessageIter dict_iter;
+    DBusMessageIter val_iter;
+    dbus_bool_t bret;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    static struct {
+        const char *key;
+        const char *values[];
+    } data = {"key", {"value1", "value2", "value3"}};
+    unsigned int num_values = 3;
+    hash_table_t *out;
+    hash_key_t key;
+    hash_value_t value;
+    char **values;
+    unsigned int i;
+    int hret;
+
+    /* prepare message */
+    dbus_message_iter_init_append(reply, &iter);
+
+    bret = dbus_message_iter_open_container(&iter, DBUS_TYPE_VARIANT,
+                                            DBUS_TYPE_ARRAY_AS_STRING
+                                            DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
+                                            DBUS_TYPE_STRING_AS_STRING
+                                            DBUS_TYPE_ARRAY_AS_STRING
+                                            DBUS_TYPE_STRING_AS_STRING
+                                            DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+                                            &var_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_open_container(&var_iter, DBUS_TYPE_ARRAY,
+                                            DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
+                                            DBUS_TYPE_STRING_AS_STRING
+                                            DBUS_TYPE_ARRAY_AS_STRING
+                                            DBUS_TYPE_STRING_AS_STRING
+                                            DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+                                            &array_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_open_container(&array_iter,
+                                            DBUS_TYPE_DICT_ENTRY,
+                                            NULL, &dict_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_append_basic(&dict_iter, DBUS_TYPE_STRING,
+                                          &data.key);
+    assert_true(bret);
+
+    bret = dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_ARRAY,
+                                            DBUS_TYPE_STRING_AS_STRING,
+                                            &val_iter);
+    assert_true(bret);
+
+    for (i = 0; i < num_values; i++) {
+        bret = dbus_message_iter_append_basic(&val_iter, DBUS_TYPE_STRING,
+                                              &data.values[i]);
+        assert_true(bret);
+    }
+
+    bret = dbus_message_iter_close_container(&dict_iter, &val_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_close_container(&array_iter, &dict_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_close_container(&var_iter, &array_iter);
+    assert_true(bret);
+
+    bret = dbus_message_iter_close_container(&iter, &var_iter);
+    assert_true(bret);
+
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, 1);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_STRING_DICT);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_string_dict(attrs, name, &out);
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_int_equal(hash_count(out), 1);
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(data.key);
+    hret = hash_lookup(out, &key, &value);
+    assert_int_equal(hret, HASH_SUCCESS);
+    assert_int_equal(value.type, HASH_VALUE_PTR);
+    assert_non_null(value.ptr);
+    values = value.ptr;
+
+    for (i = 0; i < num_values; i++) {
+        assert_non_null(values[i]);
+        assert_string_equal(values[i], data.values[i]);
+    }
+    assert_null(values[i]);
+
 
     sss_sifp_free_attrs(ctx, &attrs);
     assert_null(attrs);
@@ -1494,6 +1701,8 @@ int main(int argc, const char *argv[])
                                  test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path,
                                  test_setup, test_teardown_parser),
+        unit_test_setup_teardown(test_sss_sifp_parse_attr_string_dict,
+                                 test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_bool_array,
                                  test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_int32_array,
@@ -1507,6 +1716,8 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_sss_sifp_parse_attr_string_array,
                                  test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path_array,
+                                 test_setup, test_teardown_parser),
+        unit_test_setup_teardown(test_sss_sifp_parse_attr_string_dict_array,
                                  test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_list,
                                  test_setup, test_teardown_parser),

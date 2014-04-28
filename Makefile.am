@@ -745,7 +745,8 @@ libsss_simpleifp_la_CFLAGS = \
     $(AM_CFLAGS) \
     -I$(top_srcdir)/src/lib/sifp
 libsss_simpleifp_la_LIBADD = \
-    $(DBUS_LIBS)
+    $(DBUS_LIBS) \
+    $(DHASH_LIBS)
 libsss_simpleifp_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/sifp/sss_simpleifp.exports \
     -version-info 0:0:0
@@ -1829,6 +1830,7 @@ sss_sifp_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(DBUS_LIBS) \
     $(TALLOC_LIBS) \
+    $(DHASH_LIBS) \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 endif # BUILD_IFP

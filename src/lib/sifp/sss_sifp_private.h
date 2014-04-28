@@ -53,7 +53,8 @@ enum sss_sifp_attr_type {
     SSS_SIFP_ATTR_TYPE_UINT32,
     SSS_SIFP_ATTR_TYPE_INT64,
     SSS_SIFP_ATTR_TYPE_UINT64,
-    SSS_SIFP_ATTR_TYPE_STRING
+    SSS_SIFP_ATTR_TYPE_STRING,
+    SSS_SIFP_ATTR_TYPE_STRING_DICT
 };
 
 /**
@@ -72,6 +73,7 @@ struct sss_sifp_attr {
         int64_t *int64;
         uint64_t *uint64;
         char **str;
+        hash_table_t *str_dict;
     } data;
 };
 

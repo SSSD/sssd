@@ -370,6 +370,12 @@ sss_sifp_free_attrs(sss_sifp_ctx *ctx,
             }
             _free(ctx, attrs[i]->data.str);
             break;
+        case SSS_SIFP_ATTR_TYPE_STRING_DICT:
+            if (attrs[i]->data.str_dict != NULL) {
+                hash_destroy(attrs[i]->data.str_dict);
+            }
+            attrs[i]->data.str_dict = NULL;
+            break;
         }
         _free(ctx, attrs[i]->name);
         _free(ctx, attrs[i]);

@@ -20,6 +20,7 @@
 
 #include <dbus/dbus.h>
 #include <string.h>
+#include <dhash.h>
 
 #include "lib/sifp/sss_sifp.h"
 #include "lib/sifp/sss_sifp_private.h"
@@ -102,6 +103,149 @@ sss_sifp_get_array_length(DBusMessageIter *iter)
     return size;
 }
 
+static void hash_delete_cb(hash_entry_t *item,
+                           hash_destroy_enum type,
+                           void *pvt)
+{
+    sss_sifp_ctx *ctx = (sss_sifp_ctx*)pvt;
+    char **values = (char**)(item->value.ptr);
+    int i;
+
+    if (values == NULL) {
+        return;
+    }
+
+    for (i = 0; values[i] != NULL; i++) {
+        _free(ctx, values[i]);
+        values[i] = NULL;
+    }
+
+    _free(ctx, values);
+    item->value.ptr = NULL;
+}
+
+static sss_sifp_error
+sss_sifp_parse_dict(sss_sifp_ctx *ctx,
+                    DBusMessageIter *iter,
+                    hash_table_t *table)
+{
+    DBusMessageIter dict_iter;
+    DBusMessageIter array_iter;
+    sss_sifp_error ret;
+    hash_key_t table_key;
+    hash_value_t table_value;
+    const char *key = NULL;
+    const char *value = NULL;
+    char **values = NULL;
+    unsigned int i;
+    unsigned int num_values;
+    int hret;
+
+    dbus_message_iter_recurse(iter, &dict_iter);
+
+    /* get the key */
+    check_dbus_arg(&dict_iter, DBUS_TYPE_STRING, ret, done);
+    dbus_message_iter_get_basic(&dict_iter, &key);
+
+    table_key.type = HASH_KEY_STRING;
+    table_key.str = sss_sifp_strdup(ctx, key);
+    if (table_key.str == NULL) {
+        ret = SSS_SIFP_OUT_OF_MEMORY;
+        goto done;
+    }
+
+    if (!dbus_message_iter_next(&dict_iter)) {
+        ret = SSS_SIFP_INTERNAL_ERROR;
+        goto done;
+    }
+
+    /* now read the value */
+    switch (dbus_message_iter_get_arg_type(&dict_iter)) {
+    case DBUS_TYPE_STRING:
+        dbus_message_iter_get_basic(&dict_iter, &value);
+        values = _alloc_zero(ctx, char *, 2);
+        if (values == NULL) {
+            ret = SSS_SIFP_OUT_OF_MEMORY;
+            goto done;
+        }
+
+        values[0] = sss_sifp_strdup(ctx, value);
+        if (values[0] == NULL) {
+            ret = SSS_SIFP_OUT_OF_MEMORY;
+            goto done;
+        }
+
+        values[1] = NULL;
+
+        ret = SSS_SIFP_OK;
+        break;
+    case DBUS_TYPE_ARRAY:
+        num_values = sss_sifp_get_array_length(&dict_iter);
+        if (num_values == 0) {
+            values = NULL;
+            ret = SSS_SIFP_OK;
+            goto done;
+        }
+
+        if (dbus_message_iter_get_element_type(&dict_iter)
+                != DBUS_TYPE_STRING) {
+            ret = SSS_SIFP_NOT_SUPPORTED;
+            goto done;
+        }
+
+        dbus_message_iter_recurse(&dict_iter, &array_iter);
+
+        values = _alloc_zero(ctx, char*, num_values + 1);
+        if (values == NULL) {
+            ret = SSS_SIFP_OUT_OF_MEMORY;
+            goto done;
+        }
+
+        for (i = 0; i < num_values; i++) {
+            dbus_message_iter_get_basic(&array_iter, &value);
+            values[i] = sss_sifp_strdup(ctx, value);
+            if (values[i] == NULL) {
+                ret = SSS_SIFP_OUT_OF_MEMORY;
+                goto done;
+            }
+
+            dbus_message_iter_next(&array_iter);
+        }
+
+        ret = SSS_SIFP_OK;
+        break;
+    default:
+        ret = SSS_SIFP_NOT_SUPPORTED;
+        break;
+    }
+
+    table_value.type = HASH_VALUE_PTR;
+    table_value.ptr = values;
+
+    hret = hash_enter(table, &table_key, &table_value);
+    if (hret == HASH_ERROR_NO_MEMORY) {
+        ret = SSS_SIFP_OUT_OF_MEMORY;
+    } else if (hret != HASH_SUCCESS) {
+        ret = SSS_SIFP_INTERNAL_ERROR;
+    }
+
+done:
+    if (table_key.str != NULL) {
+        _free(ctx, table_key.str);
+    }
+
+    if (ret != SSS_SIFP_OK) {
+        if (values != NULL) {
+            for (i = 0; values[i] != NULL; i++) {
+                _free(ctx, values[i]);
+            }
+            _free(ctx, values);
+        }
+    }
+
+    return ret;
+}
+
 static sss_sifp_error
 sss_sifp_parse_basic(sss_sifp_ctx *ctx,
                      DBusMessageIter *iter,
@@ -178,6 +322,7 @@ sss_sifp_parse_array(sss_sifp_ctx *ctx,
 {
     DBusMessageIter array_iter;
     sss_sifp_error ret;
+    int hret;
 
     attr->num_values = sss_sifp_get_array_length(iter);
     dbus_message_iter_recurse(iter, &array_iter);
@@ -246,19 +391,57 @@ sss_sifp_parse_array(sss_sifp_ctx *ctx,
 
         ret = SSS_SIFP_OK;
         break;
+    case DBUS_TYPE_DICT_ENTRY:
+        attr->type = SSS_SIFP_ATTR_TYPE_STRING_DICT;
+        if (attr->num_values == 0) {
+            attr->data.str_dict = NULL;
+            ret = SSS_SIFP_OK;
+            goto done;
+        }
+
+        hret = hash_create_ex(10, &(attr->data.str_dict), 0, 0, 0, 0,
+                              ctx->alloc_fn, ctx->free_fn, ctx->alloc_pvt,
+                              hash_delete_cb, ctx);
+        if (hret != HASH_SUCCESS) {
+            ret = SSS_SIFP_OUT_OF_MEMORY;
+            goto done;
+        }
+
+        for (i = 0; i < attr->num_values; i++) {
+            ret = sss_sifp_parse_dict(ctx, &array_iter, attr->data.str_dict);
+            if (ret != SSS_SIFP_OK) {
+                _free(ctx, attr->data.str_dict);
+                goto done;
+            }
+
+            if (!dbus_message_iter_next(&array_iter)
+                    && i + 1 < attr->num_values) {
+                ret = SSS_SIFP_INTERNAL_ERROR;
+                goto done;
+            }
+        }
+
+        ret = SSS_SIFP_OK;
+        break;
     default:
         ret = SSS_SIFP_INVALID_ARGUMENT;
         break;
     }
 
 done:
-    if (ret != SSS_SIFP_OK && attr->type == SSS_SIFP_ATTR_TYPE_STRING
-            && attr->data.str != NULL) {
-        unsigned int i;
-        for (i = 0; attr->data.str[i] != NULL && i < attr->num_values; i++) {
-            _free(ctx, attr->data.str[i]);
+    if (ret != SSS_SIFP_OK) {
+        if (attr->type == SSS_SIFP_ATTR_TYPE_STRING && attr->data.str != NULL) {
+            for (unsigned int i = 0;
+                 attr->data.str[i] != NULL && i < attr->num_values;
+                 i++) {
+                _free(ctx, attr->data.str[i]);
+            }
+            _free(ctx, attr->data.str);
+        } else if (attr->type == SSS_SIFP_ATTR_TYPE_STRING_DICT
+                    && attr->data.str_dict != NULL) {
+            hash_destroy(attr->data.str_dict);
+            attr->data.str_dict = NULL;
         }
-        _free(ctx, attr->data.str);
     }
 
     return ret;
@@ -283,6 +466,8 @@ sss_sifp_parse_variant(sss_sifp_ctx *ctx,
     } else {
         /* container types */
         switch (type) {
+        /* case DBUS_TYPE_DICT_ENTRY may only be contained within an array
+         * in variant */
         case DBUS_TYPE_ARRAY:
             ret = sss_sifp_parse_array(ctx, &variant_iter, attr);;
             break;

@@ -23,6 +23,7 @@ SSS_SIMPLEIFP_0.0 {
         sss_sifp_find_attr_as_int64;
         sss_sifp_find_attr_as_uint64;
         sss_sifp_find_attr_as_string;
+        sss_sifp_find_attr_as_string_dict;
         sss_sifp_find_attr_as_bool_array;
         sss_sifp_find_attr_as_int16_array;
         sss_sifp_find_attr_as_uint16_array;

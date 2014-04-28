@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <dhash.h>
 
 /**
  * @defgroup sss_simpleifp Simple interface to SSSD InfoPipe responder.
@@ -301,6 +302,21 @@ sss_sifp_error
 sss_sifp_find_attr_as_string(sss_sifp_attr **attrs,
                              const char *name,
                              const char **_value);
+
+/**
+ * @brief Find attribute in list and return its value.
+ *
+ * The dictionary is stored in dhash table, the values
+ * are pointers to NULL-terminated string array.
+ *
+ * @param[in] attrs Attributes
+ * @param[in] name Name of the attribute to find
+ * @param[out] _value Output value
+ */
+sss_sifp_error
+sss_sifp_find_attr_as_string_dict(sss_sifp_attr **attrs,
+                                  const char *name,
+                                  hash_table_t **_value);
 
 /**
  * @brief Find attribute in list and return its values.

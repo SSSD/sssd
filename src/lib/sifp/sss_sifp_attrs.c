@@ -158,6 +158,30 @@ sss_sifp_find_attr_as_string(sss_sifp_attr **attrs,
     return SSS_SIFP_OK;
 }
 
+sss_sifp_error
+sss_sifp_find_attr_as_string_dict(sss_sifp_attr **attrs,
+                                  const char *name,
+                                  hash_table_t **_value)
+{
+    sss_sifp_attr *attr = sss_sifp_find_attr(attrs, name);
+
+    if (attr == NULL) {
+        return SSS_SIFP_ATTR_MISSING;
+    }
+
+    if (attr->type != SSS_SIFP_ATTR_TYPE_STRING_DICT) {
+        return SSS_SIFP_INCORRECT_TYPE;
+    }
+
+    if (attr->data.str_dict == NULL) {
+        return SSS_SIFP_ATTR_NULL;
+    }
+
+    *_value = attr->data.str_dict;
+
+    return SSS_SIFP_OK;
+}
+
 /**
  * @brief Find attribute in list and return its values.
  *
