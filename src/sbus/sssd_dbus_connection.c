@@ -700,31 +700,15 @@ bool sbus_conn_disconnecting(struct sbus_connection *conn)
     return false;
 }
 
-/*
- * Send a message across the SBUS
- * If requested, the DBusPendingCall object will
- * be returned to the caller.
- *
- * This function will return EAGAIN in the event
- * that the connection is not open for
- * communication.
- */
-int sbus_conn_send(struct sbus_connection *conn,
-                   DBusMessage *msg,
-                   int timeout_ms,
-                   DBusPendingCallNotifyFunction reply_handler,
-                   void *pvt,
-                   DBusPendingCall **pending)
+int sss_dbus_conn_send(DBusConnection *dbus_conn,
+                       DBusMessage *msg,
+                       int timeout_ms,
+                       DBusPendingCallNotifyFunction reply_handler,
+                       void *pvt,
+                       DBusPendingCall **pending)
 {
     DBusPendingCall *pending_reply;
-    DBusConnection *dbus_conn;
     dbus_bool_t dbret;
-
-    dbus_conn = sbus_get_connection(conn);
-    if (!dbus_conn) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "D-BUS not connected\n");
-        return ENOTCONN;
-    }
 
     dbret = dbus_connection_send_with_reply(dbus_conn, msg,
                                             &pending_reply,
@@ -767,6 +751,34 @@ int sbus_conn_send(struct sbus_connection *conn,
      * request is invoked when the connection is re-established
      */
     return EAGAIN;
+}
+
+/*
+ * Send a message across the SBUS
+ * If requested, the DBusPendingCall object will
+ * be returned to the caller.
+ *
+ * This function will return EAGAIN in the event
+ * that the connection is not open for
+ * communication.
+ */
+int sbus_conn_send(struct sbus_connection *conn,
+                   DBusMessage *msg,
+                   int timeout_ms,
+                   DBusPendingCallNotifyFunction reply_handler,
+                   void *pvt,
+                   DBusPendingCall **pending)
+{
+    DBusConnection *dbus_conn;
+
+    dbus_conn = sbus_get_connection(conn);
+    if (!dbus_conn) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "D-BUS not connected\n");
+        return ENOTCONN;
+    }
+
+    return sss_dbus_conn_send(dbus_conn, msg, timeout_ms,
+                              reply_handler, pvt, pending);
 }
 
 void sbus_conn_send_reply(struct sbus_connection *conn, DBusMessage *reply)
