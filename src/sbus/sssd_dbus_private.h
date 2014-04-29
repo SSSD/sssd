@@ -115,4 +115,15 @@ sbus_request_invoke_or_finish(struct sbus_request *dbus_req,
                               void *handler_data,
                               sbus_method_invoker_fn invoker_fn);
 
+/* A low-level, private variant of sbus_conn_send that accepts just
+ * DBusConnection. It should never be used outside sbus code, responders
+ * and back ends should use sbus_conn_send!
+ */
+int sss_dbus_conn_send(DBusConnection *dbus_conn,
+                       DBusMessage *msg,
+                       int timeout_ms,
+                       DBusPendingCallNotifyFunction reply_handler,
+                       void *pvt,
+                       DBusPendingCall **pending);
+
 #endif /* _SSSD_DBUS_PRIVATE_H_ */
