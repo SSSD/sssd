@@ -548,7 +548,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
-%{_libexecdir}/%{servicename}/sssd_ifp
 
 %dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_simple.so
