@@ -58,6 +58,10 @@ struct introspect_ctx {
 
 static int introspect_ctx_destructor(struct introspect_ctx *ictx)
 {
+    if (ictx->f) {
+        fclose(ictx->f);
+    }
+
     free(ictx->buf);
     ictx->buf = NULL;
     return 0;
