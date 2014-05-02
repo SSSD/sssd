@@ -195,6 +195,7 @@
                             SYSDB_DEFAULT_ATTRS, \
                             SYSDB_ORIG_DN, \
                             SYSDB_SID_STR, \
+                            SYSDB_NAME, \
                             NULL}
 
 #define SYSDB_TMPL_USER SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE
