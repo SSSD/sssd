@@ -1309,6 +1309,11 @@ START_TEST (test_sysdb_initgroups)
                 "Did not find the expected UID (found %d expected %d)",
                 uid, _i);
 
+    fail_unless(strcmp(ldb_msg_find_attr_as_string(user, SYSDB_NAME, NULL),
+                       username) == 0,
+                "Wrong username\n");
+
+
     gid = ldb_msg_find_attr_as_uint(group, SYSDB_GIDNUM, 0);
     fail_unless(gid == _i + 1000,
                 "Did not find the expected GID (found %d expected %d)",
