@@ -1630,6 +1630,7 @@ ifp_tests_SOURCES = \
      $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_ifp.c \
     src/responder/ifp/ifpsrv_cmd.c \
+    src/responder/ifp/ifp_iface_generated.c \
     src/responder/ifp/ifpsrv_util.c
 ifp_tests_CFLAGS = \
     $(AM_CFLAGS)

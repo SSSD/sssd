@@ -16,5 +16,10 @@
             <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
 
+        <method name="GetUserGroups">
+            <arg name="user" type="s" direction="in" />
+            <arg name="values" type="as" direction="out"/>
+        </method>
+
     </interface>
 </node>

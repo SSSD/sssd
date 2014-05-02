@@ -52,6 +52,9 @@ int ifp_ping(struct sbus_request *dbus_req, void *data);
 
 int ifp_user_get_attr(struct sbus_request *dbus_req, void *data);
 
+int ifp_user_get_groups(struct sbus_request *req,
+                        void *data, const char *arg_user);
+
 /* == Utility functions == */
 struct ifp_req {
     struct sbus_request *dbus_req;
