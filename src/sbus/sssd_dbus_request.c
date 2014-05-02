@@ -226,7 +226,8 @@ sbus_request_parse_or_finish(struct sbus_request *request,
 
     } else {
         /* Trying to send the error back to the caller in this case is a joke */
-        if (!dbus_error_is_set(&error) || dbus_error_has_name(&error, DBUS_ERROR_NO_MEMORY)) {
+        if (!dbus_error_is_set(&error) &&
+                dbus_error_has_name(&error, DBUS_ERROR_NO_MEMORY)) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory parsing DBus message\n");
             sbus_request_finish(request, NULL);
 
