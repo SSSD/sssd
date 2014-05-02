@@ -67,6 +67,7 @@ struct infopipe_iface ifp_iface = {
     { &infopipe_iface_meta, 0 },
     .Ping = ifp_ping,
     .GetUserAttr = ifp_user_get_attr,
+    .GetUserGroups = ifp_user_get_groups,
 };
 
 struct sss_cmd_table *get_ifp_cmds(void)

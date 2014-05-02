@@ -15,6 +15,7 @@
 #define INFOPIPE_IFACE "org.freedesktop.sssd.infopipe"
 #define INFOPIPE_IFACE_PING "Ping"
 #define INFOPIPE_IFACE_GETUSERATTR "GetUserAttr"
+#define INFOPIPE_IFACE_GETUSERGROUPS "GetUserGroups"
 
 /* ------------------------------------------------------------------------
  * DBus handlers
@@ -39,7 +40,11 @@ struct infopipe_iface {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
     sbus_msg_handler_fn Ping;
     sbus_msg_handler_fn GetUserAttr;
+    int (*GetUserGroups)(struct sbus_request *req, void *data, const char *arg_user);
 };
+
+/* finish function for GetUserGroups */
+int infopipe_iface_GetUserGroups_finish(struct sbus_request *req, const char *arg_values[], int len_values);
 
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata
