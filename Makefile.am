@@ -486,6 +486,7 @@ dist_noinst_HEADERS = \
     src/responder/ssh/sshsrv_private.h \
     src/responder/ifp/ifp_private.h \
     src/responder/ifp/ifp_domains.h \
+    src/responder/ifp/ifp_components.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_meta.h \
@@ -860,6 +861,7 @@ sssd_ifp_SOURCES = \
     src/responder/ifp/ifp_iface_generated.h \
     src/responder/ifp/ifpsrv_util.c \
     src/responder/ifp/ifp_domains.c \
+    src/responder/ifp/ifp_components.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_ifp_CFLAGS = \
@@ -869,6 +871,11 @@ sssd_ifp_LDADD = \
     $(SSSD_INTERNAL_LTLIBS)
 dist_dbuspolicy_DATA = \
     src/responder/ifp/org.freedesktop.sssd.infopipe.conf
+
+if BUILD_CONFIG_LIB
+sssd_ifp_LDADD += libsss_config.la
+endif
+
 endif
 
 sssd_be_SOURCES = \

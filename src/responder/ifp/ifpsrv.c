@@ -39,6 +39,7 @@
 #include "confdb/confdb.h"
 #include "responder/ifp/ifp_private.h"
 #include "responder/ifp/ifp_domains.h"
+#include "responder/ifp/ifp_components.h"
 #include "responder/common/responder_sbus.h"
 
 #define DEFAULT_ALLOWED_UIDS "0"
@@ -67,10 +68,34 @@ static struct data_provider_iface ifp_dp_methods = {
 struct infopipe_iface ifp_iface = {
     { &infopipe_iface_meta, 0 },
     .Ping = ifp_ping,
+
+    /* components */
+    .ListComponents = ifp_list_components,
+    .ListResponders = ifp_list_responders,
+    .ListBackends = ifp_list_backends,
+    .FindMonitor = ifp_find_monitor,
+    .FindResponderByName = ifp_find_responder_by_name,
+    .FindBackendByName = ifp_find_backend_by_name,
+
     .GetUserAttr = ifp_user_get_attr,
     .GetUserGroups = ifp_user_get_groups,
     .ListDomains = ifp_list_domains,
     .FindDomainByName = ifp_find_domain_by_name,
+};
+
+struct infopipe_component ifp_component = {
+    { &infopipe_component_meta, 0 },
+    .Enable = ifp_component_enable,
+    .Disable = ifp_component_disable,
+    .ChangeDebugLevel = ifp_component_change_debug_level,
+    .ChangeDebugLevelTemporarily = ifp_component_change_debug_level_tmp,
+    .infopipe_component_get_name = ifp_component_get_name,
+    .infopipe_component_get_debug_level = ifp_component_get_debug_level,
+    .infopipe_component_get_enabled = ifp_component_get_enabled,
+    .infopipe_component_get_type = ifp_component_get_type,
+    /* FIXME: This should be part of Components.Backends interface, onece
+     * SSSD supports multiple interfaces per object path. */
+    .infopipe_component_get_providers = ifp_backend_get_providers
 };
 
 struct infopipe_domain ifp_domain = {
@@ -99,6 +124,7 @@ struct sysbus_iface {
 static struct sysbus_iface ifp_ifaces[] = {
     { INFOPIPE_PATH, &ifp_iface.vtable },
     { INFOPIPE_DOMAIN_PATH, &ifp_domain.vtable },
+    { INFOPIPE_COMPONENT_PATH, &ifp_component.vtable },
     { NULL, NULL },
 };
 

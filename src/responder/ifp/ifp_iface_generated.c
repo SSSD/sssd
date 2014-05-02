@@ -7,11 +7,104 @@
 
 /* invokes a handler with a 's' DBus signature */
 static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr);
+
+/* invokes a handler with a 'u' DBus signature */
+static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr);
 static int invoke_get_s(struct sbus_request *dbus_req, void *function_ptr);
-static int invoke_get_as(struct sbus_request *dbus_req, void *function_ptr);
 static int invoke_get_u(struct sbus_request *dbus_req, void *function_ptr);
 static int invoke_get_b(struct sbus_request *dbus_req, void *function_ptr);
+static int invoke_get_as(struct sbus_request *dbus_req, void *function_ptr);
 static int invoke_get_o(struct sbus_request *dbus_req, void *function_ptr);
+
+/* arguments for org.freedesktop.sssd.infopipe.ListComponents */
+const struct sbus_arg_meta infopipe_iface_ListComponents__out[] = {
+    { "components", "ao" },
+    { NULL, }
+};
+
+int infopipe_iface_ListComponents_finish(struct sbus_request *req, const char *arg_components[], int len_components)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_components, len_components,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.ListResponders */
+const struct sbus_arg_meta infopipe_iface_ListResponders__out[] = {
+    { "responders", "ao" },
+    { NULL, }
+};
+
+int infopipe_iface_ListResponders_finish(struct sbus_request *req, const char *arg_responders[], int len_responders)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_responders, len_responders,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.ListBackends */
+const struct sbus_arg_meta infopipe_iface_ListBackends__out[] = {
+    { "backends", "ao" },
+    { NULL, }
+};
+
+int infopipe_iface_ListBackends_finish(struct sbus_request *req, const char *arg_backends[], int len_backends)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_backends, len_backends,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.FindMonitor */
+const struct sbus_arg_meta infopipe_iface_FindMonitor__out[] = {
+    { "monitor", "o" },
+    { NULL, }
+};
+
+int infopipe_iface_FindMonitor_finish(struct sbus_request *req, const char *arg_monitor)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_OBJECT_PATH, &arg_monitor,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.FindResponderByName */
+const struct sbus_arg_meta infopipe_iface_FindResponderByName__in[] = {
+    { "name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.FindResponderByName */
+const struct sbus_arg_meta infopipe_iface_FindResponderByName__out[] = {
+    { "responder", "o" },
+    { NULL, }
+};
+
+int infopipe_iface_FindResponderByName_finish(struct sbus_request *req, const char *arg_responder)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_OBJECT_PATH, &arg_responder,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.FindBackendByName */
+const struct sbus_arg_meta infopipe_iface_FindBackendByName__in[] = {
+    { "name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.FindBackendByName */
+const struct sbus_arg_meta infopipe_iface_FindBackendByName__out[] = {
+    { "backend", "o" },
+    { NULL, }
+};
+
+int infopipe_iface_FindBackendByName_finish(struct sbus_request *req, const char *arg_backend)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_OBJECT_PATH, &arg_backend,
+                                         DBUS_TYPE_INVALID);
+}
 
 /* arguments for org.freedesktop.sssd.infopipe.GetUserAttr */
 const struct sbus_arg_meta infopipe_iface_GetUserAttr__in[] = {
@@ -87,6 +180,48 @@ const struct sbus_method_meta infopipe_iface__methods[] = {
         NULL, /* no invoker */
     },
     {
+        "ListComponents", /* name */
+        NULL, /* no in_args */
+        infopipe_iface_ListComponents__out,
+        offsetof(struct infopipe_iface, ListComponents),
+        NULL, /* no invoker */
+    },
+    {
+        "ListResponders", /* name */
+        NULL, /* no in_args */
+        infopipe_iface_ListResponders__out,
+        offsetof(struct infopipe_iface, ListResponders),
+        NULL, /* no invoker */
+    },
+    {
+        "ListBackends", /* name */
+        NULL, /* no in_args */
+        infopipe_iface_ListBackends__out,
+        offsetof(struct infopipe_iface, ListBackends),
+        NULL, /* no invoker */
+    },
+    {
+        "FindMonitor", /* name */
+        NULL, /* no in_args */
+        infopipe_iface_FindMonitor__out,
+        offsetof(struct infopipe_iface, FindMonitor),
+        NULL, /* no invoker */
+    },
+    {
+        "FindResponderByName", /* name */
+        infopipe_iface_FindResponderByName__in,
+        infopipe_iface_FindResponderByName__out,
+        offsetof(struct infopipe_iface, FindResponderByName),
+        invoke_s_method,
+    },
+    {
+        "FindBackendByName", /* name */
+        infopipe_iface_FindBackendByName__in,
+        infopipe_iface_FindBackendByName__out,
+        offsetof(struct infopipe_iface, FindBackendByName),
+        invoke_s_method,
+    },
+    {
         "GetUserAttr", /* name */
         infopipe_iface_GetUserAttr__in,
         infopipe_iface_GetUserAttr__out,
@@ -150,6 +285,231 @@ const struct sbus_interface_meta infopipe_iface_meta = {
     NULL, /* no signals */
     NULL, /* no properties */
     invoke_infopipe_iface_get_all, /* GetAll invoker */
+};
+
+int infopipe_component_Enable_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+int infopipe_component_Disable_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Components.ChangeDebugLevel */
+const struct sbus_arg_meta infopipe_component_ChangeDebugLevel__in[] = {
+    { "new_level", "u" },
+    { NULL, }
+};
+
+int infopipe_component_ChangeDebugLevel_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Components.ChangeDebugLevelTemporarily */
+const struct sbus_arg_meta infopipe_component_ChangeDebugLevelTemporarily__in[] = {
+    { "new_level", "u" },
+    { NULL, }
+};
+
+int infopipe_component_ChangeDebugLevelTemporarily_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.infopipe.Components */
+const struct sbus_method_meta infopipe_component__methods[] = {
+    {
+        "Enable", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct infopipe_component, Enable),
+        NULL, /* no invoker */
+    },
+    {
+        "Disable", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct infopipe_component, Disable),
+        NULL, /* no invoker */
+    },
+    {
+        "ChangeDebugLevel", /* name */
+        infopipe_component_ChangeDebugLevel__in,
+        NULL, /* no out_args */
+        offsetof(struct infopipe_component, ChangeDebugLevel),
+        invoke_u_method,
+    },
+    {
+        "ChangeDebugLevelTemporarily", /* name */
+        infopipe_component_ChangeDebugLevelTemporarily__in,
+        NULL, /* no out_args */
+        offsetof(struct infopipe_component, ChangeDebugLevelTemporarily),
+        invoke_u_method,
+    },
+    { NULL, }
+};
+
+/* invokes GetAll for the 'org.freedesktop.sssd.infopipe.Components' interface */
+static int invoke_infopipe_component_get_all(struct sbus_request *dbus_req, void *function_ptr)
+{
+    struct sbus_interface *intf = dbus_req->intf;
+    const struct sbus_property_meta *property;
+    DBusMessage *reply;
+    dbus_bool_t dbret;
+    DBusMessageIter iter;
+    DBusMessageIter iter_dict;
+    int ret;
+    const char * s_prop_val;
+    const char * s_out_val;
+    void (*s_handler)(struct sbus_request *, void *data, const char * *);
+    bool b_prop_val;
+    dbus_bool_t b_out_val;
+    void (*b_handler)(struct sbus_request *, void *data, bool *);
+    uint32_t u_prop_val;
+    uint32_t u_out_val;
+    void (*u_handler)(struct sbus_request *, void *data, uint32_t *);
+    const char * *as_prop_val;
+    int as_prop_len;
+    const char * *as_out_val;
+    void (*as_handler)(struct sbus_request *, void *data, const char * * *, int *);
+
+    reply = dbus_message_new_method_return(dbus_req->message);
+    if (!reply) return ENOMEM;
+    dbus_message_iter_init_append(reply, &iter);
+    dbret = dbus_message_iter_open_container(
+                                     &iter, DBUS_TYPE_ARRAY,
+                                     DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
+                                     DBUS_TYPE_STRING_AS_STRING
+                                     DBUS_TYPE_VARIANT_AS_STRING
+                                     DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
+                                     &iter_dict);
+    if (!dbret) return ENOMEM;
+
+    property = sbus_meta_find_property(intf->vtable->meta, "name");
+    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
+        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
+        if (s_handler) {
+            (s_handler)(dbus_req, dbus_req->intf->instance_data, &s_prop_val);
+            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
+            ret = sbus_add_variant_to_dict(&iter_dict, "name", DBUS_TYPE_STRING, &s_out_val);
+            if (ret != EOK) return ret;
+        }
+    }
+
+    property = sbus_meta_find_property(intf->vtable->meta, "debug_level");
+    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
+        u_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
+        if (u_handler) {
+            (u_handler)(dbus_req, dbus_req->intf->instance_data, &u_prop_val);
+            u_out_val = u_prop_val;
+            ret = sbus_add_variant_to_dict(&iter_dict, "debug_level", DBUS_TYPE_UINT32, &u_out_val);
+            if (ret != EOK) return ret;
+        }
+    }
+
+    property = sbus_meta_find_property(intf->vtable->meta, "enabled");
+    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
+        b_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
+        if (b_handler) {
+            (b_handler)(dbus_req, dbus_req->intf->instance_data, &b_prop_val);
+            b_out_val = b_prop_val;
+            ret = sbus_add_variant_to_dict(&iter_dict, "enabled", DBUS_TYPE_BOOLEAN, &b_out_val);
+            if (ret != EOK) return ret;
+        }
+    }
+
+    property = sbus_meta_find_property(intf->vtable->meta, "type");
+    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
+        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
+        if (s_handler) {
+            (s_handler)(dbus_req, dbus_req->intf->instance_data, &s_prop_val);
+            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
+            ret = sbus_add_variant_to_dict(&iter_dict, "type", DBUS_TYPE_STRING, &s_out_val);
+            if (ret != EOK) return ret;
+        }
+    }
+
+    property = sbus_meta_find_property(intf->vtable->meta, "providers");
+    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
+        as_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
+        if (as_handler) {
+            (as_handler)(dbus_req, dbus_req->intf->instance_data, &as_prop_val, &as_prop_len);
+            as_out_val = as_prop_val;
+            ret = sbus_add_array_as_variant_to_dict(&iter_dict, "providers", DBUS_TYPE_STRING, (uint8_t*)as_out_val, as_prop_len, sizeof(const char *));
+            if (ret != EOK) return ret;
+        }
+    }
+
+    dbret = dbus_message_iter_close_container(&iter, &iter_dict);
+    if (!dbret) return ENOMEM;
+
+    return sbus_request_finish(dbus_req, reply);
+}
+
+/* property info for org.freedesktop.sssd.infopipe.Components */
+const struct sbus_property_meta infopipe_component__properties[] = {
+    {
+        "name", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_name),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "debug_level", /* name */
+        "u", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_debug_level),
+        invoke_get_u,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "enabled", /* name */
+        "b", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_enabled),
+        invoke_get_b,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "type", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_type),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "providers", /* name */
+        "as", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_providers),
+        invoke_get_as,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.infopipe.Components */
+const struct sbus_interface_meta infopipe_component_meta = {
+    "org.freedesktop.sssd.infopipe.Components", /* name */
+    infopipe_component__methods,
+    NULL, /* no signals */
+    infopipe_component__properties,
+    invoke_infopipe_component_get_all, /* GetAll invoker */
 };
 
 /* invokes GetAll for the 'org.freedesktop.sssd.infopipe.Domains' interface */
@@ -499,6 +859,22 @@ static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr)
 
     if (!sbus_request_parse_or_finish(dbus_req,
                                DBUS_TYPE_STRING, &arg_0,
+                               DBUS_TYPE_INVALID)) {
+         return EOK; /* request handled */
+    }
+
+    return (handler)(dbus_req, dbus_req->intf->instance_data,
+                     arg_0);
+}
+
+/* invokes a handler with a 'u' DBus signature */
+static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr)
+{
+    uint32_t arg_0;
+    int (*handler)(struct sbus_request *, void *, uint32_t) = function_ptr;
+
+    if (!sbus_request_parse_or_finish(dbus_req,
+                               DBUS_TYPE_UINT32, &arg_0,
                                DBUS_TYPE_INVALID)) {
          return EOK; /* request handled */
     }

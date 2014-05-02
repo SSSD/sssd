@@ -9,6 +9,34 @@
             <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
 
+        <!-- SSSD components -->
+
+        <method name="ListComponents">
+            <arg name="components" type="ao" direction="out"/>
+        </method>
+
+        <method name="ListResponders">
+            <arg name="responders" type="ao" direction="out"/>
+        </method>
+
+        <method name="ListBackends">
+            <arg name="backends" type="ao" direction="out"/>
+        </method>
+
+        <method name="FindMonitor">
+            <arg name="monitor" type="o" direction="out"/>
+        </method>
+
+        <method name="FindResponderByName">
+            <arg name="name" type="s" direction="in" />
+            <arg name="responder" type="o" direction="out"/>
+        </method>
+
+        <method name="FindBackendByName">
+            <arg name="name" type="s" direction="in" />
+            <arg name="backend" type="o" direction="out"/>
+        </method>
+
         <method name="GetUserAttr">
             <arg name="user" type="s" direction="in" />
             <arg name="attr" type="as" direction="in" />
@@ -30,6 +58,29 @@
             <arg name="domain" type="ao" direction="out"/>
         </method>
 
+    </interface>
+
+    <interface name="org.freedesktop.sssd.infopipe.Components">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="infopipe_component"/>
+
+        <method name="Enable" />
+        <method name="Disable" />
+        <method name="ChangeDebugLevel">
+            <arg name="new_level" type="u" direction="in" />
+        </method>
+
+        <method name="ChangeDebugLevelTemporarily">
+            <arg name="new_level" type="u" direction="in" />
+        </method>
+
+        <property name="name" type="s" access="read" />
+        <property name="debug_level" type="u" access="read" />
+        <property name="enabled" type="b" access="read" />
+        <property name="type" type="s" access="read" />
+
+        <!-- FIXME: This should be part of Components.Backends interface, onece
+             SSSD supports multiple interfaces per object path. -->
+        <property name="providers" type="as" access="read" />
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Domains">
