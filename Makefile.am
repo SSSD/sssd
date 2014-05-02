@@ -1190,6 +1190,7 @@ ipa_ldap_opt_tests_LDADD = \
     $(CHECK_LIBS) \
     $(TALLOC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(OPENLDAP_LIBS) \
     libsss_test_common.la
 
 ad_ldap_opt_tests_SOURCES = \
