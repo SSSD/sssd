@@ -1271,3 +1271,67 @@ int confdb_get_domain(struct confdb_ctx *cdb,
 
     return ENOENT;
 }
+
+int confdb_list_all_domain_names(TALLOC_CTX *mem_ctx,
+                                 struct confdb_ctx *cdb,
+                                 char ***_names)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_dn *dn = NULL;
+    struct ldb_result *res = NULL;
+    static const char *attrs[] = {CONFDB_DOMAIN_ATTR, NULL};
+    const char *name = NULL;
+    char **names = NULL;
+    int i;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new(tmp_ctx, cdb->ldb, CONFDB_DOMAIN_BASEDN);
+    if (dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn, LDB_SCOPE_ONELEVEL,
+                     attrs, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    names = talloc_zero_array(tmp_ctx, char*, res->count + 1);
+    if (names == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < res->count; i++) {
+        name = ldb_msg_find_attr_as_string(res->msgs[i], CONFDB_DOMAIN_ATTR,
+                                           NULL);
+        if (name == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "The object [%s] doesn't have a name\n",
+                   ldb_dn_get_linearized(res->msgs[i]->dn));
+            ret = EINVAL;
+            goto done;
+        }
+
+        names[i] = talloc_strdup(names, name);
+        if (names[i] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    *_names = talloc_steal(mem_ctx, names);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}

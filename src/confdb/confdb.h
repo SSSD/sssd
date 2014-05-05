@@ -297,6 +297,22 @@ int confdb_get_domain(struct confdb_ctx *cdb,
 int confdb_get_domains(struct confdb_ctx *cdb,
                        struct sss_domain_info **domains);
 
+/**
+ * Get a null-terminated linked-list of all domain names
+ * @param[in] mem_ctx The parent memory context for the value list
+ * @param[in] cdb The connection object to the confdb
+ * @param[out] _names Output list
+ *
+ * @return 0 - Lookup succeeded and all domain names are in the list
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return ENOENT - No active domains are configured
+ * @return EIO - There was an I/O error communicating with the ConfDB file
+ * @return EINVAL - Corrupted confdb object
+ */
+int confdb_list_all_domain_names(TALLOC_CTX *mem_ctx,
+                                 struct confdb_ctx *cdb,
+                                 char ***_names);
+
 
 /**
  * @brief Add an arbitrary parameter to the confdb.
