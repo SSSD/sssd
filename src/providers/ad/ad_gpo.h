@@ -50,6 +50,4 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
 
 errno_t ad_gpo_access_recv(struct tevent_req *req);
 
-struct security_descriptor;
-
 #endif /* AD_GPO_H_ */

@@ -2119,6 +2119,7 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_access.h \
     src/providers/ad/ad_gpo.c \
     src/providers/ad/ad_gpo.h \
+    src/providers/ad/ad_gpo_ndr.c \
     src/providers/ad/ad_opts.h \
     src/providers/ad/ad_srv.c \
     src/providers/ad/ad_subdomains.c \
