@@ -806,3 +806,11 @@ bool check_ipv6_addr(struct in6_addr *addr, uint8_t flags)
 
     return true;
 }
+
+const char * const * get_known_services(void)
+{
+    static const char *svc[] = {"nss", "pam", "sudo", "autofs",
+                                "ssh", "pac", "ifp", NULL };
+
+    return svc;
+}

@@ -888,8 +888,7 @@ done:
 
 static char *check_services(char **services)
 {
-    const char *known_services[] = { "nss", "pam", "sudo", "autofs", "ssh",
-                                     "pac", "ifp", NULL };
+    const char * const *known_services = get_known_services();
     int i;
     int ii;
 
