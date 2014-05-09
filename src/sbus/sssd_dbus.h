@@ -50,7 +50,8 @@ typedef int (*sbus_server_conn_init_fn)(struct sbus_connection *, void *);
 
 enum {
     SBUS_CONN_TYPE_PRIVATE = 1,
-    SBUS_CONN_TYPE_SHARED
+    SBUS_CONN_TYPE_SHARED,
+    SBUS_CONN_TYPE_SYSBUS
 };
 
 enum {

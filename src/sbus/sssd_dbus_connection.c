@@ -275,8 +275,10 @@ static int connection_destructor(void *ctx)
         /* Private connections must be closed explicitly */
         dbus_connection_close(conn->dbus.conn);
     }
-    else if (conn->connection_type == SBUS_CONN_TYPE_SHARED) {
-        /* Shared connections are destroyed when their last reference is removed */
+    else if (conn->connection_type == SBUS_CONN_TYPE_SHARED ||
+             conn->connection_type == SBUS_CONN_TYPE_SYSBUS) {
+        /* Shared and system bus connections are destroyed when their last
+           reference is removed */
     }
     else {
         /* Critical Error! */

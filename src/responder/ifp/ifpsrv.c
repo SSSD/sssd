@@ -150,7 +150,7 @@ sysbus_init(TALLOC_CTX *mem_ctx,
 
     /* Integrate with tevent loop */
     ret = sbus_init_connection(system_bus, ev, conn,
-                               SBUS_CONN_TYPE_SHARED,
+                               SBUS_CONN_TYPE_SYSBUS,
                                &system_bus->conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
