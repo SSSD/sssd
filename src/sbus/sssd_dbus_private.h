@@ -22,6 +22,8 @@
 #ifndef _SSSD_DBUS_PRIVATE_H_
 #define _SSSD_DBUS_PRIVATE_H_
 
+#include <dhash.h>
+
 #include "sssd_dbus_meta.h"
 
 union dbus_conn_pointer {
@@ -60,6 +62,7 @@ struct sbus_connection {
     char *symlink;
     sbus_server_conn_init_fn srv_init_fn;
     void *srv_init_data;
+    hash_table_t *clients;
 
     /* watches list */
     struct sbus_watch_ctx *watch_list;
@@ -125,5 +128,13 @@ int sss_dbus_conn_send(DBusConnection *dbus_conn,
                        DBusPendingCallNotifyFunction reply_handler,
                        void *pvt,
                        DBusPendingCall **pending);
+
+
+/* =Retrieve-conn-credentials=============================================== */
+struct tevent_req *sbus_get_sender_id_send(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev,
+                                           struct sbus_connection *conn,
+                                           const char *sender);
+int sbus_get_sender_id_recv(struct tevent_req *req, int64_t *_uid);
 
 #endif /* _SSSD_DBUS_PRIVATE_H_ */

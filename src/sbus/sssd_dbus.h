@@ -27,6 +27,7 @@ struct sbus_interface;
 struct sbus_request;
 
 #include <dbus/dbus.h>
+#include <sys/types.h>
 #include "util/util.h"
 
 typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req,
@@ -187,6 +188,7 @@ void sbus_conn_send_reply(struct sbus_connection *conn,
  * or sbus_request_fail() functions.
  */
 struct sbus_request {
+    int64_t client;
     struct sbus_connection *conn;
     DBusMessage *message;
     struct sbus_interface *intf;
