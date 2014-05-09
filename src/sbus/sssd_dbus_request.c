@@ -276,3 +276,204 @@ sbus_request_parse_or_finish(struct sbus_request *request,
 
     return ret;
 }
+
+struct sbus_get_sender_id_state {
+    struct sbus_connection *conn;
+    DBusConnection *sysbus_conn;
+    char *sender;
+    int64_t uid;
+};
+
+static void sbus_get_sender_id_done(DBusPendingCall *pending, void *ptr);
+
+struct tevent_req *sbus_get_sender_id_send(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev,
+                                           struct sbus_connection *conn,
+                                           const char *sender)
+{
+    struct tevent_req *req;
+    struct sbus_get_sender_id_state *state;
+    DBusError dbus_error;
+    DBusMessage *msg = NULL;
+    dbus_bool_t dbret;
+    errno_t ret;
+    hash_key_t key;
+    hash_value_t value;
+
+    req = tevent_req_create(mem_ctx, &state, struct sbus_get_sender_id_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->conn = conn;
+    state->uid = -1;
+
+    if (conn->connection_type != SBUS_CONN_TYPE_SYSBUS) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Not a sysbus message, quit\n");
+        ret = EOK;
+        goto immediate;
+    }
+
+    if (sender == NULL) {
+        ret = ERR_SBUS_NO_SENDER;
+        goto immediate;
+    }
+
+    state->sender = talloc_strdup(state, sender);
+    if (state->sender == NULL) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(sender);
+    ret = hash_lookup(conn->clients, &key, &value);
+    if (ret == HASH_SUCCESS) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "%s already present in the clients table\n", sender);
+        state->uid = (int64_t) value.ul;
+        ret = EOK;
+        goto immediate;
+    } else if (ret != HASH_ERROR_KEY_NOT_FOUND) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to look up %s in the clients table\n", sender);
+        ret = ERR_SBUS_GET_SENDER_ERROR;
+        goto immediate;
+    }
+
+    /* We don't know this sender yet, let's ask the system bus */
+
+    /* Connect to the well-known system bus */
+    dbus_error_init(&dbus_error);
+    state->sysbus_conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
+    if (state->sysbus_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to connect to D-BUS system bus.\n");
+        ret = ERR_SBUS_GET_SENDER_ERROR;
+        goto immediate;
+    }
+    dbus_connection_set_exit_on_disconnect(state->sysbus_conn, FALSE);
+
+    /* If we ever need to get the SELinux context or the PID here, we need
+     * to call GetConnectionCredentials instead
+     */
+    msg = dbus_message_new_method_call("org.freedesktop.DBus",  /* bus name */
+                                       "/org/freedesktop/DBus", /* path */
+                                       "org.freedesktop.DBus",  /* interface */
+                                       "GetConnectionUnixUser");
+    if (msg == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory?!\n");
+        ret = ENOMEM;
+        goto immediate;
+    }
+
+    dbret = dbus_message_append_args(msg,
+                                     DBUS_TYPE_STRING, &sender,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) {
+        goto immediate;
+    }
+
+    ret = sss_dbus_conn_send(state->sysbus_conn, msg, 3000,
+                             sbus_get_sender_id_done,
+                             req, NULL);
+    dbus_message_unref(msg);
+    msg = NULL;
+    if (ret != EOK) {
+        goto immediate;
+    }
+
+    return req;
+
+immediate:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        if (msg != NULL) {
+            dbus_message_unref(msg);
+        }
+        if (state->sysbus_conn != NULL) {
+            dbus_connection_unref(state->sysbus_conn);
+        }
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sbus_get_sender_id_done(DBusPendingCall *pending, void *ptr)
+{
+    struct tevent_req *req;
+    struct sbus_get_sender_id_state *state;
+    DBusMessage *reply;
+    DBusError dbus_error;
+    hash_key_t key;
+    hash_value_t value;
+    dbus_bool_t dbret;
+    int ret;
+    uid_t uid;
+
+    dbus_error_init(&dbus_error);
+
+    req = talloc_get_type(ptr, struct tevent_req);
+    state = tevent_req_data(req, struct sbus_get_sender_id_state);
+
+    reply = dbus_pending_call_steal_reply(pending);
+    if (!reply) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Severe error. A reply callback was called but no reply "
+               "was received and no timeout occurred\n");
+
+        ret = EIO;
+        goto done;
+    }
+
+    dbret = dbus_message_get_args(reply,
+                                  &dbus_error,
+                                  DBUS_TYPE_UINT32, &uid,
+                                  DBUS_TYPE_INVALID);
+    if (!dbret) {
+        ret = EIO;
+        goto done;
+    }
+
+    state->uid = uid;
+
+    key.type = HASH_KEY_STRING;
+    key.str = talloc_steal(state->conn->clients, state->sender);
+    value.type = HASH_VALUE_UINT;
+    value.ul = state->uid;
+    ret = hash_enter(state->conn->clients, &key, &value);
+    if (ret != HASH_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
+    dbus_connection_unref(state->sysbus_conn);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+}
+
+int sbus_get_sender_id_recv(struct tevent_req *req, int64_t *_uid)
+{
+    struct sbus_get_sender_id_state *state = \
+                        tevent_req_data(req, struct sbus_get_sender_id_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_uid) {
+        *_uid = state->uid;
+    }
+
+    return EOK;
+}

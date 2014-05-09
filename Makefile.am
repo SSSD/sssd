@@ -175,6 +175,7 @@ if HAVE_CMOCKA
         ad_common_tests \
         dp_opt_tests \
         responder-get-domains-tests \
+        sbus-internal-tests \
         test_search_bases
 endif
 
@@ -1463,6 +1464,27 @@ responder_get_domains_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la
+
+sbus_internal_tests_SOURCES = \
+    src/tests/cmocka/sbus_internal_tests.c \
+    src/sbus/sssd_dbus_request.c
+sbus_internal_tests_CFLAGS = \
+    $(AM_CFLAGS)
+sbus_internal_tests_LDFLAGS = \
+    -Wl,-wrap,dbus_bus_get \
+    -Wl,-wrap,dbus_pending_call_steal_reply \
+    -Wl,-wrap,dbus_pending_call_unref \
+    -Wl,-wrap,dbus_message_unref \
+    -Wl,-wrap,dbus_connection_unref \
+    -Wl,-wrap,dbus_connection_set_exit_on_disconnect \
+    -Wl,-wrap,hash_lookup
+sbus_internal_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    libsss_util.la \
+    libsss_crypt.la \
+    libsss_debug.la \
     libsss_test_common.la
 
 test_find_uid_SOURCES = \

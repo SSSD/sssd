@@ -56,6 +56,8 @@ struct err_string error_to_str[] = {
     { "No POSIX attributes detected" }, /* ERR_NO_POSIX */
     { "Extra attribute is a duplicate" }, /* ERR_DUP_EXTRA_ATTR */
     { "Malformed extra attribute" }, /* ERR_INVALID_EXTRA_ATTR */
+    { "Cannot get bus message sender" }, /* ERR_SBUS_GET_SENDER_ERROR */
+    { "Bus message has no sender" }, /* ERR_SBUS_NO_SENDER */
 };
 
 
