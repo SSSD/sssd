@@ -429,9 +429,7 @@ static void sbus_handler_got_caller_id(struct tevent_req *req)
     const struct sbus_method_meta *method;
     const struct sbus_interface_meta *interface;
     const char *msg_method;
-    const char *path;
     const char *msg_interface;
-    const char *sender;
     sbus_msg_handler_fn handler_fn = NULL;
     void *handler_data = NULL; /* Must be a talloc pointer! */
     struct sbus_introspect_ctx *ictx = NULL;
@@ -448,9 +446,7 @@ static void sbus_handler_got_caller_id(struct tevent_req *req)
     }
 
     msg_method = dbus_message_get_member(dbus_req->message);
-    path = dbus_message_get_path(dbus_req->message);
     msg_interface = dbus_message_get_interface(dbus_req->message);
-    sender = dbus_message_get_sender(dbus_req->message);
     DEBUG(SSSDBG_TRACE_ALL, "Received SBUS method [%s]\n", msg_method);
 
     /* Prepare the handler */
