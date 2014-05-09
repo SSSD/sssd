@@ -358,25 +358,22 @@ void sbus_disconnect(struct sbus_connection *conn)
 #define VTABLE_FUNC(vtable, offset) \
     (*((void **)((char *)(vtable) + (offset))))
 
+static void sbus_handler_got_caller_id(struct tevent_req *req);
+
 /* messsage_handler
  * Receive messages and process them
  */
 DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
-                                         DBusMessage *message,
-                                         void *user_data)
+                                       DBusMessage *message,
+                                       void *user_data)
 {
     struct sbus_interface_p *intf_p;
     const char *msg_method;
     const char *path;
     const char *msg_interface;
-    DBusMessage *reply = NULL;
-    const struct sbus_method_meta *method;
-    const struct sbus_interface_meta *interface;
+    const char *sender;
     struct sbus_request *dbus_req = NULL;
-    sbus_msg_handler_fn handler_fn = NULL;
-    void *handler_data = NULL; /* Must be a talloc pointer! */
-    struct sbus_introspect_ctx *ictx = NULL;
-    DBusHandlerResult result;
+    struct tevent_req *req;
 
     if (!user_data) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -387,40 +384,95 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
     DEBUG(SSSDBG_TRACE_ALL, "Received SBUS method [%s]\n", msg_method);
     path = dbus_message_get_path(message);
     msg_interface = dbus_message_get_interface(message);
+    sender = dbus_message_get_sender(message);
 
-    if (!msg_method || !path || !msg_interface)
+    if (!msg_method || !path || !msg_interface) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
 
     /* Validate the D-BUS path */
-    if (strcmp(path, intf_p->intf->path) != 0)
+    if (strcmp(path, intf_p->intf->path) != 0) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-
-    result = DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
 
     /* Validate the method interface */
-    interface = intf_p->intf->vtable->meta;
+    if (strcmp(msg_interface, intf_p->intf->vtable->meta->name) == 0 ||
+            (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
+                strcmp(msg_method, DBUS_INTROSPECT_METHOD) == 0)) {
+
+        /* OK, this message for us. Get the sender ID if applicable */
+        dbus_req = sbus_new_request(intf_p->conn, intf_p->intf, message);
+        if (dbus_req == NULL) {
+            return DBUS_HANDLER_RESULT_NEED_MEMORY;
+        }
+
+        req = sbus_get_sender_id_send(dbus_req, dbus_req->conn->ev,
+                                      dbus_req->conn, sender);
+        if (req == NULL) {
+            return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+        }
+        tevent_req_set_callback(req, sbus_handler_got_caller_id, dbus_req);
+        return DBUS_HANDLER_RESULT_HANDLED;
+    }
+
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+static void sbus_handler_got_caller_id(struct tevent_req *req)
+{
+    struct sbus_request *dbus_req = \
+                      tevent_req_callback_data(req,
+                                               struct sbus_request);
+    errno_t ret;
+    DBusError *dberr;
+    DBusMessage *reply = NULL;
+    const struct sbus_method_meta *method;
+    const struct sbus_interface_meta *interface;
+    const char *msg_method;
+    const char *path;
+    const char *msg_interface;
+    const char *sender;
+    sbus_msg_handler_fn handler_fn = NULL;
+    void *handler_data = NULL; /* Must be a talloc pointer! */
+    struct sbus_introspect_ctx *ictx = NULL;
+    const char *dbus_error = NULL;
+
+    ret = sbus_get_sender_id_recv(req, &dbus_req->client);
+    if (ret != EOK) {
+        dberr = sbus_error_new(dbus_req,
+                               DBUS_ERROR_FAILED,
+                               "Failed to retrieve called ID: %s\n",
+                               sss_strerror(ret));
+        sbus_request_fail_and_finish(dbus_req, dberr);
+        return;
+    }
+
+    msg_method = dbus_message_get_member(dbus_req->message);
+    path = dbus_message_get_path(dbus_req->message);
+    msg_interface = dbus_message_get_interface(dbus_req->message);
+    sender = dbus_message_get_sender(dbus_req->message);
+    DEBUG(SSSDBG_TRACE_ALL, "Received SBUS method [%s]\n", msg_method);
+
+    /* Prepare the handler */
+    interface = dbus_req->intf->vtable->meta;
     if (strcmp(msg_interface, interface->name) == 0) {
         method = sbus_meta_find_method(interface, msg_method);
         if (method && method->vtable_offset)
-            handler_fn = VTABLE_FUNC(intf_p->intf->vtable, method->vtable_offset);
+            handler_fn = VTABLE_FUNC(dbus_req->intf->vtable,
+                                     method->vtable_offset);
 
         if (!method) {
             /* Reply DBUS_ERROR_UNKNOWN_METHOD */
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "No matching method found for %s.\n", msg_method);
-            reply = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
-            sbus_conn_send_reply(intf_p->conn, reply);
-            dbus_message_unref(reply);
-            result = DBUS_HANDLER_RESULT_HANDLED;
-
+            dbus_error = DBUS_ERROR_UNKNOWN_METHOD;
+            goto fail;
         } else if (!handler_fn) {
             /* Reply DBUS_ERROR_NOT_SUPPORTED */
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "No handler provided found for %s.\n", msg_method);
-            reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, NULL);
-            sbus_conn_send_reply(intf_p->conn, reply);
-            dbus_message_unref(reply);
-            result = DBUS_HANDLER_RESULT_HANDLED;
+            dbus_error = DBUS_ERROR_NOT_SUPPORTED;
+            goto fail;
         }
     } else {
         /* Special case: check for Introspection request
@@ -429,45 +481,49 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
         if (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
                 strcmp(msg_method, DBUS_INTROSPECT_METHOD) == 0) {
             DEBUG(SSSDBG_TRACE_LIBS, "Got introspection request\n");
-            ictx = talloc(intf_p->conn, struct sbus_introspect_ctx);
+            ictx = talloc(dbus_req->conn, struct sbus_introspect_ctx);
             if (ictx == NULL) {
-                reply = dbus_message_new_error(message,
-                                               DBUS_ERROR_NO_MEMORY, NULL);
-                sbus_conn_send_reply(intf_p->conn, reply);
-                dbus_message_unref(reply);
-                result = DBUS_HANDLER_RESULT_HANDLED;
-            } else {
-                handler_fn = sbus_introspect;
-                ictx->iface = interface;
-                handler_data = ictx;
-                method = &introspect_method;
+                dbus_error = DBUS_ERROR_NO_MEMORY;
+                goto fail;
             }
+
+            handler_fn = sbus_introspect;
+            ictx->iface = interface;
+            handler_data = ictx;
+            method = &introspect_method;
         }
     }
 
-    if (handler_fn) {
-        dbus_req = sbus_new_request(intf_p->conn, intf_p->intf, message);
-        if (dbus_req) {
-            dbus_req->method = method;
-            if (handler_data) {
-                /* If the handler uses private instance data, make
-                 * sure they go away when the request does
-                 */
-                talloc_steal(dbus_req, handler_data);
-            } else {
-                /* If no custom handler data is set, pass on the
-                 * interface data
-                 */
-                handler_data = intf_p->intf->instance_data;
-            }
-
-            sbus_request_invoke_or_finish(dbus_req, handler_fn, handler_data,
-                                          method->invoker);
-            result = DBUS_HANDLER_RESULT_HANDLED;
-        }
+    if (handler_fn == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "No handler matched!\n");
+        dbus_error = DBUS_ERROR_NOT_SUPPORTED;
+        goto fail;
     }
 
-    return result;
+    dbus_req->method = method;
+    if (handler_data) {
+        /* If the handler uses private instance data, make
+         * sure they go away when the request does
+         */
+        talloc_steal(dbus_req, handler_data);
+    } else {
+        /* If no custom handler data is set, pass on the
+         * interface data
+         */
+        handler_data = dbus_req->intf->instance_data;
+    }
+
+    sbus_request_invoke_or_finish(dbus_req,
+                                  handler_fn,
+                                  handler_data,
+                                  method->invoker);
+    return;
+
+fail:
+    reply = dbus_message_new_error(dbus_req->message,
+                                   dbus_error ? dbus_error : DBUS_ERROR_FAILED,
+                                   NULL);
+    sbus_request_finish(dbus_req, reply);
 }
 
 struct sbus_interface *
