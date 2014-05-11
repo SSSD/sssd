@@ -28,6 +28,11 @@
 #include "responder/ifp/ifp_private.h"
 #include "sbus/sssd_dbus_private.h"
 
+/* dbus library checks for valid object paths when unit testing, we don't
+ * want that */
+#undef DBUS_TYPE_OBJECT_PATH
+#define DBUS_TYPE_OBJECT_PATH ((int) 's')
+
 static struct ifp_ctx *
 mock_ifp_ctx(TALLOC_CTX *mem_ctx)
 {
@@ -305,6 +310,106 @@ void test_attr_allowed(void **state)
     assert_false(ifp_attr_allowed(NULL, "name"));
 }
 
+void test_path_escape_unescape(void **state)
+{
+    char *escaped;
+    char *raw;
+    TALLOC_CTX *mem_ctx;
+
+    assert_true(leak_check_setup());
+    mem_ctx = talloc_new(global_talloc_context);
+
+    escaped = ifp_bus_path_escape(mem_ctx, "noescape");
+    assert_non_null(escaped);
+    assert_string_equal(escaped, "noescape");
+    raw = ifp_bus_path_unescape(mem_ctx, escaped);
+    talloc_free(escaped);
+    assert_non_null(raw);
+    assert_string_equal(raw, "noescape");
+    talloc_free(raw);
+
+    escaped = ifp_bus_path_escape(mem_ctx, "redhat.com");
+    assert_non_null(escaped);
+    assert_string_equal(escaped, "redhat_2ecom"); /* dot is 0x2E in ASCII */
+    raw = ifp_bus_path_unescape(mem_ctx, escaped);
+    talloc_free(escaped);
+    assert_non_null(raw);
+    assert_string_equal(raw, "redhat.com");
+    talloc_free(raw);
+
+    escaped = ifp_bus_path_escape(mem_ctx, "path_with_underscore");
+    assert_non_null(escaped);
+    /* underscore is 0x5F in ascii */
+    assert_string_equal(escaped, "path_5fwith_5funderscore");
+    raw = ifp_bus_path_unescape(mem_ctx, escaped);
+    talloc_free(escaped);
+    assert_non_null(raw);
+    assert_string_equal(raw, "path_with_underscore");
+    talloc_free(raw);
+
+    /* empty string */
+    escaped = ifp_bus_path_escape(mem_ctx, "");
+    assert_non_null(escaped);
+    assert_string_equal(escaped, "_");
+    raw = ifp_bus_path_unescape(mem_ctx, escaped);
+    talloc_free(escaped);
+    assert_non_null(raw);
+    assert_string_equal(raw, "");
+    talloc_free(raw);
+
+    /* negative tests */
+    escaped = ifp_bus_path_escape(mem_ctx, NULL);
+    assert_null(escaped);
+    raw = ifp_bus_path_unescape(mem_ctx, "wrongpath_");
+    assert_null(raw);
+
+    assert_true(leak_check_teardown());
+}
+
+#define PATH_BASE "/some/path"
+
+struct ifp_test_req_ctx {
+    struct ifp_req *ireq;
+    struct sbus_request *sr;
+    struct ifp_ctx *ifp_ctx;
+};
+
+void ifp_test_req_setup(void **state)
+{
+    struct ifp_test_req_ctx *test_ctx;
+    errno_t ret;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context, struct ifp_test_req_ctx);
+    assert_non_null(test_ctx);
+    test_ctx->ifp_ctx = mock_ifp_ctx(test_ctx);
+    assert_non_null(test_ctx->ifp_ctx);
+
+    test_ctx->sr = mock_sbus_request(test_ctx, geteuid());
+    assert_non_null(test_ctx->sr);
+
+    ret = ifp_req_create(test_ctx->sr, test_ctx->ifp_ctx, &test_ctx->ireq);
+    assert_int_equal(ret, EOK);
+    assert_non_null(test_ctx->ireq);
+
+    check_leaks_push(test_ctx);
+    *state = test_ctx;
+}
+
+void ifp_test_req_teardown(void **state)
+{
+    struct ifp_test_req_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                struct ifp_test_req_ctx);
+
+    assert_true(check_leaks_pop(test_ctx) == true);
+
+    dbus_message_unref(test_ctx->sr->message);
+    talloc_free(test_ctx);
+
+    assert_true(leak_check_teardown());
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -322,6 +427,7 @@ int main(int argc, const char *argv[])
         unit_test(test_el_to_dict),
         unit_test(test_attr_acl),
         unit_test(test_attr_allowed),
+        unit_test(test_path_escape_unescape),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
