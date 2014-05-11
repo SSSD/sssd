@@ -410,6 +410,32 @@ void ifp_test_req_teardown(void **state)
     assert_true(leak_check_teardown());
 }
 
+void test_reply_path(void **state)
+{
+    struct ifp_test_req_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                struct ifp_test_req_ctx);
+    char *path;
+
+    /* Doesn't need escaping */
+    path = ifp_reply_objpath(test_ctx->ireq, PATH_BASE, "domname", NULL);
+    assert_non_null(path);
+    assert_string_equal(path, PATH_BASE"/domname");
+    talloc_free(path);
+}
+
+void test_reply_path_escape(void **state)
+{
+    struct ifp_test_req_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                struct ifp_test_req_ctx);
+    char *path;
+
+    /* A dot needs escaping */
+    path = ifp_reply_objpath(test_ctx->ireq, PATH_BASE, "redhat.com", NULL);
+    assert_non_null(path);
+    assert_string_equal(path, PATH_BASE"/redhat_2ecom");
+    talloc_free(path);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -428,6 +454,10 @@ int main(int argc, const char *argv[])
         unit_test(test_attr_acl),
         unit_test(test_attr_allowed),
         unit_test(test_path_escape_unescape),
+        unit_test_setup_teardown(test_reply_path,
+                                 ifp_test_req_setup, ifp_test_req_teardown),
+        unit_test_setup_teardown(test_reply_path_escape,
+                                 ifp_test_req_setup, ifp_test_req_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
