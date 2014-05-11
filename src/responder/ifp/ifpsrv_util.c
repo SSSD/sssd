@@ -236,6 +236,48 @@ done:
     return safe_path;
 }
 
+char *
+_ifp_reply_objpath(TALLOC_CTX *mem_ctx, const char *base,
+                   const char *part, ...)
+{
+    char *safe_part;
+    char *path = NULL;
+    va_list va;
+
+    if (base == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Wrong object path base!\n");
+        return NULL;
+    }
+
+    path = talloc_strdup(mem_ctx, base);
+    if (path == NULL) return NULL;
+
+    va_start(va, part);
+    while (part != NULL) {
+        safe_part = ifp_bus_path_escape(mem_ctx, part);
+        if (safe_part == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not add [%s] to objpath\n", part);
+            goto fail;
+        }
+
+        path = talloc_asprintf_append(path, "/%s", safe_part);
+        talloc_free(safe_part);
+        if (path == NULL) {
+            goto fail;
+        }
+
+        part = va_arg(va, const char *);
+    }
+    va_end(va);
+
+    return path;
+
+fail:
+    va_end(va);
+    talloc_free(path);
+    return NULL;
+}
+
 errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,
                                struct ldb_message_element *el)
 {
