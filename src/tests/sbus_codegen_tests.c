@@ -434,6 +434,13 @@ void pilot_get_objpath_handler(struct sbus_request *dbus_req,
     *path_val = pilot_path;
 }
 
+void pilot_get_null_string_handler(struct sbus_request *dbus_req,
+                                   void *instance_data,
+                                   const char **string_val)
+{
+    *string_val = NULL;
+}
+
 #define array_getter_body(in, out, outlen) do {     \
     ck_assert(dbus_req != NULL);                    \
     ck_assert(out != NULL);                         \
@@ -540,6 +547,7 @@ struct test_pilot pilot_iface = {
     .test_pilot_get_double = pilot_get_double_handler,
     .test_pilot_get_string = pilot_get_string_handler,
     .test_pilot_get_object_path = pilot_get_objpath_handler,
+    .test_pilot_get_null_string = pilot_get_null_string_handler,
 
     .test_pilot_get_byte_array = pilot_get_byte_array_handler,
     .test_pilot_get_int16_array = pilot_get_int16_array_handler,
@@ -844,6 +852,11 @@ START_TEST(test_get_basic_types)
     call_get(client, "/test/leela", test_pilot_meta.name, "object_path",
              DBUS_TYPE_OBJECT_PATH, &path_val);
     ck_assert_str_eq(path_val, pilot_path);
+
+    /* If a string getter returns NULL, the caller should receive "" */
+    call_get(client, "/test/leela", test_pilot_meta.name, "null_string",
+             DBUS_TYPE_STRING, &string_val);
+    ck_assert_str_eq(string_val, "");
 }
 END_TEST
 

@@ -363,6 +363,15 @@ const struct sbus_property_meta test_pilot__properties[] = {
         NULL, /* no invoker */
     },
     {
+        "null_string", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_pilot, test_pilot_get_null_string),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
         "byte_array", /* name */
         "ay", /* type */
         SBUS_PROPERTY_READABLE,
@@ -764,7 +773,7 @@ static int invoke_get_s(struct sbus_request *dbus_req, void *function_ptr)
 
     (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
 
-    out_val = prop_val;
+    out_val = prop_val == NULL ? "" : prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_STRING, &out_val);
 }
 

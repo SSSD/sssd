@@ -120,6 +120,9 @@
         <property name="string" type="s" access="read"/>
         <property name="object_path" type="o" access="read"/>
 
+        <!-- Special properties to test error codes -->
+        <property name="null_string" type="s" access="read"/>
+
         <!-- Property arrays with every type of basic argument except boolean
              which we can't do (yet) -->
         <property name="byte_array" type="ay" access="read"/>

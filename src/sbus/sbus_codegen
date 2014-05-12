@@ -318,7 +318,10 @@ def source_getter_invoker(prop):
     out(");")
 
     out("")
-    out("    out_val = prop_val;")
+    if prop.type == "s":
+        out("    out_val = prop_val == NULL ? \"\" : prop_val;")
+    else:
+        out("    out_val = prop_val;")
     if prop.is_array:
         out("    return sbus_request_return_array_as_variant(dbus_req, %s, (uint8_t*)out_val, prop_len, sizeof(%s));", prop.dbus_constant, prop.sssd_type)
     else:
