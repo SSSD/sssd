@@ -125,6 +125,70 @@ int sbus_request_return_and_finish(struct sbus_request *dbus_req,
     return ret;
 }
 
+int sbus_request_return_as_variant(struct sbus_request *dbus_req,
+                                   int type,
+                                   const void *value)
+{
+    DBusMessage *reply;
+    dbus_bool_t dbret;
+    DBusMessageIter iter;
+    DBusMessageIter valiter;
+    char strtype[2];
+    int ret;
+
+    snprintf(strtype, 2, "%c", type);
+
+    reply = dbus_message_new_method_return(dbus_req->message);
+    if (reply == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory allocating DBus message\n");
+        sbus_request_finish(dbus_req, NULL);
+        return ENOMEM;
+    }
+
+    dbus_message_iter_init_append(reply, &iter);
+    dbret = dbus_message_iter_open_container(&iter, DBUS_TYPE_VARIANT,
+                                             strtype, &valiter);
+    if (!dbret) {
+        sbus_request_fail_and_finish(
+                            dbus_req,
+                            sbus_error_new(dbus_req,
+                                        DBUS_ERROR_FAILED,
+                                        "Could not open variant for [%s]\n",
+                                        strtype));
+        ret = EINVAL;
+        goto done;
+    }
+
+    dbret = dbus_message_iter_append_basic(&valiter, type, value);
+    if (!dbret) {
+        sbus_request_fail_and_finish(
+                            dbus_req,
+                            sbus_error_new(dbus_req,
+                                        DBUS_ERROR_FAILED,
+                                        "Could not append [%s] to variant\n",
+                                        strtype));
+        ret = EINVAL;
+        goto done;
+    }
+
+    dbret = dbus_message_iter_close_container(&iter, &valiter);
+    if (dbret) {
+        ret = sbus_request_finish(dbus_req, reply);
+    } else {
+        sbus_request_fail_and_finish(
+                            dbus_req,
+                            sbus_error_new(dbus_req,
+                                        DBUS_ERROR_FAILED,
+                                        "Could not close variant\n"));
+        ret = EINVAL;
+    }
+
+done:
+    dbus_message_unref(reply);
+    return ret;
+}
+
+
 int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
                                  const DBusError *error)
 {
