@@ -34,16 +34,18 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
                                      struct sysdb_ctx *ctx,
                                      struct sss_domain_info *domain,
                                      const char *orig_dn,
-                                     char **localdn)
+                                     char **_localdn,
+                                     bool *_is_group)
 {
     TALLOC_CTX *tmpctx;
-    const char *no_attrs[] = { NULL };
+    const char *attrs[] = {SYSDB_OBJECTCLASS,  NULL};
     struct ldb_dn *base_dn;
     char *filter;
     struct ldb_message **msgs;
     size_t num_msgs;
     int ret;
     char *sanitized_dn;
+    const char *objectclass;
 
     tmpctx = talloc_new(NULL);
     if (!tmpctx) {
@@ -70,7 +72,7 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
 
     DEBUG(SSSDBG_TRACE_ALL, "Searching cache for [%s].\n", sanitized_dn);
     ret = sysdb_search_entry(tmpctx, ctx,
-                             base_dn, LDB_SCOPE_SUBTREE, filter, no_attrs,
+                             base_dn, LDB_SCOPE_SUBTREE, filter, attrs,
                              &num_msgs, &msgs);
     if (ret) {
         goto done;
@@ -80,10 +82,23 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
         goto done;
     }
 
-    *localdn = talloc_strdup(memctx, ldb_dn_get_linearized(msgs[0]->dn));
-    if (!*localdn) {
+    *_localdn = talloc_strdup(memctx, ldb_dn_get_linearized(msgs[0]->dn));
+    if (!*_localdn) {
         ret = ENOENT;
         goto done;
+    }
+
+    if (_is_group != NULL) {
+        objectclass = ldb_msg_find_attr_as_string(msgs[0], SYSDB_OBJECTCLASS,
+                                                  NULL);
+        if (objectclass == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "An antry without a %s?\n",
+                  SYSDB_OBJECTCLASS);
+            ret = EINVAL;
+            goto done;
+        }
+
+        *_is_group = strcmp(SYSDB_GROUP_CLASS, objectclass) == 0;
     }
 
     ret = EOK;
@@ -236,7 +251,8 @@ static int sdap_fill_memberships(struct sdap_options *opts,
             /* sync search entry with this as origDN */
             ret = sdap_find_entry_by_origDN(el->values, member_sysdb,
                                             member_dom, (char *)values[i].data,
-                                            (char **)&el->values[j].data);
+                                            (char **)&el->values[j].data,
+                                            NULL);
             if (ret == ENOENT) {
                 /* member may be outside of the configured search bases
                  * or out of scope of nesting limit */
@@ -1214,6 +1230,10 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
     char *strdn;
     int ret;
     int i;
+    int nesting_level;
+    bool is_group;
+
+    nesting_level = dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL);
 
     for (i=0; i < memberel->num_values; i++) {
         member_dn = (char *)memberel->values[i].data;
@@ -1222,8 +1242,15 @@ sdap_process_group_members_2307bis(struct tevent_req *req,
                                         state->sysdb,
                                         state->dom,
                                         member_dn,
-                                        &strdn);
+                                        &strdn,
+                                        &is_group);
+
         if (ret == EOK) {
+            if (nesting_level == 0 && is_group) {
+                /* Ignore group members which are groups themselves. */
+                continue;
+            }
+
             /*
              * User already cached in sysdb. Remember the sysdb DN for later
              * use by sdap_save_groups()
