@@ -928,6 +928,22 @@
                             RFC2307 schema.
                         </para>
                         <para>
+                          Note: This option specifies the guaranteed level of
+                          nested groups to be processed for any lookup. However,
+                          nested groups beyond this limit
+                          <emphasis>may be</emphasis> returned if previous
+                          lookups already resolved the deeper nesting levels.
+                          Also, subsequent lookups for other groups may enlarge
+                          the result set for original lookup if re-queried.
+                        </para>
+                        <para>
+                          If ldap_group_nesting_level is set to 0 then no
+                          nested groups are processed at all. However, when
+                          connected to Active-Directory Server 2008 and later
+                          it is furthermore required to disable usage of
+                          Token-Groups by setting ldap_use_tokengroups to false.
+                        </para>
+                        <para>
                             Default: 2
                         </para>
                     </listitem>
