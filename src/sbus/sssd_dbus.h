@@ -250,6 +250,12 @@ int sbus_request_return_as_variant(struct sbus_request *dbus_req,
                                    int type,
                                    const void *value);
 
+int sbus_request_return_array_as_variant(struct sbus_request *dbus_req,
+                                         int type,
+                                         uint8_t *values,
+                                         const int len,
+                                         const size_t item_size);
+
 /*
  * Return an error for a DBus method call request. The @error is a normal
  * DBusError.

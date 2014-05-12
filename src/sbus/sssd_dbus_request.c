@@ -189,6 +189,124 @@ done:
 }
 
 
+int sbus_request_return_array_as_variant(struct sbus_request *dbus_req,
+                                         int type,
+                                         uint8_t *values,
+                                         const int len,
+                                         const size_t item_size)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    DBusMessage *reply = NULL;
+    dbus_bool_t dbret;
+    DBusMessageIter iter;
+    DBusMessageIter variant_iter;
+    DBusMessageIter array_iter;
+    char *variant_type = NULL;
+    char *array_type = NULL;
+    void *addr = NULL;
+    int ret;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    variant_type = talloc_asprintf(tmp_ctx, DBUS_TYPE_ARRAY_AS_STRING "%c",
+                                   type);
+    if (variant_type == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    array_type = talloc_asprintf(tmp_ctx, "%c", type);
+    if (array_type == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    reply = dbus_message_new_method_return(dbus_req->message);
+    if (reply == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory allocating DBus message\n");
+        sbus_request_finish(dbus_req, NULL);
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dbus_message_iter_init_append(reply, &iter);
+    dbret = dbus_message_iter_open_container(&iter, DBUS_TYPE_VARIANT,
+                                             variant_type, &variant_iter);
+    if (!dbret) {
+        sbus_request_fail_and_finish(
+                            dbus_req,
+                            sbus_error_new(dbus_req,
+                                        DBUS_ERROR_FAILED,
+                                        "Could not open variant for [%s]\n",
+                                        variant_type));
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* Open container for values */
+    dbret = dbus_message_iter_open_container(&variant_iter, DBUS_TYPE_ARRAY,
+                                             array_type, &array_iter);
+    if (!dbret) {
+        sbus_request_fail_and_finish(
+                            dbus_req,
+                            sbus_error_new(dbus_req,
+                                        DBUS_ERROR_FAILED,
+                                        "Could not open array for [%s]\n",
+                                        array_type));
+        ret = EINVAL;
+        goto done;
+    }
+
+    for (i = 0; i < len; i++) {
+        addr = values + i * item_size;
+        dbret = dbus_message_iter_append_basic(&array_iter, type, addr);
+        if (!dbret) {
+            sbus_request_fail_and_finish(
+                                dbus_req,
+                                sbus_error_new(dbus_req,
+                                            DBUS_ERROR_FAILED,
+                                            "Could not append [%s] to variant\n",
+                                            array_type));
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    dbret = dbus_message_iter_close_container(&variant_iter, &array_iter);
+    if (!dbret) {
+        sbus_request_fail_and_finish(
+                            dbus_req,
+                            sbus_error_new(dbus_req,
+                                        DBUS_ERROR_FAILED,
+                                        "Could not close array\n"));
+        ret = EINVAL;
+    }
+
+    dbret = dbus_message_iter_close_container(&iter, &variant_iter);
+    if (dbret) {
+        ret = sbus_request_finish(dbus_req, reply);
+    } else {
+        sbus_request_fail_and_finish(
+                            dbus_req,
+                            sbus_error_new(dbus_req,
+                                        DBUS_ERROR_FAILED,
+                                        "Could not close variant\n"));
+        ret = EINVAL;
+    }
+
+done:
+    if (reply != NULL) {
+        dbus_message_unref(reply);
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
                                  const DBusError *error)
 {
