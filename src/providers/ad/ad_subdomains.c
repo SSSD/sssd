@@ -325,13 +325,15 @@ done:
 }
 
 static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
-                                     int count, struct sysdb_attrs **reply,
+                                     int count, bool root_domain,
+                                     struct sysdb_attrs **reply,
                                      bool *changes)
 {
     struct sdap_domain *sdom;
     struct sss_domain_info *domain, *dom;
     bool handled[count];
     const char *value;
+    const char *root_name = NULL;
     int c, h;
     int ret;
     bool enumerate;
@@ -340,10 +342,27 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
     memset(handled, 0, sizeof(bool) * count);
     h = 0;
 
+    if (root_domain) {
+        ret = sysdb_attrs_get_string(reply[0], AD_AT_TRUST_PARTNER,
+                                     &root_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+    }
+
     /* check existing subdomains */
     for (dom = get_next_domain(domain, true);
          dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
          dom = get_next_domain(dom, false)) {
+
+        /* If we are handling root domain, skip all the other domains. We don't
+         * want to accidentally remove non-root domains
+         */
+        if (root_name && strcmp(root_name, dom->name) != 0) {
+            continue;
+        }
+
         for (c = 0; c < count; c++) {
             if (handled[c]) {
                 continue;
@@ -721,7 +740,7 @@ static void ad_subdomains_get_root_domain_done(struct tevent_req *req)
         goto fail;
     }
 
-    ret = ad_subdomains_refresh(ctx->sd_ctx, 1, reply, &has_changes);
+    ret = ad_subdomains_refresh(ctx->sd_ctx, 1, true, reply, &has_changes);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ad_subdomains_refresh failed.\n");
         goto fail;
@@ -1014,7 +1033,7 @@ static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
     }
 
     /* Got all the subdomains, let's process them */
-    ret = ad_subdomains_refresh(ctx->sd_ctx, nsubdoms, subdoms,
+    ret = ad_subdomains_refresh(ctx->sd_ctx, nsubdoms, false, subdoms,
                                 &refresh_has_changes);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to refresh subdomains.\n");
