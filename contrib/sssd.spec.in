@@ -138,7 +138,6 @@ BuildRequires: systemd-devel
 %if (0%{?with_cifs_utils_plugin} == 1)
 BuildRequires: cifs-utils-devel
 %endif
-BuildRequires: augeas-devel
 
 # RHEL 5 is too old to support samba4 and the PAC responder
 %if !0%{?is_rhel5}
@@ -398,6 +397,7 @@ be used by Python applications.
 Summary: The D-Bus responder of the SSSD
 Group: Applications/System
 License: GPLv3+
+BuildRequires: augeas-devel
 Requires: sssd-common = %{version}-%{release}
 
 %description dbus
@@ -574,7 +574,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/libsss_debug.so
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
-%{_libdir}/%{name}/libsss_config.so
 
 # 3rd party application libraries
 %{_libdir}/sssd/modules/libsss_autofs.so
@@ -670,6 +669,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/sssd-ifp.5*
 # InfoPipe DBus plumbing
 %{_sysconfdir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
+%{_libdir}/%{name}/libsss_config.so
 
 %files client -f sssd_client.lang
 %defattr(-,root,root,-)
