@@ -484,7 +484,11 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     uint32_t uid;
     const char *fqname;
     const char *homedir = NULL;
-    struct ldb_result *res;
+    struct ldb_result *res = NULL;
+    struct ldb_message *msg = NULL;
+    const char *attrs[] = { SYSDB_NAME,
+                            SYSDB_UIDNUM,
+                            NULL };
 
     if (filter_type == BE_FILTER_NAME) {
         ret = sysdb_getpwnam(mem_ctx, dom, filter_value, &res);
@@ -496,6 +500,9 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
             goto done;
         }
         ret = sysdb_getpwuid(mem_ctx, dom, uid, &res);
+    } else if (filter_type == BE_FILTER_SECID) {
+        ret = sysdb_search_user_by_sid_str(mem_ctx, dom, filter_value,
+                                           attrs, &msg);
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
               "Unsupported filter type: [%d].\n", filter_type);
@@ -503,24 +510,27 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to make request to our cache: [%d]: [%s]\n",
                ret, sss_strerror(ret));
         goto done;
     }
 
-    if (res->count == 0) {
+    if ((res && res->count == 0) || (msg && msg->num_elements == 0)) {
         ret = ENOENT;
         goto done;
     }
 
+    if (res != NULL) {
+        msg = res->msgs[0];
+    }
     /*
      * Homedir is always overriden by subdomain_homedir even if it was
      * explicitly set by user.
      */
-    fqname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
-    uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
+    fqname = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
     if (uid == 0) {
         DEBUG(SSSDBG_OP_FAILURE, "UID for user [%s] is not known.\n",
                                   filter_value);
