@@ -208,10 +208,7 @@ void sbus_int_test_get_uid_no_sender(void **state)
     struct sbus_get_id_ctx *test_ctx = talloc_get_type(*state,
                                             struct sbus_get_id_ctx);
 
-    uint32_t uid;
-
     test_ctx->expected = -1;
-    uid = test_ctx->expected;
 
     req = sbus_get_sender_id_send(test_ctx, test_ctx->stc->ev,
                                   test_ctx->conn, NULL);
