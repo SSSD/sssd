@@ -30,6 +30,26 @@ struct sbus_request;
 #include <sys/types.h>
 #include "util/util.h"
 
+/* Older platforms (such as RHEL-6) might not have these error constants
+ * defined */
+#ifndef DBUS_ERROR_UNKNOWN_INTERFACE
+/** Interface you invoked a method on isn't known by the object. */
+#define DBUS_ERROR_UNKNOWN_INTERFACE \
+    "org.freedesktop.DBus.Error.UnknownInterface"
+#endif /* DBUS_ERROR_UNKNOWN_INTERFACE */
+
+#ifndef DBUS_ERROR_UNKNOWN_PROPERTY
+/** Property you tried to access isn't known by the object. */
+#define DBUS_ERROR_UNKNOWN_PROPERTY \
+    "org.freedesktop.DBus.Error.UnknownProperty"
+#endif /* DBUS_ERROR_UNKNOWN_PROPERTY */
+
+#ifndef DBUS_ERROR_PROPERTY_READ_ONLY
+/** Property you tried to set is read-only. */
+#define DBUS_ERROR_PROPERTY_READ_ONLY \
+    "org.freedesktop.DBus.Error.PropertyReadOnly"
+#endif /* DBUS_ERROR_PROPERTY_READ_ONLY */
+
 typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req,
                                    void *instance_data);
 
