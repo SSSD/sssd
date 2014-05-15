@@ -320,6 +320,8 @@ def source_getter_invoker(prop):
     out("")
     if prop.type == "s":
         out("    out_val = prop_val == NULL ? \"\" : prop_val;")
+    elif prop.type == "o":
+        out("    out_val = prop_val == NULL ? \"/\" : prop_val;")
     else:
         out("    out_val = prop_val;")
     if prop.is_array:

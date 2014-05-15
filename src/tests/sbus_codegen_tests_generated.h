@@ -36,6 +36,7 @@
 #define TEST_PILOT_STRING "string"
 #define TEST_PILOT_OBJECT_PATH "object_path"
 #define TEST_PILOT_NULL_STRING "null_string"
+#define TEST_PILOT_NULL_PATH "null_path"
 #define TEST_PILOT_BYTE_ARRAY "byte_array"
 #define TEST_PILOT_INT16_ARRAY "int16_array"
 #define TEST_PILOT_UINT16_ARRAY "uint16_array"
@@ -98,6 +99,7 @@ struct test_pilot {
     void (*test_pilot_get_string)(struct sbus_request *, void *data, const char * *);
     void (*test_pilot_get_object_path)(struct sbus_request *, void *data, const char * *);
     void (*test_pilot_get_null_string)(struct sbus_request *, void *data, const char * *);
+    void (*test_pilot_get_null_path)(struct sbus_request *, void *data, const char * *);
     void (*test_pilot_get_byte_array)(struct sbus_request *, void *data, uint8_t * *, int *);
     void (*test_pilot_get_int16_array)(struct sbus_request *, void *data, int16_t * *, int *);
     void (*test_pilot_get_uint16_array)(struct sbus_request *, void *data, uint16_t * *, int *);

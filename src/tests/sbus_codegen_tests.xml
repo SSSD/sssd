@@ -122,6 +122,7 @@
 
         <!-- Special properties to test error codes -->
         <property name="null_string" type="s" access="read"/>
+        <property name="null_path" type="o" access="read"/>
 
         <!-- Property arrays with every type of basic argument except boolean
              which we can't do (yet) -->
