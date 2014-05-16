@@ -40,11 +40,11 @@ const struct sbus_signal_meta *
 sbus_meta_find_signal(const struct sbus_interface_meta *interface,
                       const char *signal_name)
 {
-    const struct sbus_signal_meta *signal;
+    const struct sbus_signal_meta *sig;
 
-    for (signal = interface->signals; signal && signal->name; signal++) {
-        if (strcmp(signal_name, signal->name) == 0) {
-            return signal;
+    for (sig = interface->signals; sig && sig->name; sig++) {
+        if (strcmp(signal_name, sig->name) == 0) {
+            return sig;
         }
     }
 
