@@ -4501,6 +4501,151 @@ START_TEST(test_sysdb_attrs_get_string_array)
 }
 END_TEST
 
+START_TEST (test_sysdb_search_return_ENOENT)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    struct ldb_dn *user_dn = NULL;
+    struct ldb_message *msg = NULL;
+    struct ldb_message **msgs = NULL;
+    struct ldb_result *res = NULL;
+    size_t count;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    /* Search user */
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain->sysdb,
+                                    test_ctx->domain, "nonexisting_user", NULL,
+                                    &msg);
+    fail_unless(ret == ENOENT, "sysdb_search_user_by_name error [%d][%s].",
+                               ret, strerror(ret));
+    talloc_zfree(msg);
+
+    ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain->sysdb,
+                                   test_ctx->domain, 1234, NULL, &msg);
+    fail_unless(ret == ENOENT, "sysdb_search_user_by_uid error [%d][%s].",
+                               ret, strerror(ret));
+    talloc_zfree(msg);
+
+    ret = sysdb_search_user_by_sid_str(test_ctx, test_ctx->domain->sysdb,
+                                       test_ctx->domain, "S-5-4-3-2-1", NULL,
+                                       &msg);
+    fail_unless(ret == ENOENT, "sysdb_search_user_by_sid_str failed with "
+                               "[%d][%s].", ret, strerror(ret));
+
+    /* Search group */
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain->sysdb,
+                                     test_ctx->domain, "nonexisting_group",
+                                     NULL, &msg);
+    fail_unless(ret == ENOENT, "sysdb_search_group_by_name error [%d][%s].",
+                               ret, strerror(ret));
+    talloc_zfree(msg);
+
+    ret = sysdb_search_group_by_gid(test_ctx, test_ctx->domain->sysdb,
+                                    test_ctx->domain, 1234, NULL, &msg);
+    fail_unless(ret == ENOENT, "sysdb_search_group_by_gid error [%d][%s].",
+                               ret, strerror(ret));
+    talloc_zfree(msg);
+
+    ret = sysdb_search_group_by_sid_str(test_ctx, test_ctx->domain->sysdb,
+                                        test_ctx->domain, "S-5-4-3-2-1", NULL,
+                                        &msg);
+    fail_unless(ret == ENOENT, "sysdb_search_group_by_sid_str failed with "
+                               "[%d][%s].", ret, strerror(ret));
+    talloc_zfree(msg);
+
+    /* Search netgroup */
+    ret = sysdb_search_netgroup_by_name(test_ctx, test_ctx->domain->sysdb,
+                                        test_ctx->domain,
+                                        "nonexisting_netgroup", NULL, &msg);
+    fail_unless(ret == ENOENT, "sysdb_search_netgroup_by_name error [%d][%s].",
+                               ret, strerror(ret));
+    talloc_zfree(msg);
+
+    /* Search object */
+    /* TODO: Should return ENOENT */
+    ret = sysdb_search_object_by_sid(test_ctx, test_ctx->domain->sysdb,
+                                     test_ctx->domain, "S-5-4-3-2-1", NULL,
+                                     &res);
+    fail_unless(ret == EOK, "sysdb_search_object_by_sid_str failed with "
+                             "[%d][%s].", ret, strerror(ret));
+    fail_unless(res->count == 0, "sysdb_search_object_by_sid_str should not "
+                                 "return anything.");
+    talloc_zfree(res);
+
+    /* Search can return more results */
+    ret = sysdb_search_users(test_ctx, test_ctx->domain->sysdb,
+                             test_ctx->domain,
+                             "("SYSDB_SHELL"=/bin/nologin)", NULL,
+                             &count, &msgs);
+    fail_unless(ret == ENOENT, "sysdb_search_users failed: %d, %s",
+                               ret, strerror(ret));
+    talloc_zfree(msgs);
+
+    ret = sysdb_search_groups(test_ctx, test_ctx->domain->sysdb,
+                              test_ctx->domain,
+                              "("SYSDB_GIDNUM"=1234)", NULL,
+                              &count, &msgs);
+    fail_unless(ret == ENOENT, "sysdb_search_groups failed: %d, %s",
+                               ret, strerror(ret));
+    talloc_zfree(msgs);
+
+    ret = sysdb_search_netgroups(test_ctx, test_ctx->domain->sysdb,
+                                 test_ctx->domain,
+                                 "("SYSDB_NAME"=nonexisting)", NULL,
+                                 &count, &msgs);
+    fail_unless(ret == ENOENT, "sysdb_search_netgroups failed: %d, %s",
+                               ret, strerror(ret));
+    talloc_zfree(msgs);
+
+    /* Search custom */
+    ret = sysdb_search_custom(test_ctx, test_ctx->domain->sysdb,
+                              test_ctx->domain,
+                              "(distinguishedName=nonexisting)",
+                              CUSTOM_TEST_CONTAINER, NULL,
+                              &count, &msgs);
+    fail_unless(ret == ENOENT, "sysdb_search_custom failed: %d, %s",
+                               ret, strerror(ret));
+    talloc_zfree(msgs);
+
+    ret = sysdb_search_custom_by_name(test_ctx, test_ctx->domain->sysdb,
+                                      test_ctx->domain,
+                                      "nonexisting",
+                                      CUSTOM_TEST_CONTAINER, NULL,
+                                      &count, &msgs);
+    fail_unless(ret == ENOENT, "sysdb_search_custom_by_name failed: %d, %s",
+                               ret, strerror(ret));
+    talloc_zfree(msgs);
+
+    /* General search */
+    user_dn = sysdb_user_dn(test_ctx->domain->sysdb, test_ctx,
+                            test_ctx->domain, "nonexisting_user");
+    fail_if(user_dn == NULL, "sysdb_user_dn failed");
+
+    ret = sysdb_asq_search(test_ctx, test_ctx->domain->sysdb,
+                           user_dn, NULL, "memberof", NULL,
+                           &count, &msgs);
+    fail_unless(ret == ENOENT, "sysdb_asq_search failed: %d, %s",
+                               ret, strerror(ret));
+    talloc_zfree(msgs);
+
+    ret = sysdb_search_entry(test_ctx, test_ctx->sysdb,
+                             user_dn, LDB_SCOPE_SUBTREE,
+                             "objectClass=user", NULL,
+                             &count, &msgs);
+    fail_unless(ret == ENOENT, "sysdb_search_entry failed: %d, %s",
+                               ret, strerror(ret));
+    talloc_zfree(msgs);
+    talloc_zfree(user_dn);
+
+    /* TODO: test sysdb_search_selinux_config */
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST(test_sysdb_has_enumerated)
 {
     errno_t ret;
@@ -5271,6 +5416,9 @@ Suite *create_sysdb_suite(void)
 
 /* ===== UTIL TESTS ===== */
     tcase_add_test(tc_sysdb, test_sysdb_attrs_get_string_array);
+
+/* ===== Test search return empty result ===== */
+    tcase_add_test(tc_sysdb, test_sysdb_search_return_ENOENT);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
