@@ -266,7 +266,7 @@ static int sha512_crypt_r(const char *key,
         goto done;
     }
 
-    cp = __stpncpy(buffer, sha512_salt_prefix, SALT_PREF_SIZE);
+    cp = stpncpy(buffer, sha512_salt_prefix, SALT_PREF_SIZE);
     buflen -= SALT_PREF_SIZE;
 
     if (rounds_custom) {
@@ -284,7 +284,7 @@ static int sha512_crypt_r(const char *key,
         ret = ERANGE;
         goto done;
     }
-    cp = __stpncpy(cp, salt, salt_len);
+    cp = stpncpy(cp, salt, salt_len);
     *cp++ = '$';
     buflen -= salt_len + 1;
 
