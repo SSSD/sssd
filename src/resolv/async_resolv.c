@@ -1151,7 +1151,6 @@ resolv_is_address(const char *name)
     hints.ai_flags = AI_NUMERICHOST; /* No network lookups */
 
     ret = getaddrinfo(name, NULL, &hints, &res);
-    freeaddrinfo(res);
     if (ret != 0) {
         if (ret == -2) {
             DEBUG(SSSDBG_TRACE_ALL,
@@ -1160,6 +1159,8 @@ resolv_is_address(const char *name)
             DEBUG(SSSDBG_OP_FAILURE, "getaddrinfo failed [%d]: %s\n",
                       ret, gai_strerror(ret));
         }
+    } else { /* ret == 0 */
+        freeaddrinfo(res);
     }
 
     return ret == 0;
