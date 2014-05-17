@@ -121,10 +121,12 @@ static void free_exp_data(pam_handle_t *pamh, void *ptr, int err)
 
 static void close_fd(pam_handle_t *pamh, void *ptr, int err)
 {
+#ifdef PAM_DATA_REPLACE
     if (err & PAM_DATA_REPLACE) {
         /* Nothing to do */
         return;
     }
+#endif /* PAM_DATA_REPLACE */
 
     D(("Closing the fd"));
     sss_pam_close_fd();
