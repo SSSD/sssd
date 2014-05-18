@@ -181,6 +181,7 @@ if HAVE_CMOCKA
         dp_opt_tests \
         responder-get-domains-tests \
         sbus-internal-tests \
+        sss_sifp-tests \
         test_search_bases
 
 if BUILD_IFP
@@ -1810,6 +1811,26 @@ ifp_tests_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
+
+sss_sifp_tests_SOURCES = \
+    src/tests/cmocka/test_sss_sifp.c \
+    src/lib/sifp/sss_sifp_attrs.c \
+    src/lib/sifp/sss_sifp_parser.c \
+    src/lib/sifp/sss_sifp_utils.c \
+    src/lib/sifp/sss_sifp_dbus.c \
+    src/lib/sifp/sss_sifp.c
+sss_sifp_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    -I$(top_srcdir)/src/lib/sifp
+sss_sifp_tests_LDFLAGS = \
+    -Wl,-wrap,dbus_bus_get \
+    -Wl,-wrap,dbus_connection_send_with_reply_and_block
+sss_sifp_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(DBUS_LIBS) \
+    $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS)
 endif # BUILD_IFP
 
 endif # HAVE_CMOCKA
