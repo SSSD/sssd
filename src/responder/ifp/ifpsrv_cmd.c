@@ -234,7 +234,6 @@ ifp_user_get_attr_handle_reply(struct ifp_req *ireq,
 
 static void ifp_user_get_groups_process(struct tevent_req *req);
 static errno_t ifp_user_get_groups_reply(struct ifp_req *ireq,
-                                         const char *user,
                                          struct ldb_result *res);
 
 int ifp_user_get_groups(struct sbus_request *dbus_req,
@@ -313,7 +312,7 @@ static void ifp_user_get_groups_process(struct tevent_req *req)
         return;
     }
 
-    ret = ifp_user_get_groups_reply(group_req->ireq, group_req->name, res);
+    ret = ifp_user_get_groups_reply(group_req->ireq, res);
     if (ret != EOK) {
         sbus_request_fail_and_finish(group_req->ireq->dbus_req,
                                sbus_error_new(group_req->ireq->dbus_req,
@@ -324,8 +323,7 @@ static void ifp_user_get_groups_process(struct tevent_req *req)
 }
 
 static errno_t
-ifp_user_get_groups_reply(struct ifp_req *ireq, const char *user,
-                          struct ldb_result *res)
+ifp_user_get_groups_reply(struct ifp_req *ireq, struct ldb_result *res)
 {
     int i, num;
     const char *name;
