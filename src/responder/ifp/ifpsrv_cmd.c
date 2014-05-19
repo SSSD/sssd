@@ -44,8 +44,8 @@ static errno_t ifp_user_get_attr_recv(TALLOC_CTX *mem_ctx,
 static void ifp_user_get_attr_process(struct tevent_req *req);
 
 static errno_t
-ifp_user_get_attr_handle_reply(struct ifp_req *ireq, const char *user,
-                                const char **attrs, struct ldb_result *res);
+ifp_user_get_attr_handle_reply(struct ifp_req *ireq,
+                               const char **attrs, struct ldb_result *res);
 static errno_t
 ifp_user_get_attr_unpack_msg(struct ifp_attr_req *attr_req);
 
@@ -162,7 +162,7 @@ static void ifp_user_get_attr_process(struct tevent_req *req)
         return;
     }
 
-    ret = ifp_user_get_attr_handle_reply(attr_req->ireq, attr_req->name,
+    ret = ifp_user_get_attr_handle_reply(attr_req->ireq,
                                          attr_req->attrs, res);
     if (ret != EOK) {
         sbus_request_fail_and_finish(attr_req->ireq->dbus_req,
@@ -174,7 +174,7 @@ static void ifp_user_get_attr_process(struct tevent_req *req)
 }
 
 static errno_t
-ifp_user_get_attr_handle_reply(struct ifp_req *ireq, const char *user,
+ifp_user_get_attr_handle_reply(struct ifp_req *ireq,
                                const char **attrs, struct ldb_result *res)
 {
     errno_t ret;
