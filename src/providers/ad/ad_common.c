@@ -71,6 +71,7 @@ ad_create_default_sdap_options(TALLOC_CTX *mem_ctx)
     if (ret != EOK) {
         goto fail;
     }
+    id_opts->user_map_cnt = SDAP_OPTS_USER;
 
     /* Group map */
     ret = sdap_copy_map(id_opts,
