@@ -7,9 +7,9 @@ if WITH_JOURNALD
     extra_distcheck_flags += --with-syslog=journald
 endif
 
-DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
-                            --enable-all-experimental-features \
-                            $(extra_distcheck_flags)
+AM_DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
+                               --enable-all-experimental-features \
+                               $(extra_distcheck_flags)
 
 SUBDIRS = po
 
