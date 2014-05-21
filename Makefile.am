@@ -121,6 +121,9 @@ endif
 if BUILD_IFP
 sssdlibexec_PROGRAMS += sssd_ifp
 endif
+if BUILD_SAMBA
+sssdlibexec_PROGRAMS += gpo_child
+endif
 
 
 if BUILD_PAC_RESPONDER
@@ -2297,6 +2300,25 @@ ldap_child_LDADD = \
     $(POPT_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS)
+
+gpo_child_SOURCES = \
+    src/providers/ad/ad_gpo_child.c \
+    src/util/atomic_io.c \
+    src/util/util.c \
+    src/util/signal.c
+gpo_child_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(KRB5_CFLAGS) \
+    $(INI_CONFIG_CFLAGS) \
+    $(SMBCLIENT_CFLAGS)
+gpo_child_LDADD = \
+    libsss_debug.la \
+    $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
+    $(DHASH_LIBS) \
+    $(INI_CONFIG_LIBS) \
+    $(SMBCLIENT_LIBS)
 
 proxy_child_SOURCES = \
     src/providers/proxy/proxy_child.c \
