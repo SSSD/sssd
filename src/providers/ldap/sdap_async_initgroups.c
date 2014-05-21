@@ -2920,7 +2920,8 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
             return;
         }
 
-        if (state->opts->dc_functional_level >= DS_BEHAVIOR_WIN2008) {
+        if (state->opts->dc_functional_level >= DS_BEHAVIOR_WIN2008
+            && dp_opt_get_bool(state->opts->basic, SDAP_AD_USE_TOKENGROUPS)) {
             /* Take advantage of AD's tokenGroups mechanism to look up all
              * parent groups in a single request.
              */
@@ -3020,7 +3021,9 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
     case SDAP_SCHEMA_RFC2307BIS:
     case SDAP_SCHEMA_AD:
-        if (state->opts->dc_functional_level >= DS_BEHAVIOR_WIN2008) {
+        if (state->opts->dc_functional_level >= DS_BEHAVIOR_WIN2008
+            && dp_opt_get_bool(state->opts->basic, SDAP_AD_USE_TOKENGROUPS)) {
+
             ret = sdap_ad_tokengroups_initgroups_recv(subreq);
         }
         else if (state->opts->support_matching_rule
