@@ -312,6 +312,7 @@ option_strings = {
 
     'ldap_groups_use_matching_rule_in_chain' : _('Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups'),
     'ldap_initgroups_use_matching_rule_in_chain' : _('Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups'),
+    'ldap_use_tokengroups' : _('Whether to use Token-Groups'),
     'ldap_min_id' : _('Set lower boundary for allowed IDs from the LDAP server'),
     'ldap_max_id' : _('Set upper boundary for allowed IDs from the LDAP server'),
 

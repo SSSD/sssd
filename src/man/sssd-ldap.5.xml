@@ -961,6 +961,20 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_use_tokengroups</term>
+                    <listitem>
+                        <para>
+                          This options enables or disables use of Token-Groups
+                          attribute when performing initgroup for users from
+                          Active Directory Server 2008 and later.
+                        </para>
+                        <para>
+                            Default: True
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_netgroup_object_class (string)</term>
                     <listitem>
                         <para>
