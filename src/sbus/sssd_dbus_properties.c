@@ -345,7 +345,7 @@ dispatch_properties_get_all(struct sbus_connection *conn,
                     sbus_error_new(req,
                                    DBUS_ERROR_INVALID_ARGS,
                                    "Invalid argument types passed " \
-                                   "to Set method"));
+                                   "to GetAll method"));
     }
 
     dbus_message_iter_init(message, &iter);

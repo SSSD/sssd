@@ -1034,12 +1034,313 @@ START_TEST(test_get_basic_array_types)
 }
 END_TEST
 
+struct prop_test {
+    const char *name;
+    bool handled;
+    int length;
+    int type;
+    union prop_value {
+        bool bool_val;
+        const char *string_val;
+        const char *path_val;
+        uint8_t byte_val;
+        int16_t int16_val;
+        uint16_t uint16_val;
+        int32_t int32_val;
+        uint32_t uint32_val;
+        int64_t int64_val;
+        uint64_t uint64_val;
+        double double_val;
+
+        const char **string_arr_val;
+        const char **path_arr_val;
+        uint8_t *byte_arr_val;
+        int16_t *int16_arr_val;
+        uint16_t *uint16_arr_val;
+        int32_t *int32_arr_val;
+        uint32_t *uint32_arr_val;
+        int64_t *int64_arr_val;
+        uint64_t *uint64_arr_val;
+        double *double_arr_val;
+    } value;
+};
+
+void check_prop(DBusMessageIter *variter, struct prop_test *p)
+{
+    dbus_bool_t bool_val;
+    const char *string_val;
+    const char *path_val;
+    uint8_t byte_val;
+    int16_t int16_val;
+    uint16_t uint16_val;
+    int32_t int32_val;
+    uint32_t uint32_val;
+    int64_t int64_val;
+    uint64_t uint64_val;
+    double double_val;
+    int type;
+
+    type = dbus_message_iter_get_arg_type(variter);
+
+    /* No property should be returned twice */
+    ck_assert(p->handled == false);
+    ck_assert(p->type == type);
+    switch (p->type) {
+        case DBUS_TYPE_BOOLEAN:
+            dbus_message_iter_get_basic(variter, &bool_val);
+            ck_assert(bool_val == p->value.bool_val);
+            break;
+        case DBUS_TYPE_STRING:
+            dbus_message_iter_get_basic(variter, &string_val);
+            ck_assert_str_eq(string_val, p->value.string_val);
+            break;
+        case DBUS_TYPE_BYTE:
+            dbus_message_iter_get_basic(variter, &byte_val);
+            ck_assert_int_eq(byte_val, p->value.byte_val);
+            break;
+        case DBUS_TYPE_INT16:
+            dbus_message_iter_get_basic(variter, &int16_val);
+            ck_assert_int_eq(int16_val, p->value.int16_val);
+            break;
+        case DBUS_TYPE_UINT16:
+            dbus_message_iter_get_basic(variter, &uint16_val);
+            ck_assert_int_eq(uint16_val, p->value.uint16_val);
+            break;
+        case DBUS_TYPE_INT32:
+            dbus_message_iter_get_basic(variter, &int32_val);
+            ck_assert_int_eq(int32_val, p->value.int32_val);
+            break;
+        case DBUS_TYPE_UINT32:
+            dbus_message_iter_get_basic(variter, &uint32_val);
+            ck_assert_int_eq(uint32_val, p->value.uint32_val);
+            break;
+        case DBUS_TYPE_INT64:
+            dbus_message_iter_get_basic(variter, &int64_val);
+            ck_assert_int_eq(int64_val, p->value.int64_val);
+            break;
+        case DBUS_TYPE_UINT64:
+            dbus_message_iter_get_basic(variter, &uint64_val);
+            ck_assert_int_eq(uint64_val, p->value.uint64_val);
+            break;
+        case DBUS_TYPE_DOUBLE:
+            dbus_message_iter_get_basic(variter, &double_val);
+            ck_assert_int_eq(double_val, p->value.double_val);
+            break;
+        case DBUS_TYPE_OBJECT_PATH:
+            dbus_message_iter_get_basic(variter, &path_val);
+            ck_assert_str_eq(path_val, p->value.path_val);
+            break;
+        default:
+            /* Not handled */
+            return;
+    }
+
+    /* This attribute was handled, get the next one */
+    p->handled = true;
+}
+
+void check_arr_prop(DBusMessageIter *variter, struct prop_test *p)
+{
+    DBusMessageIter arriter;
+    const char **strings = NULL;
+    uint8_t *byte_arr_val;
+    int16_t *int16_arr_val;
+    uint16_t *uint16_arr_val;
+    int32_t *int32_arr_val;
+    uint32_t *uint32_arr_val;
+    int64_t *int64_arr_val;
+    uint64_t *uint64_arr_val;
+    double *double_arr_val;
+    int len;
+    int type;
+
+    ck_assert_int_eq(dbus_message_iter_get_arg_type(variter), DBUS_TYPE_ARRAY);
+    type = dbus_message_iter_get_element_type(variter);
+    ck_assert_int_eq(type, p->type);
+
+    dbus_message_iter_recurse(variter, &arriter);
+    if (type == DBUS_TYPE_STRING || type == DBUS_TYPE_OBJECT_PATH) {
+        int n = 0, i = 0;;
+        const char *s;
+
+        do {
+            n++;
+        } while (dbus_message_iter_next(&arriter));
+
+        /* Allocating on NULL is bad, but this is unit test */
+        strings = talloc_array(NULL, const char *, n);
+        ck_assert(strings != NULL);
+
+        dbus_message_iter_recurse(variter, &arriter);
+        do {
+            dbus_message_iter_get_basic(&arriter, &s);
+            strings[i] = talloc_strdup(strings, s);
+            ck_assert(strings[i] != NULL);
+            i++;
+        } while (dbus_message_iter_next(&arriter));
+
+        len = n;
+    }
+
+    switch (p->type) {
+        case DBUS_TYPE_STRING:
+            ck_assert_int_eq(len, 2);
+            ck_assert(strings != NULL);
+            ck_assert_str_eq(strings[0], pilot_string_array[0]);
+            ck_assert_str_eq(strings[1], pilot_string_array[1]);
+            break;
+        case DBUS_TYPE_BYTE:
+            dbus_message_iter_get_fixed_array(&arriter, &byte_arr_val, &len);
+            check_uint_array(byte_arr_val, len, p->value.byte_arr_val);
+            break;
+        case DBUS_TYPE_INT16:
+            dbus_message_iter_get_fixed_array(&arriter, &int16_arr_val, &len);
+            check_int_array(int16_arr_val, len, p->value.int16_arr_val);
+            break;
+        case DBUS_TYPE_UINT16:
+            dbus_message_iter_get_fixed_array(&arriter, &uint16_arr_val, &len);
+            check_uint_array(uint16_arr_val, len, p->value.uint16_arr_val);
+            break;
+        case DBUS_TYPE_INT32:
+            dbus_message_iter_get_fixed_array(&arriter, &int32_arr_val, &len);
+            check_int_array(int32_arr_val, len, p->value.int32_arr_val);
+            break;
+        case DBUS_TYPE_UINT32:
+            dbus_message_iter_get_fixed_array(&arriter, &uint32_arr_val, &len);
+            check_uint_array(uint32_arr_val, len, p->value.uint32_arr_val);
+            break;
+        case DBUS_TYPE_INT64:
+            dbus_message_iter_get_fixed_array(&arriter, &int64_arr_val, &len);
+            check_int_array(int64_arr_val, len, p->value.int64_arr_val);
+            break;
+        case DBUS_TYPE_UINT64:
+            dbus_message_iter_get_fixed_array(&arriter, &uint64_arr_val, &len);
+            check_uint_array(uint64_arr_val, len, p->value.uint64_arr_val);
+            break;
+        case DBUS_TYPE_DOUBLE:
+            dbus_message_iter_get_fixed_array(&arriter, &double_arr_val, &len);
+            check_int_array(double_arr_val, len, p->value.double_arr_val);
+            break;
+        case DBUS_TYPE_OBJECT_PATH:
+            ck_assert_int_eq(len, 2);
+            ck_assert(strings != NULL);
+            ck_assert_str_eq(strings[0], pilot_path_array[0]);
+            ck_assert_str_eq(strings[1], pilot_path_array[1]);
+            break;
+        default:
+            /* Not handled */
+            return;
+    }
+
+
+    p->handled = true;
+}
+
+START_TEST(test_getall_basic_types)
+{
+    DBusMessage *reply;
+    DBusMessageIter iter;
+    DBusMessageIter arriter;
+    DBusMessageIter dictiter;
+    DBusMessageIter variter;
+    dbus_bool_t dbret;
+    DBusError error = DBUS_ERROR_INIT;
+    TALLOC_CTX *ctx;
+    DBusConnection *client;
+    char *attr_name;
+    int i;
+    int num_prop;
+
+    struct prop_test pilot_properties[] = {
+      { "boolean", false, 0, DBUS_TYPE_BOOLEAN, { .bool_val = pilot_bool } },
+      { "FullName", false, 0, DBUS_TYPE_STRING, { .string_val = pilot_full_name } },
+      { "byte", false, 0, DBUS_TYPE_BYTE, { .byte_val = pilot_byte } },
+      { "int16", false, 0, DBUS_TYPE_INT16, { .int16_val = pilot_int16 } },
+      { "uint16", false, 0, DBUS_TYPE_UINT16, { .uint16_val = pilot_uint16 } },
+      { "int32", false, 0, DBUS_TYPE_INT32, { .int32_val = pilot_int32 } },
+      { "uint32", false, 0, DBUS_TYPE_UINT32, { .uint32_val = pilot_uint32 } },
+      { "int64", false, 0, DBUS_TYPE_INT64, { .int64_val = pilot_int64 } },
+      { "uint64", false, 0, DBUS_TYPE_UINT64, { .uint64_val = pilot_uint64 } },
+      { "double", false, 0, DBUS_TYPE_DOUBLE, { .double_val = pilot_double } },
+      { "string", false, 0, DBUS_TYPE_STRING, { .string_val = pilot_string } },
+      { "object_path", false, 0, DBUS_TYPE_OBJECT_PATH, { .path_val = pilot_path } },
+      { "null_string", false, 0, DBUS_TYPE_STRING, { .string_val = "" } },
+      { "null_path", false, 0, DBUS_TYPE_OBJECT_PATH, { .path_val = "/" } },
+
+      { "byte_array", false, N_ELEMENTS(pilot_byte_array), DBUS_TYPE_BYTE, { .byte_arr_val = pilot_byte_array } },
+      { "int16_array", false, N_ELEMENTS(pilot_int16_array), DBUS_TYPE_INT16, { .int16_arr_val = pilot_int16_array } },
+      { "uint16_array", false, N_ELEMENTS(pilot_uint16_array), DBUS_TYPE_UINT16, { .uint16_arr_val = pilot_uint16_array } },
+      { "int32_array", false, N_ELEMENTS(pilot_int32_array), DBUS_TYPE_INT32, { .int32_arr_val = pilot_int32_array } },
+      { "uint32_array", false, N_ELEMENTS(pilot_uint32_array), DBUS_TYPE_UINT32, { .uint32_arr_val = pilot_uint32_array } },
+      { "int64_array", false, N_ELEMENTS(pilot_int64_array), DBUS_TYPE_INT64, { .int64_arr_val = pilot_int64_array } },
+      { "uint64_array", false, N_ELEMENTS(pilot_uint64_array), DBUS_TYPE_UINT64, { .uint64_arr_val = pilot_uint64_array } },
+      { "double_array", false, N_ELEMENTS(pilot_double_array), DBUS_TYPE_DOUBLE, { .double_arr_val = pilot_double_array } },
+      { "string_array", false, N_ELEMENTS(pilot_string_array), DBUS_TYPE_STRING, { .string_arr_val = pilot_string_array } },
+      { "object_path_array", false, N_ELEMENTS(pilot_path_array), DBUS_TYPE_OBJECT_PATH, { .path_arr_val = pilot_path_array } },
+
+      { NULL, false, 0, 0, { .bool_val = false } }};
+
+    ctx = talloc_new(NULL);
+    client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
+
+    reply = test_dbus_call_sync(client,
+                                "/test/leela",
+                                DBUS_PROPERTIES_INTERFACE,
+                                "GetAll",
+                                &error,
+                                DBUS_TYPE_STRING,
+                                &test_pilot_meta.name,
+                                DBUS_TYPE_INVALID);
+    ck_assert(reply != NULL);
+
+    /* GetAll reply is an array of dictionaries */
+    dbret = dbus_message_iter_init(reply, &iter);
+    ck_assert(dbret == TRUE);
+    ck_assert_int_eq(dbus_message_iter_get_arg_type(&iter), DBUS_TYPE_ARRAY);
+
+    dbus_message_iter_recurse(&iter, &arriter);
+    num_prop = 0;
+    do {
+        ck_assert_int_eq(dbus_message_iter_get_arg_type(&arriter),
+                         DBUS_TYPE_DICT_ENTRY);
+        dbus_message_iter_recurse(&arriter, &dictiter);
+        dbus_message_iter_get_basic(&dictiter, &attr_name);
+        ck_assert(dbus_message_iter_next(&dictiter) == TRUE);
+        ck_assert_int_eq(dbus_message_iter_get_arg_type(&dictiter),
+                         DBUS_TYPE_VARIANT);
+
+        dbus_message_iter_recurse(&dictiter, &variter);
+
+        for (i=0; pilot_properties[i].name; i++) {
+            if (strcmp(attr_name, pilot_properties[i].name) == 0) {
+                if (dbus_message_iter_get_arg_type(&variter) == DBUS_TYPE_ARRAY) {
+                    check_arr_prop(&variter, &pilot_properties[i]);
+                } else {
+                    check_prop(&variter, &pilot_properties[i]);
+                }
+                break;
+            }
+        }
+
+        num_prop++;
+    } while(dbus_message_iter_next(&arriter));
+
+    /* All known properties must be handled now */
+    for (i=0; pilot_properties[i].name; i++) {
+        ck_assert(pilot_properties[i].handled == true);
+    }
+    /* Also all properties returned from the bus must be accounted for */
+    ck_assert_uint_eq(num_prop, N_ELEMENTS(pilot_properties)-1);
+}
+END_TEST
+
 TCase *create_handler_tests(void)
 {
     TCase *tc = tcase_create("handler");
 
     tcase_add_test(tc, test_marshal_basic_types);
     tcase_add_test(tc, test_get_basic_types);
+    tcase_add_test(tc, test_getall_basic_types);
     tcase_add_test(tc, test_get_basic_array_types);
 
     return tc;

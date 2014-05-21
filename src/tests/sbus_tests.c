@@ -98,6 +98,7 @@ const struct sbus_interface_meta pilot_meta = {
     pilot_methods,
     NULL, /* no signals */
     NULL, /* no properties */
+    NULL, /* no GetAll invoker */
 };
 
 static int blink_handler(struct sbus_request *req, void *data)
