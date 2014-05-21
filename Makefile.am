@@ -1959,9 +1959,11 @@ libsss_ad_common_la_SOURCES = \
 libsss_ad_common_la_LDFLAGS = \
     -avoid-version
 libsss_ad_common_la_CFLAGS = \
-    $(NDR_NBT_CFLAGS)
+    $(NDR_NBT_CFLAGS) \
+    $(SMBCLIENT_CFLAGS)
 libsss_ad_common_la_LIBADD = \
-    $(NDR_NBT_LIBS)
+    $(NDR_NBT_LIBS) \
+    $(SMBCLIENT_LIBS)
 
 libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_utils.c \
@@ -2138,7 +2140,8 @@ libsss_ad_la_CFLAGS = \
     $(SASL_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS) \
-    $(NDR_NBT_CFLAGS)
+    $(NDR_NBT_CFLAGS) \
+    $(SMBCLIENT_CFLAGS)
 libsss_ad_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(SASL_LIBS) \
@@ -2146,6 +2149,7 @@ libsss_ad_la_LIBADD = \
     $(KRB5_LIBS) \
     $(NDR_NBT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(SMBCLIENT_LIBS) \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
     libsss_idmap.la

@@ -155,6 +155,7 @@ m4_include([src/external/inotify.m4])
 m4_include([src/external/libndr_nbt.m4])
 m4_include([src/external/sasl.m4])
 m4_include([src/external/configlib.m4])
+m4_include([src/external/libsmbclient.m4])
 
 if test x$build_config_lib = xyes; then
     m4_include([src/external/libaugeas.m4])
