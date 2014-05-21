@@ -278,6 +278,13 @@ int sbus_add_variant_to_dict(DBusMessageIter *iter_dict,
                              int type,
                              const void *value);
 
+int sbus_add_array_as_variant_to_dict(DBusMessageIter *iter_dict,
+                                      const char *key,
+                                      int type,
+                                      uint8_t *values,
+                                      const int len,
+                                      const unsigned int item_size);
+
 int sbus_request_return_as_variant(struct sbus_request *dbus_req,
                                    int type,
                                    const void *value);

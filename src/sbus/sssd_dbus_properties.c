@@ -91,6 +91,82 @@ int sbus_add_variant_to_dict(DBusMessageIter *iter_dict,
     return EOK;
 }
 
+int sbus_add_array_as_variant_to_dict(DBusMessageIter *iter_dict,
+                                      const char *key,
+                                      int type,
+                                      uint8_t *values,
+                                      const int len,
+                                      const unsigned int item_size)
+{
+    DBusMessageIter iter_dict_entry;
+    DBusMessageIter iter_variant;
+    DBusMessageIter iter_array;
+    dbus_bool_t dbret;
+    char variant_type[] = {DBUS_TYPE_ARRAY, type, '\0'};
+    char array_type[] = {type, '\0'};
+    void *addr = NULL;
+    int i;
+
+    dbret = dbus_message_iter_open_container(iter_dict,
+                                             DBUS_TYPE_DICT_ENTRY, NULL,
+                                             &iter_dict_entry);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    /* Start by appending the key */
+    dbret = dbus_message_iter_append_basic(&iter_dict_entry,
+                                           DBUS_TYPE_STRING, &key);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_open_container(&iter_dict_entry,
+                                             DBUS_TYPE_VARIANT,
+                                             variant_type,
+                                             &iter_variant);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_open_container(&iter_variant,
+                                             DBUS_TYPE_ARRAY,
+                                             array_type,
+                                             &iter_array);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    /* Now add the value */
+    for (i = 0; i < len; i++) {
+        addr = values + i * item_size;
+        dbret = dbus_message_iter_append_basic(&iter_array, type, addr);
+        if (!dbret) {
+            return ENOMEM;
+        }
+    }
+
+    dbret = dbus_message_iter_close_container(&iter_variant,
+                                              &iter_array);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_close_container(&iter_dict_entry,
+                                              &iter_variant);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_close_container(iter_dict,
+                                              &iter_dict_entry);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
 static int
 dispatch_properties_set(struct sbus_connection *conn,
                         struct sbus_interface *intf,
