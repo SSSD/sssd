@@ -76,6 +76,7 @@ struct sbus_interface_meta {
     const struct sbus_method_meta *methods;
     const struct sbus_signal_meta *signals;
     const struct sbus_property_meta *properties;
+    sbus_method_invoker_fn invoker_get_all;
 };
 
 const struct sbus_method_meta *

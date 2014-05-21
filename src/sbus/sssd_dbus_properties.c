@@ -23,6 +23,74 @@
 #include "sbus/sssd_dbus_meta.h"
 #include "sbus/sssd_dbus_private.h"
 
+static char *
+type_to_string(char type, char *str)
+{
+    int l;
+
+    l = snprintf(str, 2, "%c", type);
+    if (l != 1) {
+        return NULL;
+    }
+
+    return str;
+}
+
+int sbus_add_variant_to_dict(DBusMessageIter *iter_dict,
+                             const char *key,
+                             int type,
+                             const void *value)
+{
+    DBusMessageIter iter_dict_entry;
+    DBusMessageIter iter_dict_val;
+    dbus_bool_t dbret;
+    char strtype[2];
+
+    type_to_string(type, strtype);
+
+    dbret = dbus_message_iter_open_container(iter_dict,
+                                             DBUS_TYPE_DICT_ENTRY, NULL,
+                                             &iter_dict_entry);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    /* Start by appending the key */
+    dbret = dbus_message_iter_append_basic(&iter_dict_entry,
+                                           DBUS_TYPE_STRING, &key);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_open_container(&iter_dict_entry,
+                                             DBUS_TYPE_VARIANT,
+                                             strtype,
+                                             &iter_dict_val);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    /* Now add the value */
+    dbret = dbus_message_iter_append_basic(&iter_dict_val, type, value);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_close_container(&iter_dict_entry,
+                                              &iter_dict_val);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_iter_close_container(iter_dict,
+                                              &iter_dict_entry);
+    if (!dbret) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
 static int
 dispatch_properties_set(struct sbus_connection *conn,
                         struct sbus_interface *intf,
@@ -176,6 +244,50 @@ dispatch_properties_get(struct sbus_connection *conn,
     return EOK;
 }
 
+static int
+dispatch_properties_get_all(struct sbus_connection *conn,
+                            struct sbus_interface *intf,
+                            DBusMessage *message)
+{
+    struct sbus_request *req;
+    const char *signature;
+    const struct sbus_interface_meta *meta;
+    const char *interface_name;
+    DBusMessageIter iter;
+
+    req = sbus_new_request(conn, intf, message);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+
+    meta = intf->vtable->meta;
+
+    signature = dbus_message_get_signature(message);
+    /* Interface name */
+    if (strcmp(signature, "s") != 0) {
+        return sbus_request_fail_and_finish(req,
+                    sbus_error_new(req,
+                                   DBUS_ERROR_INVALID_ARGS,
+                                   "Invalid argument types passed " \
+                                   "to Set method"));
+    }
+
+    dbus_message_iter_init(message, &iter);
+    dbus_message_iter_get_basic(&iter, &interface_name);
+
+    if (strcmp(interface_name, meta->name) != 0) {
+        return sbus_request_fail_and_finish(req,
+                    sbus_error_new(req,
+                                   DBUS_ERROR_UNKNOWN_INTERFACE,
+                                   "No such interface"));
+    }
+
+    sbus_request_invoke_or_finish(req, NULL,
+                                  intf->instance_data,
+                                  meta->invoker_get_all);
+    return EOK;
+}
+
 int sbus_properties_dispatch(struct sbus_request *dbus_req)
 {
     const char *member;
@@ -191,6 +303,10 @@ int sbus_properties_dispatch(struct sbus_request *dbus_req)
         return dispatch_properties_get(dbus_req->conn,
                                        dbus_req->intf,
                                        dbus_req->message);
+    } else if (strcmp (member, "GetAll") == 0) {
+        return dispatch_properties_get_all(dbus_req->conn,
+                                            dbus_req->intf,
+                                            dbus_req->message);
     }
 
     return ERR_SBUS_NOSUP;

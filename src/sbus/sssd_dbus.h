@@ -273,6 +273,11 @@ int sbus_request_return_and_finish(struct sbus_request *dbus_req,
                                    int first_arg_type,
                                    ...);
 
+int sbus_add_variant_to_dict(DBusMessageIter *iter_dict,
+                             const char *key,
+                             int type,
+                             const void *value);
+
 int sbus_request_return_as_variant(struct sbus_request *dbus_req,
                                    int type,
                                    const void *value);
