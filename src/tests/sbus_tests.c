@@ -65,6 +65,10 @@
         "     <arg name=\"property\" direction=\"in\" type=\"s\"/>\n"                        \
         "     <arg name=\"value\" direction=\"out\" type=\"v\"/>\n"                          \
         "   </method>\n"                                                                     \
+        "   <method name=\"GetAll\">\n"                                                      \
+        "     <arg name=\"interface\" direction=\"in\" type=\"s\"/>\n"                       \
+        "     <arg name=\"properties\" direction=\"out\" type=\"a{sv}\"/>\n"                 \
+        "   </method>\n"                                                                     \
         " </interface>\n"                                                                    \
         "</node>\n"
 
