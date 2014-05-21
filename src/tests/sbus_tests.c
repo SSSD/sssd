@@ -59,6 +59,13 @@
         "     <arg name=\"data\" type=\"s\" direction=\"out\"/>\n"                           \
         "   </method>\n"                                                                     \
         " </interface>\n"                                                                    \
+        " <interface name=\"org.freedesktop.DBus.Properties\">\n"                            \
+        "   <method name=\"Get\">\n"                                                         \
+        "     <arg name=\"interface\" direction=\"in\" type=\"s\"/>\n"                       \
+        "     <arg name=\"property\" direction=\"in\" type=\"s\"/>\n"                        \
+        "     <arg name=\"value\" direction=\"out\" type=\"v\"/>\n"                          \
+        "   </method>\n"                                                                     \
+        " </interface>\n"                                                                    \
         "</node>\n"
 
 /* our vtable */

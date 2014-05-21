@@ -47,6 +47,14 @@ const struct sbus_method_meta introspect_method =
      "   </method>\n"                                                \
      " </interface>\n"
 
+#define SSS_INTROSPECT_INTERFACE_PROPERTIES                                 \
+     " <interface name=\"org.freedesktop.DBus.Properties\">\n"              \
+     "   <method name=\"Get\">\n"                                           \
+     "     <arg name=\"interface\" direction=\"in\" type=\"s\"/>\n"         \
+     "     <arg name=\"property\" direction=\"in\" type=\"s\"/>\n"          \
+     "     <arg name=\"value\" direction=\"out\" type=\"v\"/>\n"            \
+     "   </method>\n"                                                       \
+     " </interface>\n"
 
 struct introspect_ctx {
     FILE *f;
@@ -251,6 +259,9 @@ static errno_t introspect_finish(struct introspect_ctx *ictx)
     if (ret < 0) return EIO;
 
     ret = fputs(SSS_INTROSPECT_INTERFACE_INTROSPECTABLE, ictx->f);
+    if (ret < 0) return EIO;
+
+    ret = fputs(SSS_INTROSPECT_INTERFACE_PROPERTIES, ictx->f);
     if (ret < 0) return EIO;
 
     ret = fputs("</node>\n", ictx->f);
