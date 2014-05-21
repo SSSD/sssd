@@ -68,10 +68,6 @@ struct sbus_connection {
     struct sbus_watch_ctx *watch_list;
 };
 
-/* Looks up a vtable func, in a struct derived from struct sbus_vtable */
-#define VTABLE_FUNC(vtable, offset) \
-    (*((void **)((char *)(vtable) + (offset))))
-
 /* =Watches=============================================================== */
 
 struct sbus_watch_ctx {

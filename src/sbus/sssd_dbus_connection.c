@@ -394,10 +394,6 @@ static bool sbus_iface_handles_path(struct sbus_interface_p *intf_p,
     return strcmp(path, intf_p->intf->path) == 0;
 }
 
-/* Looks up a vtable func, in a struct derived from struct sbus_vtable */
-#define VTABLE_FUNC(vtable, offset) \
-    (*((void **)((char *)(vtable) + (offset))))
-
 static void sbus_handler_got_caller_id(struct tevent_req *req);
 
 /* messsage_handler

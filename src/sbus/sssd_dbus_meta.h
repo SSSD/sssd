@@ -33,6 +33,10 @@
  * http://dbus.freedesktop.org/doc/dbus-specification.html#introspection-format
  */
 
+/* Looks up a vtable func, in a struct derived from struct sbus_vtable */
+#define VTABLE_FUNC(vtable, offset) \
+    (*((void **)((char *)(vtable) + (offset))))
+
 struct sbus_arg_meta {
     const char *name;
     const char *type;
