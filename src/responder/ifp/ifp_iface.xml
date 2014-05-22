@@ -31,4 +31,23 @@
         </method>
 
     </interface>
+
+    <interface name="org.freedesktop.sssd.infopipe.Domains">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="infopipe_domain"/>
+
+        <property name="name" type="s" access="read"/>
+        <property name="provider" type="s" access="read"/>
+        <property name="primary_servers" type="as" access="read"/>
+        <property name="backup_servers" type="as" access="read"/>
+        <property name="min_id" type="u" access="read"/>
+        <property name="max_id" type="u" access="read"/>
+        <property name="realm" type="s" access="read"/>
+        <property name="forest" type="s" access="read"/>
+        <property name="login_format" type="s" access="read"/>
+        <property name="fully_qualified_name_format" type="s" access="read"/>
+        <property name="enumerable" type="b" access="read"/>
+        <property name="use_fully_qualified_names" type="b" access="read"/>
+        <property name="subdomain" type="b" access="read"/>
+        <property name="parent_domain" type="o" access="read"/>
+    </interface>
 </node>

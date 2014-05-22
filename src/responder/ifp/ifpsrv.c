@@ -73,6 +73,24 @@ struct infopipe_iface ifp_iface = {
     .FindDomainByName = ifp_find_domain_by_name,
 };
 
+struct infopipe_domain ifp_domain = {
+    { &infopipe_domain_meta, 0 },
+    .infopipe_domain_get_name = ifp_dom_get_name,
+    .infopipe_domain_get_provider = ifp_dom_get_provider,
+    .infopipe_domain_get_primary_servers = ifp_dom_get_primary_servers,
+    .infopipe_domain_get_backup_servers = ifp_dom_get_backup_servers,
+    .infopipe_domain_get_min_id = ifp_dom_get_min_id,
+    .infopipe_domain_get_max_id = ifp_dom_get_max_id,
+    .infopipe_domain_get_realm = ifp_dom_get_realm,
+    .infopipe_domain_get_forest = ifp_dom_get_forest,
+    .infopipe_domain_get_login_format = ifp_dom_get_login_format,
+    .infopipe_domain_get_fully_qualified_name_format = ifp_dom_get_fqdn_format,
+    .infopipe_domain_get_enumerable = ifp_dom_get_enumerable,
+    .infopipe_domain_get_use_fully_qualified_names = ifp_dom_get_use_fqdn,
+    .infopipe_domain_get_subdomain = ifp_dom_get_subdomain,
+    .infopipe_domain_get_parent_domain = ifp_dom_get_parent_domain
+};
+
 struct sysbus_iface {
     const char *path;
     struct sbus_vtable *iface_vtable;
@@ -80,6 +98,7 @@ struct sysbus_iface {
 
 static struct sysbus_iface ifp_ifaces[] = {
     { INFOPIPE_PATH, &ifp_iface.vtable },
+    { INFOPIPE_DOMAIN_PATH, &ifp_domain.vtable },
     { NULL, NULL },
 };
 

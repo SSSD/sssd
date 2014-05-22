@@ -19,6 +19,23 @@
 #define INFOPIPE_IFACE_FINDDOMAINBYNAME "FindDomainByName"
 #define INFOPIPE_IFACE_LISTDOMAINS "ListDomains"
 
+/* constants for org.freedesktop.sssd.infopipe.Domains */
+#define INFOPIPE_DOMAIN "org.freedesktop.sssd.infopipe.Domains"
+#define INFOPIPE_DOMAIN_NAME "name"
+#define INFOPIPE_DOMAIN_PROVIDER "provider"
+#define INFOPIPE_DOMAIN_PRIMARY_SERVERS "primary_servers"
+#define INFOPIPE_DOMAIN_BACKUP_SERVERS "backup_servers"
+#define INFOPIPE_DOMAIN_MIN_ID "min_id"
+#define INFOPIPE_DOMAIN_MAX_ID "max_id"
+#define INFOPIPE_DOMAIN_REALM "realm"
+#define INFOPIPE_DOMAIN_FOREST "forest"
+#define INFOPIPE_DOMAIN_LOGIN_FORMAT "login_format"
+#define INFOPIPE_DOMAIN_FULLY_QUALIFIED_NAME_FORMAT "fully_qualified_name_format"
+#define INFOPIPE_DOMAIN_ENUMERABLE "enumerable"
+#define INFOPIPE_DOMAIN_USE_FULLY_QUALIFIED_NAMES "use_fully_qualified_names"
+#define INFOPIPE_DOMAIN_SUBDOMAIN "subdomain"
+#define INFOPIPE_DOMAIN_PARENT_DOMAIN "parent_domain"
+
 /* ------------------------------------------------------------------------
  * DBus handlers
  *
@@ -56,6 +73,25 @@ int infopipe_iface_FindDomainByName_finish(struct sbus_request *req, const char 
 /* finish function for ListDomains */
 int infopipe_iface_ListDomains_finish(struct sbus_request *req, const char *arg_domain[], int len_domain);
 
+/* vtable for org.freedesktop.sssd.infopipe.Domains */
+struct infopipe_domain {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    void (*infopipe_domain_get_name)(struct sbus_request *, void *data, const char * *);
+    void (*infopipe_domain_get_provider)(struct sbus_request *, void *data, const char * *);
+    void (*infopipe_domain_get_primary_servers)(struct sbus_request *, void *data, const char * * *, int *);
+    void (*infopipe_domain_get_backup_servers)(struct sbus_request *, void *data, const char * * *, int *);
+    void (*infopipe_domain_get_min_id)(struct sbus_request *, void *data, uint32_t *);
+    void (*infopipe_domain_get_max_id)(struct sbus_request *, void *data, uint32_t *);
+    void (*infopipe_domain_get_realm)(struct sbus_request *, void *data, const char * *);
+    void (*infopipe_domain_get_forest)(struct sbus_request *, void *data, const char * *);
+    void (*infopipe_domain_get_login_format)(struct sbus_request *, void *data, const char * *);
+    void (*infopipe_domain_get_fully_qualified_name_format)(struct sbus_request *, void *data, const char * *);
+    void (*infopipe_domain_get_enumerable)(struct sbus_request *, void *data, bool *);
+    void (*infopipe_domain_get_use_fully_qualified_names)(struct sbus_request *, void *data, bool *);
+    void (*infopipe_domain_get_subdomain)(struct sbus_request *, void *data, bool *);
+    void (*infopipe_domain_get_parent_domain)(struct sbus_request *, void *data, const char * *);
+};
+
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata
  *
@@ -68,5 +104,8 @@ int infopipe_iface_ListDomains_finish(struct sbus_request *req, const char *arg_
 
 /* interface info for org.freedesktop.sssd.infopipe */
 extern const struct sbus_interface_meta infopipe_iface_meta;
+
+/* interface info for org.freedesktop.sssd.infopipe.Domains */
+extern const struct sbus_interface_meta infopipe_domain_meta;
 
 #endif /* __IFP_IFACE_XML__ */

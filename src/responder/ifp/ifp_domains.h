@@ -37,4 +37,64 @@ int ifp_find_domain_by_name(struct sbus_request *dbus_req,
                             void *data,
                             const char *arg_name);
 
+/* org.freedesktop.sssd.infopipe.Domains */
+
+void ifp_dom_get_name(struct sbus_request *dbus_req,
+                      void *data,
+                      const char **_out);
+
+void ifp_dom_get_provider(struct sbus_request *dbus_req,
+                          void *data,
+                          const char **_out);
+
+void ifp_dom_get_primary_servers(struct sbus_request *dbus_req,
+                                 void *data,
+                                 const char ***_out,
+                                 int *_out_len);
+
+void ifp_dom_get_backup_servers(struct sbus_request *dbus_req,
+                                void *data,
+                                const char ***_out,
+                                int *_out_len);
+
+void ifp_dom_get_min_id(struct sbus_request *dbus_req,
+                        void *data,
+                        uint32_t *_out);
+
+void ifp_dom_get_max_id(struct sbus_request *dbus_req,
+                        void *data,
+                        uint32_t *_out);
+
+void ifp_dom_get_realm(struct sbus_request *dbus_req,
+                       void *data,
+                       const char **_out);
+
+void ifp_dom_get_forest(struct sbus_request *dbus_req,
+                        void *data,
+                        const char **_out);
+
+void ifp_dom_get_login_format(struct sbus_request *dbus_req,
+                              void *data,
+                              const char **_out);
+
+void ifp_dom_get_fqdn_format(struct sbus_request *dbus_req,
+                             void *data,
+                             const char **_out);
+
+void ifp_dom_get_enumerable(struct sbus_request *dbus_req,
+                            void *data,
+                            bool *_out);
+
+void ifp_dom_get_use_fqdn(struct sbus_request *dbus_req,
+                          void *data,
+                          bool *_out);
+
+void ifp_dom_get_subdomain(struct sbus_request *dbus_req,
+                           void *data,
+                           bool *_out);
+
+void ifp_dom_get_parent_domain(struct sbus_request *dbus_req,
+                              void *data,
+                              const char **_out);
+
 #endif /* IFP_DOMAINS_H_ */

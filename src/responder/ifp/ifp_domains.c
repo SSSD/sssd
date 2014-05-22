@@ -20,12 +20,27 @@
 */
 
 #include <talloc.h>
+#include <tevent.h>
+#include <string.h>
 
 #include "db/sysdb.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder.h"
 #include "responder/ifp/ifp_domains.h"
+
+#define RETURN_DOM_PROP_AS_STRING(dbus_req, pvt_data, out, property) do { \
+    struct sss_domain_info *__dom;                                        \
+                                                                          \
+    *(out) = NULL;                                                        \
+                                                                          \
+    __dom = get_domain_info_from_req((dbus_req), (pvt_data));             \
+    if (__dom == NULL) {                                                  \
+        return;                                                           \
+    }                                                                     \
+                                                                          \
+    *(out) = __dom->property;                                             \
+} while (0)
 
 static void ifp_list_domains_process(struct tevent_req *req);
 
@@ -231,4 +246,296 @@ static void ifp_find_domain_by_name_process(struct tevent_req *req)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not finish request!\n");
     }
+}
+
+static struct sss_domain_info *
+get_domain_info_from_req(struct sbus_request *dbus_req, void *data)
+{
+    struct ifp_ctx *ctx = NULL;
+    struct sss_domain_info *domains = NULL;
+    struct sss_domain_info *iter = NULL;
+    const char *path = dbus_message_get_path(dbus_req->message);
+    const char *raw_name = NULL;
+    char *name = NULL;
+
+    ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return NULL;
+    }
+
+    raw_name = ifp_path_strip_prefix(path, INFOPIPE_DOMAIN_PATH_PFX "/");
+    if (raw_name == NULL) {
+        return NULL;
+    }
+
+    name = ifp_bus_path_unescape(dbus_req, raw_name);
+    if (name == NULL) {
+        return NULL;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Looking for domain %s\n", name);
+
+    domains = ctx->rctx->domains;
+    for (iter = domains; iter != NULL; iter = get_next_domain(iter, true)) {
+        if (strcasecmp(iter->name, name) == 0) {
+            break;
+        }
+    }
+
+    talloc_free(name);
+    return iter;
+}
+
+static void get_server_list(struct sbus_request *dbus_req,
+                            void *data,
+                            const char ***_out,
+                            int *_out_len,
+                            bool backup)
+{
+    static const char *srv[] = {"_srv_"};
+    struct sss_domain_info *dom = NULL;
+    struct ifp_ctx *ctx = NULL;
+    const char *conf_path = NULL;
+    const char *option = NULL;
+    const char **out = NULL;
+    char **servers = NULL;
+    int num_servers;
+    errno_t ret;
+    int i;
+
+    *_out = NULL;
+    *_out_len = 0;
+
+    dom = get_domain_info_from_req(dbus_req, data);
+    if (dom == NULL) {
+        return;
+    }
+
+    if (dom->parent != NULL) {
+        /* subdomains are not present in configuration */
+        ret = ENOENT;
+        goto done;
+    }
+
+    ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid ifp context!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    conf_path = talloc_asprintf(dbus_req, CONFDB_DOMAIN_PATH_TMPL, dom->name);
+    if (conf_path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* TODO: replace hardcoded values with option names from the provider */
+    if (strcasecmp(dom->provider, "ldap") == 0) {
+        option = backup == false ? "ldap_uri" : "ldap_backup_uri";
+    } else if (strcasecmp(dom->provider, "ipa") == 0) {
+        option = backup == false ? "ipa_server" : "ipa_backup_server";
+    } else if (strcasecmp(dom->provider, "ad") == 0) {
+        option = backup == false ? "ad_server" : "ad_backup_server";
+    } else {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = confdb_get_string_as_list(ctx->rctx->cdb, dbus_req, conf_path,
+                                    option, &servers);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    for (num_servers = 0; servers[num_servers] != NULL; num_servers++);
+
+    if (num_servers == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    out = talloc_zero_array(dbus_req, const char*, num_servers);
+    if (out == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < num_servers; i++) {
+        out[i] = talloc_steal(out, servers[i]);
+    }
+
+    *_out = out;
+    *_out_len = num_servers;
+
+    ret = EOK;
+
+done:
+    if (ret == ENOENT) {
+        *_out = srv;
+        *_out_len = 1;
+    }
+
+    return;
+}
+
+void ifp_dom_get_name(struct sbus_request *dbus_req,
+                      void *data,
+                      const char **_out)
+{
+    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, name);
+}
+
+void ifp_dom_get_provider(struct sbus_request *dbus_req,
+                          void *data,
+                          const char **_out)
+{
+    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, provider);
+}
+
+void ifp_dom_get_primary_servers(struct sbus_request *dbus_req,
+                                 void *data,
+                                 const char ***_out,
+                                 int *_out_len)
+{
+    get_server_list(dbus_req, data, _out, _out_len, false);
+}
+
+void ifp_dom_get_backup_servers(struct sbus_request *dbus_req,
+                                void *data,
+                                const char ***_out,
+                                int *_out_len)
+{
+    get_server_list(dbus_req, data, _out, _out_len, true);
+}
+
+void ifp_dom_get_min_id(struct sbus_request *dbus_req,
+                        void *data,
+                        uint32_t *_out)
+{
+    struct sss_domain_info *dom;
+
+    *_out = 1;
+
+    dom = get_domain_info_from_req(dbus_req, data);
+    if (dom == NULL) {
+        return;
+    }
+
+    *_out = dom->id_min;
+}
+
+void ifp_dom_get_max_id(struct sbus_request *dbus_req,
+                        void *data,
+                        uint32_t *_out)
+{
+    struct sss_domain_info *dom;
+
+    *_out = 0;
+
+    dom = get_domain_info_from_req(dbus_req, data);
+    if (dom == NULL) {
+        return;
+    }
+
+    *_out = dom->id_max;
+}
+
+void ifp_dom_get_realm(struct sbus_request *dbus_req,
+                       void *data,
+                       const char **_out)
+{
+    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, realm);
+}
+
+void ifp_dom_get_forest(struct sbus_request *dbus_req,
+                        void *data,
+                        const char **_out)
+{
+    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, forest);
+}
+
+void ifp_dom_get_login_format(struct sbus_request *dbus_req,
+                              void *data,
+                              const char **_out)
+{
+    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, names->re_pattern);
+}
+
+void ifp_dom_get_fqdn_format(struct sbus_request *dbus_req,
+                             void *data,
+                             const char **_out)
+{
+    RETURN_DOM_PROP_AS_STRING(dbus_req, data, _out, names->fq_fmt);
+}
+
+void ifp_dom_get_enumerable(struct sbus_request *dbus_req,
+                            void *data,
+                            bool *_out)
+{
+    struct sss_domain_info *dom;
+
+    *_out = false;
+
+    dom = get_domain_info_from_req(dbus_req, data);
+    if (dom == NULL) {
+        return;
+    }
+
+    *_out = dom->enumerate;
+}
+
+void ifp_dom_get_use_fqdn(struct sbus_request *dbus_req,
+                          void *data,
+                          bool *_out)
+{
+    struct sss_domain_info *dom;
+
+    *_out = false;
+
+    dom = get_domain_info_from_req(dbus_req, data);
+    if (dom == NULL) {
+        return;
+    }
+
+    *_out = dom->fqnames;
+}
+
+void ifp_dom_get_subdomain(struct sbus_request *dbus_req,
+                           void *data,
+                           bool *_out)
+{
+    struct sss_domain_info *dom;
+
+    *_out = false;
+
+    dom = get_domain_info_from_req(dbus_req, data);
+    if (dom == NULL) {
+        return;
+    }
+
+    *_out = dom->parent ? true : false;
+}
+
+void ifp_dom_get_parent_domain(struct sbus_request *dbus_req,
+                              void *data,
+                              const char **_out)
+{
+    struct sss_domain_info *dom;
+
+    *_out = NULL;
+
+    dom = get_domain_info_from_req(dbus_req, data);
+    if (dom == NULL) {
+        return;
+    }
+
+    if (dom->parent == NULL) {
+        *_out = "/";
+        return;
+    }
+
+    *_out = ifp_reply_objpath(dbus_req, INFOPIPE_DOMAIN_PATH_PFX,
+                              dom->parent->name);
 }
