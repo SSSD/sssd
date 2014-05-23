@@ -143,6 +143,7 @@ BuildRequires: cifs-utils-devel
 %if !0%{?is_rhel5}
 BuildRequires: samba4-devel
 %endif
+BuildRequires: libsmbclient-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and
