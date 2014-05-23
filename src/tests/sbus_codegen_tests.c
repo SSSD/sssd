@@ -179,6 +179,7 @@ START_TEST(test_vtable)
         mock_move_universe,
         mock_crash_now,
         mock_land,
+        NULL,
     };
 
     /*
