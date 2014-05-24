@@ -20,6 +20,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
+#include <stdio.h>
 #include <sys/time.h>
 #include <dbus/dbus.h>
 
