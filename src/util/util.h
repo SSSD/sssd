@@ -38,6 +38,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include <talloc.h>
 #include <tevent.h>
