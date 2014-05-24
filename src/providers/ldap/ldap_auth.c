@@ -30,9 +30,9 @@
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW ((ber_tag_t) 0x82U)
 #endif
 
-#define _XOPEN_SOURCE 500 /* for strptime() */
+#include "config.h"
+
 #include <time.h>
-#undef _XOPEN_SOURCE
 #include <errno.h>
 #include <sys/time.h>
 #include <strings.h>
