@@ -30,6 +30,10 @@ struct sbus_request;
 #include <sys/types.h>
 #include "util/util.h"
 
+#ifndef DBUS_ERROR_INIT
+#define DBUS_ERROR_INIT { NULL, NULL, TRUE, 0, 0, 0, 0, NULL }
+#endif /* DBUS_ERROR_INIT */
+
 typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req,
                                    void *instance_data);
 
