@@ -636,6 +636,8 @@ START_TEST(test_marshal_basic_types)
     DBusMessage *reply;
 
     ctx = talloc_new(NULL);
+    ck_assert(ctx != NULL);
+
     client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
 
     reply = test_dbus_call_sync(client,
@@ -812,6 +814,8 @@ START_TEST(test_get_basic_types)
     double double_val;
 
     ctx = talloc_new(NULL);
+    ck_assert(ctx != NULL);
+
     client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
 
     call_get(client, "/test/leela", test_pilot_meta.name, "boolean",
@@ -979,6 +983,8 @@ START_TEST(test_get_basic_array_types)
     int double_arr_len;
 
     ctx = talloc_new(NULL);
+    ck_assert(ctx != NULL);
+
     client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
 
     call_get_array(client, "/test/leela", test_pilot_meta.name, "byte_array",
@@ -1281,6 +1287,8 @@ START_TEST(test_getall_basic_types)
       { NULL, false, 0, 0, { .bool_val = false } }};
 
     ctx = talloc_new(NULL);
+    ck_assert(ctx != NULL);
+
     client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
 
     reply = test_dbus_call_sync(client,
