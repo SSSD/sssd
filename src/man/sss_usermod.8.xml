@@ -130,6 +130,42 @@
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>--addattr</option>
+                    <replaceable>ATTR_NAME_VAL</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Add an attribute/value pair. The format is
+                        attrname=value.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>--setattr</option>
+                    <replaceable>ATTR_NAME_VAL</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Set an attribute to a name/value pair. The format
+                        is attrname=value. For multi-valued attributes,
+                        the command replaces the values already present
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>--delattr</option>
+                    <replaceable>ATTR_NAME_VAL</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Delete an attribute/value pair. The format is attrname=value.
+                    </para>
+                </listitem>
+            </varlistentry>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
         </variablelist>
     </refsect1>

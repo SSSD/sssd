@@ -54,11 +54,15 @@ int main(int argc, const char **argv)
         { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', _("Groups to remove this user from"), NULL },
         { "lock", 'L', POPT_ARG_NONE, NULL, 'L', _("Lock the account"), NULL },
         { "unlock", 'U', POPT_ARG_NONE, NULL, 'U', _("Unlock the account"), NULL },
+        { "addattr", '\0', POPT_ARG_STRING, NULL, 't' , _("Add an attribute/value pair. The format is attrname=value."), NULL },
+        { "delattr", '\0', POPT_ARG_STRING, NULL, 'd' , _("Delete an attribute/value pair. The format is attrname=value."), NULL },
+        { "setattr", '\0', POPT_ARG_STRING, NULL, 's' , _("Set an attribute to a name/value pair. The format is attrname=value. For multi-valued attributes, the command replaces the values already present"), NULL },
         { "selinux-user", 'Z', POPT_ARG_STRING, &pc_selinux_user, 0, _("The SELinux user for user's login"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
     char *addgroups = NULL, *rmgroups = NULL;
+    char *addattr = NULL, *delattr = NULL, *setattr = NULL;
     int ret;
     errno_t sret;
     const char *pc_username = NULL;
@@ -105,6 +109,34 @@ int main(int argc, const char **argv)
             case 'U':
                 pc_lock = DO_UNLOCK;
                 break;
+
+            case 't':
+                addattr = poptGetOptArg(pc);
+                if (addattr == NULL) {
+                    BAD_POPT_PARAMS(pc,
+                              _("Specify the attribute name/value pair(s)\n"),
+                              ret, fini);
+                }
+                break;
+
+            case 'd':
+                delattr = poptGetOptArg(pc);
+                if (delattr == NULL) {
+                    BAD_POPT_PARAMS(pc,
+                              _("Specify the attribute name/value pair(s)\n"),
+                              ret, fini);
+                }
+                break;
+
+            case 's':
+                setattr = poptGetOptArg(pc);
+                if (setattr == NULL) {
+                    BAD_POPT_PARAMS(pc,
+                              _("Specify the attribute name/value pair(s)\n"),
+                              ret, fini);
+                }
+                break;
+
         }
     }
 
@@ -221,6 +253,9 @@ int main(int argc, const char **argv)
     tctx->octx->uid = pc_uid;
     tctx->octx->gid = pc_gid;
     tctx->octx->lock = pc_lock;
+    tctx->octx->addattr = addattr;
+    tctx->octx->delattr = delattr;
+    tctx->octx->setattr = setattr;
 
     tctx->error = sysdb_transaction_start(tctx->sysdb);
     if (tctx->error != EOK) {

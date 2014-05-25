@@ -35,6 +35,8 @@
 #define DFL_SKEL_DIR       "/etc/skel"
 #define DFL_MAIL_DIR       "/var/spool/mail"
 
+#define ATTR_NAME_SEP      '='
+#define ATTR_VAL_SEP       ','
 
 #define VAR_CHECK(var, val, attr, msg) do { \
         if (var != (val)) { \
@@ -43,6 +45,94 @@
         } \
 } while(0)
 
+static int attr_name_val_split(TALLOC_CTX *mem_ctx, const char *nameval,
+                               char **_name, char ***_values, int *_nvals)
+{
+    char *name;
+    char **values;
+    const char *vals;
+    int nvals;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) return ENOMEM;
+
+    vals = strchr(nameval, ATTR_NAME_SEP);
+    if (vals == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    name = talloc_strndup(tmp_ctx, nameval, vals-nameval);
+    if (name == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    vals++;
+
+    ret = split_on_separator(tmp_ctx, vals, ATTR_VAL_SEP, true, true,
+                             &values, &nvals);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    *_name = talloc_steal(mem_ctx, name);
+    *_values = talloc_steal(mem_ctx, values);
+    *_nvals = nvals;
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return EOK;
+}
+
+static int attr_op(struct ops_ctx *octx, const char *nameval, int op)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    char *name;
+    char **vals;
+    int nvals;
+    int i;
+
+    switch(op) {
+    case SYSDB_MOD_ADD:
+    case SYSDB_MOD_DEL:
+    case SYSDB_MOD_REP:
+        break;
+    default:
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) return ENOMEM;
+
+    attrs = sysdb_new_attrs(tmp_ctx);
+    if (attrs == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = attr_name_val_split(tmp_ctx, nameval, &name, &vals, &nvals);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    for (i=0; i < nvals; i++) {
+        ret = sysdb_attrs_add_string(attrs, name, vals[i]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not add %s to %s\n", vals[i], name);
+            continue;
+        }
+    }
+
+    ret = sysdb_set_user_attr(octx->domain, octx->name, attrs, op);
+done:
+    talloc_free(tmp_ctx);
+    return EOK;
+}
 /*
  * Generic modify groups member
  */
@@ -226,6 +316,28 @@ int usermod(TALLOC_CTX *mem_ctx,
 
     if (data->addgroups != NULL) {
         ret = add_to_groups(data, member_dn);
+        if (ret) {
+            return ret;
+        }
+    }
+
+    if (data->addattr) {
+        ret = attr_op(data, data->addattr, SYSDB_MOD_ADD);
+        if (ret) {
+            return ret;
+        }
+    }
+
+    if (data->setattr) {
+        ret = attr_op(data, data->setattr, SYSDB_MOD_REP);
+        if (ret) {
+            return ret;
+        }
+
+    }
+
+    if (data->delattr) {
+        ret = attr_op(data, data->delattr, SYSDB_MOD_DEL);
         if (ret) {
             return ret;
         }

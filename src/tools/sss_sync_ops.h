@@ -53,6 +53,10 @@ struct ops_ctx {
 
     char **addgroups;
     char **rmgroups;
+
+    char *addattr;
+    char *setattr;
+    char *delattr;
 };
 
 /* default values for add operations */
