@@ -40,6 +40,9 @@
             <arg choice='opt'>
                 <replaceable>ignore_unknown_user</replaceable>
             </arg>
+            <arg choice='opt'>
+                <replaceable>ignore_authinfo_unavail</replaceable>
+            </arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -113,6 +116,17 @@
                 <listitem>
                     <para>If this option is specified and the user does not
                     exist, the PAM module will return PAM_IGNORE. This causes
+                    the PAM framework to ignore this module.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>ignore_authinfo_unavail</option>
+                </term>
+                <listitem>
+                    <para>
+                    Specifies  that  the  PAM module should return PAM_IGNORE
+                    if it cannot contact the SSSD daemon. This causes
                     the PAM framework to ignore this module.</para>
                 </listitem>
             </varlistentry>
