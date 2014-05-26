@@ -957,6 +957,27 @@ START_TEST(test_is_host_in_domain)
 }
 END_TEST
 
+START_TEST(test_known_service)
+{
+    const char * const * svcs;
+    bool found_nss;
+    int i;
+
+    /* Just make sure we can't find a bogus service and nss
+     * is always available
+     */
+    svcs = get_known_services();
+    for (i = 0; svcs[i]; i++) {
+        ck_assert_str_ne(svcs[i], "nosuchservice");
+        if (strcmp(svcs[i], "nss")) {
+            found_nss = true;
+        }
+    }
+
+    ck_assert(found_nss == true);
+}
+END_TEST
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -976,6 +997,7 @@ Suite *util_suite(void)
     tcase_add_test (tc_util, test_check_ipv4_addr);
     tcase_add_test (tc_util, test_check_ipv6_addr);
     tcase_add_test (tc_util, test_is_host_in_domain);
+    tcase_add_test (tc_util, test_known_service);
     tcase_set_timeout(tc_util, 60);
 
     TCase *tc_utf8 = tcase_create("utf8");
