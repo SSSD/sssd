@@ -22,9 +22,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define _XOPEN_SOURCE 500 /* for strptime() */
+#include "config.h"
+
 #include <time.h>
-#undef _XOPEN_SOURCE
 #include <sys/param.h>
 #include <security/pam_modules.h>
 #include <talloc.h>
