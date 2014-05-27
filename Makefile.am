@@ -1695,7 +1695,8 @@ pam_sss_la_SOURCES = \
     src/sss_client/common.c \
     src/sss_client/sss_cli.h \
     src/util/atomic_io.c \
-    src/sss_client/sss_pam_macros.h
+    src/sss_client/sss_pam_macros.h \
+    src/sss_client/sss_pam_compat.h
 
 pam_sss_la_LIBADD = \
     $(CLIENT_LIBS) \

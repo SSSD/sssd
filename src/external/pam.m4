@@ -18,3 +18,12 @@ AC_CHECK_HEADERS([security/openpam.h],,,[
 
 AC_CHECK_LIB([pam_misc], [misc_conv],
     [PAM_MISC_LIBS="-lpam_misc"])
+
+dnl save LIBS to restore later
+save_LIBS="$LIBS"
+LIBS="$PAM_LIBS"
+
+AC_CHECK_FUNCS(pam_modutil_getlogin pam_vsyslog)
+
+dnl restore LIBS
+LIBS="$save_LIBS"
