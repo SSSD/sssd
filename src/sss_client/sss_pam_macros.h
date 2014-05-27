@@ -29,7 +29,20 @@
  * _pam_overwrite_n(n,x) macro. This implementation is copied from
  * the Fedora 11 _pam_macros.h.
  */
-#include <security/_pam_macros.h>
+#ifdef HAVE_SECURITY__PAM_MACROS_H
+# include <security/_pam_macros.h>
+#endif /* HAVE_SECURITY__PAM_MACROS_H */
+
+#ifndef _pam_overwrite
+#define _pam_overwrite(x)        \
+do {                             \
+     register char *__xx__;      \
+     if ((__xx__=(x)))           \
+          while (*__xx__)        \
+               *__xx__++ = '\0'; \
+} while (0)
+#endif /* _pam_overwrite */
+
 #ifndef _pam_overwrite_n
 #define _pam_overwrite_n(x,n)   \
 do {                             \
@@ -40,5 +53,9 @@ do {                             \
             __xx__[__i__] = 0; \
 } while (0)
 #endif /* _pam_overwrite_n */
+
+#ifndef D
+#define D(x)   do { } while (0)
+#endif /* D */
 
 #endif /* _SSS_PAM_MACROS_H */
