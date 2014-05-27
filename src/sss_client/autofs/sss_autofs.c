@@ -89,9 +89,9 @@ _sss_setautomntent(const char *mapname, void **context)
     rd.data = name;
     rd.len = name_len + 1;
 
-    sss_autofs_make_request(SSS_AUTOFS_SETAUTOMNTENT, &rd,
-                            &repbuf, &replen, &errnop);
-    if (errnop != 0) {
+    ret = sss_autofs_make_request(SSS_AUTOFS_SETAUTOMNTENT, &rd,
+                                  &repbuf, &replen, &errnop);
+    if (ret != SSS_STATUS_SUCCESS) {
         free(name);
         ret = errnop;
         goto out;
@@ -306,10 +306,10 @@ _sss_getautomntent_r(char **key, char **value, void *context)
     rd.data = data;
     rd.len = data_len;
 
-    sss_autofs_make_request(SSS_AUTOFS_GETAUTOMNTENT, &rd,
-                            &repbuf, &replen, &errnop);
+    ret = sss_autofs_make_request(SSS_AUTOFS_GETAUTOMNTENT, &rd,
+                                  &repbuf, &replen, &errnop);
     free(data);
-    if (errnop != 0) {
+    if (ret != SSS_STATUS_SUCCESS) {
         ret = errnop;
         goto out;
     }
@@ -404,10 +404,10 @@ _sss_getautomntbyname_r(const char *key, char **value, void *context)
     rd.data = data;
     rd.len = data_len;
 
-    sss_autofs_make_request(SSS_AUTOFS_GETAUTOMNTBYNAME, &rd,
-                            &repbuf, &replen, &errnop);
+    ret = sss_autofs_make_request(SSS_AUTOFS_GETAUTOMNTBYNAME, &rd,
+                                  &repbuf, &replen, &errnop);
     free(data);
-    if (errnop != 0) {
+    if (ret != SSS_STATUS_SUCCESS) {
         ret = errnop;
         goto out;
     }
@@ -462,9 +462,9 @@ _sss_endautomntent(void **context)
     free(fctx->mapname);
     free(fctx);
 
-    sss_autofs_make_request(SSS_AUTOFS_ENDAUTOMNTENT,
-                            NULL, NULL, NULL, &errnop);
-    if (errnop != 0) {
+    ret = sss_autofs_make_request(SSS_AUTOFS_ENDAUTOMNTENT,
+                                  NULL, NULL, NULL, &errnop);
+    if (ret != SSS_STATUS_SUCCESS) {
         ret = errnop;
         goto out;
     }
