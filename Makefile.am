@@ -1879,7 +1879,7 @@ noinst_PROGRAMS += autofs_test_client
 endif
 
 pam_test_client_SOURCES = src/sss_client/pam_test_client.c
-pam_test_client_LDADD = -lpam -lpam_misc
+pam_test_client_LDADD = $(PAM_LIBS) $(PAM_MISC_LIBS)
 
 if BUILD_AUTOFS
 autofs_test_client_SOURCES = \
@@ -1926,7 +1926,7 @@ pam_sss_la_SOURCES = \
 
 pam_sss_la_LIBADD = \
     $(CLIENT_LIBS) \
-    -lpam
+    $(PAM_LIBS)
 pam_sss_la_LDFLAGS = \
     -module \
     -avoid-version \
