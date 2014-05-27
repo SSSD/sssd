@@ -2120,8 +2120,6 @@ libsss_simple_la_SOURCES = \
     src/providers/simple/simple_access.c
 libsss_simple_la_CFLAGS = \
     $(AM_CFLAGS)
-libsss_simple_la_LIBADD = \
-    $(PAM_LIBS)
 libsss_simple_la_LDFLAGS = \
     -avoid-version \
     -module
