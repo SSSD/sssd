@@ -5121,6 +5121,147 @@ END_TEST
 
 #endif /* BUILD_AUTOFS */
 
+static struct confdb_ctx *test_cdb_domains_prep(TALLOC_CTX *mem_ctx)
+{
+    char *conf_db;
+    int ret;
+    struct confdb_ctx *confdb;
+
+    /* Create tests directory if it doesn't exist */
+    /* (relative to current dir) */
+    ret = mkdir(TESTS_PATH, 0775);
+    if (ret == -1 && errno != EEXIST) {
+        fail("Could not create %s directory", TESTS_PATH);
+        return NULL;
+    }
+
+    conf_db = talloc_asprintf(mem_ctx, "%s/%s", TESTS_PATH, TEST_CONF_FILE);
+    ck_assert(conf_db != NULL);
+
+    /* Make sure the test domain does not interfere with our testing */
+    ret = unlink(TESTS_PATH"/"TEST_CONF_FILE);
+    if (ret != EOK && errno != ENOENT) {
+        fail("Could not remove confdb %s\n", TESTS_PATH"/"TEST_CONF_FILE);
+        return NULL;
+    }
+
+    /* Connect to the conf db */
+    ret = confdb_init(mem_ctx, &confdb, conf_db);
+    ck_assert_int_eq(ret, EOK);
+
+    return confdb;
+}
+
+START_TEST(test_confdb_list_all_domain_names_no_dom)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct confdb_ctx *confdb;
+    char **names;
+
+    const char *val[2];
+    val[1] = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    ck_assert(tmp_ctx != NULL);
+
+    confdb = test_cdb_domains_prep(tmp_ctx);
+    ck_assert(confdb != NULL);
+
+    /* No domain */
+    ret = confdb_list_all_domain_names(tmp_ctx, confdb, &names);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert(names != NULL);
+    ck_assert(names[0] == NULL);
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
+START_TEST(test_confdb_list_all_domain_names_single_dom)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct confdb_ctx *confdb;
+    char **names;
+
+    const char *val[2];
+    val[1] = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    ck_assert(tmp_ctx != NULL);
+
+    confdb = test_cdb_domains_prep(tmp_ctx);
+    ck_assert(confdb != NULL);
+
+    /* One domain */
+    val[0] = "LOCAL";
+    ret = confdb_add_param(confdb, true,
+                           "config/sssd", "domains", val);
+    ck_assert_int_eq(ret, EOK);
+
+    val[0] = "local";
+    ret = confdb_add_param(confdb, true,
+                           "config/domain/LOCAL", "id_provider", val);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = confdb_list_all_domain_names(tmp_ctx, confdb, &names);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert(names != NULL);
+    ck_assert_str_eq(names[0], "LOCAL");
+    ck_assert(names[1] == NULL);
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
+START_TEST(test_confdb_list_all_domain_names_multi_dom)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct confdb_ctx *confdb;
+    char **names;
+
+    const char *val[2];
+    val[1] = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    ck_assert(tmp_ctx != NULL);
+
+    confdb = test_cdb_domains_prep(tmp_ctx);
+    ck_assert(confdb != NULL);
+
+    /* Two domains */
+    val[0] = "LOCAL";
+    ret = confdb_add_param(confdb, true,
+                           "config/sssd", "domains", val);
+    ck_assert_int_eq(ret, EOK);
+
+    val[0] = "local";
+    ret = confdb_add_param(confdb, true,
+                           "config/domain/LOCAL", "id_provider", val);
+    ck_assert_int_eq(ret, EOK);
+
+    val[0] = "REMOTE";
+    ret = confdb_add_param(confdb, true,
+                           "config/sssd", "domains", val);
+    ck_assert_int_eq(ret, EOK);
+
+    val[0] = "local";
+    ret = confdb_add_param(confdb, true,
+                           "config/domain/REMOTE", "id_provider", val);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = confdb_list_all_domain_names(tmp_ctx, confdb, &names);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert(names != NULL);
+    ck_assert_str_eq(names[0], "LOCAL");
+    ck_assert_str_eq(names[1], "REMOTE");
+    ck_assert(names[2] == NULL);
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -5469,6 +5610,14 @@ Suite *create_sysdb_suite(void)
 
     suite_add_tcase(s, tc_autofs);
 #endif
+
+    /* ConfDB tests -- modify confdb, must always be last!! */
+    TCase *tc_confdb = tcase_create("confDB tests");
+
+    tcase_add_test(tc_confdb, test_confdb_list_all_domain_names_no_dom);
+    tcase_add_test(tc_confdb, test_confdb_list_all_domain_names_single_dom);
+    tcase_add_test(tc_confdb, test_confdb_list_all_domain_names_multi_dom);
+    suite_add_tcase(s, tc_confdb);
 
     return s;
 }
