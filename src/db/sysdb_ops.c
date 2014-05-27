@@ -74,6 +74,57 @@ static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
     return l;
 }
 
+
+/* Wrapper around ldb_search to ensure that if zero results are found then
+ * ENOENT is returned
+ */
+errno_t sss_ldb_search(struct ldb_context *ldb, TALLOC_CTX *mem_ctx,
+                       struct ldb_result **_result, struct ldb_dn *base,
+                       enum ldb_scope scope, const char * const *attrs,
+                       const char *exp_fmt, ...)
+{
+    char *s;
+    int lret;
+    va_list ap;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    if (exp_fmt != NULL) {
+        tmp_ctx = talloc_new(NULL);
+        if (tmp_ctx == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        va_start(ap, exp_fmt);
+        s = talloc_vasprintf(tmp_ctx, exp_fmt, ap);
+        va_end(ap);
+
+        if (s == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to process filter.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        lret = ldb_search(ldb, mem_ctx, _result, base, scope, attrs, "%s", s);
+    } else {
+        lret = ldb_search(ldb, mem_ctx, _result, base, scope, attrs, NULL);
+    }
+
+    ret = sysdb_error_to_errno(lret);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if ((*_result)->count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 /*
  * The wrapper around ldb_modify that uses LDB_CONTROL_PERMISSIVE_MODIFY_OID
  * so that on adds entries that already exist are skipped and similarly

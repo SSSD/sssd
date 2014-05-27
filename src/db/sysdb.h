@@ -481,6 +481,11 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
                             const char **attributes,
                             struct ldb_result **res);
 
+errno_t sss_ldb_search(struct ldb_context *ldb, TALLOC_CTX *mem_ctx,
+                       struct ldb_result **_result, struct ldb_dn *base,
+                       enum ldb_scope scope, const char * const *attrs,
+                       const char *exp_fmt, ...) SSS_ATTRIBUTE_PRINTF(7, 8);
+
 /* functions that modify the databse
  * they have to be called within a transaction
  * See sysdb_transaction_send()/_recv() */
