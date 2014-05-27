@@ -455,8 +455,10 @@ _sss_endautomntent(void **context)
 
     fctx = (struct automtent *) *context;
 
-    free(fctx->mapname);
-    free(fctx);
+    if (fctx != NULL) {
+        free(fctx->mapname);
+        free(fctx);
+    }
 
     ret = sss_autofs_make_request(SSS_AUTOFS_ENDAUTOMNTENT,
                                   NULL, NULL, NULL, &errnop);
