@@ -5159,9 +5159,6 @@ START_TEST(test_confdb_list_all_domain_names_no_dom)
     struct confdb_ctx *confdb;
     char **names;
 
-    const char *val[2];
-    val[1] = NULL;
-
     tmp_ctx = talloc_new(NULL);
     ck_assert(tmp_ctx != NULL);
 
