@@ -3131,7 +3131,6 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     tevent_req_set_callback(subreq, sdap_get_initgr_pgid, req);
 
     talloc_free(tmp_ctx);
-    tevent_req_done(req);
     return;
 
 fail:
