@@ -28,7 +28,7 @@ CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)
 export SGML_CATALOG_FILES
 DOCBOOK_XSLT = @DOCBOOK_XSLT@
 DOCBOOK_XSLT ?= http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl
-XMLLINT_FLAGS = --catalogs --postvalid --nonet --xinclude --noout
+XMLLINT_FLAGS = --catalogs --postvalid --nonet --noent --xinclude --noout
 XSLTPROC_FLAGS = --catalogs --xinclude --nonet
 
 if HAVE_PROFILE_CATALOGS
