@@ -1126,9 +1126,13 @@ fallback_homedir = /home/%u
                     <term>refresh_expired_interval (integer)</term>
                     <listitem>
                         <para>
-                            Specifies how many seconds SSSD has to wait
-                            before refreshing expired records. Currently
-                            only refreshing expired netgroups is supported.
+                            Specifies how many seconds SSSD has to wait before
+                            triggering a background refresh task which will
+                            refresh all expired or nearly expired records.
+                        </para>
+                        <para>
+                            Currently only refreshing expired netgroups is
+                            supported.
                         </para>
                         <para>
                             You can consider setting this value to
