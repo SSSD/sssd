@@ -182,6 +182,7 @@ if HAVE_CMOCKA
         test_sss_idmap \
         test_ipa_idmap \
         test_utils \
+        ad_gpo_tests \
         ad_common_tests \
         dp_opt_tests \
         responder-get-domains-tests \
@@ -1770,6 +1771,27 @@ ad_access_filter_tests_LDADD = \
     $(CARES_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    libsss_idmap.la \
+    libsss_krb5_common.la \
+    libsss_ad_common.la \
+    libsss_test_common.la
+
+ad_gpo_tests_SOURCES = \
+    $(sssd_be_SOURCES) \
+    src/providers/ad/ad_common.c \
+    src/tests/cmocka/test_ad_gpo.c
+ad_gpo_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NDR_NBT_CFLAGS) \
+    -DUNIT_TESTING
+ad_gpo_tests_LDADD = \
+    $(PAM_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NDR_NBT_LIBS) \
     libsss_ldap_common.la \
     libsss_idmap.la \
     libsss_krb5_common.la \
