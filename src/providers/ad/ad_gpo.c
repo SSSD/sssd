@@ -246,25 +246,22 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
 }
 
 /*
- * This function determines whether the input ACE includes any of the
+ * This function determines whether the input ace_dom_sid matches any of the
  * client's SIDs. The boolean result is assigned to the _included output param.
  */
 static errno_t
 ad_gpo_ace_includes_client_sid(const char *user_sid,
                                const char **group_sids,
                                int group_size,
-                               struct security_ace *ace,
+                               struct dom_sid ace_dom_sid,
                                struct sss_idmap_ctx *idmap_ctx,
                                bool *_included)
 {
     int i = 0;
-    struct dom_sid ace_dom_sid;
     struct dom_sid *user_dom_sid;
     struct dom_sid *group_dom_sid;
     enum idmap_error_code err;
     bool included = false;
-
-    ace_dom_sid = ace->trustee;
 
     err = sss_idmap_sid_to_smb_sid(idmap_ctx, user_sid, &user_dom_sid);
     if (err != IDMAP_SUCCESS) {
@@ -341,8 +338,9 @@ static enum ace_eval_status ad_gpo_evaluate_ace(struct security_ace *ace,
         return AD_GPO_ACE_NEUTRAL;
     }
 
-    ret = ad_gpo_ace_includes_client_sid(user_sid, group_sids, group_size, ace,
-                                         idmap_ctx, &included);
+    ret = ad_gpo_ace_includes_client_sid(user_sid, group_sids, group_size,
+                                         ace->trustee, idmap_ctx, &included);
+
     if (ret != EOK) {
         return AD_GPO_ACE_DENIED;
     }
@@ -987,7 +985,16 @@ ad_gpo_populate_som_list(TALLOC_CTX *mem_ctx,
     }
 
     ldb_target_dn = ldb_dn_new(tmp_ctx, ldb_ctx, target_dn);
+    if (ldb_target_dn == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
     rdn_count = ldb_dn_get_comp_num(ldb_target_dn);
+    if (rdn_count == -1) {
+        ret = EINVAL;
+        goto done;
+    }
 
     if (rdn_count == 0) {
         *_som_list = NULL;
@@ -1120,7 +1127,8 @@ ad_gpo_populate_gplink_list(TALLOC_CTX *mem_ctx,
         first = ptr + 1;
         last = strchr(first, delim);
         if (last == NULL) {
-            break;
+            ret = EINVAL;
+            goto done;
         }
         *last = '\0';
         last++;
@@ -1130,7 +1138,8 @@ ad_gpo_populate_gplink_list(TALLOC_CTX *mem_ctx,
         }
         gplink_options = strchr(first, ';');
         if (gplink_options == NULL) {
-            continue;
+            ret = EINVAL;
+            goto done;
         }
         *gplink_options = '\0';
         gplink_options++;
