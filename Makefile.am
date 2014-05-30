@@ -8,6 +8,7 @@ if WITH_JOURNALD
 endif
 
 AM_DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb \
+                               --disable-dbus-tests \
                                --enable-all-experimental-features \
                                $(extra_distcheck_flags)
 
@@ -147,9 +148,7 @@ if HAVE_CHECK
         ipa_hbac-tests \
         sss_idmap-tests \
         responder_socket_access-tests \
-        safe-format-tests \
-        sbus_tests \
-        sbus_codegen_tests
+        safe-format-tests
 
 if BUILD_SSH
     non_interactive_check_based_tests += sysdb_ssh-tests
@@ -161,7 +160,13 @@ if BUILD_CONFIG_LIB
 endif # BUILD_CONFIG_LIB
 endif # BUILD_IFP
 
-endif
+if BUILD_DBUS_TESTS
+    non_interactive_check_based_tests += \
+	sbus_tests \
+	sbus_codegen_tests
+endif # BUILD_DBUS_TESTS
+
+endif # HAVE_CHECK
 
 if HAVE_CMOCKA
     non_interactive_cmocka_based_tests = \
@@ -1464,6 +1469,8 @@ krb5_child_test_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
 
+if BUILD_DBUS_TESTS
+
 sbus_tests_SOURCES = \
    src/tests/common_dbus.c \
    src/tests/sbus_tests.c
@@ -1485,6 +1492,8 @@ sbus_codegen_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SSSD_LIBS) \
     $(CHECK_LIBS)
+
+endif # BUILD_DBUS_TESTS
 
 if BUILD_IFP
 if BUILD_CONFIG_LIB
