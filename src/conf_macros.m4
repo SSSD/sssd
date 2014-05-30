@@ -624,3 +624,10 @@ AC_DEFUN([WITH_IFP],
     fi
     AM_CONDITIONAL([BUILD_IFP], [test x"$with_infopipe" = xyes])
   ])
+
+AC_ARG_ENABLE([dbus-tests],
+              [AS_HELP_STRING([--enable-dbus-tests],
+                              [enable running tests using a dbus server instance [default=yes]])],
+              [build_dbus_tests=$enableval],
+              [build_dbus_tests=yes])
+AM_CONDITIONAL([BUILD_DBUS_TESTS], [test x$build_dbus_tests = xyes])
