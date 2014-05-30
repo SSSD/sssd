@@ -57,9 +57,18 @@ static int sss_to_syslog(int priority)
     }
 }
 
+void sss_log(int priority, const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    sss_log_ext(priority, LOG_DAEMON, format, ap);
+    va_end(ap);
+}
+
 #ifdef WITH_JOURNALD
 
-void sss_log(int priority, const char *format, ...)
+void sss_log_ext(int priority, int facility, const char *format, ...)
 {
     va_list ap;
     int syslog_priority;
@@ -85,7 +94,7 @@ void sss_log(int priority, const char *format, ...)
     sd_journal_send("MESSAGE=%s", message,
                     "SSSD_DOMAIN=%s", domain,
                     "PRIORITY=%i", syslog_priority,
-                    "SYSLOG_FACILITY=%i", LOG_FAC(LOG_DAEMON),
+                    "SYSLOG_FACILITY=%i", LOG_FAC(facility),
                     "SYSLOG_IDENTIFIER=%s", debug_prg_name,
                     NULL);
 
@@ -94,14 +103,14 @@ void sss_log(int priority, const char *format, ...)
 
 #else /* WITH_JOURNALD */
 
-void sss_log(int priority, const char *format, ...)
+void sss_log_ext(int priority, int facility, const char *format, ...)
 {
     va_list ap;
     int syslog_priority;
 
     syslog_priority = sss_to_syslog(priority);
 
-    openlog(debug_prg_name, 0, LOG_DAEMON);
+    openlog(debug_prg_name, 0, facility);
 
     va_start(ap, format);
     vsyslog(syslog_priority, format, ap);

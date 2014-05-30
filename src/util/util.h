@@ -217,6 +217,7 @@ void talloc_log_fn(const char *msg);
 #define SSS_LOG_DEBUG   7   /* debug-level messages */
 
 void sss_log(int priority, const char *format, ...) SSS_ATTRIBUTE_PRINTF(2, 3);
+void sss_log_ext(int priority, int facility, const char *format, ...) SSS_ATTRIBUTE_PRINTF(3, 4);
 
 /* from server.c */
 struct main_context {

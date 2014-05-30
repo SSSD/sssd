@@ -32,6 +32,7 @@
  */
 
 #include <security/pam_modules.h>
+#include <syslog.h>
 #include "util/util.h"
 #include "util/strtonum.h"
 #include "util/child_common.h"
@@ -724,6 +725,7 @@ check_rights(char **privilege_sids,
  */
 static errno_t
 ad_gpo_access_check(TALLOC_CTX *mem_ctx,
+                    enum gpo_access_control_mode gpo_mode,
                     const char *user,
                     struct sss_domain_info *domain,
                     char **allowed_sids,
@@ -786,7 +788,19 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
     if (access_granted && !access_denied) {
         return EOK;
     } else {
-        return EACCES;
+        switch (gpo_mode) {
+        case GPO_ACCESS_CONTROL_ENFORCING:
+            return EACCES;
+        case GPO_ACCESS_CONTROL_PERMISSIVE:
+            DEBUG(SSSDBG_TRACE_FUNC, "access denied: permissive mode\n");
+            sss_log_ext(SSS_LOG_WARNING, LOG_AUTHPRIV, "Warning: user would " \
+                        "have been denied GPO-based logon access if the " \
+                        "ad_gpo_access_control option were set to enforcing " \
+                        "mode.");
+            return EOK;
+        default:
+            return EINVAL;
+        }
     }
 
  done:
@@ -836,6 +850,7 @@ struct ad_gpo_access_state {
     int timeout;
     struct sss_domain_info *domain;
     const char *user;
+    enum gpo_access_control_mode gpo_mode;
     const char *ad_hostname;
     const char *target_dn;
     struct gp_gpo **dacl_filtered_gpos;
@@ -885,6 +900,7 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->user = user;
     state->ldb_ctx = sysdb_ctx_get_ldb(domain->sysdb);
+    state->gpo_mode = ctx->gpo_access_control_mode;
     state->ad_hostname = dp_opt_get_string(ctx->ad_options, AD_HOSTNAME);
     state->opts = ctx->sdap_access_ctx->id_ctx->opts;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
@@ -1340,7 +1356,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
 
     /* TBD: allowed/denied_sids/size, should be retrieved from cache */
     ret = ad_gpo_access_check
-        (state, state->user, state->domain,
+        (state, state->gpo_mode, state->user, state->domain,
          allowed_sids, allowed_size, denied_sids, denied_size);
 
     if (ret != EOK) {
