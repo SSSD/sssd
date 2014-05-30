@@ -2004,6 +2004,7 @@ libsss_ldap_common_la_SOURCES = \
 libsss_ldap_common_la_CFLAGS = \
     $(KRB5_CFLAGS)
 libsss_ldap_common_la_LIBADD = \
+    $(OPENLDAP_LIBS) \
     $(KRB5_LIBS) \
     libsss_krb5_common.la \
     libsss_idmap.la
