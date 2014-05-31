@@ -270,7 +270,7 @@ static errno_t set_fd_flags_and_opts(int fd)
                   strerror(ret));
     }
 
-    ret = setsockopt(fd, SOL_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
+    ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &dummy, sizeof(dummy));
     if (ret != 0) {
         ret = errno;
         DEBUG(SSSDBG_FUNC_DATA,
