@@ -258,7 +258,7 @@ errno_t be_fo_set_dns_srv_lookup_plugin(struct be_ctx *be_ctx,
                                         const char *hostname)
 {
     struct fo_resolve_srv_dns_ctx *srv_ctx = NULL;
-    char resolved_hostname[HOST_NAME_MAX];
+    char resolved_hostname[HOST_NAME_MAX + 1];
     errno_t ret;
 
     if (hostname == NULL) {
@@ -269,7 +269,7 @@ errno_t be_fo_set_dns_srv_lookup_plugin(struct be_ctx *be_ctx,
                   "gethostname() failed: [%d]: %s\n", ret, strerror(ret));
             return ret;
         }
-        resolved_hostname[HOST_NAME_MAX-1] = '\0';
+        resolved_hostname[HOST_NAME_MAX] = '\0';
         hostname = resolved_hostname;
     }
 

@@ -229,14 +229,14 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
             full_princ = talloc_strdup(memctx, princ_str);
         }
     } else {
-        char hostname[512];
+        char hostname[HOST_NAME_MAX + 1];
 
-        ret = gethostname(hostname, 511);
+        ret = gethostname(hostname, HOST_NAME_MAX);
         if (ret == -1) {
             krberr = KRB5KRB_ERR_GENERIC;
             goto done;
         }
-        hostname[511] = '\0';
+        hostname[HOST_NAME_MAX] = '\0';
 
         DEBUG(SSSDBG_TRACE_LIBS, "got hostname: [%s]\n", hostname);
 
