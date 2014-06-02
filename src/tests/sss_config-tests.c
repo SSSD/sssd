@@ -261,7 +261,7 @@ check_file_content(const char *filename, const char *expected)
 {
     FILE *file = NULL;
     size_t i;
-    char c;
+    int c;
     bool result;
 
     file = fopen(filename, "r");
