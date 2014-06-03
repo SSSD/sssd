@@ -4,17 +4,17 @@
 #
 # Translators:
 # sgallagh <sgallagh@redhat.com>, 2011
-# Yuri Chornoivan <yurchor@ukr.net>, 2011-2013
+# Yuri Chornoivan <yurchor@ukr.net>, 2011-2014
 # Yuri Chornoivan <yurchor@ukr.net>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2014-04-08 12:56+0200\n"
-"PO-Revision-Date: 2013-11-20 12:56+0000\n"
+"POT-Creation-Date: 2014-06-03 15:17+0200\n"
+"PO-Revision-Date: 2014-05-30 16:32+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
-"Language-Team: Ukrainian (http://www.transifex.com/projects/p/fedora/"
-"language/uk/)\n"
+"Language-Team: Ukrainian (http://www.transifex.com/projects/p/sssd/language/"
+"uk/)\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -228,434 +228,443 @@ msgstr ""
 "доступ до відповідача PAC"
 
 #: src/config/SSSDConfig/__init__.py.in:98
+msgid "List of UIDs or user names allowed to access the InfoPipe responder"
+msgstr ""
+"Список унікальних ідентифікаторів (UID) або імен користувачів, яким надано "
+"доступ до відповідача InfoPipe"
+
+#: src/config/SSSDConfig/__init__.py.in:99
+msgid "List of user attributes the InfoPipe is allowed to publish"
+msgstr "Список атрибутів запису користувача, які може оприлюднювати InfoPipe"
+
+#: src/config/SSSDConfig/__init__.py.in:102
 msgid "Identity provider"
 msgstr "Служба профілів"
 
-#: src/config/SSSDConfig/__init__.py.in:99
+#: src/config/SSSDConfig/__init__.py.in:103
 msgid "Authentication provider"
 msgstr "Служба розпізнавання"
 
-#: src/config/SSSDConfig/__init__.py.in:100
+#: src/config/SSSDConfig/__init__.py.in:104
 msgid "Access control provider"
 msgstr "Служба керування доступом"
 
-#: src/config/SSSDConfig/__init__.py.in:101
+#: src/config/SSSDConfig/__init__.py.in:105
 msgid "Password change provider"
 msgstr "Служба зміни паролів"
 
-#: src/config/SSSDConfig/__init__.py.in:102
+#: src/config/SSSDConfig/__init__.py.in:106
 msgid "SUDO provider"
 msgstr "Служба SUDO"
 
-#: src/config/SSSDConfig/__init__.py.in:103
+#: src/config/SSSDConfig/__init__.py.in:107
 msgid "Autofs provider"
 msgstr "Служба автоматизації файлових систем"
 
-#: src/config/SSSDConfig/__init__.py.in:104
+#: src/config/SSSDConfig/__init__.py.in:108
 msgid "Session-loading provider"
 msgstr "Служба завантаження сеансів"
 
-#: src/config/SSSDConfig/__init__.py.in:105
+#: src/config/SSSDConfig/__init__.py.in:109
 msgid "Host identity provider"
 msgstr "Служба профілів вузлів"
 
-#: src/config/SSSDConfig/__init__.py.in:108
+#: src/config/SSSDConfig/__init__.py.in:112
 msgid "Minimum user ID"
 msgstr "Мін. ідентифікатор користувача"
 
-#: src/config/SSSDConfig/__init__.py.in:109
+#: src/config/SSSDConfig/__init__.py.in:113
 msgid "Maximum user ID"
 msgstr "Макс. ідентифікатор користувача"
 
-#: src/config/SSSDConfig/__init__.py.in:110
+#: src/config/SSSDConfig/__init__.py.in:114
 msgid "Enable enumerating all users/groups"
 msgstr "Увімкнути нумерацію всіх користувачів/груп"
 
-#: src/config/SSSDConfig/__init__.py.in:111
+#: src/config/SSSDConfig/__init__.py.in:115
 msgid "Cache credentials for offline login"
 msgstr "Кешувати реєстраційні дані для автономного входу"
 
-#: src/config/SSSDConfig/__init__.py.in:112
+#: src/config/SSSDConfig/__init__.py.in:116
 msgid "Store password hashes"
 msgstr "Зберігати хеші паролів"
 
-#: src/config/SSSDConfig/__init__.py.in:113
+#: src/config/SSSDConfig/__init__.py.in:117
 msgid "Display users/groups in fully-qualified form"
 msgstr "Показувати записи користувачів/груп повністю"
 
-#: src/config/SSSDConfig/__init__.py.in:114
+#: src/config/SSSDConfig/__init__.py.in:118
 msgid "Don't include group members in group lookups"
 msgstr "Не включати учасників групи у пошуки групи"
 
-#: src/config/SSSDConfig/__init__.py.in:115
-#: src/config/SSSDConfig/__init__.py.in:122
-#: src/config/SSSDConfig/__init__.py.in:123
-#: src/config/SSSDConfig/__init__.py.in:124
-#: src/config/SSSDConfig/__init__.py.in:125
+#: src/config/SSSDConfig/__init__.py.in:119
 #: src/config/SSSDConfig/__init__.py.in:126
 #: src/config/SSSDConfig/__init__.py.in:127
+#: src/config/SSSDConfig/__init__.py.in:128
+#: src/config/SSSDConfig/__init__.py.in:129
+#: src/config/SSSDConfig/__init__.py.in:130
+#: src/config/SSSDConfig/__init__.py.in:131
 msgid "Entry cache timeout length (seconds)"
 msgstr "Тривалість кешування записів (у секундах)"
 
-#: src/config/SSSDConfig/__init__.py.in:116
+#: src/config/SSSDConfig/__init__.py.in:120
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr ""
 "Обмежити або надавати перевагу певному сімейству адрес під час виконання "
 "пошуків DNS"
 
-#: src/config/SSSDConfig/__init__.py.in:117
+#: src/config/SSSDConfig/__init__.py.in:121
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 "Тривалість зберігання кешованих записів після останнього успішного входу (у "
 "днях)"
 
-#: src/config/SSSDConfig/__init__.py.in:118
+#: src/config/SSSDConfig/__init__.py.in:122
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
 "Тривалість очікування на відповідь від DNS під час визначення адрес серверів "
 "(у секундах)"
 
-#: src/config/SSSDConfig/__init__.py.in:119
+#: src/config/SSSDConfig/__init__.py.in:123
 msgid "The domain part of service discovery DNS query"
 msgstr "Частина запиту щодо виявлення служби DNS, пов’язана з доменом"
 
-#: src/config/SSSDConfig/__init__.py.in:120
+#: src/config/SSSDConfig/__init__.py.in:124
 msgid "Override GID value from the identity provider with this value"
 msgstr ""
 "Замінити значення ідентифікатора групи від надавача профілю цим значенням"
 
-#: src/config/SSSDConfig/__init__.py.in:121
+#: src/config/SSSDConfig/__init__.py.in:125
 msgid "Treat usernames as case sensitive"
 msgstr "Враховувати регістр у іменах користувачів"
 
-#: src/config/SSSDConfig/__init__.py.in:128
+#: src/config/SSSDConfig/__init__.py.in:132
 msgid "How often should expired entries be refreshed in background"
 msgstr "Наскільки часто має виконувати оновлення у тлі застарілих записів"
 
-#: src/config/SSSDConfig/__init__.py.in:129
+#: src/config/SSSDConfig/__init__.py.in:133
 msgid "Whether to automatically update the client's DNS entry"
 msgstr "Визначає, чи слід автоматично оновлювати запис DNS клієнта"
 
-#: src/config/SSSDConfig/__init__.py.in:130
-#: src/config/SSSDConfig/__init__.py.in:145
+#: src/config/SSSDConfig/__init__.py.in:134
+#: src/config/SSSDConfig/__init__.py.in:149
 msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr ""
 "TTL, який слід застосовувати до запису DNS клієнта після його оновлення"
 
-#: src/config/SSSDConfig/__init__.py.in:131
-#: src/config/SSSDConfig/__init__.py.in:146
+#: src/config/SSSDConfig/__init__.py.in:135
+#: src/config/SSSDConfig/__init__.py.in:150
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 "Інтерфейс, чию адресу IP має бути використано для динамічних оновлень DNS"
 
-#: src/config/SSSDConfig/__init__.py.in:132
+#: src/config/SSSDConfig/__init__.py.in:136
 msgid "How often to periodically update the client's DNS entry"
 msgstr "Визначає, наскільки часто слід періодично оновлювати запис DNS клієнта"
 
-#: src/config/SSSDConfig/__init__.py.in:133
+#: src/config/SSSDConfig/__init__.py.in:137
 msgid "Whether the provider should explicitly update the PTR record as well"
 msgstr ""
 "Визначає, чи слід надавачу даних також явним чином оновлювати запис PTR"
 
-#: src/config/SSSDConfig/__init__.py.in:134
+#: src/config/SSSDConfig/__init__.py.in:138
 msgid "Whether the nsupdate utility should default to using TCP"
 msgstr "Визначає, чи слід програмі nsupdate типово використовувати TCP"
 
-#: src/config/SSSDConfig/__init__.py.in:135
+#: src/config/SSSDConfig/__init__.py.in:139
 msgid "What kind of authentication should be used to perform the DNS update"
 msgstr ""
 "Визначає тип розпізнавання, який слід використовувати для виконання "
 "оновлення DNS"
 
-#: src/config/SSSDConfig/__init__.py.in:136
-msgid "Control enumeration of trusted domains"
-msgstr ""
-
-#: src/config/SSSDConfig/__init__.py.in:137
-#, fuzzy
-msgid "How often should subdomains list be refreshed"
-msgstr "Наскільки часто має виконувати оновлення у тлі застарілих записів"
-
 #: src/config/SSSDConfig/__init__.py.in:140
+msgid "Control enumeration of trusted domains"
+msgstr "Керувати нумерацією надійних доменів"
+
+#: src/config/SSSDConfig/__init__.py.in:141
+msgid "How often should subdomains list be refreshed"
+msgstr "Частота оновлення списку піддоменів"
+
+#: src/config/SSSDConfig/__init__.py.in:144
 msgid "IPA domain"
 msgstr "Домен IPA"
 
-#: src/config/SSSDConfig/__init__.py.in:141
+#: src/config/SSSDConfig/__init__.py.in:145
 msgid "IPA server address"
 msgstr "Адреса сервера IPA"
 
-#: src/config/SSSDConfig/__init__.py.in:142
+#: src/config/SSSDConfig/__init__.py.in:146
 msgid "Address of backup IPA server"
 msgstr "Адреса резервного сервера IPA"
 
-#: src/config/SSSDConfig/__init__.py.in:143
+#: src/config/SSSDConfig/__init__.py.in:147
 msgid "IPA client hostname"
 msgstr "Назва вузла клієнта IPA"
 
-#: src/config/SSSDConfig/__init__.py.in:144
+#: src/config/SSSDConfig/__init__.py.in:148
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
 "Визначає, чи слід автоматично оновлювати запис DNS клієнтського вузла у "
 "FreeIPA"
 
-#: src/config/SSSDConfig/__init__.py.in:147
+#: src/config/SSSDConfig/__init__.py.in:151
 msgid "Search base for HBAC related objects"
 msgstr "Шукати у базі об’єкти, пов’язані з HBAC"
 
-#: src/config/SSSDConfig/__init__.py.in:148
+#: src/config/SSSDConfig/__init__.py.in:152
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr ""
 "Інтервал часу між послідовними сеансами пошуку правил HBAC на сервері IPA"
 
-#: src/config/SSSDConfig/__init__.py.in:149
+#: src/config/SSSDConfig/__init__.py.in:153
 msgid ""
 "The amount of time in seconds between lookups of the SELinux maps against "
 "the IPA server"
 msgstr "Час, у секундах, між пошуками у картах SELinux на сервері IPA"
 
-#: src/config/SSSDConfig/__init__.py.in:150
+#: src/config/SSSDConfig/__init__.py.in:154
 msgid "If DENY rules are present, either DENY_ALL or IGNORE"
 msgstr "Якщо вказано правила DENY, DENY_ALL або IGNORE"
 
-#: src/config/SSSDConfig/__init__.py.in:151
+#: src/config/SSSDConfig/__init__.py.in:155
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr ""
 "Якщо встановлено значення «false», аргумент вузла, наданий PAM, буде "
 "проігноровано"
 
-#: src/config/SSSDConfig/__init__.py.in:152
+#: src/config/SSSDConfig/__init__.py.in:156
 msgid "The automounter location this IPA client is using"
 msgstr "Адреса автоматичного монтування, яку використовує цей клієнт IPA"
 
-#: src/config/SSSDConfig/__init__.py.in:153
+#: src/config/SSSDConfig/__init__.py.in:157
 msgid "Search base for object containing info about IPA domain"
 msgstr "Шукати у базі об’єкт, що містить дані щодо домену IPA"
 
-#: src/config/SSSDConfig/__init__.py.in:154
+#: src/config/SSSDConfig/__init__.py.in:158
 msgid "Search base for objects containing info about ID ranges"
 msgstr "Шукати у базі об’єкти, що містять дані щодо діапазонів ідентифікаторів"
 
-#: src/config/SSSDConfig/__init__.py.in:155
-#: src/config/SSSDConfig/__init__.py.in:162
+#: src/config/SSSDConfig/__init__.py.in:159
+#: src/config/SSSDConfig/__init__.py.in:166
 msgid "Enable DNS sites - location based service discovery"
 msgstr "Увімкнути сайти DNS — визначення служб на основі адрес"
 
-#: src/config/SSSDConfig/__init__.py.in:158
+#: src/config/SSSDConfig/__init__.py.in:162
 msgid "Active Directory domain"
 msgstr "Домен Active Directory"
 
-#: src/config/SSSDConfig/__init__.py.in:159
+#: src/config/SSSDConfig/__init__.py.in:163
 msgid "Active Directory server address"
 msgstr "Адреса сервера Active Directory"
 
-#: src/config/SSSDConfig/__init__.py.in:160
+#: src/config/SSSDConfig/__init__.py.in:164
 msgid "Active Directory backup server address"
 msgstr "Адреса резервного сервера Active Directory"
 
-#: src/config/SSSDConfig/__init__.py.in:161
+#: src/config/SSSDConfig/__init__.py.in:165
 msgid "Active Directory client hostname"
 msgstr "Назва клієнтського вузла Active Directory"
 
-#: src/config/SSSDConfig/__init__.py.in:165
-#: src/config/SSSDConfig/__init__.py.in:166
+#: src/config/SSSDConfig/__init__.py.in:169
+#: src/config/SSSDConfig/__init__.py.in:170
 msgid "Kerberos server address"
 msgstr "Адреса сервера Kerberos"
 
-#: src/config/SSSDConfig/__init__.py.in:167
+#: src/config/SSSDConfig/__init__.py.in:171
 msgid "Kerberos backup server address"
 msgstr "Адреса резервного сервера Kerberos"
 
-#: src/config/SSSDConfig/__init__.py.in:168
+#: src/config/SSSDConfig/__init__.py.in:172
 msgid "Kerberos realm"
 msgstr "Область Kerberos"
 
-#: src/config/SSSDConfig/__init__.py.in:169
+#: src/config/SSSDConfig/__init__.py.in:173
 msgid "Authentication timeout"
 msgstr "Час очікування на розпізнавання"
 
-#: src/config/SSSDConfig/__init__.py.in:170
+#: src/config/SSSDConfig/__init__.py.in:174
 msgid "Whether to create kdcinfo files"
 msgstr "Визначає, чи слід створювати файли kdcinfo"
 
-#: src/config/SSSDConfig/__init__.py.in:173
+#: src/config/SSSDConfig/__init__.py.in:177
 msgid "Directory to store credential caches"
 msgstr "Каталог, де зберігатиметься кеш реєстраційних даних"
 
-#: src/config/SSSDConfig/__init__.py.in:174
+#: src/config/SSSDConfig/__init__.py.in:178
 msgid "Location of the user's credential cache"
 msgstr "Адреса кешу реєстраційних даних користувача"
 
-#: src/config/SSSDConfig/__init__.py.in:175
+#: src/config/SSSDConfig/__init__.py.in:179
 msgid "Location of the keytab to validate credentials"
 msgstr "Адреса таблиці ключів для перевірки реєстраційних даних"
 
-#: src/config/SSSDConfig/__init__.py.in:176
+#: src/config/SSSDConfig/__init__.py.in:180
 msgid "Enable credential validation"
 msgstr "Увімкнути перевірку реєстраційних даних"
 
-#: src/config/SSSDConfig/__init__.py.in:177
+#: src/config/SSSDConfig/__init__.py.in:181
 msgid "Store password if offline for later online authentication"
 msgstr "Зберігати пароль у автономному режимі для розпізнавання у мережі"
 
-#: src/config/SSSDConfig/__init__.py.in:178
+#: src/config/SSSDConfig/__init__.py.in:182
 msgid "Renewable lifetime of the TGT"
 msgstr "Поновлюваний строк дії TGT"
 
-#: src/config/SSSDConfig/__init__.py.in:179
+#: src/config/SSSDConfig/__init__.py.in:183
 msgid "Lifetime of the TGT"
 msgstr "Строк дії TGT"
 
-#: src/config/SSSDConfig/__init__.py.in:180
+#: src/config/SSSDConfig/__init__.py.in:184
 msgid "Time between two checks for renewal"
 msgstr "Граничний час між двома перевірками для поновлення"
 
-#: src/config/SSSDConfig/__init__.py.in:181
+#: src/config/SSSDConfig/__init__.py.in:185
 msgid "Enables FAST"
 msgstr "Вмикає FAST"
 
-#: src/config/SSSDConfig/__init__.py.in:182
+#: src/config/SSSDConfig/__init__.py.in:186
 msgid "Selects the principal to use for FAST"
 msgstr "Визначає реєстраційний запис, який слід використовувати для FAST"
 
-#: src/config/SSSDConfig/__init__.py.in:183
+#: src/config/SSSDConfig/__init__.py.in:187
 msgid "Enables principal canonicalization"
 msgstr "Вмикає перетворення реєстраційних записів у канонічну форму"
 
-#: src/config/SSSDConfig/__init__.py.in:184
+#: src/config/SSSDConfig/__init__.py.in:188
 msgid "Enables enterprise principals"
 msgstr "Увімкнути промислові реєстраційні дані"
 
-#: src/config/SSSDConfig/__init__.py.in:187
-#: src/config/SSSDConfig/__init__.py.in:188
+#: src/config/SSSDConfig/__init__.py.in:191
+#: src/config/SSSDConfig/__init__.py.in:192
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 "Сервер, на якому запущено службу зміни паролів, якщо такий не вдасться "
 "виявити у KDC"
 
-#: src/config/SSSDConfig/__init__.py.in:191
+#: src/config/SSSDConfig/__init__.py.in:195
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, адреса URI сервера LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:192
+#: src/config/SSSDConfig/__init__.py.in:196
 msgid "ldap_backup_uri, The URI of the LDAP server"
 msgstr "ldap_backup_uri, адреса сервера LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:193
+#: src/config/SSSDConfig/__init__.py.in:197
 msgid "The default base DN"
 msgstr "Типова базова назва домену"
 
-#: src/config/SSSDConfig/__init__.py.in:194
+#: src/config/SSSDConfig/__init__.py.in:198
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "Тип схеми, використаний на сервері LDAP, rfc2307"
 
-#: src/config/SSSDConfig/__init__.py.in:195
+#: src/config/SSSDConfig/__init__.py.in:199
 msgid "The default bind DN"
 msgstr "Типова назва домену прив’язки"
 
-#: src/config/SSSDConfig/__init__.py.in:196
+#: src/config/SSSDConfig/__init__.py.in:200
 msgid "The type of the authentication token of the default bind DN"
 msgstr "Тип розпізнавання для типової назви сервера прив’язки"
 
-#: src/config/SSSDConfig/__init__.py.in:197
+#: src/config/SSSDConfig/__init__.py.in:201
 msgid "The authentication token of the default bind DN"
 msgstr "Лексема розпізнавання типової назви сервера прив’язки"
 
-#: src/config/SSSDConfig/__init__.py.in:198
+#: src/config/SSSDConfig/__init__.py.in:202
 msgid "Length of time to attempt connection"
 msgstr "Проміжок часу між спробами встановлення з’єднання"
 
-#: src/config/SSSDConfig/__init__.py.in:199
+#: src/config/SSSDConfig/__init__.py.in:203
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Проміжок часу між спробами виконання синхронних операцій LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:200
+#: src/config/SSSDConfig/__init__.py.in:204
 msgid "Length of time between attempts to reconnect while offline"
 msgstr ""
 "Проміжок часу між повторними спробами встановлення з’єднання у автономному "
 "режимі"
 
-#: src/config/SSSDConfig/__init__.py.in:201
+#: src/config/SSSDConfig/__init__.py.in:205
 msgid "Use only the upper case for realm names"
 msgstr "Використовувати для назв областей лише великі літери"
 
-#: src/config/SSSDConfig/__init__.py.in:202
+#: src/config/SSSDConfig/__init__.py.in:206
 msgid "File that contains CA certificates"
 msgstr "Файл, що містить сертифікати CA"
 
-#: src/config/SSSDConfig/__init__.py.in:203
+#: src/config/SSSDConfig/__init__.py.in:207
 msgid "Path to CA certificate directory"
 msgstr "Шлях до каталогу сертифікатів CA"
 
-#: src/config/SSSDConfig/__init__.py.in:204
+#: src/config/SSSDConfig/__init__.py.in:208
 msgid "File that contains the client certificate"
 msgstr "Файл, що містить клієнтський сертифікат"
 
-#: src/config/SSSDConfig/__init__.py.in:205
+#: src/config/SSSDConfig/__init__.py.in:209
 msgid "File that contains the client key"
 msgstr "Файл, що містить клієнтський ключ"
 
-#: src/config/SSSDConfig/__init__.py.in:206
+#: src/config/SSSDConfig/__init__.py.in:210
 msgid "List of possible ciphers suites"
 msgstr "Показати список можливих інструментів шифрування"
 
-#: src/config/SSSDConfig/__init__.py.in:207
+#: src/config/SSSDConfig/__init__.py.in:211
 msgid "Require TLS certificate verification"
 msgstr "Потрібна перевірка сертифіката TLS"
 
-#: src/config/SSSDConfig/__init__.py.in:208
+#: src/config/SSSDConfig/__init__.py.in:212
 msgid "Specify the sasl mechanism to use"
 msgstr "Вкажіть механізм SASL, який слід використовувати"
 
-#: src/config/SSSDConfig/__init__.py.in:209
+#: src/config/SSSDConfig/__init__.py.in:213
 msgid "Specify the sasl authorization id to use"
 msgstr "Вкажіть ідентифікатор уповноваження SASL, який слід використовувати"
 
-#: src/config/SSSDConfig/__init__.py.in:210
+#: src/config/SSSDConfig/__init__.py.in:214
 msgid "Specify the sasl authorization realm to use"
 msgstr "Вкажіть область уповноваження SASL, яку слід використовувати"
 
-#: src/config/SSSDConfig/__init__.py.in:211
+#: src/config/SSSDConfig/__init__.py.in:215
 msgid "Specify the minimal SSF for LDAP sasl authorization"
 msgstr ""
 "Вказати мінімальне значення SSF для розпізнавання на LDAP за допомогою sasl"
 
-#: src/config/SSSDConfig/__init__.py.in:212
+#: src/config/SSSDConfig/__init__.py.in:216
 msgid "Kerberos service keytab"
 msgstr "Таблиця ключів служби Kerberos"
 
-#: src/config/SSSDConfig/__init__.py.in:213
+#: src/config/SSSDConfig/__init__.py.in:217
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Розпізнавання Kerberos для з’єднання LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:214
+#: src/config/SSSDConfig/__init__.py.in:218
 msgid "Follow LDAP referrals"
 msgstr "Переходити за посиланнями LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:215
+#: src/config/SSSDConfig/__init__.py.in:219
 msgid "Lifetime of TGT for LDAP connection"
 msgstr "Строк дії TGT для з’єднання LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:216
+#: src/config/SSSDConfig/__init__.py.in:220
 msgid "How to dereference aliases"
 msgstr "Спосіб розіменування псевдонімів"
 
-#: src/config/SSSDConfig/__init__.py.in:217
+#: src/config/SSSDConfig/__init__.py.in:221
 msgid "Service name for DNS service lookups"
 msgstr "Назва служби для пошуків за допомогою служби DNS"
 
-#: src/config/SSSDConfig/__init__.py.in:218
+#: src/config/SSSDConfig/__init__.py.in:222
 msgid "The number of records to retrieve in a single LDAP query"
 msgstr "Кількість записів, які слід отримувати у відповідь на один запит LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:219
+#: src/config/SSSDConfig/__init__.py.in:223
 msgid "The number of members that must be missing to trigger a full deref"
 msgstr ""
 "Кількість учасників, яких має не вистачати для вмикання повного скасування "
 "посилань"
 
-#: src/config/SSSDConfig/__init__.py.in:220
+#: src/config/SSSDConfig/__init__.py.in:224
 msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
@@ -663,365 +672,375 @@ msgstr ""
 "Визначає, чи має бібліотека LDAP виконувати зворотній пошук з метою "
 "переведення назв вузлів у канонічну форму під час прив’язки до SASL"
 
-#: src/config/SSSDConfig/__init__.py.in:222
+#: src/config/SSSDConfig/__init__.py.in:226
 msgid "entryUSN attribute"
 msgstr "Атрибут entryUSN"
 
-#: src/config/SSSDConfig/__init__.py.in:223
+#: src/config/SSSDConfig/__init__.py.in:227
 msgid "lastUSN attribute"
 msgstr "Атрибут lastUSN"
 
-#: src/config/SSSDConfig/__init__.py.in:225
+#: src/config/SSSDConfig/__init__.py.in:229
 msgid "How long to retain a connection to the LDAP server before disconnecting"
 msgstr "Тривалість підтримування з’єднання з сервером LDAP перед роз’єднанням"
 
-#: src/config/SSSDConfig/__init__.py.in:227
+#: src/config/SSSDConfig/__init__.py.in:231
 msgid "Disable the LDAP paging control"
 msgstr "Вимкнути контроль сторінок у LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:228
+#: src/config/SSSDConfig/__init__.py.in:232
 msgid "Disable Active Directory range retrieval"
 msgstr "Вимкнути отримання діапазонів Active Directory"
 
-#: src/config/SSSDConfig/__init__.py.in:231
+#: src/config/SSSDConfig/__init__.py.in:235
 msgid "Length of time to wait for a search request"
 msgstr "Тривалість очікування на дані запиту пошуку"
 
-#: src/config/SSSDConfig/__init__.py.in:232
+#: src/config/SSSDConfig/__init__.py.in:236
 msgid "Length of time to wait for a enumeration request"
 msgstr "Тривалість очікування на дані запиту щодо переліку"
 
-#: src/config/SSSDConfig/__init__.py.in:233
+#: src/config/SSSDConfig/__init__.py.in:237
 msgid "Length of time between enumeration updates"
 msgstr "Проміжок часу між оновленнями нумерації"
 
-#: src/config/SSSDConfig/__init__.py.in:234
+#: src/config/SSSDConfig/__init__.py.in:238
 msgid "Length of time between cache cleanups"
 msgstr "Проміжок часу між спорожненнями кешу"
 
-#: src/config/SSSDConfig/__init__.py.in:235
+#: src/config/SSSDConfig/__init__.py.in:239
 msgid "Require TLS for ID lookups"
 msgstr "Вимагати TLS для пошуків ідентифікаторів"
 
-#: src/config/SSSDConfig/__init__.py.in:236
+#: src/config/SSSDConfig/__init__.py.in:240
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
 msgstr ""
 "Використовувати відповідності ідентифікаторів objectSID замість попередньо "
 "встановлених ідентифікаторів"
 
-#: src/config/SSSDConfig/__init__.py.in:237
+#: src/config/SSSDConfig/__init__.py.in:241
 msgid "Base DN for user lookups"
 msgstr "Базова назва домену для пошуків користувачів"
 
-#: src/config/SSSDConfig/__init__.py.in:238
+#: src/config/SSSDConfig/__init__.py.in:242
 msgid "Scope of user lookups"
 msgstr "Діапазон пошуків користувачів"
 
-#: src/config/SSSDConfig/__init__.py.in:239
+#: src/config/SSSDConfig/__init__.py.in:243
 msgid "Filter for user lookups"
 msgstr "Фільтр пошуку користувачів"
 
-#: src/config/SSSDConfig/__init__.py.in:240
+#: src/config/SSSDConfig/__init__.py.in:244
 msgid "Objectclass for users"
 msgstr "Клас об’єктів для користувачів"
 
-#: src/config/SSSDConfig/__init__.py.in:241
+#: src/config/SSSDConfig/__init__.py.in:245
 msgid "Username attribute"
 msgstr "Атрибут імені користувача"
 
-#: src/config/SSSDConfig/__init__.py.in:243
+#: src/config/SSSDConfig/__init__.py.in:247
 msgid "UID attribute"
 msgstr "Атрибут UID"
 
-#: src/config/SSSDConfig/__init__.py.in:244
+#: src/config/SSSDConfig/__init__.py.in:248
 msgid "Primary GID attribute"
 msgstr "Головний атрибут GID"
 
-#: src/config/SSSDConfig/__init__.py.in:245
+#: src/config/SSSDConfig/__init__.py.in:249
 msgid "GECOS attribute"
 msgstr "Атрибут GECOS"
 
-#: src/config/SSSDConfig/__init__.py.in:246
+#: src/config/SSSDConfig/__init__.py.in:250
 msgid "Home directory attribute"
 msgstr "Атрибут домашнього каталогу"
 
-#: src/config/SSSDConfig/__init__.py.in:247
+#: src/config/SSSDConfig/__init__.py.in:251
 msgid "Shell attribute"
 msgstr "Атрибут оболонки"
 
-#: src/config/SSSDConfig/__init__.py.in:248
+#: src/config/SSSDConfig/__init__.py.in:252
 msgid "UUID attribute"
 msgstr "Атрибут UUID"
 
-#: src/config/SSSDConfig/__init__.py.in:249
-#: src/config/SSSDConfig/__init__.py.in:285
+#: src/config/SSSDConfig/__init__.py.in:253
+#: src/config/SSSDConfig/__init__.py.in:290
 msgid "objectSID attribute"
 msgstr "Атрибут objectSID"
 
-#: src/config/SSSDConfig/__init__.py.in:250
+#: src/config/SSSDConfig/__init__.py.in:254
 msgid "Active Directory primary group attribute for ID-mapping"
 msgstr ""
 "Атрибут основної групи Active Directory для встановлення відповідності "
 "ідентифікатора"
 
-#: src/config/SSSDConfig/__init__.py.in:251
+#: src/config/SSSDConfig/__init__.py.in:255
 msgid "User principal attribute (for Kerberos)"
 msgstr "Атрибут реєстраційного запису користувача (для Kerberos)"
 
-#: src/config/SSSDConfig/__init__.py.in:252
+#: src/config/SSSDConfig/__init__.py.in:256
 msgid "Full Name"
 msgstr "Повне ім'я"
 
-#: src/config/SSSDConfig/__init__.py.in:253
+#: src/config/SSSDConfig/__init__.py.in:257
 msgid "memberOf attribute"
 msgstr "Атрибут memberOf"
 
-#: src/config/SSSDConfig/__init__.py.in:254
+#: src/config/SSSDConfig/__init__.py.in:258
 msgid "Modification time attribute"
 msgstr "Атрибут часу зміни"
 
-#: src/config/SSSDConfig/__init__.py.in:256
+#: src/config/SSSDConfig/__init__.py.in:260
 msgid "shadowLastChange attribute"
 msgstr "Атрибут shadowLastChange"
 
-#: src/config/SSSDConfig/__init__.py.in:257
+#: src/config/SSSDConfig/__init__.py.in:261
 msgid "shadowMin attribute"
 msgstr "Атрибут shadowMin"
 
-#: src/config/SSSDConfig/__init__.py.in:258
+#: src/config/SSSDConfig/__init__.py.in:262
 msgid "shadowMax attribute"
 msgstr "Атрибут shadowMax"
 
-#: src/config/SSSDConfig/__init__.py.in:259
+#: src/config/SSSDConfig/__init__.py.in:263
 msgid "shadowWarning attribute"
 msgstr "Атрибут shadowWarning"
 
-#: src/config/SSSDConfig/__init__.py.in:260
+#: src/config/SSSDConfig/__init__.py.in:264
 msgid "shadowInactive attribute"
 msgstr "Атрибут shadowInactive"
 
-#: src/config/SSSDConfig/__init__.py.in:261
+#: src/config/SSSDConfig/__init__.py.in:265
 msgid "shadowExpire attribute"
 msgstr "Атрибут shadowExpire"
 
-#: src/config/SSSDConfig/__init__.py.in:262
+#: src/config/SSSDConfig/__init__.py.in:266
 msgid "shadowFlag attribute"
 msgstr "Атрибут shadowFlag"
 
-#: src/config/SSSDConfig/__init__.py.in:263
+#: src/config/SSSDConfig/__init__.py.in:267
 msgid "Attribute listing authorized PAM services"
 msgstr "Атрибути зі списком уповноважених служб PAM"
 
-#: src/config/SSSDConfig/__init__.py.in:264
+#: src/config/SSSDConfig/__init__.py.in:268
 msgid "Attribute listing authorized server hosts"
 msgstr "Атрибути зі списком уповноважених серверних вузлів"
 
-#: src/config/SSSDConfig/__init__.py.in:265
+#: src/config/SSSDConfig/__init__.py.in:269
 msgid "krbLastPwdChange attribute"
 msgstr "Атрибут krbLastPwdChange"
 
-#: src/config/SSSDConfig/__init__.py.in:266
+#: src/config/SSSDConfig/__init__.py.in:270
 msgid "krbPasswordExpiration attribute"
 msgstr "Атрибут krbPasswordExpiration"
 
-#: src/config/SSSDConfig/__init__.py.in:267
+#: src/config/SSSDConfig/__init__.py.in:271
 msgid "Attribute indicating that server side password policies are active"
 msgstr ""
 "Атрибут, що відповідає за активізацію правил обробки паролів на боці сервера"
 
-#: src/config/SSSDConfig/__init__.py.in:268
+#: src/config/SSSDConfig/__init__.py.in:272
 msgid "accountExpires attribute of AD"
 msgstr "Атрибут accountExpires AD"
 
-#: src/config/SSSDConfig/__init__.py.in:269
+#: src/config/SSSDConfig/__init__.py.in:273
 msgid "userAccountControl attribute of AD"
 msgstr "Атрибут userAccountControl AD"
 
-#: src/config/SSSDConfig/__init__.py.in:270
+#: src/config/SSSDConfig/__init__.py.in:274
 msgid "nsAccountLock attribute"
 msgstr "Атрибут nsAccountLock"
 
-#: src/config/SSSDConfig/__init__.py.in:271
+#: src/config/SSSDConfig/__init__.py.in:275
 msgid "loginDisabled attribute of NDS"
 msgstr "Атрибут loginDisabled NDS"
 
-#: src/config/SSSDConfig/__init__.py.in:272
+#: src/config/SSSDConfig/__init__.py.in:276
 msgid "loginExpirationTime attribute of NDS"
 msgstr "Атрибут loginExpirationTime NDS"
 
-#: src/config/SSSDConfig/__init__.py.in:273
+#: src/config/SSSDConfig/__init__.py.in:277
 msgid "loginAllowedTimeMap attribute of NDS"
 msgstr "Атрибут loginAllowedTimeMap NDS"
 
-#: src/config/SSSDConfig/__init__.py.in:274
+#: src/config/SSSDConfig/__init__.py.in:278
 msgid "SSH public key attribute"
 msgstr "Атрибут відкритого ключа SSH"
 
-#: src/config/SSSDConfig/__init__.py.in:276
+#: src/config/SSSDConfig/__init__.py.in:279
+msgid "A list of extra attributes to download along with the user entry"
+msgstr ""
+"Список додаткових атрибутів, які слід отримувати разом із записом користувача"
+
+#: src/config/SSSDConfig/__init__.py.in:281
 msgid "Base DN for group lookups"
 msgstr "Базова назва домену для пошуків груп"
 
-#: src/config/SSSDConfig/__init__.py.in:279
+#: src/config/SSSDConfig/__init__.py.in:284
 msgid "Objectclass for groups"
 msgstr "Клас об’єктів для груп"
 
-#: src/config/SSSDConfig/__init__.py.in:280
+#: src/config/SSSDConfig/__init__.py.in:285
 msgid "Group name"
 msgstr "Назва групи"
 
-#: src/config/SSSDConfig/__init__.py.in:281
+#: src/config/SSSDConfig/__init__.py.in:286
 msgid "Group password"
 msgstr "Пароль групи"
 
-#: src/config/SSSDConfig/__init__.py.in:282
+#: src/config/SSSDConfig/__init__.py.in:287
 msgid "GID attribute"
 msgstr "Атрибут GID"
 
-#: src/config/SSSDConfig/__init__.py.in:283
+#: src/config/SSSDConfig/__init__.py.in:288
 msgid "Group member attribute"
 msgstr "Атрибут членства у групі"
 
-#: src/config/SSSDConfig/__init__.py.in:284
+#: src/config/SSSDConfig/__init__.py.in:289
 msgid "Group UUID attribute"
 msgstr "Атрибут UUID групи"
 
-#: src/config/SSSDConfig/__init__.py.in:286
+#: src/config/SSSDConfig/__init__.py.in:291
 msgid "Modification time attribute for groups"
 msgstr "Атрибут часу зміни для груп"
 
-#: src/config/SSSDConfig/__init__.py.in:287
+#: src/config/SSSDConfig/__init__.py.in:292
 msgid "Type of the group and other flags"
-msgstr ""
+msgstr "Тип групи та інші прапорці"
 
-#: src/config/SSSDConfig/__init__.py.in:289
+#: src/config/SSSDConfig/__init__.py.in:294
 msgid "Maximum nesting level SSSd will follow"
 msgstr "Максимальний рівень вкладеності, який використовуватиме SSSD"
 
-#: src/config/SSSDConfig/__init__.py.in:291
+#: src/config/SSSDConfig/__init__.py.in:296
 msgid "Base DN for netgroup lookups"
 msgstr "Базова назва домену для пошуків груп у мережі"
 
-#: src/config/SSSDConfig/__init__.py.in:292
+#: src/config/SSSDConfig/__init__.py.in:297
 msgid "Objectclass for netgroups"
 msgstr "Клас об’єктів для груп у мережі"
 
-#: src/config/SSSDConfig/__init__.py.in:293
+#: src/config/SSSDConfig/__init__.py.in:298
 msgid "Netgroup name"
 msgstr "Назва мережевої групи"
 
-#: src/config/SSSDConfig/__init__.py.in:294
+#: src/config/SSSDConfig/__init__.py.in:299
 msgid "Netgroups members attribute"
 msgstr "Атрибут членства у групах у мережі"
 
-#: src/config/SSSDConfig/__init__.py.in:295
+#: src/config/SSSDConfig/__init__.py.in:300
 msgid "Netgroup triple attribute"
 msgstr "Атрибут трійки груп у мережі"
 
-#: src/config/SSSDConfig/__init__.py.in:296
+#: src/config/SSSDConfig/__init__.py.in:301
 msgid "Netgroup UUID attribute"
 msgstr "Атрибут UUID груп у мережі"
 
-#: src/config/SSSDConfig/__init__.py.in:297
+#: src/config/SSSDConfig/__init__.py.in:302
 msgid "Modification time attribute for netgroups"
 msgstr "Атрибут часу зміни для мережевих груп"
 
-#: src/config/SSSDConfig/__init__.py.in:299
+#: src/config/SSSDConfig/__init__.py.in:304
 msgid "Base DN for service lookups"
 msgstr "Базова сервер назв домену для пошуку служб"
 
-#: src/config/SSSDConfig/__init__.py.in:300
+#: src/config/SSSDConfig/__init__.py.in:305
 msgid "Objectclass for services"
 msgstr "Клас об’єктів для служб"
 
-#: src/config/SSSDConfig/__init__.py.in:301
+#: src/config/SSSDConfig/__init__.py.in:306
 msgid "Service name attribute"
 msgstr "Атрибут назви служби"
 
-#: src/config/SSSDConfig/__init__.py.in:302
+#: src/config/SSSDConfig/__init__.py.in:307
 msgid "Service port attribute"
 msgstr "Атрибут порту служби"
 
-#: src/config/SSSDConfig/__init__.py.in:303
+#: src/config/SSSDConfig/__init__.py.in:308
 msgid "Service protocol attribute"
 msgstr "Атрибут протоколу служби"
 
-#: src/config/SSSDConfig/__init__.py.in:306
+#: src/config/SSSDConfig/__init__.py.in:311
 msgid "Lower bound for ID-mapping"
 msgstr "Нижня межа встановлення відповідності ідентифікатора"
 
-#: src/config/SSSDConfig/__init__.py.in:307
+#: src/config/SSSDConfig/__init__.py.in:312
 msgid "Upper bound for ID-mapping"
 msgstr "Верхня межа встановлення відповідності ідентифікатора"
 
-#: src/config/SSSDConfig/__init__.py.in:308
+#: src/config/SSSDConfig/__init__.py.in:313
 msgid "Number of IDs for each slice when ID-mapping"
 msgstr ""
 "Кількість ідентифікаторів для кожного зрізу під час встановлення "
 "відповідності ідентифікаторів"
 
-#: src/config/SSSDConfig/__init__.py.in:309
+#: src/config/SSSDConfig/__init__.py.in:314
 msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr ""
 "Використовувати для встановлення відповідності ідентифікаторів алгоритм, "
 "сумісний з autorid"
 
-#: src/config/SSSDConfig/__init__.py.in:310
+#: src/config/SSSDConfig/__init__.py.in:315
 msgid "Name of the default domain for ID-mapping"
 msgstr "Назва типового домену для встановлення відповідності ідентифікаторів"
 
-#: src/config/SSSDConfig/__init__.py.in:311
+#: src/config/SSSDConfig/__init__.py.in:316
 msgid "SID of the default domain for ID-mapping"
 msgstr "SID типового домену для встановлення відповідності ідентифікаторів"
 
-#: src/config/SSSDConfig/__init__.py.in:313
+#: src/config/SSSDConfig/__init__.py.in:318
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
 msgstr "Використовувати LDAP_MATCHING_RULE_IN_CHAIN щодо пошуків груп (group)"
 
-#: src/config/SSSDConfig/__init__.py.in:314
+#: src/config/SSSDConfig/__init__.py.in:319
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr ""
 "Використовувати LDAP_MATCHING_RULE_IN_CHAIN щодо пошуків початкових груп "
 "(initgroup)"
 
-#: src/config/SSSDConfig/__init__.py.in:315
+#: src/config/SSSDConfig/__init__.py.in:320
+#, fuzzy
+msgid "Whether to use Token-Groups"
+msgstr "Чи слід використовувати загальний каталог для пошуку"
+
+#: src/config/SSSDConfig/__init__.py.in:321
 msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr "Встановити нижню межу для дозволених ідентифікаторів із сервера LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:316
+#: src/config/SSSDConfig/__init__.py.in:322
 msgid "Set upper boundary for allowed IDs from the LDAP server"
 msgstr "Встановити верхню межу для дозволених ідентифікаторів із сервера LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:319
+#: src/config/SSSDConfig/__init__.py.in:325
 msgid "Policy to evaluate the password expiration"
 msgstr "Правила оцінки завершення строку дії пароля"
 
-#: src/config/SSSDConfig/__init__.py.in:322
+#: src/config/SSSDConfig/__init__.py.in:328
 msgid "LDAP filter to determine access privileges"
 msgstr "Фільтр LDAP для визначення прав доступу"
 
-#: src/config/SSSDConfig/__init__.py.in:323
+#: src/config/SSSDConfig/__init__.py.in:329
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 "Атрибути які слід використовувати для визначення чинності облікового запису"
 
-#: src/config/SSSDConfig/__init__.py.in:324
+#: src/config/SSSDConfig/__init__.py.in:330
 msgid "Which rules should be used to evaluate access control"
 msgstr ""
 "Правила, які має бути використано для визначення достатності прав доступу"
 
-#: src/config/SSSDConfig/__init__.py.in:327
+#: src/config/SSSDConfig/__init__.py.in:333
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "Адреса на сервері LDAP, для якої можливі зміни паролів"
 
-#: src/config/SSSDConfig/__init__.py.in:328
+#: src/config/SSSDConfig/__init__.py.in:334
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "Адреса резервного сервера LDAP, для якої можливі зміни паролів"
 
-#: src/config/SSSDConfig/__init__.py.in:329
+#: src/config/SSSDConfig/__init__.py.in:335
 msgid "DNS service name for LDAP password change server"
 msgstr "Назва у службі DNS сервера зміни паролів LDAP"
 
-#: src/config/SSSDConfig/__init__.py.in:330
+#: src/config/SSSDConfig/__init__.py.in:336
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
@@ -1029,25 +1048,25 @@ msgstr ""
 "Визначає, чи слід оновлювати атрибут ldap_user_shadow_last_change після "
 "зміни пароля"
 
-#: src/config/SSSDConfig/__init__.py.in:333
+#: src/config/SSSDConfig/__init__.py.in:339
 msgid "Base DN for sudo rules lookups"
 msgstr "Базова назва домену для пошуків правил sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:334
+#: src/config/SSSDConfig/__init__.py.in:340
 msgid "Automatic full refresh period"
 msgstr "Період автоматичного повного оновлення даних"
 
-#: src/config/SSSDConfig/__init__.py.in:335
+#: src/config/SSSDConfig/__init__.py.in:341
 msgid "Automatic smart refresh period"
 msgstr "Період автоматичного кмітливого оновлення даних"
 
-#: src/config/SSSDConfig/__init__.py.in:336
+#: src/config/SSSDConfig/__init__.py.in:342
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr ""
 "Визначає, чи слід фільтрувати правила за назвами вузлів, IP-адресами та "
 "мережами"
 
-#: src/config/SSSDConfig/__init__.py.in:337
+#: src/config/SSSDConfig/__init__.py.in:343
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1055,160 +1074,160 @@ msgstr ""
 "Назви вузлів і/або повні назви у домені для цього комп’ютера для "
 "фільтрування списку правил sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:338
+#: src/config/SSSDConfig/__init__.py.in:344
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "Адреси IPv4 або IPv6 чи мережа цього комп’ютера для фільтрування списку "
 "правил sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:339
+#: src/config/SSSDConfig/__init__.py.in:345
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
 "Визначає, чи слід включати правила, що містять мережеву групу у атрибуті "
 "вузла"
 
-#: src/config/SSSDConfig/__init__.py.in:340
+#: src/config/SSSDConfig/__init__.py.in:346
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 "Визначає, чи слід включати правила, що містять формальний вираз у атрибуті "
 "вузла"
 
-#: src/config/SSSDConfig/__init__.py.in:341
+#: src/config/SSSDConfig/__init__.py.in:347
 msgid "Object class for sudo rules"
 msgstr "Клас об’єктів для правил sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:342
+#: src/config/SSSDConfig/__init__.py.in:348
 msgid "Sudo rule name"
 msgstr "Назва правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:343
+#: src/config/SSSDConfig/__init__.py.in:349
 msgid "Sudo rule command attribute"
 msgstr "Атрибут команди правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:344
+#: src/config/SSSDConfig/__init__.py.in:350
 msgid "Sudo rule host attribute"
 msgstr "Атрибут вузла правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:345
+#: src/config/SSSDConfig/__init__.py.in:351
 msgid "Sudo rule user attribute"
 msgstr "Атрибут користувача правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:346
+#: src/config/SSSDConfig/__init__.py.in:352
 msgid "Sudo rule option attribute"
 msgstr "Атрибут параметрів правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:347
+#: src/config/SSSDConfig/__init__.py.in:353
 msgid "Sudo rule runasuser attribute"
 msgstr ""
 "Атрибут користувача, від імені якого виконуватиметься запуск, правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:348
+#: src/config/SSSDConfig/__init__.py.in:354
 msgid "Sudo rule runasgroup attribute"
 msgstr "Атрибут групи, від імені якої виконуватиметься запуск, правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:349
+#: src/config/SSSDConfig/__init__.py.in:355
 msgid "Sudo rule notbefore attribute"
 msgstr "Атрибут граничного часу початку дії правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:350
+#: src/config/SSSDConfig/__init__.py.in:356
 msgid "Sudo rule notafter attribute"
 msgstr "Атрибут граничного часу завершення дії правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:351
+#: src/config/SSSDConfig/__init__.py.in:357
 msgid "Sudo rule order attribute"
 msgstr "Атрибут порядку правила sudo"
 
-#: src/config/SSSDConfig/__init__.py.in:354
+#: src/config/SSSDConfig/__init__.py.in:360
 msgid "Object class for automounter maps"
 msgstr "Клас об’єктів для карт автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:355
+#: src/config/SSSDConfig/__init__.py.in:361
 msgid "Automounter map name attribute"
 msgstr "Атрибут назви карти автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:356
+#: src/config/SSSDConfig/__init__.py.in:362
 msgid "Object class for automounter map entries"
 msgstr "Клас об’єктів для записів карт автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:357
+#: src/config/SSSDConfig/__init__.py.in:363
 msgid "Automounter map entry key attribute"
 msgstr "Атрибут ключа запису карти автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:358
+#: src/config/SSSDConfig/__init__.py.in:364
 msgid "Automounter map entry value attribute"
 msgstr "Атрибут значення запису карти автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:359
+#: src/config/SSSDConfig/__init__.py.in:365
 msgid "Base DN for automounter map lookups"
 msgstr "Базовий сервер назв домену для пошуків карти автоматичного монтування"
 
-#: src/config/SSSDConfig/__init__.py.in:362
+#: src/config/SSSDConfig/__init__.py.in:368
 msgid "Comma separated list of allowed users"
 msgstr "Відокремлений комами список дозволених користувачів"
 
-#: src/config/SSSDConfig/__init__.py.in:363
+#: src/config/SSSDConfig/__init__.py.in:369
 msgid "Comma separated list of prohibited users"
 msgstr "Відокремлений комами список заборонених користувачів"
 
-#: src/config/SSSDConfig/__init__.py.in:366
+#: src/config/SSSDConfig/__init__.py.in:372
 msgid "Default shell, /bin/bash"
 msgstr "Типова оболонка, /bin/bash"
 
-#: src/config/SSSDConfig/__init__.py.in:367
+#: src/config/SSSDConfig/__init__.py.in:373
 msgid "Base for home directories"
 msgstr "Базова адреса домашніх каталогів"
 
-#: src/config/SSSDConfig/__init__.py.in:370
+#: src/config/SSSDConfig/__init__.py.in:376
 msgid "The name of the NSS library to use"
 msgstr "Назва бібліотеки NSS, яку слід використовувати"
 
-#: src/config/SSSDConfig/__init__.py.in:371
+#: src/config/SSSDConfig/__init__.py.in:377
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
 "Визначає, чи слід виконувати пошук канонічної назви групи у кеші, якщо це "
 "можливо"
 
-#: src/config/SSSDConfig/__init__.py.in:374
+#: src/config/SSSDConfig/__init__.py.in:380
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 
-#: src/monitor/monitor.c:2651
+#: src/monitor/monitor.c:2649
 msgid "Become a daemon (default)"
 msgstr "Запуститися фонову службу (типова поведінка)"
 
-#: src/monitor/monitor.c:2653
+#: src/monitor/monitor.c:2651
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: src/monitor/monitor.c:2655 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2653 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
-#: src/monitor/monitor.c:2657
+#: src/monitor/monitor.c:2655
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
-#: src/providers/krb5/krb5_child.c:1962 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:1974 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:100
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
-#: src/providers/krb5/krb5_child.c:1964 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:1976 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:104
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
-#: src/providers/krb5/krb5_child.c:1966 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:1978 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:106
 msgid "Show timestamps with microseconds"
 msgstr "Показувати мікросекунди у часових позначках"
 
-#: src/providers/krb5/krb5_child.c:1968 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:1980 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
-#: src/providers/data_provider_be.c:2932
+#: src/providers/data_provider_be.c:2751
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
@@ -1236,80 +1255,82 @@ msgstr "Сталася помилка, але не вдалося знайти �
 msgid "Unexpected error while looking for an error description"
 msgstr "Неочікувана помилка під час пошуку опису помилки"
 
-#: src/sss_client/pam_sss.c:388
+#: src/sss_client/pam_sss.c:392
 msgid "Passwords do not match"
 msgstr "Паролі не збігаються"
 
-#: src/sss_client/pam_sss.c:576
+#: src/sss_client/pam_sss.c:580
 msgid "Password reset by root is not supported."
 msgstr "Підтримки скидання пароля користувачем root не передбачено."
 
-#: src/sss_client/pam_sss.c:617
+#: src/sss_client/pam_sss.c:621
 msgid "Authenticated with cached credentials"
 msgstr "Розпізнано за реєстраційними даними з кешу"
 
-#: src/sss_client/pam_sss.c:618
+#: src/sss_client/pam_sss.c:622
 msgid ", your cached password will expire at: "
 msgstr ", строк дії вашого кешованого пароля завершиться: "
 
-#: src/sss_client/pam_sss.c:648
+#: src/sss_client/pam_sss.c:652
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "Строк дії вашого пароля вичерпано. Залишилося %1$d резервних входи."
 
-#: src/sss_client/pam_sss.c:694
+#: src/sss_client/pam_sss.c:698
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Строк дії вашого пароля завершиться за %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:743
+#: src/sss_client/pam_sss.c:747
 msgid "Authentication is denied until: "
 msgstr "Розпізнавання заборонено до: "
 
-#: src/sss_client/pam_sss.c:764
+#: src/sss_client/pam_sss.c:768
 msgid "System is offline, password change not possible"
 msgstr "Система працює у автономному режимі, зміна пароля неможлива"
 
-#: src/sss_client/pam_sss.c:779
+#: src/sss_client/pam_sss.c:783
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr ""
+"Після зміни пароля OTP вам слід вийти із системи і увійти до неї знову, щоб "
+"отримати про квиток"
 
-#: src/sss_client/pam_sss.c:810 src/sss_client/pam_sss.c:823
+#: src/sss_client/pam_sss.c:814 src/sss_client/pam_sss.c:827
 msgid "Password change failed. "
 msgstr "Спроба зміни пароля зазнала невдачі. "
 
-#: src/sss_client/pam_sss.c:813 src/sss_client/pam_sss.c:824
+#: src/sss_client/pam_sss.c:817 src/sss_client/pam_sss.c:828
 msgid "Server message: "
 msgstr "Повідомлення сервера: "
 
-#: src/sss_client/pam_sss.c:1251
+#: src/sss_client/pam_sss.c:1255
 msgid "New Password: "
 msgstr "Новий пароль: "
 
-#: src/sss_client/pam_sss.c:1252
+#: src/sss_client/pam_sss.c:1256
 msgid "Reenter new Password: "
 msgstr "Ще раз введіть новий пароль: "
 
-#: src/sss_client/pam_sss.c:1340
+#: src/sss_client/pam_sss.c:1346
 msgid "Password: "
 msgstr "Пароль: "
 
-#: src/sss_client/pam_sss.c:1372
+#: src/sss_client/pam_sss.c:1378
 msgid "Current Password: "
 msgstr "Поточний пароль: "
 
-#: src/sss_client/pam_sss.c:1527
+#: src/sss_client/pam_sss.c:1541
 msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:40
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:192 src/tools/sss_useradd.c:48
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
-#: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:652
+#: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:658
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:540 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_cache.c:544 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr "Рівень діагностики під час запуску"
 
@@ -1318,11 +1339,11 @@ msgstr "Рівень діагностики під час запуску"
 msgid "The SSSD domain to use"
 msgstr "Домен SSSD, який слід використовувати"
 
-#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:57 src/tools/sss_useradd.c:73
-#: src/tools/sss_groupadd.c:58 src/tools/sss_groupdel.c:53
-#: src/tools/sss_groupmod.c:65 src/tools/sss_groupshow.c:663
-#: src/tools/sss_userdel.c:151 src/tools/sss_usermod.c:74
-#: src/tools/sss_cache.c:573
+#: src/sss_client/ssh/sss_ssh_authorizedkeys.c:57 src/tools/sss_useradd.c:74
+#: src/tools/sss_groupadd.c:59 src/tools/sss_groupdel.c:54
+#: src/tools/sss_groupmod.c:66 src/tools/sss_groupshow.c:670
+#: src/tools/sss_userdel.c:152 src/tools/sss_usermod.c:75
+#: src/tools/sss_cache.c:578
 msgid "Error setting the locale\n"
 msgstr "Помилка під час спроби встановити локаль\n"
 
@@ -1390,97 +1411,97 @@ msgstr "Вказати альтернативний основний катал�
 msgid "The SELinux user for user's login"
 msgstr "Ім’я користувача SELinux для входу до системи"
 
-#: src/tools/sss_useradd.c:86 src/tools/sss_groupmod.c:78
-#: src/tools/sss_usermod.c:87
+#: src/tools/sss_useradd.c:87 src/tools/sss_groupmod.c:79
+#: src/tools/sss_usermod.c:88
 msgid "Specify group to add to\n"
 msgstr "Вкажіть групу для додавання\n"
 
-#: src/tools/sss_useradd.c:110
+#: src/tools/sss_useradd.c:111
 msgid "Specify user to add\n"
 msgstr "Вкажіть користувача, запис якого слід додати\n"
 
-#: src/tools/sss_useradd.c:119 src/tools/sss_groupadd.c:84
-#: src/tools/sss_groupdel.c:78 src/tools/sss_groupmod.c:111
-#: src/tools/sss_groupshow.c:696 src/tools/sss_userdel.c:196
-#: src/tools/sss_usermod.c:128
+#: src/tools/sss_useradd.c:121 src/tools/sss_groupadd.c:86
+#: src/tools/sss_groupdel.c:80 src/tools/sss_groupmod.c:113
+#: src/tools/sss_groupshow.c:704 src/tools/sss_userdel.c:198
+#: src/tools/sss_usermod.c:130
 msgid "Error initializing the tools - no local domain\n"
 msgstr "Помилка ініціалізації інструментів: немає локального домену\n"
 
-#: src/tools/sss_useradd.c:121 src/tools/sss_groupadd.c:86
-#: src/tools/sss_groupdel.c:80 src/tools/sss_groupmod.c:113
-#: src/tools/sss_groupshow.c:698 src/tools/sss_userdel.c:198
-#: src/tools/sss_usermod.c:130
+#: src/tools/sss_useradd.c:123 src/tools/sss_groupadd.c:88
+#: src/tools/sss_groupdel.c:82 src/tools/sss_groupmod.c:115
+#: src/tools/sss_groupshow.c:706 src/tools/sss_userdel.c:200
+#: src/tools/sss_usermod.c:132
 msgid "Error initializing the tools\n"
 msgstr "Помилка ініціалізації інструментів\n"
 
-#: src/tools/sss_useradd.c:130 src/tools/sss_groupadd.c:95
-#: src/tools/sss_groupdel.c:89 src/tools/sss_groupmod.c:121
-#: src/tools/sss_groupshow.c:707 src/tools/sss_userdel.c:207
-#: src/tools/sss_usermod.c:139
+#: src/tools/sss_useradd.c:132 src/tools/sss_groupadd.c:97
+#: src/tools/sss_groupdel.c:91 src/tools/sss_groupmod.c:123
+#: src/tools/sss_groupshow.c:715 src/tools/sss_userdel.c:209
+#: src/tools/sss_usermod.c:141
 msgid "Invalid domain specified in FQDN\n"
 msgstr "У FQDN вказано некоректний домен\n"
 
-#: src/tools/sss_useradd.c:139 src/tools/sss_groupmod.c:141
-#: src/tools/sss_groupmod.c:168 src/tools/sss_usermod.c:162
-#: src/tools/sss_usermod.c:189
+#: src/tools/sss_useradd.c:142 src/tools/sss_groupmod.c:144
+#: src/tools/sss_groupmod.c:173 src/tools/sss_usermod.c:165
+#: src/tools/sss_usermod.c:194
 msgid "Internal error while parsing parameters\n"
 msgstr "Внутрішня помилка під час обробки параметрів\n"
 
-#: src/tools/sss_useradd.c:147 src/tools/sss_usermod.c:170
-#: src/tools/sss_usermod.c:197
+#: src/tools/sss_useradd.c:151 src/tools/sss_usermod.c:174
+#: src/tools/sss_usermod.c:203
 msgid "Groups must be in the same domain as user\n"
 msgstr "Групи мають належати до того самого домену, що і користувач\n"
 
-#: src/tools/sss_useradd.c:155
+#: src/tools/sss_useradd.c:159
 #, c-format
 msgid "Cannot find group %1$s in local domain\n"
 msgstr "Не вдалося знайти групу %1$s у локальному домені\n"
 
-#: src/tools/sss_useradd.c:170 src/tools/sss_userdel.c:217
+#: src/tools/sss_useradd.c:174 src/tools/sss_userdel.c:219
 msgid "Cannot set default values\n"
 msgstr "Не вдалося встановити типові значення\n"
 
-#: src/tools/sss_useradd.c:177 src/tools/sss_usermod.c:153
+#: src/tools/sss_useradd.c:181 src/tools/sss_usermod.c:155
 msgid "The selected UID is outside the allowed range\n"
 msgstr ""
 "Вибраний ідентифікатор користувача не належить до діапазону дозволених\n"
 
-#: src/tools/sss_useradd.c:206 src/tools/sss_usermod.c:264
+#: src/tools/sss_useradd.c:210 src/tools/sss_usermod.c:270
 msgid "Cannot set SELinux login context\n"
 msgstr "Не вдалося встановити контекст входу SELinux\n"
 
-#: src/tools/sss_useradd.c:221
+#: src/tools/sss_useradd.c:225
 msgid "Cannot get info about the user\n"
 msgstr "Не вдалося отримати відомості щодо користувача\n"
 
-#: src/tools/sss_useradd.c:233
+#: src/tools/sss_useradd.c:237
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
 "Домашній каталог користувача вже існує, копіювання даних з каталогу skel не "
 "виконуватиметься\n"
 
-#: src/tools/sss_useradd.c:236
+#: src/tools/sss_useradd.c:240
 #, c-format
 msgid "Cannot create user's home directory: %1$s\n"
 msgstr "Не вдалося створити домашній каталог користувача: %1$s\n"
 
-#: src/tools/sss_useradd.c:247
+#: src/tools/sss_useradd.c:251
 #, c-format
 msgid "Cannot create user's mail spool: %1$s\n"
 msgstr "Не вдалося створити поштовий буфер користувача: %1$s\n"
 
-#: src/tools/sss_useradd.c:266
+#: src/tools/sss_useradd.c:271
 msgid "Could not allocate ID for the user - domain full?\n"
 msgstr ""
 "Не вдалося отримати ідентифікатор для користувача. Домен переповнено?\n"
 
-#: src/tools/sss_useradd.c:270
+#: src/tools/sss_useradd.c:275
 msgid "A user or group with the same name or ID already exists\n"
 msgstr ""
 "Вже існує користувач або група з таким самим іменем, назвою або "
 "ідентифікатором\n"
 
-#: src/tools/sss_useradd.c:276
+#: src/tools/sss_useradd.c:281
 msgid "Transaction error. Could not add user.\n"
 msgstr "Помилка під час виконання операції. Не вдалося додати користувача.\n"
 
@@ -1488,46 +1509,46 @@ msgstr "Помилка під час виконання операції. Не �
 msgid "The GID of the group"
 msgstr "Ідентифікатор групи"
 
-#: src/tools/sss_groupadd.c:75
+#: src/tools/sss_groupadd.c:76
 msgid "Specify group to add\n"
 msgstr "Вкажіть групу, яку слід додати\n"
 
-#: src/tools/sss_groupadd.c:104 src/tools/sss_groupmod.c:192
+#: src/tools/sss_groupadd.c:106 src/tools/sss_groupmod.c:198
 msgid "The selected GID is outside the allowed range\n"
 msgstr "Вибраний ідентифікатор групи не належить до діапазону дозволених\n"
 
-#: src/tools/sss_groupadd.c:141
+#: src/tools/sss_groupadd.c:143
 msgid "Could not allocate ID for the group - domain full?\n"
 msgstr "Не вдалося отримати ідентифікатор для групи. Домен переповнено?\n"
 
-#: src/tools/sss_groupadd.c:145
+#: src/tools/sss_groupadd.c:147
 msgid "A group with the same name or GID already exists\n"
 msgstr "Вже існує група з такою самою назвою або ідентифікатором\n"
 
-#: src/tools/sss_groupadd.c:150
+#: src/tools/sss_groupadd.c:153
 msgid "Transaction error. Could not add group.\n"
 msgstr "Помилка під час виконання операції Не вдалося додати групу.\n"
 
-#: src/tools/sss_groupdel.c:69
+#: src/tools/sss_groupdel.c:70
 msgid "Specify group to delete\n"
 msgstr "Вкажіть групу, яку слід вилучити\n"
 
-#: src/tools/sss_groupdel.c:102
+#: src/tools/sss_groupdel.c:104
 #, c-format
 msgid "Group %1$s is outside the defined ID range for domain\n"
 msgstr "Група %1$s не належить визначеному діапазону ідентифікаторів домену\n"
 
-#: src/tools/sss_groupdel.c:117 src/tools/sss_groupmod.c:219
-#: src/tools/sss_groupmod.c:226 src/tools/sss_groupmod.c:233
-#: src/tools/sss_userdel.c:294 src/tools/sss_usermod.c:241
-#: src/tools/sss_usermod.c:248 src/tools/sss_usermod.c:255
+#: src/tools/sss_groupdel.c:119 src/tools/sss_groupmod.c:225
+#: src/tools/sss_groupmod.c:232 src/tools/sss_groupmod.c:239
+#: src/tools/sss_userdel.c:296 src/tools/sss_usermod.c:247
+#: src/tools/sss_usermod.c:254 src/tools/sss_usermod.c:261
 #, c-format
 msgid "NSS request failed (%1$d). Entry might remain in memory cache.\n"
 msgstr ""
 "Спроба запиту NSS зазнала невдачі (%1$d). Запис може залишитися у кеші у "
 "пам’яті.\n"
 
-#: src/tools/sss_groupdel.c:129
+#: src/tools/sss_groupdel.c:132
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
@@ -1535,7 +1556,7 @@ msgstr ""
 "У локальному домені немає такої групи. Вилучення груп можливе лише у межах "
 "локального домену.\n"
 
-#: src/tools/sss_groupdel.c:134
+#: src/tools/sss_groupdel.c:137
 msgid "Internal error. Could not remove group.\n"
 msgstr "Внутрішня помилка. Не вдалося вилучити запис групи.\n"
 
@@ -1547,15 +1568,15 @@ msgstr "Групи, до яких слід додати цю групу"
 msgid "Groups to remove this group from"
 msgstr "Групи, з яких слід вилучити цю групу"
 
-#: src/tools/sss_groupmod.c:86 src/tools/sss_usermod.c:95
+#: src/tools/sss_groupmod.c:87 src/tools/sss_usermod.c:96
 msgid "Specify group to remove from\n"
 msgstr "Вкажіть групу, запис якої слід вилучити\n"
 
-#: src/tools/sss_groupmod.c:100
+#: src/tools/sss_groupmod.c:101
 msgid "Specify group to modify\n"
 msgstr "Вкажіть групу, запис якої слід змінити\n"
 
-#: src/tools/sss_groupmod.c:128
+#: src/tools/sss_groupmod.c:130
 msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
@@ -1563,13 +1584,13 @@ msgstr ""
 "Не вдалося знайти групу у локальному домені. Зміну записів груп можна "
 "виконувати лише у межах локального домену\n"
 
-#: src/tools/sss_groupmod.c:149 src/tools/sss_groupmod.c:176
+#: src/tools/sss_groupmod.c:153 src/tools/sss_groupmod.c:182
 msgid "Member groups must be in the same domain as parent group\n"
 msgstr ""
 "Групи-учасники мають належати до того самого домену, що і основна група\n"
 
-#: src/tools/sss_groupmod.c:157 src/tools/sss_groupmod.c:184
-#: src/tools/sss_usermod.c:178 src/tools/sss_usermod.c:205
+#: src/tools/sss_groupmod.c:161 src/tools/sss_groupmod.c:190
+#: src/tools/sss_usermod.c:182 src/tools/sss_usermod.c:211
 #, c-format
 msgid ""
 "Cannot find group %1$s in local domain, only groups in local domain are "
@@ -1578,41 +1599,41 @@ msgstr ""
 "Не вдалося знайти групу %1$s у локальному домені, можна використовувати лише "
 "групи з локального домену\n"
 
-#: src/tools/sss_groupmod.c:250
+#: src/tools/sss_groupmod.c:257
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
 "Не вдалося змінити запис групи. Перевірте, чи правильно вказано назви груп-"
 "учасників\n"
 
-#: src/tools/sss_groupmod.c:254
+#: src/tools/sss_groupmod.c:261
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
 "Не вдалося змінити запис групи. Перевірте, чи правильно вказано назву групи\n"
 
-#: src/tools/sss_groupmod.c:258
+#: src/tools/sss_groupmod.c:265
 msgid "Transaction error. Could not modify group.\n"
 msgstr "Помилка під час виконання операції Не вдалося змінити групу.\n"
 
-#: src/tools/sss_groupshow.c:599
+#: src/tools/sss_groupshow.c:605
 #, c-format
 msgid "%1$s%2$sGroup: %3$s\n"
 msgstr "%1$s%2$sГрупа: %3$s\n"
 
-#: src/tools/sss_groupshow.c:600
+#: src/tools/sss_groupshow.c:606
 msgid "Magic Private "
 msgstr "Магічна приватна "
 
-#: src/tools/sss_groupshow.c:602
+#: src/tools/sss_groupshow.c:608
 #, c-format
 msgid "%1$sGID number: %2$d\n"
 msgstr "%1$sНомер GID: %2$d\n"
 
-#: src/tools/sss_groupshow.c:604
+#: src/tools/sss_groupshow.c:610
 #, c-format
 msgid "%1$sMember users: "
 msgstr "%1$sКористувачі-учасники: "
 
-#: src/tools/sss_groupshow.c:611
+#: src/tools/sss_groupshow.c:617
 #, c-format
 msgid ""
 "\n"
@@ -1621,7 +1642,7 @@ msgstr ""
 "\n"
 "%1$sє учасником: "
 
-#: src/tools/sss_groupshow.c:618
+#: src/tools/sss_groupshow.c:624
 #, c-format
 msgid ""
 "\n"
@@ -1630,15 +1651,15 @@ msgstr ""
 "\n"
 "%1$sГрупи-учасники: "
 
-#: src/tools/sss_groupshow.c:654
+#: src/tools/sss_groupshow.c:660
 msgid "Print indirect group members recursively"
 msgstr "Виводити дані щодо непрямих учасників групи рекурсивно"
 
-#: src/tools/sss_groupshow.c:687
+#: src/tools/sss_groupshow.c:694
 msgid "Specify group to show\n"
 msgstr "Вкажіть групу, дані якої слід показати\n"
 
-#: src/tools/sss_groupshow.c:726
+#: src/tools/sss_groupshow.c:735
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
@@ -1646,7 +1667,7 @@ msgstr ""
 "У локальному домені немає такої групи. Вивід даних груп можливий лише у "
 "межах локального домену.\n"
 
-#: src/tools/sss_groupshow.c:731
+#: src/tools/sss_groupshow.c:740
 msgid "Internal error. Could not print group.\n"
 msgstr "Внутрішня помилка. Не вдалося вивести дані групи.\n"
 
@@ -1666,58 +1687,58 @@ msgstr "Примусово вилучити файли, які не належа
 msgid "Kill users' processes before removing him"
 msgstr "Припинити роботу процесів користувача перед вилученням його запису"
 
-#: src/tools/sss_userdel.c:187
+#: src/tools/sss_userdel.c:188
 msgid "Specify user to delete\n"
 msgstr "Вкажіть користувача, запис якого слід вилучити\n"
 
-#: src/tools/sss_userdel.c:233
+#: src/tools/sss_userdel.c:235
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
 msgstr ""
 "Користувач %1$s не належить визначеному діапазону ідентифікаторів домену\n"
 
-#: src/tools/sss_userdel.c:258
+#: src/tools/sss_userdel.c:260
 msgid "Cannot reset SELinux login context\n"
 msgstr "Не вдалося відновити початковий контекст входу SELinux\n"
 
-#: src/tools/sss_userdel.c:270
+#: src/tools/sss_userdel.c:272
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
 "ПОПЕРЕДЖЕННЯ: користувач (uid %1$lu) все ще працював у системі на час "
 "вилучення його запису.\n"
 
-#: src/tools/sss_userdel.c:275
+#: src/tools/sss_userdel.c:277
 msgid "Cannot determine if the user was logged in on this platform"
 msgstr ""
 "Не вдалося визначити, чи увійшов користувач до системи на цій платформі"
 
-#: src/tools/sss_userdel.c:280
+#: src/tools/sss_userdel.c:282
 msgid "Error while checking if the user was logged in\n"
 msgstr "Помилка під час перевірки входу користувача до системи\n"
 
-#: src/tools/sss_userdel.c:287
+#: src/tools/sss_userdel.c:289
 #, c-format
 msgid "The post-delete command failed: %1$s\n"
 msgstr "Помилка команди, яку слід було виконати після вилучення запису: %1$s\n"
 
-#: src/tools/sss_userdel.c:307
+#: src/tools/sss_userdel.c:309
 msgid "Not removing home dir - not owned by user\n"
 msgstr "Домашній каталог не буде вилучено. Він не належить користувачеві.\n"
 
-#: src/tools/sss_userdel.c:309
+#: src/tools/sss_userdel.c:311
 #, c-format
 msgid "Cannot remove homedir: %1$s\n"
 msgstr "Не вдалося вилучити домашній каталог: %1$s\n"
 
-#: src/tools/sss_userdel.c:322
+#: src/tools/sss_userdel.c:325
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
 "У локальному домені немає такого користувача. Вилучення користувачів можливе "
 "лише у межах локального домену.\n"
 
-#: src/tools/sss_userdel.c:327
+#: src/tools/sss_userdel.c:330
 msgid "Internal error. Could not remove user.\n"
 msgstr "Внутрішня помилка Не вдалося вилучити запис користувача.\n"
 
@@ -1741,11 +1762,11 @@ msgstr "Заблокувати обліковий запис"
 msgid "Unlock the account"
 msgstr "Розблокувати обліковий запис"
 
-#: src/tools/sss_usermod.c:119
+#: src/tools/sss_usermod.c:120
 msgid "Specify user to modify\n"
 msgstr "Вкажіть користувача, запис якого слід змінити\n"
 
-#: src/tools/sss_usermod.c:146
+#: src/tools/sss_usermod.c:148
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
@@ -1753,18 +1774,18 @@ msgstr ""
 "Не вдалося знайти користувача у локальному домені. Зміну записів "
 "користувачів можна виконувати лише у межах локального домену\n"
 
-#: src/tools/sss_usermod.c:281
+#: src/tools/sss_usermod.c:287
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
 "Не вдалося змінити запис користувача. Перевірте, чи правильно вказано назви "
 "груп\n"
 
-#: src/tools/sss_usermod.c:285
+#: src/tools/sss_usermod.c:291
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
 "Не вдалося змінити запис користувача. Користувач вже є учасником груп?\n"
 
-#: src/tools/sss_usermod.c:289
+#: src/tools/sss_usermod.c:295
 msgid "Transaction error. Could not modify user.\n"
 msgstr ""
 "Помилка під час виконання операції. Не вдалося змінити запис користувача.\n"
@@ -1783,61 +1804,60 @@ msgstr "Не вдалося скасувати визначення %1$s"
 msgid "Couldn't invalidate %1$s %2$s"
 msgstr "Не вдалося скасувати визначення %1$s %2$s"
 
-#: src/tools/sss_cache.c:542
-#, fuzzy
+#: src/tools/sss_cache.c:546
 msgid "Invalidate all cached entries except for sudo rules"
 msgstr "Скасувати чинність усіх кешованих записів, окрім правил sudo"
 
-#: src/tools/sss_cache.c:544
+#: src/tools/sss_cache.c:548
 msgid "Invalidate particular user"
 msgstr "Скасувати визначення певного користувача"
 
-#: src/tools/sss_cache.c:546
+#: src/tools/sss_cache.c:550
 msgid "Invalidate all users"
 msgstr "Скасувати визначення всіх користувачів"
 
-#: src/tools/sss_cache.c:548
+#: src/tools/sss_cache.c:552
 msgid "Invalidate particular group"
 msgstr "Скасувати визначення певної групи"
 
-#: src/tools/sss_cache.c:550
+#: src/tools/sss_cache.c:554
 msgid "Invalidate all groups"
 msgstr "Скасувати визначення всіх груп"
 
-#: src/tools/sss_cache.c:552
+#: src/tools/sss_cache.c:556
 msgid "Invalidate particular netgroup"
 msgstr "Скасувати визначення певної мережевої групи"
 
-#: src/tools/sss_cache.c:554
+#: src/tools/sss_cache.c:558
 msgid "Invalidate all netgroups"
 msgstr "Скасувати визначення всіх мережевих груп"
 
-#: src/tools/sss_cache.c:556
+#: src/tools/sss_cache.c:560
 msgid "Invalidate particular service"
 msgstr "Скасувати визначення певної служби"
 
-#: src/tools/sss_cache.c:558
+#: src/tools/sss_cache.c:562
 msgid "Invalidate all services"
 msgstr "Скасувати визначення всіх служб"
 
-#: src/tools/sss_cache.c:561
+#: src/tools/sss_cache.c:565
 msgid "Invalidate particular autofs map"
 msgstr "Скасувати визначення певну карту autofs"
 
-#: src/tools/sss_cache.c:563
+#: src/tools/sss_cache.c:567
 msgid "Invalidate all autofs maps"
 msgstr "Скасувати визначення всіх карт autofs"
 
-#: src/tools/sss_cache.c:566
+#: src/tools/sss_cache.c:570
 msgid "Only invalidate entries from a particular domain"
 msgstr "Скасувати визначення лише записів з певного домену"
 
-#: src/tools/sss_cache.c:611
+#: src/tools/sss_cache.c:616
 msgid "Please select at least one object to invalidate\n"
 msgstr ""
 "Будь ласка, виберіть принаймні один об’єкт для скасовування відповідності\n"
 
-#: src/tools/sss_cache.c:681
+#: src/tools/sss_cache.c:687
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
@@ -1846,7 +1866,7 @@ msgstr ""
 "Не вдалося відкрити домен %1$s. Якщо цей домен є піддоменом (довіреним "
 "доменом), скористайтеся повною назвою замість параметра --domain/-d.\n"
 
-#: src/tools/sss_cache.c:685
+#: src/tools/sss_cache.c:691
 msgid "Could not open available domains\n"
 msgstr "Не вдалося відкрити доступні домени\n"
 
@@ -1862,12 +1882,12 @@ msgstr "Вкажіть рівень діагностики, який ви баж
 msgid "Only one argument expected\n"
 msgstr "Мало бути вказано лише один аргумент\n"
 
-#: src/tools/tools_util.c:200
+#: src/tools/tools_util.c:204
 #, c-format
 msgid "Name '%1$s' does not seem to be FQDN ('%2$s = TRUE' is set)\n"
 msgstr "Здається, назва «%1$s» не є FQDN (встановлено «%2$s = TRUE»)\n"
 
-#: src/tools/tools_util.c:303
+#: src/tools/tools_util.c:310
 msgid "Out of memory\n"
 msgstr "Не вистачає пам'яті\n"
 
@@ -1879,3 +1899,6 @@ msgstr "%1$s слід запускати від імені користувач�
 #: src/util/util.h:102
 msgid "Send the debug output to files instead of stderr"
 msgstr "Надіслати діагностичні дані до файлів, а не до stderr"
+
+#~ msgid "Operation mode for GPO-based access control"
+#~ msgstr "Режим роботи для керування доступом на основі GPO"
