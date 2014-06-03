@@ -800,6 +800,19 @@ fallback_homedir = /home/%u
             <title>SUDO configuration options</title>
             <para>
                 These options can be used to configure the sudo service.
+                The detailed instructions for configuration of
+                <citerefentry>
+                    <refentrytitle>sudo</refentrytitle>
+                    <manvolnum>8</manvolnum>
+                </citerefentry> to work with
+                <citerefentry>
+                    <refentrytitle>sssd</refentrytitle>
+                    <manvolnum>8</manvolnum>
+                </citerefentry> are in the manual page
+                <citerefentry>
+                    <refentrytitle>sssd-sudo</refentrytitle>
+                    <manvolnum>5</manvolnum>
+                </citerefentry>.
             </para>
             <variablelist>
                 <varlistentry>
@@ -1511,6 +1524,21 @@ fallback_homedir = /home/%u
                         <para>
                             Default: The value of <quote>id_provider</quote> is
                             used if it is set.
+                        </para>
+                        <para>
+                            The detailed instructions for configuration of
+                            sudo_provider are in the manual page
+                            <citerefentry>
+                                <refentrytitle>sssd-sudo</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>.
+                             There are many configuration options that can be
+                             used to adjust the behavior. Please refer to
+                             "ldap_sudo_*" in
+                             <citerefentry>
+                                 <refentrytitle>sssd-ldap</refentrytitle>
+                                 <manvolnum>5</manvolnum>
+                             </citerefentry>.
                         </para>
                     </listitem>
                 </varlistentry>

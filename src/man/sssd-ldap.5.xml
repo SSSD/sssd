@@ -2051,6 +2051,15 @@ ldap_access_filter = (employeeType=admin)
     <refsect1 id='sudo-options' condition="with_sudo">
         <title>SUDO OPTIONS</title>
         <para>
+            The detailed instructions for configuration of sudo_provider
+            are in the manual page
+            <citerefentry>
+                <refentrytitle>sssd-sudo</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+        </para>
+
+        <para>
             <variablelist>
                 <varlistentry>
                     <term>ldap_sudorule_object_class (string)</term>
