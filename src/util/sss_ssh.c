@@ -152,7 +152,7 @@ sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
     char *blob;
     char *algo;
     char *out = NULL;
-    size_t i;
+    size_t i, len;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -182,21 +182,27 @@ sss_ssh_format_pubkey(TALLOC_CTX *mem_ctx,
     } else {
         /* Not a valid public key blob, so this must be a textual public key */
         for (i = 0; i < pubkey->data_len; i++) {
-            if (!pubkey->data[i] || pubkey->data[i] == '\n' ||
+            if (pubkey->data[i] == '\0' ||
+                (pubkey->data[i] == '\n' && i != pubkey->data_len - 1) ||
                 pubkey->data[i] == '\r') {
                 ret = EINVAL;
                 goto done;
             }
         }
 
-        out = talloc_array(mem_ctx, char, pubkey->data_len + 1);
-        if (!out) {
+        len = pubkey->data_len;
+        if (pubkey->data[len - 1] == '\n') {
+            len--;
+        }
+
+        out = talloc_array(mem_ctx, char, len + 1);
+        if (out == NULL) {
             ret = ENOMEM;
             goto done;
         }
 
-        memcpy(out, pubkey->data, pubkey->data_len);
-        out[pubkey->data_len] = 0;
+        memcpy(out, pubkey->data, len);
+        out[len] = '\0';
     }
 
     *result = out;
