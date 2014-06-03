@@ -481,7 +481,10 @@ ldap_account_expire_policy = ad
         <para>
             However, unless the <quote>ad</quote> access control provider
             is explicitly configured, the default access provider is
-            <quote>permit</quote>.
+            <quote>permit</quote>. Please note that if you configure an
+            access provider other than <quote>ad</quote>, you need to set
+            all the connection parameters (such as LDAP URIs and encryption
+            details) manually.
         </para>
     </refsect1>
 
