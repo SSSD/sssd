@@ -24,6 +24,11 @@
 #include "util/sss_utf8.h"
 #include "db/sysdb.h"
 
+#define NON_EXIST_USR_ALLOW "The user %s does not exist. Possible typo in simple_allow_users.\n"
+#define NON_EXIST_USR_DENY  "The user %s does not exist. Possible typo in simple_deny_users.\n"
+#define NON_EXIST_GRP_ALLOW "The group %s does not exist. Possible typo in simple_allow_groups.\n"
+#define NON_EXIST_GRP_DENY  "The group %s does not exist. Possible typo in simple_deny_groups.\n"
+
 static bool
 is_posix(const struct ldb_message *group)
 {
@@ -53,9 +58,11 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
             domain = find_domain_by_object_name(ctx->domain,
                                                 ctx->allow_users[i]);
             if (domain == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Invalid user %s!\n",
-                                            ctx->allow_users[i]);
-                return EINVAL;
+                DEBUG(SSSDBG_CRIT_FAILURE, NON_EXIST_USR_ALLOW,
+                      ctx->allow_users[i]);
+                sss_log(SSS_LOG_CRIT, NON_EXIST_USR_ALLOW,
+                        ctx->allow_users[i]);
+                continue;
             }
 
             if (sss_string_equal(domain->case_sensitive, username,
@@ -86,8 +93,10 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
             domain = find_domain_by_object_name(ctx->domain,
                                                 ctx->deny_users[i]);
             if (domain == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Invalid user %s!\n",
-                                            ctx->deny_users[i]);
+                DEBUG(SSSDBG_CRIT_FAILURE, NON_EXIST_USR_DENY,
+                      ctx->deny_users[i]);
+                sss_log(SSS_LOG_CRIT, NON_EXIST_USR_DENY,
+                        ctx->deny_users[i]);
                 return EINVAL;
             }
 
@@ -125,9 +134,12 @@ simple_check_groups(struct simple_ctx *ctx, const char **group_names,
             domain = find_domain_by_object_name(ctx->domain,
                                                 ctx->allow_groups[i]);
             if (domain == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Invalid group %s!\n",
-                                            ctx->allow_groups[i]);
-                return EINVAL;
+                DEBUG(SSSDBG_CRIT_FAILURE, NON_EXIST_GRP_ALLOW,
+                      ctx->allow_groups[i]);
+                sss_log(SSS_LOG_CRIT, NON_EXIST_GRP_ALLOW,
+                        ctx->allow_groups[i]);
+
+                continue;
             }
 
             for(j = 0; group_names[j]; j++) {
@@ -158,8 +170,11 @@ simple_check_groups(struct simple_ctx *ctx, const char **group_names,
             domain = find_domain_by_object_name(ctx->domain,
                                                 ctx->deny_groups[i]);
             if (domain == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Invalid group %s!\n",
-                                            ctx->deny_groups[i]);
+                DEBUG(SSSDBG_CRIT_FAILURE, NON_EXIST_GRP_DENY,
+                      ctx->deny_groups[i]);
+                sss_log(SSS_LOG_CRIT, NON_EXIST_GRP_DENY,
+                        ctx->deny_groups[i]);
+
                 return EINVAL;
             }
 
