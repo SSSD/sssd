@@ -273,7 +273,7 @@ ldap_schema = ad
             Since some utilities allow to modify SID based access control
             information with the help of a name instead of using the SID
             directly SSSD supports to look up the SID by the name as well. To
-            avoid collisions only the fully qualified names are excepted to look
+            avoid collisions only the fully qualified names can be used to look
             up Well-Known SIDs. As a result the domain names <quote>NULL
             AUTHORITY</quote>, <quote>WORLD AUTHORITY</quote>, <quote> LOCAL
             AUTHORITY</quote>, <quote>CREATOR AUTHORITY</quote>, <quote>NT
