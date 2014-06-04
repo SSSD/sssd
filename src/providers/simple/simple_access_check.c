@@ -73,9 +73,11 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
 
                 /* Do not return immediately on explicit allow
                  * We need to make sure none of the user's groups
-                 * are denied.
+                 * are denied. But there's no need to check username
+                 * matches any more.
                  */
                 *access_granted = true;
+                break;
             }
         }
     } else if (!ctx->allow_groups) {
