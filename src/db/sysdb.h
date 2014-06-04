@@ -266,6 +266,8 @@ int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val);
 int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
                            const char *name, const char *str);
+int sysdb_attrs_add_lower_case_string(struct sysdb_attrs *attrs,
+                                      const char *name, const char *str);
 int sysdb_attrs_add_mem(struct sysdb_attrs *attrs, const char *name,
                         const void *mem, size_t size);
 int sysdb_attrs_add_bool(struct sysdb_attrs *attrs,
