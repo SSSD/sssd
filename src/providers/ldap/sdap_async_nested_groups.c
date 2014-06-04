@@ -1257,8 +1257,9 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         /* save user in hash table */
         ret = sdap_nested_group_hash_user(state->group_ctx, entry);
         if (ret == EEXIST) {
-            DEBUG(SSSDBG_TRACE_FUNC, "User was looked up twice, "
-                                      "this shouldn't have happened.\n");
+            /* the user is already present, skip it */
+            talloc_zfree(entry);
+            ret = EOK;
             goto done;
         } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to save user in hash table "
@@ -1299,8 +1300,9 @@ sdap_nested_group_single_step_process(struct tevent_req *subreq)
         /* save group in hash table */
         ret = sdap_nested_group_hash_group(state->group_ctx, entry);
         if (ret == EEXIST) {
-            DEBUG(SSSDBG_TRACE_FUNC, "Group was looked up twice, "
-                                      "this shouldn't have happened.\n");
+            /* the group is already present, skip it */
+            talloc_zfree(entry);
+            ret = EOK;
             goto done;
         } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to save group in hash table "
