@@ -878,6 +878,7 @@ START_TEST(test_get_basic_types)
              DBUS_TYPE_OBJECT_PATH, &path_val);
     ck_assert_str_eq(path_val, "/");
 
+    talloc_free(ctx);
 }
 END_TEST
 
@@ -1040,6 +1041,7 @@ START_TEST(test_get_basic_array_types)
     ck_assert_str_eq(path_arr_val[0], pilot_path_array[0]);
     ck_assert_str_eq(path_arr_val[1], pilot_path_array[1]);
 
+    talloc_free(ctx);
 }
 END_TEST
 
@@ -1343,6 +1345,8 @@ START_TEST(test_getall_basic_types)
     }
     /* Also all properties returned from the bus must be accounted for */
     ck_assert_uint_eq(num_prop, N_ELEMENTS(pilot_properties)-1);
+
+    talloc_free(ctx);
 }
 END_TEST
 
