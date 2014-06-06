@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 #  SSSD
 #
 #  Unit tests for pysss_murmur
