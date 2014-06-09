@@ -1,0 +1,6 @@
+# version script files can be combined. They needn't be in single file
+UNIT_TEST_ONLY {
+    # should not be part of installed library
+    global:
+        sss_nss_make_request;
+};

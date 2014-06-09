@@ -1,0 +1,15 @@
+IPA_HBAC_0.0.1 {
+
+    # public functions
+    global:
+
+        hbac_evaluate;
+        hbac_result_string;
+        hbac_error_string;
+        hbac_free_info;
+        hbac_rule_is_complete;
+
+    # everything else is local
+    local:
+        *;
+};

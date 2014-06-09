@@ -1,0 +1,14 @@
+SSS_NSS_IDMAP_0.0.1 {
+
+    # public functions
+    global:
+
+        sss_nss_getsidbyname;
+        sss_nss_getsidbyid;
+        sss_nss_getnamebysid;
+        sss_nss_getidbysid;
+
+    # everything else is local
+    local:
+        *;
+};

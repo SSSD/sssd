@@ -714,23 +714,32 @@ endif # BUILD_IFP
 
 lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la libsss_nss_idmap.la
 pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
+libipa_hbac_la_DEPENDENCIES = src/providers/ipa/ipa_hbac.exports
 libipa_hbac_la_SOURCES = \
     src/providers/ipa/hbac_evaluator.c \
     src/util/sss_utf8.c
 libipa_hbac_la_LIBADD = \
     $(UNICODE_LIBS)
 libipa_hbac_la_LDFLAGS = \
+    -Wl,--version-script,$(srcdir)/src/providers/ipa/ipa_hbac.exports \
     -version-info 0:1:0
 
+dist_noinst_DATA += src/providers/ipa/ipa_hbac.exports
+
 pkgconfig_DATA += src/lib/idmap/sss_idmap.pc
+libsss_idmap_la_DEPENDENCIES = src/lib/idmap/sss_idmap.exports
 libsss_idmap_la_SOURCES = \
     src/lib/idmap/sss_idmap.c \
     src/lib/idmap/sss_idmap_conv.c \
     src/util/murmurhash3.c
 libsss_idmap_la_LDFLAGS = \
+    -Wl,--version-script,$(srcdir)/src/lib/idmap/sss_idmap.exports \
     -version-info 4:0:4
 
+dist_noinst_DATA += src/lib/idmap/sss_idmap.exports
+
 pkgconfig_DATA += src/sss_client/idmap/sss_nss_idmap.pc
+libsss_nss_idmap_la_DEPENDENCIES = src/sss_client/idmap/sss_nss_idmap.exports
 libsss_nss_idmap_la_SOURCES = \
     src/sss_client/idmap/sss_nss_idmap.c \
     src/sss_client/common.c \
@@ -738,7 +747,11 @@ libsss_nss_idmap_la_SOURCES = \
 libsss_nss_idmap_la_LIBADD = \
     $(CLIENT_LIBS)
 libsss_nss_idmap_la_LDFLAGS = \
+    -Wl,--version-script,$(srcdir)/src/sss_client/idmap/sss_nss_idmap.exports \
     -version-info 0:1:0
+
+dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.exports
+
 
 include_HEADERS = \
     src/providers/ipa/ipa_hbac.h \
@@ -1119,7 +1132,9 @@ libsss_test_common_la_SOURCES += \
     src/tests/common_check.c
 
 check_LTLIBRARIES += \
-    libdlopen_test_providers.la
+    libdlopen_test_providers.la \
+    libsss_nss_idmap_tests.la \
+    $(NULL)
 
 libdlopen_test_providers_la_SOURCES = \
     $(sssd_be_SOURCES)
@@ -1138,6 +1153,16 @@ libdlopen_test_providers_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
     -rpath $(abs_top_builddir) \
     -export-dynamic
+
+libsss_nss_idmap_tests_la_SOURCES = $(libsss_nss_idmap_la_SOURCES)
+libsss_nss_idmap_tests_la_LIBADD = $(libsss_nss_idmap_la_LIBADD)
+libsss_nss_idmap_tests_la_LDFLAGS = \
+    $(libsss_nss_idmap_la_LDFLAGS) \
+    -shared \
+    -rpath $(libdir) \
+    -Wl,--version-script,$(srcdir)/src/sss_client/idmap/sss_nss_idmap.unit_tests
+
+dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.unit_tests
 
 dlopen_tests_SOURCES = \
     src/tests/dlopen-tests.c
@@ -1678,7 +1703,8 @@ sss_nss_idmap_tests_CFLAGS = \
     $(AM_CFLAGS)
 sss_nss_idmap_tests_LDADD = \
     $(CMOCKA_LIBS) \
-    libsss_nss_idmap.la
+    libsss_nss_idmap_tests.la \
+    $(NULL)
 
 EXTRA_dyndns_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)
@@ -2732,4 +2758,3 @@ prerelease-srpm:
 	$(MAKE) srpm
 	mv $(srcdir)/version.m4.orig $(srcdir)/version.m4
 endif
-
