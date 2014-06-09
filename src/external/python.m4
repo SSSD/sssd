@@ -9,7 +9,7 @@ AC_DEFUN([AM_PYTHON_CONFIG],
 dnl We need to check for python build flags using distutils.sysconfig
 dnl We cannot use python-config, as it was not available on older
 dnl versions of python
-    AC_PATH_PROG(PYTHON, python)
+    AC_PATH_PROG(PYTHON, python2)
     AC_MSG_CHECKING([for working python])
     if test -x "$PYTHON"; then
         PYTHON_CFLAGS="`$PYTHON -c \"from distutils import sysconfig; \
