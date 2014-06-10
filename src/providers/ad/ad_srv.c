@@ -29,15 +29,13 @@
 #include "resolv/async_resolv.h"
 #include "providers/dp_backend.h"
 #include "providers/ad/ad_srv.h"
+#include "providers/ad/ad_common.h"
 #include "providers/fail_over.h"
 #include "providers/fail_over_srv.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_async.h"
 
 #define AD_SITE_DOMAIN_FMT "%s._sites.%s"
-#define AD_AT_DNS_DOMAIN "DnsDomain"
-#define AD_AT_NT_VERSION "NtVer"
-#define AD_AT_NETLOGON "netlogon"
 
 static errno_t ad_sort_servers_by_dns(TALLOC_CTX *mem_ctx,
                                       const char *domain,

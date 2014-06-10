@@ -31,6 +31,13 @@
 /* The port the Global Catalog runs on */
 #define AD_GC_PORT      3268
 
+#define AD_AT_OBJECT_SID "objectSID"
+#define AD_AT_DNS_DOMAIN "DnsDomain"
+#define AD_AT_NT_VERSION "NtVer"
+#define AD_AT_NETLOGON   "netlogon"
+
+#define MASTER_DOMAIN_SID_FILTER "objectclass=domain"
+
 struct ad_options;
 
 enum ad_basic_opt {

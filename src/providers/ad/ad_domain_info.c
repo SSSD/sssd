@@ -32,14 +32,8 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ad/ad_domain_info.h"
+#include "providers/ad/ad_common.h"
 #include "util/util.h"
-
-#define AD_AT_OBJECT_SID "objectSID"
-#define AD_AT_DNS_DOMAIN "DnsDomain"
-#define AD_AT_NT_VERSION "NtVer"
-#define AD_AT_NETLOGON   "netlogon"
-
-#define MASTER_DOMAIN_SID_FILTER "objectclass=domain"
 
 static errno_t
 netlogon_get_domain_info(TALLOC_CTX *mem_ctx,

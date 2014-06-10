@@ -26,16 +26,13 @@
 #include "providers/ad/ad_subdomains.h"
 #include "providers/ad/ad_domain_info.h"
 #include "providers/ad/ad_srv.h"
+#include "providers/ad/ad_common.h"
+
 #include "providers/ldap/sdap_idmap.h"
 #include "util/util_sss_idmap.h"
 #include <ctype.h>
 #include <ndr.h>
 #include <ndr/ndr_nbt.h>
-
-#define AD_AT_OBJECT_SID "objectSID"
-#define AD_AT_DNS_DOMAIN "DnsDomain"
-#define AD_AT_NT_VERSION "NtVer"
-#define AD_AT_NETLOGON "netlogon"
 
 /* Attributes of AD trusted domains */
 #define AD_AT_FLATNAME      "flatName"
@@ -43,8 +40,6 @@
 #define AD_AT_TRUST_TYPE    "trustType"
 #define AD_AT_TRUST_PARTNER "trustPartner"
 #define AD_AT_TRUST_ATTRS   "trustAttributes"
-
-#define MASTER_DOMAIN_SID_FILTER "objectclass=domain"
 
 /* trustType=2 denotes uplevel (NT5 and later) trusted domains. See
  * http://msdn.microsoft.com/en-us/library/windows/desktop/ms680342%28v=vs.85%29.aspx
