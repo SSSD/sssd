@@ -83,7 +83,7 @@ static int attr_name_val_split(TALLOC_CTX *mem_ctx, const char *nameval,
     ret = EOK;
 done:
     talloc_free(tmp_ctx);
-    return EOK;
+    return ret;
 }
 
 static int attr_op(struct ops_ctx *octx, const char *nameval, int op)
@@ -131,7 +131,7 @@ static int attr_op(struct ops_ctx *octx, const char *nameval, int op)
     ret = sysdb_set_user_attr(octx->domain, octx->name, attrs, op);
 done:
     talloc_free(tmp_ctx);
-    return EOK;
+    return ret;
 }
 /*
  * Generic modify groups member
