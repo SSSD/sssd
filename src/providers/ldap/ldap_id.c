@@ -97,7 +97,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     if (!state->op) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
     state->domain = sdom->dom;
@@ -114,7 +114,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
         ret = sss_filter_sanitize(state, name, &clean_name);
         if (ret != EOK) {
-            goto fail;
+            goto done;
         }
         break;
     case BE_FILTER_IDNUM:
@@ -125,7 +125,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             uid = strtouint32(name, &endptr, 10);
             if (errno != EOK) {
                 ret = EINVAL;
-                goto fail;
+                goto done;
             }
 
             /* Convert the UID to its objectSID */
@@ -142,27 +142,27 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                     ret = EOK;
                 }
 
-                goto fail;
+                goto done;
             } else if (err != IDMAP_SUCCESS) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Mapping ID [%s] to SID failed: [%s]\n",
                        name, idmap_error_string(err));
                 ret = EIO;
-                goto fail;
+                goto done;
             }
 
             attr_name = ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
             ret = sss_filter_sanitize(state, sid, &clean_name);
             sss_idmap_free_sid(ctx->opts->idmap_ctx->map, sid);
             if (ret != EOK) {
-                goto fail;
+                goto done;
             }
 
         } else {
             attr_name = ctx->opts->user_map[SDAP_AT_USER_UID].name;
             ret = sss_filter_sanitize(state, name, &clean_name);
             if (ret != EOK) {
-                goto fail;
+                goto done;
             }
         }
         break;
@@ -171,18 +171,18 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
         ret = sss_filter_sanitize(state, name, &clean_name);
         if (ret != EOK) {
-            goto fail;
+            goto done;
         }
         break;
     default:
         ret = EINVAL;
-        goto fail;
+        goto done;
     }
 
     if (attr_name == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing search attribute name.\n");
         ret = EINVAL;
-        goto fail;
+        goto done;
     }
 
     if (state->use_id_mapping || filter_type == BE_FILTER_SECID) {
@@ -211,30 +211,29 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     if (!state->filter) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build the base filter\n");
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
     /* TODO: handle attrs_type */
     ret = build_attrs_from_map(state, ctx->opts->user_map,
                                ctx->opts->user_map_cnt,
                                NULL, &state->attrs, NULL);
-    if (ret != EOK) goto fail;
+    if (ret != EOK) goto done;
 
     ret = users_get_retry(req);
     if (ret != EOK) {
-        goto fail;
+        goto done;
     }
 
     return req;
 
-fail:
+done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
     } else {
         tevent_req_done(req);
     }
-    tevent_req_post(req, ev);
-    return req;
+    return tevent_req_post(req, ev);
 }
 
 static int users_get_retry(struct tevent_req *req)
@@ -551,7 +550,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     if (!state->op) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
     state->domain = sdom->dom;
@@ -570,7 +569,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
         ret = sss_filter_sanitize(state, name, &clean_name);
         if (ret != EOK) {
-            goto fail;
+            goto done;
         }
         break;
     case BE_FILTER_IDNUM:
@@ -581,7 +580,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
             gid = strtouint32(name, &endptr, 10);
             if (errno != EOK) {
                 ret = EINVAL;
-                goto fail;
+                goto done;
             }
 
             /* Convert the GID to its objectSID */
@@ -598,27 +597,27 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                     ret = EOK;
                 }
 
-                goto fail;
+                goto done;
             } else if (err != IDMAP_SUCCESS) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Mapping ID [%s] to SID failed: [%s]\n",
                        name, idmap_error_string(err));
                 ret = EIO;
-                goto fail;
+                goto done;
             }
 
             attr_name = ctx->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name;
             ret = sss_filter_sanitize(state, sid, &clean_name);
             sss_idmap_free_sid(ctx->opts->idmap_ctx->map, sid);
             if (ret != EOK) {
-                goto fail;
+                goto done;
             }
 
         } else {
             attr_name = ctx->opts->group_map[SDAP_AT_GROUP_GID].name;
             ret = sss_filter_sanitize(state, name, &clean_name);
             if (ret != EOK) {
-                goto fail;
+                goto done;
             }
         }
         break;
@@ -627,18 +626,18 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
         ret = sss_filter_sanitize(state, name, &clean_name);
         if (ret != EOK) {
-            goto fail;
+            goto done;
         }
         break;
     default:
         ret = EINVAL;
-        goto fail;
+        goto done;
     }
 
     if (attr_name == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing search attribute name.\n");
         ret = EINVAL;
-        goto fail;
+        goto done;
     }
 
     if (state->use_id_mapping || filter_type == BE_FILTER_SECID) {
@@ -665,7 +664,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     if (!state->filter) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
     member_filter[0] = (const char *)ctx->opts->group_map[SDAP_AT_GROUP_MEMBER].name;
@@ -677,23 +676,22 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    (const char **)member_filter : NULL,
                                &state->attrs, NULL);
 
-    if (ret != EOK) goto fail;
+    if (ret != EOK) goto done;
 
     ret = groups_get_retry(req);
     if (ret != EOK) {
-        goto fail;
+        goto done;
     }
 
     return req;
 
-fail:
+done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
     } else {
         tevent_req_done(req);
     }
-    tevent_req_post(req, ev);
-    return req;
+    return tevent_req_post(req, ev);
 }
 
 static int groups_get_retry(struct tevent_req *req)
