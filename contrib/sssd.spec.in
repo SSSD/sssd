@@ -136,8 +136,10 @@ BuildRequires: pkgconfig
 BuildRequires: findutils
 BuildRequires: glib2-devel
 BuildRequires: selinux-policy-targeted
-%if (0%{?fedora} >= 18)
+%if 0%{?fedora}
 BuildRequires: libcmocka-devel
+%endif
+%if (0%{?fedora} || 0%{?rhel} >= 7)
 BuildRequires: libnl3-devel
 %else
 BuildRequires: libnl-devel
