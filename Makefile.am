@@ -1729,7 +1729,9 @@ test_ipa_idmap_LDADD = \
     libsss_test_common.la
 
 test_utils_SOURCES = \
-    src/tests/cmocka/test_utils.c
+    src/tests/cmocka/test_utils.c \
+    src/tests/cmocka/test_sss_ssh.c
+
 test_utils_CFLAGS = \
     $(AM_CFLAGS)
 test_utils_LDADD = \

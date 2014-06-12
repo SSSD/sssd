@@ -52,6 +52,8 @@ struct dom_list_test_ctx {
     struct sss_domain_info *dom_list;
 };
 
+void test_textual_public_key(void **state);
+
 void setup_dom_list(void **state)
 {
     struct dom_list_test_ctx *test_ctx;
@@ -914,6 +916,7 @@ int main(int argc, const char *argv[])
         unit_test(test_expand_homedir_template_NULL),
         unit_test_setup_teardown(test_expand_homedir_template,
                                  setup_homedir_ctx, teardown_homedir_ctx),
+        unit_test(test_textual_public_key),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
