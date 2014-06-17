@@ -5214,6 +5214,228 @@ START_TEST(test_confdb_list_all_domain_names_single_dom)
 }
 END_TEST
 
+#define UPN_USER_NAME "upn_user"
+#define UPN_PRINC "upn_user@UPN.TEST"
+#define UPN_PRINC_WRONG_CASE "UpN_uSeR@uPn.TeSt"
+#define UPN_CANON_PRINC "upn_user@UPN.CANON"
+#define UPN_CANON_PRINC_WRONG_CASE "uPn_UsEr@UpN.CaNoN"
+
+START_TEST(test_upn_basic)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct sysdb_attrs *attrs;
+    int ret;
+    struct ldb_message *msg;
+    const char *str;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    attrs = sysdb_new_attrs(test_ctx);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed.\n");
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, UPN_PRINC);
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_CANONICAL_UPN, UPN_CANON_PRINC);
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
+
+    ret = sysdb_store_user(test_ctx->domain,
+                           UPN_USER_NAME, "x",
+                           12345, 0, "UPN USER", "/home/upn_user",
+                           "/bin/bash", NULL,
+                           attrs, NULL, -1, 0);
+    fail_unless(ret == EOK, "Could not store user.");
+
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+                                   "abc@def.ghi", NULL, &msg);
+    fail_unless(ret == ENOENT,
+                "sysdb_search_user_by_upn failed with non-existing UPN.");
+
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+                                   UPN_PRINC, NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_USER_NAME) == 0, "Expected [%s], got [%s].",
+                                                 UPN_USER_NAME, str);
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_PRINC) == 0,
+                "Expected [%s], got [%s].", UPN_PRINC, str);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_upn_basic_case)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    struct ldb_message *msg;
+    const char *str;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+                                   UPN_PRINC_WRONG_CASE, NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_USER_NAME) == 0, "Expected [%s], got [%s].",
+                                                 UPN_USER_NAME, str);
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_PRINC) == 0,
+                "Expected [%s], got [%s].", UPN_PRINC, str);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_upn_canon)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    struct ldb_message *msg;
+    const char *str;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+                                   UPN_CANON_PRINC, NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_USER_NAME) == 0, "Expected [%s], got [%s].",
+                                                 UPN_USER_NAME, str);
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_PRINC) == 0,
+                "Expected [%s], got [%s].", UPN_PRINC, str);
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_CANONICAL_UPN, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_CANON_PRINC) == 0,
+                "Expected [%s], got [%s].", UPN_CANON_PRINC, str);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_upn_canon_case)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    struct ldb_message *msg;
+    const char *str;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+                                   UPN_CANON_PRINC_WRONG_CASE, NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_USER_NAME) == 0, "Expected [%s], got [%s].",
+                                                 UPN_USER_NAME, str);
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_PRINC) == 0,
+                "Expected [%s], got [%s].", UPN_PRINC, str);
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_CANONICAL_UPN, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_CANON_PRINC) == 0,
+                "Expected [%s], got [%s].", UPN_CANON_PRINC, str);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_upn_dup)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct sysdb_attrs *attrs;
+    int ret;
+    struct ldb_message *msg;
+    const char *str;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    attrs = sysdb_new_attrs(test_ctx);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed.\n");
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, UPN_CANON_PRINC);
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
+
+    ret = sysdb_store_user(test_ctx->domain,
+                           UPN_USER_NAME"_dup", "x",
+                           23456, 0, "UPN USER DUP", "/home/upn_user_dup",
+                           "/bin/bash", NULL,
+                           attrs, NULL, -1, 0);
+    fail_unless(ret == EOK, "Could not store user.");
+
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+                                   UPN_CANON_PRINC, NULL, &msg);
+    fail_unless(ret == EINVAL,
+                "sysdb_search_user_by_upn failed for duplicated UPN.");
+
+    ret = sysdb_search_user_by_upn(test_ctx, test_ctx->domain,
+                                   UPN_PRINC, NULL, &msg);
+    fail_unless(ret == EOK, "sysdb_search_user_by_upn failed.");
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_USER_NAME) == 0, "Expected [%s], got [%s].",
+                                                 UPN_USER_NAME, str);
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_PRINC) == 0,
+                "Expected [%s], got [%s].", UPN_PRINC, str);
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_CANONICAL_UPN, NULL);
+    fail_unless(str != NULL, "ldb_msg_find_attr_as_string failed.");
+    fail_unless(strcmp(str, UPN_CANON_PRINC) == 0,
+                "Expected [%s], got [%s].", UPN_CANON_PRINC, str);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST(test_confdb_list_all_domain_names_multi_dom)
 {
     int ret;
@@ -5609,6 +5831,15 @@ Suite *create_sysdb_suite(void)
 
     suite_add_tcase(s, tc_autofs);
 #endif
+
+    TCase *tc_upn = tcase_create("SYSDB UPN tests");
+    tcase_add_test(tc_upn, test_upn_basic);
+    tcase_add_test(tc_upn, test_upn_basic_case);
+    tcase_add_test(tc_upn, test_upn_canon);
+    tcase_add_test(tc_upn, test_upn_canon_case);
+    tcase_add_test(tc_upn, test_upn_dup);
+
+    suite_add_tcase(s, tc_upn);
 
     /* ConfDB tests -- modify confdb, must always be last!! */
     TCase *tc_confdb = tcase_create("confDB tests");

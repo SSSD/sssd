@@ -148,6 +148,7 @@
 #define SYSDB_PWNAM_FILTER "(&("SYSDB_UC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
 #define SYSDB_PWUID_FILTER "(&("SYSDB_UC")("SYSDB_UIDNUM"=%lu))"
 #define SYSDB_PWSID_FILTER "(&("SYSDB_UC")("SYSDB_SID_STR"=%s))"
+#define SYSDB_PWUPN_FILTER "(&("SYSDB_UC")(|("SYSDB_UPN"=%s)("SYSDB_CANONICAL_UPN"=%s)))"
 #define SYSDB_PWENT_FILTER "("SYSDB_UC")"
 
 #define SYSDB_GRNAM_FILTER "(&("SYSDB_GC")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
@@ -526,6 +527,12 @@ int sysdb_search_user_by_sid_str(TALLOC_CTX *mem_ctx,
                                  const char *sid_str,
                                  const char **attrs,
                                  struct ldb_message **msg);
+
+int sysdb_search_user_by_upn(TALLOC_CTX *mem_ctx,
+                             struct sss_domain_info *domain,
+                             const char *sid_str,
+                             const char **attrs,
+                             struct ldb_message **msg);
 
 /* Search Group (by gid, sid or name) */
 int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,

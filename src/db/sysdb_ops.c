@@ -435,6 +435,66 @@ int sysdb_search_user_by_sid_str(TALLOC_CTX *mem_ctx,
                                         sid_str, attrs, msg);
 }
 
+int sysdb_search_user_by_upn(TALLOC_CTX *mem_ctx,
+                             struct sss_domain_info *domain,
+                             const char *upn,
+                             const char **attrs,
+                             struct ldb_message **msg)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *def_attrs[] = { SYSDB_NAME, SYSDB_UPN, SYSDB_CANONICAL_UPN,
+                                NULL };
+    struct ldb_message **msgs = NULL;
+    struct ldb_dn *basedn;
+    size_t msgs_count = 0;
+    char *filter;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
+                            SYSDB_TMPL_USER_BASE, domain->name);
+    if (basedn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, SYSDB_PWUPN_FILTER, upn, upn);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, basedn, LDB_SCOPE_SUBTREE,
+                             filter, attrs?attrs:def_attrs, &msgs_count,
+                             &msgs);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (msgs_count > 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Search for upn [%s] returns more than one result.\n", upn);
+        ret = EINVAL;
+        goto done;
+    }
+
+    *msg = talloc_steal(mem_ctx, msgs[0]);
+
+done:
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No entry with upn [%s] found.\n", upn);
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
+    }
+
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 /* =Search-Group-by-[GID/SID/NAME]============================================ */
 
 int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
