@@ -515,7 +515,8 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     /* If this object has a SID available, we will determine the correct
      * domain by its SID. */
     if (sid_str != NULL) {
-        subdomain = find_subdomain_by_sid(get_domains_head(dom), sid_str);
+        subdomain = sss_get_domain_by_sid_ldap_fallback(get_domains_head(dom),
+                                                        sid_str);
         if (subdomain) {
             dom = subdomain;
         } else {
@@ -539,7 +540,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_ALL, "AD group [%s] has type flags %#x.",
+        DEBUG(SSSDBG_TRACE_ALL, "AD group [%s] has type flags %#x.\n",
                                  group_name, ad_group_type);
         /* Only security groups from AD are considered for POSIX groups.
          * Additionally only global and universal group are taken to account
