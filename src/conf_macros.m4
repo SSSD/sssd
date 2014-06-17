@@ -227,7 +227,7 @@ AC_DEFUN([WITH_SYSTEMD_CONF_DIR],
       AC_MSG_ERROR([Could not detect systemd config directory])
     fi
   fi
-  AC_SUBST(systemdconfdir)
+  AC_SUBST(systemdconfdir, [$systemdconfdir/sssd.service.d])
   ])
 
 AC_DEFUN([WITH_MANPAGES],
