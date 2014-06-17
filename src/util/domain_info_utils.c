@@ -153,6 +153,20 @@ struct sss_domain_info *find_subdomain_by_sid(struct sss_domain_info *domain,
     return NULL;
 }
 
+struct sss_domain_info*
+sss_get_domain_by_sid_ldap_fallback(struct sss_domain_info *domain,
+                                    const char* sid)
+{
+    /* LDAP provider doesn't know about sub-domains and hence can only
+     * have one configured domain
+     */
+    if (strcmp(domain->provider, "ldap") == 0) {
+        return domain;
+    } else {
+        return find_subdomain_by_sid(get_domains_head(domain), sid);
+    }
+}
+
 struct sss_domain_info *
 find_subdomain_by_object_name(struct sss_domain_info *domain,
                               const char *object_name)

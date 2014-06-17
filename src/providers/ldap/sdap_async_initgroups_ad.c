@@ -606,7 +606,9 @@ static errno_t sdap_ad_resolve_sids_step(struct tevent_req *req)
         }
         state->index++;
 
-        domain = find_subdomain_by_sid(state->domain, state->current_sid);
+        domain = sss_get_domain_by_sid_ldap_fallback(state->domain,
+                                                     state->current_sid);
+
         if (domain == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE, "SID %s does not belong to any known "
                                          "domain\n", state->current_sid);
@@ -691,6 +693,15 @@ struct sdap_ad_tokengroups_initgr_mapping_state {
 static void
 sdap_ad_tokengroups_initgr_mapping_connect_done(struct tevent_req *subreq);
 static void sdap_ad_tokengroups_initgr_mapping_done(struct tevent_req *subreq);
+static errno_t handle_missing_pvt(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct sdap_options *opts,
+                                  const char *orig_dn,
+                                  int timeout,
+                                  const char *username,
+                                  struct sdap_handle *sh,
+                                  struct tevent_req *req,
+                                  tevent_req_fn callback);
 
 static struct tevent_req *
 sdap_ad_tokengroups_initgr_mapping_send(TALLOC_CTX *mem_ctx,
@@ -733,11 +744,18 @@ sdap_ad_tokengroups_initgr_mapping_send(TALLOC_CTX *mem_ctx,
 
     sdom = sdap_domain_get(opts, domain);
     if (sdom == NULL || sdom->pvt == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No ID ctx available for [%s].\n",
-                                    domain->name);
-        ret = EINVAL;
-        goto immediately;
+        ret = handle_missing_pvt(mem_ctx, ev, opts, orig_dn, timeout,
+                                 state->username, sh, req,
+                                 sdap_ad_tokengroups_initgr_mapping_done);
+        if (ret == EOK) {
+            return req;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "No ID ctx available for [%s].\n",
+                  domain->name);
+            goto immediately;
+        }
     }
+
     subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
     state->op = sdap_id_op_create(state, subdom_id_ctx->ldap_ctx->conn_cache);
     if (!state->op) {
@@ -872,7 +890,7 @@ static void sdap_ad_tokengroups_initgr_mapping_done(struct tevent_req *subreq)
             continue;
         }
 
-        domain = find_subdomain_by_sid(get_domains_head(state->domain), sid);
+        domain = sss_get_domain_by_sid_ldap_fallback(state->domain, sid);
         if (domain == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Domain not found for SID %s\n", sid);
             continue;
@@ -1028,10 +1046,16 @@ sdap_ad_tokengroups_initgr_posix_send(TALLOC_CTX *mem_ctx,
 
     sdom = sdap_domain_get(opts, domain);
     if (sdom == NULL || sdom->pvt == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No ID ctx available for [%s].\n",
-                                    domain->name);
-        ret = EINVAL;
-        goto immediately;
+        ret = handle_missing_pvt(mem_ctx, ev, opts, orig_dn, timeout,
+                                 state->username, sh, req,
+                                 sdap_ad_tokengroups_initgr_posix_tg_done);
+        if (ret == EOK) {
+            return req;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "No ID ctx available for [%s].\n",
+                  domain->name);
+            goto immediately;
+        }
     }
     subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
     state->op = sdap_id_op_create(state, subdom_id_ctx->ldap_ctx->conn_cache);
@@ -1161,7 +1185,7 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
         sid = sids[i];
         DEBUG(SSSDBG_TRACE_LIBS, "Processing membership SID [%s]\n", sid);
 
-        domain = find_subdomain_by_sid(get_domains_head(state->domain), sid);
+        domain = sss_get_domain_by_sid_ldap_fallback(state->domain, sid);
         if (domain == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Domain not found for SID %s\n", sid);
             continue;
@@ -1377,4 +1401,40 @@ errno_t sdap_ad_tokengroups_initgroups_recv(struct tevent_req *req)
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
+}
+
+static errno_t handle_missing_pvt(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct sdap_options *opts,
+                                  const char *orig_dn,
+                                  int timeout,
+                                  const char *username,
+                                  struct sdap_handle *sh,
+                                  struct tevent_req *req,
+                                  tevent_req_fn callback)
+{
+    struct tevent_req *subreq = NULL;
+    errno_t ret;
+
+    if (sh != NULL) {
+        /*  plain LDAP provider already has a sdap_handle */
+        subreq = sdap_get_ad_tokengroups_send(mem_ctx, ev, opts, sh, username,
+                                              orig_dn, timeout);
+        if (subreq == NULL) {
+            ret = ENOMEM;
+            tevent_req_error(req, ret);
+            goto done;
+        }
+
+        tevent_req_set_callback(subreq, callback, req);
+        ret = EOK;
+        goto done;
+
+    } else {
+        ret = EINVAL;
+        goto done;
+    }
+
+done:
+    return ret;
 }
