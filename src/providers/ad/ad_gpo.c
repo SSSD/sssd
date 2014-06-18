@@ -864,6 +864,7 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     struct ad_gpo_access_state *state;
     char *server_uri;
+    LDAPURLDesc *lud;
     errno_t ret;
 
     /* setup logging for gpo child */
@@ -897,12 +898,26 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
 
     /* extract server_hostname from server_uri */
     server_uri = state->conn->service->uri;
-    if (strncasecmp(server_uri, LDAP_STANDARD_URI, strlen(LDAP_STANDARD_URI)) == 0) {
-        state->server_hostname = server_uri + strlen(LDAP_STANDARD_URI);
-    } else if (strncasecmp(server_uri, LDAP_SSL_URI, strlen(LDAP_SSL_URI)) == 0) {
-        state->server_hostname = server_uri + strlen(LDAP_SSL_URI);
-    } else {
+    ret = ldap_url_parse(server_uri, &lud);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to parse ldap URI (%s)!\n", server_uri);
         ret = EINVAL;
+        goto immediately;
+    }
+
+    if (lud->lud_host == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "The LDAP URI (%s) did not contain a host name\n", server_uri);
+        ldap_free_urldesc(lud);
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    state->server_hostname = talloc_strdup(state, lud->lud_host);
+    ldap_free_urldesc(lud);
+    if (!state->server_hostname) {
+        ret = ENOMEM;
         goto immediately;
     }
     DEBUG(SSSDBG_TRACE_ALL, "server_hostname from uri: %s\n",
