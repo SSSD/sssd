@@ -2235,26 +2235,38 @@ int sysdb_search_custom(TALLOC_CTX *mem_ctx,
                         size_t *msgs_count,
                         struct ldb_message ***msgs)
 {
-    struct ldb_dn *basedn;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *basedn = NULL;
     int ret;
 
-    if (filter == NULL || subtree_name == NULL) {
-        return EINVAL;
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
     }
 
-    basedn = sysdb_custom_subtree_dn(sysdb, mem_ctx, domain, subtree_name);
+    if (filter == NULL || subtree_name == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    basedn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, domain, subtree_name);
     if (basedn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_custom_subtree_dn failed.\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
     if (!ldb_dn_validate(basedn)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create DN.\n");
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     ret = sysdb_search_entry(mem_ctx, sysdb, basedn,
                              LDB_SCOPE_SUBTREE, filter, attrs,
                              msgs_count, msgs);
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
