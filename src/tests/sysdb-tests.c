@@ -3979,6 +3979,87 @@ START_TEST(test_odd_characters)
 }
 END_TEST
 
+START_TEST(test_sss_ldb_search)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_dn *group_dn, *nonexist_dn;
+    struct ldb_result *res;
+    const char groupname[] = "test_group";
+    const char *received_group;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    check_leaks_push(test_ctx);
+
+    group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, groupname);
+    fail_if(group_dn == NULL, "sysdb_group_dn failed");
+
+    nonexist_dn = sysdb_group_dn(test_ctx, test_ctx->domain,
+                                 "non-existing-group");
+    fail_if(nonexist_dn == NULL, "sysdb_group_dn failed");
+
+    /* Add */
+    ret = sysdb_add_incomplete_group(test_ctx->domain,
+                                     groupname, 20000, NULL, NULL, true, 0);
+    fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
+                ret, strerror(ret));
+
+    /* Retrieve */
+
+    /* Empty filter */
+    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
+                         LDB_SCOPE_BASE, NULL, NULL);
+
+    fail_unless(ret == EOK, "sss_ldb_search error [%d][%s]",
+                ret, strerror(ret));
+
+    fail_unless(res->count == 1, "Received [%d] responses",
+                                 res->count);
+
+    received_group = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME,
+                                                 NULL);
+    fail_unless(strcmp(received_group, groupname) == 0,
+                "Expected [%s], got [%s]", groupname, received_group);
+
+    talloc_zfree(res);
+
+    /* Non-empty filter */
+    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
+                         LDB_SCOPE_BASE, NULL, "objectClass=group");
+
+    fail_unless(ret == EOK, "sss_ldb_search error [%d][%s]",
+                ret, strerror(ret));
+    talloc_zfree(res);
+
+    /* Filter yeilding no results */
+    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
+                         LDB_SCOPE_BASE, NULL,
+                         "objectClass=nonExistingObjectClass");
+
+    fail_unless(ret == ENOENT, "sss_ldb_search error [%d][%s]",
+                ret, strerror(ret));
+    talloc_zfree(res);
+
+    /* Non-existing dn */
+    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, nonexist_dn,
+                         LDB_SCOPE_BASE, NULL, NULL);
+
+    fail_unless(ret == ENOENT, "sss_ldb_search error [%d][%s]",
+                ret, strerror(ret));
+    talloc_zfree(res);
+
+    talloc_zfree(nonexist_dn);
+    talloc_zfree(group_dn);
+    fail_unless(check_leaks_pop(test_ctx) == true, "Memory leak");
+}
+END_TEST
+
 /* == SERVICE TESTS == */
 void services_check_match(struct sysdb_test_ctx *test_ctx,
                           bool by_name,
@@ -4537,6 +4618,18 @@ START_TEST (test_sysdb_search_return_ENOENT)
     fail_unless(ret == ENOENT, "sysdb_search_entry failed: %d, %s",
                                ret, strerror(ret));
     talloc_zfree(msgs);
+    talloc_zfree(user_dn);
+
+    /* sss_ldb_search */
+    user_dn = sysdb_user_dn(test_ctx, test_ctx->domain, "nonexisting_user");
+    fail_if(user_dn == NULL, "sysdb_user_dn failed");
+    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, user_dn,
+                         LDB_SCOPE_BASE, NULL, "objectClass=user");
+
+    fail_unless(ret == ENOENT, "sss_ldb_search failed: %d, %s",
+                               ret, strerror(ret));
+
+    talloc_zfree(res);
     talloc_zfree(user_dn);
 
     /* TODO: test sysdb_search_selinux_config */
@@ -5786,6 +5879,10 @@ Suite *create_sysdb_suite(void)
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_nested_double_ghosts,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+
+    /* sss_ldb_search */
+    tcase_add_test(tc_sysdb, test_sss_ldb_search);
+
     /* This loop counts backwards so the indexing is a little odd */
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_mod_replace_keep,
                         1 , 11);
