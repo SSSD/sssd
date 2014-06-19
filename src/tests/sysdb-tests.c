@@ -4551,6 +4551,12 @@ START_TEST (test_sysdb_search_return_ENOENT)
                                ret, strerror(ret));
     talloc_zfree(msg);
 
+    ret = sysdb_getnetgr(test_ctx, test_ctx->domain, "nonexisting_netgroup",
+                         &res);
+    fail_unless(ret == ENOENT, "sysdb_getnetgr error [%d][%s]",
+                ret, strerror(ret));
+    talloc_zfree(res);
+
     /* Search object */
     /* TODO: Should return ENOENT */
     ret = sysdb_search_object_by_sid(test_ctx, test_ctx->domain,
