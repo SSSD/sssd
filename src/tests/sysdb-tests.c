@@ -4424,6 +4424,7 @@ START_TEST (test_sysdb_search_return_ENOENT)
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
+    check_leaks_push(test_ctx);
 
     /* Search user */
     ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain,
@@ -4540,6 +4541,7 @@ START_TEST (test_sysdb_search_return_ENOENT)
 
     /* TODO: test sysdb_search_selinux_config */
 
+    fail_unless(check_leaks_pop(test_ctx) == true, "Memory leak");
     talloc_free(test_ctx);
 }
 END_TEST
