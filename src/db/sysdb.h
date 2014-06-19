@@ -505,8 +505,8 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
                        int scope,
                        const char *filter,
                        const char **attrs,
-                       size_t *msgs_count,
-                       struct ldb_message ***msgs);
+                       size_t *_msgs_count,
+                       struct ldb_message ***_msgs);
 
 /* Search User (by uid, sid or name) */
 int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,

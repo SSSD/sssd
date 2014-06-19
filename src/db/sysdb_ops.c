@@ -211,27 +211,38 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
                        int scope,
                        const char *filter,
                        const char **attrs,
-                       size_t *msgs_count,
-                       struct ldb_message ***msgs)
+                       size_t *_msgs_count,
+                       struct ldb_message ***_msgs)
 {
+    TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
     int ret;
 
-    ret = ldb_search(sysdb->ldb, mem_ctx, &res,
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res,
                      base_dn, scope, attrs,
                      filter?"%s":NULL, filter);
-    if (ret) {
-        return sysdb_error_to_errno(ret);
+    if (ret != EOK) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
     }
 
-    *msgs_count = res->count;
-    *msgs = talloc_steal(mem_ctx, res->msgs);
+    *_msgs_count = res->count;
+    *_msgs = talloc_steal(mem_ctx, res->msgs);
 
     if (res->count == 0) {
-        return ENOENT;
+        ret = ENOENT;
+        goto done;
     }
 
-    return EOK;
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
 }
 
 /* =Search-Entry-by-SID-string============================================ */
