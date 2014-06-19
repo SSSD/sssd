@@ -1077,7 +1077,8 @@ endif
 #################
 # Feature Tests #
 #################
-TESTS_ENVIRONMENT = LDB_MODULES_PATH=$(abs_top_builddir)/ldb_mod_test_dir
+TESTS_ENVIRONMENT = LDB_MODULES_PATH=$(abs_top_builddir)/ldb_mod_test_dir \
+                    $(AUX_TESTS_ENVIRONMENT)
 
 ldb_mod_test_dir: memberof.la
 	mkdir -p $(builddir)/ldb_mod_test_dir
