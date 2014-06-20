@@ -153,7 +153,8 @@ char **parse_args(const char *str)
     num = 0;
     i = 0;
     e = false;
-    w = false;
+    /* skip leading whitespaces */
+    w = true;
     p = str;
     while (*p) {
         if (*p == '\\') {
@@ -205,19 +206,18 @@ char **parse_args(const char *str)
             tmp[i] = '\0';
             i++;
         }
-        if (tmp[i-1] != '\0' || strlen(tmp) == 0) {
-            /* check next char and skip multiple spaces */
-            continue;
-        }
 
-        r = realloc(ret, (num + 2) * sizeof(char *));
-        if (!r) goto fail;
-        ret = r;
-        ret[num+1] = NULL;
-        ret[num] = strdup(tmp);
-        if (!ret[num]) goto fail;
-        num++;
-        i = 0;
+        /* save token to result array */
+        if (i > 1 && tmp[i-1] == '\0') {
+            r = realloc(ret, (num + 2) * sizeof(char *));
+            if (!r) goto fail;
+            ret = r;
+            ret[num+1] = NULL;
+            ret[num] = strdup(tmp);
+            if (!ret[num]) goto fail;
+            num++;
+            i = 0;
+        }
     }
 
     free(tmp);

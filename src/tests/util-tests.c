@@ -141,6 +141,9 @@ START_TEST(test_parse_args)
     const char *parsed6[] = { "foo", "a", "e", NULL };
     const char *parsed7[] = { "foo", "a", "f", NULL };
     const char *parsed8[] = { "foo", "a\tg", NULL };
+    const char *parsed9[] = { "foo", NULL };
+    const char *parsed10[] = { " ", "foo", "\t", "\\'", NULL };
+    const char *parsed11[] = { "a", NULL };
     struct pa_testcase tc[] = {
         { "foo", parsed1 },
         { "foo a", parsed2 },
@@ -148,15 +151,22 @@ START_TEST(test_parse_args)
         { "foo a\\ c", parsed4 },
         { "foo a d ", parsed5 },
         { "foo   a   e   ", parsed6 },
-        { "foo	a	 	f 	", parsed7 },
+        { "foo\ta\t \tf \t", parsed7 },
         { "foo a\\\tg", parsed8 },
+        { "   foo  ", parsed9 },
+        { "\\   foo \\\t \\'  ", parsed10 },
+        { "a", parsed11 },
+        { " ", NULL },
+        { "", NULL },
+        { "  \t  ", NULL },
         { NULL, NULL }
     };
 
     for (i=0; tc[i].argstr != NULL; i++) {
         parsed = parse_args(tc[i].argstr);
         fail_if(parsed == NULL && tc[i].parsed != NULL,
-                "Could not parse correct argument string '%s'\n");
+                "Could not parse correct %d argument string '%s'\n",
+                i, tc[i].argstr);
 
         ret = diff_string_lists(test_ctx, parsed, discard_const(tc[i].parsed),
                                 &only_ret, &only_exp, &both);
@@ -164,8 +174,20 @@ START_TEST(test_parse_args)
         fail_unless(only_ret[0] == NULL, "The parser returned more data than expected\n");
         fail_unless(only_exp[0] == NULL, "The parser returned less data than expected\n");
 
-        for (ii = 0; parsed[ii]; ii++) free(parsed[ii]);
-        free(parsed);
+        if (parsed) {
+            int parsed_len;
+            int expected_len;
+
+            for (parsed_len=0; parsed[parsed_len]; ++parsed_len);
+            for (expected_len=0; tc[i].parsed[expected_len]; ++expected_len);
+
+            fail_unless(parsed_len == expected_len,
+                        "Test %d: length of 1st array [%d] != length of 2nd "
+                        "array[%d]\n", i, parsed_len, expected_len);
+
+            for (ii = 0; parsed[ii]; ii++) free(parsed[ii]);
+            free(parsed);
+        }
     }
 
     talloc_free(test_ctx);
