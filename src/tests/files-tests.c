@@ -193,7 +193,7 @@ START_TEST(test_simple_copy)
 
     tmp = talloc_asprintf(test_ctx, "%s/bar", dst_path);
     ret = check_and_open_readonly(tmp, &fd, uid, gid, S_IFREG|S_IRWXU, 0);
-    fail_unless(ret == EOK, "Cannot open %s\n");
+    fail_unless(ret == EOK, "Cannot open %s\n", tmp);
     close(fd);
     talloc_free(tmp);
 }

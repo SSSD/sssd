@@ -704,7 +704,7 @@ START_TEST(ipa_hbac_test_allow_srchost)
     result = hbac_evaluate(rules, eval_req, &info);
     fail_unless(result == HBAC_EVAL_DENY,
                 "Expected [%s], got [%s]; "
-                "Error: [%s](%s)",
+                "Error: [%s]",
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
