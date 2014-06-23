@@ -208,7 +208,7 @@ done:
 int sysdb_search_entry(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,
                        struct ldb_dn *base_dn,
-                       int scope,
+                       enum ldb_scope scope,
                        const char *filter,
                        const char **attrs,
                        size_t *_msgs_count,
