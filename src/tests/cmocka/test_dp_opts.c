@@ -210,7 +210,6 @@ void opt_test_get(void **state)
     int ret;
     struct sss_test_ctx *tctx;
     struct dp_option *opts;
-    char *dompath;
     struct sss_test_conf_param params[] = {
         { "string_nodefault", "stringval2" },
         { "blob_nodefault", "blobval2" },
@@ -227,10 +226,7 @@ void opt_test_get(void **state)
                                TEST_DOM_NAME, TEST_ID_PROVIDER, params);
     assert_non_null(tctx);
 
-    dompath = talloc_asprintf(tctx, "config/domain/%s", TEST_DOM_NAME);
-    assert_non_null(dompath);
-
-    ret = dp_get_options(global_talloc_context, tctx->confdb, dompath,
+    ret = dp_get_options(global_talloc_context, tctx->confdb, tctx->conf_dom_path,
                          test_def_opts, OPT_NUM_OPTS, &opts);
     assert_int_equal(ret, EOK);
 

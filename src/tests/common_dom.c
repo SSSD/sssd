@@ -53,6 +53,14 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    test_ctx->conf_dom_path = talloc_asprintf(test_ctx,
+                                              CONFDB_DOMAIN_PATH_TMPL,
+                                              domain_name);
+    if (test_ctx->conf_dom_path == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
+        goto fail;
+    }
+
     /* Connect to the conf db */
     ret = confdb_init(test_ctx, &test_ctx->confdb, test_ctx->confdb_path);
     if (ret != EOK) {

@@ -369,10 +369,7 @@ void dyndns_test_setup(void **state)
 
     dyndns_test_ctx->be_ctx->cdb = dyndns_test_ctx->tctx->confdb;
     dyndns_test_ctx->be_ctx->ev  = dyndns_test_ctx->tctx->ev;
-    dyndns_test_ctx->be_ctx->conf_path = talloc_asprintf(dyndns_test_ctx,
-                                                         CONFDB_DOMAIN_PATH_TMPL,
-                                                         TEST_DOM_NAME);
-    assert_non_null(dyndns_test_ctx->be_ctx->conf_path);
+    dyndns_test_ctx->be_ctx->conf_path = dyndns_test_ctx->tctx->conf_dom_path;
 }
 
 void dyndns_test_teardown(void **state)

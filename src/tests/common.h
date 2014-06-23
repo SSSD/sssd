@@ -64,6 +64,7 @@ struct sss_test_ctx {
     struct sss_domain_info *dom;
     struct sss_names_ctx *nctx;
     char *confdb_path;
+    char *conf_dom_path;
 
     bool done;
     int error;
