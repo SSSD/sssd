@@ -865,8 +865,8 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_INTERNAL, "About to process group [%s]\n", orig_dn);
 
     /* get member list */
-    ret = sysdb_attrs_get_el(group, group_map[SDAP_AT_GROUP_MEMBER].sys_name,
-                             &members);
+    ret = sysdb_attrs_get_el_ext(group, group_map[SDAP_AT_GROUP_MEMBER].sys_name,
+                                 false, &members);
     if (ret == ENOENT) {
         ret = EOK; /* no members */
         goto immediately;
@@ -882,6 +882,11 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
                                           &state->missing,
                                           &state->num_missing_total,
                                           &state->num_missing_groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to split member list "
+                                    "[%d]: %s\n", ret, sss_strerror(ret));
+        goto immediately;
+    }
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Looking up %d/%d members of group [%s]\n",
           state->num_missing_total, members->num_values, orig_dn);
