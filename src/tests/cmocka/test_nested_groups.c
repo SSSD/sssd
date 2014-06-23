@@ -43,7 +43,7 @@
 /* put users and groups under the same container so we can easily run the
  * same tests cases for several search base scenarios */
 #define OBJECT_BASE_DN "cn=objects,dc=test,dc=com"
-#define GROUP_BASE_DN "cn=groups" OBJECT_BASE_DN
+#define GROUP_BASE_DN "cn=groups," OBJECT_BASE_DN
 
 struct nested_groups_test_ctx {
     struct sss_test_ctx *tctx;
