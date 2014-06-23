@@ -35,14 +35,17 @@ _mock_sysdb_object(TALLOC_CTX *mem_ctx,
 #define mock_sysdb_object(mem_ctx, base_dn, name, ...) \
     _mock_sysdb_object(mem_ctx, base_dn, name, ##__VA_ARGS__, NULL)
 
-#define mock_sysdb_user(mem_ctx, base_dn, name, ...) \
-    mock_sysdb_object(mem_ctx, base_dn, name, ##__VA_ARGS__)
-
 struct sysdb_attrs *
 mock_sysdb_group_rfc2307bis(TALLOC_CTX *mem_ctx,
                             const char *base_dn,
                             gid_t gid,
                             const char *name,
                             const char **members);
+
+struct sysdb_attrs *
+mock_sysdb_user(TALLOC_CTX *mem_ctx,
+                const char *base_dn,
+                uid_t uid,
+                const char *name);
 
 #endif /* COMMON_MOCK_SYSDB_OBJECTS_H_ */

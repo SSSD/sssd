@@ -191,3 +191,13 @@ mock_sysdb_group_rfc2307bis(TALLOC_CTX *mem_ctx,
 
     return attrs;
 }
+
+struct sysdb_attrs *
+mock_sysdb_user(TALLOC_CTX *mem_ctx,
+                const char *base_dn,
+                uid_t uid,
+                const char *name)
+{
+    return mock_sysdb_object(mem_ctx, base_dn, name,
+                             SYSDB_UIDNUM, uid);
+}
