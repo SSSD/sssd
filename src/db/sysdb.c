@@ -1235,7 +1235,7 @@ int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
 
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unknown DB version [%s], expected [%s] for domain %s!\n",
-                 version?version:"not found", SYSDB_VERSION, domain->name);
+              version, SYSDB_VERSION, domain->name);
         ret = sysdb_version_check(SYSDB_VERSION, version);
         goto done;
     }
