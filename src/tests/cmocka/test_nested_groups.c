@@ -136,7 +136,7 @@ void nested_groups_test_setup(void **state)
     test_ctx->sdap_opts = mock_sdap_options_ldap(test_ctx,
                                                  test_ctx->tctx->dom,
                                                  test_ctx->tctx->confdb,
-                                                 test_ctx->tctx->confdb_path);
+                                                 test_ctx->tctx->conf_dom_path);
     assert_non_null(test_ctx->sdap_opts);
     test_ctx->sdap_domain = test_ctx->sdap_opts->sdom;
     test_ctx->sdap_handle = mock_sdap_handle(test_ctx);
