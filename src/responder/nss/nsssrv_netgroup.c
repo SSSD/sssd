@@ -514,29 +514,27 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
 
         /* Look up the netgroup in the cache */
         ret = sysdb_getnetgr(step_ctx->dctx, dom, name, &step_ctx->dctx->res);
-        if (ret == ENOENT) {
+        if (ret == EOK) {
+            if (step_ctx->dctx->res->count > 1) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "getnetgr call returned more than one result !?!\n");
+                ret = EMSGSIZE;
+                goto done;
+            }
+        } else if (ret == ENOENT) {
             /* This netgroup was not found in this domain */
             if (!step_ctx->dctx->check_provider) {
                 if (step_ctx->check_next) {
                     dom = get_next_domain(dom, false);
                     continue;
+                } else {
+                    break;
                 }
-                else break;
             }
-            ret = EOK;
-        }
-
-        if (ret != EOK) {
+        } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to make request to our cache!\n");
             ret = EIO;
-            goto done;
-        }
-
-        if (step_ctx->dctx->res->count > 1) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "getnetgr call returned more than one result !?!\n");
-            ret = EMSGSIZE;
             goto done;
         }
 
