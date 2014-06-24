@@ -190,7 +190,8 @@ sysbus_init(TALLOC_CTX *mem_ctx,
     conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
     if (conn == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Failed to connect to D-BUS system bus.\n"));
+              "Failed to connect to D-BUS system bus: [%s]\n",
+              dbus_error.message);
         ret = EIO;
         goto fail;
     }
@@ -203,7 +204,8 @@ sysbus_init(TALLOC_CTX *mem_ctx,
     if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
         /* We were unable to register on the system bus */
         DEBUG(SSSDBG_CRIT_FAILURE,
-              ("Unable to request name on the system bus.\n"));
+              "Unable to request name on the system bus: [%s]\n",
+              dbus_error.message);
         ret = EIO;
         goto fail;
     }
@@ -306,7 +308,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
                             CONFDB_IFP_CONF_ENTRY, CONFDB_SERVICE_ALLOWED_UIDS,
                             DEFAULT_ALLOWED_UIDS, &uid_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to get allowed UIDs.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get allowed UIDs.\n");
         goto fail;
     }
 
@@ -315,7 +317,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
                                   &ifp_ctx->rctx->allowed_uids);
     talloc_free(uid_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to set allowed UIDs.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set allowed UIDs.\n");
         goto fail;
     }
 
@@ -329,7 +331,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
 
     ret = sss_ncache_init(rctx, &ifp_ctx->ncache);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("fatal error initializing negcache\n"));
+        DEBUG(SSSDBG_CRIT_FAILURE, "fatal error initializing negcache\n");
         goto fail;
     }
 
@@ -337,7 +339,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
                             CONFDB_IFP_CONF_ENTRY, CONFDB_IFP_USER_ATTR_LIST,
                             NULL, &attr_list_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, ("Failed to get allowed UIDs.\n"));
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get allowed UIDs.\n");
         goto fail;
     }
 
@@ -345,7 +347,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     talloc_free(attr_list_str);
     if (ifp_ctx->user_whitelist == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              ("Failed to parse the allowed attribute list\n"));
+              "Failed to parse the allowed attribute list\n");
         goto fail;
     }
 
