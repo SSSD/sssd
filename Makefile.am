@@ -45,6 +45,7 @@ sssdconfdir = $(sysconfdir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
+dbusservicedir = $(datadir)/dbus-1/system-services
 localedir = @localedir@
 nsslibdir = @nsslibdir@
 pamlibdir = @pammoddir@
@@ -918,6 +919,8 @@ sssd_ifp_LDADD = \
     $(SSSD_INTERNAL_LTLIBS)
 dist_dbuspolicy_DATA = \
     src/responder/ifp/org.freedesktop.sssd.infopipe.conf
+dist_dbusservice_DATA = \
+    src/responder/ifp/org.freedesktop.sssd.infopipe.service
 
 if BUILD_CONFIG_LIB
 sssd_ifp_LDADD += libsss_config.la
@@ -2564,6 +2567,7 @@ installsssddirs::
     $(DESTDIR)$(pluginpath) \
     $(DESTDIR)$(libdir)/ldb \
     $(DESTDIR)$(dbuspolicydir) \
+    $(DESTDIR)$(dbusservicedir) \
     $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(sssdlibdir) \
     $(DESTDIR)$(pkglibdir) \
