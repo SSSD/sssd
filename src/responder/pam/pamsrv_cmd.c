@@ -882,7 +882,22 @@ static void pam_forwarder_cb(struct tevent_req *req)
     pd = preq->pd;
 
     ret = pam_forwarder_parse_data(cctx, pd);
-    if (ret != EOK) {
+    if (ret == EAGAIN) {
+        if (strchr(preq->pd->logon_name, '@') == NULL) {
+            goto done;
+        }
+        /* Assuming Kerberos principal */
+        preq->domain = preq->cctx->rctx->domains;
+        preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
+        preq->pd->user = talloc_strdup(preq->pd, preq->pd->logon_name);
+        if (preq->pd->user == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        preq->pd->name_is_upn = true;
+        preq->pd->domain = NULL;
+    } else if (ret != EOK) {
         ret = EINVAL;
         goto done;
     }
@@ -916,12 +931,14 @@ static int pam_check_user_search(struct pam_auth_req *preq)
     struct dp_callback_ctx *cb_ctx;
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
-    struct ldb_result *res;
+    static const char *user_attrs[] = SYSDB_PW_ATTRS;
+    struct ldb_message *msg;
 
     while (dom) {
        /* if it is a domainless search, skip domains that require fully
          * qualified names instead */
-        while (dom && !preq->pd->domain && dom->fqnames) {
+        while (dom && !preq->pd->domain && !preq->pd->name_is_upn
+                && dom->fqnames) {
             dom = get_next_domain(dom, false);
         }
 
@@ -979,20 +996,18 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             return EFAULT;
         }
 
-        ret = sysdb_getpwnam(preq, dom, name, &res);
-        if (ret != EOK) {
+        if (preq->pd->name_is_upn) {
+            ret = sysdb_search_user_by_upn(preq, dom, name, user_attrs, &msg);
+        } else {
+            ret = sysdb_search_user_by_name(preq, dom, name, user_attrs, &msg);
+        }
+        if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to make request to our cache!\n");
             return EIO;
         }
 
-        if (res->count > 1) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "getpwnam call returned more than one result !?!\n");
-            return ENOENT;
-        }
-
-        if (res->count == 0) {
+        if (ret == ENOENT) {
             if (preq->check_provider == false) {
                 /* set negative cache only if not result of cache check */
                 ret = sss_ncache_set_user(pctx->ncache, false, dom, name);
@@ -1021,7 +1036,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
         /* if we need to check the remote account go on */
         if (preq->check_provider) {
-            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+            cacheExpire = ldb_msg_find_attr_as_uint64(msg,
                                                       SYSDB_CACHE_EXPIRE, 0);
             if (cacheExpire < time(NULL)) {
                 break;
@@ -1032,7 +1047,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
               "Returning info for user [%s@%s]\n", name, dom->name);
 
         /* We might have searched by alias. Pass on the primary name */
-        ret = pd_set_primary_name(res->msgs[0], preq->pd);
+        ret = pd_set_primary_name(msg, preq->pd);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not canonicalize username\n");
             return ret;
@@ -1054,8 +1069,8 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         preq->check_provider = false;
 
         dpreq = sss_dp_get_account_send(preq, preq->cctx->rctx,
-                                        dom, false, SSS_DP_INITGROUPS,
-                                        name, 0, NULL);
+                              dom, false, SSS_DP_INITGROUPS, name, 0,
+                              preq->pd->name_is_upn ? EXTRA_NAME_IS_UPN : NULL);
         if (!dpreq) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");

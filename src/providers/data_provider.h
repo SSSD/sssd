@@ -176,6 +176,7 @@ struct pam_data {
     struct sss_auth_token *newauthtok;
     uint32_t cli_pid;
     char *logon_name;
+    bool name_is_upn;
 
     int pam_status;
     int response_delay;
