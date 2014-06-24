@@ -192,7 +192,7 @@ sysbus_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to connect to D-BUS system bus: [%s]\n",
               dbus_error.message);
-        ret = EIO;
+        ret = ERR_NO_SYSBUS;
         goto fail;
     }
     dbus_connection_set_exit_on_disconnect(conn, FALSE);
@@ -372,7 +372,11 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
                       INFOPIPE_IFACE,
                       ifp_ifaces,
                       ifp_ctx, &ifp_ctx->sysbus);
-    if (ret != EOK) {
+    if (ret == ERR_NO_SYSBUS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "The system bus is not available..\n");
+        /* Explicitly ignore, the D-Bus daemon will start us */
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to connect to the system message bus\n");
         talloc_free(ifp_ctx);
