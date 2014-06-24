@@ -192,6 +192,7 @@ void pam_print_data(int l, struct pam_data *pd)
     DEBUG(l, "newauthtok type: %d\n", sss_authtok_get_type(pd->newauthtok));
     DEBUG(l, "priv: %d\n", pd->priv);
     DEBUG(l, "cli_pid: %d\n", pd->cli_pid);
+    DEBUG(l, "logon name: %s\n", PAM_SAFE_ITEM(pd->logon_name));
 }
 
 int pam_add_response(struct pam_data *pd, enum response_type type,

@@ -134,15 +134,12 @@ static int pd_set_primary_name(const struct ldb_message *msg,struct pam_data *pd
     return EOK;
 }
 
-static int pam_parse_in_data_v2(struct sss_domain_info *domains,
-                                const char *default_domain,
-                                struct pam_data *pd,
+static int pam_parse_in_data_v2(struct pam_data *pd,
                                 uint8_t *body, size_t blen)
 {
     size_t c;
     uint32_t type;
     uint32_t size;
-    char *pam_user;
     int ret;
     uint32_t start;
     uint32_t terminator;
@@ -178,12 +175,7 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
 
             switch(type) {
                 case SSS_PAM_ITEM_USER:
-                    ret = extract_string(&pam_user, size, body, blen, &c);
-                    if (ret != EOK) return ret;
-
-                    ret = sss_parse_name_for_domains(pd, domains,
-                                                     default_domain, pam_user,
-                                                     &pd->domain, &pd->user);
+                    ret = extract_string(&pd->logon_name, size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
                 case SSS_PAM_ITEM_SERVICE:
@@ -226,22 +218,16 @@ static int pam_parse_in_data_v2(struct sss_domain_info *domains,
 
     } while(c < blen);
 
-    if (pd->user == NULL || *pd->user == '\0') return EINVAL;
-
-    DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
-
     return EOK;
 
 }
 
-static int pam_parse_in_data_v3(struct sss_domain_info *domains,
-                                const char *default_domain,
-                                struct pam_data *pd,
+static int pam_parse_in_data_v3(struct pam_data *pd,
                                 uint8_t *body, size_t blen)
 {
     int ret;
 
-    ret = pam_parse_in_data_v2(domains, default_domain, pd, body, blen);
+    ret = pam_parse_in_data_v2(pd, body, blen);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "pam_parse_in_data_v2 failed.\n");
         return ret;
@@ -284,9 +270,7 @@ static int extract_authtok_v1(struct sss_auth_token *tok,
     return ret;
 }
 
-static int pam_parse_in_data(struct sss_domain_info *domains,
-                             const char *default_domain,
-                             struct pam_data *pd,
+static int pam_parse_in_data(struct pam_data *pd,
                              uint8_t *body, size_t blen)
 {
     size_t start;
@@ -300,10 +284,7 @@ static int pam_parse_in_data(struct sss_domain_info *domains,
     /* user name */
     for (start = end; end < last; end++) if (body[end] == '\0') break;
     if (body[end++] != '\0') return EINVAL;
-
-    ret = sss_parse_name_for_domains(pd, domains, default_domain,
-                                     (char *)&body[start], &pd->domain, &pd->user);
-    if (ret != EOK) return ret;
+    pd->logon_name = (char *) &body[start];
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
     if (body[end++] != '\0') return EINVAL;
@@ -743,25 +724,28 @@ errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
 
     switch (cctx->cli_protocol_version->version) {
         case 1:
-            ret = pam_parse_in_data(cctx->rctx->domains,
-                                    cctx->rctx->default_domain, pd,
-                                    body, blen);
+            ret = pam_parse_in_data(pd, body, blen);
             break;
         case 2:
-            ret = pam_parse_in_data_v2(cctx->rctx->domains,
-                                       cctx->rctx->default_domain, pd,
-                                       body, blen);
+            ret = pam_parse_in_data_v2(pd, body, blen);
             break;
         case 3:
-            ret = pam_parse_in_data_v3(cctx->rctx->domains,
-                                       cctx->rctx->default_domain, pd,
-                                       body, blen);
+            ret = pam_parse_in_data_v3(pd, body, blen);
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Illegal protocol version [%d].\n",
                       cctx->cli_protocol_version->version);
             ret = EINVAL;
     }
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sss_parse_name_for_domains(pd, cctx->rctx->domains,
+                                     cctx->rctx->default_domain, pd->logon_name,
+                                     &pd->domain, &pd->user);
+
+    DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
 
 done:
     return ret;
