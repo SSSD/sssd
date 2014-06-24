@@ -37,7 +37,6 @@ endif
 sssdconfdir = $(sysconfdir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
-dbusintrospectdir = $(datarootdir)/sssd/introspect
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 localedir = @localedir@
 nsslibdir = @nsslibdir@
@@ -313,7 +312,6 @@ AM_CPPFLAGS = \
     -DVARDIR=\"$(localstatedir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
     -DSSSD_LIBEXEC_PATH=\"$(sssdlibexecdir)\" \
-    -DSSSD_INTROSPECT_PATH=\"$(dbusintrospectdir)\" \
     -DSSSD_CONF_DIR=\"$(sssdconfdir)\" \
     -DSSS_NSS_MCACHE_DIR=\"$(mcpath)\" \
     -DSSS_NSS_SOCKET_NAME=\"$(pipepath)/nss\" \
@@ -2246,7 +2244,6 @@ installsssddirs::
     $(DESTDIR)$(mandir) \
     $(DESTDIR)$(pluginpath) \
     $(DESTDIR)$(libdir)/ldb \
-    $(DESTDIR)$(dbusintrospectdir) \
     $(DESTDIR)$(dbuspolicydir) \
     $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(sssdlibdir) \
