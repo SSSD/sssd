@@ -44,6 +44,8 @@
 
 #define DEFAULT_ALLOWED_UIDS "0"
 
+static int ifp_sysbus_reconnect(struct sbus_request *dbus_req, void *data);
+
 struct mon_cli_iface monitor_ifp_methods = {
     { &mon_cli_iface_meta, 0 },
     .ping = monitor_common_pong,
@@ -52,6 +54,7 @@ struct mon_cli_iface monitor_ifp_methods = {
     .goOffline = NULL,
     .resetOffline = NULL,
     .rotateLogs = responder_logrotate,
+    .sysbusReconnect = ifp_sysbus_reconnect,
 };
 
 static struct data_provider_iface ifp_dp_methods = {
@@ -255,6 +258,40 @@ fail:
 
     talloc_free(system_bus);
     return ret;
+}
+
+static int ifp_sysbus_reconnect(struct sbus_request *dbus_req, void *data)
+{
+    struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
+    struct ifp_ctx *ifp_ctx = (struct ifp_ctx*) rctx->pvt_ctx;
+    errno_t ret;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Attempting to reconnect to the system bus\n");
+
+    if (ifp_ctx->sysbus) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Already connected to sysbus\n");
+        goto done;
+    }
+
+    /* Connect to the D-BUS system bus and set up methods */
+    ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
+                      INFOPIPE_IFACE,
+                      ifp_ifaces,
+                      ifp_ctx, &ifp_ctx->sysbus);
+    if (ret == ERR_NO_SYSBUS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "The system bus is not available..\n");
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to connect to the system message bus\n");
+        return ret;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, "Reconnected to the system bus!\n");
+
+done:
+    return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
 int ifp_process_init(TALLOC_CTX *mem_ctx,

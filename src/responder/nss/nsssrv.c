@@ -67,7 +67,8 @@ struct mon_cli_iface monitor_nss_methods = {
     .resetOffline = NULL,
     .rotateLogs = responder_logrotate,
     .clearMemcache = nss_clear_memcache,
-    .clearEnumCache = nss_clear_netgroup_hash_table
+    .clearEnumCache = nss_clear_netgroup_hash_table,
+    .sysbusReconnect = NULL,
 };
 
 static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)

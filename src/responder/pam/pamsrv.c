@@ -57,6 +57,7 @@ struct mon_cli_iface monitor_pam_methods = {
     .rotateLogs = responder_logrotate,
     .clearMemcache = NULL,
     .clearEnumCache = NULL,
+    .sysbusReconnect = NULL,
 };
 
 static struct data_provider_iface pam_dp_methods = {

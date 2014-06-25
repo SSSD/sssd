@@ -26,6 +26,7 @@
 #define MON_CLI_IFACE_ROTATELOGS "rotateLogs"
 #define MON_CLI_IFACE_CLEARMEMCACHE "clearMemcache"
 #define MON_CLI_IFACE_CLEARENUMCACHE "clearEnumCache"
+#define MON_CLI_IFACE_SYSBUSRECONNECT "sysbusReconnect"
 
 /* ------------------------------------------------------------------------
  * DBus handlers
@@ -63,6 +64,7 @@ struct mon_cli_iface {
     sbus_msg_handler_fn rotateLogs;
     sbus_msg_handler_fn clearMemcache;
     sbus_msg_handler_fn clearEnumCache;
+    sbus_msg_handler_fn sysbusReconnect;
 };
 
 /* ------------------------------------------------------------------------

@@ -47,5 +47,9 @@
             <!-- no arguments, raw handler -->
             <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
         </method>
+        <method name="sysbusReconnect">
+            <!-- no arguments, raw handler -->
+            <annotation name="org.freedesktop.sssd.RawHandler" value="true"/>
+        </method>
     </interface>
 </node>
