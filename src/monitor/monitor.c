@@ -740,6 +740,10 @@ static int service_signal_clear_enum_cache(struct mt_svc *svc)
 {
     return service_signal(svc, MON_CLI_IFACE_CLEARENUMCACHE);
 }
+static int service_signal_sysbus_reconnect(struct mt_svc *svc)
+{
+    return service_signal(svc, MON_CLI_IFACE_SYSBUSRECONNECT);
+}
 
 static int check_domain_ranges(struct sss_domain_info *domains)
 {
@@ -1333,6 +1337,7 @@ static void monitor_hup(struct tevent_context *ev,
         if (!strcmp(SSS_AUTOFS_SBUS_SERVICE_NAME, cur_svc->name)) {
             service_signal_clear_enum_cache(cur_svc);
         }
+
     }
 
 }
@@ -1520,6 +1525,10 @@ static void signal_offline_reset(struct tevent_context *ev,
     for(cur_svc = monitor->svc_list; cur_svc; cur_svc = cur_svc->next) {
         if (cur_svc->provider) {
             service_signal_reset_offline(cur_svc);
+        }
+
+        if (strcmp(SSS_IFP_SBUS_SERVICE_NAME, cur_svc->name) == 0) {
+            service_signal_sysbus_reconnect(cur_svc);
         }
     }
     signal_res_init(monitor);
