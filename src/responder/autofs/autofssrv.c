@@ -41,6 +41,7 @@ struct mon_cli_iface monitor_autofs_methods = {
     .rotateLogs = responder_logrotate,
     .clearMemcache = NULL,
     .clearEnumCache = autofs_clean_hash_table,
+    .sysbusReconnect = NULL,
 };
 
 static struct data_provider_iface autofs_dp_methods = {

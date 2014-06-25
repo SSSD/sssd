@@ -90,6 +90,13 @@ const struct sbus_method_meta mon_cli_iface__methods[] = {
         offsetof(struct mon_cli_iface, clearEnumCache),
         NULL, /* no invoker */
     },
+    {
+        "sysbusReconnect", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct mon_cli_iface, sysbusReconnect),
+        NULL, /* no invoker */
+    },
     { NULL, }
 };
 

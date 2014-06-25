@@ -69,6 +69,7 @@ struct mon_cli_iface monitor_be_methods = {
     .rotateLogs = data_provider_logrotate,
     .clearMemcache = NULL,
     .clearEnumCache = NULL,
+    .sysbusReconnect = NULL,
 };
 
 static int client_registration(struct sbus_request *dbus_req, void *data);

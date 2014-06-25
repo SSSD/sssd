@@ -38,6 +38,7 @@ struct mon_cli_iface monitor_ssh_methods = {
     .rotateLogs = responder_logrotate,
     .clearMemcache = NULL,
     .clearEnumCache = NULL,
+    .sysbusReconnect = NULL,
 };
 
 static struct data_provider_iface ssh_dp_methods = {
