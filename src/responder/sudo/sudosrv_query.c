@@ -364,6 +364,7 @@ static void sudosrv_parse_query_done(struct tevent_req *subreq)
     talloc_free(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
+        return;
     }
 
     tevent_req_done(req);
