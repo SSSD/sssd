@@ -589,7 +589,10 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
 
     missing = talloc_realloc(mem_ctx, missing,
                              struct sdap_nested_group_member, num_missing);
-    if (missing == NULL) {
+    /* talloc_realloc behaves as talloc_free if 3rd parameter (count) is 0,
+     * so it's OK to return NULL then
+     */
+    if (missing == NULL && num_missing > 0) {
         ret = ENOMEM;
         goto done;
     }
