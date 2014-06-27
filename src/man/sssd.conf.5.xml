@@ -1381,6 +1381,10 @@ fallback_homedir = /home/%u
                             <quote>proxy</quote> for relaying authentication to some other PAM target.
                         </para>
                         <para>
+                            <quote>local</quote>: SSSD internal provider for
+                            local users
+                        </para>
+                        <para>
                             <quote>none</quote> disables authentication explicitly.
                         </para>
                         <para>
