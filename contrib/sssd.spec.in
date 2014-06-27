@@ -605,6 +605,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/sss_ssh_authorizedkeys
 %{_bindir}/sss_ssh_knownhostsproxy
 %{_sbindir}/sss_cache
+%{_libexecdir}/%{servicename}/sss_signal
 
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
