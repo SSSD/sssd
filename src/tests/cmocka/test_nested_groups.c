@@ -44,6 +44,7 @@
  * same tests cases for several search base scenarios */
 #define OBJECT_BASE_DN "cn=objects,dc=test,dc=com"
 #define GROUP_BASE_DN "cn=groups," OBJECT_BASE_DN
+#define USER_BASE_DN "cn=users," OBJECT_BASE_DN
 
 struct nested_groups_test_ctx {
     struct sss_test_ctx *tctx;
@@ -114,11 +115,270 @@ static void nested_groups_test_one_group_no_members(void **state)
     assert_true(rootgroup == test_ctx->groups[0]);
 }
 
+static void nested_groups_test_one_group_unique_members(void **state)
+{
+    struct nested_groups_test_ctx *test_ctx = NULL;
+    struct sysdb_attrs *rootgroup = NULL;
+    struct tevent_req *req = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    errno_t ret;
+    const char *name;
+    const char *users[] = { "cn=user1,"USER_BASE_DN,
+                            "cn=user2,"USER_BASE_DN,
+                            NULL };
+    const struct sysdb_attrs *user1_reply[2] = { NULL };
+    const struct sysdb_attrs *user2_reply[2] = { NULL };
+
+    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+
+    /* mock return values */
+    rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
+                                            "rootgroup", users);
+
+    user1_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2001, "user1");
+    assert_non_null(user1_reply[0]);
+    will_return(sdap_get_generic_recv, 1);
+    will_return(sdap_get_generic_recv, user1_reply);
+
+    user2_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2002, "user2");
+    assert_non_null(user2_reply[0]);
+    will_return(sdap_get_generic_recv, 1);
+    will_return(sdap_get_generic_recv, user2_reply);
+
+    sss_will_return_always(sdap_has_deref_support, false);
+
+    /* run test, check for memory leaks */
+    req_mem_ctx = talloc_new(global_talloc_context);
+    assert_non_null(req_mem_ctx);
+    check_leaks_push(req_mem_ctx);
+
+    req = sdap_nested_group_send(req_mem_ctx, test_ctx->tctx->ev,
+                                 test_ctx->sdap_domain, test_ctx->sdap_opts,
+                                 test_ctx->sdap_handle, rootgroup);
+    assert_non_null(req);
+    tevent_req_set_callback(req, nested_groups_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_true(check_leaks_pop(req_mem_ctx) == true);
+    talloc_zfree(req_mem_ctx);
+
+    /* check return code */
+    assert_int_equal(ret, ERR_OK);
+
+    /* Check the users */
+    assert_int_equal(test_ctx->num_users, 2);
+    assert_int_equal(test_ctx->num_groups, 1);
+
+    ret = sysdb_attrs_get_string(test_ctx->users[0], SYSDB_NAME, &name);
+    assert_int_equal(ret, ERR_OK);
+    assert_string_equal(name, "user1");
+
+    ret = sysdb_attrs_get_string(test_ctx->users[1], SYSDB_NAME, &name);
+    assert_int_equal(ret, ERR_OK);
+    assert_string_equal(name, "user2");
+}
+
+static void nested_groups_test_one_group_dup_users(void **state)
+{
+    struct nested_groups_test_ctx *test_ctx = NULL;
+    struct sysdb_attrs *rootgroup = NULL;
+    struct tevent_req *req = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    errno_t ret;
+    const char *name;
+    const char *users[] = { "cn=user1,"USER_BASE_DN,
+                            "cn=user1,"USER_BASE_DN,
+                            NULL };
+    const struct sysdb_attrs *user1_reply[2] = { NULL };
+    const struct sysdb_attrs *user2_reply[2] = { NULL };
+
+    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+
+    /* mock return values */
+    rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
+                                            "rootgroup", users);
+
+    user1_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2001, "user1");
+    assert_non_null(user1_reply[0]);
+    will_return(sdap_get_generic_recv, 1);
+    will_return(sdap_get_generic_recv, user1_reply);
+
+    user2_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2001, "user1");
+    assert_non_null(user2_reply[0]);
+    will_return(sdap_get_generic_recv, 1);
+    will_return(sdap_get_generic_recv, user2_reply);
+
+    sss_will_return_always(sdap_has_deref_support, false);
+
+    /* run test, check for memory leaks */
+    req_mem_ctx = talloc_new(global_talloc_context);
+    assert_non_null(req_mem_ctx);
+    check_leaks_push(req_mem_ctx);
+
+    req = sdap_nested_group_send(req_mem_ctx, test_ctx->tctx->ev,
+                                 test_ctx->sdap_domain, test_ctx->sdap_opts,
+                                 test_ctx->sdap_handle, rootgroup);
+    assert_non_null(req);
+    tevent_req_set_callback(req, nested_groups_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_true(check_leaks_pop(req_mem_ctx) == true);
+    talloc_zfree(req_mem_ctx);
+
+    /* check return code */
+    assert_int_equal(ret, ERR_OK);
+
+    /* Check the users */
+    assert_int_equal(test_ctx->num_users, 1);
+    assert_int_equal(test_ctx->num_groups, 1);
+
+    ret = sysdb_attrs_get_string(test_ctx->users[0], SYSDB_NAME, &name);
+    assert_int_equal(ret, ERR_OK);
+    assert_string_equal(name, "user1");
+}
+
+static void nested_groups_test_one_group_unique_group_members(void **state)
+{
+    struct nested_groups_test_ctx *test_ctx = NULL;
+    struct sysdb_attrs *rootgroup = NULL;
+    struct tevent_req *req = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    errno_t ret;
+    const char *name;
+    const char *groups[] = { "cn=emptygroup1,"GROUP_BASE_DN,
+                             "cn=emptygroup2,"GROUP_BASE_DN,
+                             NULL };
+    const struct sysdb_attrs *group1_reply[2] = { NULL };
+    const struct sysdb_attrs *group2_reply[2] = { NULL };
+
+    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+
+    /* mock return values */
+    rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
+                                            "rootgroup", groups);
+
+    group1_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
+                                                  1001, "emptygroup1", NULL);
+    assert_non_null(group1_reply[0]);
+    will_return(sdap_get_generic_recv, 1);
+    will_return(sdap_get_generic_recv, group1_reply);
+
+    group2_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
+                                                  1002, "emptygroup2", NULL);
+    assert_non_null(group2_reply[0]);
+    will_return(sdap_get_generic_recv, 1);
+    will_return(sdap_get_generic_recv, group2_reply);
+
+    sss_will_return_always(sdap_has_deref_support, false);
+
+    /* run test, check for memory leaks */
+    req_mem_ctx = talloc_new(global_talloc_context);
+    assert_non_null(req_mem_ctx);
+    check_leaks_push(req_mem_ctx);
+
+    req = sdap_nested_group_send(req_mem_ctx, test_ctx->tctx->ev,
+                                 test_ctx->sdap_domain, test_ctx->sdap_opts,
+                                 test_ctx->sdap_handle, rootgroup);
+    assert_non_null(req);
+    tevent_req_set_callback(req, nested_groups_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_true(check_leaks_pop(req_mem_ctx) == true);
+    talloc_zfree(req_mem_ctx);
+
+    /* check return code */
+    assert_int_equal(ret, ERR_OK);
+
+    /* Check the users */
+    assert_int_equal(test_ctx->num_users, 0);
+    assert_int_equal(test_ctx->num_groups, 3);
+
+    ret = sysdb_attrs_get_string(test_ctx->groups[0], SYSDB_NAME, &name);
+    assert_int_equal(ret, ERR_OK);
+    assert_string_equal(name, "rootgroup");
+
+    ret = sysdb_attrs_get_string(test_ctx->groups[1], SYSDB_NAME, &name);
+    assert_int_equal(ret, ERR_OK);
+    assert_string_equal(name, "emptygroup2");
+
+    ret = sysdb_attrs_get_string(test_ctx->groups[2], SYSDB_NAME, &name);
+    assert_int_equal(ret, ERR_OK);
+    assert_string_equal(name, "emptygroup1");
+}
+
+static void nested_groups_test_one_group_dup_group_members(void **state)
+{
+    struct nested_groups_test_ctx *test_ctx = NULL;
+    struct sysdb_attrs *rootgroup = NULL;
+    struct tevent_req *req = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    errno_t ret;
+    const char *name;
+    const char *groups[] = { "cn=emptygroup1,"GROUP_BASE_DN,
+                             "cn=emptygroup1,"GROUP_BASE_DN,
+                             NULL };
+    const struct sysdb_attrs *group1_reply[2] = { NULL };
+    const struct sysdb_attrs *group2_reply[2] = { NULL };
+
+    test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
+
+    /* mock return values */
+    rootgroup = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN, 1000,
+                                            "rootgroup", groups);
+
+    group1_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
+                                                  1001, "emptygroup1", NULL);
+    assert_non_null(group1_reply[0]);
+    will_return(sdap_get_generic_recv, 1);
+    will_return(sdap_get_generic_recv, group1_reply);
+
+    group2_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
+                                                  1001, "emptygroup1", NULL);
+    assert_non_null(group2_reply[0]);
+    will_return(sdap_get_generic_recv, 1);
+    will_return(sdap_get_generic_recv, group2_reply);
+
+    sss_will_return_always(sdap_has_deref_support, false);
+
+    /* run test, check for memory leaks */
+    req_mem_ctx = talloc_new(global_talloc_context);
+    assert_non_null(req_mem_ctx);
+    check_leaks_push(req_mem_ctx);
+
+    req = sdap_nested_group_send(req_mem_ctx, test_ctx->tctx->ev,
+                                 test_ctx->sdap_domain, test_ctx->sdap_opts,
+                                 test_ctx->sdap_handle, rootgroup);
+    assert_non_null(req);
+    tevent_req_set_callback(req, nested_groups_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_true(check_leaks_pop(req_mem_ctx) == true);
+    talloc_zfree(req_mem_ctx);
+
+    /* check return code */
+    assert_int_equal(ret, ERR_OK);
+
+    /* Check the users */
+    assert_int_equal(test_ctx->num_users, 0);
+    assert_int_equal(test_ctx->num_groups, 2);
+
+    ret = sysdb_attrs_get_string(test_ctx->groups[0], SYSDB_NAME, &name);
+    assert_int_equal(ret, ERR_OK);
+    assert_string_equal(name, "rootgroup");
+
+    ret = sysdb_attrs_get_string(test_ctx->groups[1], SYSDB_NAME, &name);
+    assert_int_equal(ret, ERR_OK);
+    assert_string_equal(name, "emptygroup1");
+}
+
 void nested_groups_test_setup(void **state)
 {
     struct nested_groups_test_ctx *test_ctx = NULL;
     static struct sss_test_conf_param params[] = {
         { "ldap_schema", "rfc2307bis" }, /* enable nested groups */
+        { "ldap_search_base", OBJECT_BASE_DN },
+        { "ldap_user_search_base", USER_BASE_DN },
+        { "ldap_group_search_base", GROUP_BASE_DN },
         { NULL, NULL }
     };
 
@@ -163,7 +423,11 @@ int main(int argc, const char *argv[])
     };
 
     const UnitTest tests[] = {
-        new_test(one_group_no_members)
+        new_test(one_group_no_members),
+        new_test(one_group_unique_members),
+        new_test(one_group_dup_users),
+        new_test(one_group_unique_group_members),
+        new_test(one_group_dup_group_members),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
