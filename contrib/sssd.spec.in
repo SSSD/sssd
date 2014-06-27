@@ -148,6 +148,11 @@ BuildRequires: systemd-devel
 %if (0%{?with_cifs_utils_plugin} == 1)
 BuildRequires: cifs-utils-devel
 %endif
+%if ((0%{?fedora} >= 15) || (0%{?rhel} >= 7))
+BuildRequires: libnfsidmap-devel
+%else
+BuildRequires: nfs-utils-lib-devel
+%endif
 
 # RHEL 5 is too old to support samba4 and the PAC responder
 %if !0%{?is_rhel5}
@@ -478,6 +483,7 @@ autoreconf -ivf
     --with-krb5-rcache-dir=%{_localstatedir}/cache/krb5rcache \
     --enable-nsslibdir=/%{_lib} \
     --enable-pammoddir=/%{_lib}/security \
+    --enable-nfsidmaplibdir=%{_libdir}/libnfsidmap \
     --disable-static \
     --disable-rpath \
     %{?with_ccache} \
@@ -627,6 +633,7 @@ rm -rf $RPM_BUILD_ROOT
 # 3rd party application libraries
 %{_libdir}/sssd/modules/libsss_autofs.so
 %{_libdir}/libsss_sudo.so
+%{_libdir}/libnfsidmap/sss.so
 
 %{ldb_modulesdir}/memberof.so
 %{_bindir}/sss_ssh_authorizedkeys
