@@ -99,7 +99,9 @@ sssdlibexec_PROGRAMS = \
     sssd_be \
     krb5_child \
     ldap_child \
-    proxy_child
+    proxy_child \
+    sss_signal \
+    $(NULL)
 if BUILD_SUDO
 sssdlibexec_PROGRAMS += sssd_sudo
 endif
@@ -933,6 +935,15 @@ sss_seed_SOURCES = \
 sss_seed_LDADD = \
     $(TOOLS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
+
+sss_signal_SOURCES = \
+    src/tools/sss_signal.c \
+    $(SSSD_TOOLS_OBJ) \
+    $(NULL)
+sss_signal_LDADD = \
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
 
 if BUILD_SUDO
 sss_sudo_cli_SOURCES = \
