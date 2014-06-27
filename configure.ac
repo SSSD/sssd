@@ -85,6 +85,13 @@ AC_ARG_ENABLE([pammoddir], [AS_HELP_STRING([--enable-pammoddir],
               [pammoddir=$libdir/security])
 AC_SUBST(pammoddir)
 
+#Set the NFSv4 idmapd library install path
+AC_ARG_ENABLE([nfsidmaplibdir], [AS_HELP_STRING([--enable-nfsidmaplibdir],
+                                        [Where to install libnfsidmap libraries ($libdir/libnfsidmap)])],
+              [nfsidmaplibdir=$enableval],
+              [nfsidmaplibdir=$libdir/libnfsidmap])
+AC_SUBST(nfsidmaplibdir)
+
 #Include here cause WITH_INIT_DIR requires $osname set in platform.m4
 m4_include([src/external/platform.m4])
 
@@ -123,6 +130,8 @@ WITH_IFP
 WITH_CRYPTO
 WITH_SYSLOG
 WITH_SAMBA
+WITH_NFS
+WITH_NFS_LIB_PATH
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -156,6 +165,7 @@ m4_include([src/external/inotify.m4])
 m4_include([src/external/samba.m4])
 m4_include([src/external/sasl.m4])
 m4_include([src/external/configlib.m4])
+m4_include([src/external/libnfsidmap.m4])
 
 if test x$build_config_lib = xyes; then
     m4_include([src/external/libaugeas.m4])

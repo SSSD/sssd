@@ -691,3 +691,33 @@ AC_ARG_ENABLE([dbus-tests],
               [build_dbus_tests=$enableval],
               [build_dbus_tests=yes])
 AM_CONDITIONAL([BUILD_DBUS_TESTS], [test x$build_dbus_tests = xyes])
+
+AC_DEFUN([WITH_NFS],
+  [ AC_ARG_WITH([nfs_idmap],
+                [AC_HELP_STRING([--with-nfsv4-idmapd-plugin],
+                                [Whether to build with NFSv4 IDMAP support [yes]]
+                               )
+                ],
+                [with_nfs_idmap=$withval],
+                with_nfs_idmap=yes
+               )
+
+    if test x"$with_nfs_idmap" = xyes; then
+        AC_DEFINE(BUILD_NFS_IDMAP, 1, [whether to build with NFSv4 IDMAP support])
+    fi
+    AM_CONDITIONAL([BUILD_NFS_IDMAP], [test x"$with_nfs_idmap" = xyes])
+  ])
+
+AC_DEFUN([WITH_NFS_LIB_PATH],
+  [ AC_ARG_WITH([nfs-lib-path],
+                [AC_HELP_STRING([--with-nfs-lib-path=<path>],
+                                [Path to the nfs library [${libdir}]]
+                               )
+                ]
+               )
+    nfslibpath="${libdir}"
+    if test x"$with_nfs_lib_path" != x; then
+        nfslibpath=$with_nfs_lib_path
+    fi
+    AC_SUBST(nfslibpath)
+  ])

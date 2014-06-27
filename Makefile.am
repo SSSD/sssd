@@ -53,6 +53,7 @@ localedir = @localedir@
 nsslibdir = @nsslibdir@
 pamlibdir = @pammoddir@
 autofslibdir = @appmodpath@
+nfslibdir = @nfsidmaplibdir@
 
 dbpath = @dbpath@
 pluginpath = @pluginpath@
@@ -596,6 +597,7 @@ dist_noinst_HEADERS = \
     src/sss_client/libwbclient/wbc_err_internal.h \
     src/sss_client/libwbclient/wbclient_internal.h \
     src/sss_client/libwbclient/wbc_sssd_internal.h \
+    src/sss_client/nfs/nfsidmap_internal.h \
     src/lib/idmap/sss_idmap_private.h \
     src/lib/sifp/sss_sifp_private.h \
     src/tests/cmocka/test_utils.h \
@@ -2058,6 +2060,28 @@ libnss_sss_la_LDFLAGS = \
     -module \
     -version-info 2:0:0 \
     -Wl,--version-script,$(srcdir)/src/sss_client/sss_nss.exports
+
+if BUILD_NFS_IDMAP
+nfslib_LTLIBRARIES = sss.la
+sss_la_SOURCES = \
+    src/sss_client/common.c \
+    src/sss_client/nss_mc_common.c \
+    src/util/io.c \
+    src/util/murmurhash3.c \
+    src/sss_client/nss_mc_passwd.c \
+    src/sss_client/nss_mc_group.c \
+    src/sss_client/nfs/sss_nfs_client.c \
+    $(NULL)
+sss_la_CFLAGS = $(AM_CFLAGS)
+sss_la_LIBADD = \
+    $(CLIENT_LIBS) \
+    $(NFSIDMAP_LIBS) \
+    $(NULL)
+sss_la_LDFLAGS = \
+    -module \
+    -avoid-version \
+    $(NULL)
+endif
 
 pamlib_LTLIBRARIES = pam_sss.la
 pam_sss_la_SOURCES = \
