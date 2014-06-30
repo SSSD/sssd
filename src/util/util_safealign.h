@@ -34,7 +34,7 @@
 
 /* Use this macro to suppress alignment warnings (use it
  * only to suppress false-positives) */
-#define DISCARD_ALIGN(ptr) ((void *)(ptr))
+#define DISCARD_ALIGN(ptr, type) ((type)(void *)(ptr))
 
 #define IS_ALIGNED(ptr, type) \
     ((uintptr_t)(ptr) % sizeof(type) == 0)

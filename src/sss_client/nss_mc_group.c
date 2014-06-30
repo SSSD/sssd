@@ -72,7 +72,7 @@ static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
         return EFAULT;
     }
 
-    result->gr_mem = (char **)DISCARD_ALIGN(buffer);
+    result->gr_mem = DISCARD_ALIGN(buffer, char **);
     result->gr_mem[data->members] = NULL;
 
     cookie = NULL;
