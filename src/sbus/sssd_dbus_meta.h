@@ -35,7 +35,7 @@
 
 /* Looks up a vtable func, in a struct derived from struct sbus_vtable */
 #define VTABLE_FUNC(vtable, offset) \
-    (*((void **)((char *)(vtable) + (offset))))
+    (*(DISCARD_ALIGN((char *)(vtable) + (offset), void **)))
 
 struct sbus_arg_meta {
     const char *name;
