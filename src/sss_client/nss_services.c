@@ -131,7 +131,7 @@ sss_nss_getsvc_readrep(struct sss_nss_svc_rep *sr,
     pad = PADDING_SIZE(i, char *);
 
     /* Copy in the aliases */
-    sr->result->s_aliases = (char **) &(sr->buffer[i+pad]);
+    sr->result->s_aliases = DISCARD_ALIGN(&(sr->buffer[i+pad]), char **);
 
     ptaliases = (sizeof(char *) * (num_aliases + 1)) + pad;
     if (ptaliases > dlen) {

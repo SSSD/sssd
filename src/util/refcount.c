@@ -48,6 +48,7 @@ _rc_alloc(const void *context, size_t size, size_t refcount_offset,
           const char *type_name)
 {
     struct wrapper *wrapper;
+    char *refcount_pos;
 
     wrapper = talloc(context, struct wrapper);
     if (wrapper == NULL) {
@@ -60,7 +61,8 @@ _rc_alloc(const void *context, size_t size, size_t refcount_offset,
         return NULL;
     };
 
-    wrapper->refcount = (int *)((char *)wrapper->ptr + refcount_offset);
+    refcount_pos = (char *)wrapper->ptr + refcount_offset;
+    wrapper->refcount = DISCARD_ALIGN(refcount_pos, int *);
     *wrapper->refcount = 1;
 
     talloc_set_destructor(wrapper, refcount_destructor);
@@ -72,6 +74,7 @@ void *
 _rc_reference(const void *context, size_t refcount_offset, void *source)
 {
     struct wrapper *wrapper;
+    char *refcount_pos;
 
     wrapper = talloc(context, struct wrapper);
     if (wrapper == NULL) {
@@ -79,7 +82,8 @@ _rc_reference(const void *context, size_t refcount_offset, void *source)
     }
 
     wrapper->ptr = source;
-    wrapper->refcount = (int *)((char *)wrapper->ptr + refcount_offset);
+    refcount_pos = (char *)wrapper->ptr + refcount_offset;
+    wrapper->refcount = DISCARD_ALIGN(refcount_pos, int *);
     (*wrapper->refcount)++;
 
     talloc_set_destructor(wrapper, refcount_destructor);

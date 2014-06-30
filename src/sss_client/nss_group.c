@@ -237,7 +237,7 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
     pad = PADDING_SIZE(i, char *);
 
     /* now members */
-    pr->result->gr_mem = (char **)&(pr->buffer[i+pad]);
+    pr->result->gr_mem = DISCARD_ALIGN(&(pr->buffer[i+pad]), char **);
 
     ptmem = (sizeof(char *) * (mem_num + 1)) + pad;
     if (ptmem > dlen) {
