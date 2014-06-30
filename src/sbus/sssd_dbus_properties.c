@@ -358,9 +358,7 @@ dispatch_properties_get_all(struct sbus_connection *conn,
                                    "No such interface"));
     }
 
-    sbus_request_invoke_or_finish(req, NULL,
-                                  intf->instance_data,
-                                  meta->invoker_get_all);
+    sbus_request_invoke_or_finish(req, NULL, NULL, meta->invoker_get_all);
     return EOK;
 }
 

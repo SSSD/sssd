@@ -63,10 +63,12 @@ sbus_request_invoke_or_finish(struct sbus_request *dbus_req,
     DBusError error;
     int ret;
 
-    if (invoker_fn) {
+    if (invoker_fn != NULL) {
         ret = invoker_fn(dbus_req, handler_fn);
-    } else {
+    } else if (handler_fn != NULL) {
         ret = handler_fn(dbus_req, handler_data);
+    } else {
+        ret = EINVAL;
     }
 
     switch(ret) {
@@ -312,6 +314,11 @@ int sbus_request_fail_and_finish(struct sbus_request *dbus_req,
 {
     DBusMessage *reply;
     int ret;
+
+    if (error == NULL) {
+        sbus_request_finish(dbus_req, NULL);
+        return ENOMEM;
+    }
 
     reply = dbus_message_new_error(dbus_req->message, error->name, error->message);
     if (!reply) {
