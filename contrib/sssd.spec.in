@@ -677,6 +677,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING
 %{_libdir}/%{name}/libsss_ad.so
 %{_libdir}/%{name}/libsss_ad_common.so
+%{_libexecdir}/%{servicename}/gpo_child
 %{_mandir}/man5/sssd-ad.5*
 
 %files proxy
