@@ -186,7 +186,6 @@ if HAVE_CMOCKA
         test_sss_idmap \
         test_ipa_idmap \
         test_utils \
-        ad_gpo_tests \
         ad_common_tests \
         dp_opt_tests \
         responder-get-domains-tests \
@@ -199,7 +198,9 @@ non_interactive_cmocka_based_tests += ifp_tests
 endif   # BUILD_IFP
 
 if BUILD_SAMBA
-non_interactive_cmocka_based_tests += ad_access_filter_tests
+non_interactive_cmocka_based_tests += \
+    ad_access_filter_tests \
+    ad_gpo_tests
 endif
 
 endif   # HAVE_CMOCKA
