@@ -730,6 +730,42 @@ void test_sss_sifp_parse_attr_bool_array(void **state)
     assert_null(attrs);
 }
 
+void test_sss_sifp_parse_attr_bool_array_empty(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    unsigned int num_values = 0;
+    unsigned int out_num;
+    bool *out;
+
+    /* prepare message */
+    reply_variant_array(reply, DBUS_TYPE_BOOLEAN_AS_STRING, num_values,
+                        NULL, sizeof(dbus_bool_t));
+
+    /* test */
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, num_values);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_BOOL);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_bool_array(attrs, name, &out_num, &out);
+    assert_int_equal(ret, SSS_SIFP_ATTR_NULL);
+    assert_int_equal(num_values, out_num);
+    assert_null(out);
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
 void test_sss_sifp_parse_attr_int16_array(void **state)
 {
     sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
@@ -767,6 +803,42 @@ void test_sss_sifp_parse_attr_int16_array(void **state)
     for (i = 0; i < num_values; i++) {
         assert_int_equal(in[i], out[i]);
     }
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
+void test_sss_sifp_parse_attr_int16_array_empty(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    unsigned int num_values = 0;
+    unsigned int out_num;
+    int16_t *out;
+
+    /* prepare message */
+    reply_variant_array(reply, DBUS_TYPE_INT16_AS_STRING, num_values,
+                        NULL, sizeof(int16_t));
+
+    /* test */
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, num_values);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_INT16);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_int16_array(attrs, name, &out_num, &out);
+    assert_int_equal(ret, SSS_SIFP_ATTR_NULL);
+    assert_int_equal(num_values, out_num);
+    assert_null(out);
 
     sss_sifp_free_attrs(ctx, &attrs);
     assert_null(attrs);
@@ -814,6 +886,42 @@ void test_sss_sifp_parse_attr_uint16_array(void **state)
     assert_null(attrs);
 }
 
+void test_sss_sifp_parse_attr_uint16_array_empty(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    unsigned int num_values = 0;
+    unsigned int out_num;
+    uint16_t *out;
+
+    /* prepare message */
+    reply_variant_array(reply, DBUS_TYPE_UINT16_AS_STRING, num_values,
+                        NULL, sizeof(uint16_t));
+
+    /* test */
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, num_values);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_UINT16);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_uint16_array(attrs, name, &out_num, &out);
+    assert_int_equal(ret, SSS_SIFP_ATTR_NULL);
+    assert_int_equal(num_values, out_num);
+    assert_null(out);
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
 void test_sss_sifp_parse_attr_int32_array(void **state)
 {
     sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
@@ -851,6 +959,42 @@ void test_sss_sifp_parse_attr_int32_array(void **state)
     for (i = 0; i < num_values; i++) {
         assert_int_equal(in[i], out[i]);
     }
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
+void test_sss_sifp_parse_attr_int32_array_empty(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    unsigned int num_values = 0;
+    unsigned int out_num;
+    int32_t *out;
+
+    /* prepare message */
+    reply_variant_array(reply, DBUS_TYPE_INT32_AS_STRING, num_values,
+                        NULL, sizeof(int32_t));
+
+    /* test */
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, num_values);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_INT32);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_int32_array(attrs, name, &out_num, &out);
+    assert_int_equal(ret, SSS_SIFP_ATTR_NULL);
+    assert_int_equal(num_values, out_num);
+    assert_null(out);
 
     sss_sifp_free_attrs(ctx, &attrs);
     assert_null(attrs);
@@ -898,6 +1042,42 @@ void test_sss_sifp_parse_attr_uint32_array(void **state)
     assert_null(attrs);
 }
 
+void test_sss_sifp_parse_attr_uint32_array_empty(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    unsigned int num_values = 0;
+    unsigned int out_num;
+    uint32_t *out;
+
+    /* prepare message */
+    reply_variant_array(reply, DBUS_TYPE_UINT32_AS_STRING, num_values,
+                        NULL, sizeof(uint32_t));
+
+    /* test */
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, num_values);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_UINT32);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_uint32_array(attrs, name, &out_num, &out);
+    assert_int_equal(ret, SSS_SIFP_ATTR_NULL);
+    assert_int_equal(num_values, out_num);
+    assert_null(out);
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
 void test_sss_sifp_parse_attr_int64_array(void **state)
 {
     sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
@@ -935,6 +1115,42 @@ void test_sss_sifp_parse_attr_int64_array(void **state)
     for (i = 0; i < num_values; i++) {
         assert_int_equal(in[i], out[i]);
     }
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
+void test_sss_sifp_parse_attr_int64_array_empty(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    unsigned int num_values = 0;
+    unsigned int out_num;
+    int64_t *out;
+
+    /* prepare message */
+    reply_variant_array(reply, DBUS_TYPE_INT64_AS_STRING, num_values,
+                        NULL, sizeof(int64_t));
+
+    /* test */
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, num_values);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_INT64);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_int64_array(attrs, name, &out_num, &out);
+    assert_int_equal(ret, SSS_SIFP_ATTR_NULL);
+    assert_int_equal(num_values, out_num);
+    assert_null(out);
 
     sss_sifp_free_attrs(ctx, &attrs);
     assert_null(attrs);
@@ -982,6 +1198,42 @@ void test_sss_sifp_parse_attr_uint64_array(void **state)
     assert_null(attrs);
 }
 
+void test_sss_sifp_parse_attr_uint64_array_empty(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    unsigned int num_values = 0;
+    unsigned int out_num;
+    uint64_t *out;
+
+    /* prepare message */
+    reply_variant_array(reply, DBUS_TYPE_UINT64_AS_STRING, num_values,
+                        NULL, sizeof(uint64_t));
+
+    /* test */
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, num_values);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_UINT64);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_uint64_array(attrs, name, &out_num, &out);
+    assert_int_equal(ret, SSS_SIFP_ATTR_NULL);
+    assert_int_equal(num_values, out_num);
+    assert_null(out);
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
 void test_sss_sifp_parse_attr_string_array(void **state)
 {
     sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
@@ -1024,6 +1276,42 @@ void test_sss_sifp_parse_attr_string_array(void **state)
     assert_null(attrs);
 }
 
+void test_sss_sifp_parse_attr_string_array_empty(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    unsigned int num_values = 0;
+    unsigned int out_num;
+    const char * const *out;
+
+    /* prepare message */
+    reply_variant_array(reply, DBUS_TYPE_STRING_AS_STRING, num_values,
+                        NULL, sizeof(const char*));
+
+    /* test */
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, num_values);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_STRING);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_string_array(attrs, name, &out_num, &out);
+    assert_int_equal(ret, SSS_SIFP_ATTR_NULL);
+    assert_int_equal(num_values, out_num);
+    assert_null(out);
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
 void test_sss_sifp_parse_attr_object_path_array(void **state)
 {
     sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
@@ -1061,6 +1349,42 @@ void test_sss_sifp_parse_attr_object_path_array(void **state)
     for (i = 0; i < num_values; i++) {
         assert_string_equal(in[i], out[i]);
     }
+
+    sss_sifp_free_attrs(ctx, &attrs);
+    assert_null(attrs);
+}
+
+void test_sss_sifp_parse_attr_object_path_array_empty(void **state)
+{
+    sss_sifp_ctx *ctx = test_ctx.dbus_ctx;
+    DBusMessage *reply = test_ctx.reply;
+    sss_sifp_error ret;
+    sss_sifp_attr **attrs = NULL;
+    const char *name = "test-attr";
+    unsigned int num_values = 0;
+    unsigned int out_num;
+    const char * const *out;
+
+    /* prepare message */
+    reply_variant_array(reply, DBUS_TYPE_OBJECT_PATH_AS_STRING, num_values,
+                        NULL, sizeof(const char*));
+
+    /* test */
+    ret = sss_sifp_parse_attr(ctx, name, reply, &attrs);
+
+    assert_int_equal(ret, SSS_SIFP_OK);
+    assert_non_null(attrs);
+    assert_non_null(attrs[0]);
+    assert_null(attrs[1]);
+
+    assert_int_equal(attrs[0]->num_values, num_values);
+    assert_int_equal(attrs[0]->type, SSS_SIFP_ATTR_TYPE_STRING);
+    assert_string_equal(attrs[0]->name, name);
+
+    ret = sss_sifp_find_attr_as_string_array(attrs, name, &out_num, &out);
+    assert_int_equal(ret, SSS_SIFP_ATTR_NULL);
+    assert_int_equal(num_values, out_num);
+    assert_null(out);
 
     sss_sifp_free_attrs(ctx, &attrs);
     assert_null(attrs);
@@ -1869,17 +2193,31 @@ int main(int argc, const char *argv[])
                                  test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_bool_array,
                                  test_setup, test_teardown_parser),
+        unit_test_setup_teardown(test_sss_sifp_parse_attr_bool_array_empty,
+                                 test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_int32_array,
+                                 test_setup, test_teardown_parser),
+        unit_test_setup_teardown(test_sss_sifp_parse_attr_int32_array_empty,
                                  test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_uint32_array,
                                  test_setup, test_teardown_parser),
+        unit_test_setup_teardown(test_sss_sifp_parse_attr_uint32_array_empty,
+                                 test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_int64_array,
+                                 test_setup, test_teardown_parser),
+        unit_test_setup_teardown(test_sss_sifp_parse_attr_int64_array_empty,
                                  test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_uint64_array,
                                  test_setup, test_teardown_parser),
+        unit_test_setup_teardown(test_sss_sifp_parse_attr_uint64_array_empty,
+                                 test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_string_array,
                                  test_setup, test_teardown_parser),
+        unit_test_setup_teardown(test_sss_sifp_parse_attr_string_array_empty,
+                                 test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path_array,
+                                 test_setup, test_teardown_parser),
+        unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path_array_empty,
                                  test_setup, test_teardown_parser),
         unit_test_setup_teardown(test_sss_sifp_parse_attr_string_dict_array,
                                  test_setup, test_teardown_parser),
