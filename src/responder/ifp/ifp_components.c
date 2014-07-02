@@ -21,6 +21,8 @@
 #include <string.h>
 #include <talloc.h>
 #include <signal.h>
+#include <errno.h>
+#include <utime.h>
 
 #include "config.h"
 #include "confdb/confdb.h"
@@ -708,6 +710,17 @@ int ifp_component_change_debug_level_tmp(struct sbus_request *dbus_req,
     }
 
     ret = change_debug_level_tmp(ctx->rctx->cdb, name, type, arg_new_level);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Touch configuration file to make sure debug level is reloaded. */
+    if (utime(CONFDB_DEFAULT_CONFIG_FILE, NULL) == -1) {
+        ret = errno;
+        goto done;
+    }
+
+    ret = EOK;
 
 done:
     if (ret != EOK) {
