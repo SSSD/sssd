@@ -1039,7 +1039,7 @@ void test_sss_sifp_parse_attr_object_path_array(void **state)
     unsigned int i;
 
     /* prepare message */
-    reply_variant_array(reply, DBUS_TYPE_STRING_AS_STRING, num_values,
+    reply_variant_array(reply, DBUS_TYPE_OBJECT_PATH_AS_STRING, num_values,
                         (uint8_t*)in, sizeof(const char*));
 
     /* test */
