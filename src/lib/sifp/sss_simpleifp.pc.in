@@ -4,8 +4,7 @@ includedir=@includedir@
 Name: sss_simpleifp
 Description: A library that simplifies work with the InfoPipe responder
 Version: @VERSION@
-Requires: dbus-1
-Requires: dhash
+Requires: dbus-1, dhash
 Libs: -L@libdir@ -lsss_simpleifp
 Cflags: -I${includedir}
 URL: http://fedorahosted.org/sssd/
