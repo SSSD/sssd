@@ -650,6 +650,9 @@ static void sdap_ad_resolve_sids_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret == EOK && sdap_error == ENOENT && dp_error == DP_ERR_OK) {
+        /* Group was not found, we will ignore the error and continue with
+         * next group. This may happen for example if the group is built-in,
+         * but a custom search base is provided. */
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to resolve SID %s - will try next sid.\n",
               state->current_sid);
