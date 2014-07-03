@@ -450,35 +450,67 @@ static void be_queue_next_request(struct be_req *be_req, enum bet_type type)
 
 bool be_is_offline(struct be_ctx *ctx)
 {
-    time_t now = time(NULL);
-    int offline_timeout;
-    int ret;
-
-    /* check if we are past the offline blackout timeout */
-    ret = confdb_get_int(ctx->cdb, ctx->conf_path,
-                         CONFDB_DOMAIN_OFFLINE_TIMEOUT, 60,
-                         &offline_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Failed to get offline_timeout from confdb. "
-               "Using default value (60 seconds)\n");
-        offline_timeout = 60;
-    }
-
-    if (ctx->offstat.went_offline + offline_timeout < now) {
-        ctx->offstat.offline = false;
-    }
-
     return ctx->offstat.offline;
+}
+
+static void check_if_online(struct be_ctx *ctx);
+
+static errno_t
+try_to_go_online(TALLOC_CTX *mem_ctx,
+                 struct tevent_context *ev,
+                 struct be_ctx *be_ctx,
+                 struct be_ptask *be_ptask,
+                 void *be_ctx_void)
+{
+    struct be_ctx *ctx = (struct be_ctx*) be_ctx_void;
+
+    check_if_online(ctx);
+    return EOK;
 }
 
 void be_mark_offline(struct be_ctx *ctx)
 {
+    int offline_timeout;
+    errno_t ret;
+
     DEBUG(SSSDBG_TRACE_INTERNAL, "Going offline!\n");
 
     ctx->offstat.went_offline = time(NULL);
     ctx->offstat.offline = true;
     ctx->run_online_cb = true;
+
+    if (ctx->check_if_online_ptask == NULL) {
+        /* This is the first time we go offline - create a periodic task
+         * to check if we can switch to online. */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Initialize check_if_online_ptask.\n");
+        ret = confdb_get_int(ctx->cdb, ctx->conf_path,
+                             CONFDB_DOMAIN_OFFLINE_TIMEOUT, 60,
+                             &offline_timeout);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to get offline_timeout from confdb. "
+                  "Will use 60 seconds.");
+            offline_timeout = 60;
+        }
+        ret = be_ptask_create_sync(ctx, ctx,
+                                   offline_timeout, offline_timeout,
+                                   offline_timeout, 30, offline_timeout,
+                                   BE_PTASK_OFFLINE_EXECUTE,
+                                   3600 /* max_backoff */,
+                                   try_to_go_online,
+                                   ctx, "Check if online (periodic)",
+                                   &ctx->check_if_online_ptask);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "be_ptask_create_sync failed [%d]: %s\n",
+                  ret, sss_strerror(ret));
+        }
+    } else {
+        /* Periodic task was already created. Just enable it. */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Enable check_if_online_ptask.\n");
+        be_ptask_enable(ctx->check_if_online_ptask);
+    }
+
     be_run_offline_cb(ctx);
 }
 
@@ -486,6 +518,7 @@ static void be_reset_offline(struct be_ctx *ctx)
 {
     ctx->offstat.went_offline = 0;
     ctx->offstat.offline = false;
+    be_ptask_disable(ctx->check_if_online_ptask);
     be_run_online_cb(ctx);
 }
 

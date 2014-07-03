@@ -133,6 +133,8 @@ struct be_ctx {
     struct be_cb *unconditional_online_cb_list;
 
     struct be_offline_status offstat;
+    /* Periodicly check if we can go online. */
+    struct be_ptask *check_if_online_ptask;
 
     struct sbus_connection *mon_conn;
     struct sbus_connection *sbus_srv;
