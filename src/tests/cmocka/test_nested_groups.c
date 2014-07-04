@@ -46,6 +46,9 @@
 #define GROUP_BASE_DN "cn=groups," OBJECT_BASE_DN
 #define USER_BASE_DN "cn=users," OBJECT_BASE_DN
 
+#define N_ELEMENTS(arr) \
+    (sizeof(arr) / sizeof(arr[0]))
+
 struct nested_groups_test_ctx {
     struct sss_test_ctx *tctx;
 
@@ -58,6 +61,36 @@ struct nested_groups_test_ctx {
     unsigned long num_users;
     unsigned long num_groups;
 };
+
+/* Both arrays must have the same length! */
+static void compare_sysdb_string_array_noorder(struct sysdb_attrs **sysdb_array,
+                                               const char **string_array,
+                                               size_t len)
+{
+    int i, ii;
+    errno_t ret;
+    const char *name;
+
+    /* Check the returned groups. The order is irrelevant. */
+    for (i = 0; i < len; i++) {
+        ret = sysdb_attrs_get_string(sysdb_array[i], SYSDB_NAME, &name);
+        assert_int_equal(ret, ERR_OK);
+
+        for (ii = 0; ii < len; ii++) {
+            if (string_array[ii] == NULL) {
+                continue;
+            }
+            if (strcmp(name, string_array[ii]) == 0) {
+                string_array[ii] = NULL;
+                break;
+            }
+        }
+    }
+
+    for (i = 0; i < len; i++) {
+        assert_null(string_array[i]);
+    }
+}
 
 static void nested_groups_test_done(struct tevent_req *req)
 {
@@ -122,12 +155,14 @@ static void nested_groups_test_one_group_unique_members(void **state)
     struct tevent_req *req = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     errno_t ret;
-    const char *name;
     const char *users[] = { "cn=user1,"USER_BASE_DN,
                             "cn=user2,"USER_BASE_DN,
                             NULL };
     const struct sysdb_attrs *user1_reply[2] = { NULL };
     const struct sysdb_attrs *user2_reply[2] = { NULL };
+    const char * expected[] = { "user1",
+                                "user2" };
+
 
     test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
 
@@ -166,16 +201,11 @@ static void nested_groups_test_one_group_unique_members(void **state)
     assert_int_equal(ret, ERR_OK);
 
     /* Check the users */
-    assert_int_equal(test_ctx->num_users, 2);
+    assert_int_equal(test_ctx->num_users, N_ELEMENTS(expected));
     assert_int_equal(test_ctx->num_groups, 1);
 
-    ret = sysdb_attrs_get_string(test_ctx->users[0], SYSDB_NAME, &name);
-    assert_int_equal(ret, ERR_OK);
-    assert_string_equal(name, "user1");
-
-    ret = sysdb_attrs_get_string(test_ctx->users[1], SYSDB_NAME, &name);
-    assert_int_equal(ret, ERR_OK);
-    assert_string_equal(name, "user2");
+    compare_sysdb_string_array_noorder(test_ctx->users,
+                                       expected, N_ELEMENTS(expected));
 }
 
 static void nested_groups_test_one_group_dup_users(void **state)
@@ -244,12 +274,14 @@ static void nested_groups_test_one_group_unique_group_members(void **state)
     struct tevent_req *req = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     errno_t ret;
-    const char *name;
     const char *groups[] = { "cn=emptygroup1,"GROUP_BASE_DN,
                              "cn=emptygroup2,"GROUP_BASE_DN,
                              NULL };
     const struct sysdb_attrs *group1_reply[2] = { NULL };
     const struct sysdb_attrs *group2_reply[2] = { NULL };
+    const char * expected[] = { "rootgroup",
+                                "emptygroup1",
+                                "emptygroup2" };
 
     test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
 
@@ -291,19 +323,10 @@ static void nested_groups_test_one_group_unique_group_members(void **state)
 
     /* Check the users */
     assert_int_equal(test_ctx->num_users, 0);
-    assert_int_equal(test_ctx->num_groups, 3);
+    assert_int_equal(test_ctx->num_groups, N_ELEMENTS(expected));
 
-    ret = sysdb_attrs_get_string(test_ctx->groups[0], SYSDB_NAME, &name);
-    assert_int_equal(ret, ERR_OK);
-    assert_string_equal(name, "rootgroup");
-
-    ret = sysdb_attrs_get_string(test_ctx->groups[1], SYSDB_NAME, &name);
-    assert_int_equal(ret, ERR_OK);
-    assert_string_equal(name, "emptygroup2");
-
-    ret = sysdb_attrs_get_string(test_ctx->groups[2], SYSDB_NAME, &name);
-    assert_int_equal(ret, ERR_OK);
-    assert_string_equal(name, "emptygroup1");
+    compare_sysdb_string_array_noorder(test_ctx->groups,
+                                       expected, N_ELEMENTS(expected));
 }
 
 static void nested_groups_test_one_group_dup_group_members(void **state)
@@ -313,12 +336,13 @@ static void nested_groups_test_one_group_dup_group_members(void **state)
     struct tevent_req *req = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     errno_t ret;
-    const char *name;
     const char *groups[] = { "cn=emptygroup1,"GROUP_BASE_DN,
                              "cn=emptygroup1,"GROUP_BASE_DN,
                              NULL };
     const struct sysdb_attrs *group1_reply[2] = { NULL };
     const struct sysdb_attrs *group2_reply[2] = { NULL };
+    const char * expected[] = { "rootgroup",
+                                "emptygroup1" };
 
     test_ctx = talloc_get_type_abort(*state, struct nested_groups_test_ctx);
 
@@ -358,17 +382,11 @@ static void nested_groups_test_one_group_dup_group_members(void **state)
     /* check return code */
     assert_int_equal(ret, ERR_OK);
 
-    /* Check the users */
     assert_int_equal(test_ctx->num_users, 0);
-    assert_int_equal(test_ctx->num_groups, 2);
+    assert_int_equal(test_ctx->num_groups, N_ELEMENTS(expected));
 
-    ret = sysdb_attrs_get_string(test_ctx->groups[0], SYSDB_NAME, &name);
-    assert_int_equal(ret, ERR_OK);
-    assert_string_equal(name, "rootgroup");
-
-    ret = sysdb_attrs_get_string(test_ctx->groups[1], SYSDB_NAME, &name);
-    assert_int_equal(ret, ERR_OK);
-    assert_string_equal(name, "emptygroup1");
+    compare_sysdb_string_array_noorder(test_ctx->groups,
+                                       expected, N_ELEMENTS(expected));
 }
 
 void nested_groups_test_setup(void **state)
