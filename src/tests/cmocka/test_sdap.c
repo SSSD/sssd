@@ -372,6 +372,58 @@ void test_parse_no_attrs(void **state)
     talloc_free(attrs);
 }
 
+void test_parse_dups(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_dupattr_user;
+    struct sdap_attr_map *map;
+    int i;
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *uid_values[] = { "1234", NULL };
+    struct mock_ldap_attr test_dupattr_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "idNumber", .values = uid_values },
+        { NULL, NULL }
+    };
+
+    test_dupattr_user.dn = "cn=dupuser,dc=example,dc=com";
+    test_dupattr_user.attrs = test_dupattr_attrs;
+    set_entry_parse(&test_dupattr_user);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+    /* Set both uidNumber and gidNumber to idNumber */
+    for (i = 0; i < SDAP_OPTS_USER; i++) {
+        if (map[i].name == NULL) continue;
+
+        if (strcmp(map[i].name, "uidNumber") == 0
+             || strcmp(map[i].name, "gidNumber") == 0) {
+            map[i].name = discard_const("idNumber");
+        }
+    }
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, NULL, false);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_int_equal(attrs->num, 3);
+
+    /* Every entry has a DN */
+    assert_entry_has_attr(attrs, SYSDB_ORIG_DN,
+                          "cn=dupuser,dc=example,dc=com");
+    /* Test the single-valued attribute */
+    assert_entry_has_attr(attrs, SYSDB_UIDNUM, "1234");
+    assert_entry_has_attr(attrs, SYSDB_GIDNUM, "1234");
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
 /* Negative test - objectclass doesn't match the map */
 void test_parse_bad_oc(void **state)
 {
@@ -491,6 +543,9 @@ int main(int argc, const char *argv[])
                                  parse_entry_test_setup,
                                  parse_entry_test_teardown),
         unit_test_setup_teardown(test_parse_no_attrs,
+                                 parse_entry_test_setup,
+                                 parse_entry_test_teardown),
+        unit_test_setup_teardown(test_parse_dups,
                                  parse_entry_test_setup,
                                  parse_entry_test_teardown),
         /* Negative tests */

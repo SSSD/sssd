@@ -302,7 +302,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     struct ldb_val v;
     char *str;
     int lerrno;
-    int a, i, ret;
+    int a, i, ret, ai;
     const char *name;
     bool store;
     bool base64;
@@ -480,8 +480,29 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                         v.length = vals[i]->bv_len;
                     }
 
-                    ret = sysdb_attrs_add_val(attrs, name, &v);
-                    if (ret) goto done;
+                    if (map) {
+                        /* The same LDAP attr might be used for more sysdb
+                         * attrs in case there is a map. Find all that match
+                         * and copy the value
+                         */
+                        for (ai = a; ai < attrs_num; ai++) {
+                            /* check if this attr is valid with the chosen
+                             * schema */
+                            if (!map[ai].name) continue;
+
+                            /* check if it is an attr we are interested in */
+                            if (strcasecmp(base_attr, map[ai].name) == 0) {
+                                ret = sysdb_attrs_add_val(attrs,
+                                                          map[ai].sys_name,
+                                                          &v);
+                                if (ret) goto done;
+                            }
+                        }
+                    } else {
+                        /* No map, just store the attribute */
+                        ret = sysdb_attrs_add_val(attrs, name, &v);
+                        if (ret) goto done;
+                    }
                 }
                 ldap_value_free_len(vals);
             }
