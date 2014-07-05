@@ -77,6 +77,7 @@ Requires: python-sssdconfig = %{version}-%{release}
 %global pipepath %{sssdstatedir}/pipes
 %global mcpath %{sssdstatedir}/mc
 %global pubconfpath %{sssdstatedir}/pubconf
+%global gpocachepath %{sssdstatedir}/gpo_cache
 
 ### Build Dependencies ###
 
@@ -447,6 +448,7 @@ autoreconf -ivf
     --with-mcache-path=%{mcpath} \
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
+    --with-gpo-cache-path=%{gpocachepath} \
     --with-init-dir=%{_initrddir} \
     --with-krb5-rcache-dir=%{_localstatedir}/cache/krb5rcache \
     --enable-nsslibdir=/%{_lib} \
@@ -615,6 +617,7 @@ rm -rf $RPM_BUILD_ROOT
 %ghost %attr(0644,root,root) %verify(not md5 size mtime) %{mcpath}/group
 %attr(755,root,root) %dir %{pipepath}
 %attr(755,root,root) %dir %{pubconfpath}
+%attr(755,root,root) %dir %{gpocachepath}
 %attr(700,root,root) %dir %{pipepath}/private
 %attr(750,root,root) %dir %{_var}/log/%{name}
 %attr(711,root,root) %dir %{_sysconfdir}/sssd

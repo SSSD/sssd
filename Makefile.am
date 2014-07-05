@@ -61,6 +61,7 @@ systemdunitdir = @systemdunitdir@
 systemdconfdir = @systemdconfdir@
 logpath = @logpath@
 pubconfpath = @pubconfpath@
+gpocachepath = @gpocachepath@
 pkgconfigdir = $(libdir)/pkgconfig
 krb5rcachedir = @krb5rcachedir@
 sudolibdir = @sudolibpath@
@@ -2606,6 +2607,7 @@ installsssddirs::
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(pubconfpath) \
     $(DESTDIR)$(pubconfpath)/krb5.include.d \
+    $(DESTDIR)$(gpocachepath) \
     $(DESTDIR)$(sudolibdir) \
     $(DESTDIR)$(autofslibdir)
 

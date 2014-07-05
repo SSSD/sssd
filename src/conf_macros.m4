@@ -453,6 +453,23 @@ AC_DEFUN([WITH_SEMANAGE],
     AM_CONDITIONAL([BUILD_SEMANAGE], [test x"$with_semanage" = xyes])
   ])
 
+AC_DEFUN([WITH_GPO_CACHE_PATH],
+  [ AC_ARG_WITH([gpo-cache-path],
+                [AC_HELP_STRING([--with-gpo-cache-path=PATH],
+                                [Where to store GPO policy files [/var/lib/sss/gpo_cache]]
+                               )
+                ]
+               )
+    config_gpocachepath="\"VARDIR\"/lib/sss/gpo_cache"
+    gpocachepath="${localstatedir}/lib/sss/gpo_cache"
+    if test x"$with_gpo_cache_path" != x; then
+        config_gpocachepath=$with_gpo_cache_path
+        gpocachepath=$with_gpo_cache_path
+    fi
+    AC_SUBST(gpocachepath)
+    AC_DEFINE_UNQUOTED(GPO_CACHE_PATH, "$config_gpocachepath", [Where to store GPO policy files])
+  ])
+
 AC_DEFUN([WITH_LIBNL],
   [ AC_ARG_WITH([libnl],
                 [AC_HELP_STRING([--with-libnl],
