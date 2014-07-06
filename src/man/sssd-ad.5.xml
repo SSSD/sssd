@@ -812,6 +812,26 @@ ad_gpo_map_deny = +my_pam_service
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>dyndns_server (string)</term>
+                    <listitem>
+                        <para>
+                            The DNS server to use when performing a DNS
+                            update. In most setups, it's recommended to leave
+                            this option unset.
+                        </para>
+                        <para>
+                            Setting this option makes sense for environments
+                            where the DNS server is different from the identity
+                            server.
+                        </para>
+                        <para>
+                            Default: None (let nsupdate choose the server)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/override_homedir.xml" />
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/homedir_substring.xml" />
 

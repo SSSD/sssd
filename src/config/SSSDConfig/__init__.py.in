@@ -148,6 +148,7 @@ option_strings = {
     'dyndns_update_ptr' : _("Whether the provider should explicitly update the PTR record as well"),
     'dyndns_force_tcp' : _("Whether the nsupdate utility should default to using TCP"),
     'dyndns_auth' : _("What kind of authentication should be used to perform the DNS update"),
+    'dyndns_server' : _("Override the DNS server used to perform the DNS update"),
     'subdomain_enumerate' : _('Control enumeration of trusted domains'),
     'subdomain_refresh_interval' : _('How often should subdomains list be refreshed'),
     'subdomain_inherit' : _('List of options that should be inherited into a subdomain'),

@@ -55,6 +55,7 @@ enum dp_dyndns_opts {
     DP_OPT_DYNDNS_UPDATE_PTR,
     DP_OPT_DYNDNS_FORCE_TCP,
     DP_OPT_DYNDNS_AUTH,
+    DP_OPT_DYNDNS_SERVER,
 
     DP_OPT_DYNDNS /* attrs counter */
 };

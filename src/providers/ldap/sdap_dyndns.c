@@ -92,6 +92,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct sdap_dyndns_update_state *state;
+    const char *conf_servername;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_dyndns_update_state);
     if (req == NULL) {
@@ -110,6 +111,12 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->auth_type = auth_type;
     state->pass_num = 0;
+
+    conf_servername = dp_opt_get_string(opts, DP_OPT_DYNDNS_SERVER);
+    if (conf_servername != NULL) {
+        state->servername = conf_servername;
+        state->use_server_with_nsupdate = true;
+    }
 
     if (ifname) {
        /* Unless one family is restricted, just replace all
