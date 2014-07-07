@@ -315,8 +315,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     lerrno = 0;
     ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_set_option failed [%s], ignored.\n",
-                  sss_ldap_err2string(ret));
+        DEBUG(SSSDBG_MINOR_FAILURE, "ldap_set_option failed [%s], ignored.\n",
+              sss_ldap_err2string(ret));
     }
 
     attrs = sysdb_new_attrs(tmp_ctx);
@@ -329,12 +329,12 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     if (!str) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_get_dn failed: %d(%s)\n",
-                  lerrno, sss_ldap_err2string(lerrno));
+              lerrno, sss_ldap_err2string(lerrno));
         ret = EIO;
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, "OriginalDN: [%s].\n", str);
+    DEBUG(SSSDBG_TRACE_LIBS, "OriginalDN: [%s].\n", str);
     ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
     if (ret) goto done;
     if (_dn) {
@@ -366,7 +366,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         }
         if (!vals[i]) {
             DEBUG(SSSDBG_CRIT_FAILURE, "objectClass not matching: %s\n",
-                      map[0].name);
+                  map[0].name);
             ldap_value_free_len(vals);
             ret = EINVAL;
             goto done;
@@ -378,7 +378,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     if (!str) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
         DEBUG(lerrno == LDAP_SUCCESS
-              ? SSSDBG_TRACE_INTERNAL
+              ? SSSDBG_TRACE_LIBS
               : SSSDBG_MINOR_FAILURE,
               "Entry has no attributes [%d(%s)]!?\n",
                lerrno, sss_ldap_err2string(lerrno));
@@ -406,7 +406,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         case EOK:
             break;
         default:
-            DEBUG(SSSDBG_MINOR_FAILURE,
+            DEBUG(SSSDBG_CRIT_FAILURE,
                   "Could not determine if attribute [%s] was ranged\n", str);
             goto done;
         }
@@ -445,12 +445,12 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
                 if (lerrno != LDAP_SUCCESS) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)",
-                              lerrno, sss_ldap_err2string(lerrno));
+                          lerrno, sss_ldap_err2string(lerrno));
                     ret = EIO;
                     goto done;
                 }
 
-                DEBUG(SSSDBG_FUNC_DATA,
+                DEBUG(SSSDBG_TRACE_LIBS,
                       "Attribute [%s] has no values, skipping.\n", str);
 
             } else {
@@ -462,14 +462,14 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 }
                 for (i = 0; vals[i]; i++) {
                     if (vals[i]->bv_len == 0) {
-                        DEBUG(SSSDBG_MINOR_FAILURE,
+                        DEBUG(SSSDBG_TRACE_LIBS,
                               "Value of attribute [%s] is empty. "
                                "Skipping this value.\n", str);
                         continue;
                     }
                     if (base64) {
-                        v.data = (uint8_t *)sss_base64_encode(attrs,
-                                (uint8_t *)vals[i]->bv_val, vals[i]->bv_len);
+                        v.data = (uint8_t *) sss_base64_encode(attrs,
+                                 (uint8_t *) vals[i]->bv_val, vals[i]->bv_len);
                         if (!v.data) {
                             ret = ENOMEM;
                             goto done;
@@ -517,7 +517,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (lerrno) {
         DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)",
-                  lerrno, sss_ldap_err2string(lerrno));
+              lerrno, sss_ldap_err2string(lerrno));
         ret = EIO;
         goto done;
     }
