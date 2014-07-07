@@ -2581,7 +2581,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (ctx->domain->refresh_expired_interval > 0) {
         ret = be_ptask_create(ctx, ctx, ctx->domain->refresh_expired_interval,
                               30, 5, 0, ctx->domain->refresh_expired_interval,
-                              BE_PTASK_OFFLINE_SKIP,
+                              BE_PTASK_OFFLINE_SKIP, 0,
                               be_refresh_send, be_refresh_recv,
                               ctx->refresh_ctx, "Refresh Records", NULL);
         if (ret != EOK) {

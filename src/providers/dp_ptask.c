@@ -40,6 +40,9 @@ struct be_ptask {
     time_t random_offset;
     unsigned int ro_seed;
     time_t timeout;
+    bool allow_backoff;
+    time_t max_backoff;
+    time_t backoff_delay;
     enum be_ptask_offline offline;
     be_ptask_send_t send_fn;
     be_ptask_recv_t recv_fn;
@@ -210,6 +213,17 @@ static void be_ptask_schedule(struct be_ptask *task,
         return;
     }
 
+    if (task->allow_backoff) {
+        if (task->backoff_delay == 0) {
+            task->backoff_delay = task->period;
+        } else {
+            task->backoff_delay = (task->backoff_delay * 2 > task->max_backoff)
+                                  ? task->max_backoff
+                                  : task->backoff_delay * 2;
+            delay = task->backoff_delay;
+        }
+    }
+
     if (task->random_offset != 0) {
         delay = delay + (rand_r(&task->ro_seed) % task->random_offset);
     }
@@ -253,6 +267,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         time_t random_offset,
                         time_t timeout,
                         enum be_ptask_offline offline,
+                        time_t max_backoff,
                         be_ptask_send_t send_fn,
                         be_ptask_recv_t recv_fn,
                         void *pvt,
@@ -288,6 +303,11 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
     if (task->name == NULL) {
         ret = ENOMEM;
         goto done;
+    }
+
+    if (max_backoff != 0) {
+        task->max_backoff = max_backoff;
+        task->allow_backoff = true;
     }
 
     task->enabled = true;
@@ -350,6 +370,10 @@ void be_ptask_disable(struct be_ptask *task)
 
     talloc_zfree(task->timer);
     task->enabled = false;
+
+    if (task->allow_backoff) {
+        task->backoff_delay = 0;
+    }
 }
 
 void be_ptask_destroy(struct be_ptask **task)
@@ -418,6 +442,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
                              time_t random_offset,
                              time_t timeout,
                              enum be_ptask_offline offline,
+                             time_t max_backoff,
                              be_ptask_sync_t fn,
                              void *pvt,
                              const char *name,
@@ -437,7 +462,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
 
     ret = be_ptask_create(mem_ctx, be_ctx, period, first_delay,
                           enabled_delay, random_offset, timeout, offline,
-                          be_ptask_sync_send, be_ptask_sync_recv,
+                          max_backoff, be_ptask_sync_send, be_ptask_sync_recv,
                           ctx, name, _task);
     if (ret != EOK) {
         goto done;

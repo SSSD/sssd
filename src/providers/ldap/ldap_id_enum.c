@@ -77,6 +77,7 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
                           0,                        /* random offset */
                           period,                   /* timeout */
                           BE_PTASK_OFFLINE_SKIP,
+                          0,                        /* max_backoff */
                           send_fn, recv_fn,
                           ectx, "enumeration", &sdom->enum_task);
     if (ret != EOK) {
