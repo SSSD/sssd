@@ -191,7 +191,9 @@ if HAVE_CMOCKA
         responder-get-domains-tests \
         sbus-internal-tests \
         sss_sifp-tests \
-        test_search_bases
+        test_search_bases \
+        sdap-tests \
+        $(NULL)
 
 if BUILD_IFP
 non_interactive_cmocka_based_tests += ifp_tests
@@ -1837,6 +1839,35 @@ dp_opt_tests_LDADD = \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la
+
+sdap_tests_SOURCES = \
+    src/providers/data_provider_opts.c \
+    src/providers/ldap/sdap.c \
+    src/providers/ldap/sdap_range.c \
+    src/util/sss_ldap.c \
+    src/tests/cmocka/test_sdap.c \
+    $(NULL)
+sdap_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(SSS_CRYPT_CFLAGS) \
+    $(NULL)
+sdap_tests_LDFLAGS = \
+    -Wl,-wrap,ldap_set_option \
+    -Wl,-wrap,ldap_get_dn \
+    -Wl,-wrap,ldap_memfree \
+    -Wl,-wrap,ldap_get_values_len \
+    -Wl,-wrap,ldap_value_free_len \
+    -Wl,-wrap,ldap_first_attribute \
+    -Wl,-wrap,ldap_next_attribute \
+    $(NULL)
+sdap_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(SSS_CRYPT_LIBS) \
+    libsss_test_common.la \
+    $(NULL)
 
 if BUILD_IFP
 ifp_tests_SOURCES = \
