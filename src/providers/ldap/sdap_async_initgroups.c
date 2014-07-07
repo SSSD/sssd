@@ -2616,6 +2616,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct sdap_id_ctx *id_ctx,
                                         struct sdap_id_conn_ctx *conn,
                                         const char *name,
+                                        const char *extra_value,
                                         const char **grp_attrs)
 {
     struct tevent_req *req;
@@ -2623,6 +2624,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     int ret;
     char *clean_name;
     bool use_id_mapping;
+    const char *search_attr;
 
     DEBUG(SSSDBG_TRACE_ALL, "Retrieving info for initgroups call\n");
 
@@ -2661,10 +2663,15 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
+    if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
+        search_attr =  state->opts->user_map[SDAP_AT_USER_PRINC].name;
+    } else {
+        search_attr =  state->opts->user_map[SDAP_AT_USER_NAME].name;
+    }
+
     state->user_base_filter =
             talloc_asprintf(state, "(&(%s=%s)(objectclass=%s)",
-                            state->opts->user_map[SDAP_AT_USER_NAME].name,
-                            clean_name,
+                            search_attr, clean_name,
                             state->opts->user_map[SDAP_OC_USER].name);
     if (!state->user_base_filter) {
         talloc_zfree(req);

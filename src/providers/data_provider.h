@@ -147,6 +147,8 @@
  * length */
 #define DP_SEC_ID_LEN (sizeof(DP_SEC_ID) - 1)
 
+#define EXTRA_NAME_IS_UPN "U"
+
 /* AUTH related common data and functions */
 
 #define DEBUG_PAM_DATA(level, pd) do { \

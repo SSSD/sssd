@@ -70,6 +70,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   struct sdap_id_conn_ctx *conn,
                                   const char *name,
                                   int filter_type,
+                                  const char *extra_value,
                                   int attrs_type,
                                   bool noexist_delete)
 {
@@ -111,7 +112,11 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                                           sdom->dom->domain_id);
     switch (filter_type) {
     case BE_FILTER_NAME:
-        attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
+        if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
+            attr_name = ctx->opts->user_map[SDAP_AT_USER_PRINC].name;
+        } else {
+            attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
+        }
         ret = sss_filter_sanitize(state, name, &clean_name);
         if (ret != EOK) {
             goto done;
@@ -918,6 +923,7 @@ struct groups_by_user_state {
     struct sss_domain_info *domain;
 
     const char *name;
+    const char *extra_value;
     const char **attrs;
 
     int dp_error;
@@ -935,6 +941,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                               struct sdap_domain *sdom,
                                               struct sdap_id_conn_ctx *conn,
                                               const char *name,
+                                              const char *extra_value,
                                               bool noexist_delete)
 {
     struct tevent_req *req;
@@ -959,6 +966,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
     }
 
     state->name = name;
+    state->extra_value = extra_value;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
 
@@ -1020,6 +1028,7 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                   state->ctx,
                                   state->conn,
                                   state->name,
+                                  state->extra_value,
                                   state->attrs);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
@@ -1320,6 +1329,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                                 sdom, conn,
                                 ar->filter_value,
                                 ar->filter_type,
+                                ar->extra_value,
                                 ar->attr_type,
                                 noexist_delete);
         break;
@@ -1358,6 +1368,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         subreq = groups_by_user_send(breq, be_ctx->ev, id_ctx,
                                      sdom, conn,
                                      ar->filter_value,
+                                     ar->extra_value,
                                      noexist_delete);
         break;
 
@@ -1701,7 +1712,7 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
      * Retry with users. */
     subreq = users_get_send(req, state->ev, state->id_ctx,
                             state->sdom, state->conn,
-                            state->filter_val, state->filter_type,
+                            state->filter_val, state->filter_type, NULL,
                             state->attrs_type, state->noexist_delete);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "groups_get_send failed.\n");
