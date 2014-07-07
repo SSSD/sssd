@@ -81,6 +81,9 @@ typedef errno_t
  * If the task is reenabled, it will be scheduled again to
  * 'now + enabled_delay'.
  *
+ * The random_offset is maximum number of seconds added to the
+ * expected delay. Set to 0 if no randomization is needed.
+ *
  * If an internal error occurred, the task is automatically disabled.
  */
 errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
@@ -88,6 +91,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         time_t period,
                         time_t first_delay,
                         time_t enabled_delay,
+                        time_t random_offset,
                         time_t timeout,
                         enum be_ptask_offline offline,
                         be_ptask_send_t send_fn,
@@ -101,6 +105,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
                              time_t period,
                              time_t first_delay,
                              time_t enabled_delay,
+                             time_t random_offset,
                              time_t timeout,
                              enum be_ptask_offline offline,
                              be_ptask_sync_t fn,

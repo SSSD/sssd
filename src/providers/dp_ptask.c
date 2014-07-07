@@ -37,6 +37,8 @@ struct be_ptask {
     struct be_ctx *be_ctx;
     time_t period;
     time_t enabled_delay;
+    time_t random_offset;
+    unsigned int ro_seed;
     time_t timeout;
     enum be_ptask_offline offline;
     be_ptask_send_t send_fn;
@@ -208,6 +210,10 @@ static void be_ptask_schedule(struct be_ptask *task,
         return;
     }
 
+    if (task->random_offset != 0) {
+        delay = delay + (rand_r(&task->ro_seed) % task->random_offset);
+    }
+
     switch (from) {
     case BE_PTASK_SCHEDULE_FROM_NOW:
         tv = tevent_timeval_current_ofs(delay, 0);
@@ -244,6 +250,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         time_t period,
                         time_t first_delay,
                         time_t enabled_delay,
+                        time_t random_offset,
                         time_t timeout,
                         enum be_ptask_offline offline,
                         be_ptask_send_t send_fn,
@@ -270,6 +277,8 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
     task->be_ctx = be_ctx;
     task->period = period;
     task->enabled_delay = enabled_delay;
+    task->random_offset = random_offset;
+    task->ro_seed = time(NULL) * getpid();
     task->timeout = timeout;
     task->offline = offline;
     task->send_fn = send_fn;
@@ -406,6 +415,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
                              time_t period,
                              time_t first_delay,
                              time_t enabled_delay,
+                             time_t random_offset,
                              time_t timeout,
                              enum be_ptask_offline offline,
                              be_ptask_sync_t fn,
@@ -426,7 +436,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
     ctx->pvt = pvt;
 
     ret = be_ptask_create(mem_ctx, be_ctx, period, first_delay,
-                          enabled_delay, timeout, offline,
+                          enabled_delay, random_offset, timeout, offline,
                           be_ptask_sync_send, be_ptask_sync_recv,
                           ctx, name, _task);
     if (ret != EOK) {
