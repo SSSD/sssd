@@ -1543,7 +1543,7 @@ static errno_t sdap_get_generic_parse_entry(struct sdap_handle *sh,
 
     ret = sdap_parse_entry(state, sh, msg,
                            state->map, state->map_num_attrs,
-                           &attrs, NULL, disable_range_rtrvl);
+                           &attrs, disable_range_rtrvl);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
@@ -1948,7 +1948,7 @@ static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
 
     ret = sdap_parse_entry(state, sh, msg,
                            NULL, 0,
-                           &attrs, NULL, disable_range_rtrvl);
+                           &attrs, disable_range_rtrvl);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));
@@ -2201,7 +2201,7 @@ static errno_t sdap_asq_search_parse_entry(struct sdap_handle *sh,
 
         ret = sdap_parse_entry(res[mi], sh, msg,
                                map, num_attrs,
-                               &res[mi]->attrs, NULL, disable_range_rtrvl);
+                               &res[mi]->attrs, disable_range_rtrvl);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "sdap_parse_entry failed [%d]: %s\n", ret, strerror(ret));

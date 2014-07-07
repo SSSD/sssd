@@ -293,7 +293,7 @@ int sdap_get_map(TALLOC_CTX *memctx,
 int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_handle *sh, struct sdap_msg *sm,
                      struct sdap_attr_map *map, int attrs_num,
-                     struct sysdb_attrs **_attrs, char **_dn,
+                     struct sysdb_attrs **_attrs,
                      bool disable_range_retrieval)
 {
     struct sysdb_attrs *attrs;
@@ -307,7 +307,6 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     bool store;
     bool base64;
     char *base_attr;
-    char *dn = NULL;
     uint32_t range_offset;
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -336,16 +335,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
     DEBUG(SSSDBG_TRACE_LIBS, "OriginalDN: [%s].\n", str);
     ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
-    if (ret) goto done;
-    if (_dn) {
-        dn = talloc_strdup(tmp_ctx, str);
-        if (!dn) {
-            ret = ENOMEM;
-            ldap_memfree(str);
-            goto done;
-        }
-    }
     ldap_memfree(str);
+    if (ret) goto done;
 
     if (map) {
         vals = ldap_get_values_len(sh->ldap, sm->msg, "objectClass");
@@ -523,7 +514,6 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     }
 
     *_attrs = talloc_steal(memctx, attrs);
-    if (_dn) *_dn = talloc_steal(memctx, dn);
     ret = EOK;
 
 done:
