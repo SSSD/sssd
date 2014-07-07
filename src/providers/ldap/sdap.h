@@ -504,9 +504,6 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          LDAPDerefRes *dref,
                          struct sdap_deref_attrs ***_res);
 
-int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
-                    struct sdap_msg *sm, char **_dn);
-
 errno_t setup_tls_config(struct dp_option *basic_opts);
 
 int sdap_set_rootdse_supported_lists(struct sysdb_attrs *rootdse,
