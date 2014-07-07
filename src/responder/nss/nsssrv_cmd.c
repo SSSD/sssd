@@ -524,6 +524,7 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
                     int req_type,
                     const char *opt_name,
                     uint32_t opt_id,
+                    const char *extra,
                     sss_dp_callback_t callback,
                     void *pvt)
 {
@@ -582,7 +583,7 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
              "Performing midpoint cache update on [%s]\n", opt_name);
 
         req = sss_dp_get_account_send(cctx, cctx->rctx, dctx->domain, true,
-                                      req_type, opt_name, opt_id, NULL);
+                                      req_type, opt_name, opt_id, extra);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending out-of-band data provider "
@@ -611,7 +612,7 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
         }
 
         req = sss_dp_get_account_send(cctx, cctx->rctx, dctx->domain, true,
-                                      req_type, opt_name, opt_id, NULL);
+                                      req_type, opt_name, opt_id, extra);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");
@@ -834,7 +835,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_USER, name, 0,
+                              SSS_DP_USER, name, 0, NULL,
                               nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
@@ -1409,7 +1410,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_USER, NULL, cmdctx->id,
+                              SSS_DP_USER, NULL, cmdctx->id, NULL,
                               nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
@@ -2810,7 +2811,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_GROUP, name, 0,
+                              SSS_DP_GROUP, name, 0, NULL,
                               nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
@@ -2925,7 +2926,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_GROUP, NULL, cmdctx->id,
+                              SSS_DP_GROUP, NULL, cmdctx->id, NULL,
                               nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
@@ -3827,7 +3828,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_INITGROUPS, name, 0,
+                              SSS_DP_INITGROUPS, name, 0, NULL,
                               nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
@@ -4101,7 +4102,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             }
 
             ret = check_cache(dctx, nctx, dctx->res,
-                              req_type, req_name, req_id,
+                              req_type, req_name, req_id, NULL,
                               nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
@@ -4204,7 +4205,7 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
      * yet) then verify that the cache is uptodate */
     if (dctx->check_provider) {
         ret = check_cache(dctx, nctx, dctx->res,
-                          SSS_DP_SECID, cmdctx->secid, 0,
+                          SSS_DP_SECID, cmdctx->secid, 0, NULL,
                           nss_cmd_getby_dp_callback,
                           dctx);
         if (ret != EOK) {

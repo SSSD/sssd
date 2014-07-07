@@ -581,7 +581,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
                               step_ctx->nctx,
                               step_ctx->dctx->res,
                               SSS_DP_NETGR,
-                              name, 0,
+                              name, 0, NULL,
                               lookup_netgr_dp_callback,
                               step_ctx);
             if (ret != EOK) {
