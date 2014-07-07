@@ -448,6 +448,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 if (!vals[0]) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Missing value after ldap_get_values() ??\n");
+                    ldap_value_free_len(vals);
                     ret = EINVAL;
                     goto done;
                 }
@@ -462,6 +463,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                         v.data = (uint8_t *) sss_base64_encode(attrs,
                                  (uint8_t *) vals[i]->bv_val, vals[i]->bv_len);
                         if (!v.data) {
+                            ldap_value_free_len(vals);
                             ret = ENOMEM;
                             goto done;
                         }
@@ -486,13 +488,19 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                                 ret = sysdb_attrs_add_val(attrs,
                                                           map[ai].sys_name,
                                                           &v);
-                                if (ret) goto done;
+                                if (ret) {
+                                    ldap_value_free_len(vals);
+                                    goto done;
+                                }
                             }
                         }
                     } else {
                         /* No map, just store the attribute */
                         ret = sysdb_attrs_add_val(attrs, name, &v);
-                        if (ret) goto done;
+                        if (ret) {
+                            ldap_value_free_len(vals);
+                            goto done;
+                        }
                     }
                 }
                 ldap_value_free_len(vals);
