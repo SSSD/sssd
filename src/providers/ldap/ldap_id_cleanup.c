@@ -87,7 +87,7 @@ errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
 
     ret = be_ptask_create_sync(sdom, id_ctx->be, period, first_delay,
                                5 /* enabled delay */, 0 /* random offset */,
-                               period /* timeout */, BE_PTASK_OFFLINE_SKIP,
+                               period /* timeout */, BE_PTASK_OFFLINE_SKIP, 0,
                                ldap_cleanup_task, cleanup_ctx, name,
                                &sdom->cleanup_task);
     if (ret != EOK) {

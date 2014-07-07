@@ -83,6 +83,12 @@ typedef errno_t
  *
  * The random_offset is maximum number of seconds added to the
  * expected delay. Set to 0 if no randomization is needed.
+
+ * If max_backoff is not 0 then the period is doubled
+ * every time the task is scheduled. The maximum value of
+ * period is max_backoff. The value of period will be reset to
+ * original value when the task is disabled. With max_backoff
+ * set to zero, this feature is disabled.
  *
  * If an internal error occurred, the task is automatically disabled.
  */
@@ -94,6 +100,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
                         time_t random_offset,
                         time_t timeout,
                         enum be_ptask_offline offline,
+                        time_t max_backoff,
                         be_ptask_send_t send_fn,
                         be_ptask_recv_t recv_fn,
                         void *pvt,
@@ -108,6 +115,7 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
                              time_t random_offset,
                              time_t timeout,
                              enum be_ptask_offline offline,
+                             time_t max_backoff,
                              be_ptask_sync_t fn,
                              void *pvt,
                              const char *name,
