@@ -1124,6 +1124,14 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
                 talloc_free(svc);
                 return ENOMEM;
             }
+        } else if (ctx->is_daemon == false) {
+            svc->command = talloc_strdup_append(
+                svc->command, " --debug-to-stderr"
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
         }
     }
 
@@ -1282,6 +1290,14 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         if (debug_to_file) {
             svc->command = talloc_strdup_append(
                 svc->command, " --debug-to-files"
+            );
+            if (!svc->command) {
+                talloc_free(svc);
+                return ENOMEM;
+            }
+        } else if (ctx->is_daemon == false) {
+            svc->command = talloc_strdup_append(
+                svc->command, " --debug-to-stderr"
             );
             if (!svc->command) {
                 talloc_free(svc);
@@ -2735,7 +2751,10 @@ int main(int argc, const char *argv[])
     }
 
     if (opt_daemon) flags |= FLAGS_DAEMON;
-    if (opt_interactive) flags |= FLAGS_INTERACTIVE;
+    if (opt_interactive) {
+        flags |= FLAGS_INTERACTIVE;
+        debug_to_stderr = 1;
+    }
 
     if (opt_config_file) {
         config_file = talloc_strdup(tmp_ctx, opt_config_file);

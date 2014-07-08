@@ -68,6 +68,7 @@ extern int debug_level;
 extern int debug_timestamps;
 extern int debug_microseconds;
 extern int debug_to_file;
+extern int debug_to_stderr;
 extern const char *debug_log_file;
 void debug_fn(const char *file,
               long line,
@@ -107,6 +108,8 @@ errno_t set_debug_file_from_fd(const int fd);
          _("Debug level"), NULL}, \
         {"debug-to-files", 'f', POPT_ARG_NONE, &debug_to_file, 0, \
          _("Send the debug output to files instead of stderr"), NULL }, \
+        {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_stderr, 0, \
+         _("Send the debug output to stderr directly."), NULL }, \
         {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0, \
          _("Add debug timestamps"), NULL}, \
          {"debug-microseconds", 0, POPT_ARG_INT, &debug_microseconds, 0, \

@@ -637,8 +637,10 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     bool child_debug_to_file = debug_to_file;
     bool child_debug_timestamps = debug_timestamps;
     bool child_debug_microseconds = debug_microseconds;
+    bool child_debug_stderr = debug_to_stderr;
 
     if (child_debug_to_file) argc++;
+    if (child_debug_stderr) argc++;
 
     /*
      * program name, debug_level, debug_to_file, debug_timestamps,
@@ -657,6 +659,14 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     if (argv[argc] == NULL) {
         ret = ENOMEM;
         goto fail;
+    }
+
+    if (child_debug_stderr) {
+        argv[--argc] = talloc_strdup(argv, "--debug-to-stderr");
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
     }
 
     if (child_debug_to_file) {

@@ -42,6 +42,7 @@ int debug_level = SSSDBG_UNRESOLVED;
 int debug_timestamps = SSSDBG_TIMESTAMP_UNRESOLVED;
 int debug_microseconds = SSSDBG_MICROSECONDS_UNRESOLVED;
 int debug_to_file = 0;
+int debug_to_stderr = 0;
 const char *debug_log_file = "sssd";
 FILE *debug_file = NULL;
 
@@ -212,7 +213,7 @@ void debug_fn(const char *file,
     errno_t ret;
     va_list ap_fallback;
 
-    if (!debug_file) {
+    if (!debug_file && !debug_to_stderr) {
         /* If we are not outputting logs to files, we should be sending them
          * to journald.
          * NOTE: on modern systems, this is where stdout/stderr will end up
