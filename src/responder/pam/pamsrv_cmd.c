@@ -916,6 +916,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
     struct dp_callback_ctx *cb_ctx;
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+    struct ldb_result *res;
 
     while (dom) {
        /* if it is a domainless search, skip domains that require fully
@@ -978,20 +979,20 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             return EFAULT;
         }
 
-        ret = sysdb_getpwnam(preq, dom, name, &preq->res);
+        ret = sysdb_getpwnam(preq, dom, name, &res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to make request to our cache!\n");
             return EIO;
         }
 
-        if (preq->res->count > 1) {
+        if (res->count > 1) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "getpwnam call returned more than one result !?!\n");
             return ENOENT;
         }
 
-        if (preq->res->count == 0) {
+        if (res->count == 0) {
             if (preq->check_provider == false) {
                 /* set negative cache only if not result of cache check */
                 ret = sss_ncache_set_user(pctx->ncache, false, dom, name);
@@ -1020,7 +1021,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
         /* if we need to check the remote account go on */
         if (preq->check_provider) {
-            cacheExpire = ldb_msg_find_attr_as_uint64(preq->res->msgs[0],
+            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                       SYSDB_CACHE_EXPIRE, 0);
             if (cacheExpire < time(NULL)) {
                 break;
@@ -1031,7 +1032,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
               "Returning info for user [%s@%s]\n", name, dom->name);
 
         /* We might have searched by alias. Pass on the primary name */
-        ret = pd_set_primary_name(preq->res->msgs[0], preq->pd);
+        ret = pd_set_primary_name(res->msgs[0], preq->pd);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not canonicalize username\n");
             return ret;

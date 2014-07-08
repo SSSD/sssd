@@ -51,7 +51,6 @@ struct pam_auth_req {
 
     pam_dp_callback_t *callback;
 
-    struct ldb_result *res;
     bool check_provider;
     void *data;
 
