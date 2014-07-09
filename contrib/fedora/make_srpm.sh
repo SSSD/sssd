@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #    Authors:
 #        Lukas Slebodnik <lslebodn@redhat.com>
@@ -21,14 +21,49 @@
 PACKAGE_NAME="sssd"
 
 usage(){
-    echo "$(basename $0) [OPTIONS]"
-    echo "\t-p, --prerelease   Create prerelease SRPM"
-    echo "\t-d, --debug        Enable debugging."
-    echo "\t-c, --clean        Remove directory rpmbuild and exit."
-    echo "\t-h, --help         Print this help and exit."
-    echo "\t-?, --usage"
+    echo "$(basename $0) [OPTIONS] [-P|--patches <patch>...]"
+    echo -e "\t-p, --prerelease   Create prerelease SRPM"
+    echo -e "\t-d, --debug        Enable debugging."
+    echo -e "\t-c, --clean        Remove directory rpmbuild and exit."
+    echo -e "\t-P, --patches      Requires list of patches for SRPM."
+    echo -e "\t-h, --help         Print this help and exit."
+    echo -e "\t-?, --usage"
 
     exit 1
+}
+
+add_patches(){
+    spec_file=$1
+    shift
+    source_dir=$1
+    shift
+
+    patches=("${@}")
+
+    # These keep track of our spec file substitutions.
+    i=1
+    prefix="Source0:"
+    prepprefix="%setup"
+
+    # If no patches exist, just exit.
+    if [ -z "$patches" ]; then
+        echo Creating SRPM without extra patches.
+        return 0
+    fi
+
+    # Add the patches to the specfile.
+    for p in "${patches[@]}"; do
+        cp "$p" "$source_dir"
+        p=$(basename $p)
+        echo "Adding patch to spec file - $p"
+        sed -i -e "/${prefix}/a Patch${i}: ${p}" \
+               -e "/$prepprefix/a %patch${i} -p1" \
+               "$spec_file"
+
+        prefix="Patch${i}:"
+        prepprefix="%patch${i}"
+        i=$(($i+1))
+    done
 }
 
 for i in "$@"
@@ -36,12 +71,20 @@ do
 case $i in
     -p|--prerelease)
     PRERELEASE=1
+    shift
     ;;
     -d|--debug)
     set -x
+    shift
     ;;
     -c|--clean)
     CLEAN=1
+    shift
+    ;;
+    -P|--patches)
+    shift
+    patches=("$@")
+    break
     ;;
     -h|--help|-\?|--usage)
     usage
@@ -113,7 +156,10 @@ git archive --format=tar.gz --prefix="$NAME"/ \
             --remote="file://$SRC_DIR" \
             HEAD
 
-cp "$SRC_DIR"/contrib/*.patch "$RPMBUILD/SOURCES"
+cp "$SRC_DIR"/contrib/*.patch "$RPMBUILD/SOURCES" 2>/dev/null
+add_patches "$RPMBUILD/SPECS/$PACKAGE_NAME.spec" \
+            "$RPMBUILD/SOURCES" \
+            "${patches[@]}"
 
 cd $RPMBUILD
 rpmbuild --define "_topdir $RPMBUILD" \
