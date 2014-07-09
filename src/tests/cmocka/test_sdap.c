@@ -282,7 +282,8 @@ void test_parse_with_map(void **state)
     decoded_key = sss_base64_decode(test_ctx,
                                     (const char *)el->values[0].data,
                                     &key_len);
-    assert_string_equal(decoded_key, "1234");
+    assert_non_null(decoded_key);
+    assert_memory_equal(decoded_key, "1234", key_len);
 
     /* The extra attribute must not be downloaded, it's not present in map */
     assert_entry_has_no_attr(attrs, "extra");
