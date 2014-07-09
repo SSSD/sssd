@@ -130,6 +130,10 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
      * it's value is not MC_INVALID_VAL, then the cache is
      * probbably corrupted. */
     while (MC_SLOT_WITHIN_BOUNDS(slot, gr_mc_ctx.dt_size)) {
+        /* free record from previous iteration */
+        free(rec);
+        rec = NULL;
+
         ret = sss_nss_mc_get_record(&gr_mc_ctx, slot, &rec);
         if (ret) {
             goto done;
@@ -205,6 +209,10 @@ errno_t sss_nss_mc_getgrgid(gid_t gid,
      * it's value is not MC_INVALID_VAL, then the cache is
      * probbably corrupted. */
     while (MC_SLOT_WITHIN_BOUNDS(slot, gr_mc_ctx.dt_size)) {
+        /* free record from previous iteration */
+        free(rec);
+        rec = NULL;
+
         ret = sss_nss_mc_get_record(&gr_mc_ctx, slot, &rec);
         if (ret) {
             goto done;
