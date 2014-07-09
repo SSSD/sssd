@@ -507,7 +507,7 @@ static errno_t display_pw_reset_message(pam_handle_t *pamh,
 
     errno = 0;
     total_len = sss_atomic_read_s(fd, msg_buf, stat_buf.st_size);
-    if (ret == -1) {
+    if (total_len == -1) {
         ret = errno;
         D(("read failed [%d][%s].", ret, strerror(ret)));
         goto done;
