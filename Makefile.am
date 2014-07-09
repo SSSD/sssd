@@ -1904,6 +1904,7 @@ sdap_tests_LDADD = \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SSS_CRYPT_LIBS) \
+    $(OPENLDAP_LIBS) \
     libsss_test_common.la \
     $(NULL)
 
