@@ -123,6 +123,10 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
      * it's value is not MC_INVALID_VAL, then the cache is
      * probbably corrupted. */
     while (MC_SLOT_WITHIN_BOUNDS(slot, pw_mc_ctx.dt_size)) {
+        /* free record from previous iteration */
+        free(rec);
+        rec = NULL;
+
         ret = sss_nss_mc_get_record(&pw_mc_ctx, slot, &rec);
         if (ret) {
             goto done;
@@ -199,6 +203,10 @@ errno_t sss_nss_mc_getpwuid(uid_t uid,
      * it's value is not MC_INVALID_VAL, then the cache is
      * probbably corrupted. */
     while (MC_SLOT_WITHIN_BOUNDS(slot, pw_mc_ctx.dt_size)) {
+        /* free record from previous iteration */
+        free(rec);
+        rec = NULL;
+
         ret = sss_nss_mc_get_record(&pw_mc_ctx, slot, &rec);
         if (ret) {
             goto done;
