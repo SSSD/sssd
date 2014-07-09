@@ -443,7 +443,7 @@ main(int argc, const char *argv[])
         }
     }
 
-    DEBUG_INIT(pc_debug);
+    DEBUG_CLI_INIT(pc_debug);
 
     if (opt != -1) {
         poptPrintUsage(pc, stderr, 0);

@@ -152,6 +152,14 @@ errno_t set_debug_file_from_fd(const int fd);
     talloc_set_log_fn(talloc_log_fn); \
 } while (0)
 
+/* CLI tools shall debug to stderr even when SSSD was compiled with journald
+ * support
+ */
+#define DEBUG_CLI_INIT(dbg_lvl) do { \
+    DEBUG_INIT(dbg_lvl);             \
+    debug_to_stderr = 1;             \
+} while (0)
+
 #define PRINT(fmt, ...) fprintf(stdout, gettext(fmt), ##__VA_ARGS__)
 #define ERROR(fmt, ...) fprintf(stderr, gettext(fmt), ##__VA_ARGS__)
 

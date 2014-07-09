@@ -658,7 +658,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    DEBUG_CLI_INIT(debug_level);
 
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);

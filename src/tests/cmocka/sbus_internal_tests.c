@@ -259,7 +259,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    DEBUG_CLI_INIT(debug_level);
     tests_set_cwd();
     return run_tests(tests);
 }

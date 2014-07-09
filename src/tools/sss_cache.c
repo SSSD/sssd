@@ -600,7 +600,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         }
     }
 
-    DEBUG_INIT(debug);
+    DEBUG_CLI_INIT(debug);
     debug_prg_name = argv[0];
 
     if (ret != -1) {

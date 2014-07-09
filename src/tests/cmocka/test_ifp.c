@@ -475,7 +475,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    DEBUG_CLI_INIT(debug_level);
 
     /* Even though normally the tests should clean up after themselves
      * they might not after a failed run. Remove the old db to be sure */

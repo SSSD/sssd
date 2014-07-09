@@ -662,7 +662,7 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    DEBUG_CLI_INIT(debug_level);
 
     ret = mkdir(TESTS_PATH, 0775);
     if (ret != EOK) {

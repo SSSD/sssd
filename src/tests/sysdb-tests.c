@@ -5986,7 +5986,7 @@ int main(int argc, const char *argv[]) {
     }
     poptFreeContext(pc);
 
-    DEBUG_INIT(debug_level);
+    DEBUG_CLI_INIT(debug_level);
 
     if (!ldb_modules_path_is_set()) {
         fprintf(stderr, "Warning: LDB_MODULES_PATH is not set, "

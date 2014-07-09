@@ -68,7 +68,7 @@ int main(int argc, const char **argv)
         BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
-    DEBUG_INIT(pc_debug);
+    DEBUG_CLI_INIT(pc_debug);
 
     /* groupname is an argument, not option */
     pc_groupname = poptGetArg(pc);
