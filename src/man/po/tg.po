@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2014-06-04 19:59+0300\n"
-"PO-Revision-Date: 2014-05-30 15:58+0000\n"
+"POT-Creation-Date: 2014-07-09 19:18+0300\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Tajik (http://www.transifex.com/projects/p/sssd/language/"
 "tg/)\n"
@@ -9352,7 +9352,5 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:15
-#, fuzzy
-#| msgid "Default: 3"
 msgid "Default: /home"
-msgstr "Пешфарз: 3"
+msgstr ""

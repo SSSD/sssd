@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2014-06-04 19:59+0300\n"
-"PO-Revision-Date: 2014-05-30 15:58+0000\n"
+"POT-Creation-Date: 2014-07-09 19:18+0300\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Latvian (http://www.transifex.com/projects/p/sssd/language/"
 "lv/)\n"
@@ -5256,10 +5256,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:124
-#, fuzzy
-#| msgid "<option>use_authtok</option>"
 msgid "<option>ignore_authinfo_unavail</option>"
-msgstr "<option>use_authtok</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:128
@@ -9357,7 +9355,5 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:15
-#, fuzzy
-#| msgid "Default: /tmp"
 msgid "Default: /home"
-msgstr "Noklusējuma: / tmp"
+msgstr ""

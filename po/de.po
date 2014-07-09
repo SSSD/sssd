@@ -10,9 +10,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2014-06-04 20:00+0200\n"
-"PO-Revision-Date: 2014-05-30 15:58+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2014-07-09 19:19+0200\n"
+"PO-Revision-Date: 2014-06-08 15:50+0000\n"
+"Last-Translator: Mario Blättermann <mario.blaettermann@gmail.com>\n"
 "Language-Team: German (http://www.transifex.com/projects/p/sssd/language/"
 "de/)\n"
 "Language: de\n"
@@ -27,7 +27,7 @@ msgstr "Ausführlichkeitsstufe der Fehlerdiagnose festlegen"
 
 #: src/config/SSSDConfig/__init__.py.in:41
 msgid "Include timestamps in debug logs"
-msgstr "Zeitstempel in Fehlerdiagnoseprotokollen aktivieren"
+msgstr "Zeitstempel in Fehlerdiagnoseprotokollen einschließen"
 
 #: src/config/SSSDConfig/__init__.py.in:42
 msgid "Include microseconds in timestamps in debug logs"
@@ -59,6 +59,8 @@ msgstr "Anzahl der Verbindungsversuche zum Datenanbieter"
 #: src/config/SSSDConfig/__init__.py.in:48
 msgid "The number of file descriptors that may be opened by this responder"
 msgstr ""
+"Die Anzahl der Dateideskriptoren, die durch diesen Responder geöffnet werden "
+"dürfen"
 
 #: src/config/SSSDConfig/__init__.py.in:49
 msgid "Idle time before automatic disconnection of a client"
@@ -90,8 +92,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
-"Verzeichnis auf dem Dateisystem, auf dem SSSD Dateien des Kerberos-Replay-"
-"Zwischenspeichers speichern sollte."
+"Verzeichnis im Dateisystem, in welchem SSSD Anwort-Zwischenspeicher-Dateien "
+"ablegt."
 
 #: src/config/SSSDConfig/__init__.py.in:58
 msgid "Domain to add to names without a domain component."
@@ -99,16 +101,17 @@ msgstr "Domain, die zu Namen ohne Domain-Komponente hinzugefügt werden soll."
 
 #: src/config/SSSDConfig/__init__.py.in:61
 msgid "Enumeration cache timeout length (seconds)"
-msgstr ""
+msgstr "Zeitspanne für den Aufzählungs-Zwischenspeicher (Sekunden)"
 
 #: src/config/SSSDConfig/__init__.py.in:62
 msgid "Entry cache background update timeout length (seconds)"
 msgstr ""
+"Zeitspanne für die Aktualisierung des Eintrags-Zwischenspeichers (Sekunden)"
 
 #: src/config/SSSDConfig/__init__.py.in:63
 #: src/config/SSSDConfig/__init__.py.in:89
 msgid "Negative cache timeout length (seconds)"
-msgstr ""
+msgstr "Zeitspanne für den negativen Zwischenspeicher (Sekunden)"
 
 #: src/config/SSSDConfig/__init__.py.in:64
 msgid "Users that SSSD should explicitly ignore"
@@ -170,7 +173,7 @@ msgstr "Zu verwendende Shell, wenn der Anbieter keine auflistet"
 
 #: src/config/SSSDConfig/__init__.py.in:75
 msgid "How long will be in-memory cache records valid"
-msgstr ""
+msgstr "Gültigkeitsdauer der speichereigenen Zwischenspeicher-Datensätze"
 
 #: src/config/SSSDConfig/__init__.py.in:78
 msgid "How long to allow cached logins between online logins (days)"
@@ -224,18 +227,24 @@ msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
 msgstr ""
+"Anzahl der Sekunden, die ein Rechner in der Datei known_host behalten werden "
+"soll, nachdem dessen Schlüssel abgefragt wurden"
 
 #: src/config/SSSDConfig/__init__.py.in:96
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr ""
+"Liste von Benutzer-IDs oder Benutzernamen für den Zugriff auf den PAC-"
+"Responder"
 
 #: src/config/SSSDConfig/__init__.py.in:99
 msgid "List of UIDs or user names allowed to access the InfoPipe responder"
 msgstr ""
+"Liste von Benutzer-IDs oder Benutzernamen für den Zugriff auf den InfoPipe-"
+"Responder"
 
 #: src/config/SSSDConfig/__init__.py.in:100
 msgid "List of user attributes the InfoPipe is allowed to publish"
-msgstr ""
+msgstr "Liste der Benutzerattribute, die InfoPipe veröffentlichen darf"
 
 #: src/config/SSSDConfig/__init__.py.in:103
 msgid "Identity provider"
@@ -263,11 +272,11 @@ msgstr "Autofs-Anbieter"
 
 #: src/config/SSSDConfig/__init__.py.in:109
 msgid "Session-loading provider"
-msgstr ""
+msgstr "Anbieter für das Laden der Sitzung"
 
 #: src/config/SSSDConfig/__init__.py.in:110
 msgid "Host identity provider"
-msgstr ""
+msgstr "Rechner-Identitäts-Anbieter"
 
 #: src/config/SSSDConfig/__init__.py.in:113
 msgid "Minimum user ID"
@@ -305,7 +314,7 @@ msgstr "Gruppenmitglieder in Gruppen-Suchanfragen nicht einschließen"
 #: src/config/SSSDConfig/__init__.py.in:131
 #: src/config/SSSDConfig/__init__.py.in:132
 msgid "Entry cache timeout length (seconds)"
-msgstr ""
+msgstr "Zeitspanne für den Eintrags-Zwischenspeicher (Sekunden)"
 
 #: src/config/SSSDConfig/__init__.py.in:121
 msgid ""
@@ -328,11 +337,12 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:124
 msgid "The domain part of service discovery DNS query"
-msgstr ""
+msgstr "Der Domain-Teil der DNS-Abfrage zur Dienstsuche"
 
 #: src/config/SSSDConfig/__init__.py.in:125
 msgid "Override GID value from the identity provider with this value"
 msgstr ""
+"Den Gruppen-ID-Wert des Identitäts-Anbieters mit diesem Wert überschreiben"
 
 #: src/config/SSSDConfig/__init__.py.in:126
 msgid "Treat usernames as case sensitive"
@@ -367,6 +377,8 @@ msgstr "Gibt an, wie oft der DNS-Eintrag des Clients aktualisiert werden soll"
 #: src/config/SSSDConfig/__init__.py.in:138
 msgid "Whether the provider should explicitly update the PTR record as well"
 msgstr ""
+"Gibt an, ob der Anbieter den PTR-Datensatz ebenfalls explizit aktualisieren "
+"soll"
 
 #: src/config/SSSDConfig/__init__.py.in:139
 msgid "Whether the nsupdate utility should default to using TCP"
@@ -380,11 +392,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:141
 msgid "Control enumeration of trusted domains"
-msgstr ""
+msgstr "Aufzählung vertrauenswürdiger Domains steuern"
 
 #: src/config/SSSDConfig/__init__.py.in:142
 msgid "How often should subdomains list be refreshed"
-msgstr ""
+msgstr "Anzahl der Auffrischung der Subdomain-Liste"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 msgid "IPA domain"
@@ -432,6 +444,8 @@ msgstr "Falls DENY-Regeln vorhanden sind, entweder DENY_ALL oder IGNORE"
 #: src/config/SSSDConfig/__init__.py.in:156
 msgid "If set to false, host argument given by PAM will be ignored"
 msgstr ""
+"Falls auf »false« gesetzt, wird das von PAM angegebene Host-Argument "
+"ignoriert"
 
 #: src/config/SSSDConfig/__init__.py.in:157
 msgid "The automounter location this IPA client is using"
@@ -449,7 +463,7 @@ msgstr "Suchbasis für Objekte, die Informationen über ID-Bereiche enthalten"
 #: src/config/SSSDConfig/__init__.py.in:160
 #: src/config/SSSDConfig/__init__.py.in:167
 msgid "Enable DNS sites - location based service discovery"
-msgstr ""
+msgstr "DNS-Sites aktivieren – standortbasierte Dienstsuche"
 
 #: src/config/SSSDConfig/__init__.py.in:163
 msgid "Active Directory domain"
@@ -474,11 +488,11 @@ msgstr "LDAP-Filter zum Bestimmen der Zugriffsprivilegien"
 
 #: src/config/SSSDConfig/__init__.py.in:169
 msgid "Whether to use the Global Catalog for lookups"
-msgstr ""
+msgstr "Verwendung des globalen Katalogs für Suchvorgänge"
 
 #: src/config/SSSDConfig/__init__.py.in:170
 msgid "Operation mode for GPO-based access control"
-msgstr ""
+msgstr "Operationsmodus für GPO-basierte Zuhgriffskontrolle"
 
 #: src/config/SSSDConfig/__init__.py.in:173
 #: src/config/SSSDConfig/__init__.py.in:174
@@ -523,7 +537,7 @@ msgstr "Passwort im Offline-Modus für spätere Online-Anmeldung speichern"
 
 #: src/config/SSSDConfig/__init__.py.in:186
 msgid "Renewable lifetime of the TGT"
-msgstr ""
+msgstr "Erneuerung der Lebensdauer des TGT"
 
 #: src/config/SSSDConfig/__init__.py.in:187
 msgid "Lifetime of the TGT"
@@ -531,23 +545,23 @@ msgstr "Lebensdauer des TGT"
 
 #: src/config/SSSDConfig/__init__.py.in:188
 msgid "Time between two checks for renewal"
-msgstr ""
+msgstr "Zeitspanne zwischen zwei Prüfungen, ob Erneuerung nötig ist"
 
 #: src/config/SSSDConfig/__init__.py.in:189
 msgid "Enables FAST"
-msgstr ""
+msgstr "Aktiviert FAST"
 
 #: src/config/SSSDConfig/__init__.py.in:190
 msgid "Selects the principal to use for FAST"
-msgstr ""
+msgstr "Wählt den für FAST zu verwendenden Principal aus"
 
 #: src/config/SSSDConfig/__init__.py.in:191
 msgid "Enables principal canonicalization"
-msgstr ""
+msgstr "Aktiviert Kanonisierung des Principals"
 
 #: src/config/SSSDConfig/__init__.py.in:192
 msgid "Enables enterprise principals"
-msgstr ""
+msgstr "Enterprise-Principals aktivieren"
 
 #: src/config/SSSDConfig/__init__.py.in:195
 #: src/config/SSSDConfig/__init__.py.in:196
@@ -618,7 +632,7 @@ msgstr "Datei, die den Client-Schlüssel enthält"
 
 #: src/config/SSSDConfig/__init__.py.in:214
 msgid "List of possible ciphers suites"
-msgstr ""
+msgstr "Liste der möglichen Verschlüsselungs-Suites"
 
 #: src/config/SSSDConfig/__init__.py.in:215
 msgid "Require TLS certificate verification"
@@ -638,11 +652,11 @@ msgstr "Zu verwendenden Realm für sasl-Authentifizierung angeben"
 
 #: src/config/SSSDConfig/__init__.py.in:219
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr ""
+msgstr "Gibt den minimalen SSF für die SASL-Authentifizierung über LDAP an"
 
 #: src/config/SSSDConfig/__init__.py.in:220
 msgid "Kerberos service keytab"
-msgstr ""
+msgstr "Schlüsseltabelle des Kerberos-Dienstes"
 
 #: src/config/SSSDConfig/__init__.py.in:221
 msgid "Use Kerberos auth for LDAP connection"
@@ -679,6 +693,8 @@ msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
+"Gibt an, ob die LDAP-Bibliothek eine Rückwärtssuche ausführen soll, um den "
+"Rechnernamen während einer SASL-Bindung zu kanonisieren"
 
 #: src/config/SSSDConfig/__init__.py.in:230
 msgid "entryUSN attribute"
@@ -696,11 +712,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:235
 msgid "Disable the LDAP paging control"
-msgstr ""
+msgstr "LDAP-Paging-Steuerung deaktivieren"
 
 #: src/config/SSSDConfig/__init__.py.in:236
 msgid "Disable Active Directory range retrieval"
-msgstr ""
+msgstr "Bereichsermittlung für Active Directory deaktivieren"
 
 #: src/config/SSSDConfig/__init__.py.in:239
 msgid "Length of time to wait for a search request"
@@ -777,7 +793,7 @@ msgstr "objectSID -Attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:258
 msgid "Active Directory primary group attribute for ID-mapping"
-msgstr ""
+msgstr "Active-Directory-Primärgruppen-Attribut für ID-Zuweisung"
 
 #: src/config/SSSDConfig/__init__.py.in:259
 msgid "User principal attribute (for Kerberos)"
@@ -875,6 +891,8 @@ msgstr "Attribut für öffentlichen SSH-Schlüssel"
 #: src/config/SSSDConfig/__init__.py.in:283
 msgid "A list of extra attributes to download along with the user entry"
 msgstr ""
+"Eine Liste der zusätzlich herunterzuladender Attribute zusammen mit dem "
+"Benutzereintrag"
 
 #: src/config/SSSDConfig/__init__.py.in:285
 msgid "Base DN for group lookups"
@@ -898,11 +916,11 @@ msgstr "Gruppen-ID-Attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:292
 msgid "Group member attribute"
-msgstr ""
+msgstr "Gruppen-Mitgliedschafts-Attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:293
 msgid "Group UUID attribute"
-msgstr ""
+msgstr "Gruppen-UUID-Attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:295
 msgid "Modification time attribute for groups"
@@ -910,7 +928,7 @@ msgstr "Änderungszeit-Attribut für Gruppen"
 
 #: src/config/SSSDConfig/__init__.py.in:296
 msgid "Type of the group and other flags"
-msgstr ""
+msgstr "Typ der Gruppe und weitere Flags"
 
 #: src/config/SSSDConfig/__init__.py.in:298
 msgid "Maximum nesting level SSSd will follow"
@@ -930,15 +948,15 @@ msgstr "Netzgruppenname"
 
 #: src/config/SSSDConfig/__init__.py.in:303
 msgid "Netgroups members attribute"
-msgstr ""
+msgstr "Netzgruppen-Mitglieder-Attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:304
 msgid "Netgroup triple attribute"
-msgstr ""
+msgstr "Netzgruppen-Tripel-Attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:305
 msgid "Netgroup UUID attribute"
-msgstr ""
+msgstr "Netzgruppen-UUID-Attribut"
 
 #: src/config/SSSDConfig/__init__.py.in:306
 msgid "Modification time attribute for netgroups"
@@ -974,7 +992,7 @@ msgstr "Obere Grenze für ID-Zuweisung"
 
 #: src/config/SSSDConfig/__init__.py.in:317
 msgid "Number of IDs for each slice when ID-mapping"
-msgstr ""
+msgstr "Anzahl der IDs für jeden Teil bei der ID-Zuweisung"
 
 #: src/config/SSSDConfig/__init__.py.in:318
 msgid "Use autorid-compatible algorithm for ID-mapping"
@@ -997,9 +1015,8 @@ msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr "LDAP_MATCHING_RULE_IN_CHAIN für initgroup-Suchanfragen verwenden"
 
 #: src/config/SSSDConfig/__init__.py.in:324
-#, fuzzy
 msgid "Whether to use Token-Groups"
-msgstr "Filter für Benutzer-Suchanfragen"
+msgstr "Verwendung von Token-Gruppen"
 
 #: src/config/SSSDConfig/__init__.py.in:325
 msgid "Set lower boundary for allowed IDs from the LDAP server"
@@ -1184,36 +1201,36 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:384
 msgid "PAM stack to use"
-msgstr ""
+msgstr "Zu verwendender PAM-Stapel"
 
-#: src/monitor/monitor.c:2665
+#: src/monitor/monitor.c:2690
 msgid "Become a daemon (default)"
 msgstr "Zum Hintergrunddienst werden (Vorgabe)"
 
-#: src/monitor/monitor.c:2667
+#: src/monitor/monitor.c:2692
 msgid "Run interactive (not a daemon)"
 msgstr "Interaktiv ausführen (nicht als Hintergrunddienst)"
 
-#: src/monitor/monitor.c:2669 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2694 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Angabe einer nicht standardmäßigen Konfigurationsdatei"
 
-#: src/monitor/monitor.c:2671
+#: src/monitor/monitor.c:2696
 msgid "Print version number and exit"
 msgstr "Versionsnummer ausgeben und das Programm beenden"
 
 #: src/providers/krb5/krb5_child.c:1975 src/providers/ldap/ldap_child.c:435
-#: src/util/util.h:107
+#: src/util/util.h:108
 msgid "Debug level"
 msgstr "Fehlerdiagnosestufe"
 
 #: src/providers/krb5/krb5_child.c:1977 src/providers/ldap/ldap_child.c:437
-#: src/util/util.h:111
+#: src/util/util.h:114
 msgid "Add debug timestamps"
 msgstr "Debug-Zeitstempel hinzufügen"
 
 #: src/providers/krb5/krb5_child.c:1979 src/providers/ldap/ldap_child.c:439
-#: src/util/util.h:113
+#: src/util/util.h:116
 msgid "Show timestamps with microseconds"
 msgstr "Zeitstempel mit Mikrosekunden anzeigen"
 
@@ -1221,7 +1238,14 @@ msgstr "Zeitstempel mit Mikrosekunden anzeigen"
 msgid "An open file descriptor for the debug logs"
 msgstr "Offener Dateideskriptor für die Debug-Protokolle"
 
-#: src/providers/data_provider_be.c:2751
+#: src/providers/ldap/ldap_child.c:443 src/util/util.h:112
+#, fuzzy
+msgid "Send the debug output to stderr directly."
+msgstr ""
+"Debug-Ausgabe in Dateien speichern, anstatt in die Standard-Fehlerausgabe "
+"(stderr) zu senden"
+
+#: src/providers/data_provider_be.c:2752
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domain des Informationsanbieters (obligatorisch)"
 
@@ -1290,6 +1314,8 @@ msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr ""
+"Nach dem Ändern des OTP-Passworts müssen Sie sich ab- und wieder anmelden, "
+"um ein Ticket erhalten zu können"
 
 #: src/sss_client/pam_sss.c:806 src/sss_client/pam_sss.c:819
 msgid "Password change failed. "
@@ -1616,7 +1642,7 @@ msgstr "%1$s%2$sGruppe: %3$s\n"
 
 #: src/tools/sss_groupshow.c:603
 msgid "Magic Private "
-msgstr ""
+msgstr "Magic Private "
 
 #: src/tools/sss_groupshow.c:605
 #, c-format
@@ -1626,7 +1652,7 @@ msgstr "%1$sGruppen-ID-Nummer: %2$d\n"
 #: src/tools/sss_groupshow.c:607
 #, c-format
 msgid "%1$sMember users: "
-msgstr ""
+msgstr "%1$sMitglied Benutzer: "
 
 #: src/tools/sss_groupshow.c:614
 #, c-format
@@ -1643,6 +1669,8 @@ msgid ""
 "\n"
 "%1$sMember groups: "
 msgstr ""
+"\n"
+"%1$sMitglied Gruppen: "
 
 #: src/tools/sss_groupshow.c:657
 msgid "Print indirect group members recursively"
@@ -1756,22 +1784,25 @@ msgstr "Das Konto entsperren"
 
 #: src/tools/sss_usermod.c:57
 msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Ein Attribut/Wert-Paar hinzufügen. Das Format ist Attributname=Wert."
 
 #: src/tools/sss_usermod.c:58
 msgid "Delete an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Ein Attribut/Wert-Paar löschen. Das Format ist Attributname=Wert."
 
 #: src/tools/sss_usermod.c:59
 msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
+"Ein Attribut für ein Attribut-Wert-Paar setzen. Das Format ist "
+"Attributname=Wert. Bei Attributen mit mehreren Werten ersetzt der Befehl die "
+"bereits vorhandenen Werte."
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
 msgid "Specify the attribute name/value pair(s)\n"
-msgstr ""
+msgstr "Name/Wert-Paar(e) für das oder die Attribute angeben\n"
 
 #: src/tools/sss_usermod.c:152
 msgid "Specify user to modify\n"
@@ -1819,6 +1850,7 @@ msgstr "%1$s %2$s konnte nicht annulliert werden"
 #: src/tools/sss_cache.c:543
 msgid "Invalidate all cached entries except for sudo rules"
 msgstr ""
+"Alle zwischengespeicherten Einträge mit Ausnahme von Sudo-Regeln annullieren"
 
 #: src/tools/sss_cache.c:545
 msgid "Invalidate particular user"
@@ -1908,7 +1940,7 @@ msgstr "Nicht genügend Speicher\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s muss als Root ausgeführt werden\n"
 
-#: src/util/util.h:109
+#: src/util/util.h:110
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Debug-Ausgabe in Dateien speichern, anstatt in die Standard-Fehlerausgabe "

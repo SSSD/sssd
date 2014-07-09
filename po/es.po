@@ -16,8 +16,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2014-06-04 20:00+0200\n"
-"PO-Revision-Date: 2014-05-30 15:58+0000\n"
+"POT-Creation-Date: 2014-07-09 19:19+0200\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/sssd/language/"
 "es/)\n"
@@ -993,9 +993,8 @@ msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:324
-#, fuzzy
 msgid "Whether to use Token-Groups"
-msgstr "Filtro para las búsquedas del usuario"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:325
 msgid "Set lower boundary for allowed IDs from the LDAP server"
@@ -1170,34 +1169,34 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Pila PAM a usar"
 
-#: src/monitor/monitor.c:2665
+#: src/monitor/monitor.c:2690
 msgid "Become a daemon (default)"
 msgstr "Convertirse en demonio (predeterminado)"
 
-#: src/monitor/monitor.c:2667
+#: src/monitor/monitor.c:2692
 msgid "Run interactive (not a daemon)"
 msgstr "Ejecutarse en forma interactiva (no un demonio)"
 
-#: src/monitor/monitor.c:2669 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2694 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Indicar un archivo de configuración diferente al predeterminado"
 
-#: src/monitor/monitor.c:2671
+#: src/monitor/monitor.c:2696
 msgid "Print version number and exit"
 msgstr "Muestra el número de versión y finaliza"
 
 #: src/providers/krb5/krb5_child.c:1975 src/providers/ldap/ldap_child.c:435
-#: src/util/util.h:107
+#: src/util/util.h:108
 msgid "Debug level"
 msgstr "Nive de depuración"
 
 #: src/providers/krb5/krb5_child.c:1977 src/providers/ldap/ldap_child.c:437
-#: src/util/util.h:111
+#: src/util/util.h:114
 msgid "Add debug timestamps"
 msgstr "Agregar marcas de tiempo de depuración"
 
 #: src/providers/krb5/krb5_child.c:1979 src/providers/ldap/ldap_child.c:439
-#: src/util/util.h:113
+#: src/util/util.h:116
 msgid "Show timestamps with microseconds"
 msgstr "Mostrar marcas de tiempo con microsegundos"
 
@@ -1205,7 +1204,12 @@ msgstr "Mostrar marcas de tiempo con microsegundos"
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
-#: src/providers/data_provider_be.c:2751
+#: src/providers/ldap/ldap_child.c:443 src/util/util.h:112
+#, fuzzy
+msgid "Send the debug output to stderr directly."
+msgstr "Envia el resultado de la depuración hacia archivos en lugar de stderr"
+
+#: src/providers/data_provider_be.c:2752
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 
@@ -1874,6 +1878,6 @@ msgstr "Falta memoria\n"
 msgid "%1$s must be run as root\n"
 msgstr ""
 
-#: src/util/util.h:109
+#: src/util/util.h:110
 msgid "Send the debug output to files instead of stderr"
 msgstr "Envia el resultado de la depuración hacia archivos en lugar de stderr"

@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2014-06-04 20:00+0200\n"
-"PO-Revision-Date: 2014-05-30 16:32+0000\n"
+"POT-Creation-Date: 2014-07-09 19:19+0200\n"
+"PO-Revision-Date: 2014-06-04 18:22+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/projects/p/sssd/language/"
 "uk/)\n"
@@ -1011,9 +1011,8 @@ msgstr ""
 "(initgroup)"
 
 #: src/config/SSSDConfig/__init__.py.in:324
-#, fuzzy
 msgid "Whether to use Token-Groups"
-msgstr "Чи слід використовувати загальний каталог для пошуку"
+msgstr "Визначає, чи слід використовувати крупи реєстраційних записів"
 
 #: src/config/SSSDConfig/__init__.py.in:325
 msgid "Set lower boundary for allowed IDs from the LDAP server"
@@ -1201,34 +1200,34 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 
-#: src/monitor/monitor.c:2665
+#: src/monitor/monitor.c:2690
 msgid "Become a daemon (default)"
 msgstr "Запуститися фонову службу (типова поведінка)"
 
-#: src/monitor/monitor.c:2667
+#: src/monitor/monitor.c:2692
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: src/monitor/monitor.c:2669 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2694 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
-#: src/monitor/monitor.c:2671
+#: src/monitor/monitor.c:2696
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
 #: src/providers/krb5/krb5_child.c:1975 src/providers/ldap/ldap_child.c:435
-#: src/util/util.h:107
+#: src/util/util.h:108
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
 #: src/providers/krb5/krb5_child.c:1977 src/providers/ldap/ldap_child.c:437
-#: src/util/util.h:111
+#: src/util/util.h:114
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
 #: src/providers/krb5/krb5_child.c:1979 src/providers/ldap/ldap_child.c:439
-#: src/util/util.h:113
+#: src/util/util.h:116
 msgid "Show timestamps with microseconds"
 msgstr "Показувати мікросекунди у часових позначках"
 
@@ -1236,7 +1235,12 @@ msgstr "Показувати мікросекунди у часових позн
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
-#: src/providers/data_provider_be.c:2751
+#: src/providers/ldap/ldap_child.c:443 src/util/util.h:112
+#, fuzzy
+msgid "Send the debug output to stderr directly."
+msgstr "Надіслати діагностичні дані до файлів, а не до stderr"
+
+#: src/providers/data_provider_be.c:2752
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
@@ -1773,22 +1777,25 @@ msgstr "Розблокувати обліковий запис"
 
 #: src/tools/sss_usermod.c:57
 msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Додати пару атрибут-значення. Форматування: атрибут=значення."
 
 #: src/tools/sss_usermod.c:58
 msgid "Delete an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Вилучити пару атрибут-значення. Форматування: атрибут=значення."
 
 #: src/tools/sss_usermod.c:59
 msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
+"Встановити для вказаного за назвою атрибута значення. Форматування: "
+"атрибут=значення. Для атрибутів з декількома значеннями команда призведе до "
+"заміни поточних значень."
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
 msgid "Specify the attribute name/value pair(s)\n"
-msgstr ""
+msgstr "Вказати пари атрибут-значення\n"
 
 #: src/tools/sss_usermod.c:152
 msgid "Specify user to modify\n"
@@ -1924,6 +1931,6 @@ msgstr "Не вистачає пам'яті\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s слід запускати від імені користувача root\n"
 
-#: src/util/util.h:109
+#: src/util/util.h:110
 msgid "Send the debug output to files instead of stderr"
 msgstr "Надіслати діагностичні дані до файлів, а не до stderr"

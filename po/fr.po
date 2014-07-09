@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2014-06-04 20:00+0200\n"
-"PO-Revision-Date: 2014-05-30 21:01+0000\n"
+"POT-Creation-Date: 2014-07-09 19:19+0200\n"
+"PO-Revision-Date: 2014-07-08 11:31+0000\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
 "Language-Team: French (http://www.transifex.com/projects/p/sssd/language/"
 "fr/)\n"
@@ -1013,9 +1013,8 @@ msgstr ""
 "d'initialisation"
 
 #: src/config/SSSDConfig/__init__.py.in:324
-#, fuzzy
 msgid "Whether to use Token-Groups"
-msgstr "Choisir d'utiliser ou non le catalogue global pour les recherches"
+msgstr "Choisir d'utiliser ou non les groupes de jetons"
 
 #: src/config/SSSDConfig/__init__.py.in:325
 msgid "Set lower boundary for allowed IDs from the LDAP server"
@@ -1199,34 +1198,34 @@ msgstr "Rechercher le nom canonique du groupe dans le cache si possible"
 msgid "PAM stack to use"
 msgstr "Pile PAM à utiliser"
 
-#: src/monitor/monitor.c:2665
+#: src/monitor/monitor.c:2690
 msgid "Become a daemon (default)"
 msgstr "Devenir un démon (par défaut)"
 
-#: src/monitor/monitor.c:2667
+#: src/monitor/monitor.c:2692
 msgid "Run interactive (not a daemon)"
 msgstr "Fonctionner en interactif (non démon)"
 
-#: src/monitor/monitor.c:2669 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2694 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Définir un fichier de configuration différent de celui par défaut"
 
-#: src/monitor/monitor.c:2671
+#: src/monitor/monitor.c:2696
 msgid "Print version number and exit"
 msgstr "Afficher le numéro de version et quitte"
 
 #: src/providers/krb5/krb5_child.c:1975 src/providers/ldap/ldap_child.c:435
-#: src/util/util.h:107
+#: src/util/util.h:108
 msgid "Debug level"
 msgstr "Niveau de débogage"
 
 #: src/providers/krb5/krb5_child.c:1977 src/providers/ldap/ldap_child.c:437
-#: src/util/util.h:111
+#: src/util/util.h:114
 msgid "Add debug timestamps"
 msgstr "Ajouter l'horodatage au débogage"
 
 #: src/providers/krb5/krb5_child.c:1979 src/providers/ldap/ldap_child.c:439
-#: src/util/util.h:113
+#: src/util/util.h:116
 msgid "Show timestamps with microseconds"
 msgstr "Afficher l'horodatage en microsecondes"
 
@@ -1234,7 +1233,14 @@ msgstr "Afficher l'horodatage en microsecondes"
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descripteur de fichier ouvert pour les journaux de débogage"
 
-#: src/providers/data_provider_be.c:2751
+#: src/providers/ldap/ldap_child.c:443 src/util/util.h:112
+#, fuzzy
+msgid "Send the debug output to stderr directly."
+msgstr ""
+"Envoyer la sortie de débogage vers un fichier plutôt que vers la sortie "
+"standard"
+
+#: src/providers/data_provider_be.c:2752
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domaine du fournisseur d'informations (obligatoire)"
 
@@ -1782,22 +1788,25 @@ msgstr "Déverrouiller le compte"
 
 #: src/tools/sss_usermod.c:57
 msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Ajouter une paire attribut/valeur. Le format est nom_attribut=valeur."
 
 #: src/tools/sss_usermod.c:58
 msgid "Delete an attribute/value pair. The format is attrname=value."
 msgstr ""
+"Supprimer une paire attribut/valeur. Le format est nom_attribut=valeur."
 
 #: src/tools/sss_usermod.c:59
 msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
+"Définir une paire attribut/valeur. Le format est nom_attribut=valeur. Pour "
+"les attributs multi-valués, la commande remplace les valeurs déjà présentes."
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
 msgid "Specify the attribute name/value pair(s)\n"
-msgstr ""
+msgstr "Indiquer les paires nom d'attributs et valeurs.\n"
 
 #: src/tools/sss_usermod.c:152
 msgid "Specify user to modify\n"
@@ -1934,7 +1943,7 @@ msgstr "Mémoire saturée\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s doit être lancé en tant que root\n"
 
-#: src/util/util.h:109
+#: src/util/util.h:110
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Envoyer la sortie de débogage vers un fichier plutôt que vers la sortie "

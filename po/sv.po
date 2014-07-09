@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Göran Uddeborg <goeran@uddeborg.se>, 2013
+# Göran Uddeborg <goeran@uddeborg.se>, 2013-2014
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2014-06-04 20:00+0200\n"
-"PO-Revision-Date: 2014-05-30 15:58+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"POT-Creation-Date: 2014-07-09 19:19+0200\n"
+"PO-Revision-Date: 2014-06-07 21:40+0000\n"
+"Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish (http://www.transifex.com/projects/p/sssd/language/"
 "sv/)\n"
 "Language: sv\n"
@@ -215,10 +215,11 @@ msgstr "Lista över UID:er eller användarnamn som tillåts komma åt PAC-svarar
 #: src/config/SSSDConfig/__init__.py.in:99
 msgid "List of UIDs or user names allowed to access the InfoPipe responder"
 msgstr ""
+"Lista över UID:er eller användarnamn som tillåts komma åt InfoPipe-svararen"
 
 #: src/config/SSSDConfig/__init__.py.in:100
 msgid "List of user attributes the InfoPipe is allowed to publish"
-msgstr ""
+msgstr "Lista över aänvändarattribut InfoPipe får publicera"
 
 #: src/config/SSSDConfig/__init__.py.in:103
 msgid "Identity provider"
@@ -355,11 +356,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:141
 msgid "Control enumeration of trusted domains"
-msgstr ""
+msgstr "Styr uppräkning av betrodda domäner"
 
 #: src/config/SSSDConfig/__init__.py.in:142
 msgid "How often should subdomains list be refreshed"
-msgstr ""
+msgstr "Hur ofta skall listan över underdomäner uppdateras"
 
 #: src/config/SSSDConfig/__init__.py.in:145
 msgid "IPA domain"
@@ -445,11 +446,11 @@ msgstr "LDAP-filter för att bestämma åtkomstprivilegier"
 
 #: src/config/SSSDConfig/__init__.py.in:169
 msgid "Whether to use the Global Catalog for lookups"
-msgstr ""
+msgstr "Huruvida den globala katalogen skall användas för uppslagningar"
 
 #: src/config/SSSDConfig/__init__.py.in:170
 msgid "Operation mode for GPO-based access control"
-msgstr ""
+msgstr "Arbetsläge för GPO-baserad åtkomstkontrol"
 
 #: src/config/SSSDConfig/__init__.py.in:173
 #: src/config/SSSDConfig/__init__.py.in:174
@@ -842,7 +843,7 @@ msgstr "Attribut för publik SSH-nyckel"
 
 #: src/config/SSSDConfig/__init__.py.in:283
 msgid "A list of extra attributes to download along with the user entry"
-msgstr ""
+msgstr "En lista över extra attribut att hämta tillsammans med användarposten"
 
 #: src/config/SSSDConfig/__init__.py.in:285
 msgid "Base DN for group lookups"
@@ -878,7 +879,7 @@ msgstr "Modifieringstidsattribut för grupper"
 
 #: src/config/SSSDConfig/__init__.py.in:296
 msgid "Type of the group and other flags"
-msgstr ""
+msgstr "Typen av grupp och andra flaggor"
 
 #: src/config/SSSDConfig/__init__.py.in:298
 msgid "Maximum nesting level SSSd will follow"
@@ -965,9 +966,8 @@ msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr "Använd LDAP_MATCHING_RULE_IN_CHAIN för init-gruppuppslagningar"
 
 #: src/config/SSSDConfig/__init__.py.in:324
-#, fuzzy
 msgid "Whether to use Token-Groups"
-msgstr "Filter för användaruppslagningar"
+msgstr "Huruvida Token-Groups skall användas"
 
 #: src/config/SSSDConfig/__init__.py.in:325
 msgid "Set lower boundary for allowed IDs from the LDAP server"
@@ -1148,34 +1148,34 @@ msgstr "Huruvida kanoniska gruppnamn skall slås upp från cachen om möjligt"
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
-#: src/monitor/monitor.c:2665
+#: src/monitor/monitor.c:2690
 msgid "Become a daemon (default)"
 msgstr "Bli en demon (standard)"
 
-#: src/monitor/monitor.c:2667
+#: src/monitor/monitor.c:2692
 msgid "Run interactive (not a daemon)"
 msgstr "Kör interaktivt (inte en demon)"
 
-#: src/monitor/monitor.c:2669 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2694 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Ange en konfigurationsfil annan än standard"
 
-#: src/monitor/monitor.c:2671
+#: src/monitor/monitor.c:2696
 msgid "Print version number and exit"
 msgstr "Skriv ut versionsnumret och avsluta"
 
 #: src/providers/krb5/krb5_child.c:1975 src/providers/ldap/ldap_child.c:435
-#: src/util/util.h:107
+#: src/util/util.h:108
 msgid "Debug level"
 msgstr "Felsökningsnivå"
 
 #: src/providers/krb5/krb5_child.c:1977 src/providers/ldap/ldap_child.c:437
-#: src/util/util.h:111
+#: src/util/util.h:114
 msgid "Add debug timestamps"
 msgstr "Lägg till felsökningstidstämplar"
 
 #: src/providers/krb5/krb5_child.c:1979 src/providers/ldap/ldap_child.c:439
-#: src/util/util.h:113
+#: src/util/util.h:116
 msgid "Show timestamps with microseconds"
 msgstr "Visa tidsstämplar med mikrosekunder"
 
@@ -1183,7 +1183,12 @@ msgstr "Visa tidsstämplar med mikrosekunder"
 msgid "An open file descriptor for the debug logs"
 msgstr "Ett öppet filhandtag för felsökningsloggarna"
 
-#: src/providers/data_provider_be.c:2751
+#: src/providers/ldap/ldap_child.c:443 src/util/util.h:112
+#, fuzzy
+msgid "Send the debug output to stderr directly."
+msgstr "Skicka felutskrifter till filer istället för standard fel"
+
+#: src/providers/data_provider_be.c:2752
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domän för informationsleverantören (obligatoriskt)"
 
@@ -1250,6 +1255,8 @@ msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr ""
+"Efter att ha ändrat OTP-lösenordet behöver du logga ut och tillbaka in för "
+"att få en biljett"
 
 #: src/sss_client/pam_sss.c:806 src/sss_client/pam_sss.c:819
 msgid "Password change failed. "
@@ -1710,22 +1717,24 @@ msgstr "Lås upp kontot"
 
 #: src/tools/sss_usermod.c:57
 msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Lägg till ett attribut/värde-par.  Formatet är attrnamn=värde."
 
 #: src/tools/sss_usermod.c:58
 msgid "Delete an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Ta bort ett attribut/värde-par.  Formatet är attrnamn=värde."
 
 #: src/tools/sss_usermod.c:59
 msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
+"Sätt ett attribut till ett namn/värde-par.  Formatet är attrnamn=värde.  För "
+"flervärda attribut ersätter kommandot de värden som redan finns."
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
 msgid "Specify the attribute name/value pair(s)\n"
-msgstr ""
+msgstr "Ange attributets namn/värde-par\n"
 
 #: src/tools/sss_usermod.c:152
 msgid "Specify user to modify\n"
@@ -1769,7 +1778,7 @@ msgstr "Kunde inte invalidera %1$s %2$s"
 
 #: src/tools/sss_cache.c:543
 msgid "Invalidate all cached entries except for sudo rules"
-msgstr ""
+msgstr "Invalidera alla cachade poster utom sudo-regler"
 
 #: src/tools/sss_cache.c:545
 msgid "Invalidate particular user"
@@ -1860,6 +1869,6 @@ msgstr "Slut på minne\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s måste köras som root\n"
 
-#: src/util/util.h:109
+#: src/util/util.h:110
 msgid "Send the debug output to files instead of stderr"
 msgstr "Skicka felutskrifter till filer istället för standard fel"

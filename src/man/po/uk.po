@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2014-06-04 19:59+0300\n"
-"PO-Revision-Date: 2014-06-01 09:31+0000\n"
+"POT-Creation-Date: 2014-07-09 19:18+0300\n"
+"PO-Revision-Date: 2014-06-23 16:22+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/projects/p/sssd/language/"
 "uk/)\n"
@@ -1318,14 +1318,6 @@ msgstr "Параметри налаштування SUDO"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:802
-#, fuzzy
-#| msgid ""
-#| "Specifies the timeout (in seconds) after which the <citerefentry> "
-#| "<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry>/<citerefentry> <refentrytitle>select</refentrytitle> "
-#| "<manvolnum>2</manvolnum> </citerefentry> following a <citerefentry> "
-#| "<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry> returns in case of no activity."
 msgid ""
 "These options can be used to configure the sudo service.  The detailed "
 "instructions for configuration of <citerefentry> <refentrytitle>sudo</"
@@ -1334,12 +1326,13 @@ msgid ""
 "</citerefentry> are in the manual page <citerefentry> <refentrytitle>sssd-"
 "sudo</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Визначає час очікування (у секундах), після завершення якого <citerefentry> "
-"<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </citerefentry>/"
-"<citerefentry> <refentrytitle>select</refentrytitle> <manvolnum>2</"
-"manvolnum> </citerefentry> з наступним <citerefentry> "
-"<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-"citerefentry> повертається до стану бездіяльності."
+"Цими параметрами можна скористатися для налаштовування служби sudo. Докладні "
+"настанови щодо налаштовування <citerefentry> <refentrytitle>sudo</"
+"refentrytitle> <manvolnum>8</manvolnum> </citerefentry> на роботу з "
+"<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
+"</citerefentry> можна знайти на сторінці довідника <citerefentry> "
+"<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:819
@@ -1821,21 +1814,20 @@ msgstr "refresh_expired_interval (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1182
-#, fuzzy
-#| msgid ""
-#| "Specifies how many seconds SSSD has to wait before refreshing its cache "
-#| "of enumerated records."
 msgid ""
 "Specifies how many seconds SSSD has to wait before triggering a background "
 "refresh task which will refresh all expired or nearly expired records."
 msgstr ""
-"Визначає кількість секунд, протягом яких SSSD має очікувати до оновлення "
-"свого кешу нумерованих записів."
+"Визначає кількість секунд, протягом яких SSSD має очікувати до запуску "
+"завдання з оновлення у фоновому режимі записів кешу, строк дії яких "
+"вичерпано або майже вичерпано."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1187
 msgid "Currently only refreshing expired netgroups is supported."
 msgstr ""
+"У поточній версії передбачено оновлення лише застарілих записів мережевих "
+"груп."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1191
@@ -2255,14 +2247,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1529
-#, fuzzy
-#| msgid ""
-#| "This manual page describes the configuration of the AD provider for "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>.  For a detailed syntax reference, refer to "
-#| "the <quote>FILE FORMAT</quote> section of the <citerefentry> "
-#| "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry> manual page."
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
@@ -2271,11 +2255,13 @@ msgid ""
 "\"ldap_sudo_*\" in <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"На цій сторінці довідника описано налаштування засобу керування доступом AD "
-"для <citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry>. Щоб дізнатися більше про синтаксис налаштування, "
-"зверніться до розділу «ФОРМАТ ФАЙЛІВ» сторінки довідника <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+"З докладними настановами щодо налаштовування sudo_provider можна "
+"ознайомитися за допомогою сторінки підручника (man) <citerefentry> "
+"<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>. Передбачено доволі багато параметрів налаштовування, якими "
+"можна скористатися для коригування поведінки програми. Докладніший опис "
+"можна знайти у розділах щодо «ldap_sudo_*»\" у підручнику з <citerefentry> "
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -4211,6 +4197,12 @@ msgid ""
 "the deeper nesting levels.  Also, subsequent lookups for other groups may "
 "enlarge the result set for original lookup if re-queried."
 msgstr ""
+"Зауваження: за допомогою цього параметра визначається гарантований рівень "
+"вкладеності груп для обробки під час будь-якого пошуку. Втім, <emphasis>може "
+"бути</emphasis> повернуто і групи із більшим рівнем вкладеності, якщо під "
+"час попередніх пошуків відбувалася обробка вищих рівнів вкладеності. Крім "
+"того, послідовні пошуки інших груп можуть розширити набір результатів "
+"початкового пошуку, якщо запити щодо пошуку надходять повторно."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:940
@@ -4220,6 +4212,11 @@ msgid ""
 "is furthermore required to disable usage of Token-Groups by setting "
 "ldap_use_tokengroups to false."
 msgstr ""
+"Якщо значенням ldap_group_nesting_level є 0, вкладені групи взагалі не "
+"оброблятимуться. Втім, якщо з’єднання встановлено з Active-Directory Server "
+"2008 та новішими версіями, слід також вимкнути використання груп "
+"реєстраційних записів (Token-Groups) встановленням для параметра "
+"ldap_use_tokengroups значення false."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:947
@@ -4303,7 +4300,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1012
 msgid "ldap_use_tokengroups"
-msgstr ""
+msgstr "ldap_use_tokengroups"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1015
@@ -4311,6 +4308,9 @@ msgid ""
 "This options enables or disables use of Token-Groups attribute when "
 "performing initgroup for users from Active Directory Server 2008 and later."
 msgstr ""
+"За допомогою цього параметра можна увімкнути або вимкнути використання "
+"атрибута Token-Groups під час виконання initgroup для користувачів Active "
+"Directory Server 2008 та новіших версій."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1026
@@ -5335,15 +5335,6 @@ msgstr "ldap_access_filter (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1847
-#, fuzzy
-#| msgid ""
-#| "If using access_provider = ldap and ldap_access_order = filter (default), "
-#| "this option is mandatory. It specifies an LDAP search filter criteria "
-#| "that must be met for the user to be granted access on this host. If "
-#| "access_provider = ldap, ldap_access_order = filter and this option is not "
-#| "set, it will result in all users being denied access.  Use "
-#| "access_provider = permit to change this default behavior. Please note "
-#| "that this filter is applied on the LDAP user entry only."
 msgid ""
 "If using access_provider = ldap and ldap_access_order = filter (default), "
 "this option is mandatory. It specifies an LDAP search filter criteria that "
@@ -5364,7 +5355,12 @@ msgstr ""
 "ldap_access_order = filter, а цей параметр не встановлено, доступ буде "
 "заборонено всім користувачам. Щоб змінити таку типову поведінку системи, "
 "скористайтеся параметром access_provider = permit. Будь ласка, зауважте, що "
-"цей фільтр застосовуватиметься лише до запису користувача LDAP."
+"цей фільтр застосовуватиметься лише до запису користувача LDAP, отже "
+"фільтрування, засноване на вкладених групах може не працювати (наприклад, "
+"атрибут memberOf для записів AD вказує лише на безпосередні батьківські "
+"записи). Якщо вам потрібне фільтрування, засноване на вкладених групах, будь "
+"ласка, скористайтеся параметром <citerefentry> <refentrytitle>sssd-simple</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1867
@@ -5674,21 +5670,14 @@ msgstr "ПАРАМЕТРИ SUDO"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:2054
-#, fuzzy
-#| msgid ""
-#| "The descriptions of some of the configuration options in this manual page "
-#| "are based on the <citerefentry> <refentrytitle>ldap.conf</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry> manual page from the OpenLDAP "
-#| "2.4 distribution."
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Описи деяких з параметрів налаштування на цій сторінці підручника засновано "
-"на даних сторінки підручника (man) <citerefentry> <refentrytitle>ldap.conf</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> з пакунка OpenLDAP "
-"2.4."
+"Докладні настанов щодо налаштовування sudo_provider можна знайти на сторінці "
+"довідника (man) <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2065
@@ -6262,15 +6251,6 @@ msgstr "модуль PAM для SSSD"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss.8.xml:24
-#, fuzzy
-#| msgid ""
-#| "<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
-#| "replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
-#| "replaceable> </arg> <arg choice='opt'> <replaceable>use_first_pass</"
-#| "replaceable> </arg> <arg choice='opt'> <replaceable>use_authtok</"
-#| "replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> "
-#| "</arg> <arg choice='opt'> <replaceable>ignore_unknown_user</replaceable> "
-#| "</arg>"
 msgid ""
 "<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
@@ -6286,7 +6266,9 @@ msgstr ""
 "replaceable> </arg> <arg choice='opt'> <replaceable>use_first_pass</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>use_authtok</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> </"
-"arg> <arg choice='opt'> <replaceable>ignore_unknown_user</replaceable> </arg>"
+"arg> <arg choice='opt'> <replaceable>ignore_unknown_user</replaceable> </"
+"arg> <arg choice='opt'> <replaceable>ignore_authinfo_unavail</replaceable> </"
+"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:51
@@ -6397,24 +6379,18 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:124
-#, fuzzy
-#| msgid "<option>ignore_unknown_user</option>"
 msgid "<option>ignore_authinfo_unavail</option>"
-msgstr "<option>ignore_unknown_user</option>"
+msgstr "<option>ignore_authinfo_unavail</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:128
-#, fuzzy
-#| msgid ""
-#| "If this option is specified and the user does not exist, the PAM module "
-#| "will return PAM_IGNORE. This causes the PAM framework to ignore this "
-#| "module."
 msgid ""
 "Specifies that the PAM module should return PAM_IGNORE if it cannot contact "
 "the SSSD daemon. This causes the PAM framework to ignore this module."
 msgstr ""
-"Якщо вказано цей параметр і облікового запису не існує, модуль PAM поверне "
-"PAM_IGNORE. Це призводить до ігнорування цього модуля оболонкою PAM."
+"Визначає, що модуль PAM має повертати PAM_IGNORE, якщо не вдається "
+"встановити зв’язок із фоновою службою SSSD. У результаті набір інструментів "
+"PAM ігнорує цей модуль."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:137
@@ -6745,6 +6721,12 @@ msgid ""
 "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
 "citerefentry>) option."
 msgstr ""
+"Повна обробка ієрархії участі у групах виконується до перевірки прав "
+"доступу, отже, до списку груп доступу може бути включено навіть вкладені "
+"групи. Будь ласка, зауважте, що на результати може вплинути значення "
+"параметра «ldap_group_nesting_level». Вам слід встановити для нього достатнє "
+"значення. Див. <citerefentry> <refentrytitle>sssd-ldap</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ipa.5.xml:10 sssd-ipa.5.xml:16
@@ -9774,22 +9756,20 @@ msgstr "Ім’я користувача SELinux, що відповідає ім
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:135
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--addattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>режим</replaceable>"
+msgstr ""
+"<option>--addattr</option> <replaceable>ПАРА_АТРИБУТ-ЗНАЧЕННЯ</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:140
 msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Додати пару атрибут-значення. Форматування: атрибут=значення."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:147
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>режим</replaceable>"
+msgstr ""
+"<option>--setattr</option> <replaceable>ПАРА_АТРИБУТ-ЗНАЧЕННЯ</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:152
@@ -9797,18 +9777,20 @@ msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
+"Встановити для вказаного за назвою атрибута значення. Форматування: "
+"атрибут=значення. Для атрибутів з декількома значеннями команда призведе до "
+"заміни поточних значень."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:160
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>режим</replaceable>"
+msgstr ""
+"<option>--delattr</option> <replaceable>ПАРА_АТРИБУТ-ЗНАЧЕННЯ</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:165
 msgid "Delete an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Вилучити пару атрибут-значення. Форматування: атрибут=значення."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_cache.8.xml:10 sss_cache.8.xml:15
@@ -11242,16 +11224,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:273
-#, fuzzy
-#| msgid ""
-#| "Since some utilities allow to modify SID based access control information "
-#| "with the help of a name instead of using the SID directly SSSD supports "
-#| "to look up the SID by the name as well. To avoid collisions only the "
-#| "fully qualified names are excepted to look up Well-Known SIDs. As a "
-#| "result the domain names <quote>NULL AUTHORITY</quote>, <quote>WORLD "
-#| "AUTHORITY</quote>, <quote> LOCAL AUTHORITY</quote>, <quote>CREATOR "
-#| "AUTHORITY</quote>, <quote>NT AUTHORITY</quote> and <quote>BUILTIN</quote> "
-#| "should not be used as domain names in <filename>sssd.conf</filename>."
 msgid ""
 "Since some utilities allow to modify SID based access control information "
 "with the help of a name instead of using the SID directly SSSD supports to "
@@ -11335,7 +11307,7 @@ msgid ""
 "<emphasis>2</emphasis>, <emphasis>0x0040</emphasis>: Serious failures. An "
 "error announcing that a particular request or operation has failed."
 msgstr ""
-"<<emphasis>2</emphasis>, emphasis>0x0040</emphasis>: серйозні помилки. "
+"<emphasis>2</emphasis>, <emphasis>0x0040</emphasis>: серйозні помилки. "
 "Повідомлення про такі помилки означають, що не вдалося виконати певний запит "
 "або дію."
 
@@ -11674,18 +11646,13 @@ msgstr "Початкова домашня тека, отримана від сл
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><term>
 #: include/override_homedir.xml:34
 msgid "%H"
-msgstr ""
+msgstr "%H"
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: include/override_homedir.xml:36
-#, fuzzy
-#| msgid ""
-#| "The value can be overridden by <emphasis>override_homedir</emphasis> "
-#| "option."
 msgid "The value of configure option <emphasis>homedir_substring</emphasis>."
 msgstr ""
-"Це значення може бути перевизначено параметром <emphasis>override_homedir</"
-"emphasis>."
+"Значення параметра налаштовування <emphasis>homedir_substring</emphasis>."
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/override_homedir.xml:5
@@ -11723,10 +11690,8 @@ msgstr ""
 
 #. type: Content of: <varlistentry><term>
 #: include/homedir_substring.xml:2
-#, fuzzy
-#| msgid "homedir_umask (integer)"
 msgid "homedir_substring (string)"
-msgstr "homedir_umask (ціле число)"
+msgstr "homedir_substring (рядок)"
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:5
@@ -11739,21 +11704,16 @@ msgid ""
 "per-domain or globally in the [nss] section. A value specified in a domain "
 "section will override one set in the [nss] section."
 msgstr ""
+"Значення цього параметра буде використано під час розгортання параметра "
+"<emphasis>override_homedir</emphasis>, якщо у шаблоні міститься рядок "
+"форматування <emphasis>%H</emphasis>. Запис каталогу LDAP може безпосередньо "
+"містити цей шаблон для розгортання шляху до домашнього каталогу на кожному з "
+"клієнтських комп’ютерів (або у кожній з операційних систем). Значення "
+"параметра можна вказати окремо для кожного з доменів або на загальному рівні "
+"у розділі [nss]. Значення, вказане у розділі домену, має вищий пріоритет за "
+"значення, встановлене за допомогою розділу [nss]."
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:15
-#, fuzzy
-#| msgid "Default: /tmp"
 msgid "Default: /home"
-msgstr "Типове значення: /tmp"
-
-#~ msgid "These options can be used to configure the sudo service."
-#~ msgstr "Цими параметрами можна скористатися для налаштування служби sudo."
-
-#~ msgid ""
-#~ "Specifies how many seconds SSSD has to wait before refreshing expired "
-#~ "records. Currently only refreshing expired netgroups is supported."
-#~ msgstr ""
-#~ "Визначає кількість секунд, протягом яких SSSD має очікувати до оновлення "
-#~ "застаріших записів. У поточній версії передбачено підтримку оновлення "
-#~ "лише застарілих записів мережевих груп."
+msgstr "Типове значення: /home"

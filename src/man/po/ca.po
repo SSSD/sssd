@@ -13,8 +13,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2014-06-04 19:59+0300\n"
-"PO-Revision-Date: 2014-05-30 15:58+0000\n"
+"POT-Creation-Date: 2014-07-09 19:18+0300\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Catalan (http://www.transifex.com/projects/p/sssd/language/"
 "ca/)\n"
@@ -1197,14 +1197,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:802
-#, fuzzy
-#| msgid ""
-#| "Specifies the timeout (in seconds) after which the <citerefentry> "
-#| "<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry>/<citerefentry> <refentrytitle>select</refentrytitle> "
-#| "<manvolnum>2</manvolnum> </citerefentry> following a <citerefentry> "
-#| "<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry> returns in case of no activity."
 msgid ""
 "These options can be used to configure the sudo service.  The detailed "
 "instructions for configuration of <citerefentry> <refentrytitle>sudo</"
@@ -1213,12 +1205,6 @@ msgid ""
 "</citerefentry> are in the manual page <citerefentry> <refentrytitle>sssd-"
 "sudo</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Especifica el temps d'espera (en segons) després que el "
-"<citerefentry><refentrytitle>sondeig</refentrytitle> <manvolnum>2</"
-"manvolnum></citerefentry>/<citerefentry><refentrytitle>selecció</"
-"refentrytitle> <manvolnum>2</manvolnum></citerefentry> seguit d'una "
-"<citerefentry><refentrytitle>connexió</refentrytitle> <manvolnum>2</"
-"manvolnum></citerefentry> retorna en cas de cap activitat."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:819
@@ -2018,14 +2004,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1529
-#, fuzzy
-#| msgid ""
-#| "This manual page describes the configuration of the IPA provider for "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>.  For a detailed syntax reference, refer to "
-#| "the <quote>FILE FORMAT</quote> section of the <citerefentry> "
-#| "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry> manual page."
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
@@ -2034,12 +2012,6 @@ msgid ""
 "\"ldap_sudo_*\" in <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Aquesta pàgina del manual descriu la configuració del proveïdor IPA per "
-"<citerefentry><refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum></"
-"citerefentry>.  Per una referència detallada sintaxi, aneu a la secció de "
-"<quote>FORMAT DE FITXER</quote> de la pàgina del manual "
-"<citerefentry>d'<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1546
@@ -5085,21 +5057,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:2054
-#, fuzzy
-#| msgid ""
-#| "The descriptions of some of the configuration options in this manual page "
-#| "are based on the <citerefentry> <refentrytitle>ldap.conf</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry> manual page from the OpenLDAP "
-#| "2.4 distribution."
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Les descripcions d'algunes de les opcions de configuració en aquesta pàgina "
-"del manual es basen en la pàgina del manual <citerefentry>de "
-"<refentrytitle>ldap.conf</refentrytitle> <manvolnum>5</manvolnum></"
-"citerefentry> de la distribució de OpenLDAP 2.4."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2065
@@ -5734,10 +5696,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:124
-#, fuzzy
-#| msgid "<option>use_authtok</option>"
 msgid "<option>ignore_authinfo_unavail</option>"
-msgstr "<option>use_authtok</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:128
@@ -8485,14 +8445,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:135
-#, fuzzy
-#| msgid ""
-#| "<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
-#| "replaceable>"
 msgid "<option>--addattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 msgstr ""
-"<option>-d</option>,<option>--domain</option> <replaceable>DOMINI</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:140
@@ -8501,14 +8455,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:147
-#, fuzzy
-#| msgid ""
-#| "<option>-s</option>,<option>--shell</option> <replaceable>SHELL</"
-#| "replaceable>"
 msgid "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 msgstr ""
-"<option>-s</option>,<option>--shell</option> <replaceable>INTÈRPRET "
-"D'ORDRES</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:152
@@ -8519,14 +8467,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:160
-#, fuzzy
-#| msgid ""
-#| "<option>-s</option>,<option>--shell</option> <replaceable>SHELL</"
-#| "replaceable>"
 msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 msgstr ""
-"<option>-s</option>,<option>--shell</option> <replaceable>INTÈRPRET "
-"D'ORDRES</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:165
@@ -9991,10 +9933,8 @@ msgstr ""
 
 #. type: Content of: <varlistentry><term>
 #: include/homedir_substring.xml:2
-#, fuzzy
-#| msgid "homedir_umask (integer)"
 msgid "homedir_substring (string)"
-msgstr "homedir_umask (enter)"
+msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:5
@@ -10010,7 +9950,5 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:15
-#, fuzzy
-#| msgid "Default: none"
 msgid "Default: /home"
-msgstr "Per defecte: none"
+msgstr ""

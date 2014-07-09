@@ -5,6 +5,7 @@
 # Translators:
 # Fabien Archambault <marbolangos@gmail.com>, 2012
 # Jérôme Fenal <jfenal@gmail.com>, 2012-2014
+# jhrozek <jhrozek@redhat.com>, 2014
 # Fabien Archambault <marbolangos@gmail.com>, 2012
 # sgallagh <sgallagh@redhat.com>, 2012
 # sgallagh <sgallagh@redhat.com>, 2012
@@ -12,8 +13,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2014-06-04 19:59+0300\n"
-"PO-Revision-Date: 2014-05-30 21:12+0000\n"
+"POT-Creation-Date: 2014-07-09 19:18+0300\n"
+"PO-Revision-Date: 2014-07-08 11:31+0000\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
 "Language-Team: French (http://www.transifex.com/projects/p/sssd/language/"
 "fr/)\n"
@@ -1327,14 +1328,6 @@ msgstr "Options de configuration de SUDO"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:802
-#, fuzzy
-#| msgid ""
-#| "Specifies the timeout (in seconds) after which the <citerefentry> "
-#| "<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry>/<citerefentry> <refentrytitle>select</refentrytitle> "
-#| "<manvolnum>2</manvolnum> </citerefentry> following a <citerefentry> "
-#| "<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry> returns in case of no activity."
 msgid ""
 "These options can be used to configure the sudo service.  The detailed "
 "instructions for configuration of <citerefentry> <refentrytitle>sudo</"
@@ -1343,12 +1336,6 @@ msgid ""
 "</citerefentry> are in the manual page <citerefentry> <refentrytitle>sssd-"
 "sudo</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Définit le délai d'attente (en secondes) après lequel les fonctions "
-"<citerefentry> <refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> "
-"</citerefentry>/<citerefentry> <refentrytitle>select</refentrytitle> "
-"<manvolnum>2</manvolnum> </citerefentry> suivant un <citerefentry> "
-"<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-"citerefentry> rendent la main en cas d'inactivité."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:819
@@ -1829,16 +1816,10 @@ msgstr "refresh_expired_interval (entier)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1182
-#, fuzzy
-#| msgid ""
-#| "Specifies how many seconds SSSD has to wait before refreshing its cache "
-#| "of enumerated records."
 msgid ""
 "Specifies how many seconds SSSD has to wait before triggering a background "
 "refresh task which will refresh all expired or nearly expired records."
 msgstr ""
-"Spécifie la durée en secondes pendant laquelle SSSD doit attendre avant "
-"d'actualiser son cache d\"énumération d'enregistrements."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1187
@@ -2264,14 +2245,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1529
-#, fuzzy
-#| msgid ""
-#| "This manual page describes the configuration of the AD provider for "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>.  For a detailed syntax reference, refer to "
-#| "the <quote>FILE FORMAT</quote> section of the <citerefentry> "
-#| "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry> manual page."
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
@@ -2280,12 +2253,6 @@ msgid ""
 "\"ldap_sudo_*\" in <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Cette page de manuel décrit la configuration du fournisseur AD pour "
-"<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
-"</citerefentry>. Pour une référence détaillée sur la syntaxe, cf. la section "
-"<quote>FORMAT DE FICHIER</quote> de la page de manuel <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1546
@@ -2693,6 +2660,12 @@ msgid ""
 "with <emphasis>subdomain_homedir</emphasis>.  <placeholder type="
 "\"variablelist\" id=\"0\"/>"
 msgstr ""
+"Utiliser ce répertoire utilisateur comme valeur par défaut pour tous les "
+"sous-domaines dans cette relation d'approbation Active Directory. Voir "
+"<emphasis>override_homedir</emphasis> pour des informations sur les valeurs "
+"possibles. En plus de celles-ci, le remplacement ci-dessous ne peut être "
+"utilisé qu'avec <emphasis>subdomain_homedir</emphasis>.  <placeholder type="
+"\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1868
@@ -3853,6 +3826,8 @@ msgid ""
 "Comma-separated list of LDAP attributes that SSSD would fetch along with the "
 "usual set of user attributes."
 msgstr ""
+"Liste séparée par des virgules des attributs LDAP que SSSD va demander en "
+"plus des attributs utilisateur habituels."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:628
@@ -3887,7 +3862,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:655
 msgid "ldap_user_extra_attrs = phone:telephoneNumber"
-msgstr ""
+msgstr "ldap_user_extra_attrs = phone:telephoneNumber"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:658
@@ -4301,7 +4276,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1012
 msgid "ldap_use_tokengroups"
-msgstr ""
+msgstr "ldap_use_tokengroups"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1015
@@ -5647,21 +5622,11 @@ msgstr "OPTIONS DE SUDO"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:2054
-#, fuzzy
-#| msgid ""
-#| "The descriptions of some of the configuration options in this manual page "
-#| "are based on the <citerefentry> <refentrytitle>ldap.conf</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry> manual page from the OpenLDAP "
-#| "2.4 distribution."
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Les descriptions de quelques unes des options de configuration des pages de "
-"manuel sont basées sur le manuel de <citerefentry> <refentrytitle>ldap.conf</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry> de la distribution "
-"de OpenLDAP 2.4."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2065
@@ -6241,15 +6206,6 @@ msgstr "Module PAM pour SSSD"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss.8.xml:24
-#, fuzzy
-#| msgid ""
-#| "<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
-#| "replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
-#| "replaceable> </arg> <arg choice='opt'> <replaceable>use_first_pass</"
-#| "replaceable> </arg> <arg choice='opt'> <replaceable>use_authtok</"
-#| "replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> "
-#| "</arg> <arg choice='opt'> <replaceable>ignore_unknown_user</replaceable> "
-#| "</arg>"
 msgid ""
 "<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
@@ -6265,7 +6221,9 @@ msgstr ""
 "replaceable> </arg> <arg choice='opt'> <replaceable>use_first_pass</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>use_authtok</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> </"
-"arg> <arg choice='opt'> <replaceable>ignore_unknown_user</replaceable> </arg>"
+"arg> <arg choice='opt'> <replaceable>ignore_unknown_user</replaceable> </"
+"arg> <arg choice='opt'> <replaceable>ignore_authinfo_unavail</replaceable> </"
+"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:51
@@ -6373,10 +6331,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:124
-#, fuzzy
-#| msgid "<option>ignore_unknown_user</option>"
 msgid "<option>ignore_authinfo_unavail</option>"
-msgstr "<option>ignore_unknown_user</option>"
+msgstr "<option>ignore_authinfo_unavail</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:128
@@ -9590,22 +9546,18 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:135
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--addattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr "<option>--addattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:140
 msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Ajouter une paire attribut/valeur. Le format est nom_attribut=valeur."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:147
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:152
@@ -9613,18 +9565,19 @@ msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
+"Définir une paire attribut/valeur. Le format est nom_attribut=valeur. Pour "
+"les attributs multi-valués, la commande remplace les valeurs déjà présentes."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:160
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:165
 msgid "Delete an attribute/value pair. The format is attrname=value."
 msgstr ""
+"Supprimer une paire attribut/valeur. Le format est nom_attribut=valeur."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_cache.8.xml:10 sss_cache.8.xml:15
@@ -10069,7 +10022,7 @@ msgstr "name"
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:92
 msgid "user's login name"
-msgstr ""
+msgstr "identifiant de connexion de l'utilisateur"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-ifp.5.xml:95
@@ -10079,7 +10032,7 @@ msgstr "uidNumber"
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:96
 msgid "user ID"
-msgstr ""
+msgstr "identifiant de l'utilisateur"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-ifp.5.xml:99
@@ -10089,7 +10042,7 @@ msgstr "gidNumber"
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:100
 msgid "primary group ID"
-msgstr ""
+msgstr "identifiant de groupe primaire"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-ifp.5.xml:103
@@ -10099,7 +10052,7 @@ msgstr "gecos"
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:104
 msgid "user information, typically full name"
-msgstr ""
+msgstr "informations utilisateur, généralement le nom complet"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-ifp.5.xml:107
@@ -10114,7 +10067,7 @@ msgstr "loginShell"
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:112
 msgid "user shell"
-msgstr ""
+msgstr "interpréteur de commande"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:81
@@ -10133,6 +10086,8 @@ msgid ""
 "user_attributes = +telephoneNumber, -loginShell\n"
 "                        "
 msgstr ""
+"user_attributes = +telephoneNumber, -loginShell\n"
+"                        "
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:117
@@ -11037,8 +10992,8 @@ msgid ""
 "Anything that would prevent SSSD from starting up or causes it to cease "
 "running."
 msgstr ""
-"<emphasis>0</emphasis>, <emphasis>0x0010</emphasis>&nbsp;: défaillances "
-"fatales. Tout ce qui empêcherait SSSD de démarrer ou provoquerait son arrêt."
+"<emphasis>0</emphasis>, <emphasis>0x0010</emphasis> : défaillances fatales. "
+"Tout ce qui empêcherait SSSD de démarrer ou provoquerait son arrêt."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:19
@@ -11390,18 +11345,12 @@ msgstr ""
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><term>
 #: include/override_homedir.xml:34
 msgid "%H"
-msgstr ""
+msgstr "%H"
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: include/override_homedir.xml:36
-#, fuzzy
-#| msgid ""
-#| "The value can be overridden by <emphasis>override_homedir</emphasis> "
-#| "option."
 msgid "The value of configure option <emphasis>homedir_substring</emphasis>."
 msgstr ""
-"La valeur peut être surchargée par l'option <emphasis>override_homedir</"
-"emphasis>."
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/override_homedir.xml:5
@@ -11436,10 +11385,8 @@ msgstr "Par défaut : Indéfini (SSSD utilisera la valeur récupérée de LDAP)"
 
 #. type: Content of: <varlistentry><term>
 #: include/homedir_substring.xml:2
-#, fuzzy
-#| msgid "homedir_umask (integer)"
 msgid "homedir_substring (string)"
-msgstr "homedir_umask (entier)"
+msgstr "homedir_substring (chaîne)"
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:5
@@ -11455,20 +11402,5 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:15
-#, fuzzy
-#| msgid "Default: /tmp"
 msgid "Default: /home"
-msgstr "Par défaut : /tmp"
-
-#~ msgid "These options can be used to configure the sudo service."
-#~ msgstr ""
-#~ "Les options suivantes peuvent être utilisées pour configurer le service "
-#~ "sudo."
-
-#~ msgid ""
-#~ "Specifies how many seconds SSSD has to wait before refreshing expired "
-#~ "records. Currently only refreshing expired netgroups is supported."
-#~ msgstr ""
-#~ "Spécifie la durée en secondes pendant laquelle SSSD doit attendre avant "
-#~ "d'actualiser les enregistrements expirés. Seuls les netgroup expirés sont "
-#~ "actuellement pris en charge."
+msgstr "Par défaut : /home"

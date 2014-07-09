@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2014-06-04 19:59+0300\n"
-"PO-Revision-Date: 2014-05-30 15:58+0000\n"
+"POT-Creation-Date: 2014-07-09 19:18+0300\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Portuguese (http://www.transifex.com/projects/p/sssd/language/"
 "pt/)\n"
@@ -5315,10 +5315,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:124
-#, fuzzy
-#| msgid "<option>use_authtok</option>"
 msgid "<option>ignore_authinfo_unavail</option>"
-msgstr "<option>use_authtok</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:128
@@ -7935,10 +7933,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:135
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--addattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:140
@@ -7947,10 +7943,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:147
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:152
@@ -7961,10 +7955,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:160
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:165
@@ -9429,10 +9421,8 @@ msgstr ""
 
 #. type: Content of: <varlistentry><term>
 #: include/homedir_substring.xml:2
-#, fuzzy
-#| msgid "homedir_umask (integer)"
 msgid "homedir_substring (string)"
-msgstr "homedir_umask (integer)"
+msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:5
@@ -9448,7 +9438,5 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:15
-#, fuzzy
-#| msgid "Default: /tmp"
 msgid "Default: /home"
-msgstr "Padrão: /tmp."
+msgstr ""

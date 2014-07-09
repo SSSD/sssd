@@ -15,8 +15,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2014-06-04 19:59+0300\n"
-"PO-Revision-Date: 2014-05-30 16:12+0000\n"
+"POT-Creation-Date: 2014-07-09 19:18+0300\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/projects/p/sssd/language/"
 "es/)\n"
@@ -1281,14 +1281,6 @@ msgstr "SUDO opciones de configuración"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:802
-#, fuzzy
-#| msgid ""
-#| "Specifies the timeout (in seconds) after which the <citerefentry> "
-#| "<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry>/<citerefentry> <refentrytitle>select</refentrytitle> "
-#| "<manvolnum>2</manvolnum> </citerefentry> following a <citerefentry> "
-#| "<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry> returns in case of no activity."
 msgid ""
 "These options can be used to configure the sudo service.  The detailed "
 "instructions for configuration of <citerefentry> <refentrytitle>sudo</"
@@ -1297,12 +1289,6 @@ msgid ""
 "</citerefentry> are in the manual page <citerefentry> <refentrytitle>sssd-"
 "sudo</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Especifica el tiempo de salida (en segudos) después del cual <citerefentry> "
-"<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </citerefentry>/"
-"<citerefentry> <refentrytitle>select</refentrytitle> <manvolnum>2</"
-"manvolnum> </citerefentry> siguiendo un <citerefentry> "
-"<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-"citerefentry> vuelve en caso de no actividad."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:819
@@ -1762,16 +1748,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1182
-#, fuzzy
-#| msgid ""
-#| "Specifies how many seconds SSSD has to wait before refreshing its cache "
-#| "of enumerated records."
 msgid ""
 "Specifies how many seconds SSSD has to wait before triggering a background "
 "refresh task which will refresh all expired or nearly expired records."
 msgstr ""
-"Especifica cuantos segundos SSSD tiene que esperar antes de refrescar su "
-"escondrijo de los registros enumerados."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1187
@@ -2188,14 +2168,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1529
-#, fuzzy
-#| msgid ""
-#| "This manual page describes the configuration of the AD provider for "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>.  For a detailed syntax reference, refer to "
-#| "the <quote>FILE FORMAT</quote> section of the <citerefentry> "
-#| "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry> manual page."
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
@@ -2204,12 +2176,6 @@ msgid ""
 "\"ldap_sudo_*\" in <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Esta página de manual describe la configuración del proveedor AD para "
-"<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</manvolnum> "
-"</citerefentry>. Para una referencia detallada de sintaxis, vea la sección "
-"<quote>FILE FORMAT</quote> de la página de manual <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1546
@@ -5508,21 +5474,11 @@ msgstr "OPCIONES SUDO"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:2054
-#, fuzzy
-#| msgid ""
-#| "The descriptions of some of the configuration options in this manual page "
-#| "are based on the <citerefentry> <refentrytitle>ldap.conf</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry> manual page from the OpenLDAP "
-#| "2.4 distribution."
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>."
 msgstr ""
-"Las descripciones de algunas de las opciones de configuración en esta página "
-"de manual están basadas en la página de manual <citerefentry> "
-"<refentrytitle>ldap.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> de la distribución OpenLDAP 2.4."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2065
@@ -6210,10 +6166,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:124
-#, fuzzy
-#| msgid "<option>use_authtok</option>"
 msgid "<option>ignore_authinfo_unavail</option>"
-msgstr "<option>use_authtok</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:128
@@ -9275,10 +9229,8 @@ msgstr "El usuario SELinux para el acceso del usuario."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:135
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--addattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:140
@@ -9287,10 +9239,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:147
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:152
@@ -9301,10 +9251,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:160
-#, fuzzy
-#| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:165
@@ -11005,14 +10953,8 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: include/override_homedir.xml:36
-#, fuzzy
-#| msgid ""
-#| "The value can be overridden by <emphasis>override_homedir</emphasis> "
-#| "option."
 msgid "The value of configure option <emphasis>homedir_substring</emphasis>."
 msgstr ""
-"Este valor puede ser anulado por la opción <emphasis>override_homedir</"
-"emphasis>."
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/override_homedir.xml:5
@@ -11045,10 +10987,8 @@ msgstr "Por defecto: No fijado (SSSD usará el valor recuperado desde LDAP)"
 
 #. type: Content of: <varlistentry><term>
 #: include/homedir_substring.xml:2
-#, fuzzy
-#| msgid "homedir_umask (integer)"
 msgid "homedir_substring (string)"
-msgstr "homedir_umask (entero)"
+msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:5
@@ -11064,10 +11004,5 @@ msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para>
 #: include/homedir_substring.xml:15
-#, fuzzy
-#| msgid "Default: /tmp"
 msgid "Default: /home"
-msgstr "Predeterminado: /tmp"
-
-#~ msgid "These options can be used to configure the sudo service."
-#~ msgstr "Estas opciones pueden ser usadas para configurar el servicio sudo."
+msgstr ""

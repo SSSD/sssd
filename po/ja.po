@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2014-06-04 20:00+0200\n"
-"PO-Revision-Date: 2014-05-30 15:58+0000\n"
+"POT-Creation-Date: 2014-07-09 19:19+0200\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
 "ja/)\n"
@@ -952,9 +952,8 @@ msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr "初期グループの検索のために LDAP_MATCHING_RULE_IN_CHAIN を使用します"
 
 #: src/config/SSSDConfig/__init__.py.in:324
-#, fuzzy
 msgid "Whether to use Token-Groups"
-msgstr "ユーザー検索のフィルター"
+msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:325
 msgid "Set lower boundary for allowed IDs from the LDAP server"
@@ -1131,34 +1130,34 @@ msgstr "可能ならばキャッシュから正規化されたグループ名を
 msgid "PAM stack to use"
 msgstr "使用する PAM スタック"
 
-#: src/monitor/monitor.c:2665
+#: src/monitor/monitor.c:2690
 msgid "Become a daemon (default)"
 msgstr "デーモンとして実行（デフォルト）"
 
-#: src/monitor/monitor.c:2667
+#: src/monitor/monitor.c:2692
 msgid "Run interactive (not a daemon)"
 msgstr "対話的に実行（デーモンではない）"
 
-#: src/monitor/monitor.c:2669 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2694 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "非標準の設定ファイルの指定"
 
-#: src/monitor/monitor.c:2671
+#: src/monitor/monitor.c:2696
 msgid "Print version number and exit"
 msgstr "バージョン番号を表示して終了する"
 
 #: src/providers/krb5/krb5_child.c:1975 src/providers/ldap/ldap_child.c:435
-#: src/util/util.h:107
+#: src/util/util.h:108
 msgid "Debug level"
 msgstr "デバッグレベル"
 
 #: src/providers/krb5/krb5_child.c:1977 src/providers/ldap/ldap_child.c:437
-#: src/util/util.h:111
+#: src/util/util.h:114
 msgid "Add debug timestamps"
 msgstr "デバッグのタイムスタンプを追加する"
 
 #: src/providers/krb5/krb5_child.c:1979 src/providers/ldap/ldap_child.c:439
-#: src/util/util.h:113
+#: src/util/util.h:116
 msgid "Show timestamps with microseconds"
 msgstr "タイムスタンプをミリ秒単位で表示する"
 
@@ -1166,7 +1165,12 @@ msgstr "タイムスタンプをミリ秒単位で表示する"
 msgid "An open file descriptor for the debug logs"
 msgstr "デバッグログのオープンファイルディスクリプター"
 
-#: src/providers/data_provider_be.c:2751
+#: src/providers/ldap/ldap_child.c:443 src/util/util.h:112
+#, fuzzy
+msgid "Send the debug output to stderr directly."
+msgstr "デバッグ出力を標準エラーの代わりにファイルに送信する"
+
+#: src/providers/data_provider_be.c:2752
 msgid "Domain of the information provider (mandatory)"
 msgstr "情報プロバイダーのドメイン (必須)"
 
@@ -1844,6 +1848,6 @@ msgstr "メモリー不足\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s は root として実行する必要があります\n"
 
-#: src/util/util.h:109
+#: src/util/util.h:110
 msgid "Send the debug output to files instead of stderr"
 msgstr "デバッグ出力を標準エラーの代わりにファイルに送信する"

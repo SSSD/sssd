@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2014-06-04 20:00+0200\n"
-"PO-Revision-Date: 2014-05-30 16:12+0000\n"
+"POT-Creation-Date: 2014-07-09 19:19+0200\n"
+"PO-Revision-Date: 2014-06-05 15:51+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish (http://www.transifex.com/projects/p/sssd/language/"
 "pl/)\n"
@@ -992,9 +992,8 @@ msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
 msgstr "Użycie LDAP_MATCHING_RULE_IN_CHAIN do wyszukiwania grup inicjacyjnych"
 
 #: src/config/SSSDConfig/__init__.py.in:324
-#, fuzzy
 msgid "Whether to use Token-Groups"
-msgstr "Czy używać Global Catalog do wyszukiwań"
+msgstr "Czy używać Token-Groups"
 
 #: src/config/SSSDConfig/__init__.py.in:325
 msgid "Set lower boundary for allowed IDs from the LDAP server"
@@ -1176,34 +1175,34 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr "Używany stos PAM"
 
-#: src/monitor/monitor.c:2665
+#: src/monitor/monitor.c:2690
 msgid "Become a daemon (default)"
 msgstr "Uruchamia jako demon (domyślnie)"
 
-#: src/monitor/monitor.c:2667
+#: src/monitor/monitor.c:2692
 msgid "Run interactive (not a daemon)"
 msgstr "Uruchamia interaktywnie (nie jako demon)"
 
-#: src/monitor/monitor.c:2669 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2694 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Podaje niedomyślny plik konfiguracji"
 
-#: src/monitor/monitor.c:2671
+#: src/monitor/monitor.c:2696
 msgid "Print version number and exit"
 msgstr "Wyświetla numer wersji i kończy działanie"
 
 #: src/providers/krb5/krb5_child.c:1975 src/providers/ldap/ldap_child.c:435
-#: src/util/util.h:107
+#: src/util/util.h:108
 msgid "Debug level"
 msgstr "Poziom debugowania"
 
 #: src/providers/krb5/krb5_child.c:1977 src/providers/ldap/ldap_child.c:437
-#: src/util/util.h:111
+#: src/util/util.h:114
 msgid "Add debug timestamps"
 msgstr "Dodaje czasy debugowania"
 
 #: src/providers/krb5/krb5_child.c:1979 src/providers/ldap/ldap_child.c:439
-#: src/util/util.h:113
+#: src/util/util.h:116
 msgid "Show timestamps with microseconds"
 msgstr "Wyświetlanie dat z mikrosekundami"
 
@@ -1211,7 +1210,13 @@ msgstr "Wyświetlanie dat z mikrosekundami"
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
-#: src/providers/data_provider_be.c:2751
+#: src/providers/ldap/ldap_child.c:443 src/util/util.h:112
+#, fuzzy
+msgid "Send the debug output to stderr directly."
+msgstr ""
+"Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
+
+#: src/providers/data_provider_be.c:2752
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
@@ -1744,22 +1749,25 @@ msgstr "Odblokowanie konta"
 
 #: src/tools/sss_usermod.c:57
 msgid "Add an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Dodaje parę atrybut/wartość. Format to nazwaatrybutu=wartość."
 
 #: src/tools/sss_usermod.c:58
 msgid "Delete an attribute/value pair. The format is attrname=value."
-msgstr ""
+msgstr "Usuwa parę atrybut/wartość. Format to nazwaatrybutu=wartość."
 
 #: src/tools/sss_usermod.c:59
 msgid ""
 "Set an attribute to a name/value pair. The format is attrname=value. For "
 "multi-valued attributes, the command replaces the values already present"
 msgstr ""
+"Ustawia atrybut pary nazwa/wartość. Format to nazwaatrybutu=wartość. W "
+"przypadku atrybutów o wielu wartościach polecenie zastępuje obecne już "
+"wartości"
 
 #: src/tools/sss_usermod.c:117 src/tools/sss_usermod.c:126
 #: src/tools/sss_usermod.c:135
 msgid "Specify the attribute name/value pair(s)\n"
-msgstr ""
+msgstr "Podaje atrybuty parom nazwa/atrybut\n"
 
 #: src/tools/sss_usermod.c:152
 msgid "Specify user to modify\n"
@@ -1895,7 +1903,7 @@ msgstr "Brak pamięci\n"
 msgid "%1$s must be run as root\n"
 msgstr "%1$s musi zostać uruchomione jako root\n"
 
-#: src/util/util.h:109
+#: src/util/util.h:110
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
