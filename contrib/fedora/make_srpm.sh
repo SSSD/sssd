@@ -151,10 +151,10 @@ sed -e "s/@PACKAGE_NAME@/$PACKAGE_NAME/" \
     > "$RPMBUILD/SPECS/$PACKAGE_NAME.spec"
 
 NAME="$PACKAGE_NAME-$PACKAGE_VERSION"
-git archive --format=tar.gz --prefix="$NAME"/ \
-            --output "$RPMBUILD/SOURCES/$NAME.tar.gz" \
+git archive --format=tar --prefix="$NAME"/ \
             --remote="file://$SRC_DIR" \
-            HEAD
+            HEAD \
+            | gzip > "$RPMBUILD/SOURCES/$NAME.tar.gz"
 
 cp "$SRC_DIR"/contrib/*.patch "$RPMBUILD/SOURCES" 2>/dev/null
 add_patches "$RPMBUILD/SPECS/$PACKAGE_NAME.spec" \
