@@ -2093,13 +2093,9 @@ static int reply_weight_rearrange(int len,
     r = *(start);
     prev = NULL;
     while (r != NULL) {
-        if (r->weight == 0) {
+        if (r->weight == 0 && r != *start) {
             /* remove from the old list */
-            if (prev) {
-                prev->next = r->next;
-            } else {
-                *start = r->next;
-            }
+            prev->next = r->next;
 
             /* add to the head of the new list */
             tmp = r;
