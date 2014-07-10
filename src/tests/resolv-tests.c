@@ -780,6 +780,69 @@ START_TEST(test_resolv_sort_srv_reply)
 }
 END_TEST
 
+START_TEST(test_resolv_sort_srv_reply_zero_weight)
+{
+    int ret;
+    struct ares_srv_reply *replies = NULL;
+    struct ares_srv_reply *r, *prev = NULL;
+    struct resolv_test_ctx *test_ctx;
+    int num_replies = 6;
+    int i;
+
+    ret = setup_resolv_test(RESOLV_DEFAULT_TIMEOUT, &test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up test");
+        return;
+    }
+
+    ck_leaks_push(test_ctx);
+
+    /* prepare linked list */
+    for (i = 0; i < num_replies; i++) {
+        r = talloc_zero(test_ctx, struct ares_srv_reply);
+        fail_if(r == NULL);
+
+        r->priority = 20;
+        r->priority = i <= 3 ? 10 : r->priority;
+        r->priority = i <= 1 ? 0 : r->priority;
+        r->weight   = 0;
+
+        if (replies == NULL) {
+            replies = r;
+            prev = r;
+        } else {
+            prev->next = r;
+            prev = prev->next;
+        }
+    }
+
+    /* do the sort */
+    ret = resolv_sort_srv_reply(&replies);
+    fail_if(ret != EOK);
+
+    /* check if the list contains all values and is sorted */
+    for (i = 0, r = replies; r != NULL; r = r->next, i++) {
+        if (r->next != NULL) {
+            fail_unless(r->priority <= r->next->priority);
+        }
+    }
+    fail_unless(i == num_replies);
+
+    /* clean up */
+    prev = NULL;
+    for (r = replies; r != NULL; r=r->next) {
+        talloc_zfree(prev);
+        prev = r;
+    }
+    talloc_zfree(prev);
+
+
+    /* check for leaks */
+    ck_leaks_pop(test_ctx);
+    talloc_zfree(test_ctx);
+}
+END_TEST
+
 START_TEST(test_resolv_free_req)
 {
     int ret = EOK;
@@ -904,6 +967,7 @@ Suite *create_resolv_suite(void)
     tcase_add_test(tc_resolv, test_address_to_string);
     tcase_add_test(tc_resolv, test_resolv_ip_addr);
     tcase_add_test(tc_resolv, test_resolv_sort_srv_reply);
+    tcase_add_test(tc_resolv, test_resolv_sort_srv_reply_zero_weight);
     if (use_net_test) {
         tcase_add_test(tc_resolv, test_resolv_internet);
         tcase_add_test(tc_resolv, test_resolv_negative);
