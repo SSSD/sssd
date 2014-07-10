@@ -646,7 +646,12 @@ static void sdap_ad_resolve_sids_done(struct tevent_req *subreq)
 
     ret = groups_get_recv(subreq, &dp_error, &sdap_error);
     talloc_zfree(subreq);
-    if (ret != EOK || sdap_error != EOK || dp_error != DP_ERR_OK) {
+
+    if (ret == EOK && sdap_error == ENOENT && dp_error == DP_ERR_OK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to resolve SID %s - will try next sid.\n",
+              state->current_sid);
+    } else if (ret != EOK || sdap_error != EOK || dp_error != DP_ERR_OK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to resolve SID %s [dp_error: %d, "
               "sdap_error: %d, ret: %d]: %s\n", state->current_sid, dp_error,
               sdap_error, ret, strerror(ret));
