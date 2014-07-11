@@ -3979,7 +3979,7 @@ START_TEST(test_odd_characters)
 }
 END_TEST
 
-START_TEST(test_sss_ldb_search)
+START_TEST(test_SSS_LDB_SEARCH)
 {
     errno_t ret;
     struct sysdb_test_ctx *test_ctx;
@@ -4013,10 +4013,10 @@ START_TEST(test_sss_ldb_search)
     /* Retrieve */
 
     /* Empty filter */
-    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
-                         LDB_SCOPE_BASE, NULL, NULL);
+    SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
+                   LDB_SCOPE_BASE, NULL, NULL);
 
-    fail_unless(ret == EOK, "sss_ldb_search error [%d][%s]",
+    fail_unless(ret == EOK, "SSS_LDB_SEARCH error [%d][%s]",
                 ret, strerror(ret));
 
     fail_unless(res->count == 1, "Received [%d] responses",
@@ -4030,27 +4030,27 @@ START_TEST(test_sss_ldb_search)
     talloc_zfree(res);
 
     /* Non-empty filter */
-    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
-                         LDB_SCOPE_BASE, NULL, "objectClass=group");
+    SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
+                   LDB_SCOPE_BASE, NULL, "objectClass=group");
 
-    fail_unless(ret == EOK, "sss_ldb_search error [%d][%s]",
+    fail_unless(ret == EOK, "SSS_LDB_SEARCH error [%d][%s]",
                 ret, strerror(ret));
     talloc_zfree(res);
 
     /* Filter yeilding no results */
-    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
-                         LDB_SCOPE_BASE, NULL,
-                         "objectClass=nonExistingObjectClass");
+    SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, group_dn,
+                   LDB_SCOPE_BASE, NULL,
+                   "objectClass=nonExistingObjectClass");
 
     fail_unless(ret == ENOENT, "sss_ldb_search error [%d][%s]",
                 ret, strerror(ret));
     talloc_zfree(res);
 
     /* Non-existing dn */
-    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, nonexist_dn,
-                         LDB_SCOPE_BASE, NULL, NULL);
+    SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, nonexist_dn,
+                   LDB_SCOPE_BASE, NULL, NULL);
 
-    fail_unless(ret == ENOENT, "sss_ldb_search error [%d][%s]",
+    fail_unless(ret == ENOENT, "SSS_LDB_SEARCH error [%d][%s]",
                 ret, strerror(ret));
     talloc_zfree(res);
 
@@ -4626,13 +4626,13 @@ START_TEST (test_sysdb_search_return_ENOENT)
     talloc_zfree(msgs);
     talloc_zfree(user_dn);
 
-    /* sss_ldb_search */
+    /* SSS_LDB_SEARCH */
     user_dn = sysdb_user_dn(test_ctx, test_ctx->domain, "nonexisting_user");
     fail_if(user_dn == NULL, "sysdb_user_dn failed");
-    ret = sss_ldb_search(test_ctx->sysdb->ldb, test_ctx, &res, user_dn,
-                         LDB_SCOPE_BASE, NULL, "objectClass=user");
+    SSS_LDB_SEARCH(ret, test_ctx->sysdb->ldb, test_ctx, &res, user_dn,
+                   LDB_SCOPE_BASE, NULL, "objectClass=user");
 
-    fail_unless(ret == ENOENT, "sss_ldb_search failed: %d, %s",
+    fail_unless(ret == ENOENT, "SSS_LDB_SEARCH failed: %d, %s",
                                ret, strerror(ret));
 
     talloc_zfree(res);
@@ -5981,8 +5981,8 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_nested_double_ghosts,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
 
-    /* sss_ldb_search */
-    tcase_add_test(tc_sysdb, test_sss_ldb_search);
+    /* SSS_LDB_SEARCH */
+    tcase_add_test(tc_sysdb, test_SSS_LDB_SEARCH);
 
     /* This loop counts backwards so the indexing is a little odd */
     tcase_add_loop_test(tc_memberof, test_sysdb_memberof_mod_replace_keep,

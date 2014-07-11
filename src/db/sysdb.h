@@ -481,11 +481,6 @@ int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
                             const char **attributes,
                             struct ldb_result **res);
 
-errno_t sss_ldb_search(struct ldb_context *ldb, TALLOC_CTX *mem_ctx,
-                       struct ldb_result **_result, struct ldb_dn *base,
-                       enum ldb_scope scope, const char * const *attrs,
-                       const char *exp_fmt, ...) SSS_ATTRIBUTE_PRINTF(7, 8);
-
 /* functions that modify the databse
  * they have to be called within a transaction
  * See sysdb_transaction_send()/_recv() */
@@ -513,6 +508,18 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
                        const char **attrs,
                        size_t *_msgs_count,
                        struct ldb_message ***_msgs);
+
+#define SSS_LDB_SEARCH(ret, ldb, mem_ctx, _result, base, scope, attrs,    \
+                       exp_fmt, ...) do {                                 \
+    int _sls_lret;                                                        \
+                                                                          \
+    _sls_lret = ldb_search(ldb, mem_ctx, _result, base, scope, attrs,     \
+                           exp_fmt, ##__VA_ARGS__);                       \
+    ret = sysdb_error_to_errno(_sls_lret);                                \
+    if (ret == EOK && (*_result)->count == 0) {                           \
+        ret = ENOENT;                                                     \
+    }                                                                     \
+} while(0)
 
 /* Search User (by uid, sid or name) */
 int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
