@@ -350,6 +350,7 @@ option_strings = {
     'ldap_sudorule_host' : _('Sudo rule host attribute'),
     'ldap_sudorule_user' : _('Sudo rule user attribute'),
     'ldap_sudorule_option' : _('Sudo rule option attribute'),
+    'ldap_sudorule_runas' : _('Sudo rule runas attribute'),
     'ldap_sudorule_runasuser' : _('Sudo rule runasuser attribute'),
     'ldap_sudorule_runasgroup' : _('Sudo rule runasgroup attribute'),
     'ldap_sudorule_notbefore' : _('Sudo rule notbefore attribute'),

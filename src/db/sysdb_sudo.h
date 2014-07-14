@@ -39,6 +39,7 @@
 #define SYSDB_SUDO_CACHE_AT_HOST       "sudoHost"
 #define SYSDB_SUDO_CACHE_AT_COMMAND    "sudoCommand"
 #define SYSDB_SUDO_CACHE_AT_OPTION     "sudoOption"
+#define SYSDB_SUDO_CACHE_AT_RUNAS      "sudoRunAs"
 #define SYSDB_SUDO_CACHE_AT_RUNASUSER  "sudoRunAsUser"
 #define SYSDB_SUDO_CACHE_AT_RUNASGROUP "sudoRunAsGroup"
 #define SYSDB_SUDO_CACHE_AT_NOTBEFORE  "sudoNotBefore"
