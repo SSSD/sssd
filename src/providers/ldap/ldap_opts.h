@@ -321,6 +321,7 @@ struct sdap_attr_map native_sudorule_map[] = {
     { "ldap_sudorule_host", "sudoHost", SYSDB_SUDO_CACHE_AT_HOST, NULL },
     { "ldap_sudorule_user", "sudoUser", SYSDB_SUDO_CACHE_AT_USER, NULL },
     { "ldap_sudorule_option", "sudoOption", SYSDB_SUDO_CACHE_AT_OPTION, NULL },
+    { "ldap_sudorule_runas", "sudoRunAs", SYSDB_SUDO_CACHE_AT_RUNAS, NULL },
     { "ldap_sudorule_runasuser", "sudoRunAsUser", SYSDB_SUDO_CACHE_AT_RUNASUSER, NULL },
     { "ldap_sudorule_runasgroup", "sudoRunAsGroup", SYSDB_SUDO_CACHE_AT_RUNASGROUP, NULL },
     { "ldap_sudorule_notbefore", "sudoNotBefore", SYSDB_SUDO_CACHE_AT_NOTBEFORE, NULL },
