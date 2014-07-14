@@ -767,7 +767,7 @@ START_TEST(test_resolv_sort_srv_reply)
 
     /* clean up */
     prev = NULL;
-    for (i = 1, r = replies; r; r=r->next, i++) {
+    for (r = replies; r; r=r->next) {
         talloc_zfree(prev);
         prev = r;
     }
