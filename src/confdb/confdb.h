@@ -461,6 +461,28 @@ int confdb_set_bool(struct confdb_ctx *cdb,
                      bool val);
 
 /**
+ * @brief Convenience function to set a single-valued attribute as a string
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] section The ConfDB section to update. This is constructed from
+ *                    the format of the sssd.conf file. All sections start
+ *                    with 'config/'. Subsections are separated by slashes.
+ *                    e.g. [domain/LDAP] in sssd.conf would translate to
+ *                    config/domain/LDAP
+ * @param[in] attribute The name of the attribute to update
+ * @param[in] val New value of the attribute.
+ *
+ * @return 0 - Successfully retrieved the entry (or used the default)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - The section could not be parsed
+ * @return EIO - An I/O error occurred while communicating with the ConfDB
+ */
+int confdb_set_string(struct confdb_ctx *cdb,
+                      const char *section,
+                      const char *attribute,
+                      char *val);
+
+/**
  * @brief Convenience function to retrieve a single-valued attribute as a
  * null-terminated array of strings
  *

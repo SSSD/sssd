@@ -369,6 +369,77 @@ done:
     return ret;
 }
 
+int confdb_set_string(struct confdb_ctx *cdb,
+                      const char *section,
+                      const char *attribute,
+                      char *val)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    char *secdn;
+    struct ldb_message *msg;
+    int ret, lret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = parse_section(tmp_ctx, section, &secdn, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    dn = ldb_dn_new(tmp_ctx, cdb->ldb, secdn);
+    if (!dn) {
+        ret = EIO;
+        goto done;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = dn;
+
+    lret = ldb_msg_add_empty(msg, attribute, LDB_FLAG_MOD_REPLACE, NULL);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_msg_add_empty failed: [%s]\n", ldb_strerror(lret));
+        ret = EIO;
+        goto done;
+    }
+
+    lret = ldb_msg_add_string(msg, attribute, val);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_msg_add_string failed: [%s]\n", ldb_strerror(lret));
+        ret = EIO;
+        goto done;
+    }
+
+    lret = ldb_modify(cdb->ldb, msg);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_modify failed: [%s]\n", ldb_strerror(lret));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set [%s] from [%s], error [%d] (%s)\n",
+               attribute, section, ret, strerror(ret));
+    }
+    return ret;
+}
+
 int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                       const char *section, const char *attribute,
                       const char *defstr, char **result)
