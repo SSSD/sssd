@@ -323,6 +323,7 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/sss_client/sudo/sss_sudo.doxy
                  src/sss_client/idmap/sss_nss_idmap.pc
                  src/sss_client/idmap/sss_nss_idmap.doxy
+                 src/sss_client/libwbclient/wbclient.pc
                  src/lib/sifp/sss_simpleifp.pc
                  src/lib/sifp/sss_simpleifp.doxy
                  src/config/setup.py

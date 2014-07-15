@@ -574,6 +574,10 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock_sysdb_objects.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
+    src/sss_client/libwbclient/libwbclient.h \
+    src/sss_client/libwbclient/wbc_err_internal.h \
+    src/sss_client/libwbclient/wbclient_internal.h \
+    src/sss_client/libwbclient/wbc_sssd_internal.h \
     src/lib/idmap/sss_idmap_private.h \
     src/lib/sifp/sss_sifp_private.h \
     src/tests/cmocka/test_utils.h \
@@ -718,7 +722,12 @@ libsss_config_la_LDFLAGS = \
 endif # BUILD_CONFIG_LIB
 endif # BUILD_IFP
 
-lib_LTLIBRARIES = libipa_hbac.la libsss_idmap.la libsss_nss_idmap.la
+lib_LTLIBRARIES = libipa_hbac.la \
+                  libsss_idmap.la \
+                  libsss_nss_idmap.la \
+                  libwbclient.la \
+                  $(NULL)
+
 pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
 libipa_hbac_la_DEPENDENCIES = src/providers/ipa/ipa_hbac.exports
 libipa_hbac_la_SOURCES = \
@@ -758,11 +767,37 @@ libsss_nss_idmap_la_LDFLAGS = \
 
 dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.exports
 
+pkgconfig_DATA += src/sss_client/libwbclient/wbclient.pc
+EXTRA_libwbclient_la_DEPENDENCIES = src/sss_client/libwbclient/wbclient.exports
+libwbclient_la_SOURCES = \
+    src/sss_client/libwbclient/wbc_guid.c \
+    src/sss_client/libwbclient/wbc_idmap_common.c \
+    src/sss_client/libwbclient/wbc_idmap_sssd.c \
+    src/sss_client/libwbclient/wbclient_common.c \
+    src/sss_client/libwbclient/wbclient_sssd.c \
+    src/sss_client/libwbclient/wbc_pam_sssd.c \
+    src/sss_client/libwbclient/wbc_pwd_sssd.c \
+    src/sss_client/libwbclient/wbc_sid_common.c \
+    src/sss_client/libwbclient/wbc_sid_sssd.c \
+    src/sss_client/libwbclient/wbc_sssd_internal.h \
+    src/sss_client/libwbclient/wbc_util_common.c \
+    src/sss_client/libwbclient/wbc_util_sssd.c
+libwbclient_la_LIBADD = \
+    libsss_nss_idmap.la \
+    $(CLIENT_LIBS)
+libwbclient_la_LDFLAGS = \
+    -Wl,--version-script,$(srcdir)/src/sss_client/libwbclient/wbclient.exports \
+    -version-info 11:0:11
+
+dist_noinst_DATA += src/sss_client/libwbclient/wbclient.exports
+
 
 include_HEADERS = \
     src/providers/ipa/ipa_hbac.h \
     src/lib/idmap/sss_idmap.h \
-    src/sss_client/idmap/sss_nss_idmap.h
+    src/sss_client/idmap/sss_nss_idmap.h \
+    src/sss_client/libwbclient/wbclient.h \
+    $(NULL)
 
 if BUILD_IFP
 lib_LTLIBRARIES += libsss_simpleifp.la

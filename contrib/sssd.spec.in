@@ -427,6 +427,22 @@ Requires: libsss_simpleifp = %{version}-%{release}
 %description -n libsss_simpleifp-devel
 Provides library that simplifies D-Bus API for the SSSD InfoPipe responder.
 
+%package libwbclient
+Summary: The SSSD libwbclient implementation
+Group: Applications/System
+License: GPLv3+ and LGPLv3+
+
+%description libwbclient
+The SSSD libwbclient implementation.
+
+%package libwbclient-devel
+Summary: Development libraries for the SSSD libwbclient implementation
+Group:  Development/Libraries
+License: GPLv3+ and LGPLv3+
+
+%description libwbclient-devel
+Development libraries for the SSSD libwbclient implementation.
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -820,6 +836,16 @@ rm -rf $RPM_BUILD_ROOT
 %files -n libipa_hbac-python
 %defattr(-,root,root,-)
 %{python_sitearch}/pyhbac.so
+
+%files libwbclient
+%defattr(-,root,root,-)
+%{_libdir}/libwbclient.so.*
+
+%files libwbclient-devel
+%defattr(-,root,root,-)
+%{_includedir}/wbclient.h
+%{_libdir}/libwbclient.so
+%{_libdir}/pkgconfig/wbclient.pc
 
 %if (0%{?use_systemd} == 1)
 # systemd
