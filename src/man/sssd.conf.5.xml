@@ -1838,15 +1838,42 @@ fallback_homedir = /home/%u
                 </varlistentry>
 
                 <varlistentry>
-                    <term>case_sensitive (boolean)</term>
+                    <term>case_sensitive (string)</term>
                     <listitem>
                         <para>
                             Treat user and group names as case sensitive. At
                             the moment, this option is not supported in
-                            the local provider.
+                            the local provider. Possible option values are:
+                        <variablelist>
+                            <varlistentry>
+                                <term>True</term>
+                                <listitem>
+                                    <para>
+                                        Case sensitive. This value is invalid
+                                        for AD provider.
+                                    </para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>False</term>
+                                <listitem>
+                                    <para>Case insensitive.</para>
+                                </listitem>
+                            </varlistentry>
+                            <varlistentry>
+                                <term>Preserving</term>
+                                <listitem>
+                                    <para>
+                                        Same as False (case insensitive), but
+                                        does not lowercase names in the output
+                                        of getpwnam and getgrnam.
+                                    </para>
+                                </listitem>
+                            </varlistentry>
+                        </variablelist>
                         </para>
                         <para>
-                            Default: True
+                            Default: True (False for AD provider)
                         </para>
                     </listitem>
                 </varlistentry>
