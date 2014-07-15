@@ -365,7 +365,7 @@ static int fill_pwent(struct sss_packet *packet,
             packet_initialized = true;
         }
 
-        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_preserve);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_get_cased_name failed, skipping\n");
@@ -2518,7 +2518,7 @@ static int fill_grent(struct sss_packet *packet,
             }
         }
 
-        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_preserve);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_get_cased_name failed, skipping\n");

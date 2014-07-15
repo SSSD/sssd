@@ -757,7 +757,7 @@ static errno_t write_selinux_login_file(const char *orig_name,
     /* pam_selinux needs the username in the same format getpwnam() would
      * return it
      */
-    username = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+    username = sss_get_cased_name(tmp_ctx, orig_name, dom->case_preserve);
     if (username == NULL) {
         ret = ENOMEM;
         goto done;

@@ -263,6 +263,7 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
     char *realm;
     char *ad_hostname;
     char hostname[HOST_NAME_MAX + 1];
+    char *case_sensitive_opt;
 
     opts = talloc_zero(mem_ctx, struct ad_options);
     if (!opts) return ENOMEM;
@@ -333,13 +334,36 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
     }
 
     /* Active Directory is always case-insensitive */
-    dom->case_sensitive = false;
+    ret = confdb_get_string(cdb, mem_ctx, conf_path,
+                            CONFDB_DOMAIN_CASE_SENSITIVE, "false",
+                            &case_sensitive_opt);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "condb_get_string failed.\n");
+        goto done;
+    }
+
+    if (strcasecmp(case_sensitive_opt, "true") == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Warning: AD domain can not be set as case-sensitive.\n");
+        dom->case_sensitive = false;
+        dom->case_preserve = false;
+    } else if (strcasecmp(case_sensitive_opt, "false") == 0) {
+        dom->case_sensitive = false;
+        dom->case_preserve = false;
+    } else if (strcasecmp(case_sensitive_opt, "preserving") == 0) {
+        dom->case_sensitive = false;
+        dom->case_preserve = true;
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for %s\n", CONFDB_DOMAIN_CASE_SENSITIVE);
+        goto done;
+    }
 
     /* Set this in the confdb so that the responders pick it
      * up when they start up.
      */
-    ret = confdb_set_bool(cdb, conf_path, "case_sensitive",
-                          dom->case_sensitive);
+    ret = confdb_set_string(cdb, conf_path, "case_sensitive",
+                            case_sensitive_opt);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not set domain case-sensitive: [%s]\n",

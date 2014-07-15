@@ -218,6 +218,7 @@ struct sss_domain_info {
     bool cache_credentials;
     bool legacy_passwords;
     bool case_sensitive;
+    bool case_preserve;
 
     gid_t override_gid;
     const char *override_homedir;

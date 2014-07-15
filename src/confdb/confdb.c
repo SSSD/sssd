@@ -1218,12 +1218,27 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
-    ret = get_entry_as_bool(res->msgs[0], &domain->case_sensitive,
-                            CONFDB_DOMAIN_CASE_SENSITIVE, true);
-    if(ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid value for %s\n", CONFDB_DOMAIN_CASE_SENSITIVE);
-        goto done;
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_DOMAIN_CASE_SENSITIVE, "true");
+    if (tmp != NULL) {
+        if (strcasecmp(tmp, "true") == 0) {
+            domain->case_sensitive = true;
+            domain->case_preserve = true;
+        } else if (strcasecmp(tmp, "false") == 0) {
+            domain->case_sensitive = false;
+            domain->case_preserve = false;
+        } else if (strcasecmp(tmp, "preserving") == 0) {
+            domain->case_sensitive = false;
+            domain->case_preserve = true;
+        } else {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Invalid value for %s\n", CONFDB_DOMAIN_CASE_SENSITIVE);
+            goto done;
+        }
+    } else {
+        /* default */
+        domain->case_sensitive = true;
+        domain->case_preserve = true;
     }
     if (domain->case_sensitive == false &&
         strcasecmp(domain->provider, "local") == 0) {
