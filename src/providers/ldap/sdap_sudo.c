@@ -387,7 +387,7 @@ static char *sdap_sudo_build_host_filter(TALLOC_CTX *mem_ctx,
      */
     if (regexp) {
         filter = talloc_asprintf_append_buffer(filter,
-                                               "(|(%s=*\\\\*)(%s=*?*)(%s=*\\**)"
+                                               "(|(%s=*\\\\*)(%s=*?*)(%s=*\\2A*)"
                                                  "(%s=*[*]*))",
                                                map[SDAP_AT_SUDO_HOST].name,
                                                map[SDAP_AT_SUDO_HOST].name,
