@@ -710,6 +710,7 @@ struct sdap_initgr_nested_state {
 
     struct ldb_message_element *memberof;
     char *filter;
+    char *np_grp_filter;
     char **group_dns;
     int cur;
 
@@ -717,6 +718,11 @@ struct sdap_initgr_nested_state {
 
     struct sysdb_attrs **groups;
     int groups_cur;
+    /* state of resolving group:
+     *  try_as_non_posix => suppose the group is a non-posix group
+     * !try_as_non_posix => suppose the group is a posix group
+     */
+    bool try_as_non_posix;
 };
 
 static errno_t sdap_initgr_nested_deref_search(struct tevent_req *req);
@@ -747,6 +753,10 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
     state->dom = dom;
     state->sh = sh;
     state->grp_attrs = grp_attrs;
+    state->np_grp_attrs = np_grp_attrs;
+    /* initially suppose that group is posix group */
+    state->try_as_non_posix = false;
+
     state->user = user;
     state->op = NULL;
 
@@ -829,6 +839,15 @@ static errno_t sdap_initgr_nested_noderef_search(struct tevent_req *req)
                             state->opts->group_map[SDAP_OC_GROUP].name,
                             state->opts->group_map[SDAP_AT_GROUP_NAME].name);
     if (!state->filter) {
+        return ENOMEM;
+    }
+
+    state->np_grp_filter = talloc_asprintf(
+        state,"(&(objectclass=%s)(%s=*))",
+        state->opts->np_group_map[SDAP_OC_NP_GROUP].name,
+        state->opts->np_group_map[SDAP_AT_NP_GROUP_NAME].name);
+
+    if (state->np_grp_filter == NULL) {
         return ENOMEM;
     }
 
@@ -962,9 +981,56 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
                                                         groups[0]);
         state->groups_cur++;
     } else {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Search for group %s, returned %zu results. Skipping\n",
-               state->group_dns[state->cur], count);
+        if (count > 1) {
+            /* Got more than 1 result which is wrong! */
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Search for group %s, returned %zu results - "
+                  "expecting only 1. Skipping\n",
+                  state->group_dns[state->cur], count);
+
+        } else {
+            /* (count == 0) => failed to resolve group */
+            if (state->try_as_non_posix) {
+                /* Group was tried to be resolved as both posix and non-posix
+                 * group but both attempts failed. Succumb on this one and try
+                 * to continue with another group.
+                 */
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Group %s, failed to be resolved as posix or non-posix "
+                      "group. Skipping\n.",
+                      state->group_dns[state->cur]);
+            } else {
+                /* Getting group as posix group failed, try to get the group as
+                 * non-posix one instead.
+                 */
+                state->try_as_non_posix = true;
+
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "The group %s failed to be resolved as posix. "
+                      "Trying to get it as non-posix\n",
+                      state->group_dns[state->cur]);
+
+                subreq = sdap_get_generic_send(state, state->ev,
+                                               state->opts, state->sh,
+                                               state->group_dns[state->cur],
+                                               LDAP_SCOPE_BASE,
+                                               state->np_grp_filter,
+                                               state->np_grp_attrs,
+                                               state->opts->np_group_map,
+                                               SDAP_OPTS_NP_GROUP,
+                                               dp_opt_get_int(
+                                                   state->opts->basic,
+                                                   SDAP_SEARCH_TIMEOUT),
+                                               false);
+                if (!subreq) {
+                    tevent_req_error(req, ENOMEM);
+                    return;
+                }
+                tevent_req_set_callback(subreq,
+                                        sdap_initgr_nested_search, req);
+                return;
+            }
+        }
     }
 
     state->cur++;
@@ -972,6 +1038,8 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
      * memberOf which might not be only groups, but permissions, etc.
      * Use state->groups_cur for group index cap */
     if (state->cur < state->memberof->num_values) {
+        /* first try to resolve group as posix group */
+        state->try_as_non_posix = false;
         subreq = sdap_get_generic_send(state, state->ev,
                                        state->opts, state->sh,
                                        state->group_dns[state->cur],
@@ -2643,6 +2711,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
     state->conn = conn;
     state->name = name;
     state->grp_attrs = grp_attrs;
+    state->np_grp_attrs = np_grp_attrs;
     state->orig_user = NULL;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
     state->user_base_iter = 0;
