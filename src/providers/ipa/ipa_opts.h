@@ -204,7 +204,7 @@ struct sdap_attr_map ipa_user_map[] = {
 };
 
 struct sdap_attr_map ipa_group_map[] = {
-    { "ldap_group_object_class", "posixGroup", SYSDB_GROUP_CLASS, NULL },
+    { "ldap_group_object_class", "groupofnames", SYSDB_GROUP_CLASS, NULL },
     { "ldap_group_name", "cn", SYSDB_NAME, NULL },
     { "ldap_group_pwd", "userPassword", SYSDB_PWD, NULL },
     { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
