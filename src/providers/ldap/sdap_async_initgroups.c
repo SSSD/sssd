@@ -706,6 +706,7 @@ struct sdap_initgr_nested_state {
     const char *orig_dn;
 
     const char **grp_attrs;
+    const char **np_grp_attrs;
 
     struct ldb_message_element *memberof;
     char *filter;
@@ -729,7 +730,8 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
                                                   struct sss_domain_info *dom,
                                                   struct sdap_handle *sh,
                                                   struct sysdb_attrs *user,
-                                                  const char **grp_attrs)
+                                                  const char **grp_attrs,
+                                                  const char **np_grp_attrs)
 {
     struct tevent_req *req;
     struct sdap_initgr_nested_state *state;
@@ -2592,6 +2594,7 @@ struct sdap_get_initgr_state {
     struct sdap_id_conn_ctx *conn;
     const char *name;
     const char **grp_attrs;
+    const char **np_grp_attrs;
     const char **user_attrs;
     char *user_base_filter;
     char *filter;
@@ -2616,7 +2619,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct sdap_id_ctx *id_ctx,
                                         struct sdap_id_conn_ctx *conn,
                                         const char *name,
-                                        const char **grp_attrs)
+                                        const char **grp_attrs,
+                                        const char **np_grp_attrs)
 {
     struct tevent_req *req;
     struct sdap_get_initgr_state *state;
@@ -2951,9 +2955,11 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
         break;
 
     case SDAP_SCHEMA_IPA_V1:
+
         subreq = sdap_initgr_nested_send(state, state->ev, state->opts,
                                          state->sysdb, state->dom, state->sh,
-                                         state->orig_user, state->grp_attrs);
+                                         state->orig_user, state->grp_attrs,
+                                         state->np_grp_attrs);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;

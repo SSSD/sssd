@@ -302,6 +302,16 @@ enum sdap_group_attrs {
     SDAP_OPTS_GROUP /* attrs counter */
 };
 
+/* the objectclass must be the first attribute.
+ * Functions depend on this */
+enum sdap_np_group_attrs {
+    SDAP_OC_NP_GROUP = 0,
+    SDAP_AT_NP_GROUP_NAME,
+    SDAP_AT_NP_GROUP_MEMBER,
+
+    SDAP_OPTS_NP_GROUP /* attrs counter */
+};
+
 enum sdap_netgroup_attrs {
     SDAP_OC_NETGROUP = 0,
     SDAP_AT_NETGROUP_NAME,
@@ -414,6 +424,7 @@ struct sdap_options {
     struct sdap_attr_map *user_map;
     size_t user_map_cnt;
     struct sdap_attr_map *group_map;
+    struct sdap_attr_map *np_group_map;
     struct sdap_attr_map *netgroup_map;
     struct sdap_attr_map *service_map;
 
