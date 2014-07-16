@@ -5,6 +5,7 @@
 
 %global is_rhel5 %(%{__grep} -c "release 5" /etc/redhat-release)
 %global rhel5_minor %(%{__grep} -o "5.[0-9]*" /etc/redhat-release |%{__sed} -s 's/5.//')
+%global rhel7_minor %(%{__grep} -o "7.[0-9]*" /etc/redhat-release |%{__sed} -s 's/7.//')
 
 %if 0%{?is_rhel5} > 0
 # we don't want to provide private python extension libs
@@ -46,6 +47,10 @@
     %global with_cifs_utils_plugin 1
 %else
     %global with_cifs_utils_plugin_option --disable-cifs-idmap-plugin
+%endif
+
+%if (0%{?fedora} >= 21 || (0%{?rhel} == 7 &&  0%{?rhel7_minor} >= 1))
+    %global with_krb5_localauth_plugin 1
 %endif
 
 Name: @PACKAGE_NAME@
@@ -113,7 +118,11 @@ BuildRequires: pcre-devel
 BuildRequires: libxslt
 BuildRequires: libxml2
 BuildRequires: docbook-style-xsl
+%if (0%{?with_krb5_localauth_plugin} == 1)
+BuildRequires: krb5-devel >= 1.12
+%else
 BuildRequires: krb5-devel
+%endif
 BuildRequires: c-ares-devel
 BuildRequires: python-devel
 BuildRequires: check-devel
@@ -745,6 +754,9 @@ rm -rf $RPM_BUILD_ROOT
 %if (0%{?with_cifs_utils_plugin} == 1)
 %{_libdir}/cifs-utils/cifs_idmap_sss.so
 %ghost %{_sysconfdir}/cifs-utils/idmap-plugin
+%endif
+%if (0%{?with_krb5_localauth_plugin} == 1)
+%{_libdir}/%{name}/modules/sssd_krb5_localauth_plugin.so
 %endif
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*

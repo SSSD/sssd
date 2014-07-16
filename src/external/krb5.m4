@@ -96,5 +96,20 @@ AM_CONDITIONAL([BUILD_KRB5_LOCATOR_PLUGIN],
 AM_COND_IF([BUILD_KRB5_LOCATOR_PLUGIN],
            [AC_DEFINE_UNQUOTED(HAVE_KRB5_LOCATOR_PLUGIN, 1, [Build with krb5 locator plugin])])
 
+AC_CHECK_HEADER([krb5/localauth_plugin.h],
+                [have_localauth_plugin=yes],
+                [have_localauth_plugin=no]
+                [AC_MSG_NOTICE([Kerberos localauth plugin cannot be built])],
+                [ #ifdef HAVE_KRB5_KRB5_H
+                  #include <krb5/krb5.h>
+                  #else
+                  #include <krb5.h>
+                  #endif
+                ])
+AM_CONDITIONAL([BUILD_KRB5_LOCALAUTH_PLUGIN],
+               [test x$have_localauth_plugin = xyes])
+AM_COND_IF([BUILD_KRB5_LOCALAUTH_PLUGIN],
+           [AC_DEFINE_UNQUOTED(HAVE_KRB5_LOCALAUTH_PLUGIN, 1, [Build with krb5 localauth plugin])])
+
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS

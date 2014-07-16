@@ -57,6 +57,10 @@ struct so {
     { "sssd_krb5_locator_plugin.so", { LIBPFX"sssd_krb5_locator_plugin.so",
                                        NULL } },
 #endif
+#ifdef HAVE_KRB5_LOCALAUTH_PLUGIN
+    { "sssd_krb5_localauth_plugin.so", { LIBPFX"sssd_krb5_localauth_plugin.so",
+                                       NULL } },
+#endif
 #ifdef HAVE_PAC_RESPONDER
     { "sssd_pac_plugin.so", { LIBPFX"sssd_pac_plugin.so", NULL } },
 #endif

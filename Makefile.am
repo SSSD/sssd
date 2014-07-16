@@ -35,6 +35,9 @@ ldblibdir = @ldblibdir@
 if BUILD_KRB5_LOCATOR_PLUGIN
 krb5plugindir = @krb5pluginpath@
 endif
+if BUILD_KRB5_LOCALAUTH_PLUGIN
+krb5localauth_plugindir = @appmodpath@
+endif
 if BUILD_PAC_RESPONDER
 krb5authdata_plugindir = @krb5authdatapluginpath@
 endif
@@ -248,6 +251,11 @@ ldblib_LTLIBRARIES = \
 if BUILD_KRB5_LOCATOR_PLUGIN
 krb5plugin_LTLIBRARIES = \
     sssd_krb5_locator_plugin.la
+endif
+
+if BUILD_KRB5_LOCALAUTH_PLUGIN
+krb5localauth_plugin_LTLIBRARIES = \
+    sssd_krb5_localauth_plugin.la
 endif
 
 if BUILD_PAC_RESPONDER
@@ -2471,6 +2479,17 @@ sssd_krb5_locator_plugin_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)
 sssd_krb5_locator_plugin_la_LDFLAGS = \
+    -avoid-version \
+    -module
+endif
+
+if BUILD_KRB5_LOCALAUTH_PLUGIN
+sssd_krb5_localauth_plugin_la_SOURCES = \
+    src/krb5_plugin/sssd_krb5_localauth_plugin.c
+sssd_krb5_localauth_plugin_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS)
+sssd_krb5_localauth_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
 endif
