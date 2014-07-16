@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "nss_mc.h"
+#include "sss_cli.h"
 #include "util/io.h"
 
 /* FIXME: hook up to library destructor to avoid leaks */
@@ -101,18 +102,15 @@ errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
     return 0;
 }
 
-errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
+static errno_t sss_nss_mc_init_ctx(const char *name,
+                                   struct sss_cli_mc_ctx *ctx)
 {
     struct stat fdstat;
     char *file = NULL;
-    char *envval;
     int ret;
 
-    envval = getenv("SSS_NSS_USE_MEMCACHE");
-    if (envval && strcasecmp(envval, "NO") == 0) {
-        return EPERM;
-    }
-
+    sss_nss_lock();
+    /* check if ctx is initialised by previous thread. */
     if (ctx->initialized) {
         ret = sss_nss_check_header(ctx);
         goto done;
@@ -168,6 +166,38 @@ done:
         memset(ctx, 0, sizeof(struct sss_cli_mc_ctx));
     }
     free(file);
+    sss_nss_unlock();
+
+    return ret;
+}
+
+errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
+{
+    char *envval;
+    int ret;
+
+    envval = getenv("SSS_NSS_USE_MEMCACHE");
+    if (envval && strcasecmp(envval, "NO") == 0) {
+        return EPERM;
+    }
+
+    if (ctx->initialized) {
+        ret = sss_nss_check_header(ctx);
+        goto done;
+    }
+
+    ret = sss_nss_mc_init_ctx(name, ctx);
+
+done:
+    if (ret) {
+        if ((ctx->mmap_base != NULL) && (ctx->mmap_size != 0)) {
+            munmap(ctx->mmap_base, ctx->mmap_size);
+        }
+        if (ctx->fd != -1) {
+            close(ctx->fd);
+        }
+        memset(ctx, 0, sizeof(struct sss_cli_mc_ctx));
+    }
     return ret;
 }
 
