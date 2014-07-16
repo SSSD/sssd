@@ -962,7 +962,7 @@ static void sdap_initgr_nested_search(struct tevent_req *subreq)
     } else {
         DEBUG(SSSDBG_OP_FAILURE,
               "Search for group %s, returned %zu results. Skipping\n",
-               state->group_dns[state->cur], count);
+              state->group_dns[state->cur], count);
     }
 
     state->cur++;
