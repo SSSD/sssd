@@ -2485,10 +2485,18 @@ endif
 
 if BUILD_KRB5_LOCALAUTH_PLUGIN
 sssd_krb5_localauth_plugin_la_SOURCES = \
-    src/krb5_plugin/sssd_krb5_localauth_plugin.c
+    src/krb5_plugin/sssd_krb5_localauth_plugin.c \
+    src/util/murmurhash3.c \
+    src/util/io.c \
+    src/sss_client/common.c \
+    src/sss_client/nss_mc_common.c \
+    src/sss_client/nss_mc_passwd.c \
+    src/sss_client/nss_passwd.c
 sssd_krb5_localauth_plugin_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)
+sssd_krb5_localauth_plugin_la_LIBADD = \
+    $(KRB5_LIBS)
 sssd_krb5_localauth_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
