@@ -1083,6 +1083,40 @@ static errno_t add_to_deref_reply(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static void sdap_print_server(struct sdap_handle *sh)
+{
+    int ret;
+    int fd;
+    struct sockaddr_storage ss;
+    socklen_t ss_len = sizeof(ss);
+    char ip[NI_MAXHOST];
+
+    if (!DEBUG_IS_SET(SSSDBG_TRACE_INTERNAL)) {
+        return;
+    }
+
+    ret = get_fd_from_ldap(sh->ldap, &fd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "cannot get sdap fd\n");
+        return;
+    }
+
+    ret = getsockname(fd, (struct sockaddr *) &ss, &ss_len);
+    if (ret == -1) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "getsockname failed\n");
+        return;
+    }
+
+    ret = getnameinfo((struct sockaddr *) &ss, ss_len,
+                      ip, sizeof(ip), NULL, 0, NI_NUMERICHOST);
+    if (ret != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "getnameinfo failed\n");
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Searching %s\n", ip);
+}
+
 /* ==Generic Search exposing all options======================= */
 typedef errno_t (*sdap_parse_cb)(struct sdap_handle *sh,
                                  struct sdap_msg *msg,
@@ -1171,6 +1205,8 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
         tevent_req_post(req, ev);
         return req;
     }
+
+    sdap_print_server(sh);
 
     /* Be extra careful and never allow paging for BASE searches,
      * even if requested.
