@@ -1335,6 +1335,8 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
     struct sdap_get_generic_ext_state *state = tevent_req_data(req,
                                             struct sdap_get_generic_ext_state);
     char *errmsg = NULL;
+    int i;
+    char **refs = NULL;
     int result;
     int ret;
     int lret;
@@ -1370,7 +1372,7 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
 
     case LDAP_RES_SEARCH_RESULT:
         ret = ldap_parse_result(state->sh->ldap, reply->msg,
-                                &result, NULL, &errmsg, NULL,
+                                &result, NULL, &errmsg, &refs,
                                 &returned_controls, 0);
         if (ret != LDAP_SUCCESS) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -1382,6 +1384,13 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
         DEBUG(SSSDBG_TRACE_FUNC, "Search result: %s(%d), %s\n",
                   sss_ldap_err2string(result), result,
                   errmsg ? errmsg : "no errmsg set");
+
+        if (refs != NULL) {
+            for (i = 0; refs[i]; i++) {
+                DEBUG(SSSDBG_TRACE_LIBS, "Ref: %s\n", refs[i]);
+            }
+            ldap_memvfree((void **) refs);
+        }
 
         if (result == LDAP_SIZELIMIT_EXCEEDED) {
             /* Try to return what we've got */
