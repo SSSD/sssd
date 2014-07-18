@@ -1000,6 +1000,8 @@ struct sdap_ad_tokengroups_initgr_posix_state {
     const char *username;
 
     struct sdap_id_op *op;
+    char **missing_sids;
+    size_t num_missing_sids;
 };
 
 static void
@@ -1132,20 +1134,21 @@ sdap_ad_tokengroups_initgr_posix_sids_connect_done(struct tevent_req *subreq)
     return;
 }
 
-static void
-sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
+static errno_t
+sdap_ad_tokengroups_update_posix_members(TALLOC_CTX *mem_ctx,
+                         struct sdap_ad_tokengroups_initgr_posix_state *state,
+                         size_t num_sids,
+                         char **sids,
+                         size_t *_num_missing,
+                         char ***_missing)
 {
     TALLOC_CTX *tmp_ctx = NULL;
-    struct sdap_ad_tokengroups_initgr_posix_state *state = NULL;
-    struct tevent_req *req = NULL;
     struct sss_domain_info *domain = NULL;
     struct ldb_message *msg = NULL;
     const char *attrs[] = {SYSDB_NAME, SYSDB_POSIX, NULL};
     const char *is_posix = NULL;
     const char *name = NULL;
     char *sid = NULL;
-    char **sids = NULL;
-    size_t num_sids = 0;
     char **valid_groups = NULL;
     size_t num_valid_groups;
     char **missing_sids = NULL;
@@ -1157,18 +1160,6 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         ret = ENOMEM;
-        goto done;
-    }
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req,
-                            struct sdap_ad_tokengroups_initgr_posix_state);
-
-    ret = sdap_get_ad_tokengroups_recv(state, subreq, &num_sids, &sids);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to acquire tokengroups [%d]: %s\n",
-                                    ret, strerror(ret));
         goto done;
     }
 
@@ -1224,7 +1215,7 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
                 goto done;
             }
             num_valid_groups++;
-        } else if (ret == ENOENT) {
+        } else if (ret == ENOENT && _missing != NULL) {
             /* we need to download this group */
             missing_sids[num_missing_sids] = talloc_steal(missing_sids, sid);
             num_missing_sids++;
@@ -1232,8 +1223,8 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_TRACE_FUNC, "Missing SID %s will be downloaded\n",
                                       sid);
         } else {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Could not look up group in sysdb: "
-                                         "[%s]\n", strerror(ret));
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not look up SID %s in sysdb: "
+                                         "[%s]\n", sid, strerror(ret));
             goto done;
         }
     }
@@ -1251,12 +1242,52 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
         goto done;
     }
 
+    /* return list of missing groups */
+    if (_missing != NULL) {
+        *_missing = talloc_steal(mem_ctx, missing_sids);
+        *_num_missing = num_missing_sids;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static void
+sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
+{
+    struct sdap_ad_tokengroups_initgr_posix_state *state = NULL;
+    struct tevent_req *req = NULL;
+    char **sids = NULL;
+    size_t num_sids = 0;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_ad_tokengroups_initgr_posix_state);
+
+    ret = sdap_get_ad_tokengroups_recv(state, subreq, &num_sids, &sids);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to acquire tokengroups [%d]: %s\n",
+                                    ret, strerror(ret));
+        goto done;
+    }
+
+    ret = sdap_ad_tokengroups_update_posix_members(state, state,
+                                                   num_sids, sids,
+                                                   &state->num_missing_sids,
+                                                   &state->missing_sids);
+    if (ret != EOK) {
+        goto done;
+    }
+
     /* download missing SIDs */
-    missing_sids = talloc_steal(state, missing_sids);
     subreq = sdap_ad_resolve_sids_send(state, state->ev, state->id_ctx,
                                        state->conn,
                                        state->opts, state->domain,
-                                       missing_sids);
+                                       state->missing_sids);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1268,7 +1299,6 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
     return;
 
 done:
-    talloc_free(tmp_ctx);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -1280,18 +1310,25 @@ done:
 static void
 sdap_ad_tokengroups_initgr_posix_sids_done(struct tevent_req *subreq)
 {
+    struct sdap_ad_tokengroups_initgr_posix_state *state = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_ad_tokengroups_initgr_posix_state);
 
     ret = sdap_ad_resolve_sids_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to resolve missing SIDs "
-                                    "[%d]: %s\n", ret, strerror(ret));
+                                   "[%d]: %s\n", ret, strerror(ret));
         goto done;
     }
+
+    ret = sdap_ad_tokengroups_update_posix_members(state, state,
+                                                   state->num_missing_sids,
+                                                   state->missing_sids,
+                                                   NULL, NULL);
 
 done:
     if (ret != EOK) {
