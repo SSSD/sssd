@@ -35,18 +35,6 @@
 #define NAME_DOMAIN_PATTERN_OPTIONS (PCRE_DUPNAMES | PCRE_EXTENDED)
 #endif
 
-char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid)
-{
-    char *username;
-    struct passwd *pwd;
-
-    pwd = getpwuid(uid);
-    if (!pwd) return NULL;
-
-    username = talloc_strdup(mem_ctx, pwd->pw_name);
-    return username;
-}
-
 /* Function returns given realm name as new uppercase string */
 char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name)
 {

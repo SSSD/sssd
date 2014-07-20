@@ -265,8 +265,6 @@ void *sss_mem_attach(TALLOC_CTX *mem_ctx,
 int password_destructor(void *memctx);
 
 /* from usertools.c */
-char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid);
-
 char *get_uppercase_realm(TALLOC_CTX *memctx, const char *name);
 
 struct sss_names_ctx {
