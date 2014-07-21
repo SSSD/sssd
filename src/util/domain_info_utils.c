@@ -168,8 +168,8 @@ sss_get_domain_by_sid_ldap_fallback(struct sss_domain_info *domain,
 }
 
 struct sss_domain_info *
-find_subdomain_by_object_name(struct sss_domain_info *domain,
-                              const char *object_name)
+find_domain_by_object_name(struct sss_domain_info *domain,
+                           const char *object_name)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *dom = NULL;

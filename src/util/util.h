@@ -522,8 +522,8 @@ sss_get_domain_by_sid_ldap_fallback(struct sss_domain_info *domain,
                                     const char* sid);
 
 struct sss_domain_info *
-find_subdomain_by_object_name(struct sss_domain_info *domain,
-                              const char *object_name);
+find_domain_by_object_name(struct sss_domain_info *domain,
+                           const char *object_name);
 
 bool subdomain_enumerates(struct sss_domain_info *parent,
                           const char *sd_name);

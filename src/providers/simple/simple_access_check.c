@@ -50,8 +50,8 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
     /* First, check whether the user is in the allowed users list */
     if (ctx->allow_users != NULL) {
         for(i = 0; ctx->allow_users[i] != NULL; i++) {
-            domain = find_subdomain_by_object_name(ctx->domain,
-                                                   ctx->allow_users[i]);
+            domain = find_domain_by_object_name(ctx->domain,
+                                                ctx->allow_users[i]);
             if (domain == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Invalid user %s!\n",
                                             ctx->allow_users[i]);
@@ -83,8 +83,8 @@ simple_check_users(struct simple_ctx *ctx, const char *username,
     /* Next check whether this user has been specifically denied */
     if (ctx->deny_users != NULL) {
         for(i = 0; ctx->deny_users[i] != NULL; i++) {
-            domain = find_subdomain_by_object_name(ctx->domain,
-                                                   ctx->deny_users[i]);
+            domain = find_domain_by_object_name(ctx->domain,
+                                                ctx->deny_users[i]);
             if (domain == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Invalid user %s!\n",
                                             ctx->deny_users[i]);
@@ -122,8 +122,8 @@ simple_check_groups(struct simple_ctx *ctx, const char **group_names,
     if (ctx->allow_groups && !*access_granted) {
         matched = false;
         for (i = 0; ctx->allow_groups[i]; i++) {
-            domain = find_subdomain_by_object_name(ctx->domain,
-                                                   ctx->allow_groups[i]);
+            domain = find_domain_by_object_name(ctx->domain,
+                                                ctx->allow_groups[i]);
             if (domain == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Invalid group %s!\n",
                                             ctx->allow_groups[i]);
@@ -155,8 +155,8 @@ simple_check_groups(struct simple_ctx *ctx, const char **group_names,
     if (ctx->deny_groups) {
         matched = false;
         for (i = 0; ctx->deny_groups[i]; i++) {
-            domain = find_subdomain_by_object_name(ctx->domain,
-                                                   ctx->deny_groups[i]);
+            domain = find_domain_by_object_name(ctx->domain,
+                                                ctx->deny_groups[i]);
             if (domain == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Invalid group %s!\n",
                                             ctx->deny_groups[i]);
@@ -417,7 +417,7 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_LIBS, "Looking up groups for user %s\n", username);
 
     /* get domain from username */
-    state->domain = find_subdomain_by_object_name(ctx->domain, username);
+    state->domain = find_domain_by_object_name(ctx->domain, username);
     if (state->domain == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid user %s!\n", username);
         ret = EINVAL;
