@@ -456,9 +456,9 @@ ad_access_handler(struct be_req *breq)
 
     /* Handle subdomains */
     if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
-        domain = find_subdomain_by_name(be_ctx->domain, pd->domain, true);
+        domain = find_domain_by_name(be_ctx->domain, pd->domain, true);
         if (domain == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "find_subdomain_by_name failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
             be_req_terminate(breq, DP_ERR_FATAL, PAM_SYSTEM_ERR, NULL);
             return;
         }

@@ -89,7 +89,7 @@ void ipa_access_handler(struct be_req *be_req)
     dom = be_ctx->domain;
     if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
         /* Subdomain request, verify subdomain */
-        dom = find_subdomain_by_name(be_ctx->domain, pd->domain, true);
+        dom = find_domain_by_name(be_ctx->domain, pd->domain, true);
     }
 
     /* First, verify that this account isn't locked.

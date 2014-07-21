@@ -360,7 +360,7 @@ ad_account_info_handler(struct be_req *be_req)
     dom = be_ctx->domain;
     if (strcasecmp(ar->domain, be_ctx->domain->name) != 0) {
         /* Subdomain request, verify subdomain */
-        dom = find_subdomain_by_name(be_ctx->domain, ar->domain, true);
+        dom = find_domain_by_name(be_ctx->domain, ar->domain, true);
     }
 
     if (dom == NULL) {

@@ -84,11 +84,11 @@ static errno_t ipa_idmap_check_posix_child(struct sdap_idmap_ctx *idmap_ctx,
         return EINVAL;
     }
 
-    forest_root = find_subdomain_by_name(idmap_ctx->id_ctx->be->domain,
-                                         dom->forest, true);
+    forest_root = find_domain_by_name(idmap_ctx->id_ctx->be->domain,
+                                      dom->forest, true);
     if (forest_root == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "find_subdomain_by_name failed to find forest root [%s].\n",
+              "find_domain_by_name failed to find forest root [%s].\n",
                dom->forest);
         return ENOENT;
     }

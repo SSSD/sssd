@@ -119,8 +119,8 @@ void ipa_selinux_handler(struct be_req *be_req)
                                        pd->domain);
             goto fail;
         } else {
-            user_domain = find_subdomain_by_name(subdom_be_ctx->domain,
-                                                 pd->domain, true);
+            user_domain = find_domain_by_name(subdom_be_ctx->domain,
+                                              pd->domain, true);
             if (user_domain == NULL) {
                 DEBUG(SSSDBG_MINOR_FAILURE, "No domain entry found " \
                                              "for [%s].\n", pd->domain);

@@ -87,9 +87,9 @@ bool subdomain_enumerates(struct sss_domain_info *parent,
     return false;
 }
 
-struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
-                                               const char *name,
-                                               bool match_any)
+struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
+                                            const char *name,
+                                            bool match_any)
 {
     struct sss_domain_info *dom = domain;
 
@@ -193,7 +193,7 @@ find_subdomain_by_object_name(struct sss_domain_info *domain,
     if (domainname == NULL) {
         dom = domain;
     } else {
-        dom = find_subdomain_by_name(domain, domainname, true);
+        dom = find_domain_by_name(domain, domainname, true);
     }
 
 done:

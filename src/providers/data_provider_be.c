@@ -161,7 +161,7 @@ static errno_t be_req_set_domain(struct be_req *be_req, const char *domain)
 {
     struct sss_domain_info *dom = NULL;
 
-    dom = find_subdomain_by_name(be_req->be_ctx->domain, domain, true);
+    dom = find_domain_by_name(be_req->be_ctx->domain, domain, true);
     if (dom == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unknown domain [%s]!\n", domain);
         return ERR_DOMAIN_NOT_FOUND;

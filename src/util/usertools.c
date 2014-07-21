@@ -399,7 +399,7 @@ static struct sss_domain_info * match_any_domain_or_subdomain_name(
         return dom;
     }
 
-    return find_subdomain_by_name(dom, dmatch, true);
+    return find_domain_by_name(dom, dmatch, true);
 }
 
 int sss_parse_name_for_domains(TALLOC_CTX *memctx,

@@ -342,7 +342,7 @@ const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
         return NULL;
     }
 
-    dom = find_subdomain_by_name(ctx->be_ctx->domain, name, true);
+    dom = find_domain_by_name(ctx->be_ctx->domain, name, true);
     if (dom) {
         return dom->flat_name;
     }

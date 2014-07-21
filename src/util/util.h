@@ -511,9 +511,9 @@ struct sss_domain_info *get_domains_head(struct sss_domain_info *domain);
 
 struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
                                         bool descend);
-struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
-                                               const char *name,
-                                               bool match_any);
+struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
+                                            const char *name,
+                                            bool match_any);
 struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
                                            const char *sid);
 

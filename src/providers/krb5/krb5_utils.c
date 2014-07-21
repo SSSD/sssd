@@ -1094,9 +1094,9 @@ errno_t get_domain_or_subdomain(struct be_ctx *be_ctx,
 
     if (domain_name != NULL &&
         strcasecmp(domain_name, be_ctx->domain->name) != 0) {
-        *dom = find_subdomain_by_name(be_ctx->domain, domain_name, true);
+        *dom = find_domain_by_name(be_ctx->domain, domain_name, true);
         if (*dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "find_subdomain_by_name failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
             return ENOMEM;
         }
     } else {

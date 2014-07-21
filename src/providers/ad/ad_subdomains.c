@@ -799,8 +799,8 @@ static struct ad_id_ctx *ads_get_root_id_ctx(struct ad_subdomains_req_ctx *ctx)
     }
 
     /* With a subsequent run, the root should already be known */
-    root = find_subdomain_by_name(ctx->sd_ctx->be_ctx->domain,
-                                  name, false);
+    root = find_domain_by_name(ctx->sd_ctx->be_ctx->domain,
+                               name, false);
     if (root == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not find the root domain\n");
         return NULL;

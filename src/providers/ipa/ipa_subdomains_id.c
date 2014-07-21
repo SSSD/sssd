@@ -75,10 +75,10 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->domain = find_subdomain_by_name(state->ctx->be->domain,
-                                           ar->domain, true);
+    state->domain = find_domain_by_name(state->ctx->be->domain,
+                                        ar->domain, true);
     if (state->domain == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "find_subdomain_by_name failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
         ret = ENOMEM;
         goto fail;
     }
@@ -289,8 +289,8 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     state->ar = ar;
 
     /* This can only be a subdomain request, verify subdomain */
-    state->user_dom = find_subdomain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
-                                             ar->domain, true);
+    state->user_dom = find_domain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
+                                          ar->domain, true);
     if (state->user_dom == NULL) {
         ret = EINVAL;
         goto fail;

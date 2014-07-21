@@ -61,7 +61,7 @@ void sdap_pam_access_handler(struct be_req *breq)
     dom = be_ctx->domain;
     if (strcasecmp(pd->domain, be_ctx->domain->name) != 0) {
         /* Subdomain request, verify subdomain */
-        dom = find_subdomain_by_name(be_ctx->domain, pd->domain, true);
+        dom = find_domain_by_name(be_ctx->domain, pd->domain, true);
     }
 
     req = sdap_access_send(breq, be_ctx->ev, be_ctx,

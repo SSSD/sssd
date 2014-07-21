@@ -449,9 +449,9 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     /* Get user the user name and groups,
      * take care of subdomain users as well */
     if (strcasecmp(pd->domain, domain->name) != 0) {
-        user_dom = find_subdomain_by_name(domain, pd->domain, true);
+        user_dom = find_domain_by_name(domain, pd->domain, true);
         if (user_dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "find_subdomain_by_name failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
             ret = ENOMEM;
             goto done;
         }
