@@ -300,8 +300,8 @@ hosts_get_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sysdb_store_ssh_host(state->domain, state->name, state->alias, now,
-                               attrs);
+    ret = sysdb_store_ssh_host(state->domain, state->name, state->alias,
+                               state->domain->ssh_host_timeout, now, attrs);
     if (ret != EOK) {
         goto done;
     }

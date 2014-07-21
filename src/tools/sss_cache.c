@@ -30,6 +30,7 @@
 #include "db/sysdb.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
+#include "db/sysdb_ssh.h"
 
 #define INVALIDATE_NONE 0
 #define INVALIDATE_USERS 1
@@ -37,22 +38,36 @@
 #define INVALIDATE_NETGROUPS 4
 #define INVALIDATE_SERVICES 8
 #define INVALIDATE_AUTOFSMAPS 16
+#define INVALIDATE_SSH_HOSTS 32
 
 #ifdef BUILD_AUTOFS
+#ifdef BUILD_SSH
 #define INVALIDATE_EVERYTHING (INVALIDATE_USERS | INVALIDATE_GROUPS | \
                                INVALIDATE_NETGROUPS | INVALIDATE_SERVICES | \
-                               INVALIDATE_AUTOFSMAPS)
-#else
+                               INVALIDATE_AUTOFSMAPS | INVALIDATE_SSH_HOSTS )
+#else  /* BUILD_SSH */
 #define INVALIDATE_EVERYTHING (INVALIDATE_USERS | INVALIDATE_GROUPS | \
-                               INVALIDATE_NETGROUPS | INVALIDATE_SERVICES)
-#endif
+                               INVALIDATE_NETGROUPS | INVALIDATE_SERVICES | \
+                               INVALIDATE_AUTOFSMAPS )
+#endif /* BUILD_SSH */
+#else  /* BUILD_AUTOFS */
+#ifdef BUILD_SSH
+#define INVALIDATE_EVERYTHING (INVALIDATE_USERS | INVALIDATE_GROUPS | \
+                               INVALIDATE_NETGROUPS | INVALIDATE_SERVICES | \
+                               INVALIDATE_SSH_HOSTS )
+#else  /* BUILD_SSH */
+#define INVALIDATE_EVERYTHING (INVALIDATE_USERS | INVALIDATE_GROUPS | \
+                               INVALIDATE_NETGROUPS | INVALIDATE_SERVICES )
+#endif /* BUILD_SSH */
+#endif /* BUILD_AUTOFS */
 
 enum sss_cache_entry {
     TYPE_USER=0,
     TYPE_GROUP,
     TYPE_NETGROUP,
     TYPE_SERVICE,
-    TYPE_AUTOFSMAP
+    TYPE_AUTOFSMAP,
+    TYPE_SSH_HOST
 };
 
 static errno_t search_autofsmaps(TALLOC_CTX *mem_ctx,
@@ -69,18 +84,21 @@ struct cache_tool_ctx {
     char *netgroup_filter;
     char *service_filter;
     char *autofs_filter;
+    char *ssh_host_filter;
 
     char *user_name;
     char *group_name;
     char *netgroup_name;
     char *service_name;
     char *autofs_name;
+    char *ssh_host_name;
 
     bool update_user_filter;
     bool update_group_filter;
     bool update_netgroup_filter;
     bool update_service_filter;
     bool update_autofs_filter;
+    bool update_ssh_host_filter;
 };
 
 errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain);
@@ -152,6 +170,9 @@ int main(int argc, const char *argv[])
         skipped &= !invalidate_entries(tctx, dinfo, TYPE_AUTOFSMAP,
                                        tctx->autofs_filter,
                                        tctx->autofs_name);
+        skipped &= !invalidate_entries(tctx, dinfo, TYPE_SSH_HOST,
+                                       tctx->ssh_host_filter,
+                                       tctx->ssh_host_name);
 
         ret = sysdb_transaction_commit(sysdb);
         if (ret != EOK) {
@@ -328,6 +349,14 @@ static errno_t update_all_filters(struct cache_tool_ctx *tctx,
         return ret;
     }
 
+    /* Update ssh host filter */
+    ret = update_filter(tctx, dinfo, tctx->ssh_host_name,
+                        tctx->update_ssh_host_filter, "(%s=%s)", false,
+                        &tctx->ssh_host_filter);
+    if (ret != EOK) {
+        return ret;
+    }
+
     return EOK;
 }
 
@@ -370,6 +399,15 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
     case TYPE_AUTOFSMAP:
         type_string = "autofs map";
         ret = search_autofsmaps(ctx, dinfo, filter, attrs, &msg_count, &msgs);
+        break;
+    case TYPE_SSH_HOST:
+        type_string = "ssh_host";
+#ifdef BUILD_SSH
+        ret = sysdb_search_ssh_hosts(ctx, dinfo,
+                                     filter, attrs, &msg_count, &msgs);
+#else  /* BUILD_SSH */
+        ret = ENOSYS;
+#endif /* BUILD_SSH */
         break;
     }
 
@@ -445,6 +483,14 @@ static errno_t invalidate_entry(TALLOC_CTX *ctx,
                 case TYPE_AUTOFSMAP:
                     ret = sysdb_set_autofsmap_attr(domain, name,
                                                    sys_attrs, SYSDB_MOD_REP);
+                    break;
+                case TYPE_SSH_HOST:
+#ifdef BUILD_SSH
+                    ret = sysdb_set_ssh_host_attr(domain, name,
+                                                  sys_attrs, SYSDB_MOD_REP);
+#else  /* BUILD_SSH */
+                    ret = ENOSYS;
+#endif /* BUILD_SSH */
                     break;
                 default:
                     return EINVAL;
@@ -530,6 +576,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     char *netgroup = NULL;
     char *service = NULL;
     char *map = NULL;
+    char *ssh_host = NULL;
     char *domain = NULL;
     int debug = SSSDBG_DEFAULT;
     errno_t ret = EOK;
@@ -563,6 +610,12 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         { "autofs-maps", 'A', POPT_ARG_NONE, NULL, 'a',
             _("Invalidate all autofs maps"), NULL },
 #endif /* BUILD_AUTOFS */
+#ifdef BUILD_SSH
+        { "ssh-host", 'h', POPT_ARG_STRING, &ssh_host, 0,
+            _("Invalidate particular SSH host"), NULL },
+        { "ssh-hosts", 'H', POPT_ARG_NONE, NULL, 'h',
+            _("Invalidate all SSH hosts"), NULL },
+#endif /* BUILD_SSH */
         { "domain", 'd', POPT_ARG_STRING, &domain, 0,
             _("Only invalidate entries from a particular domain"), NULL },
         POPT_TABLEEND
@@ -594,6 +647,9 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
             case 'a':
                 idb |= INVALIDATE_AUTOFSMAPS;
                 break;
+            case 'h':
+                idb |= INVALIDATE_SSH_HOSTS;
+                break;
             case 'e':
                 idb = INVALIDATE_EVERYTHING;
                 break;
@@ -608,7 +664,7 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
     }
 
     if (idb == INVALIDATE_NONE && !user && !group &&
-        !netgroup && !service && !map) {
+        !netgroup && !service && !map && !ssh_host) {
         BAD_POPT_PARAMS(pc,
                 _("Please select at least one object to invalidate\n"),
                 ret, fini);
@@ -665,14 +721,26 @@ errno_t init_context(int argc, const char *argv[], struct cache_tool_ctx **tctx)
         ctx->update_autofs_filter = true;
     }
 
+    if (idb & INVALIDATE_SSH_HOSTS) {
+        ctx->ssh_host_filter = talloc_asprintf(ctx, "(%s=*)", SYSDB_NAME);
+        ctx->update_ssh_host_filter = false;
+    } else if (ssh_host) {
+        ctx->ssh_host_name = talloc_strdup(ctx, ssh_host);
+        ctx->update_ssh_host_filter = true;
+    }
+
     if (((idb & INVALIDATE_USERS) && !ctx->user_filter) ||
         ((idb & INVALIDATE_GROUPS) && !ctx->group_filter) ||
         ((idb & INVALIDATE_NETGROUPS) && !ctx->netgroup_filter) ||
         ((idb & INVALIDATE_SERVICES) && !ctx->service_filter) ||
         ((idb & INVALIDATE_AUTOFSMAPS) && !ctx->autofs_filter) ||
-         (user && !ctx->user_name) || (group && !ctx->group_name) ||
-         (netgroup && !ctx->netgroup_name) || (map && !ctx->autofs_name) ||
-         (service && !ctx->service_name)) {
+        ((idb & INVALIDATE_SSH_HOSTS) && !ctx->ssh_host_filter) ||
+         (user && !ctx->user_name) ||
+         (group && !ctx->group_name) ||
+         (netgroup && !ctx->netgroup_name) ||
+         (service && !ctx->service_name) ||
+         (map && !ctx->autofs_name) ||
+         (ssh_host && !ctx->ssh_host_name)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Construction of filters failed\n");
         ret = ENOMEM;
         goto fini;

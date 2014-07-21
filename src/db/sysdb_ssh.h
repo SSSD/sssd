@@ -33,6 +33,7 @@ errno_t
 sysdb_store_ssh_host(struct sss_domain_info *domain,
                      const char *name,
                      const char *alias,
+                     int cache_timeout,
                      time_t now,
                      struct sysdb_attrs *attrs);
 
@@ -42,9 +43,23 @@ sysdb_update_ssh_known_host_expire(struct sss_domain_info *domain,
                                    time_t now,
                                    int known_hosts_timeout);
 
+int
+sysdb_set_ssh_host_attr(struct sss_domain_info *domain,
+                        const char *name,
+                        struct sysdb_attrs *attrs,
+                        int mod_op);
+
 errno_t
 sysdb_delete_ssh_host(struct sss_domain_info *domain,
                       const char *name);
+
+errno_t
+sysdb_search_ssh_hosts(TALLOC_CTX *mem_ctx,
+                       struct sss_domain_info *domain,
+                       const char *filter,
+                       const char **attrs,
+                       size_t *num_hosts,
+                       struct ldb_message ***hosts);
 
 errno_t
 sysdb_get_ssh_host(TALLOC_CTX *mem_ctx,

@@ -23,6 +23,14 @@
 #include "db/sysdb_ssh.h"
 #include "db/sysdb_private.h"
 
+static struct ldb_dn *
+sysdb_ssh_host_dn(TALLOC_CTX *mem_ctx,
+                  struct sss_domain_info *domain,
+                  const char *name)
+{
+    return sysdb_custom_dn(mem_ctx, domain, name, SSH_HOSTS_SUBDIR);
+}
+
 static errno_t
 sysdb_update_ssh_host(struct sss_domain_info *domain,
                       const char *name,
@@ -45,6 +53,7 @@ errno_t
 sysdb_store_ssh_host(struct sss_domain_info *domain,
                      const char *name,
                      const char *alias,
+                     int cache_timeout,
                      time_t now,
                      struct sysdb_attrs *attrs)
 {
@@ -147,6 +156,14 @@ sysdb_store_ssh_host(struct sss_domain_info *domain,
         goto done;
     }
 
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 cache_timeout ? (now + cache_timeout) : 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set sysdb cache expire [%d]: %s\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
     ret = sysdb_update_ssh_host(domain, name, attrs);
     if (ret != EOK) {
         goto done;
@@ -172,6 +189,34 @@ done:
 
     talloc_free(tmp_ctx);
 
+    return ret;
+}
+
+errno_t
+sysdb_set_ssh_host_attr(struct sss_domain_info *domain,
+                        const char *name,
+                        struct sysdb_attrs *attrs,
+                        int mod_op)
+{
+    errno_t ret;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    dn = sysdb_ssh_host_dn(tmp_ctx, domain, name);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_set_entry_attr(domain->sysdb, dn, attrs, mod_op);
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
@@ -229,13 +274,13 @@ sysdb_delete_ssh_host(struct sss_domain_info *domain,
     return sysdb_delete_custom(domain, name, SSH_HOSTS_SUBDIR);
 }
 
-static errno_t
+errno_t
 sysdb_search_ssh_hosts(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *domain,
                        const char *filter,
                        const char **attrs,
-                       struct ldb_message ***hosts,
-                       size_t *num_hosts)
+                       size_t *num_hosts,
+                       struct ldb_message ***hosts)
 {
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
@@ -297,7 +342,7 @@ sysdb_get_ssh_host(TALLOC_CTX *mem_ctx,
     }
 
     ret = sysdb_search_ssh_hosts(tmp_ctx, domain, filter, attrs,
-                                 &hosts, &num_hosts);
+                                 &num_hosts, &hosts);
     if (ret != EOK) {
         goto done;
     }
@@ -335,15 +380,19 @@ sysdb_get_ssh_known_hosts(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    filter = talloc_asprintf(tmp_ctx, "(%s>=%ld)",
-                             SYSDB_SSH_KNOWN_HOSTS_EXPIRE, (long)now);
+    filter = talloc_asprintf(tmp_ctx,
+                             "(&(|(!(%s=*))(%s=0)(%s>=%lld))(%s>=%lld))",
+                             SYSDB_CACHE_EXPIRE,
+                             SYSDB_CACHE_EXPIRE,
+                             SYSDB_CACHE_EXPIRE, (long long)now + 1,
+                             SYSDB_SSH_KNOWN_HOSTS_EXPIRE, (long long)now + 1);
     if (!filter) {
         ret = ENOMEM;
         goto done;
     }
 
     ret = sysdb_search_ssh_hosts(mem_ctx, domain, filter, attrs,
-                                 hosts, num_hosts);
+                                 num_hosts, hosts);
 
 done:
     talloc_free(tmp_ctx);

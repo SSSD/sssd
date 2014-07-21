@@ -157,6 +157,29 @@
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry condition="with_ssh">
+                <term>
+                    <option>-h</option>,<option>--ssh-host</option>
+                    <replaceable>hostname</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate SSH public keys of a specific host.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="with_ssh">
+                <term>
+                    <option>-H</option>,<option>--ssh-hosts</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate SSH public keys of all hosts. This option
+                        overrides invalidation of SSH public keys of specific
+                        host if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
             <varlistentry>
                 <term>
                     <option>-d</option>,<option>--domain</option>

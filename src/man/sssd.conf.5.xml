@@ -1218,6 +1218,20 @@ fallback_homedir = /home/%u
                     </listitem>
                 </varlistentry>
 
+                <varlistentry condition="with_ssh">
+                    <term>entry_cache_ssh_host_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds to keep a host ssh key after
+                            refresh. IE how long to cache the host key
+                            for.
+                        </para>
+                        <para>
+                            Default: entry_cache_timeout
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>refresh_expired_interval (integer)</term>
                     <listitem>

@@ -175,6 +175,7 @@ static int test_sysdb_store_ssh_host(struct test_data *data)
     ret = sysdb_store_ssh_host(data->ctx->domain,
                                data->hostname,
                                data->alias,
+                               data->ctx->domain->ssh_host_timeout,
                                now,
                                data->attrs);
     return ret;

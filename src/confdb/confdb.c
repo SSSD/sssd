@@ -1036,6 +1036,17 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    /* Override the ssh known hosts timeout, if specified */
+    ret = get_entry_as_uint32(res->msgs[0], &domain->ssh_host_timeout,
+                              CONFDB_DOMAIN_SSH_HOST_CACHE_TIMEOUT,
+                              entry_cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for [%s]\n",
+              CONFDB_DOMAIN_SSH_HOST_CACHE_TIMEOUT);
+        goto done;
+    }
+
     /* Set refresh_expired_interval, if specified */
     ret = get_entry_as_uint32(res->msgs[0], &domain->refresh_expired_interval,
                               CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL,
