@@ -125,7 +125,7 @@ ad_handle_acct_info_step(struct tevent_req *req)
                                        state->sdom,
                                        state->conn[state->cindex],
                                        noexist_delete);
-    if (req == NULL) {
+    if (subreq == NULL) {
         return ENOMEM;
     }
     tevent_req_set_callback(subreq, ad_handle_acct_info_done, req);
