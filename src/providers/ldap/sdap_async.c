@@ -1785,21 +1785,7 @@ done:
 
 static void sdap_x_deref_search_done(struct tevent_req *subreq)
 {
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sdap_get_generic_ext_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "sdap_get_generic_ext_recv failed [%d]: %s\n",
-                  ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
+    sdap_get_generic_done(subreq);
 }
 
 static int sdap_x_deref_search_ctrls_destructor(void *ptr)
@@ -1968,20 +1954,7 @@ static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
 
 static void sdap_sd_search_done(struct tevent_req *subreq)
 {
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-    ret = sdap_get_generic_ext_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "sdap_get_generic_ext_recv failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
+    sdap_get_generic_done(subreq);
 }
 
 static int sdap_sd_search_ctrls_destructor(void *ptr)
@@ -2225,21 +2198,7 @@ done:
 
 static void sdap_asq_search_done(struct tevent_req *subreq)
 {
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sdap_get_generic_ext_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "sdap_get_generic_ext_recv failed [%d]: %s\n",
-                  ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
+    sdap_get_generic_done(subreq);
 }
 
 static int sdap_asq_search_ctrls_destructor(void *ptr)
