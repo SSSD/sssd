@@ -5535,6 +5535,101 @@ START_TEST(test_upn_dup)
 }
 END_TEST
 
+START_TEST(test_gpo_store_retrieve)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+    struct ldb_result *result = NULL;
+    const char *guid;
+    int version;
+    static const char *test_guid = "3610EDA5-77EF-11D2-8DC5-00C04FA31A66";
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    ret = sysdb_gpo_get_gpo_by_guid(test_ctx, test_ctx->domain,
+                                    test_guid,
+                                    &result);
+    fail_if(ret != ENOENT, "GPO present in cache before store op");
+
+    ret = sysdb_gpo_get_gpos(test_ctx, test_ctx->domain, &result);
+    fail_if(ret != ENOENT, "GPO present in cache before store op");
+
+    ret = sysdb_gpo_store_gpo(test_ctx->domain,
+                              test_guid, 1, 5, 0);
+    fail_if(ret != EOK, "Could not store a test GPO");
+
+    ret = sysdb_gpo_get_gpos(test_ctx, test_ctx->domain, &result);
+    fail_if(ret != EOK, "GPOs not in cache after store op");
+    fail_if(result == NULL);
+    fail_if(result->count != 1);
+
+    result = NULL;
+    ret = sysdb_gpo_get_gpo_by_guid(test_ctx, test_ctx->domain,
+                                    test_guid, &result);
+    fail_if(ret != EOK, "GPO not in cache after store op");
+    fail_if(result == NULL);
+    fail_if(result->count != 1);
+
+    guid = ldb_msg_find_attr_as_string(result->msgs[0],
+                                       SYSDB_GPO_GUID_ATTR, NULL);
+    ck_assert_str_eq(guid, test_guid);
+
+    version = ldb_msg_find_attr_as_uint(result->msgs[0],
+                                        SYSDB_GPO_VERSION_ATTR, 0);
+    ck_assert_int_eq(version, 1);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_gpo_replace)
+{
+    struct sysdb_test_ctx *test_ctx;
+    errno_t ret;
+    struct ldb_result *result = NULL;
+    const char *guid;
+    int version;
+    static const char *test_guid = "3610EDA5-77EF-11D2-8DC5-00C04FA31A66";
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not setup the test");
+
+    ret = sysdb_gpo_get_gpo_by_guid(test_ctx, test_ctx->domain,
+                                    test_guid, &result);
+    fail_if(ret != EOK, "GPO not in cache after store op");
+    fail_if(result == NULL);
+    fail_if(result->count != 1);
+
+    guid = ldb_msg_find_attr_as_string(result->msgs[0],
+                                       SYSDB_GPO_GUID_ATTR, NULL);
+    ck_assert_str_eq(guid, test_guid);
+
+    version = ldb_msg_find_attr_as_uint(result->msgs[0],
+                                        SYSDB_GPO_VERSION_ATTR, 0);
+    ck_assert_int_eq(version, 1);
+
+    /* Modify the version */
+    ret = sysdb_gpo_store_gpo(test_ctx->domain,
+                              test_guid, 2, 5, 0);
+    fail_if(ret != EOK, "Could not store a test GPO");
+
+    ret = sysdb_gpo_get_gpo_by_guid(test_ctx, test_ctx->domain,
+                                    test_guid, &result);
+    fail_if(ret != EOK, "GPO not in cache after modify op");
+    fail_if(result == NULL);
+    fail_if(result->count != 1);
+
+    guid = ldb_msg_find_attr_as_string(result->msgs[0],
+                                       SYSDB_GPO_GUID_ATTR, NULL);
+    ck_assert_str_eq(guid, test_guid);
+
+    version = ldb_msg_find_attr_as_uint(result->msgs[0],
+                                        SYSDB_GPO_VERSION_ATTR, 0);
+    ck_assert_int_eq(version, 2);
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST(test_confdb_list_all_domain_names_multi_dom)
 {
     int ret;
@@ -5943,6 +6038,11 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_upn, test_upn_dup);
 
     suite_add_tcase(s, tc_upn);
+
+    TCase *tc_gpo = tcase_create("SYSDB GPO tests");
+    tcase_add_test(tc_gpo, test_gpo_store_retrieve);
+    tcase_add_test(tc_gpo, test_gpo_replace);
+    suite_add_tcase(s, tc_gpo);
 
     /* ConfDB tests -- modify confdb, must always be last!! */
     TCase *tc_confdb = tcase_create("confDB tests");
