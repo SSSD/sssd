@@ -180,7 +180,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     /* If this object has a SID available, we will determine the correct
      * domain by its SID. */
     if (sid_str != NULL) {
-        subdomain = find_subdomain_by_sid(get_domains_head(dom), sid_str);
+        subdomain = find_domain_by_sid(get_domains_head(dom), sid_str);
         if (subdomain) {
             dom = subdomain;
         } else {

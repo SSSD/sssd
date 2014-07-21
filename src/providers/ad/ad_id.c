@@ -299,7 +299,7 @@ static bool ad_account_can_shortcut(struct be_ctx *be_ctx,
     case BE_FILTER_SECID:
         csid = sid == NULL ? filter_value : sid;
 
-        req_dom = find_subdomain_by_sid(domain, csid);
+        req_dom = find_domain_by_sid(domain, csid);
         if (req_dom == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Invalid domain\n");
             goto done;

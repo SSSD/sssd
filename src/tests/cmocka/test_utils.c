@@ -306,23 +306,23 @@ void test_find_subdomain_by_name_disabled(void **state)
     }
 }
 
-void test_find_subdomain_by_sid_null(void **state)
+void test_find_domain_by_sid_null(void **state)
 {
     struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom;
 
-    dom = find_subdomain_by_sid(NULL, NULL);
+    dom = find_domain_by_sid(NULL, NULL);
     assert_null(dom);
 
-    dom = find_subdomain_by_sid(test_ctx->dom_list, NULL);
+    dom = find_domain_by_sid(test_ctx->dom_list, NULL);
     assert_null(dom);
 
-    dom = find_subdomain_by_sid(NULL, "S-1-5-21-1-2-3");
+    dom = find_domain_by_sid(NULL, "S-1-5-21-1-2-3");
     assert_null(dom);
 }
 
-void test_find_subdomain_by_sid(void **state)
+void test_find_domain_by_sid(void **state)
 {
     struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
                                                       struct dom_list_test_ctx);
@@ -342,7 +342,7 @@ void test_find_subdomain_by_sid(void **state)
         sid = talloc_asprintf(global_talloc_context, SID_TMPL, c);
         assert_non_null(sid);
 
-        dom = find_subdomain_by_sid(test_ctx->dom_list, sid);
+        dom = find_domain_by_sid(test_ctx->dom_list, sid);
         assert_non_null(dom);
         assert_string_equal(name, dom->name);
         assert_string_equal(flat_name, dom->flat_name);
@@ -354,7 +354,7 @@ void test_find_subdomain_by_sid(void **state)
     }
 }
 
-void test_find_subdomain_by_sid_missing_sid(void **state)
+void test_find_domain_by_sid_missing_sid(void **state)
 {
     struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
                                                       struct dom_list_test_ctx);
@@ -386,7 +386,7 @@ void test_find_subdomain_by_sid_missing_sid(void **state)
         sid = talloc_asprintf(global_talloc_context, SID_TMPL, c);
         assert_non_null(sid);
 
-        dom = find_subdomain_by_sid(test_ctx->dom_list, sid);
+        dom = find_domain_by_sid(test_ctx->dom_list, sid);
         if (c == mis - 1) {
             assert_null(dom);
         } else {
@@ -402,7 +402,7 @@ void test_find_subdomain_by_sid_missing_sid(void **state)
     }
 }
 
-void test_find_subdomain_by_sid_disabled(void **state)
+void test_find_domain_by_sid_disabled(void **state)
 {
     struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
                                                       struct dom_list_test_ctx);
@@ -434,7 +434,7 @@ void test_find_subdomain_by_sid_disabled(void **state)
         sid = talloc_asprintf(global_talloc_context, SID_TMPL, c);
         assert_non_null(sid);
 
-        dom = find_subdomain_by_sid(test_ctx->dom_list, sid);
+        dom = find_domain_by_sid(test_ctx->dom_list, sid);
         if (c == mis - 1) {
             assert_null(dom);
         } else {
@@ -887,13 +887,13 @@ int main(int argc, const char *argv[])
     };
 
     const UnitTest tests[] = {
-        unit_test_setup_teardown(test_find_subdomain_by_sid_null,
+        unit_test_setup_teardown(test_find_domain_by_sid_null,
                                  setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_subdomain_by_sid,
+        unit_test_setup_teardown(test_find_domain_by_sid,
                                  setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_subdomain_by_sid_missing_sid,
+        unit_test_setup_teardown(test_find_domain_by_sid_missing_sid,
                                  setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_subdomain_by_sid_disabled,
+        unit_test_setup_teardown(test_find_domain_by_sid_disabled,
                                  setup_dom_list, teardown_dom_list),
         unit_test_setup_teardown(test_find_subdomain_by_name_null,
                                  setup_dom_list, teardown_dom_list),

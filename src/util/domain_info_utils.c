@@ -112,7 +112,7 @@ struct sss_domain_info *find_subdomain_by_name(struct sss_domain_info *domain,
     return NULL;
 }
 
-struct sss_domain_info *find_subdomain_by_sid(struct sss_domain_info *domain,
+struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
                                               const char *sid)
 {
     struct sss_domain_info *dom = domain;
@@ -163,7 +163,7 @@ sss_get_domain_by_sid_ldap_fallback(struct sss_domain_info *domain,
     if (strcmp(domain->provider, "ldap") == 0) {
         return domain;
     } else {
-        return find_subdomain_by_sid(get_domains_head(domain), sid);
+        return find_domain_by_sid(get_domains_head(domain), sid);
     }
 }
 

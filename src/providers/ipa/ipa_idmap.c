@@ -71,10 +71,10 @@ static errno_t ipa_idmap_check_posix_child(struct sdap_idmap_ctx *idmap_ctx,
         return EINVAL;
     }
 
-    dom = find_subdomain_by_sid(idmap_ctx->id_ctx->be->domain, dom_sid_str);
+    dom = find_domain_by_sid(idmap_ctx->id_ctx->be->domain, dom_sid_str);
     if (dom == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "find_subdomain_by_sid failed with SID [%s].\n", dom_sid_str);
+              "find_domain_by_sid failed with SID [%s].\n", dom_sid_str);
         return EINVAL;
     }
 

@@ -611,7 +611,7 @@ simple_check_process_group(struct simple_check_groups_state *state,
         /* We will look it up in main domain. */
         domain = state->ctx->domain;
     } else {
-        domain = find_subdomain_by_sid(state->ctx->domain, group_sid);
+        domain = find_domain_by_sid(state->ctx->domain, group_sid);
         if (domain == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "There is no domain information for "
                                         "SID %s\n", group_sid);
