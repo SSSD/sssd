@@ -49,7 +49,9 @@ sysdb_gpo_dn(TALLOC_CTX *mem_ctx, struct sss_domain_info *domain,
 errno_t
 sysdb_gpo_store_gpo(struct sss_domain_info *domain,
                     const char *gpo_guid,
-                    int gpo_version)
+                    int gpo_version,
+                    int cache_timeout,
+                    time_t now)
 {
     errno_t ret, sret;
     int lret;
@@ -79,6 +81,10 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
         goto done;
+    }
+
+    if (!now) {
+        now = time(NULL);
     }
 
     in_transaction = true;
@@ -140,6 +146,21 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
             goto done;
         }
 
+        /* Add the Policy File Timeout */
+        lret = ldb_msg_add_empty(update_msg, SYSDB_GPO_TIMEOUT_ATTR,
+                                 LDB_FLAG_MOD_ADD, NULL);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+
+        lret = ldb_msg_add_fmt(update_msg, SYSDB_GPO_TIMEOUT_ATTR, "%lu",
+                               ((cache_timeout) ? (now + cache_timeout) : 0));
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+
         lret = ldb_add(domain->sysdb->ldb, update_msg);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -165,6 +186,21 @@ sysdb_gpo_store_gpo(struct sss_domain_info *domain,
 
         lret = ldb_msg_add_fmt(update_msg, SYSDB_GPO_VERSION_ATTR,
                                "%d", gpo_version);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+
+        /* Add the Policy File Timeout */
+        lret = ldb_msg_add_empty(update_msg, SYSDB_GPO_TIMEOUT_ATTR,
+                                 LDB_FLAG_MOD_REPLACE, NULL);
+        if (lret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(lret);
+            goto done;
+        }
+
+        lret = ldb_msg_add_fmt(update_msg, SYSDB_GPO_TIMEOUT_ATTR, "%lu",
+                               ((cache_timeout) ? (now + cache_timeout) : 0));
         if (lret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(lret);
             goto done;
@@ -202,10 +238,10 @@ done:
 }
 
 errno_t
-sysdb_gpo_get_gpo(TALLOC_CTX *mem_ctx,
-                  struct sss_domain_info *domain,
-                  const char *gpo_guid,
-                  struct ldb_result **_result)
+sysdb_gpo_get_gpo_by_guid(TALLOC_CTX *mem_ctx,
+                          struct sss_domain_info *domain,
+                          const char *gpo_guid,
+                          struct ldb_result **_result)
 {
     errno_t ret;
     int lret;

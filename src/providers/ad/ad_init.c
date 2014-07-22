@@ -371,6 +371,7 @@ sssm_ad_access_init(struct be_ctx *bectx,
     struct ad_id_ctx *ad_id_ctx;
     const char *filter;
     const char *gpo_access_control_mode;
+    int gpo_cache_timeout;
 
     access_ctx = talloc_zero(bectx, struct ad_access_ctx);
     if (!access_ctx) return ENOMEM;
@@ -438,6 +439,11 @@ sssm_ad_access_init(struct be_ctx *bectx,
         ret = EINVAL;
         goto fail;
     }
+
+    /* GPO cache timeout */
+    gpo_cache_timeout =
+        dp_opt_get_int(access_ctx->ad_options, AD_GPO_CACHE_TIMEOUT);
+    access_ctx->gpo_cache_timeout = gpo_cache_timeout;
 
     *ops = &ad_access_ops;
     *pvt_data = access_ctx;

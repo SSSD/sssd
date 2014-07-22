@@ -169,6 +169,7 @@ option_strings = {
     'ad_access_filter' : _('LDAP filter to determine access privileges'),
     'ad_enable_gc' : _('Whether to use the Global Catalog for lookups'),
     'ad_gpo_access_control' : _('Operation mode for GPO-based access control'),
+    'ad_gpo_cache_timeout' : _("The amount of time between lookups of the GPO policy files against the AD server"),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),

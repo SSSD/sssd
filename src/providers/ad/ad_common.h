@@ -51,6 +51,7 @@ enum ad_basic_opt {
     AD_ACCESS_FILTER,
     AD_ENABLE_GC,
     AD_GPO_ACCESS_CONTROL,
+    AD_GPO_CACHE_TIMEOUT,
 
     AD_OPTS_BASIC /* opts counter */
 };

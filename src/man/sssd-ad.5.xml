@@ -317,6 +317,22 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_gpo_cache_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            The amount of time between lookups of GPO policy
+                            files against the AD server. This will reduce the
+                            latency and load on the AD server if there are
+                            many access-control requests made in a short
+                            period.
+                        </para>
+                        <para>
+                            Default: 5 (seconds)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>

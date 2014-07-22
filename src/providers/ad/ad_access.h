@@ -33,6 +33,7 @@ struct ad_access_ctx {
         GPO_ACCESS_CONTROL_PERMISSIVE,
         GPO_ACCESS_CONTROL_ENFORCING
     } gpo_access_control_mode;
+    int gpo_cache_timeout;
 };
 
 void

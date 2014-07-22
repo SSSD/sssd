@@ -873,6 +873,7 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
 #define SYSDB_GPO_FILTER "(&(objectClass="SYSDB_GPO_OC")("SYSDB_GPO_GUID_ATTR"=%s))"
 #define SYSDB_GPO_GUID_ATTR "gpoGUID"
 #define SYSDB_GPO_VERSION_ATTR "gpoVersion"
+#define SYSDB_GPO_TIMEOUT_ATTR "gpoPolicyFileTimeout"
 
 #define SYSDB_TMPL_GPO_BASE SYSDB_GPO_CONTAINER","SYSDB_DOM_BASE
 #define SYSDB_TMPL_GPO SYSDB_GPO_GUID_ATTR"=%s,"SYSDB_TMPL_GPO_BASE
@@ -881,15 +882,18 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
         SYSDB_NAME, \
         SYSDB_GPO_GUID_ATTR, \
         SYSDB_GPO_VERSION_ATTR, \
+        SYSDB_GPO_TIMEOUT_ATTR, \
         NULL }
 
 errno_t sysdb_gpo_store_gpo(struct sss_domain_info *domain,
                             const char *gpo_guid,
-                            int gpo_version);
+                            int gpo_version,
+                            int cache_timeout,
+                            time_t now);
 
-errno_t sysdb_gpo_get_gpo(TALLOC_CTX *mem_ctx,
-                          struct sss_domain_info *domain,
-                          const char *gpo_guid,
-                          struct ldb_result **_result);
+errno_t sysdb_gpo_get_gpo_by_guid(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  const char *gpo_guid,
+                                  struct ldb_result **_result);
 
 #endif /* __SYS_DB_H__ */
