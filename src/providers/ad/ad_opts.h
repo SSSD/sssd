@@ -210,7 +210,6 @@ struct sdap_attr_map ad_2008r2_group_map[] = {
     { "ldap_group_pwd", NULL, SYSDB_PWD, NULL },
     { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
     { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
-    { "ldap_group_uuid", "objectGUID", SYSDB_UUID, NULL },
     { "ldap_group_objectsid", "objectSID", SYSDB_SID, NULL },
     { "ldap_group_modify_timestamp", "whenChanged", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_group_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL },

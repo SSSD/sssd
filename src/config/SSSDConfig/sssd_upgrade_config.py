@@ -184,7 +184,6 @@ class SSSDConfigFile(SSSDChangeConf):
                     'ldap_group_pwd' : 'userPassword',
                     'ldap_group_gid_number' : 'groupGidNumber',
                     'ldap_group_member' : 'groupMember',
-                    'ldap_group_uuid' : 'groupUUID',
                     'ldap_group_modify_timestamp' : 'modifyTimestamp',
                     'ldap_network_timeout' : 'network_timeout',
                     'ldap_offline_timeout' : 'offline_timeout',
