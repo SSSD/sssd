@@ -864,4 +864,32 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                                    const char *sid_str,
                                    const char **attrs,
                                    struct ldb_result **msg);
+
+/* === Functions related to GPOs === */
+
+#define SYSDB_GPO_CONTAINER "cn=gpos,cn=ad,cn=custom"
+
+#define SYSDB_GPO_OC "gpo"
+#define SYSDB_GPO_FILTER "(&(objectClass="SYSDB_GPO_OC")("SYSDB_GPO_GUID_ATTR"=%s))"
+#define SYSDB_GPO_GUID_ATTR "gpoGUID"
+#define SYSDB_GPO_VERSION_ATTR "gpoVersion"
+
+#define SYSDB_TMPL_GPO_BASE SYSDB_GPO_CONTAINER","SYSDB_DOM_BASE
+#define SYSDB_TMPL_GPO SYSDB_GPO_GUID_ATTR"=%s,"SYSDB_TMPL_GPO_BASE
+
+#define SYSDB_GPO_ATTRS { \
+        SYSDB_NAME, \
+        SYSDB_GPO_GUID_ATTR, \
+        SYSDB_GPO_VERSION_ATTR, \
+        NULL }
+
+errno_t sysdb_gpo_store_gpo(struct sss_domain_info *domain,
+                            const char *gpo_guid,
+                            int gpo_version);
+
+errno_t sysdb_gpo_get_gpo(TALLOC_CTX *mem_ctx,
+                          struct sss_domain_info *domain,
+                          const char *gpo_guid,
+                          struct ldb_result **_result);
+
 #endif /* __SYS_DB_H__ */
