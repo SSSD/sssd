@@ -174,7 +174,6 @@ struct sdap_attr_map ipa_user_map[] = {
     { "ldap_user_principal", "krbPrincipalName", SYSDB_UPN, NULL },
     { "ldap_user_fullname", "cn", SYSDB_FULLNAME, NULL },
     { "ldap_user_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
-    { "ldap_user_uuid", "nsUniqueId", SYSDB_UUID, NULL },
     { "ldap_user_objectsid", "ipaNTSecurityIdentifier", SYSDB_SID_STR, NULL },
     { "ldap_user_primary_group", NULL, SYSDB_PRIMARY_GROUP, NULL },
     { "ldap_user_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },

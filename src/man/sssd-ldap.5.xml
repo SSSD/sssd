@@ -338,19 +338,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_user_uuid (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the UUID/GUID of
-                            an LDAP user object.
-                        </para>
-                        <para>
-                            Default: nsUniqueId
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>ldap_user_objectsid (string)</term>
                     <listitem>
                         <para>
