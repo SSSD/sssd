@@ -1638,7 +1638,6 @@ static errno_t sdap_initgr_rfc2307bis_next_base(struct tevent_req *req)
             state->timeout,
             true);
     if (!subreq) {
-        talloc_zfree(req);
         return ENOMEM;
     }
     tevent_req_set_callback(subreq, sdap_initgr_rfc2307bis_process, req);
