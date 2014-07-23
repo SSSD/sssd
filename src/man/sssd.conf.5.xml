@@ -607,6 +607,23 @@ fallback_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>override_default_whitespace (string)</term>
+                    <listitem>
+                        <para>
+                            This parameter will replace white spaces (space bar)
+                            with the given string for user and group names.
+                            e.g. (_). User name &quot;john doe&quot; will
+                            be &quot;john_doe&quot; This feature was added to
+                            help compatibility with shell scripts that have
+                            difficulty handling white spaces, due to the
+                            default field separator in the shell.
+                        </para>
+                        <para>
+                            Default: not set (whitespaces will not be replaced)
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
         <refsect2 id='PAM'>
