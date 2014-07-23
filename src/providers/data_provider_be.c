@@ -1442,7 +1442,7 @@ static int be_sudo_handler(struct sbus_request *dbus_req, void *user_data)
 {
     DBusError dbus_error;
     DBusMessageIter iter;
-    dbus_bool_t iter_next = FALSE;
+    DBusMessageIter array_iter;
     struct be_client *be_cli = NULL;
     struct be_req *be_req = NULL;
     struct be_sudo_req *sudo_req = NULL;
@@ -1532,15 +1532,19 @@ static int be_sudo_handler(struct sbus_request *dbus_req, void *user_data)
             goto fail;
         }
 
+        dbus_message_iter_next(&iter);
+
+        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
+            ret = EIO;
+            err_msg = "Invalid D-Bus message format";
+            goto fail;
+        }
+
+        dbus_message_iter_recurse(&iter, &array_iter);
+
         /* read the rules */
         for (i = 0; i < rules_num; i++) {
-            iter_next = dbus_message_iter_next(&iter);
-            if (iter_next == FALSE) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
-                ret = EIO;
-                err_msg = "Invalid D-Bus message format";
-                goto fail;
-            }
             if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_STRING) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
                 ret = EIO;
@@ -1555,6 +1559,8 @@ static int be_sudo_handler(struct sbus_request *dbus_req, void *user_data)
                 ret = ENOMEM;
                 goto fail;
             }
+
+            dbus_message_iter_next(&iter);
         }
 
         sudo_req->rules[rules_num] = NULL;
