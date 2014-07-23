@@ -117,6 +117,7 @@ sss_dp_get_sudoers_msg(void *pvt)
 {
     DBusMessage *msg;
     DBusMessageIter iter;
+    DBusMessageIter array_iter;
     dbus_bool_t dbret;
     errno_t ret;
     struct sss_dp_get_sudoers_info *info;
@@ -169,6 +170,13 @@ sss_dp_get_sudoers_msg(void *pvt)
             goto fail;
         }
 
+        dbret = dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY,
+                                                 DBUS_TYPE_STRING_AS_STRING,
+                                                 &array_iter);
+        if (dbret == FALSE) {
+            goto fail;
+        }
+
         for (i = 0; i < info->num_rules; i++) {
             ret = sysdb_attrs_get_string(info->rules[i], SYSDB_NAME, &rule_name);
             if (ret != EOK) {
@@ -177,11 +185,17 @@ sss_dp_get_sudoers_msg(void *pvt)
                 goto fail;
             }
 
-            dbret = dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING,
+            dbret = dbus_message_iter_append_basic(&array_iter,
+                                                   DBUS_TYPE_STRING,
                                                    &rule_name);
             if (dbret == FALSE) {
                 goto fail;
             }
+        }
+
+        dbret = dbus_message_iter_close_container(&iter, &array_iter);
+        if (dbret == FALSE) {
+            goto fail;
         }
     }
 
