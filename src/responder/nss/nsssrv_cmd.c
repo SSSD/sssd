@@ -371,6 +371,15 @@ static int fill_pwent(struct sss_packet *packet,
                   "sss_get_cased_name failed, skipping\n");
             continue;
         }
+
+        tmpstr = sss_replace_whitespaces(tmp_ctx, tmpstr,
+                                         nctx->override_default_wsp_str);
+        if (tmpstr == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_replace_whitespaces failed, skipping\n");
+            continue;
+        }
+
         to_sized_string(&name, tmpstr);
 
         tmpstr = ldb_msg_find_attr_as_string(msg, SYSDB_GECOS, NULL);
@@ -742,6 +751,14 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         talloc_free(name);
         name = sss_get_cased_name(cmdctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
+
+        name = sss_reverse_replace_whitespaces(dctx, name,
+                                               nctx->override_default_wsp_str);
+        if (name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_reverse_replace_whitespaces failed\n");
+            return ENOMEM;
+        }
 
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
@@ -2316,7 +2333,7 @@ static int fill_members(struct sss_packet *packet,
     int memnum = *_memnum;
     size_t rzero= *_rzero;
     size_t rsize = *_rsize;
-    char *tmpstr;
+    const char *tmpstr;
     struct sized_string name;
     TALLOC_CTX *tmp_ctx = NULL;
 
@@ -2342,6 +2359,15 @@ static int fill_members(struct sss_packet *packet,
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_get_cased_name failed, skipping\n");
             continue;
+        }
+
+        tmpstr = sss_replace_whitespaces(tmp_ctx, tmpstr,
+                                         nctx->override_default_wsp_str);
+        if (tmpstr == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_replace_whitespaces failed\n");
+            ret = ENOMEM;
+            goto done;
         }
 
         if (nctx->filter_users_in_groups) {
@@ -2498,6 +2524,15 @@ static int fill_grent(struct sss_packet *packet,
                   "sss_get_cased_name failed, skipping\n");
             continue;
         }
+
+        tmpstr = sss_replace_whitespaces(tmp_ctx, tmpstr,
+                                         nctx->override_default_wsp_str);
+        if (tmpstr == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_replace_whitespaces failed, skipping\n");
+            continue;
+        }
+
         to_sized_string(&name, tmpstr);
 
         /* fill in gid and name and set pointer for number of members */
@@ -2691,6 +2726,14 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         talloc_free(name);
         name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
+
+        name = sss_reverse_replace_whitespaces(dctx, name,
+                                               nctx->override_default_wsp_str);
+        if (name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_reverse_replace_whitespaces failed\n");
+            return ENOMEM;
+        }
 
         /* verify this group has not yet been negatively cached,
         * or has been permanently filtered */
@@ -3715,6 +3758,14 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
+        name = sss_reverse_replace_whitespaces(dctx, name,
+                                               nctx->override_default_wsp_str);
+        if (name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_reverse_replace_whitespaces failed\n");
+            return ENOMEM;
+        }
+
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
         ret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
@@ -3870,6 +3921,15 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             name = sss_get_cased_name(cmdctx, cmdctx->name, dom->case_sensitive);
             if (name == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE, "sss_get_cased_name failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+
+            name = sss_reverse_replace_whitespaces(dctx, name,
+                                               nctx->override_default_wsp_str);
+            if (name == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sss_reverse_replace_whitespaces failed\n");
                 ret = ENOMEM;
                 goto done;
             }
