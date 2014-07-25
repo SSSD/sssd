@@ -531,7 +531,9 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock_resp.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
-    src/lib/idmap/sss_idmap_private.h
+    src/lib/idmap/sss_idmap_private.h \
+    src/tests/cmocka/test_utils.h \
+    $(NULL)
 
 
 if HAVE_NSS
