@@ -35,10 +35,13 @@ AC_DEFUN([AM_CHECK_LIBNL_FCS],
 dnl A macro to check the availability and version of libnetlink
 AC_DEFUN([AM_CHECK_LIBNL1],
 [
-    PKG_CHECK_MODULES(LIBNL, libnl-1 >= 1.1,[
+    PKG_CHECK_MODULES(LIBNL1, libnl-1 >= 1.1,[
 
         HAVE_LIBNL=1
         HAVE_LIBNL1=1
+
+        LIBNL_CFLAGS="$LIBNL1_CFLAGS"
+        LIBNL_LIBS="$LIBNL1_LIBS"
 
         AC_DEFINE_UNQUOTED(HAVE_LIBNL, 1, [Build with libnetlink support])
         AC_DEFINE_UNQUOTED(HAVE_LIBNL1, 1, [Libnetlink version = 1])
@@ -61,13 +64,15 @@ dnl A macro to check the availability of libnetlink version 3
 
 AC_DEFUN([AM_CHECK_LIBNL3],
 [
-    PKG_CHECK_MODULES(LIBNL, [
+    PKG_CHECK_MODULES(LIBNL3, [
         libnl-3.0 >= 3.0
         libnl-route-3.0 >= 3.0], [
 
         HAVE_LIBNL=1
         HAVE_LIBNL3=1
 
+        LIBNL_CFLAGS="$LIBNL3_CFLAGS"
+        LIBNL_LIBS="$LIBNL3_LIBS"
 
         AC_DEFINE_UNQUOTED(HAVE_LIBNL, 1, [Build with libnetlink support])
         AC_DEFINE_UNQUOTED(HAVE_LIBNL3, 1, [Libnetlink version = 3])
