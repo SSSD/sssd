@@ -1089,23 +1089,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_netgroup_uuid (string)</term>
-                    <listitem>
-                        <para>
-                            The LDAP attribute that contains the UUID/GUID of
-                            an LDAP netgroup object.
-                        </para>
-                        <para>
-                            In IPA provider, ipa_netgroup_uuid should
-                            be used instead.
-                        </para>
-                        <para>
-                            Default: nsUniqueId
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>ldap_netgroup_modify_timestamp (string)</term>
                     <listitem>
                         <para>
