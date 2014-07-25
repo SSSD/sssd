@@ -567,4 +567,12 @@ errno_t well_known_sid_to_name(const char *sid, const char **dom,
 errno_t name_to_well_known_sid(const char *dom, const char *name,
                                const char **sid);
 
+/* from string_utils.c */
+const char * sss_replace_whitespaces(TALLOC_CTX *mem_ctx,
+                                     const char *orig_name,
+                                     const char *replace_string);
+char * sss_reverse_replace_whitespaces(TALLOC_CTX *mem_ctx,
+                                       char *orig_name,
+                                       const char *replace_string);
+
 #endif /* __SSSD_UTIL_H__ */
