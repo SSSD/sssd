@@ -2000,6 +2000,7 @@ ad_gpo_get_som_attrs_done(struct tevent_req *subreq)
     }
     if ((num_results < 1) || (results == NULL)) {
         DEBUG(SSSDBG_OP_FAILURE, "no attrs found for SOM; try next SOM.\n");
+        state->som_index++;
         ret = ad_gpo_get_som_attrs_step(req);
         goto done;
     } else if (num_results > 1) {
@@ -2020,6 +2021,7 @@ ad_gpo_get_som_attrs_done(struct tevent_req *subreq)
 
     if ((ret == ENOENT) || (el->num_values == 0)) {
         DEBUG(SSSDBG_OP_FAILURE, "no attrs found for SOM; try next SOM\n");
+        state->som_index++;
         ret = ad_gpo_get_som_attrs_step(req);
         goto done;
     }
