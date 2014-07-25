@@ -559,8 +559,13 @@ ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
             break;
         }
 
-        ad_gpo_evaluate_dacl(dacl, idmap_ctx, user_sid, group_sids,
-                             group_size, &access_allowed);
+        ret = ad_gpo_evaluate_dacl(dacl, idmap_ctx, user_sid, group_sids,
+                                   group_size, &access_allowed);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not determine if GPO is applicable\n");
+            continue;
+        }
+
         if (access_allowed) {
             DEBUG(SSSDBG_TRACE_ALL,
                   "GPO applicable to target per security filtering\n");
