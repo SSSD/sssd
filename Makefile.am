@@ -615,7 +615,12 @@ libsss_util_la_SOURCES = \
     src/util/util_errors.c \
     src/util/sss_ini.c \
     src/util/io.c \
-    src/util/util_sss_idmap.c
+    src/util/util_sss_idmap.c \
+    src/util/string_utils.c \
+    $(NULL)
+libsss_util_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS)
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(UNICODE_LIBS)
@@ -1555,8 +1560,9 @@ test_ipa_idmap_LDADD = \
 
 test_utils_SOURCES = \
     src/tests/cmocka/test_utils.c \
-    src/tests/cmocka/test_sss_ssh.c
-
+    src/tests/cmocka/test_sss_ssh.c \
+    src/tests/cmocka/test_string_utils.c \
+    $(NULL)
 test_utils_CFLAGS = \
     $(AM_CFLAGS)
 test_utils_LDADD = \
