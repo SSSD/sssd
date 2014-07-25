@@ -197,7 +197,6 @@ class SSSDConfigFile(SSSDChangeConf):
                     'ldap_netgroup_name' : 'netgroupName',
                     'ldap_netgroup_member' : 'netgroupMember',
                     'ldap_netgroup_triple' : 'netgroupTriple',
-                    'ldap_netgroup_uuid' : 'netgroupUUID',
                     'ldap_netgroup_modify_timestamp' : 'netgroupModifyTimestamp',
                    }
         krb5_kw = { 'krb5_server' : 'krb5KDCIP',

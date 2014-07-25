@@ -220,8 +220,6 @@ struct sdap_attr_map ad_netgroup_map[] = {
     { "ldap_netgroup_name", "cn", SYSDB_NAME, NULL },
     { "ldap_netgroup_member", "memberNisNetgroup", SYSDB_ORIG_NETGROUP_MEMBER, NULL },
     { "ldap_netgroup_triple", "nisNetgroupTriple", SYSDB_NETGROUP_TRIPLE, NULL },
-    /* FIXME: this is 389ds specific */
-    { "ldap_netgroup_uuid", "nsUniqueId", SYSDB_UUID, NULL },
     { "ldap_netgroup_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };

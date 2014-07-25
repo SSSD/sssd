@@ -298,7 +298,6 @@ option_strings = {
     'ldap_netgroup_name' : _('Netgroup name'),
     'ldap_netgroup_member' : _('Netgroups members attribute'),
     'ldap_netgroup_triple' : _('Netgroup triple attribute'),
-    'ldap_netgroup_uuid' : _('Netgroup UUID attribute'),
     'ldap_netgroup_modify_timestamp' : _('Modification time attribute for netgroups'),
 
     'ldap_service_search_base' : _('Base DN for service lookups'),
