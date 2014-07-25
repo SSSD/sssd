@@ -24,6 +24,7 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "util/sss_nss.h"
+#include "test_utils.h"
 
 #define TESTS_PATH "tests_utils"
 #define TEST_CONF_DB "test_utils_conf.ldb"
@@ -52,7 +53,6 @@ struct dom_list_test_ctx {
     struct sss_domain_info *dom_list;
 };
 
-void test_textual_public_key(void **state);
 
 void setup_dom_list(void **state)
 {

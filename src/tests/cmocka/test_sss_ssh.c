@@ -23,6 +23,7 @@
 #include "util/util.h"
 #include "util/sss_ssh.h"
 #include "tests/cmocka/common_mock.h"
+#include "test_utils.h"
 
 uint8_t key_data_noLF[] = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDfymad64oZkWa6q3xLXmCt/LfCRnd6yZSDp7UK6Irx5/Dv69dEKK2kBGL9Wfn+3ZDa6ov2XZrBmUthh8KOJvTw72+axox3kcJ5HwOYZCMeKbcr10RNScGuHErA1HhjTY6M9L8d0atVH2QIxw7ZHoVVnTHC4U4+541YfJkNUiOUIj65cFFZm9ULp32ZPrK+j2wW+XZkHhrZeFMlg4x4fe5FocO6ik1eqLxBejo7tMy+1m3R2a795AIguf6vNWeE5aNMd4pcmPcZHb3JOq3ItzE/3lepXD/3wqMt36EqNykBVE7aJj+LVkcEgjP9CDDsg9j9NB+AuWYmIYqrHW/Rg/vJ developer@sssd.dev.work";
 
