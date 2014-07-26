@@ -580,4 +580,13 @@ char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
                                  const char *orig_name,
                                  const char replace_char);
 
+/* from become_user.c */
+errno_t become_user(uid_t uid, gid_t gid);
+struct sss_creds;
+errno_t switch_creds(TALLOC_CTX *mem_ctx,
+                     uid_t uid, gid_t gid,
+                     int num_gids, gid_t *gids,
+                     struct sss_creds **saved_creds);
+errno_t restore_creds(struct sss_creds *saved_creds);
+
 #endif /* __SSSD_UTIL_H__ */

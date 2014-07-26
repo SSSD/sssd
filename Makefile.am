@@ -1286,13 +1286,14 @@ strtonum_tests_LDADD = \
 krb5_utils_tests_SOURCES = \
     src/tests/krb5_utils-tests.c \
     src/providers/krb5/krb5_utils.c \
-    src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_common.c \
     src/util/sss_krb5.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
-    $(SSSD_FAILOVER_OBJ)
+    src/util/become_user.c \
+    $(SSSD_FAILOVER_OBJ) \
+    $(NULL)
 krb5_utils_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS) \
@@ -1567,13 +1568,14 @@ krb5_child_test_SOURCES = \
     src/tests/krb5_child-test.c \
     src/providers/krb5/krb5_utils.c \
     src/providers/krb5/krb5_child_handler.c \
-    src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_common.c \
     src/util/sss_krb5.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
-    $(SSSD_FAILOVER_OBJ)
+    src/util/become_user.c \
+    $(SSSD_FAILOVER_OBJ) \
+    $(NULL)
 krb5_child_test_CFLAGS = \
     $(AM_CFLAGS) \
     -DKRB5_CHILD_DIR=\"$(builddir)\" \
@@ -2243,7 +2245,6 @@ libsss_ad_common_la_LIBADD = \
 
 libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_utils.c \
-    src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_delayed_online_authentication.c \
     src/providers/krb5/krb5_renew_tgt.c \
     src/providers/krb5/krb5_wait_queue.c \
@@ -2252,7 +2253,9 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_access.c \
     src/providers/krb5/krb5_child_handler.c \
     src/providers/krb5/krb5_init_shared.c \
-    src/util/sss_krb5.c
+    src/util/sss_krb5.c \
+    src/util/become_user.c \
+    $(NULL)
 libsss_krb5_common_la_CFLAGS = \
     $(KRB5_CFLAGS)
 libsss_krb5_common_la_LIBADD = \
@@ -2432,7 +2435,6 @@ libsss_ad_la_LDFLAGS = \
     -module
 
 krb5_child_SOURCES = \
-    src/providers/krb5/krb5_become_user.c \
     src/providers/krb5/krb5_child.c \
     src/providers/dp_pam_data_util.c \
     src/util/user_info_msg.c \
@@ -2441,7 +2443,9 @@ krb5_child_SOURCES = \
     src/util/authtok.c \
     src/util/util.c \
     src/util/signal.c \
-    src/sss_client/common.c
+    src/util/become_user.c \
+    src/sss_client/common.c \
+    $(NULL)
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
