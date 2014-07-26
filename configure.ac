@@ -171,6 +171,7 @@ m4_include([src/external/samba.m4])
 m4_include([src/external/sasl.m4])
 m4_include([src/external/configlib.m4])
 m4_include([src/external/libnfsidmap.m4])
+m4_include([src/external/cwrap.m4])
 
 if test x$build_config_lib = xyes; then
     m4_include([src/external/libaugeas.m4])
@@ -323,6 +324,8 @@ AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
 AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
 AM_CHECK_CMOCKA
+AM_CHECK_UID_WRAPPER
+AM_CHECK_NSS_WRAPPER
 
 AM_CONDITIONAL([HAVE_DEVSHM], [test -d /dev/shm])
 
