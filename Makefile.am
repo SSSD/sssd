@@ -19,6 +19,8 @@ if HAVE_MANPAGES
 SUBDIRS += src/man
 endif
 
+SUBDIRS += . src/tests/cwrap
+
 # Some old versions of automake don't define builddir
 builddir ?= .
 
@@ -2829,6 +2831,7 @@ endif
 CLEANFILES = *.X */*.X */*/*.X
 
 tests: all $(check_PROGRAMS)
+	(cd src/tests/cwrap && $(MAKE) $(AM_MAKEFLAGS) $@) || exit 1;
 
 
 # RPM-related tasks

@@ -114,6 +114,10 @@ BuildRequires: selinux-policy-targeted
 %if 0%{?fedora}
 BuildRequires: libcmocka-devel
 %endif
+%if (0%{?fedora} >= 20)
+BuildRequires: uid_wrapper
+BuildRequires: nss_wrapper
+%endif
 %if (0%{?fedora} || 0%{?rhel} >= 7)
 BuildRequires: libnl3-devel
 %else
