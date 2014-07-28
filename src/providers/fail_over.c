@@ -1244,6 +1244,11 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     case SRV_RESOLVE_ERROR: /* query could not be resolved but don't retry yet */
         ret = EIO;
         state->out = server;
+
+        /* The port status was reseted to neutral but we still haven't reached
+         * timeout to try to resolve SRV record again. We will set the port
+         * status back to not working. */
+        fo_set_port_status(state->meta, PORT_NOT_WORKING);
         goto done;
     case SRV_RESOLVED:  /* The query is resolved and valid. Return. */
         state->out = server;
