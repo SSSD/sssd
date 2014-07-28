@@ -34,11 +34,9 @@
 
 #ifdef HAVE_LIBINI_CONFIG_V1
 #include "ini_configobj.h"
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
 #include "collection.h"
 #include "collection_tools.h"
-#else
-#error "Unsupported libini version"
 #endif
 
 #include "ini_config.h"
@@ -61,7 +59,7 @@ struct sss_ini_initdata {
 
 
 
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
 
 struct sss_ini_initdata {
     struct collection_item *error_list;
@@ -99,7 +97,7 @@ void sss_ini_close_file(struct sss_ini_initdata *init_data)
         ini_config_file_destroy(init_data->file);
         init_data->file = NULL;
     }
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
     if (init_data->file != -1) {
         close(init_data->file);
         init_data->file = -1;
@@ -118,7 +116,7 @@ int sss_ini_config_file_open(struct sss_ini_initdata *init_data,
     return ini_config_file_open(config_file,
                                 INI_META_STATS,
                                 &init_data->file);
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
     return check_and_open_readonly(config_file, &init_data->file, 0, 0,
                                    S_IFREG|S_IRUSR, /* f r**------ */
                                    S_IFMT|(ALLPERMS & ~(S_IWUSR|S_IXUSR)));
@@ -140,7 +138,7 @@ int sss_ini_config_access_check(struct sss_ini_initdata *init_data)
                                    0, /* owned by root */
                                    S_IRUSR, /* r**------ */
                                    ALLPERMS & ~(S_IWUSR|S_IXUSR));
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
     return EOK;
 #endif
 }
@@ -157,7 +155,7 @@ int sss_ini_get_stat(struct sss_ini_initdata *init_data)
     if (!init_data->cstat) return EIO;
 
     return EOK;
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
 
     return fstat(init_data->file, &init_data->cstat);
 #endif
@@ -174,7 +172,7 @@ int sss_ini_get_mtime(struct sss_ini_initdata *init_data,
 #ifdef HAVE_LIBINI_CONFIG_V1
     return snprintf(timestr, timestr_len, "%llu",
                     (long long unsigned)init_data->cstat->st_mtime);
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
     return snprintf(timestr, timestr_len, "%llu",
                     (long long unsigned)init_data->cstat.st_mtime);
 #endif
@@ -248,7 +246,7 @@ int sss_ini_get_config(struct sss_ini_initdata *init_data,
 
     return ret;
 
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
 
     /* Read the configuration into a collection */
     ret = config_from_fd("sssd",
@@ -309,7 +307,7 @@ int sss_ini_get_int_config_value(struct sss_ini_initdata *init_data,
 {
 #ifdef HAVE_LIBINI_CONFIG_V1
     return ini_get_int_config_value(init_data->obj, strict, def, error);
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
     return get_int_config_value(init_data->obj, strict, def, error);
 #endif
 }
@@ -326,7 +324,7 @@ void sss_ini_config_destroy(struct sss_ini_initdata *init_data)
         ini_config_destroy(init_data->sssd_config);
         init_data->sssd_config = NULL;
     }
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
     free_ini_config(init_data->sssd_config);
 #endif
 }
@@ -356,7 +354,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
     size_t attr_len;
 #ifdef HAVE_LIBINI_CONFIG_V1
     struct value_obj *obj = NULL;
-#elif defined(HAVE_LIBINI_CONFIG_V0)
+#else
     struct collection_item *obj = NULL;
 #endif
 
