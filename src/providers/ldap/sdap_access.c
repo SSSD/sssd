@@ -40,6 +40,8 @@
 #include "providers/data_provider.h"
 #include "providers/dp_backend.h"
 
+#define MALFORMED_FILTER "Malformed access control filter [%s]\n"
+
 static errno_t sdap_save_user_cache_bool(struct sss_domain_info *domain,
                                          const char *username,
                                          const char *attr_name,
@@ -875,10 +877,8 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         } else if (dp_error == DP_ERR_OFFLINE) {
             ret = sdap_access_filter_decide_offline(req);
         } else if (ret == ERR_INVALID_FILTER) {
-            sss_log(SSS_LOG_ERR,
-                    "Malformed access control filter [%s]\n", state->filter);
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                "Malformed access control filter [%s]\n", state->filter);
+            sss_log(SSS_LOG_ERR, MALFORMED_FILTER, state->filter);
+            DEBUG(SSSDBG_CRIT_FAILURE, MALFORMED_FILTER, state->filter);
             ret = ERR_ACCESS_DENIED;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -918,9 +918,7 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
     }
 
     if (found) {
-        /* Save "allow" to the cache for future offline
-         :q* access checks.
-         */
+        /* Save "allow" to the cache for future offline access checks. */
         DEBUG(SSSDBG_TRACE_FUNC, "Access granted by online lookup\n");
         ret = EOK;
     }
