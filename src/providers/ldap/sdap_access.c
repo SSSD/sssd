@@ -679,11 +679,12 @@ struct sdap_access_filter_req_ctx {
     struct sdap_id_op *sdap_op;
     struct sysdb_handle *handle;
     struct sss_domain_info *domain;
+    /* cached result of access control checks */
     bool cached_access;
     const char *basedn;
 };
 
-static errno_t sdap_access_filter_decide_offline(struct tevent_req *req);
+static errno_t sdap_access_decide_offline(bool cached_ac);
 static int sdap_access_filter_retry(struct tevent_req *req);
 static void sdap_access_filter_connect_done(struct tevent_req *subreq);
 static void sdap_access_filter_done(struct tevent_req *req);
@@ -728,10 +729,11 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
     state->cached_access = ldb_msg_find_attr_as_bool(user_entry,
                                                      SYSDB_LDAP_ACCESS_FILTER,
                                                      false);
+
     /* Ok, we have one result, check if we are online or offline */
     if (be_is_offline(be_ctx)) {
         /* Ok, we're offline. Return from the cache */
-        ret = sdap_access_filter_decide_offline(req);
+        ret = sdap_access_decide_offline(state->cached_access);
         goto done;
     }
 
@@ -797,12 +799,13 @@ done:
     return req;
 }
 
-static errno_t sdap_access_filter_decide_offline(struct tevent_req *req)
+/* Helper function,
+ * cached_ac => access granted
+ * !cached_ac => access denied
+ */
+static errno_t sdap_access_decide_offline(bool cached_ac)
 {
-    struct sdap_access_filter_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_filter_req_ctx);
-
-    if (state->cached_access) {
+    if (cached_ac) {
         DEBUG(SSSDBG_TRACE_FUNC, "Access granted by cached credentials\n");
         return EOK;
     } else {
@@ -842,7 +845,7 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
 
     if (ret != EOK) {
         if (dp_error == DP_ERR_OFFLINE) {
-            ret = sdap_access_filter_decide_offline(req);
+            ret = sdap_access_decide_offline(state->cached_access);
             if (ret == EOK) {
                 tevent_req_done(req);
                 return;
@@ -900,7 +903,7 @@ static void sdap_access_filter_done(struct tevent_req *subreq)
                 return;
             }
         } else if (dp_error == DP_ERR_OFFLINE) {
-            ret = sdap_access_filter_decide_offline(req);
+            ret = sdap_access_decide_offline(state->cached_access);
         } else if (ret == ERR_INVALID_FILTER) {
             sss_log(SSS_LOG_ERR, MALFORMED_FILTER, state->filter);
             DEBUG(SSSDBG_CRIT_FAILURE, MALFORMED_FILTER, state->filter);
