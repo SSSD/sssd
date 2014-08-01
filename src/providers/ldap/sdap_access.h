@@ -28,12 +28,20 @@
 #include "providers/dp_backend.h"
 #include "providers/ldap/ldap_common.h"
 
+/* Attributes in sysdb, used for caching last values of lockout or filter
+ * access control checks.
+ */
 #define SYSDB_LDAP_ACCESS_FILTER "ldap_access_filter_allow"
+#define SYSDB_LDAP_ACCESS_CACHED_LOCKOUT "ldap_access_lockout_allow"
+/* names of ppolicy attributes */
+#define SYSDB_LDAP_ACCESS_LOCKED_TIME "pwdAccountLockedTime"
+#define SYSDB_LDAP_ACCESS_LOCKOUT "pwdLockout"
 
 #define LDAP_ACCESS_FILTER_NAME "filter"
 #define LDAP_ACCESS_EXPIRE_NAME "expire"
 #define LDAP_ACCESS_SERVICE_NAME "authorized_service"
 #define LDAP_ACCESS_HOST_NAME "host"
+#define LDAP_ACCESS_LOCK_NAME "lockout"
 
 #define LDAP_ACCOUNT_EXPIRE_SHADOW "shadow"
 #define LDAP_ACCOUNT_EXPIRE_AD "ad"
@@ -48,6 +56,7 @@ enum ldap_access_rule {
     LDAP_ACCESS_EXPIRE,
     LDAP_ACCESS_SERVICE,
     LDAP_ACCESS_HOST,
+    LDAP_ACCESS_LOCKOUT,
     LDAP_ACCESS_LAST
 };
 
