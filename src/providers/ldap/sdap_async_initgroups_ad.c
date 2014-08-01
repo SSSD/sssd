@@ -1215,13 +1215,20 @@ sdap_ad_tokengroups_update_posix_members(TALLOC_CTX *mem_ctx,
                 goto done;
             }
             num_valid_groups++;
-        } else if (ret == ENOENT && _missing != NULL) {
-            /* we need to download this group */
-            missing_sids[num_missing_sids] = talloc_steal(missing_sids, sid);
-            num_missing_sids++;
+        } else if (ret == ENOENT) {
+            if (_missing != NULL) {
+                /* we need to download this group */
+                missing_sids[num_missing_sids] = talloc_steal(missing_sids,
+                                                              sid);
+                num_missing_sids++;
 
-            DEBUG(SSSDBG_TRACE_FUNC, "Missing SID %s will be downloaded\n",
-                                      sid);
+                DEBUG(SSSDBG_TRACE_FUNC, "Missing SID %s will be downloaded\n",
+                                          sid);
+            }
+
+            /* else: We have downloaded missing groups but some of them may
+             * remained missing because they are outside of search base. We
+             * will just ignore them and continue with the next group. */
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE, "Could not look up SID %s in sysdb: "
                                          "[%s]\n", sid, strerror(ret));
