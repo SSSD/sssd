@@ -40,6 +40,11 @@
 #include "providers/data_provider.h"
 #include "providers/dp_backend.h"
 
+static errno_t sdap_save_user_cache_bool(struct sss_domain_info *domain,
+                                         const char *username,
+                                         const char *attr_name,
+                                         bool value);
+
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct be_ctx *be_ctx,
@@ -856,7 +861,6 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
     int ret, tret, dp_error;
     size_t num_results;
     bool found = false;
-    struct sysdb_attrs *attrs;
     struct sysdb_attrs **results;
     struct tevent_req *req =
             tevent_req_callback_data(subreq, struct tevent_req);
@@ -935,25 +939,8 @@ static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
         ret = ERR_ACCESS_DENIED;
     }
 
-    attrs = sysdb_new_attrs(state);
-    if (attrs == NULL) {
-        ret = ENOMEM;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
-        goto done;
-    }
-
-    tret = sysdb_attrs_add_bool(attrs, SYSDB_LDAP_ACCESS_FILTER,
-                                ret == EOK ?  true : false);
-    if (tret != EOK) {
-        /* Failing to save to the cache is non-fatal.
-         * Just return the result.
-         */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
-        goto done;
-    }
-
-    tret = sysdb_set_user_attr(state->domain, state->username, attrs,
-                               SYSDB_MOD_REP);
+    tret = sdap_save_user_cache_bool(state->domain, state->username,
+                                     SYSDB_LDAP_ACCESS_FILTER, found);
     if (tret != EOK) {
         /* Failing to save to the cache is non-fatal.
          * Just return the result.
@@ -1057,6 +1044,38 @@ static errno_t sdap_access_service(struct pam_data *pd,
         ret = ERR_ACCESS_DENIED;
     }
 
+    return ret;
+}
+
+static errno_t sdap_save_user_cache_bool(struct sss_domain_info *domain,
+                                         const char *username,
+                                         const char *attr_name,
+                                         bool value)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(NULL);
+    if (attrs == NULL) {
+        ret = ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_bool(attrs, attr_name, value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
+        goto done;
+    }
+
+    ret = sysdb_set_user_attr(domain, username, attrs, SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set user access attribute\n");
+        goto done;
+    }
+
+done:
+    talloc_free(attrs);
     return ret;
 }
 
