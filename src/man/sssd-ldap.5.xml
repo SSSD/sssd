@@ -1914,6 +1914,13 @@ ldap_access_filter = (employeeType=admin)
                             <emphasis>filter</emphasis>: use ldap_access_filter
                         </para>
                         <para>
+                            <emphasis>lockout</emphasis>: use account locking.
+                            If set, this option denies access in case that ldap
+                            attribute 'pwdAccountLockedTime' is present and has
+                            value of '000001010000Z'. Please see the option
+                            ldap_pwdlockout_dn.
+                        </para>
+                        <para>
                             <emphasis>expire</emphasis>: use
                             ldap_account_expire_policy
                         </para>
@@ -1932,6 +1939,26 @@ ldap_access_filter = (employeeType=admin)
                         <para>
                              Please note that it is a configuration error if a
                              value is used more than once.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_pwdlockout_dn (string)</term>
+                    <listitem>
+                        <para>
+                           This option specifies the DN of password policy entry
+                           on LDAP server. Please note that absence of this
+                           option in sssd.conf in case of enabled account
+                           lockout checking will yield access denied as
+                           ppolicy attributes on LDAP server cannot be checked
+                           properly.
+                        </para>
+                        <para>
+                          Example: cn=ppolicy,ou=policies,dc=example,dc=com
+                        </para>
+                        <para>
+                          Default: cn=ppolicy,ou=policies,$ldap_search_base
                         </para>
                     </listitem>
                 </varlistentry>
