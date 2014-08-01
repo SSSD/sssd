@@ -59,6 +59,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct sdap_id_conn_ctx *conn,
                                              const char *username,
                                              struct ldb_message *user_entry);
+
 static errno_t sdap_access_filter_recv(struct tevent_req *req);
 
 static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
@@ -70,6 +71,10 @@ static  errno_t sdap_access_service(struct pam_data *pd,
 
 static errno_t sdap_access_host(struct ldb_message *user_entry);
 
+enum sdap_access_control_type {
+    SDAP_ACCESS_CONTROL_FILTER,
+};
+
 struct sdap_access_req_ctx {
     struct pam_data *pd;
     struct tevent_context *ev;
@@ -79,11 +84,12 @@ struct sdap_access_req_ctx {
     struct sss_domain_info *domain;
     struct ldb_message *user_entry;
     size_t current_rule;
+    enum sdap_access_control_type ac_type;
 };
 
-static errno_t check_next_rule(struct sdap_access_req_ctx *state,
-                               struct tevent_req *req);
-static void sdap_access_filter_done(struct tevent_req *subreq);
+static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
+                                           struct tevent_req *req);
+static void sdap_access_done(struct tevent_req *subreq);
 
 struct tevent_req *
 sdap_access_send(TALLOC_CTX *mem_ctx,
@@ -152,7 +158,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
 
     state->user_entry = res->msgs[0];
 
-    ret = check_next_rule(state, req);
+    ret = sdap_access_check_next_rule(state, req);
     if (ret == EAGAIN) {
         return req;
     }
@@ -167,8 +173,8 @@ done:
     return req;
 }
 
-static errno_t check_next_rule(struct sdap_access_req_ctx *state,
-                               struct tevent_req *req)
+static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
+                                           struct tevent_req *req)
 {
     struct tevent_req *subreq;
     int ret = EOK;
@@ -191,7 +197,9 @@ static errno_t check_next_rule(struct sdap_access_req_ctx *state,
                 return ENOMEM;
             }
 
-            tevent_req_set_callback(subreq, sdap_access_filter_done, req);
+            state->ac_type = SDAP_ACCESS_CONTROL_FILTER;
+
+            tevent_req_set_callback(subreq, sdap_access_done, req);
             return EAGAIN;
 
         case LDAP_ACCESS_EXPIRE:
@@ -219,14 +227,27 @@ static errno_t check_next_rule(struct sdap_access_req_ctx *state,
     return ret;
 }
 
-static void sdap_access_filter_done(struct tevent_req *subreq)
+static void sdap_access_done(struct tevent_req *subreq)
 {
     errno_t ret;
-    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
-    struct sdap_access_req_ctx *state =
-            tevent_req_data(req, struct sdap_access_req_ctx);
+    struct tevent_req *req;
+    struct sdap_access_req_ctx *state;
 
-    ret = sdap_access_filter_recv(subreq);
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_access_req_ctx);
+
+    /* process subrequest */
+    switch(state->ac_type) {
+    case SDAP_ACCESS_CONTROL_FILTER:
+        ret = sdap_access_filter_recv(subreq);
+        break;
+    default:
+        ret = EINVAL;
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unknown access control type: %d.",
+              state->ac_type);
+        break;
+    }
+
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Error retrieving access check result.\n");
@@ -236,7 +257,7 @@ static void sdap_access_filter_done(struct tevent_req *subreq)
 
     state->current_rule++;
 
-    ret = check_next_rule(state, req);
+    ret = sdap_access_check_next_rule(state, req);
     switch (ret) {
     case EAGAIN:
         return;
@@ -255,7 +276,6 @@ errno_t sdap_access_recv(struct tevent_req *req)
 
     return EOK;
 }
-
 
 #define SHADOW_EXPIRE_MSG "Account expired according to shadow attributes"
 
@@ -661,7 +681,7 @@ struct sdap_access_filter_req_ctx {
 static errno_t sdap_access_filter_decide_offline(struct tevent_req *req);
 static int sdap_access_filter_retry(struct tevent_req *req);
 static void sdap_access_filter_connect_done(struct tevent_req *subreq);
-static void sdap_access_filter_get_access_done(struct tevent_req *req);
+static void sdap_access_filter_done(struct tevent_req *req);
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct be_ctx *be_ctx,
@@ -848,10 +868,10 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    tevent_req_set_callback(subreq, sdap_access_filter_get_access_done, req);
+    tevent_req_set_callback(subreq, sdap_access_filter_done, req);
 }
 
-static void sdap_access_filter_get_access_done(struct tevent_req *subreq)
+static void sdap_access_filter_done(struct tevent_req *subreq)
 {
     int ret, tret, dp_error;
     size_t num_results;
@@ -955,7 +975,6 @@ static errno_t sdap_access_filter_recv(struct tevent_req *req)
 
     return EOK;
 }
-
 
 #define AUTHR_SRV_MISSING_MSG "Authorized service attribute missing, " \
                               "access denied"
