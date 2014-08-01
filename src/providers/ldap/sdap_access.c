@@ -249,7 +249,12 @@ static void sdap_access_done(struct tevent_req *subreq)
 
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error retrieving access check result.\n");
+        if (ret == ERR_ACCESS_DENIED) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Access was denied.\n");
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Error retrieving access check result.\n");
+        }
         tevent_req_error(req, ret);
         return;
     }
