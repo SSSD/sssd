@@ -947,6 +947,14 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             return ENOMEM;
         }
 
+        name = sss_reverse_replace_space(preq, name,
+                                         pctx->rctx->override_space);
+        if (name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_reverse_replace_space failed\n");
+            return ENOMEM;
+        }
+
         /* Refresh the user's cache entry on any PAM query
          * We put a timeout in the client context so that we limit
          * the number of updates within a reasonable timeout
