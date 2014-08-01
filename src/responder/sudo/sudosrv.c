@@ -132,8 +132,6 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
                             sudo_dp_reconnect_init, iter);
     }
 
-    /* Get responder options */
-
     /* Get sudo_timed option */
     ret = confdb_get_bool(sudo_ctx->rctx->cdb,
                           CONFDB_SUDO_CONF_ENTRY, CONFDB_SUDO_TIMED,
