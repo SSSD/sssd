@@ -108,6 +108,14 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
             goto done;
         }
 
+        name = sss_reverse_replace_space(tmp_ctx, name,
+                                         cmd_ctx->sudo_ctx->rctx->override_space);
+        if (name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_reverse_replace_whitespaces failed\n");
+            return ENOMEM;
+        }
+
         DEBUG(SSSDBG_FUNC_DATA, "Requesting info about [%s@%s]\n",
               name, dom->name);
 
