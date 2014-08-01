@@ -45,6 +45,10 @@ static errno_t sdap_save_user_cache_bool(struct sss_domain_info *domain,
                                          const char *attr_name,
                                          bool value);
 
+static errno_t sdap_get_basedn_user_entry(struct ldb_message *user_entry,
+                                          const char *username,
+                                          const char **_basedn);
+
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
                                              struct be_ctx *be_ctx,
@@ -649,7 +653,7 @@ struct sdap_access_filter_req_ctx {
     struct sysdb_handle *handle;
     struct sss_domain_info *domain;
     bool cached_access;
-    char *basedn;
+    const char *basedn;
 };
 
 static errno_t sdap_access_filter_decide_offline(struct tevent_req *req);
@@ -667,7 +671,6 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
 {
     struct sdap_access_filter_req_ctx *state;
     struct tevent_req *req;
-    const char *basedn;
     char *clean_username;
     errno_t ret = ERR_INTERNAL;
     char *name;
@@ -705,20 +708,9 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Perform online operation */
-    basedn = ldb_msg_find_attr_as_string(user_entry, SYSDB_ORIG_DN, NULL);
-    if (basedn == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,"Could not find originalDN for user [%s]\n",
-                 state->username);
-        ret = EINVAL;
-        goto done;
-    }
-
-    state->basedn = talloc_strdup(state, basedn);
-    if (state->basedn == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not allocate memory for originalDN\n");
-        ret = ENOMEM;
+    ret = sdap_get_basedn_user_entry(user_entry, state->username,
+                                     &state->basedn);
+    if (ret != EOK) {
         goto done;
     }
 
@@ -1140,5 +1132,27 @@ static errno_t sdap_access_host(struct ldb_message *user_entry)
         ret = ERR_ACCESS_DENIED;
     }
 
+    return ret;
+}
+
+static errno_t sdap_get_basedn_user_entry(struct ldb_message *user_entry,
+                                          const char *username,
+                                          const char **_basedn)
+{
+    const char *basedn;
+    errno_t ret;
+
+    basedn = ldb_msg_find_attr_as_string(user_entry, SYSDB_ORIG_DN, NULL);
+    if (basedn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,"Could not find originalDN for user [%s]\n",
+              username);
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_basedn = basedn;
+    ret = EOK;
+
+done:
     return ret;
 }
