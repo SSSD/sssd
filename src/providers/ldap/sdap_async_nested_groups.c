@@ -240,7 +240,7 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
 {
     struct sdap_attr_map *map = group_ctx->opts->group_map;
     gid_t gid;
-    errno_t ret;
+    errno_t ret = ENOENT;
     int32_t ad_group_type;
     bool posix_group = true;
     bool use_id_mapping;
