@@ -151,7 +151,16 @@ static krb5_error_code sssdpac_verify(krb5_context kcontext,
                            req->ticket->enc_part2->times.authtime,
                            req->ticket->enc_part2->client, key, NULL);
     if (kerr != 0) {
-        return EINVAL;
+        /* The krb5 documentation says:
+         * A checksum mismatch can occur if the PAC was copied from a
+         * cross-realm TGT by an ignorant KDC; also Apple Mac OS X Server
+         * Open Directory (as of 10.6) generates PACs with no server checksum
+         * at all. One should consider not failing the whole authentication
+         * because of this reason, but, instead, treating the ticket as
+         * if it did not contain a PAC or marking the PAC information as
+         * non-verified.
+         */
+        return 0;
     }
 
     sss_data.len = sssdctx->data.length;
