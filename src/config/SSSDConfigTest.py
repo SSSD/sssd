@@ -280,6 +280,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             're_expression',
             'full_name_format',
             'krb5_rcache_dir',
+            'user',
             'default_domain_suffix',
             'debug_level',
             'debug_timestamps',

@@ -297,6 +297,19 @@
                         </listitem>
                     </varlistentry>
                     <varlistentry>
+                        <term>user (string)</term>
+                        <listitem>
+                            <para>
+                                The user to drop the privileges to where
+                                appropriate to avoid running as the
+                                root user.
+                            </para>
+                            <para>
+                                Default: not set, process will run as root
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
                         <term>default_domain_suffix (string)</term>
                         <listitem>
                             <para>
