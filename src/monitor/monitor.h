@@ -37,9 +37,6 @@ typedef int (*monitor_reconf_fn) (struct config_file_ctx *file_ctx,
 
 struct mt_ctx;
 
-int monitor_process_init(struct mt_ctx *ctx,
-                         const char *config_file);
-
 /* from monitor_netlink.c */
 struct netlink_ctx;
 

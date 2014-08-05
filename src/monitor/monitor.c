@@ -912,7 +912,7 @@ static char *check_services(char **services)
     return NULL;
 }
 
-int get_monitor_config(struct mt_ctx *ctx)
+static int get_monitor_config(struct mt_ctx *ctx)
 {
     int ret;
     int timeout_seconds;
@@ -1665,11 +1665,11 @@ done:
     return ret;
 }
 
-errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
-                                     struct mt_ctx *ctx,
-                                     const char *file,
-                                     monitor_reconf_fn fn,
-                                     bool ignore_missing);
+static errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
+                                            struct mt_ctx *ctx,
+                                            const char *file,
+                                            monitor_reconf_fn fn,
+                                            bool ignore_missing);
 
 #ifdef HAVE_INOTIFY
 static void process_config_file(struct tevent_context *ev,
@@ -2079,11 +2079,11 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
-errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
-                                     struct mt_ctx *ctx,
-                                     const char *file,
-                                     monitor_reconf_fn fn,
-                                     bool ignore_missing)
+static errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
+                                            struct mt_ctx *ctx,
+                                            const char *file,
+                                            monitor_reconf_fn fn,
+                                            bool ignore_missing)
 {
     struct config_file_callback *cb = NULL;
     struct stat file_stat;
@@ -2138,8 +2138,8 @@ errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-int monitor_process_init(struct mt_ctx *ctx,
-                         const char *config_file)
+static int monitor_process_init(struct mt_ctx *ctx,
+                                const char *config_file)
 {
     TALLOC_CTX *tmp_ctx;
     struct tevent_signal *tes;
