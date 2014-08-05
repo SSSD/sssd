@@ -566,11 +566,11 @@ errno_t name_to_well_known_sid(const char *dom, const char *name,
                                const char **sid);
 
 /* from string_utils.c */
-const char * sss_replace_whitespaces(TALLOC_CTX *mem_ctx,
-                                     const char *orig_name,
-                                     const char *replace_string);
-char * sss_reverse_replace_whitespaces(TALLOC_CTX *mem_ctx,
-                                       char *orig_name,
-                                       const char *replace_string);
+char * sss_replace_space(TALLOC_CTX *mem_ctx,
+                         const char *orig_name,
+                         const char replace_char);
+char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
+                                 char *orig_name,
+                                 const char replace_char);
 
 #endif /* __SSSD_UTIL_H__ */

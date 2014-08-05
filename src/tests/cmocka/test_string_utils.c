@@ -31,56 +31,40 @@ void test_replace_whitespaces(void **state)
     struct {
         const char *input;
         const char *output;
-        const char *replace_string;
+        const char replace_char;
     } data_set[] = {
-        { "", "", "-" },
-        { " ", "-", "-" },
-        { "\t", "-", "-" },
-        { "\n", "-", "-" },
-        { " \t\n ", "----", "-" },
-        { "abcd", "abcd", "-" },
-        { "a b c d", "a-b-c-d", "-" },
-        { " a b c d ", "-a-b-c-d-", "-" },
-        { " ", "^", "^" },
-        { "\t", "^", "^" },
-        { "\n", "^", "^" },
-        { " \t\n ", "^^^^", "^" },
-        { "abcd", "abcd", "^" },
-        { "a b c d", "a^b^c^d", "^" },
-        { " a b c d ", "^a^b^c^d^", "^" },
-        { " ", "^", "^" },
-        { "\t", ";-)", ";-)" },
-        { "\n", ";-)", ";-)" },
-        { " \t\n ", ";-);-);-);-)", ";-)" },
-        { "abcd", "abcd", ";-)" },
-        { "a b c d", "a;-)b;-)c;-)d", ";-)" },
-        { " a b c d ", ";-)a;-)b;-)c;-)d;-)", ";-)" },
-        { " ", " ", " " },
-        { "    ", "    ", " " },
-        { "abcd", "abcd", " " },
-        { "a b c d", "a b c d", " " },
-        { " a b c d ", " a b c d ", " " },
-        { " ", " \t", " \t" },
-        { "    ", " \t \t \t \t", " \t" },
-        { "abcd", "abcd", " \t" },
-        { "a b c d", "a \tb \tc \td", " \t" },
-        { " a b c d ", " \ta \tb \tc \td \t", " \t" },
-        { NULL, NULL, NULL },
+        { "", "", '-' },
+        { " ", "-", '-' },
+        { "abcd", "abcd", '-' },
+        { "a b c d", "a-b-c-d", '-' },
+        { " a b c d ", "-a-b-c-d-", '-' },
+        { " ", "^", '^' },
+        { "abcd", "abcd", '^' },
+        { "a b c d", "a^b^c^d", '^' },
+        { " a b c d ", "^a^b^c^d^", '^' },
+        { " ", "^", '^' },
+        { " ", " ", ' ' },
+        { "    ", "    ", ' ' },
+        { "abcd", "abcd", ' ' },
+        { "a b c d", "a b c d", ' ' },
+        { NULL, NULL, '\0' },
     };
 
     mem_ctx = talloc_new(NULL);
     assert_non_null(mem_ctx);
     check_leaks_push(mem_ctx);
 
-    res = sss_replace_whitespaces(mem_ctx, input_str, NULL);
-    assert_true(res == input_str);
+    res = sss_replace_space(mem_ctx, input_str, '\0');
+    assert_string_equal(res, input_str);
+    talloc_zfree(res);
 
-    res = sss_replace_whitespaces(mem_ctx, input_str, "");
-    assert_true(res == input_str);
+    res = sss_replace_space(mem_ctx, input_str, '\0');
+    assert_string_equal(res, input_str);
+    talloc_zfree(res);
 
     for (i=0; data_set[i].input != NULL; ++i) {
-        res = sss_replace_whitespaces(mem_ctx, data_set[i].input,
-                                      data_set[i].replace_string);
+        res = sss_replace_space(mem_ctx, data_set[i].input,
+                                data_set[i].replace_char);
         assert_non_null(res);
         assert_string_equal(res, data_set[i].output);
         talloc_zfree(res);
@@ -100,46 +84,43 @@ void test_reverse_replace_whitespaces(void **state)
     struct {
         const char *input;
         const char *output;
-        const char *replace_string;
+        const char replace_char;
     } data_set[] = {
-        { "", "", "-" },
-        { "-", " ", "-" },
-        { "----", "    ", "-" },
-        { "abcd", "abcd", "-" },
-        { "a-b-c-d", "a b c d", "-" },
-        { "-a-b-c-d-", " a b c d ", "-" },
-        { "^", " ", "^" },
-        { "^^^^", "    ", "^" },
-        { "abcd", "abcd", "^" },
-        { "a^b^c^d", "a b c d", "^" },
-        { "^a^b^c^d^", " a b c d ", "^" },
-        { ";-)", " ", ";-)" },
-        { ";-);-);-);-)", "    ", ";-)" },
-        { "abcd", "abcd", ";-)" },
-        { "a;-)b;-)c;-)d", "a b c d", ";-)" },
-        { ";-)a;-)b;-)c;-)d;-)", " a b c d ", ";-)" },
-        { " ", " ", " " },
-        { "    ", "    ", " " },
-        { "abcd", "abcd", " " },
-        { "a b c d", "a b c d", " " },
-        { " a b c d ", " a b c d ", " " },
-        { NULL, NULL, NULL },
+        { "", "", '-' },
+        { "-", " ", '-' },
+        { "----", "    ", '-' },
+        { "abcd", "abcd", '-' },
+        { "a-b-c-d", "a b c d", '-' },
+        { "-a-b-c-d-", " a b c d ", '-' },
+        { "^", " ", '^' },
+        { "^^^^", "    ", '^' },
+        { "abcd", "abcd", '^' },
+        { "a^b^c^d", "a b c d", '^' },
+        { "^a^b^c^d^", " a b c d ", '^' },
+        { " ", " ", ' ' },
+        { "    ", "    ", ' ' },
+        { "abcd", "abcd", ' ' },
+        { "a b c d", "a b c d", ' ' },
+        { " a b c d ", " a b c d ", ' ' },
+        { NULL, NULL, '\0' },
     };
 
     mem_ctx = talloc_new(NULL);
     assert_non_null(mem_ctx);
     check_leaks_push(mem_ctx);
 
-    res = sss_reverse_replace_whitespaces(mem_ctx, input_str, NULL);
-    assert_true(res == input_str);
+    res = sss_reverse_replace_space(mem_ctx, input_str, '\0');
+    assert_string_equal(res, input_str);
+    talloc_free(res);
 
-    res = sss_reverse_replace_whitespaces(mem_ctx, input_str, "");
-    assert_true(res == input_str);
+    res = sss_reverse_replace_space(mem_ctx, input_str, '\0');
+    assert_string_equal(res, input_str);
+    talloc_free(res);
 
     for (i=0; data_set[i].input != NULL; ++i) {
         input_str = discard_const_p(char, data_set[i].input);
-        res = sss_reverse_replace_whitespaces(mem_ctx, input_str,
-                                      data_set[i].replace_string);
+        res = sss_reverse_replace_space(mem_ctx, input_str,
+                                        data_set[i].replace_char);
         assert_non_null(res);
         assert_string_equal(res, data_set[i].output);
         talloc_zfree(res);

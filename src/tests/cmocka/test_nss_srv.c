@@ -74,6 +74,7 @@ mock_nctx(TALLOC_CTX *mem_ctx)
     }
     nctx->neg_timeout = 10;
     nctx->pwfield = discard_const("*");
+    nctx->override_space = discard_const("\0");
 
     err = sss_idmap_init(sss_idmap_talloc, nctx, sss_idmap_talloc_free,
                          &nctx->idmap_ctx);

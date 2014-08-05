@@ -99,7 +99,7 @@
 #define CONFDB_MEMCACHE_TIMEOUT "memcache_timeout"
 #define CONFDB_NSS_HOMEDIR_SUBSTRING "homedir_substring"
 #define CONFDB_DEFAULT_HOMEDIR_SUBSTRING "/home"
-#define CONFDB_NSS_OVERRIDE_DEFAULT_WHITESPACE "override_default_whitespace"
+#define CONFDB_NSS_OVERRIDE_SPACE "override_space"
 
 /* PAM */
 #define CONFDB_PAM_CONF_ENTRY "config/pam"

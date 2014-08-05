@@ -69,7 +69,7 @@ struct nss_ctx {
     char **etc_shells;
     char *shell_fallback;
     char *default_shell;
-    char *override_default_wsp_str;
+    char *override_space;
 
     struct sss_mc_ctx *pwd_mc_ctx;
     struct sss_mc_ctx *grp_mc_ctx;
