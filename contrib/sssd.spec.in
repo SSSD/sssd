@@ -604,17 +604,17 @@ rm -rf $RPM_BUILD_ROOT
 
 %dir %{sssdstatedir}
 %dir %{_localstatedir}/cache/krb5rcache
-%attr(700,root,root) %dir %{dbpath}
-%attr(755,root,root) %dir %{mcpath}
-%ghost %attr(0644,root,root) %verify(not md5 size mtime) %{mcpath}/passwd
-%ghost %attr(0644,root,root) %verify(not md5 size mtime) %{mcpath}/group
-%attr(755,root,root) %dir %{pipepath}
-%attr(755,root,root) %dir %{pubconfpath}
-%attr(755,root,root) %dir %{gpocachepath}
-%attr(700,root,root) %dir %{pipepath}/private
-%attr(750,root,root) %dir %{_var}/log/%{name}
-%attr(711,root,root) %dir %{_sysconfdir}/sssd
-%ghost %attr(0600,root,root) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
+%attr(700,sssd,sssd) %dir %{dbpath}
+%attr(755,sssd,sssd) %dir %{mcpath}
+%ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/passwd
+%ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/group
+%attr(755,sssd,sssd) %dir %{pipepath}
+%attr(755,sssd,sssd) %dir %{pubconfpath}
+%attr(755,sssd,sssd) %dir %{gpocachepath}
+%attr(700,sssd,sssd) %dir %{pipepath}/private
+%attr(750,sssd,sssd) %dir %{_var}/log/%{name}
+%attr(711,sssd,sssd) %dir %{_sysconfdir}/sssd
+%ghost %attr(0600,sssd,sssd) %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %if (0%{?use_systemd} == 1)
 %attr(755,root,root) %dir %{_sysconfdir}/systemd/system/sssd.service.d
 %config(noreplace) %{_sysconfdir}/systemd/system/sssd.service.d/journal.conf
@@ -802,6 +802,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/wbclient_sssd.h
 %{_libdir}/%{name}/modules/libwbclient.so
 %{_libdir}/pkgconfig/wbclient_sssd.pc
+
+%pre common
+getent group sssd >/dev/null || groupadd -r sssd
+getent passwd sssd >/dev/null || useradd -r -g sssd -d / -s /sbin/nologin -c "User for sssd" sssd
 
 %if (0%{?use_systemd} == 1)
 # systemd
