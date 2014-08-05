@@ -22,129 +22,44 @@
 
 #include "util/util.h"
 
-const char * sss_replace_whitespaces(TALLOC_CTX *mem_ctx,
-                                     const char *orig_name,
-                                     const char *replace_string)
+static char *replace_char(TALLOC_CTX *mem_ctx,
+                          const char *in,
+                          const char match,
+                          const char sub)
 {
-    char *new_name;
-    const char *ptr;
-    size_t replace_string_len;
-    TALLOC_CTX *tmp_ctx;
+    char *p;
+    char *out;
 
-    if (replace_string == NULL || replace_string[0] == '\0') {
-        return orig_name;
-    }
-
-    replace_string_len = strlen(replace_string);
-    /* faster implementations without multiple allocations */
-    if (replace_string_len == 1) {
-        char *p;
-        new_name = talloc_strdup(mem_ctx, orig_name);
-        if (new_name == NULL) {
-            return NULL;
-        }
-
-        for (p = new_name; *p != '\0'; ++p) {
-            if (isspace(*p)) {
-                *p = replace_string[0];
-            }
-        }
-
-        return new_name;
-    }
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
+    out = talloc_strdup(mem_ctx, in);
+    if (out == NULL) {
         return NULL;
     }
 
-    new_name = talloc_strdup(tmp_ctx, "");
-    if (new_name == NULL) {
-        goto done;
+    for (p = out; *p != '\0'; ++p) {
+        if (*p == match) {
+            *p = sub;
+        }
     }
 
-    ptr = orig_name;
-    while (*ptr != '\0') {
-        if (isspace(*ptr)) {
-            new_name = talloc_asprintf_append(new_name, "%s", replace_string);
-        } else {
-            new_name = talloc_asprintf_append(new_name, "%c", *ptr);
-        }
-        if (new_name == NULL) {
-            goto done;;
-        }
-
-        ++ptr;
-    }
-
-    new_name = talloc_steal(mem_ctx, new_name);
-done:
-    talloc_free(tmp_ctx);
-    return new_name;
+    return out;
 }
 
-char * sss_reverse_replace_whitespaces(TALLOC_CTX *mem_ctx,
-                                       char *orig_name,
-                                       const char *replace_string)
+char * sss_replace_space(TALLOC_CTX *mem_ctx,
+                         const char *orig_name,
+                         const char subst)
 {
-    TALLOC_CTX *tmp_ctx;
-    char *substr;
-    char *new_name;
-    const char *ptr = orig_name;
-    size_t replace_string_len;
-
-    if (replace_string == NULL || replace_string[0] == '\0') {
-        return orig_name;
+    if (subst == '\0') {
+        return talloc_strdup(mem_ctx, orig_name);
     }
+    return replace_char(mem_ctx, orig_name, ' ', subst);
+}
 
-    replace_string_len = strlen(replace_string);
-    /* faster implementations without multiple allocations */
-    if (replace_string_len == 1) {
-        char *p;
-        new_name = talloc_strdup(mem_ctx, orig_name);
-        if (new_name == NULL) {
-            return NULL;
-        }
-
-        for (p = new_name; *p != '\0'; ++p) {
-            if (*p == replace_string[0] ) {
-                *p = ' ';
-            }
-        }
-
-        return new_name;
+char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
+                                 char *orig_name,
+                                 const char subst)
+{
+    if (subst == '\0') {
+        return talloc_strdup(mem_ctx, orig_name);
     }
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return NULL;
-    }
-
-    new_name = talloc_strdup(tmp_ctx, "");
-    if (new_name == NULL) {
-        goto done;
-    }
-
-    do {
-        substr = strstr(ptr, replace_string);
-        if (substr != NULL) {
-            new_name = talloc_asprintf_append(new_name, "%.*s ",
-                                              (int)(substr - ptr), ptr);
-            if (new_name == NULL) {
-                goto done;
-            }
-            ptr += substr - ptr;
-            ptr += replace_string_len;
-        } else {
-            new_name = talloc_asprintf_append(new_name, "%s", ptr);
-            if (new_name == NULL) {
-                goto done;
-            }
-        }
-    } while (substr != NULL);
-
-    new_name = talloc_steal(mem_ctx, new_name);
-done:
-    talloc_free(tmp_ctx);
-    return new_name;
+    return replace_char(mem_ctx, orig_name, subst, ' ');
 }

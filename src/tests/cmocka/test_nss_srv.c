@@ -71,6 +71,7 @@ mock_nctx(TALLOC_CTX *mem_ctx)
     }
     nctx->neg_timeout = 10;
     nctx->pwfield = discard_const("*");
+    nctx->override_space = discard_const("\0");
 
     return nctx;
 }

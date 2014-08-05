@@ -378,11 +378,10 @@ static int fill_pwent(struct sss_packet *packet,
             continue;
         }
 
-        tmpstr = sss_replace_whitespaces(tmp_ctx, tmpstr,
-                                         nctx->override_default_wsp_str);
+        tmpstr = sss_replace_space(tmp_ctx, tmpstr, nctx->override_space[0]);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_replace_whitespaces failed, skipping\n");
+                  "sss_replace_space failed, skipping\n");
             continue;
         }
 
@@ -766,11 +765,11 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         name = sss_get_cased_name(cmdctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
-        name = sss_reverse_replace_whitespaces(dctx, name,
-                                               nctx->override_default_wsp_str);
+        name = sss_reverse_replace_space(dctx, name,
+                                         nctx->override_space[0]);
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_reverse_replace_whitespaces failed\n");
+                  "sss_reverse_replace_space failed\n");
             return ENOMEM;
         }
 
@@ -2315,11 +2314,10 @@ static int fill_members(struct sss_packet *packet,
             continue;
         }
 
-        tmpstr = sss_replace_whitespaces(tmp_ctx, tmpstr,
-                                         nctx->override_default_wsp_str);
+        tmpstr = sss_replace_space(tmp_ctx, tmpstr, nctx->override_space[0]);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_replace_whitespaces failed\n");
+                  "sss_replace_space failed\n");
             ret = ENOMEM;
             goto done;
         }
@@ -2499,11 +2497,10 @@ static int fill_grent(struct sss_packet *packet,
             continue;
         }
 
-        tmpstr = sss_replace_whitespaces(tmp_ctx, tmpstr,
-                                         nctx->override_default_wsp_str);
+        tmpstr = sss_replace_space(tmp_ctx, tmpstr, nctx->override_space[0]);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_replace_whitespaces failed, skipping\n");
+                  "sss_replace_space failed, skipping\n");
             continue;
         }
 
@@ -2710,11 +2707,10 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
-        name = sss_reverse_replace_whitespaces(dctx, name,
-                                               nctx->override_default_wsp_str);
+        name = sss_reverse_replace_space(dctx, name, nctx->override_space[0]);
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_reverse_replace_whitespaces failed\n");
+                  "sss_reverse_replace_space failed\n");
             return ENOMEM;
         }
 
@@ -3745,11 +3741,10 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
-        name = sss_reverse_replace_whitespaces(dctx, name,
-                                               nctx->override_default_wsp_str);
+        name = sss_reverse_replace_space(dctx, name, nctx->override_space[0]);
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_reverse_replace_whitespaces failed\n");
+                  "sss_reverse_replace_space failed\n");
             return ENOMEM;
         }
 
@@ -3913,11 +3908,11 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                 goto done;
             }
 
-            name = sss_reverse_replace_whitespaces(dctx, name,
-                                               nctx->override_default_wsp_str);
+            name = sss_reverse_replace_space(dctx, name,
+                                             nctx->override_space[0]);
             if (name == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "sss_reverse_replace_whitespaces failed\n");
+                      "sss_reverse_replace_space failed\n");
                 ret = ENOMEM;
                 goto done;
             }

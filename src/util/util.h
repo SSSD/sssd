@@ -536,11 +536,11 @@ errno_t sss_br_lock_file(int fd, size_t start, size_t len,
 #endif
 
 /* from string_utils.c */
-const char * sss_replace_whitespaces(TALLOC_CTX *mem_ctx,
-                                     const char *orig_name,
-                                     const char *replace_string);
-char * sss_reverse_replace_whitespaces(TALLOC_CTX *mem_ctx,
-                                       char *orig_name,
-                                       const char *replace_string);
+char * sss_replace_space(TALLOC_CTX *mem_ctx,
+                         const char *orig_name,
+                         const char replace_char);
+char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
+                                 char *orig_name,
+                                 const char replace_char);
 
 #endif /* __SSSD_UTIL_H__ */
