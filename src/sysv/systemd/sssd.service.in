@@ -2,6 +2,9 @@
 Description=System Security Services Daemon
 # SSSD will not be started until syslog is
 After=syslog.target
+# SSSD must be running before we permit user sessions
+Before=systemd-user-sessions.service nss-user-lookup.target
+Wants=nss-user-lookup.target
 
 [Service]
 EnvironmentFile=-@environment_file@
