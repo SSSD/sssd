@@ -231,6 +231,7 @@ enum sdap_basic_opt {
     SDAP_DISABLE_RANGE_RETRIEVAL,
     SDAP_MIN_ID,
     SDAP_MAX_ID,
+    SDAP_PWDLOCKOUT_DN,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
