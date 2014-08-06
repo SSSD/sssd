@@ -323,6 +323,7 @@ option_strings = {
     'ldap_use_tokengroups' : _('Whether to use Token-Groups'),
     'ldap_min_id' : _('Set lower boundary for allowed IDs from the LDAP server'),
     'ldap_max_id' : _('Set upper boundary for allowed IDs from the LDAP server'),
+    'ldap_pwdlockout_dn' : _('DN for ppolicy queries'),
 
     # [provider/ldap/auth]
     'ldap_pwd_policy' : _('Policy to evaluate the password expiration'),
