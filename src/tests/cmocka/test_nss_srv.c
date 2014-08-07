@@ -568,6 +568,117 @@ void test_nss_getpwnam_fqdn(void **state)
     assert_int_equal(ret, EOK);
 }
 
+/* Check that a user with a space in his username is returned fine.
+ */
+static int test_nss_getpwnam_check_space(uint32_t status,
+                                         uint8_t *body, size_t blen)
+{
+    struct passwd pwd;
+    errno_t ret;
+
+    assert_int_equal(status, EOK);
+
+    ret = parse_user_packet(body, blen, &pwd);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(pwd.pw_uid, 225);
+    assert_int_equal(pwd.pw_gid, 558);
+    assert_string_equal(pwd.pw_name, "space user");
+    assert_string_equal(pwd.pw_shell, "/bin/sh");
+    return EOK;
+}
+
+void test_nss_getpwnam_space(void **state)
+{
+    errno_t ret;
+
+    /* Prime the cache with a valid user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "space user", 225, 558, "space user",
+                         "/home/testuser", "/bin/sh", NULL,
+                         NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("space user");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
+    mock_fill_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwnam_check_space);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+
+}
+
+static int test_nss_getpwnam_check_space_sub(uint32_t status,
+                                             uint8_t *body, size_t blen)
+{
+    struct passwd pwd;
+    errno_t ret;
+
+    assert_int_equal(status, EOK);
+
+    ret = parse_user_packet(body, blen, &pwd);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(pwd.pw_uid, 225);
+    assert_int_equal(pwd.pw_gid, 558);
+    assert_string_equal(pwd.pw_name, "space_user");
+    assert_string_equal(pwd.pw_shell, "/bin/sh");
+    return EOK;
+}
+
+void test_nss_getpwnam_space_sub(void **state)
+{
+    errno_t ret;
+
+    /* Set whitespace substitution */
+    nss_test_ctx->rctx->override_space = '_';
+
+    mock_input_user_or_group("space user");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
+    mock_fill_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwnam_check_space_sub);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    nss_test_ctx->rctx->override_space = '\0';
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_getpwnam_space_sub_query(void **state)
+{
+    errno_t ret;
+
+    /* Set whitespace substitution */
+    nss_test_ctx->rctx->override_space = '_';
+
+    mock_input_user_or_group("space_user");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
+    mock_fill_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwnam_check_space_sub);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    nss_test_ctx->rctx->override_space = '\0';
+    assert_int_equal(ret, EOK);
+}
+
 /*
  * Check that FQDN processing is able to handle arbitrarily sized
  * delimeter
@@ -1357,6 +1468,110 @@ void test_nss_getgrnam_mix_subdom(void **state)
     assert_int_equal(ret, EOK);
 }
 
+static int test_nss_getgrnam_space_check(uint32_t status,
+                                         uint8_t *body, size_t blen)
+{
+    int ret;
+    uint32_t nmem;
+    struct group gr;
+    struct group expected = {
+        .gr_gid = 2123,
+        .gr_name = discard_const("space group"),
+        .gr_passwd = discard_const("*"),
+        .gr_mem = NULL,
+    };
+
+    assert_int_equal(status, EOK);
+
+    ret = parse_group_packet(body, blen, &gr, &nmem);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(nmem, 0);
+
+    ret = test_nss_getgrnam_check(&expected, &gr, nmem);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+/* Test that requesting a valid, cached group with space in its name returns a valid
+ * group structure
+ */
+void test_nss_getgrnam_space(void **state)
+{
+    errno_t ret;
+
+    /* Prime the cache with a valid group */
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
+                          "space group", 2123,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("space group");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    mock_fill_group_with_members(0);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_space_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+static int test_nss_getgrnam_space_sub_check(uint32_t status,
+                                             uint8_t *body, size_t blen)
+{
+    int ret;
+    uint32_t nmem;
+    struct group gr;
+    struct group expected = {
+        .gr_gid = 2123,
+        .gr_name = discard_const("space_group"),
+        .gr_passwd = discard_const("*"),
+        .gr_mem = NULL,
+    };
+
+    assert_int_equal(status, EOK);
+
+    ret = parse_group_packet(body, blen, &gr, &nmem);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(nmem, 0);
+
+    ret = test_nss_getgrnam_check(&expected, &gr, nmem);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+/* Test that requesting a valid, cached group with space in its name returns a valid
+ * group structure
+ */
+void test_nss_getgrnam_space_sub(void **state)
+{
+    errno_t ret;
+
+    /* Set whitespace substitution */
+    nss_test_ctx->rctx->override_space = '_';
+
+    mock_input_user_or_group("space group");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETGRNAM);
+    mock_fill_group_with_members(0);
+
+    /* Query for that group, call a callback when command finishes */
+    set_cmd_cb(test_nss_getgrnam_space_sub_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETGRNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    nss_test_ctx->rctx->override_space = '\0';
+    assert_int_equal(ret, EOK);
+}
+
 static int test_nss_well_known_sid_check(uint32_t status,
                                          uint8_t *body, size_t blen)
 {
@@ -1622,6 +1837,12 @@ int main(int argc, const char *argv[])
                                  nss_fqdn_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getpwnam_fqdn_fancy,
                                  nss_fqdn_fancy_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwnam_space,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwnam_space_sub,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getpwnam_space_sub_query,
+                                 nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getgrnam_no_members,
                                  nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getgrnam_members,
@@ -1636,6 +1857,10 @@ int main(int argc, const char *argv[])
                                  nss_subdom_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getgrnam_mix_subdom,
                                  nss_subdom_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getgrnam_space,
+                                 nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getgrnam_space_sub,
+                                 nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_well_known_getnamebysid,
                                  nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_well_known_getnamebysid_special,
