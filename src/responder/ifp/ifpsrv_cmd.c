@@ -643,7 +643,7 @@ int ifp_cache_check(struct ifp_user_get_attr_state *state,
         DEBUG(SSSDBG_TRACE_FUNC, "Performing midpoint cache update\n");
 
         req = sss_dp_get_account_send(state, state->rctx, state->dom, true,
-                                      search_type, state->inp, 0,
+                                      search_type, state->name, 0,
                                       NULL);
         if (req == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -667,7 +667,7 @@ int ifp_cache_check(struct ifp_user_get_attr_state *state,
         state->check_provider = false;
 
         req = sss_dp_get_account_send(state, state->rctx, state->dom, true,
-                                      search_type, state->inp, 0, NULL);
+                                      search_type, state->name, 0, NULL);
         if (req == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");
