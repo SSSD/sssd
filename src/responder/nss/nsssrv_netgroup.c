@@ -209,7 +209,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
     dctx->cmdctx = state->cmdctx;
 
     ret = sss_parse_name_for_domains(state, client->rctx->domains,
-                                     client->rctx->default_domain, rawname,
+                                     NULL, rawname,
                                      &domname, &state->netgr_shortname);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Invalid name received [%s]\n", rawname);
