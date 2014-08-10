@@ -67,6 +67,7 @@
 #define CONFDB_MONITOR_TRY_INOTIFY "try_inotify"
 #define CONFDB_MONITOR_KRB5_RCACHEDIR "krb5_rcache_dir"
 #define CONFDB_MONITOR_DEFAULT_DOMAIN "default_domain_suffix"
+#define CONFDB_MONITOR_OVERRIDE_SPACE "override_space"
 
 /* Both monitor and domains */
 #define CONFDB_NAME_REGEX   "re_expression"
@@ -98,7 +99,6 @@
 #define CONFDB_MEMCACHE_TIMEOUT "memcache_timeout"
 #define CONFDB_NSS_HOMEDIR_SUBSTRING "homedir_substring"
 #define CONFDB_DEFAULT_HOMEDIR_SUBSTRING "/home"
-#define CONFDB_NSS_OVERRIDE_SPACE "override_space"
 
 /* PAM */
 #define CONFDB_PAM_CONF_ENTRY "config/pam"

@@ -258,6 +258,29 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>override_space (string)</term>
+                        <listitem>
+                            <para>
+                                This parameter will replace spaces (space bar)
+                                with the given character for user and group names.
+                                e.g. (_). User name &quot;john doe&quot; will
+                                be &quot;john_doe&quot; This feature was added to
+                                help compatibility with shell scripts that have
+                                difficulty handling spaces, due to the
+                                default field separator in the shell.
+                            </para>
+                            <para>
+                                Please note it is a configuration error to use
+                                a replacement character that might be used by
+                                another LDAP object. In that case, result of
+                                a lookup is undefined.
+                            </para>
+                            <para>
+                                Default: not set (spaces will not be replaced)
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>
@@ -604,23 +627,6 @@ fallback_homedir = /home/%u
                         </para>
                         <para>
                             Default: 300
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>override_space (string)</term>
-                    <listitem>
-                        <para>
-                            This parameter will replace spaces (space bar)
-                            with the given character for user and group names.
-                            e.g. (_). User name &quot;john doe&quot; will
-                            be &quot;john_doe&quot; This feature was added to
-                            help compatibility with shell scripts that have
-                            difficulty handling spaces, due to the
-                            default field separator in the shell.
-                        </para>
-                        <para>
-                            Default: not set (spaces will not be replaced)
                         </para>
                     </listitem>
                 </varlistentry>
