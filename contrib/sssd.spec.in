@@ -779,9 +779,8 @@ fi
 %post common
 /sbin/chkconfig --add %{servicename}
 
-if [ $1 -ge 1 ] ; then
-    /sbin/service %{servicename} condrestart 2>&1 > /dev/null
-fi
+%posttrans
+/sbin/service %{servicename} condrestart 2>&1 > /dev/null
 
 %preun common
 if [ $1 = 0 ]; then
