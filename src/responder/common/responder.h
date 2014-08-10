@@ -102,6 +102,7 @@ struct resp_ctx {
     uid_t *allowed_uids;
 
     char *default_domain;
+    char override_space;
 
     void *pvt_ctx;
 

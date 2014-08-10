@@ -372,7 +372,8 @@ static int fill_pwent(struct sss_packet *packet,
             continue;
         }
 
-        tmpstr = sss_replace_space(tmp_ctx, tmpstr, nctx->override_space[0]);
+        tmpstr = sss_replace_space(tmp_ctx, tmpstr,
+                                   nctx->rctx->override_space);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_replace_space failed, skipping\n");
@@ -752,7 +753,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         if (!name) return ENOMEM;
 
         name = sss_reverse_replace_space(dctx, name,
-                                         nctx->override_space[0]);
+                                         nctx->rctx->override_space);
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_reverse_replace_space failed\n");
@@ -2360,7 +2361,8 @@ static int fill_members(struct sss_packet *packet,
             continue;
         }
 
-        tmpstr = sss_replace_space(tmp_ctx, tmpstr, nctx->override_space[0]);
+        tmpstr = sss_replace_space(tmp_ctx, tmpstr,
+                                   nctx->rctx->override_space);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_replace_space failed\n");
@@ -2523,7 +2525,8 @@ static int fill_grent(struct sss_packet *packet,
             continue;
         }
 
-        tmpstr = sss_replace_space(tmp_ctx, tmpstr, nctx->override_space[0]);
+        tmpstr = sss_replace_space(tmp_ctx, tmpstr,
+                                   nctx->rctx->override_space);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_replace_space failed, skipping\n");
@@ -2724,7 +2727,8 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
-        name = sss_reverse_replace_space(dctx, name, nctx->override_space[0]);
+        name = sss_reverse_replace_space(dctx, name,
+                                         nctx->rctx->override_space);
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_reverse_replace_space failed\n");
@@ -3754,7 +3758,8 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
-        name = sss_reverse_replace_space(dctx, name, nctx->override_space[0]);
+        name = sss_reverse_replace_space(dctx, name,
+                                         nctx->rctx->override_space);
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_reverse_replace_space failed\n");
@@ -3921,7 +3926,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             }
 
             name = sss_reverse_replace_space(dctx, name,
-                                             nctx->override_space[0]);
+                                             nctx->rctx->override_space);
             if (name == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "sss_reverse_replace_space failed\n");

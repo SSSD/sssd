@@ -781,6 +781,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     struct resp_ctx *rctx;
     struct sss_domain_info *dom;
     int ret;
+    char *tmp = NULL;
 
     rctx = talloc_zero(mem_ctx, struct resp_ctx);
     if (!rctx) {
@@ -842,6 +843,26 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
               "Cannnot get the default domain [%d]: %s\n",
                ret, strerror(ret));
         goto fail;
+    }
+
+    ret = confdb_get_string(rctx->cdb, rctx, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_OVERRIDE_SPACE, NULL,
+                            &tmp);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannnot get the space substitution character [%d]: %s\n",
+               ret, strerror(ret));
+        goto fail;
+    }
+
+    if (tmp != NULL) {
+        if (strlen(tmp) > 1) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Option %s is longer than 1 character "
+                  "only the first character %c will be used\n",
+                  CONFDB_MONITOR_OVERRIDE_SPACE, tmp[0]);
+        }
+
+        rctx->override_space = tmp[0];
     }
 
     ret = sss_monitor_init(rctx, rctx->ev, monitor_intf,
