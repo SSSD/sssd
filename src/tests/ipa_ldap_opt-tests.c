@@ -169,6 +169,88 @@ START_TEST(test_compare_2307_with_2307bis)
 }
 END_TEST
 
+static void fail_unless_dp_opt_is_terminator(struct dp_option *o)
+{
+    fail_unless(o->opt_name == NULL);
+    fail_unless(o->type == 0);
+    fail_unless(o->def_val.string == NULL);
+    fail_unless(o->val.string == NULL);
+}
+
+static void fail_unless_sdap_opt_is_terminator(struct sdap_attr_map *m)
+{
+    fail_unless(m->name == NULL);
+    fail_unless(m->def_name == NULL);
+    fail_unless(m->sys_name == NULL);
+    fail_unless(m->opt_name == NULL);
+}
+
+START_TEST(test_dp_opt_sentinel)
+{
+    fail_unless_dp_opt_is_terminator(&default_basic_opts[SDAP_OPTS_BASIC]);
+
+    fail_unless_dp_opt_is_terminator(&default_krb5_opts[KRB5_OPTS]);
+
+    fail_unless_dp_opt_is_terminator(&ad_basic_opts[AD_OPTS_BASIC]);
+    fail_unless_dp_opt_is_terminator(&ad_def_ldap_opts[SDAP_OPTS_BASIC]);
+    fail_unless_dp_opt_is_terminator(&ad_def_krb5_opts[KRB5_OPTS]);
+
+    fail_unless_dp_opt_is_terminator(&ipa_basic_opts[IPA_OPTS_BASIC]);
+    fail_unless_dp_opt_is_terminator(&ipa_def_ldap_opts[SDAP_OPTS_BASIC]);
+    fail_unless_dp_opt_is_terminator(&ipa_def_krb5_opts[KRB5_OPTS]);
+
+    fail_unless_dp_opt_is_terminator(&ad_dyndns_opts[DP_OPT_DYNDNS]);
+    fail_unless_dp_opt_is_terminator(&ipa_dyndns_opts[DP_OPT_DYNDNS]);
+}
+END_TEST
+
+START_TEST(test_sdap_opt_sentinel)
+{
+    fail_unless_sdap_opt_is_terminator(&generic_attr_map[SDAP_AT_GENERAL]);
+    fail_unless_sdap_opt_is_terminator(&gen_ipa_attr_map[SDAP_AT_GENERAL]);
+    fail_unless_sdap_opt_is_terminator(&gen_ad_attr_map[SDAP_AT_GENERAL]);
+    fail_unless_sdap_opt_is_terminator(&ad_2008r2_attr_map[SDAP_AT_GENERAL]);
+    fail_unless_sdap_opt_is_terminator(&ipa_attr_map[SDAP_AT_GENERAL]);
+
+    fail_unless_sdap_opt_is_terminator(&rfc2307_user_map[SDAP_OPTS_USER]);
+    fail_unless_sdap_opt_is_terminator(&rfc2307bis_user_map[SDAP_OPTS_USER]);
+    fail_unless_sdap_opt_is_terminator(&gen_ad2008r2_user_map[SDAP_OPTS_USER]);
+    fail_unless_sdap_opt_is_terminator(&ad_2008r2_user_map[SDAP_OPTS_USER]);
+    fail_unless_sdap_opt_is_terminator(&ipa_user_map[SDAP_OPTS_USER]);
+
+    fail_unless_sdap_opt_is_terminator(&rfc2307_group_map[SDAP_OPTS_GROUP]);
+    fail_unless_sdap_opt_is_terminator(&rfc2307bis_group_map[SDAP_OPTS_GROUP]);
+    fail_unless_sdap_opt_is_terminator(&gen_ad2008r2_group_map[SDAP_OPTS_GROUP]);
+    fail_unless_sdap_opt_is_terminator(&ad_2008r2_group_map[SDAP_OPTS_GROUP]);
+    fail_unless_sdap_opt_is_terminator(&ipa_group_map[SDAP_OPTS_GROUP]);
+
+    fail_unless_sdap_opt_is_terminator(&native_sudorule_map[SDAP_OPTS_SUDO]);
+
+    fail_unless_sdap_opt_is_terminator(&netgroup_map[SDAP_OPTS_NETGROUP]);
+    fail_unless_sdap_opt_is_terminator(&ad_netgroup_map[SDAP_OPTS_NETGROUP]);
+
+    fail_unless_sdap_opt_is_terminator(&ipa_netgroup_map[IPA_OPTS_NETGROUP]);
+
+    fail_unless_sdap_opt_is_terminator(&ipa_host_map[IPA_OPTS_HOST]);
+    fail_unless_sdap_opt_is_terminator(&ipa_hostgroup_map[IPA_OPTS_HOSTGROUP]);
+    fail_unless_sdap_opt_is_terminator(&ipa_selinux_user_map[IPA_OPTS_SELINUX_USERMAP]);
+
+    fail_unless_sdap_opt_is_terminator(&service_map[SDAP_OPTS_SERVICES]);
+    fail_unless_sdap_opt_is_terminator(&ad_service_map[SDAP_OPTS_SERVICES]);
+    fail_unless_sdap_opt_is_terminator(&ipa_service_map[SDAP_OPTS_SERVICES]);
+
+    fail_unless_sdap_opt_is_terminator(&rfc2307_autofs_mobject_map[SDAP_OPTS_AUTOFS_MAP]);
+    fail_unless_sdap_opt_is_terminator(&rfc2307bis_autofs_mobject_map[SDAP_OPTS_AUTOFS_MAP]);
+    fail_unless_sdap_opt_is_terminator(&ad_autofs_mobject_map[SDAP_OPTS_AUTOFS_MAP]);
+    fail_unless_sdap_opt_is_terminator(&ipa_autofs_mobject_map[SDAP_OPTS_AUTOFS_MAP]);
+
+    fail_unless_sdap_opt_is_terminator(&rfc2307_autofs_entry_map[SDAP_OPTS_AUTOFS_ENTRY]);
+    fail_unless_sdap_opt_is_terminator(&rfc2307bis_autofs_entry_map[SDAP_OPTS_AUTOFS_ENTRY]);
+    fail_unless_sdap_opt_is_terminator(&ad_autofs_entry_map[SDAP_OPTS_AUTOFS_ENTRY]);
+    fail_unless_sdap_opt_is_terminator(&ipa_autofs_entry_map[SDAP_OPTS_AUTOFS_ENTRY]);
+}
+END_TEST
+
 START_TEST(test_copy_opts)
 {
     errno_t ret;
@@ -396,6 +478,8 @@ Suite *ipa_ldap_opt_suite (void)
     tcase_add_test (tc_ipa_ldap_opt, test_compare_opts);
     tcase_add_test (tc_ipa_ldap_opt, test_compare_sdap_attrs);
     tcase_add_test (tc_ipa_ldap_opt, test_compare_2307_with_2307bis);
+    tcase_add_test (tc_ipa_ldap_opt, test_dp_opt_sentinel);
+    tcase_add_test (tc_ipa_ldap_opt, test_sdap_opt_sentinel);
     suite_add_tcase (s, tc_ipa_ldap_opt);
 
     TCase *tc_ipa_utils = tcase_create ("ipa_utils");
