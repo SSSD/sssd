@@ -265,7 +265,7 @@ sysdb_gpo_get_gpo_by_guid(TALLOC_CTX *mem_ctx,
     }
 
     lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_SUBTREE, attrs, SYSDB_GPO_FILTER, gpo_guid);
+                      LDB_SCOPE_SUBTREE, attrs, SYSDB_GPO_GUID_FILTER, gpo_guid);
     if (lret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not locate GPO: [%s]\n",
@@ -289,6 +289,62 @@ done:
 
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_ALL, "No such entry.\n");
+    } else if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sysdb_gpo_get_gpos(TALLOC_CTX *mem_ctx,
+                   struct sss_domain_info *domain,
+                   struct ldb_result **_result)
+{
+    errno_t ret;
+    int lret;
+    struct ldb_dn *base_dn;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+
+    const char *attrs[] = SYSDB_GPO_ATTRS;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    DEBUG(SSSDBG_TRACE_FUNC, SYSDB_TMPL_GPO_BASE"\n", domain->name);
+
+    base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
+                             SYSDB_TMPL_GPO_BASE,
+                             domain->name);
+    if (!base_dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
+                      LDB_SCOPE_SUBTREE, attrs, SYSDB_GPO_FILTER);
+    if (lret) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not locate GPOs: [%s]\n",
+              ldb_strerror(lret));
+        ret = sysdb_error_to_errno(lret);
+        goto done;
+    }
+
+    if (res->count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_result = talloc_steal(mem_ctx, res);
+    ret = EOK;
+
+done:
+
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_ALL, "No GPO entries.\n");
     } else if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
     }
