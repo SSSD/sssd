@@ -406,10 +406,28 @@
                     <term>offline_timeout (integer)</term>
                     <listitem>
                         <para>
-                            If SSSD is in offline mode, and last attempt to go
-                            online was less than number of seconds specified
-                            in this option ago, new requests for data will not
-                            result in attempt to go online.
+                            When SSSD switches to offline mode the amount of
+                            time before it tries to go back online will
+                            increase based upon the time spent disconnected.
+                            This value is in seconds and calculated by the
+                            following:
+                        </para>
+                        <para>
+                             offline_timeout + random_offset
+                        </para>
+                        <para>
+                            The random offset can increment up to 30 seconds.
+                            After each unsuccessful attempt to go online,
+                            the new interval is recalculated by the following:
+                        </para>
+                        <para>
+                            new_interval = old_interval*2 + random_offset
+                        </para>
+                        <para>
+                            Note that the maximum length of each interval
+                            is currently limited to one hour. If the
+                            calculated length of new_interval is greater
+                            than an hour, it will be forced to one hour.
                         </para>
                         <para>
                             Default: 60
