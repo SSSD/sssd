@@ -989,12 +989,122 @@ immediately:
     return req;
 }
 
+static errno_t
+process_offline_gpo(TALLOC_CTX *mem_ctx,
+                    const char *user,
+                    enum gpo_access_control_mode gpo_mode,
+                    struct sss_domain_info *domain,
+                    struct ldb_message *gpo_cache_entry)
+{
+    const char *policy_filename = NULL;
+    const char *cached_gpo_guid;
+    char **allowed_sids;
+    int allowed_size;
+    char **denied_sids;
+    int denied_size;
+    int ret;
+
+    cached_gpo_guid = ldb_msg_find_attr_as_string(gpo_cache_entry,
+                                                  SYSDB_GPO_GUID_ATTR, NULL);
+
+    if (cached_gpo_guid == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "No gpo_guid attribute found in gpo cache entry\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    policy_filename = talloc_asprintf(mem_ctx,
+                                      GPO_CACHE_PATH"/%s/Policies/%s%s",
+                                      domain->name,
+                                      cached_gpo_guid,
+                                      GP_EXT_GUID_SECURITY_SUFFIX);
+
+    if (policy_filename == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "policy_filename:%s\n", policy_filename);
+
+    ret = ad_gpo_parse_policy_file(mem_ctx,
+                                   policy_filename,
+                                   &allowed_sids,
+                                   &allowed_size,
+                                   &denied_sids,
+                                   &denied_size);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot parse policy file: [%s][%d][%s]\n",
+              policy_filename, ret, strerror(ret));
+        goto done;
+    }
+
+    ret = ad_gpo_access_check
+        (mem_ctx, gpo_mode, user, domain,
+         allowed_sids, allowed_size, denied_sids, denied_size);
+
+ done:
+    return ret;
+}
+
+static errno_t
+process_offline_gpos(TALLOC_CTX *mem_ctx,
+                     const char *user,
+                     enum gpo_access_control_mode gpo_mode,
+                     struct sss_domain_info *domain)
+{
+    struct ldb_result *res;
+    struct ldb_message *gpo_cache_entry;
+    errno_t ret;
+    int i;
+
+    ret = sysdb_gpo_get_gpos(mem_ctx, domain, &res);
+
+    if (ret != EOK) {
+        switch (ret) {
+        case ENOENT:
+            DEBUG(SSSDBG_OP_FAILURE, "No GPOs available in cache\n");
+            /* if there are no GPOs available, we allow access by default */
+            ret = EOK;
+            goto done;
+        default:
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Could not read GPOs from cache: [%s]\n",
+                  strerror(ret));
+            goto done;
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Retrieving GPOs from cache\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "Found %d GPO(s) in cache\n", res->count);
+
+    for (i = 0; i < res->count; i++){
+        gpo_cache_entry = res->msgs[i];
+        ret = process_offline_gpo(mem_ctx, user, gpo_mode, domain,
+                                  gpo_cache_entry);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "process_offline_gpo failed [%d](%s)\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    /* we have successfully processed all offline gpos */
+    ret = EOK;
+
+ done:
+    return ret;
+}
+
 static void
 ad_gpo_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct ad_gpo_access_state *state;
-    char* filter;
+    char *filter;
     char *sam_account_name;
     char *domain_dn;
     int dp_error;
@@ -1009,20 +1119,35 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        /* TBD: handle (dp_error == DP_ERR_OFFLINE) case */
+        if (dp_error != DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to connect to AD server: [%d](%s)\n",
+                  ret, strerror(ret));
+            goto done;
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
+            ret = process_offline_gpos(state,
+                                       state->user,
+                                       state->gpo_mode,
+                                       state->domain);
 
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to connect to AD server: [%d](%s)\n",
-               ret, sss_strerror(ret));
-
-        tevent_req_error(req, ret);
-        return;
+            if (ret == EOK) {
+                DEBUG(SSSDBG_TRACE_FUNC, "process_offline_gpos succeeded\n");
+                tevent_req_done(req);
+                goto done;
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "process_offline_gpos failed [%d](%s)\n",
+                      ret, sss_strerror(ret));
+                goto done;
+            }
+        }
     }
 
     sam_account_name = talloc_asprintf(state, "%s$", state->ad_hostname);
     if (sam_account_name == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "sam_account_name is %s\n", sam_account_name);
@@ -1033,8 +1158,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot convert domain name [%s] to base DN [%d]: %s\n",
                state->domain->name, ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
     /* SDAP_OC_USER objectclass covers both users and computers */
@@ -1045,8 +1169,8 @@ ad_gpo_connect_done(struct tevent_req *subreq)
                              sam_account_name);
 
     if (filter == NULL) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
     subreq = sdap_get_generic_send(state, state->ev, state->opts,
@@ -1058,11 +1182,19 @@ ad_gpo_connect_done(struct tevent_req *subreq)
 
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
-        tevent_req_error(req, EIO);
-        return;
+        ret = EIO;
+        goto done;
     }
 
     tevent_req_set_callback(subreq, ad_gpo_target_dn_retrieval_done, req);
+
+    ret = EOK;
+
+ done:
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
 }
 
 static void
@@ -1084,7 +1216,6 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-        /* TBD: handle (dp_error == DP_ERR_OFFLINE) case */
 
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get policy target's DN: [%d](%s)\n",
@@ -1238,8 +1369,6 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
 
     if (ret != EOK) {
-        /* TBD: handle (dp_error == DP_ERR_OFFLINE) case */
-
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get GPO list: [%d](%s)\n",
               ret, sss_strerror(ret));
@@ -1950,7 +2079,6 @@ ad_gpo_site_dn_retrieval_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-        /* TBD: handle (dp_error == DP_ERR_OFFLINE) case */
 
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get configNC: [%d](%s)\n", ret, sss_strerror(ret));
@@ -2080,7 +2208,6 @@ ad_gpo_get_som_attrs_done(struct tevent_req *subreq)
 
     if (ret != EOK) {
         ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-        /* TBD: handle (dp_error == DP_ERR_OFFLINE) case */
 
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get SOM attributes: [%d](%s)\n",
@@ -2749,7 +2876,6 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
 
     if (ret != EOK) {
         ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-        /* TBD: handle (dp_error == DP_ERR_OFFLINE) case */
 
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get GPO attributes: [%d](%s)\n",
