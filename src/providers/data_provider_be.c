@@ -1578,14 +1578,15 @@ static int be_sudo_handler(struct sbus_request *dbus_req, void *user_data)
 
         /* read the rules */
         for (i = 0; i < rules_num; i++) {
-            if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_STRING) {
+            if (dbus_message_iter_get_arg_type(&array_iter)
+                    != DBUS_TYPE_STRING) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Failed, to parse the message!\n");
                 ret = EIO;
                 err_msg = "Invalid D-Bus message format";
                 goto fail;
             }
 
-            dbus_message_iter_get_basic(&iter, &rule);
+            dbus_message_iter_get_basic(&array_iter, &rule);
             sudo_req->rules[i] = talloc_strdup(sudo_req->rules, rule);
             if (sudo_req->rules[i] == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed.\n");
@@ -1593,7 +1594,7 @@ static int be_sudo_handler(struct sbus_request *dbus_req, void *user_data)
                 goto fail;
             }
 
-            dbus_message_iter_next(&iter);
+            dbus_message_iter_next(&array_iter);
         }
 
         sudo_req->rules[rules_num] = NULL;
