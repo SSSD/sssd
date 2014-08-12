@@ -498,6 +498,9 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
 
     if (filter_type == BE_FILTER_NAME) {
         ret = sysdb_getpwnam(mem_ctx, dom->sysdb, dom, filter_value, &res);
+        if (res && res->count == 0) {
+            ret = ENOENT;
+        }
     } else if (filter_type == BE_FILTER_IDNUM) {
         errno = 0;
         uid = strtouint32(filter_value, NULL, 10);
@@ -506,6 +509,9 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
             goto done;
         }
         ret = sysdb_getpwuid(mem_ctx, dom->sysdb, dom, uid, &res);
+        if (res && res->count == 0) {
+            ret = ENOENT;
+        }
     } else if (filter_type == BE_FILTER_SECID) {
         ret = sysdb_search_user_by_sid_str(mem_ctx, dom->sysdb, dom,
                                            filter_value, attrs, &msg);
@@ -521,10 +527,9 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
               "Failed to make request to our cache: [%d]: [%s]\n",
                ret, sss_strerror(ret));
         goto done;
-    }
-
-    if ((res && res->count == 0) || (msg && msg->num_elements == 0)) {
-        ret = ENOENT;
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Cannot find [%s] with search type [%d]\n",
+              filter_value, filter_type);
         goto done;
     }
 
