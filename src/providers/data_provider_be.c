@@ -1092,7 +1092,7 @@ static int be_get_account_info(struct sbus_request *dbus_req, void *user_data)
                                       DBUS_TYPE_INVALID))
         return EOK; /* handled */
 
-    DEBUG(SSSDBG_CONF_SETTINGS,
+    DEBUG(SSSDBG_FUNC_DATA,
           "Got request for [%u][%d][%s]\n", type, attr_type, filter);
 
     /* If we are offline and fast reply was requested
