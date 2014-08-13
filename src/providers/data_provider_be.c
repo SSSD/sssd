@@ -2478,6 +2478,17 @@ static void signal_be_offline(struct tevent_context *ev,
     be_mark_offline(ctx);
 }
 
+static void signal_be_reset_offline(struct tevent_context *ev,
+                                    struct tevent_signal *se,
+                                    int signum,
+                                    int count,
+                                    void *siginfo,
+                                    void *private_data)
+{
+    struct be_ctx *ctx = talloc_get_type(private_data, struct be_ctx);
+    check_if_online(ctx);
+}
+
 int be_process_init_sudo(struct be_ctx *be_ctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
@@ -2761,6 +2772,15 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     BlockSignals(false, SIGUSR1);
     tes = tevent_add_signal(ctx->ev, ctx, SIGUSR1, 0,
                             signal_be_offline, ctx);
+    if (tes == NULL) {
+        ret = EIO;
+        goto fail;
+    }
+
+    /* Handle SIGUSR2 to force going online */
+    BlockSignals(false, SIGUSR2);
+    tes = tevent_add_signal(ctx->ev, ctx, SIGUSR2, 0,
+                            signal_be_reset_offline, ctx);
     if (tes == NULL) {
         ret = EIO;
         goto fail;

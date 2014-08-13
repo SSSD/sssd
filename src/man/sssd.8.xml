@@ -170,8 +170,11 @@
                 <term>SIGUSR1</term>
                 <listitem>
                     <para>
-                        Tells the SSSD to simulate offline operation for one
-                        minute. This is mostly useful for testing purposes.
+                        Tells the SSSD to simulate offline operation for the
+                        duration of the <quote>offline_timeout</quote>
+                        parameter. This is useful for testing. The signal
+                        can be sent to either the sssd process or any sssd_be
+                        process directly.
                     </para>
                 </listitem>
             </varlistentry>
@@ -179,8 +182,9 @@
                 <term>SIGUSR2</term>
                 <listitem>
                     <para>
-                        Tells the SSSD to go online immediately. This is mostly
-                        useful for testing purposes.
+                        Tells the SSSD to go online immediately. This is
+                        useful for testing. The signal can be sent to either
+                        the sssd process or any sssd_be process directly.
                     </para>
                 </listitem>
             </varlistentry>
