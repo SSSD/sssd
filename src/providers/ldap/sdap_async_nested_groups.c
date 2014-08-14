@@ -104,9 +104,21 @@ sdap_nested_group_lookup_group_send(TALLOC_CTX *mem_ctx,
                                     struct sdap_nested_group_ctx *group_ctx,
                                     struct sdap_nested_group_member *member);
 
+static struct tevent_req *
+sdap_nested_group_lookup_np_group_send(TALLOC_CTX *mem_ctx,
+                                    struct tevent_context *ev,
+                                    struct sdap_nested_group_ctx *group_ctx,
+                                    struct sdap_nested_group_member *member);
+
+
 static errno_t sdap_nested_group_lookup_group_recv(TALLOC_CTX *mem_ctx,
                                                    struct tevent_req *req,
                                                    struct sysdb_attrs **_group);
+
+static errno_t
+sdap_nested_group_lookup_np_group_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req,
+                                       struct sysdb_attrs **_group);
 
 static struct tevent_req *
 sdap_nested_group_lookup_unknown_send(TALLOC_CTX *mem_ctx,
@@ -1695,6 +1707,7 @@ struct sdap_nested_group_lookup_group_state {
 };
 
 static void sdap_nested_group_lookup_group_done(struct tevent_req *subreq);
+static void sdap_nested_group_lookup_np_group_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 sdap_nested_group_lookup_group_send(TALLOC_CTX *mem_ctx,
@@ -1810,9 +1823,10 @@ done:
     tevent_req_done(req);
 }
 
-static errno_t sdap_nested_group_lookup_group_recv(TALLOC_CTX *mem_ctx,
-                                                   struct tevent_req *req,
-                                                   struct sysdb_attrs **_group)
+static errno_t
+sdap_nested_group_lookup_group_recv_impl(TALLOC_CTX *mem_ctx,
+                                         struct tevent_req *req,
+                                         struct sysdb_attrs **_group)
 {
      struct sdap_nested_group_lookup_group_state *state = NULL;
      state = tevent_req_data(req, struct sdap_nested_group_lookup_group_state);
@@ -1824,6 +1838,21 @@ static errno_t sdap_nested_group_lookup_group_recv(TALLOC_CTX *mem_ctx,
      }
 
      return EOK;
+}
+
+static errno_t sdap_nested_group_lookup_group_recv(TALLOC_CTX *mem_ctx,
+                                                   struct tevent_req *req,
+                                                   struct sysdb_attrs **_group)
+{
+    return sdap_nested_group_lookup_group_recv_impl(mem_ctx, req, _group);
+}
+
+static errno_t
+sdap_nested_group_lookup_np_group_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req,
+                                       struct sysdb_attrs **_group)
+{
+    return sdap_nested_group_lookup_group_recv_impl(mem_ctx, req, _group);
 }
 
 struct sdap_nested_group_lookup_unknown_state {
@@ -1839,6 +1868,9 @@ sdap_nested_group_lookup_unknown_user_done(struct tevent_req *subreq);
 
 static void
 sdap_nested_group_lookup_unknown_group_done(struct tevent_req *subreq);
+
+static void
+sdap_nested_group_lookup_unknown_np_group_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 sdap_nested_group_lookup_unknown_send(TALLOC_CTX *mem_ctx,
@@ -1955,6 +1987,55 @@ sdap_nested_group_lookup_unknown_group_done(struct tevent_req *subreq)
         goto done;
     }
 
+    if (entry != NULL) {
+        /* found in groups */
+        state->entry = entry;
+        state->type = SDAP_NESTED_GROUP_DN_GROUP;
+        ret = EOK;
+        goto done;
+
+    }
+
+    subreq = sdap_nested_group_lookup_np_group_send(state,
+                                                    state->ev,
+                                                    state->group_ctx,
+                                                    state->member);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq,
+                            sdap_nested_group_lookup_unknown_np_group_done,
+                            req);
+
+    ret = EAGAIN;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+}
+
+static void
+sdap_nested_group_lookup_unknown_np_group_done(struct tevent_req *subreq)
+{
+    struct sdap_nested_group_lookup_unknown_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct sysdb_attrs *entry = NULL;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_nested_group_lookup_unknown_state);
+
+    ret = sdap_nested_group_lookup_np_group_recv(state, subreq, &entry);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        goto done;
+    }
+
     if (entry == NULL) {
         /* not found, end request */
         state->entry = NULL;
@@ -1963,9 +2044,8 @@ sdap_nested_group_lookup_unknown_group_done(struct tevent_req *subreq)
         /* found in groups */
         state->entry = entry;
         state->type = SDAP_NESTED_GROUP_DN_GROUP;
+        ret = EOK;
     }
-
-    ret = EOK;
 
 done:
     if (ret != EOK) {
@@ -2332,4 +2412,120 @@ static errno_t sdap_nested_group_deref_recv(struct tevent_req *req)
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
+}
+
+static void sdap_nested_group_lookup_group_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+sdap_nested_group_lookup_np_group_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       struct sdap_nested_group_ctx *group_ctx,
+                                       struct sdap_nested_group_member *member)
+{
+    struct sdap_nested_group_lookup_group_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_attr_map *map = group_ctx->opts->np_group_map;
+    const char **attrs = NULL;
+    const char *base_filter = NULL;
+    const char *filter = NULL;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_nested_group_lookup_group_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    ret = build_attrs_from_map(state, group_ctx->opts->np_group_map,
+                               SDAP_OPTS_NP_GROUP, NULL, &attrs, NULL);
+    if (ret != EOK) goto immediately;
+
+    base_filter = talloc_asprintf(
+        attrs,"(&(objectclass=%s)(%s=*))",
+        map[SDAP_OC_NP_GROUP].name,
+        map[SDAP_AT_NP_GROUP_NAME].name);
+
+    if (base_filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    /* use search base filter if needed */
+    filter = sdap_get_id_specific_filter(state, base_filter,
+                                         member->group_filter);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    /* search */
+    subreq = sdap_get_generic_send(state, ev, group_ctx->opts, group_ctx->sh,
+                                   member->dn, LDAP_SCOPE_BASE, filter, attrs,
+                                   map, SDAP_OPTS_NP_GROUP,
+                                   dp_opt_get_int(group_ctx->opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, sdap_nested_group_lookup_np_group_done,
+                            req);
+
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void sdap_nested_group_lookup_np_group_done(struct tevent_req *subreq)
+{
+    struct sdap_nested_group_lookup_group_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct sysdb_attrs **group = NULL;
+    size_t count = 0;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_nested_group_lookup_group_state);
+
+    ret = sdap_get_generic_recv(subreq, state, &count, &group);
+    talloc_zfree(subreq);
+    if (ret == ENOENT) {
+        count = 0;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    if (count == 1) {
+        state->group = group[0];
+    } else if (count == 0) {
+        /* group not found */
+        state->group = NULL;
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "BASE search returned more than one records\n");
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
 }
