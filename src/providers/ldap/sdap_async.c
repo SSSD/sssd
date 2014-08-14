@@ -1736,7 +1736,7 @@ static int sdap_x_deref_create_control(struct sdap_handle *sh,
     }
 
     ret = sdap_control_create(sh, LDAP_CONTROL_X_DEREF,
-                              0, &derefval, 1, ctrl);
+                              1, &derefval, 1, ctrl);
     ldap_memfree(derefval.bv_val);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_ldap_control_create failed\n");
