@@ -129,6 +129,9 @@ done:
  * The wrapper around ldb_modify that uses LDB_CONTROL_PERMISSIVE_MODIFY_OID
  * so that on adds entries that already exist are skipped and similarly
  * entries that are missing are ignored on deletes
+ *
+ * Please note this function returns LDB error codes, not sysdb error
+ * codes on purpose, see usage in callers!
  */
 int sss_ldb_modify_permissive(struct ldb_context *ldb,
                               struct ldb_message *msg)
@@ -159,6 +162,9 @@ int sss_ldb_modify_permissive(struct ldb_context *ldb,
 
     talloc_free(req);
 
+    /* Please note this function returns LDB error codes, not sysdb error
+     * codes on purpose, see usage in callers!
+     */
     return ret;
 }
 
