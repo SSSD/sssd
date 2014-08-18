@@ -164,6 +164,7 @@ done:
             close(ctx->fd);
         }
         memset(ctx, 0, sizeof(struct sss_cli_mc_ctx));
+        ctx->fd = -1;
     }
     free(file);
     sss_nss_unlock();
@@ -197,6 +198,7 @@ done:
             close(ctx->fd);
         }
         memset(ctx, 0, sizeof(struct sss_cli_mc_ctx));
+        ctx->fd = -1;
     }
     return ret;
 }
