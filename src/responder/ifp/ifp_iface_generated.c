@@ -356,16 +356,66 @@ const struct sbus_method_meta infopipe_component__methods[] = {
     { NULL, }
 };
 
+/* property info for org.freedesktop.sssd.infopipe.Components */
+const struct sbus_property_meta infopipe_component__properties[] = {
+    {
+        "name", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_name),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "debug_level", /* name */
+        "u", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_debug_level),
+        invoke_get_u,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "enabled", /* name */
+        "b", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_enabled),
+        invoke_get_b,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "type", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_type),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "providers", /* name */
+        "as", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_component, infopipe_component_get_providers),
+        invoke_get_as,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
 /* invokes GetAll for the 'org.freedesktop.sssd.infopipe.Components' interface */
 static int invoke_infopipe_component_get_all(struct sbus_request *dbus_req, void *function_ptr)
 {
-    struct sbus_interface *intf = dbus_req->intf;
-    const struct sbus_property_meta *property;
     DBusMessage *reply;
     dbus_bool_t dbret;
     DBusMessageIter iter;
     DBusMessageIter iter_dict;
     int ret;
+    struct sbus_interface *intf = dbus_req->intf;
+    const struct sbus_property_meta *property;
     const char * s_prop_val;
     const char * s_out_val;
     void (*s_handler)(struct sbus_request *, void *data, const char * *);
@@ -453,56 +503,6 @@ static int invoke_infopipe_component_get_all(struct sbus_request *dbus_req, void
     return sbus_request_finish(dbus_req, reply);
 }
 
-/* property info for org.freedesktop.sssd.infopipe.Components */
-const struct sbus_property_meta infopipe_component__properties[] = {
-    {
-        "name", /* name */
-        "s", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_name),
-        invoke_get_s,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "debug_level", /* name */
-        "u", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_debug_level),
-        invoke_get_u,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "enabled", /* name */
-        "b", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_enabled),
-        invoke_get_b,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "type", /* name */
-        "s", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_type),
-        invoke_get_s,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "providers", /* name */
-        "as", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_providers),
-        invoke_get_as,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    { NULL, }
-};
-
 /* interface info for org.freedesktop.sssd.infopipe.Components */
 const struct sbus_interface_meta infopipe_component_meta = {
     "org.freedesktop.sssd.infopipe.Components", /* name */
@@ -512,16 +512,147 @@ const struct sbus_interface_meta infopipe_component_meta = {
     invoke_infopipe_component_get_all, /* GetAll invoker */
 };
 
+/* property info for org.freedesktop.sssd.infopipe.Domains */
+const struct sbus_property_meta infopipe_domain__properties[] = {
+    {
+        "name", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_name),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "provider", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_provider),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "primary_servers", /* name */
+        "as", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_primary_servers),
+        invoke_get_as,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "backup_servers", /* name */
+        "as", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_backup_servers),
+        invoke_get_as,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "min_id", /* name */
+        "u", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_min_id),
+        invoke_get_u,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "max_id", /* name */
+        "u", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_max_id),
+        invoke_get_u,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "realm", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_realm),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "forest", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_forest),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "login_format", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_login_format),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "fully_qualified_name_format", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_fully_qualified_name_format),
+        invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "enumerable", /* name */
+        "b", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_enumerable),
+        invoke_get_b,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "use_fully_qualified_names", /* name */
+        "b", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_use_fully_qualified_names),
+        invoke_get_b,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "subdomain", /* name */
+        "b", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_subdomain),
+        invoke_get_b,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "parent_domain", /* name */
+        "o", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct infopipe_domain, infopipe_domain_get_parent_domain),
+        invoke_get_o,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
 /* invokes GetAll for the 'org.freedesktop.sssd.infopipe.Domains' interface */
 static int invoke_infopipe_domain_get_all(struct sbus_request *dbus_req, void *function_ptr)
 {
-    struct sbus_interface *intf = dbus_req->intf;
-    const struct sbus_property_meta *property;
     DBusMessage *reply;
     dbus_bool_t dbret;
     DBusMessageIter iter;
     DBusMessageIter iter_dict;
     int ret;
+    struct sbus_interface *intf = dbus_req->intf;
+    const struct sbus_property_meta *property;
     const char * s_prop_val;
     const char * s_out_val;
     void (*s_handler)(struct sbus_request *, void *data, const char * *);
@@ -710,137 +841,6 @@ static int invoke_infopipe_domain_get_all(struct sbus_request *dbus_req, void *f
 
     return sbus_request_finish(dbus_req, reply);
 }
-
-/* property info for org.freedesktop.sssd.infopipe.Domains */
-const struct sbus_property_meta infopipe_domain__properties[] = {
-    {
-        "name", /* name */
-        "s", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_name),
-        invoke_get_s,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "provider", /* name */
-        "s", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_provider),
-        invoke_get_s,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "primary_servers", /* name */
-        "as", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_primary_servers),
-        invoke_get_as,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "backup_servers", /* name */
-        "as", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_backup_servers),
-        invoke_get_as,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "min_id", /* name */
-        "u", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_min_id),
-        invoke_get_u,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "max_id", /* name */
-        "u", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_max_id),
-        invoke_get_u,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "realm", /* name */
-        "s", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_realm),
-        invoke_get_s,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "forest", /* name */
-        "s", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_forest),
-        invoke_get_s,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "login_format", /* name */
-        "s", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_login_format),
-        invoke_get_s,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "fully_qualified_name_format", /* name */
-        "s", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_fully_qualified_name_format),
-        invoke_get_s,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "enumerable", /* name */
-        "b", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_enumerable),
-        invoke_get_b,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "use_fully_qualified_names", /* name */
-        "b", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_use_fully_qualified_names),
-        invoke_get_b,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "subdomain", /* name */
-        "b", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_subdomain),
-        invoke_get_b,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    {
-        "parent_domain", /* name */
-        "o", /* type */
-        SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_parent_domain),
-        invoke_get_o,
-        0, /* not writable */
-        NULL, /* no invoker */
-    },
-    { NULL, }
-};
 
 /* interface info for org.freedesktop.sssd.infopipe.Domains */
 const struct sbus_interface_meta infopipe_domain_meta = {
