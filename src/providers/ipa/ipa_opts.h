@@ -213,14 +213,6 @@ struct sdap_attr_map ipa_group_map[] = {
     SDAP_ATTR_MAP_TERMINATOR
 };
 
-/* map for non-posix groups */
-struct sdap_attr_map ipa_np_group_map[] = {
-    { "ldap_group_object_class", "nestedgroup", SYSDB_GROUP_CLASS, NULL },
-    { "ldap_group_name", "cn", SYSDB_NAME, NULL },
-    { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
-    SDAP_ATTR_MAP_TERMINATOR
-};
-
 struct sdap_attr_map ipa_netgroup_map[] = {
     { "ipa_netgroup_object_class", "ipaNisNetgroup", SYSDB_NETGROUP_CLASS, NULL },
     { "ipa_netgroup_name", "cn", SYSDB_NAME, NULL },
