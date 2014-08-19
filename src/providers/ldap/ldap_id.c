@@ -919,7 +919,6 @@ struct groups_by_user_state {
 
     const char *name;
     const char **attrs;
-    const char **np_attrs;
 
     int dp_error;
     int sdap_ret;
@@ -965,10 +964,6 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
     ret = build_attrs_from_map(state, ctx->opts->group_map, SDAP_OPTS_GROUP,
                                NULL, &state->attrs, NULL);
-    if (ret != EOK) goto fail;
-
-    ret = build_attrs_from_map(state, ctx->opts->np_group_map, SDAP_OPTS_NP_GROUP,
-                               NULL, &state->np_attrs, NULL);
     if (ret != EOK) goto fail;
 
     ret = groups_by_user_retry(req);
@@ -1025,8 +1020,7 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                   state->ctx,
                                   state->conn,
                                   state->name,
-                                  state->attrs,
-                                  state->np_attrs);
+                                  state->attrs);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

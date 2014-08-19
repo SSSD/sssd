@@ -568,15 +568,6 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
 
     ret = sdap_get_map(ipa_opts->id,
                        cdb, conf_path,
-                       ipa_np_group_map,
-                       SDAP_OPTS_NP_GROUP,
-                       &ipa_opts->id->np_group_map);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = sdap_get_map(ipa_opts->id,
-                       cdb, conf_path,
                        ipa_netgroup_map,
                        IPA_OPTS_NETGROUP,
                        &ipa_opts->id->netgroup_map);
