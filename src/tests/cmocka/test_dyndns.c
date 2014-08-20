@@ -194,7 +194,7 @@ void dyndns_test_get_ifaddr(void **state)
 
     assert_non_null(inet_ntop(AF_INET,
                               &((struct sockaddr_in *) addrlist->addr)->sin_addr,
-                              straddr, INET6_ADDRSTRLEN));
+                              straddr, INET_ADDRSTRLEN));
     assert_string_equal(straddr, "192.168.0.1");
 
     talloc_free(addrlist);
