@@ -200,6 +200,49 @@ void dyndns_test_get_ifaddr(void **state)
     assert_true(check_leaks_pop(dyndns_test_ctx) == true);
 }
 
+void dyndns_test_get_multi_ifaddr(void **state)
+{
+    errno_t ret;
+    struct sss_iface_addr *addrlist;
+    struct sss_iface_addr *sss_if_addr;
+    char straddr[128];
+
+    check_leaks_push(dyndns_test_ctx);
+    will_return_getifaddrs("eth0", "192.168.0.2");
+    will_return_getifaddrs("eth0", "192.168.0.1");
+    will_return_getifaddrs(NULL, NULL); /* sentinel */
+    ret = sss_iface_addr_list_get(dyndns_test_ctx, "eth0", &addrlist);
+    assert_int_equal(ret, EOK);
+
+    sss_if_addr = addrlist;
+    assert_non_null(sss_if_addr);
+    assert_non_null(sss_if_addr->addr);
+    assert_non_null(sss_if_addr->next);
+    assert_null(sss_if_addr->prev);
+
+    assert_non_null(inet_ntop(AF_INET,
+                              &((struct sockaddr_in *) sss_if_addr->addr)->sin_addr,
+                              straddr, INET_ADDRSTRLEN));
+    /* ip addresses are returned in different order */
+    assert_string_equal(straddr, "192.168.0.1");
+
+    sss_if_addr = addrlist->next;
+    assert_non_null(sss_if_addr);
+    assert_non_null(sss_if_addr->addr);
+    assert_null(sss_if_addr->next);
+    assert_non_null(sss_if_addr->prev);
+
+    assert_non_null(inet_ntop(AF_INET,
+                              &((struct sockaddr_in *) sss_if_addr->addr)->sin_addr,
+                              straddr, INET_ADDRSTRLEN));
+    /* ip addresses are returned in different order */
+    assert_string_equal(straddr, "192.168.0.2");
+
+    talloc_free(addrlist);
+
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
 void dyndns_test_ok(void **state)
 {
     struct tevent_req *req;
@@ -412,6 +455,9 @@ int main(int argc, const char *argv[])
     const UnitTest tests[] = {
         /* Utility functions unit test */
         unit_test_setup_teardown(dyndns_test_get_ifaddr,
+                                 dyndns_test_simple_setup,
+                                 dyndns_test_teardown),
+        unit_test_setup_teardown(dyndns_test_get_multi_ifaddr,
                                  dyndns_test_simple_setup,
                                  dyndns_test_teardown),
 
