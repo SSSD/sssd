@@ -55,6 +55,10 @@ _check_leaks(TALLOC_CTX *ctx, size_t bytes, const char *location)
 {
     size_t bytes_allocated;
 
+    if (ctx == NULL) {
+        return false;
+    }
+
     bytes_allocated = talloc_total_size(ctx);
     if (bytes_allocated != bytes) {
         fprintf(stderr, "Leak report for %s:\n", location);
@@ -84,6 +88,10 @@ _check_leaks_pop(TALLOC_CTX *ctx, const char *location)
     struct size_snapshot *snapshot;
     TALLOC_CTX *old_ctx;
     size_t bytes_allocated;
+
+    if (ctx == NULL) {
+        return false;
+    }
 
     if (snapshot_stack == NULL) {
         _set_leak_err_msg("%s: trying to pop an empty stack", location);
