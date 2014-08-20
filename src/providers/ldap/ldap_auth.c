@@ -1250,30 +1250,15 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         switch (pw_expire_type) {
         case PWEXPIRE_SHADOW:
             ret = check_pwexpire_shadow(pw_expire_data, time(NULL), state->pd);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "check_pwexpire_shadow failed.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
             break;
         case PWEXPIRE_KERBEROS:
             ret = check_pwexpire_kerberos(pw_expire_data, time(NULL),
                                           state->pd,
                                           be_ctx->domain->pwd_expiration_warning);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "check_pwexpire_kerberos failed.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
             break;
         case PWEXPIRE_LDAP_PASSWORD_POLICY:
             ret = check_pwexpire_ldap(state->pd, pw_expire_data,
                                       be_ctx->domain->pwd_expiration_warning);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "check_pwexpire_ldap failed.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
             break;
         case PWEXPIRE_NONE:
             break;
