@@ -88,8 +88,7 @@ void parse_inp_test_setup(void **state)
 {
     struct parse_inp_test_ctx *parse_inp_ctx;
 
-    check_leaks_push(global_talloc_context);
-
+    assert_true(leak_check_setup());
     parse_inp_ctx = talloc_zero(global_talloc_context, struct parse_inp_test_ctx);
     assert_non_null(parse_inp_ctx);
 
@@ -119,7 +118,7 @@ void parse_inp_test_teardown(void **state)
     assert_true(check_leaks_pop(parse_inp_ctx) == true);
 
     talloc_free(parse_inp_ctx);
-    assert_true(check_leaks_pop(global_talloc_context) == true);
+    assert_true(leak_check_teardown());
 }
 
 int __real_sss_parse_name_for_domains(TALLOC_CTX *memctx,
