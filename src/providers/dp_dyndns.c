@@ -66,6 +66,9 @@ sss_iface_addr_add(TALLOC_CTX *mem_ctx, struct sss_iface_addr **list,
         talloc_zfree(address);
         return NULL;
     }
+
+    /* steal old dlist to the new head */
+    talloc_steal(address, *list);
     DLIST_ADD(*list, address);
 
     return address;
@@ -212,6 +215,9 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
                 ret = ENOMEM;
                 goto done;
             }
+
+            /* steal old dlist to the new head */
+            talloc_steal(address, addrlist);
             DLIST_ADD(addrlist, address);
         }
     }
@@ -650,6 +656,9 @@ nsupdate_get_addrs_done(struct tevent_req *subreq)
         if (state->addrlist) {
             talloc_steal(state->addrlist, addr);
         }
+
+        /* steal old dlist to the new head */
+        talloc_steal(addr, state->addrlist);
         DLIST_ADD(state->addrlist, addr);
     }
     state->count += count;
