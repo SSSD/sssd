@@ -59,6 +59,7 @@ struct err_string error_to_str[] = {
     { "Cannot get bus message sender" }, /* ERR_SBUS_GET_SENDER_ERROR */
     { "Bus message has no sender" }, /* ERR_SBUS_NO_SENDER */
     { "Cannot connect to system bus" }, /* ERR_NO_SYSBUS */
+    { "LDAP search returned a referral" }, /* ERR_REFERRAL */
 };
 
 
