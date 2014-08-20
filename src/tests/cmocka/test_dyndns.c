@@ -47,6 +47,8 @@ enum mock_nsupdate_states {
     MOCK_NSUPDATE_TIMEOUT,
 };
 
+static TALLOC_CTX *global_mock_context = NULL;
+
 struct dyndns_test_ctx {
     struct sss_test_ctx *tctx;
 
@@ -103,7 +105,7 @@ int __wrap_getifaddrs(struct ifaddrs **_ifap)
             goto fail;
         }
 
-        ifap = talloc_zero(global_talloc_context, struct ifaddrs);
+        ifap = talloc_zero(global_mock_context, struct ifaddrs);
         if (ifap == NULL) {
             errno = ENOMEM;    /* getifaddrs sets errno, too */
             goto fail;
@@ -194,6 +196,7 @@ void dyndns_test_get_ifaddr(void **state)
     assert_string_equal(straddr, "192.168.0.1");
 
     talloc_free(addrlist);
+
     assert_true(check_leaks_pop(dyndns_test_ctx) == true);
 }
 
@@ -352,6 +355,9 @@ void dyndns_test_setup(void **state)
     };
 
     assert_true(leak_check_setup());
+    global_mock_context = talloc_new(global_talloc_context);
+    assert_non_null(global_mock_context);
+
     dyndns_test_ctx = talloc_zero(global_talloc_context, struct dyndns_test_ctx);
     assert_non_null(dyndns_test_ctx);
 
@@ -372,9 +378,20 @@ void dyndns_test_setup(void **state)
     assert_non_null(dyndns_test_ctx->be_ctx->conf_path);
 }
 
+void dyndns_test_simple_setup(void **state)
+{
+    assert_true(leak_check_setup());
+    global_mock_context = talloc_new(global_talloc_context);
+    assert_non_null(global_mock_context);
+
+    dyndns_test_ctx = talloc_zero(global_talloc_context, struct dyndns_test_ctx);
+    assert_non_null(dyndns_test_ctx);
+}
+
 void dyndns_test_teardown(void **state)
 {
     talloc_free(dyndns_test_ctx);
+    talloc_free(global_mock_context);
     assert_true(leak_check_teardown());
 }
 
@@ -394,7 +411,9 @@ int main(int argc, const char *argv[])
 
     const UnitTest tests[] = {
         /* Utility functions unit test */
-        unit_test(dyndns_test_get_ifaddr),
+        unit_test_setup_teardown(dyndns_test_get_ifaddr,
+                                 dyndns_test_simple_setup,
+                                 dyndns_test_teardown),
 
         /* Dynamic DNS update unit tests*/
         unit_test_setup_teardown(dyndns_test_ok,
