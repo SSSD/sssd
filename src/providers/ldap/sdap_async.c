@@ -1421,13 +1421,6 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
                   sss_ldap_err2string(result), result,
                   errmsg ? errmsg : "no errmsg set");
 
-        if (refs != NULL) {
-            for (i = 0; refs[i]; i++) {
-                DEBUG(SSSDBG_TRACE_LIBS, "Ref: %s\n", refs[i]);
-            }
-            ldap_memvfree((void **) refs);
-        }
-
         if (result == LDAP_SIZELIMIT_EXCEEDED) {
             /* Try to return what we've got */
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1447,6 +1440,16 @@ static void sdap_get_generic_ext_done(struct sdap_op *op,
         } else if (result == LDAP_UNAVAILABLE_CRITICAL_EXTENSION) {
             ldap_memfree(errmsg);
             tevent_req_error(req, ENOTSUP);
+            return;
+        } else if (result == LDAP_REFERRAL) {
+            if (refs != NULL) {
+                for (i = 0; refs[i]; i++) {
+                    DEBUG(SSSDBG_TRACE_LIBS, "Ref: %s\n", refs[i]);
+                }
+                ldap_memvfree((void **) refs);
+            }
+            ldap_memfree(errmsg);
+            tevent_req_error(req, ERR_REFERRAL);
             return;
         } else if (result != LDAP_SUCCESS && result != LDAP_NO_SUCH_OBJECT) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -1610,11 +1613,18 @@ static void sdap_get_generic_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
+    struct sdap_get_generic_state *state =
+                tevent_req_data(req, struct sdap_get_generic_state);
     int ret;
 
     ret = sdap_get_generic_ext_recv(subreq);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret == ERR_REFERRAL) {
+        if (dp_opt_get_bool(state->opts->basic, SDAP_REFERRALS)) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    } else if (ret) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "sdap_get_generic_ext_recv failed [%d]: %s\n",
                   ret, sss_strerror(ret));

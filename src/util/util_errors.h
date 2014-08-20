@@ -83,6 +83,7 @@ enum sssd_errors {
     ERR_NO_SIDS,
     ERR_SBUS_NOSUP,
     ERR_NO_SYSBUS,
+    ERR_REFERRAL,
     ERR_LAST            /* ALWAYS LAST */
 };
 

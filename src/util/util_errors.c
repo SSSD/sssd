@@ -61,6 +61,7 @@ struct err_string error_to_str[] = {
     { "User/Group SIDs not found" }, /* ERR_NO_SIDS */
     { "Bus method not supported" }, /* ERR_SBUS_NOSUP */
     { "Cannot connect to system bus" }, /* ERR_NO_SYSBUS */
+    { "LDAP search returned a referral" }, /* ERR_REFERRAL */
 };
 
 
