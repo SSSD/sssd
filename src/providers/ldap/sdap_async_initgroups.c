@@ -1585,11 +1585,7 @@ static struct tevent_req *sdap_initgr_rfc2307bis_send(
                                         "(%s=*))",
                                         opts->group_map[SDAP_AT_GROUP_OBJECTSID].name);
     } else {
-        /* When not ID-mapping, make sure there is a non-NULL UID */
-        state->base_filter = talloc_asprintf_append(state->base_filter,
-                                        "(&(%s=*)(!(%s=0))))",
-                                        opts->group_map[SDAP_AT_GROUP_GID].name,
-                                        opts->group_map[SDAP_AT_GROUP_GID].name);
+        state->base_filter = talloc_asprintf_append(state->base_filter, ")");
     }
     if (!state->base_filter) {
         talloc_zfree(req);
