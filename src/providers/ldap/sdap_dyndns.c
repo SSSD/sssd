@@ -163,6 +163,7 @@ sdap_dyndns_update_addrs_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
     ret = sdap_dyndns_get_addrs_recv(subreq, state, &state->addresses);
+    talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Can't get addresses for DNS update\n");
         tevent_req_error(req, ret);
