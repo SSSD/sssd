@@ -1149,8 +1149,7 @@ sdap_ad_tokengroups_get_posix_members(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx = NULL;
     struct sss_domain_info *domain = NULL;
     struct ldb_message *msg = NULL;
-    const char *attrs[] = {SYSDB_NAME, SYSDB_POSIX, NULL};
-    const char *is_posix = NULL;
+    const char *attrs[] = {SYSDB_NAME, NULL};
     const char *name = NULL;
     char *sid = NULL;
     char **valid_groups = NULL;
@@ -1196,12 +1195,6 @@ sdap_ad_tokengroups_get_posix_members(TALLOC_CTX *mem_ctx,
 
         ret = sysdb_search_group_by_sid_str(tmp_ctx, domain, sid, attrs, &msg);
         if (ret == EOK) {
-            is_posix = ldb_msg_find_attr_as_string(msg, SYSDB_POSIX, NULL);
-            if (is_posix != NULL && strcmp(is_posix, "FALSE") == 0) {
-                /* skip non-posix group */
-                continue;
-            }
-
             /* we will update membership of this group */
             name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
             if (name == NULL) {
