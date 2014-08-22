@@ -567,7 +567,7 @@ sdap_ad_resolve_sids_send(TALLOC_CTX *mem_ctx,
     state->sids = sids;
     state->index = 0;
 
-    if (state->sids == NULL) {
+    if (state->sids == NULL || state->sids[0] == NULL) {
         ret = EOK;
         goto immediately;
     }
