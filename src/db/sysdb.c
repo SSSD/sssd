@@ -1891,6 +1891,7 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
     const char *cname;
+    struct ldb_message *msg;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -1904,17 +1905,22 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
     }
 
     if (res->count == 0) {
-        /* User is not cached yet */
-        ret = ENOENT;
-        goto done;
-    } else if (res->count != 1) {
+        ret = sysdb_search_user_by_upn(tmp_ctx, domain, name, NULL, &msg);
+        if (ret != EOK) {
+            /* User cannot be found in cache */
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot find user [%s] in cache\n", name);
+            goto done;
+        }
+    } else if (res->count == 1) {
+        msg = res->msgs[0];
+    } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "sysdb_getpwnam returned count: [%d]\n", res->count);
         ret = EIO;
         goto done;
     }
 
-    cname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+    cname = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     if (!cname) {
         DEBUG(SSSDBG_CRIT_FAILURE, "A user with no name?\n");
         ret = ENOENT;
