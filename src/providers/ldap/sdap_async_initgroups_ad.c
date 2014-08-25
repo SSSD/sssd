@@ -1005,6 +1005,8 @@ struct sdap_ad_tokengroups_initgr_posix_state {
     struct sdap_id_op *op;
     char **missing_sids;
     size_t num_missing_sids;
+    char **cached_groups;
+    size_t num_cached_groups;
 };
 
 static void
@@ -1138,12 +1140,14 @@ sdap_ad_tokengroups_initgr_posix_sids_connect_done(struct tevent_req *subreq)
 }
 
 static errno_t
-sdap_ad_tokengroups_update_posix_members(TALLOC_CTX *mem_ctx,
+sdap_ad_tokengroups_get_posix_members(TALLOC_CTX *mem_ctx,
                          struct sdap_ad_tokengroups_initgr_posix_state *state,
                          size_t num_sids,
                          char **sids,
                          size_t *_num_missing,
-                         char ***_missing)
+                         char ***_missing,
+                         size_t *_num_valid,
+                         char ***_valid_groups)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct sss_domain_info *domain = NULL;
@@ -1243,20 +1247,16 @@ sdap_ad_tokengroups_update_posix_members(TALLOC_CTX *mem_ctx,
     valid_groups[num_valid_groups] = NULL;
     missing_sids[num_missing_sids] = NULL;
 
-    /* update membership of existing groups */
-    ret = sdap_ad_tokengroups_update_members(state, state->username,
-                                             state->sysdb, state->domain,
-                                             valid_groups);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Membership update failed [%d]: %s\n",
-                                     ret, strerror(ret));
-        goto done;
-    }
-
     /* return list of missing groups */
     if (_missing != NULL) {
         *_missing = talloc_steal(mem_ctx, missing_sids);
         *_num_missing = num_missing_sids;
+    }
+
+    /* return list of missing groups */
+    if (_valid_groups != NULL) {
+        *_valid_groups = talloc_steal(mem_ctx, valid_groups);
+        *_num_valid = num_valid_groups;
     }
 
     ret = EOK;
@@ -1286,10 +1286,12 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sdap_ad_tokengroups_update_posix_members(state, state,
-                                                   num_sids, sids,
-                                                   &state->num_missing_sids,
-                                                   &state->missing_sids);
+    ret = sdap_ad_tokengroups_get_posix_members(state, state,
+                                                num_sids, sids,
+                                                &state->num_missing_sids,
+                                                &state->missing_sids,
+                                                &state->num_cached_groups,
+                                                &state->cached_groups);
     if (ret != EOK) {
         goto done;
     }
@@ -1318,12 +1320,18 @@ done:
     tevent_req_done(req);
 }
 
+static char **concatenate_string_array(TALLOC_CTX *mem_ctx,
+                                       char **arr1, size_t len1,
+                                       char **arr2, size_t len2);
+
 static void
 sdap_ad_tokengroups_initgr_posix_sids_done(struct tevent_req *subreq)
 {
     struct sdap_ad_tokengroups_initgr_posix_state *state = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
+    char **cached_groups;
+    size_t num_cached_groups;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ad_tokengroups_initgr_posix_state);
@@ -1336,10 +1344,39 @@ sdap_ad_tokengroups_initgr_posix_sids_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sdap_ad_tokengroups_update_posix_members(state, state,
-                                                   state->num_missing_sids,
-                                                   state->missing_sids,
-                                                   NULL, NULL);
+    ret = sdap_ad_tokengroups_get_posix_members(state, state,
+                                                state->num_missing_sids,
+                                                state->missing_sids,
+                                                NULL, NULL,
+                                                &num_cached_groups,
+                                                &cached_groups);
+    if (ret != EOK){
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sdap_ad_tokengroups_get_posix_members failed [%d]: %s\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    state->cached_groups = concatenate_string_array(state,
+                                                    state->cached_groups,
+                                                    state->num_cached_groups,
+                                                    cached_groups,
+                                                    num_cached_groups);
+    if (state->cached_groups == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* update membership of existing groups */
+    ret = sdap_ad_tokengroups_update_members(state,
+                                             state->username,
+                                             state->sysdb, state->domain,
+                                             state->cached_groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Membership update failed [%d]: %s\n",
+                                     ret, strerror(ret));
+        goto done;
+    }
 
 done:
     if (ret != EOK) {
@@ -1348,6 +1385,27 @@ done:
     }
 
     tevent_req_done(req);
+}
+
+static char **concatenate_string_array(TALLOC_CTX *mem_ctx,
+                                       char **arr1, size_t len1,
+                                       char **arr2, size_t len2)
+{
+    size_t i, j;
+    size_t new_size = len1 + len2;
+    char ** string_array = talloc_realloc(mem_ctx, arr1, char *, new_size + 1);
+    if (string_array == NULL) {
+        return NULL;
+    }
+
+    for (i=len1, j=0; i < new_size; ++i,++j) {
+        string_array[i] = talloc_steal(string_array,
+                                       arr2[j]);
+    }
+
+    string_array[i] = NULL;
+
+    return string_array;
 }
 
 static errno_t sdap_ad_tokengroups_initgr_posix_recv(struct tevent_req *req)
