@@ -334,9 +334,11 @@
                             </para>
                             <para>
                                 Please note it is a configuration error to use
-                                a replacement character that might be used by
-                                another LDAP object. In that case, result of
-                                a lookup is undefined.
+                                a replacement character that might be used in
+                                user or group names. If a name contains the
+                                replacement character SSSD tries to return the
+                                unmodified name but in general the result of a
+                                lookup is undefined.
                             </para>
                             <para>
                                 Default: not set (spaces will not be replaced)

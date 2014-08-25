@@ -47,6 +47,7 @@ void test_replace_whitespaces(void **state)
         { "    ", "    ", ' ' },
         { "abcd", "abcd", ' ' },
         { "a b c d", "a b c d", ' ' },
+        { "a b^c d", "a b^c d", '^' },
         { NULL, NULL, '\0' },
     };
 
@@ -92,6 +93,8 @@ void test_reverse_replace_whitespaces(void **state)
         { "abcd", "abcd", '-' },
         { "a-b-c-d", "a b c d", '-' },
         { "-a-b-c-d-", " a b c d ", '-' },
+        { "a b c d", "a b c d", '-' },
+        { " a b c d ", " a b c d ", '-' },
         { "^", " ", '^' },
         { "^^^^", "    ", '^' },
         { "abcd", "abcd", '^' },
@@ -102,6 +105,7 @@ void test_reverse_replace_whitespaces(void **state)
         { "abcd", "abcd", ' ' },
         { "a b c d", "a b c d", ' ' },
         { " a b c d ", " a b c d ", ' ' },
+        { "a b^c d", "a b^c d", '^' },
         { NULL, NULL, '\0' },
     };
 

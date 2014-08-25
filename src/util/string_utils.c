@@ -48,18 +48,38 @@ char * sss_replace_space(TALLOC_CTX *mem_ctx,
                          const char *orig_name,
                          const char subst)
 {
-    if (subst == '\0') {
+    if (subst == '\0' || subst == ' ') {
         return talloc_strdup(mem_ctx, orig_name);
     }
+
+    if (strchr(orig_name, subst) != NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Input [%s] already contains replacement character [%c].\n",
+              orig_name, subst);
+        sss_log(SSS_LOG_CRIT,
+                "Name [%s] already contains replacement character [%c]. " \
+                "No replacement will be done.\n",
+                orig_name, subst);
+        return talloc_strdup(mem_ctx, orig_name);
+    }
+
     return replace_char(mem_ctx, orig_name, ' ', subst);
 }
 
 char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
-                                 char *orig_name,
+                                 const char *orig_name,
                                  const char subst)
 {
-    if (subst == '\0') {
+    if (subst == '\0' || subst == ' ') {
         return talloc_strdup(mem_ctx, orig_name);
     }
+
+    if (strchr(orig_name, subst) != NULL && strchr(orig_name, ' ') != NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Input [%s] contains replacement character [%c] and space.\n",
+              orig_name, subst);
+        return talloc_strdup(mem_ctx, orig_name);
+    }
+
     return replace_char(mem_ctx, orig_name, subst, ' ');
 }
