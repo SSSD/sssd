@@ -540,7 +540,7 @@ char * sss_replace_space(TALLOC_CTX *mem_ctx,
                          const char *orig_name,
                          const char replace_char);
 char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
-                                 char *orig_name,
+                                 const char *orig_name,
                                  const char replace_char);
 
 #endif /* __SSSD_UTIL_H__ */
