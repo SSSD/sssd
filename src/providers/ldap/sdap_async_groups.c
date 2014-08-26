@@ -191,19 +191,47 @@ sdap_dn_by_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_attrs *ldap_attrs,
     return EOK;
 }
 
+static bool has_member(struct ldb_message_element *member_el,
+                       char *member)
+{
+    struct ldb_val val;
+
+    val.data = (uint8_t *) member;
+    val.length = strlen(member);
+
+    /* This is bad complexity, but the this loop should only be invoked in
+     * the very rare scenario of AD POSIX group that is primary group of
+     * some users but has user member attributes at the same time
+     */
+    if (ldb_msg_find_val(member_el, &val) != NULL) {
+        return true;
+    }
+
+    return false;
+}
+
 static void link_pgroup_members(struct sysdb_attrs *group_attrs,
                                 struct ldb_message_element *member_el,
                                 char **userdns,
                                 size_t nuserdns)
 {
-    int i;
+    int i, j;
 
+    j = 0;
     for (i=0; i < nuserdns; i++) {
-        member_el->values[member_el->num_values + i].data = (uint8_t *) \
-                                          talloc_steal(group_attrs, userdns[i]);
-        member_el->values[member_el->num_values + i].length = strlen(userdns[i]);
+        if (has_member(member_el, userdns[i])) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Member %s already included, skipping\n", userdns[i]);
+            continue;
+        }
+
+        member_el->values[member_el->num_values + j].data = (uint8_t *) \
+                                         talloc_steal(group_attrs, userdns[i]);
+        member_el->values[member_el->num_values + j].length = \
+                                         strlen(userdns[i]);
+        j++;
     }
-    member_el->num_values += nuserdns;
+    member_el->num_values += j;
 }
 
 static int sdap_fill_memberships(struct sdap_options *opts,
