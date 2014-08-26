@@ -191,6 +191,21 @@ sdap_dn_by_primary_gid(TALLOC_CTX *mem_ctx, struct sysdb_attrs *ldap_attrs,
     return EOK;
 }
 
+static void link_pgroup_members(struct sysdb_attrs *group_attrs,
+                                struct ldb_message_element *member_el,
+                                char **userdns,
+                                size_t nuserdns)
+{
+    int i;
+
+    for (i=0; i < nuserdns; i++) {
+        member_el->values[member_el->num_values + i].data = (uint8_t *) \
+                                          talloc_steal(group_attrs, userdns[i]);
+        member_el->values[member_el->num_values + i].length = strlen(userdns[i]);
+    }
+    member_el->num_values += nuserdns;
+}
+
 static int sdap_fill_memberships(struct sdap_options *opts,
                                  struct sysdb_attrs *group_attrs,
                                  struct sysdb_ctx *ctx,
@@ -285,13 +300,7 @@ static int sdap_fill_memberships(struct sdap_options *opts,
     }
     el->num_values = j;
 
-    for (i=0; i < nuserdns; i++) {
-        el->values[el->num_values + i].data = (uint8_t *) \
-                                          talloc_steal(group_attrs, userdns[i]);
-        el->values[el->num_values + i].length = strlen(userdns[i]);
-    }
-    el->num_values += nuserdns;
-
+    link_pgroup_members(group_attrs, el, userdns, nuserdns);
     ret = EOK;
 
 done:
