@@ -184,6 +184,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     int canonicalize = 0;
     int kdc_time_offset_usec;
     int ret;
+    TALLOC_CTX *tmp_ctx;
 
     krberr = krb5_init_context(&context);
     if (krberr) {
@@ -191,6 +192,12 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         return krberr;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
+
+    tmp_ctx = talloc_new(memctx);
+    if (tmp_ctx == NULL) {
+        krberr = KRB5KRB_ERR_GENERIC;
+        goto done;
+    }
 
     krberr = set_child_debugging(context);
     if (krberr != EOK) {
@@ -205,14 +212,14 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
             goto done;
         }
 
-        realm_name = talloc_strdup(memctx, default_realm);
+        realm_name = talloc_strdup(tmp_ctx, default_realm);
         krb5_free_default_realm(context, default_realm);
         if (!realm_name) {
             krberr = KRB5KRB_ERR_GENERIC;
             goto done;
         }
     } else {
-        realm_name = talloc_strdup(memctx, realm_str);
+        realm_name = talloc_strdup(tmp_ctx, realm_str);
         if (!realm_name) {
             krberr = KRB5KRB_ERR_GENERIC;
             goto done;
@@ -223,10 +230,10 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
     if (princ_str) {
         if (!strchr(princ_str, '@')) {
-            full_princ = talloc_asprintf(memctx, "%s@%s",
+            full_princ = talloc_asprintf(tmp_ctx, "%s@%s",
                                          princ_str, realm_name);
         } else {
-            full_princ = talloc_strdup(memctx, princ_str);
+            full_princ = talloc_strdup(tmp_ctx, princ_str);
         }
     } else {
         char hostname[HOST_NAME_MAX + 1];
@@ -240,7 +247,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
         DEBUG(SSSDBG_TRACE_LIBS, "got hostname: [%s]\n", hostname);
 
-        ret = select_principal_from_keytab(memctx, hostname, realm_name,
+        ret = select_principal_from_keytab(tmp_ctx, hostname, realm_name,
                 keytab_name, &full_princ, NULL, NULL);
         if (ret) {
             krberr = KRB5_KT_IOERR;
@@ -283,7 +290,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ccname = talloc_asprintf(memctx, "FILE:%s/ccache_%s", DB_PATH, realm_name);
+    ccname = talloc_asprintf(tmp_ctx, "FILE:%s/ccache_%s", DB_PATH, realm_name);
     if (!ccname) {
         krberr = KRB5KRB_ERR_GENERIC;
         goto done;
@@ -362,10 +369,11 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 #endif
 
     krberr = 0;
-    *ccname_out = ccname;
+    *ccname_out = talloc_steal(memctx, ccname);
     *expire_time_out = my_creds.times.endtime - kdc_time_offset;
 
 done:
+    talloc_free(tmp_ctx);
     if (krberr != 0) KRB5_SYSLOG(krberr);
     if (keytab) krb5_kt_close(context, keytab);
     if (context) krb5_free_context(context);
