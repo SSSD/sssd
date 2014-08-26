@@ -771,7 +771,11 @@ static PyObject *py_sss_getgrouplist(PyObject *self, PyObject *args)
     do {
         ret = getgrouplist(username, pw->pw_gid, groups, &ngroups);
         if (ret < ngroups) {
-            groups = realloc(groups, ngroups * sizeof(gid_t));
+            gid_t *tmp_groups = realloc(groups, ngroups * sizeof(gid_t));
+            if (tmp_groups == NULL) {
+                goto fail;
+            }
+            groups = tmp_groups;
         }
     } while (ret != ngroups);
 
