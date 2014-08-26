@@ -1211,7 +1211,7 @@ sdap_ad_tokengroups_update_posix_members(TALLOC_CTX *mem_ctx,
                 goto done;
             }
 
-            valid_groups[num_valid_groups] = sysdb_group_strdn(tmp_ctx,
+            valid_groups[num_valid_groups] = sysdb_group_strdn(valid_groups,
                                                                domain->name,
                                                                name);
             if (valid_groups[num_valid_groups] == NULL) {
