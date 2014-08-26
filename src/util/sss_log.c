@@ -57,28 +57,40 @@ static int sss_to_syslog(int priority)
     }
 }
 
+static void sss_log_internal(int priority, int facility, const char *format,
+                             va_list ap);
+
 void sss_log(int priority, const char *format, ...)
 {
     va_list ap;
 
     va_start(ap, format);
-    sss_log_ext(priority, LOG_DAEMON, format, ap);
+    sss_log_internal(priority, LOG_DAEMON, format, ap);
     va_end(ap);
 }
-
-#ifdef WITH_JOURNALD
 
 void sss_log_ext(int priority, int facility, const char *format, ...)
 {
     va_list ap;
+
+    va_start(ap, format);
+    sss_log_internal(priority, facility, format, ap);
+    va_end(ap);
+}
+
+
+
+#ifdef WITH_JOURNALD
+
+static void sss_log_internal(int priority, int facility, const char *format,
+                             va_list ap)
+{
     int syslog_priority;
     int ret;
     char *message;
     const char *domain;
 
-    va_start(ap, format);
     ret = vasprintf(&message, format, ap);
-    va_end(ap);
 
     if (ret == -1) {
         /* ENOMEM */
@@ -103,18 +115,16 @@ void sss_log_ext(int priority, int facility, const char *format, ...)
 
 #else /* WITH_JOURNALD */
 
-void sss_log_ext(int priority, int facility, const char *format, ...)
+static void sss_log_internal(int priority, int facility, const char *format,
+                            va_list ap)
 {
-    va_list ap;
     int syslog_priority;
 
     syslog_priority = sss_to_syslog(priority);
 
     openlog(debug_prg_name, 0, facility);
 
-    va_start(ap, format);
     vsyslog(syslog_priority, format, ap);
-    va_end(ap);
 
     closelog();
 }
