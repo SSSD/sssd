@@ -244,6 +244,7 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
     int32_t ad_group_type;
     bool posix_group = true;
     bool use_id_mapping;
+    bool can_find_gid;
 
     if (group_ctx->opts->schema_type == SDAP_SCHEMA_AD) {
         ret = sysdb_attrs_get_int32_t(group, SYSDB_GROUP_TYPE, &ad_group_type);
@@ -272,15 +273,17 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
                                                           group_ctx->domain->name,
                                                           group_ctx->domain->domain_id);
 
-    if (posix_group && !use_id_mapping) {
+    can_find_gid = posix_group && !use_id_mapping;
+    if (can_find_gid) {
         ret = sysdb_attrs_get_uint32_t(group, map[SDAP_AT_GROUP_GID].sys_name,
                                        &gid);
     }
-    if (!posix_group || ret == ENOENT || (ret == EOK && gid == 0)) {
+    if (!can_find_gid || ret == ENOENT || (ret == EOK && gid == 0)) {
         DEBUG(SSSDBG_TRACE_ALL,
              "The group's gid was %s\n", ret == ENOENT ? "missing" : "zero");
         DEBUG(SSSDBG_TRACE_INTERNAL,
              "Marking group as non-posix and setting GID=0!\n");
+
         if (ret == ENOENT || !posix_group) {
             ret = sysdb_attrs_add_uint32(group,
                                          map[SDAP_AT_GROUP_GID].sys_name, 0);
