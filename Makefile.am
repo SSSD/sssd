@@ -745,7 +745,6 @@ endif # BUILD_IFP
 lib_LTLIBRARIES = libipa_hbac.la \
                   libsss_idmap.la \
                   libsss_nss_idmap.la \
-                  libwbclient.la \
                   $(NULL)
 
 pkgconfig_DATA += src/providers/ipa/ipa_hbac.pc
@@ -787,7 +786,16 @@ libsss_nss_idmap_la_LDFLAGS = \
 
 dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.exports
 
+include_HEADERS = \
+    src/providers/ipa/ipa_hbac.h \
+    src/lib/idmap/sss_idmap.h \
+    src/sss_client/idmap/sss_nss_idmap.h \
+    $(NULL)
+
+if BUILD_LIBWBCLIENT
+lib_LTLIBRARIES += libwbclient.la
 pkgconfig_DATA += src/sss_client/libwbclient/wbclient.pc
+
 EXTRA_libwbclient_la_DEPENDENCIES = src/sss_client/libwbclient/wbclient.exports
 libwbclient_la_SOURCES = \
     src/sss_client/libwbclient/wbc_guid.c \
@@ -811,13 +819,8 @@ libwbclient_la_LDFLAGS = \
 
 dist_noinst_DATA += src/sss_client/libwbclient/wbclient.exports
 
-
-include_HEADERS = \
-    src/providers/ipa/ipa_hbac.h \
-    src/lib/idmap/sss_idmap.h \
-    src/sss_client/idmap/sss_nss_idmap.h \
-    src/sss_client/libwbclient/wbclient.h \
-    $(NULL)
+include_HEADERS += src/sss_client/libwbclient/wbclient.h
+endif #BUILD_LIBWBCLIENT
 
 if BUILD_IFP
 lib_LTLIBRARIES += libsss_simpleifp.la

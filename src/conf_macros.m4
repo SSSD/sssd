@@ -669,6 +669,22 @@ AC_DEFUN([WITH_IFP],
     AM_CONDITIONAL([BUILD_IFP], [test x"$with_infopipe" = xyes])
   ])
 
+AC_DEFUN([WITH_LIBWBCLIENT],
+  [ AC_ARG_WITH([libwbclient],
+                [AC_HELP_STRING([--with-libwbclient],
+                                [Whether to build SSSD implementation of libwbclient [yes]]
+                               )
+                ],
+                [with_libwbclient=$withval],
+                with_libwbclient=yes
+               )
+
+    if test x"$with_libwbclient" = xyes; then
+        AC_DEFINE(BUILD_LIBWBCLIENT, 1, [whether to build SSSD implementation of libwbclient])
+    fi
+    AM_CONDITIONAL([BUILD_LIBWBCLIENT], [test x"$with_libwbclient" = xyes])
+  ])
+
 AC_DEFUN([WITH_SAMBA],
   [ AC_ARG_WITH([samba],
                 [AC_HELP_STRING([--with-samba],
