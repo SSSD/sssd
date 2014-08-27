@@ -1196,7 +1196,8 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
             default:
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Received invalid value for AD compatibility level. "
-                       "Continuing without AD performance enhancements\n");
+                      "Using the lowest-common compatibility level\n");
+                opts->dc_functional_level = DS_BEHAVIOR_WIN2003;
             }
         } else if (ret != ENOENT) {
             DEBUG(SSSDBG_MINOR_FAILURE,
