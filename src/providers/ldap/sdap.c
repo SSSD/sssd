@@ -1187,6 +1187,7 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
             case DS_BEHAVIOR_WIN2008:
             case DS_BEHAVIOR_WIN2008R2:
             case DS_BEHAVIOR_WIN2012:
+            case DS_BEHAVIOR_WIN2012R2:
                 opts->dc_functional_level = dc_level;
                 DEBUG(SSSDBG_CONF_SETTINGS,
                       "Setting AD compatibility level to [%d]\n",
