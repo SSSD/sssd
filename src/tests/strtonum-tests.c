@@ -385,6 +385,147 @@ START_TEST (test_strtouint32_emptystring_base_10)
 }
 END_TEST
 
+/* Base-10 */
+START_TEST (test_strtouint16_pos_integer_base_10)
+{
+    uint16_t result;
+    const char *input = "123";
+    uint16_t expected = 123;
+    char *endptr;
+    errno_t error;
+
+    result = strtouint16(input, &endptr, 10);
+    error = errno;
+
+    EXPECT_UNSET_ERRNO(error);
+    CHECK_ZERO_ENDPTR(endptr);
+    CHECK_RESULT(expected, result);
+}
+END_TEST
+
+START_TEST (test_strtouint16_neg_integer_base_10)
+{
+    uint32_t result;
+    const char *input = "-123";
+    uint32_t expected = UINT16_MAX;
+    char *endptr;
+    errno_t error;
+
+    result = strtouint16(input, &endptr, 10);
+    error = errno;
+
+    CHECK_ERRNO(ERANGE, error);
+    CHECK_ZERO_ENDPTR(endptr);
+    CHECK_RESULT(expected, result);
+}
+END_TEST
+
+START_TEST (test_strtouint16_pos_integer_uintmax_base_10)
+{
+    uint32_t result;
+    const char *input = "65535";
+    uint32_t expected = UINT16_MAX;
+    char *endptr;
+    errno_t error;
+
+    result = strtouint16(input, &endptr, 10);
+    error = errno;
+
+    EXPECT_UNSET_ERRNO(error);
+    CHECK_ZERO_ENDPTR(endptr);
+    CHECK_RESULT(expected, result);
+}
+END_TEST
+
+
+START_TEST (test_strtouint16_pos_integer_overflow_base_10)
+{
+    uint32_t result;
+    const char *input = "131072";
+    uint32_t expected = UINT16_MAX;
+    char *endptr;
+    errno_t error;
+
+    result = strtouint16(input, &endptr, 10);
+    error = errno;
+
+    CHECK_ERRNO(ERANGE, error);
+    CHECK_ZERO_ENDPTR(endptr);
+    CHECK_RESULT(expected, result);
+}
+END_TEST
+
+START_TEST (test_strtouint16_mixed_alphanumeric_base_10)
+{
+    uint32_t result;
+    const char *input = "12b13";
+    uint32_t expected = 12;
+    char *endptr;
+    const char *expected_endptr = input+2;
+    errno_t error;
+
+    result = strtouint16(input, &endptr, 10);
+    error = errno;
+
+    EXPECT_UNSET_ERRNO(error);
+    CHECK_ENDPTR(expected_endptr, endptr);
+    CHECK_RESULT(expected, result);
+}
+END_TEST
+
+START_TEST (test_strtouint16_alphaonly_base_10)
+{
+    uint32_t result;
+    const char *input = "alpha";
+    uint32_t expected = 0;
+    char *endptr;
+    const char *expected_endptr = input;
+    errno_t error;
+
+    result = strtouint16(input, &endptr, 10);
+    error = errno;
+
+    EXPECT_UNSET_ERRNO(error);
+    CHECK_ENDPTR(expected_endptr, endptr);
+    CHECK_RESULT(expected, result);
+}
+END_TEST
+
+START_TEST (test_strtouint16_alphastart_base_10)
+{
+    uint32_t result;
+    const char *input = "alpha12345";
+    uint32_t expected = 0;
+    char *endptr;
+    const char *expected_endptr = input;
+    errno_t error;
+
+    result = strtouint16(input, &endptr, 10);
+    error = errno;
+
+    EXPECT_UNSET_ERRNO(error);
+    CHECK_ENDPTR(expected_endptr, endptr);
+    CHECK_RESULT(expected, result);
+}
+END_TEST
+
+START_TEST (test_strtouint16_emptystring_base_10)
+{
+    uint32_t result;
+    const char *input = "";
+    uint32_t expected = 0;
+    char *endptr;
+    const char *expected_endptr = input;
+    errno_t error;
+
+    result = strtouint16(input, &endptr, 10);
+    error = errno;
+
+    EXPECT_UNSET_ERRNO(error);
+    CHECK_ENDPTR(expected_endptr, endptr);
+    CHECK_RESULT(expected, result);
+}
+END_TEST
 
 
 Suite *create_strtonum_suite(void)
@@ -413,9 +554,20 @@ Suite *create_strtonum_suite(void)
     tcase_add_test(tc_strtouint32, test_strtouint32_alphastart_base_10);
     tcase_add_test(tc_strtouint32, test_strtouint32_emptystring_base_10);
 
+    TCase *tc_strtouint16 = tcase_create("strtouint16 Tests");
+    tcase_add_test(tc_strtouint16, test_strtouint16_pos_integer_base_10);
+    tcase_add_test(tc_strtouint16, test_strtouint16_neg_integer_base_10);
+    tcase_add_test(tc_strtouint16, test_strtouint16_pos_integer_uintmax_base_10);
+    tcase_add_test(tc_strtouint16, test_strtouint16_pos_integer_overflow_base_10);
+    tcase_add_test(tc_strtouint16, test_strtouint16_mixed_alphanumeric_base_10);
+    tcase_add_test(tc_strtouint16, test_strtouint16_alphaonly_base_10);
+    tcase_add_test(tc_strtouint16, test_strtouint16_alphastart_base_10);
+    tcase_add_test(tc_strtouint16, test_strtouint16_emptystring_base_10);
+
     /* Add all test cases to the suite */
     suite_add_tcase(s, tc_strtoint32);
     suite_add_tcase(s, tc_strtouint32);
+    suite_add_tcase(s, tc_strtouint16);
 
     return s;
 }
