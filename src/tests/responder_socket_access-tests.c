@@ -112,7 +112,7 @@ START_TEST(check_allowed_uids_test)
     int ret;
     size_t c;
 
-    for (c = 0; uid_check_data[c].exp_ret == -1; c++) {
+    for (c = 0; uid_check_data[c].exp_ret != -1; c++) {
         ret = check_allowed_uids(uid_check_data[c].uid,
                                  uid_check_data[c].allowed_uids_count,
                                  uid_check_data[c].allowed_uids);
