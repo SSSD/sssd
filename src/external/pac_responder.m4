@@ -21,7 +21,8 @@ then
         Kerberos\ 5\ release\ 1.9* | \
         Kerberos\ 5\ release\ 1.10* | \
         Kerberos\ 5\ release\ 1.11* | \
-        Kerberos\ 5\ release\ 1.12*)
+        Kerberos\ 5\ release\ 1.12* | \
+        Kerberos\ 5\ release\ 1.13*)
             krb5_version_ok=yes
             AC_MSG_RESULT([yes])
             ;;
