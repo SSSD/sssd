@@ -658,6 +658,9 @@
                             The LDAP attribute that contains the user's SSH
                             public keys.
                         </para>
+                        <para>
+                            Default: sshPublicKey
+                        </para>
                     </listitem>
                 </varlistentry>
 

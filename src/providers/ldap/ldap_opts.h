@@ -177,7 +177,7 @@ struct sdap_attr_map rfc2307_user_map[] = {
     { "ldap_user_nds_login_disabled", "loginDisabled", SYSDB_NDS_LOGIN_DISABLED, NULL },
     { "ldap_user_nds_login_expiration_time", "loginExpirationTime", SYSDB_NDS_LOGIN_EXPIRATION_TIME, NULL },
     { "ldap_user_nds_login_allowed_time_map", "loginAllowedTimeMap", SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
-    { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL },
+    { "ldap_user_ssh_public_key", "sshPublicKey", SYSDB_SSH_PUBKEY, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
@@ -228,7 +228,7 @@ struct sdap_attr_map rfc2307bis_user_map[] = {
     { "ldap_user_nds_login_disabled", "loginDisabled", SYSDB_NDS_LOGIN_DISABLED, NULL },
     { "ldap_user_nds_login_expiration_time", "loginExpirationTime", SYSDB_NDS_LOGIN_EXPIRATION_TIME, NULL },
     { "ldap_user_nds_login_allowed_time_map", "loginAllowedTimeMap", SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
-    { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL },
+    { "ldap_user_ssh_public_key", "sshPublicKey", SYSDB_SSH_PUBKEY, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
