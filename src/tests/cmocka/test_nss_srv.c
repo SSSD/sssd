@@ -37,7 +37,7 @@
 #define TEST_CONF_DB "test_nss_conf.ldb"
 #define TEST_DOM_NAME "nss_test"
 #define TEST_SYSDB_FILE "cache_"TEST_DOM_NAME".ldb"
-#define TEST_SUBDOM_NAME "test.sub"
+#define TEST_SUBDOM_NAME "test.subdomain"
 #define TEST_ID_PROVIDER "ldap"
 
 struct nss_test_ctx {

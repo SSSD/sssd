@@ -2498,7 +2498,8 @@ static int fill_members(struct sss_packet *packet,
         }
 
         if (add_domain) {
-            nlen = sss_fqname(NULL, 0, dom->names, dom, name.str);
+            nlen = sss_fqname(NULL, 0, member_dom->names, member_dom,
+                              name.str);
             if (nlen >= 0) {
                 nlen += 1;
             } else {
