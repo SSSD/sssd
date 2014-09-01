@@ -189,6 +189,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     TALLOC_CTX *tmp_ctx;
     char *ccname_file_dummy;
     char *ccname_file;
+    mode_t old_umask;
 
     krberr = krb5_init_context(&context);
     if (krberr) {
@@ -303,7 +304,9 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         goto done;
     }
 
+    old_umask = umask(077);
     fd = mkstemp(ccname_file_dummy);
+    umask(old_umask);
     if (fd == -1) {
         ret = errno;
         goto done;
