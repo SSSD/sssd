@@ -21,6 +21,8 @@
 */
 
 #include <security/pam_modules.h>
+#include <syslog.h>
+
 #include "src/util/util.h"
 #include "src/providers/data_provider.h"
 #include "src/providers/dp_backend.h"
@@ -415,9 +417,13 @@ static void
 ad_gpo_access_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
+    struct ad_access_state *state;
     errno_t ret;
+    enum gpo_access_control_mode mode;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ad_access_state);
+    mode = state->ctx->gpo_access_control_mode;
 
     ret = ad_gpo_access_recv(subreq);
     talloc_zfree(subreq);
@@ -427,7 +433,18 @@ ad_gpo_access_done(struct tevent_req *subreq)
         tevent_req_done(req);
     } else {
         DEBUG(SSSDBG_OP_FAILURE, "GPO-based access control failed.\n");
-        tevent_req_error(req, ret);
+        if (mode == GPO_ACCESS_CONTROL_ENFORCING) {
+            tevent_req_error(req, ret);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Ignoring error: [%d](%s); GPO-based access control failed, "
+                  "but GPO is not in enforcing mode.\n",
+                  ret, sss_strerror(ret));
+            sss_log_ext(SSS_LOG_WARNING, LOG_AUTHPRIV, "Warning: user would "
+                  "have been denied GPO-based logon access if the "
+                  "ad_gpo_access_control option were set to enforcing mode.");
+            tevent_req_done(req);
+        }
     }
 }
 
