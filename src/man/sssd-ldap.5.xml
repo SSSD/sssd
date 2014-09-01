@@ -708,7 +708,7 @@
                             cache cleanup operation.
                         </para>
                         <para>
-                            Default: 10800 (12 hours)
+                            Default: 10800 (3 hours)
                         </para>
                     </listitem>
                 </varlistentry>
