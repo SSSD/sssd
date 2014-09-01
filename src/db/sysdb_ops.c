@@ -1350,7 +1350,8 @@ int sysdb_add_user(struct sss_domain_info *domain,
         }
 
         ret = sysdb_set_user_attr(domain, name, id_attrs, SYSDB_MOD_REP);
-        goto done;
+        /* continue on success, to commit additional attrs */
+        if (ret) goto done;
     }
 
     if (!attrs) {
