@@ -709,19 +709,19 @@ AC_ARG_ENABLE([dbus-tests],
 AM_CONDITIONAL([BUILD_DBUS_TESTS], [test x$build_dbus_tests = xyes])
 
 AC_DEFUN([WITH_NFS],
-  [ AC_ARG_WITH([nfs_idmap],
+  [ AC_ARG_WITH([nfsv4-idmapd-plugin],
                 [AC_HELP_STRING([--with-nfsv4-idmapd-plugin],
                                 [Whether to build with NFSv4 IDMAP support [yes]]
                                )
                 ],
-                [with_nfs_idmap=$withval],
-                with_nfs_idmap=yes
+                [with_nfsv4_idmap=$withval],
+                [with_nfsv4_idmap=yes]
                )
 
-    if test x"$with_nfs_idmap" = xyes; then
+    if test x"$with_nfsv4_idmap" = xyes; then
         AC_DEFINE(BUILD_NFS_IDMAP, 1, [whether to build with NFSv4 IDMAP support])
     fi
-    AM_CONDITIONAL([BUILD_NFS_IDMAP], [test x"$with_nfs_idmap" = xyes])
+    AM_CONDITIONAL([BUILD_NFS_IDMAP], [test x"$with_nfsv4_idmap" = xyes])
   ])
 
 AC_DEFUN([WITH_NFS_LIB_PATH],
