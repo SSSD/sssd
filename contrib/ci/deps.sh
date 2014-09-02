@@ -76,6 +76,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libldap2-dev
         libldb-dev
         libltdl-dev
+        libnfsidmap-dev
         libnl-3-dev
         libnl-route-3-dev
         libnspr4-dev
