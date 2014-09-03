@@ -289,13 +289,9 @@ function build_coverage()
             "coverage report:" \
             "`disppath \"\$coverage_report_dir/index.html\"`"
 
-    # If dependencies for all tests are satisfied
-    # and so all the tests should have been built and ran.
-    if "$DEPS_TESTS_SATISFIED"; then
-        stage lcov-check        eval 'lcov_check "$COVERAGE_MIN_LINES" \
-                                                 "$COVERAGE_MIN_FUNCS" \
-                                        < ci-genhtml.out'
-    fi
+    stage lcov-check        eval 'lcov_check "$COVERAGE_MIN_LINES" \
+                                             "$COVERAGE_MIN_FUNCS" \
+                                    < ci-genhtml.out'
 
     unset CFLAGS
 }

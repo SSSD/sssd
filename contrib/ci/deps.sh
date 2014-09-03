@@ -28,13 +28,11 @@ declare -a DEPS_LIST=(
     xqilla
 )
 
-# True, if all test dependencies are satisfied by the package list
-declare DEPS_TESTS_SATISFIED=true
-
 if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     declare _DEPS_LIST_SPEC
     DEPS_LIST+=(
         clang-analyzer
+        libcmocka-devel
         mock
         rpm-build
     )
@@ -44,9 +42,6 @@ if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
             -e 's/@PRERELEASE_VERSION@//g' contrib/sssd.spec.in |
             rpm-spec-builddeps /dev/stdin`
     readarray -t -O "${#DEPS_LIST[@]}" DEPS_LIST <<<"$_DEPS_LIST_SPEC"
-    if [[ "$DISTRO_BRANCH" == *-redhatenterprise*-6.*- ]]; then
-        DEPS_TESTS_SATISFIED=false
-    fi
 fi
 
 if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
@@ -103,7 +98,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
 fi
 
 declare -a -r DEPS_LIST
-declare -r DEPS_TESTS_SATISFIED
 
 # Install dependencies.
 function deps_install()
