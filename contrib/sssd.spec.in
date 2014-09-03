@@ -1,25 +1,10 @@
-%if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
-%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
-%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
-%endif
-
-%global is_rhel5 %(%{__grep} -c "release 5" /etc/redhat-release)
-%global rhel5_minor %(%{__grep} -o "5.[0-9]*" /etc/redhat-release |%{__sed} -s 's/5.//')
 %global rhel7_minor %(%{__grep} -o "7.[0-9]*" /etc/redhat-release |%{__sed} -s 's/7.//')
 
-%if 0%{?is_rhel5} > 0
-# we don't want to provide private python extension libs
-%{?filter_setup:
-%filter_provides_in %{python_sitearch}/.*\.so$
-%filter_setup
-}
-%else
 # Fedora and RHEL 6+
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python_sitearch}/.*\.so$
-%endif
 
-%if (0%{?fedora} >= 16 || 0%{?rhel} >= 7)
+%if (0%{?fedora} || 0%{?rhel} >= 7)
     %global use_systemd 1
 %endif
 
@@ -39,11 +24,11 @@
 # Determine the location of the LDB modules directory
 %global ldb_modulesdir %(pkg-config --variable=modulesdir ldb)
 
-%if (0%{?fedora} > 15 || 0%{?rhel} >= 7)
+%if (0%{?fedora} || 0%{?rhel} >= 7)
 %define _hardened_build 1
 %endif
 
-%if (0%{?fedora} >= 17 || 0%{?rhel} >= 7)
+%if (0%{?fedora} || 0%{?rhel} >= 7)
     %global with_cifs_utils_plugin 1
 %else
     %global with_cifs_utils_plugin_option --disable-cifs-idmap-plugin
@@ -90,13 +75,7 @@ BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: libtool
 BuildRequires: m4
-%{?fedora:BuildRequires: popt-devel}
-%if 0%{?is_rhel5} > 0
-BuildRequires: popt
-%endif
-%if 0%{?rhel} >= 6
 BuildRequires: popt-devel
-%endif
 BuildRequires: libtalloc-devel
 BuildRequires: libtevent-devel
 BuildRequires: libtdb-devel
@@ -106,11 +85,7 @@ BuildRequires: libcollection-devel
 BuildRequires: libini_config-devel >= 1.1
 BuildRequires: dbus-devel
 BuildRequires: dbus-libs
-%if 0%{?rhel5_minor} >= 7
-BuildRequires: openldap24-libs-devel
-%else
 BuildRequires: openldap-devel
-%endif
 BuildRequires: pam-devel
 BuildRequires: nss-devel
 BuildRequires: nspr-devel
@@ -150,16 +125,13 @@ BuildRequires: systemd-devel
 %if (0%{?with_cifs_utils_plugin} == 1)
 BuildRequires: cifs-utils-devel
 %endif
-%if ((0%{?fedora} >= 15) || (0%{?rhel} >= 7))
+%if (0%{?fedora} || (0%{?rhel} >= 7))
 BuildRequires: libnfsidmap-devel
 %else
 BuildRequires: nfs-utils-lib-devel
 %endif
 
-# RHEL 5 is too old to support samba4 and the PAC responder
-%if !0%{?is_rhel5}
 BuildRequires: samba4-devel
-%endif
 BuildRequires: libsmbclient-devel
 
 %description
@@ -275,8 +247,6 @@ Requires: sssd-krb5-common = %{version}-%{release}
 Provides the Kerberos back end that the SSSD can utilize authenticate
 against a Kerberos server.
 
-# RHEL 5 is too old to support the PAC responder
-%if !0%{?is_rhel5}
 %package common-pac
 Summary: Common files needed for supporting PAC processing
 Group: Applications/System
@@ -286,7 +256,6 @@ Requires: sssd-common = %{version}-%{release}
 %description common-pac
 Provides common files needed by SSSD providers such as IPA and Active Directory
 for handling Kerberos PACs.
-%endif #is_rhel5
 
 %package ipa
 Summary: The IPA back end of the SSSD
@@ -297,10 +266,7 @@ Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: libipa_hbac = %{version}-%{release}
 Requires: bind-utils
-# RHEL 5 is too old to support the PAC responder
-%if !0%{?is_rhel5}
 Requires: sssd-common-pac = %{version}-%{release}
-%endif
 
 %description ipa
 Provides the IPA back end that the SSSD can utilize to fetch identity data
@@ -314,10 +280,7 @@ Conflicts: sssd < %{version}-%{release}
 Requires: sssd-common = %{version}-%{release}
 Requires: sssd-krb5-common = %{version}-%{release}
 Requires: bind-utils
-# RHEL 5 is too old to support the PAC responder
-%if !0%{?is_rhel5}
 Requires: sssd-common-pac = %{version}-%{release}
-%endif
 
 %description ad
 Provides the Active Directory back end that the SSSD can utilize to fetch
@@ -496,16 +459,7 @@ autoreconf -ivf
 
 make %{?_smp_mflags} all
 
-
-# Only build docs on recent distros
-%if 0%{?fedora}
 make %{?_smp_mflags} docs
-%endif
-
-%if 0%{?rhel} >= 6
-make %{?_smp_mflags} docs
-%endif
-
 
 %check
 export CK_TIMEOUT_MULTIPLIER=10
@@ -694,13 +648,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/libsss_krb5.so
 %{_mandir}/man5/sssd-krb5.5*
 
-# RHEL 5 is too old to support the PAC responder
-%if !0%{?is_rhel5}
 %files common-pac
 %defattr(-,root,root,-)
 %doc COPYING
 %{_libexecdir}/%{servicename}/sssd_pac
-%endif
 
 
 %files ipa -f sssd_ipa.lang
@@ -740,12 +691,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n libsss_simpleifp-devel
 %defattr(-,root,root,-)
-%if 0%{?fedora}
 %doc sss_simpleifp_doc/html
-%endif
-%if 0%{?rhel} >= 6
-%doc sss_simpleifp_doc/html
-%endif
 %{_includedir}/sss_sifp.h
 %{_includedir}/sss_sifp_dbus.h
 %{_libdir}/libsss_simpleifp.so
@@ -757,9 +703,7 @@ rm -rf $RPM_BUILD_ROOT
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
-%if !0%{?is_rhel5}
 %{_libdir}/krb5/plugins/authdata/sssd_pac_plugin.so
-%endif
 %if (0%{?with_cifs_utils_plugin} == 1)
 %{_libdir}/cifs-utils/cifs_idmap_sss.so
 %ghost %{_sysconfdir}/cifs-utils/idmap-plugin
@@ -806,12 +750,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n libsss_idmap-devel
 %defattr(-,root,root,-)
-%if 0%{?fedora}
 %doc idmap_doc/html
-%endif
-%if 0%{?rhel} >= 6
-%doc idmap_doc/html
-%endif
 %{_includedir}/sss_idmap.h
 %{_libdir}/libsss_idmap.so
 %{_libdir}/pkgconfig/sss_idmap.pc
@@ -823,12 +762,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n libipa_hbac-devel
 %defattr(-,root,root,-)
-%if 0%{?fedora}
 %doc hbac_doc/html
-%endif
-%if 0%{?rhel} >= 6
-%doc hbac_doc/html
-%endif
 %{_includedir}/ipa_hbac.h
 %{_libdir}/libipa_hbac.so
 %{_libdir}/pkgconfig/ipa_hbac.pc
@@ -840,12 +774,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n libsss_nss_idmap-devel
 %defattr(-,root,root,-)
-%if 0%{?fedora}
 %doc nss_idmap_doc/html
-%endif
-%if 0%{?rhel} >= 6
-%doc nss_idmap_doc/html
-%endif
 %{_includedir}/sss_nss_idmap.h
 %{_libdir}/libsss_nss_idmap.so
 %{_libdir}/pkgconfig/sss_nss_idmap.pc
