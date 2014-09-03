@@ -144,8 +144,10 @@ function mock_privileged_conf()
 
     conf_dir=`mktemp --tmpdir --directory mock-config.XXXXXXXX`
     trap 'trap - RETURN; rm -R "$conf_dir";' RETURN
-    cp -r /etc/mock/* "$conf_dir"/
+    # Preserve timestamps to avoid unnecessary cache rebuilds
+    cp -r --preserve=timestamps /etc/mock/* "$conf_dir"/
     cat >> "${conf_dir}/${chroot}.cfg"
+    touch --reference="/etc/mock/${chroot}.cfg" "${conf_dir}/${chroot}.cfg"
     mock_privileged --configdir="$conf_dir" --root="$chroot" "$@"
 }
 
