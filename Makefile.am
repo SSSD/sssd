@@ -342,7 +342,9 @@ dist_noinst_DATA = \
     contrib/ci/configure.sh \
     contrib/ci/deps.sh \
     contrib/ci/distro.sh \
-    contrib/ci/misc.sh
+    contrib/ci/misc.sh \
+    contrib/ci/sssd.supp \
+    $(NULL)
 
 ###############################
 # Global compilation settings #

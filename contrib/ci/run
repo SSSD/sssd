@@ -18,7 +18,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 set -o nounset -o pipefail -o errexit
-export PATH=`dirname "\`readlink -f \"\$0\"\`"`:$PATH
+declare -r CI_DIR=`dirname "\`readlink -f \"\$0\"\`"`
+export PATH=$CI_DIR:$PATH
 export LC_ALL=C
 
 . deps.sh
@@ -207,7 +208,10 @@ function build_debug()
                                     --vgdb=no \
                                     --trace-children=yes \
                                     --trace-children-skip='*/bin/*,*/sbin/*' \
-                                    --leak-check=full ||
+                                    --leak-check=full \
+                                    --gen-suppressions=all \
+                                    --suppressions="$CI_DIR/sssd.supp" \
+                                    --verbose ||
             status=$?
     mv "$test_dir" ci-test-dir
 

@@ -1,0 +1,9 @@
+#
+# Valgrind suppression patterns
+#
+# See an introduction to suppressions in Valgrind manual:
+# http://valgrind.org/docs/manual/manual-core.html#manual-core.suppress
+#
+# Each suppression name here must start with "sssd-" to differentiate it from
+# suppressions maintained elsewhere.
+#
