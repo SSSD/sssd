@@ -7,3 +7,105 @@
 # Each suppression name here must start with "sssd-" to differentiate it from
 # suppressions maintained elsewhere.
 #
+
+# talloc-involved leaks
+{
+   sssd-leak-talloc
+   Memcheck:Leak
+   ...
+   fun:talloc_*
+   ...
+}
+{
+   sssd-leak-_talloc
+   Memcheck:Leak
+   ...
+   fun:_talloc_*
+   ...
+}
+
+# nss3-involved leaks
+{
+   sssd-leak-nss3
+   Memcheck:Leak
+   ...
+   obj:*/libnss3.so
+   ...
+}
+
+# nspr4-involved leaks
+{
+   sssd-leak-nspr4
+   Memcheck:Leak
+   ...
+   obj:*/libnspr4.so
+   ...
+}
+{
+   sssd-leak-nspr4-arena-allocate
+   Memcheck:Leak
+   fun:malloc
+   fun:PL_ArenaAllocate
+   ...
+}
+
+# dbus-involved leaks
+{
+   sssd-leak-dbus
+   Memcheck:Leak
+   ...
+   obj:*/libdbus-1.so.*
+   ...
+}
+
+# False positive - pcre_free is called in sss_names_ctx_destructor
+{
+   sssd-leak-sss_names
+   Memcheck:Leak
+   fun:malloc
+   fun:pcre_compile2
+   fun:sss_names_init_from_args
+   ...
+}
+
+# Ignore tests exiting and abandoning cmocka state, concerns dyndns test
+{
+   sssd-leak-cmocka-exit
+   Memcheck:Leak
+   fun:malloc
+   fun:_test_malloc
+   fun:_run_tests
+   fun:main
+}
+
+# Stpncpy false positive on RHEL6:
+# https://lists.fedorahosted.org/pipermail/sssd-devel/2014-September/021417.html
+# possibly related to:
+# https://www.mail-archive.com/valgrind-users@lists.sourceforge.net/msg03832.html
+{
+   sssd-value8-stpncpy
+   Memcheck:Value8
+   obj:/lib*/libc-2.12.so
+   fun:sha512_crypt_r
+   ...
+}
+{
+   sssd-cond-stpncpy
+   Memcheck:Cond
+   obj:/lib*/libc-2.12.so
+   fun:sha512_crypt_r
+   ...
+}
+
+# False positive leak involving RHEL6 glib memory slices
+{
+   sssd-leak-glib-slices
+   Memcheck:Leak
+   fun:memalign
+   fun:posix_memalign
+   obj:/lib*/libglib-2.0.so*
+   fun:g_slice_alloc
+   fun:g_string_sized_new
+   fun:g_utf8_casefold
+   ...
+}
