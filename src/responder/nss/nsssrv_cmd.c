@@ -4076,26 +4076,30 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
             }
 
 
-            /* verify this user has not yet been negatively cached,
-            * or has been permanently filtered */
+            /* verify this name has not yet been negatively cached, as user
+             * and groupm, or has been permanently filtered */
             ret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                         dom, name);
 
-            /* if neg cached, return we didn't find it */
             if (ret == EEXIST) {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "User [%s] does not exist in [%s]! (negative cache)\n",
-                       name, dom->name);
-                /* if a multidomain search, try with next */
-                if (cmdctx->check_next) {
-                    dom = get_next_domain(dom, false);
-                    continue;
+                ret = sss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
+                                             dom, name);
+                if (ret == EEXIST) {
+                    /* if neg cached, return we didn't find it */
+                    DEBUG(SSSDBG_TRACE_FUNC,
+                          "SID [%s] does not exist in [%s]! (negative cache)\n",
+                           name, dom->name);
+                    /* if a multidomain search, try with next */
+                    if (cmdctx->check_next) {
+                        dom = get_next_domain(dom, false);
+                        continue;
+                    }
+                    /* There are no further domains or this was a
+                     * fully-qualified user request.
+                     */
+                    ret = ENOENT;
+                    goto done;
                 }
-                /* There are no further domains or this was a
-                 * fully-qualified user request.
-                 */
-                ret = ENOENT;
-                goto done;
             }
 
             DEBUG(SSSDBG_TRACE_FUNC, "Requesting info for [%s@%s]\n",
