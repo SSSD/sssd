@@ -52,6 +52,14 @@ enum ad_basic_opt {
     AD_ENABLE_GC,
     AD_GPO_ACCESS_CONTROL,
     AD_GPO_CACHE_TIMEOUT,
+    AD_GPO_MAP_INTERACTIVE,
+    AD_GPO_MAP_REMOTE_INTERACTIVE,
+    AD_GPO_MAP_NETWORK,
+    AD_GPO_MAP_BATCH,
+    AD_GPO_MAP_SERVICE,
+    AD_GPO_MAP_PERMIT,
+    AD_GPO_MAP_DENY,
+    AD_GPO_DEFAULT_RIGHT,
 
     AD_OPTS_BASIC /* opts counter */
 };
@@ -141,4 +149,5 @@ int ad_sudo_init(struct be_ctx *be_ctx,
                  struct ad_id_ctx *id_ctx,
                  struct bet_ops **ops,
                  void **pvt_data);
+
 #endif /* AD_COMMON_H_ */

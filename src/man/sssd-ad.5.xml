@@ -333,6 +333,335 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_gpo_map_interactive (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of PAM service names for
+                            which GPO-based access control is evaluated based on
+                            the InteractiveLogonRight and
+                            DenyInteractiveLogonRight policy settings.
+                        </para>
+                        <para>
+                            It is possible to add another PAM service name
+                            to the default set by using <quote>+service_name</quote>
+                            or to explicitly remove a PAM service name from
+                            the default set by using <quote>-service_name</quote>.
+                            For example, in order to replace a default PAM service
+                            name for this logon right (e.g. <quote>login</quote>)
+                            with a custom pam service name (e.g. <quote>my_pam_service</quote>),
+                            you would use the following configuration:
+                            <programlisting>
+                              ad_gpo_map_interactive = +my_pam_service, -login
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: the default set of PAM service names includes:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        login
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        su
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        su-l
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        gdm-fingerprint
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        gdm-password
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        gdm-smartcard
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        kdm
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_gpo_map_remote_interactive (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of PAM service names for
+                            which GPO-based access control is evaluated based on
+                            the RemoteInteractiveLogonRight and
+                            DenyRemoteInteractiveLogonRight policy settings.
+                        </para>
+                        <para>
+                            It is possible to add another PAM service name
+                            to the default set by using <quote>+service_name</quote>
+                            or to explicitly remove a PAM service name from
+                            the default set by using <quote>-service_name</quote>.
+                            For example, in order to replace a default PAM service
+                            name for this logon right (e.g. <quote>sshd</quote>)
+                            with a custom pam service name (e.g. <quote>my_pam_service</quote>),
+                            you would use the following configuration:
+                            <programlisting>
+                              ad_gpo_map_remote_interactive = +my_pam_service, -sshd
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: the default set of PAM service names includes:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        sshd
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_gpo_map_network (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of PAM service names for
+                            which GPO-based access control is evaluated based on
+                            the NetworkLogonRight and DenyNetworkLogonRight
+                            policy settings.
+                        </para>
+                        <para>
+                            It is possible to add another PAM service name
+                            to the default set by using <quote>+service_name</quote>
+                            or to explicitly remove a PAM service name from
+                            the default set by using <quote>-service_name</quote>.
+                            For example, in order to replace a default PAM service
+                            name for this logon right (e.g. <quote>ftp</quote>)
+                            with a custom pam service name (e.g. <quote>my_pam_service</quote>),
+                            you would use the following configuration:
+                            <programlisting>
+                              ad_gpo_map_network = +my_pam_service, -ftp
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: the default set of PAM service names includes:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        ftp
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        samba
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_gpo_map_batch (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of PAM service names for
+                            which GPO-based access control is evaluated based on
+                            the BatchLogonRight and DenyBatchLogonRight
+                            policy settings.
+                        </para>
+                        <para>
+                            It is possible to add another PAM service name
+                            to the default set by using <quote>+service_name</quote>
+                            or to explicitly remove a PAM service name from
+                            the default set by using <quote>-service_name</quote>.
+                            For example, in order to replace a default PAM service
+                            name for this logon right (e.g. <quote>crond</quote>)
+                            with a custom pam service name (e.g. <quote>my_pam_service</quote>),
+                            you would use the following configuration:
+                            <programlisting>
+                              ad_gpo_map_batch = +my_pam_service, -crond
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: the default set of PAM service names includes:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        crond
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_gpo_map_service (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of PAM service names for
+                            which GPO-based access control is evaluated based on
+                            the ServiceLogonRight and DenyServiceLogonRight
+                            policy settings.
+                        </para>
+                        <para>
+                            It is possible to add a PAM service name to the
+                            default set by using <quote>+service_name</quote>.
+                            Since the default set is empty, it is not possible
+                            to remove a PAM service name from the default set.
+                            For example, in order to add a custom pam service
+                            name (e.g. <quote>my_pam_service</quote>), you
+                            would use the following configuration:
+                            <programlisting>
+                              ad_gpo_map_service = +my_pam_service
+                            </programlisting>
+                        </para>
+                        <para>
+                          Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_gpo_map_permit (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of PAM service names for
+                            which GPO-based access is always granted, regardless
+                            of any GPO Logon Rights.
+                        </para>
+                        <para>
+                            It is possible to add another PAM service name
+                            to the default set by using <quote>+service_name</quote>
+                            or to explicitly remove a PAM service name from
+                            the default set by using <quote>-service_name</quote>.
+                            For example, in order to replace a default PAM service
+                            name for unconditionally permitted access (e.g. <quote>sudo</quote>)
+                            with a custom pam service name (e.g. <quote>my_pam_service</quote>),
+                            you would use the following configuration:
+                            <programlisting>
+                              ad_gpo_map_permit = +my_pam_service, -sudo
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: the default set of PAM service names includes:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        sudo
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        sudo-i
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_gpo_map_deny (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of PAM service names for
+                            which GPO-based access is always denied, regardless
+                            of any GPO Logon Rights.
+                        </para>
+                        <para>
+                            It is possible to add a PAM service name to the
+                            default set by using <quote>+service_name</quote>.
+                            Since the default set is empty, it is not possible
+                            to remove a PAM service name from the default set.
+                            For example, in order to add a custom pam service
+                            name (e.g. <quote>my_pam_service</quote>), you
+                            would use the following configuration:
+                            <programlisting>
+                              ad_gpo_map_deny = +my_pam_service
+                            </programlisting>
+                        </para>
+                        <para>
+                          Default: not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_gpo_default_right (string)</term>
+                    <listitem>
+                        <para>
+                            This option defines how access control is evaluated
+                            for PAM service names that are not explicitly listed
+                            in one of the ad_gpo_map_* options. This option can be
+                            set in two different manners. First, this option can
+                            be set to use a default logon right. For example, if
+                            this option is set to 'interactive', it means that
+                            unmapped PAM service names will be processed based on
+                            the InteractiveLogonRight and DenyInteractiveLogonRight
+                            policy settings. Alternatively, this option can be set
+                            to either always permit or always deny access for
+                            unmapped PAM service names.
+                        </para>
+                        <para>
+                            Supported values for this option include:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        interactive
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        remote_interactive
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        network
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        batch
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        service
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        permit
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        deny
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            Default: deny
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>

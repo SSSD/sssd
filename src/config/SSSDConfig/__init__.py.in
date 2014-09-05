@@ -170,7 +170,14 @@ option_strings = {
     'ad_enable_gc' : _('Whether to use the Global Catalog for lookups'),
     'ad_gpo_access_control' : _('Operation mode for GPO-based access control'),
     'ad_gpo_cache_timeout' : _("The amount of time between lookups of the GPO policy files against the AD server"),
-
+    'ad_gpo_map_interactive' : _('PAM service names that map to the GPO (Deny)InteractiveLogonRight policy settings'),
+    'ad_gpo_map_remote_interactive' : _('PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight policy settings'),
+    'ad_gpo_map_network' : _('PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings'),
+    'ad_gpo_map_batch' : _('PAM service names that map to the GPO (Deny)BatchLogonRight policy settings'),
+    'ad_gpo_map_service' : _('PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings'),
+    'ad_gpo_map_permit' : _('PAM service names for which GPO-based access is always granted'),
+    'ad_gpo_map_deny' : _('PAM service names for which GPO-based access is always denied'),
+    'ad_gpo_default_right' : _('Default logon right (or permit/deny) to use for unmapped PAM service names'),
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),
     'krb5_server' : _('Kerberos server address'),
