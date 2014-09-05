@@ -236,6 +236,7 @@ START_TEST(test_illegal_patterns)
                                "illegal pattern '//' in filename [%s].",
                                filename);
 
+    pcre_free(illegal_re);
 }
 END_TEST
 
@@ -287,6 +288,7 @@ START_TEST(test_cc_dir_create)
     fail_unless(ret == 0, "Cannot remove %s: %s\n", dirname, strerror(ret));
     talloc_free(residual);
     free(cwd);
+    pcre_free(illegal_re);
 }
 END_TEST
 
