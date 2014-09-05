@@ -70,7 +70,7 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
 
 void test_getsidbyname(void **state) {
     int ret;
-    char *sid;
+    char *sid = NULL;
     size_t c;
     enum sss_id_type type;
 
@@ -94,6 +94,8 @@ void test_getsidbyname(void **state) {
 
     ret = sss_nss_getsidbyname("", &sid, NULL);
     assert_int_equal(ret, EINVAL);
+    free(sid);
+    sid = NULL;
 
     for (c = 0; d[c].d.repbuf != NULL; c++) {
         will_return(sss_nss_make_request, &d[0].d);
@@ -104,6 +106,8 @@ void test_getsidbyname(void **state) {
             assert_string_equal(sid, d[0].str);
             assert_int_equal(type, 0);
         }
+        free(sid);
+        sid = NULL;
     }
 }
 
