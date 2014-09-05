@@ -34,6 +34,19 @@ struct ad_access_ctx {
         GPO_ACCESS_CONTROL_ENFORCING
     } gpo_access_control_mode;
     int gpo_cache_timeout;
+    /* supported GPO map options */
+    enum gpo_map_type {
+        GPO_MAP_INTERACTIVE = 0,
+        GPO_MAP_REMOTE_INTERACTIVE,
+        GPO_MAP_NETWORK,
+        GPO_MAP_BATCH,
+        GPO_MAP_SERVICE,
+        GPO_MAP_PERMIT,
+        GPO_MAP_DENY,
+        GPO_MAP_NUM_OPTS
+    } gpo_map_type;
+    hash_table_t *gpo_map_options_table;
+    enum gpo_map_type gpo_default_right;
 };
 
 void

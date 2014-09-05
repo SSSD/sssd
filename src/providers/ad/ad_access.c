@@ -402,7 +402,8 @@ ad_sdap_access_done(struct tevent_req *subreq)
                                 state->be_ctx->ev,
                                 state->domain,
                                 state->ctx,
-                                state->pd->user);
+                                state->pd->user,
+                                state->pd->service);
 
     if (!subreq) {
         tevent_req_error(req, ENOMEM);

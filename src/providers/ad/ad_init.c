@@ -361,6 +361,9 @@ sssm_ad_chpass_init(struct be_ctx *bectx,
     return ret;
 }
 
+/* GPO parsing of PAM service names to Windows Logon Rights*/
+errno_t ad_gpo_parse_map_options(struct ad_access_ctx *access_ctx);
+
 int
 sssm_ad_access_init(struct be_ctx *bectx,
                     struct bet_ops **ops,
@@ -444,6 +447,24 @@ sssm_ad_access_init(struct be_ctx *bectx,
     gpo_cache_timeout =
         dp_opt_get_int(access_ctx->ad_options, AD_GPO_CACHE_TIMEOUT);
     access_ctx->gpo_cache_timeout = gpo_cache_timeout;
+
+    /* GPO logon maps */
+
+    ret = sss_hash_create(access_ctx, 10, &access_ctx->gpo_map_options_table);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Could not create gpo_map_options hash table: [%s]",
+               strerror(ret));
+        goto fail;
+    }
+
+    ret = ad_gpo_parse_map_options(access_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Could not parse gpo_map_options (invalid config): [%s]",
+               strerror(ret));
+        goto fail;
+    }
 
     *ops = &ad_access_ops;
     *pvt_data = access_ctx;

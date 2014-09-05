@@ -82,8 +82,16 @@
 #define GPO_VERSION_MACHINE(x) (x & 0xffff)
 
 #define RIGHTS_SECTION "Privilege Rights"
-#define ALLOW_LOGON_LOCALLY "SeInteractiveLogonRight"
-#define DENY_LOGON_LOCALLY "SeDenyInteractiveLogonRight"
+#define ALLOW_LOGON_INTERACTIVE "SeInteractiveLogonRight"
+#define DENY_LOGON_INTERACTIVE "SeDenyInteractiveLogonRight"
+#define ALLOW_LOGON_REMOTE_INTERACTIVE "SeRemoteInteractiveLogonRight"
+#define DENY_LOGON_REMOTE_INTERACTIVE "SeDenyRemoteInteractiveLogonRight"
+#define ALLOW_LOGON_NETWORK "SeNetworkLogonRight"
+#define DENY_LOGON_NETWORK "SeDenyNetworkLogonRight"
+#define ALLOW_LOGON_BATCH "SeBatchLogonRight"
+#define DENY_LOGON_BATCH "SeDenyBatchLogonRight"
+#define ALLOW_LOGON_SERVICE "SeServiceLogonRight"
+#define DENY_LOGON_SERVICE "SeServiceBatchLogonRight"
 
 #define GP_EXT_GUID_SECURITY "{827D319E-6EAC-11D2-A4EA-00C04F79F83A}"
 #define GP_EXT_GUID_SECURITY_SUFFIX "/Machine/Microsoft/Windows NT/SecEdit/GptTmpl.inf"
@@ -171,6 +179,307 @@ int ad_gpo_process_cse_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx,
                             int *_sysvol_gpt_version,
                             const char **_policy_filename);
+
+/* == ad_gpo_parse_map_options and helpers ==================================*/
+
+#define GPO_LOGIN "login"
+#define GPO_SU "su"
+#define GPO_SU_L "su-l"
+#define GPO_GDM_FINGERPRINT "gdm-fingerprint"
+#define GPO_GDM_PASSWORD "gdm-password"
+#define GPO_GDM_SMARTCARD "gdm-smartcard"
+#define GPO_KDM "kdm"
+#define GPO_SSHD "sshd"
+#define GPO_FTP "ftp"
+#define GPO_SAMBA "samba"
+#define GPO_CROND "crond"
+#define GPO_SUDO "sudo"
+#define GPO_SUDO_I "sudo-i"
+
+struct gpo_map_option_entry {
+    enum gpo_map_type gpo_map_type;
+    enum ad_basic_opt ad_basic_opt;
+    const char **gpo_map_defaults;
+};
+
+const char *gpo_map_interactive_defaults[] =
+    {GPO_LOGIN, GPO_SU, GPO_SU_L,
+     GPO_GDM_FINGERPRINT, GPO_GDM_PASSWORD, GPO_GDM_SMARTCARD, GPO_KDM, NULL};
+const char *gpo_map_remote_interactive_defaults[] = {GPO_SSHD, NULL};
+const char *gpo_map_network_defaults[] = {GPO_FTP, GPO_SAMBA, NULL};
+const char *gpo_map_batch_defaults[] = {GPO_CROND, NULL};
+const char *gpo_map_service_defaults[] = {NULL};
+const char *gpo_map_permit_defaults[] = {GPO_SUDO, GPO_SUDO_I, NULL};
+const char *gpo_map_deny_defaults[] = {NULL};
+
+struct gpo_map_option_entry gpo_map_option_entries[] = {
+    {GPO_MAP_INTERACTIVE, AD_GPO_MAP_INTERACTIVE, gpo_map_interactive_defaults},
+    {GPO_MAP_REMOTE_INTERACTIVE, AD_GPO_MAP_REMOTE_INTERACTIVE,
+     gpo_map_remote_interactive_defaults},
+    {GPO_MAP_NETWORK, AD_GPO_MAP_NETWORK, gpo_map_network_defaults},
+    {GPO_MAP_BATCH, AD_GPO_MAP_BATCH, gpo_map_batch_defaults},
+    {GPO_MAP_SERVICE, AD_GPO_MAP_SERVICE, gpo_map_service_defaults},
+    {GPO_MAP_PERMIT, AD_GPO_MAP_PERMIT, gpo_map_permit_defaults},
+    {GPO_MAP_DENY, AD_GPO_MAP_DENY, gpo_map_deny_defaults},
+};
+
+
+const char* gpo_map_type_string(int gpo_map_type)
+{
+    switch(gpo_map_type) {
+    case GPO_MAP_INTERACTIVE:        return "Interactive";
+    case GPO_MAP_REMOTE_INTERACTIVE: return "Remote Interactive";
+    case GPO_MAP_NETWORK:            return "Network";
+    case GPO_MAP_BATCH:              return "Batch";
+    case GPO_MAP_SERVICE:            return "Service";
+    case GPO_MAP_PERMIT:             return "Permitted";
+    case GPO_MAP_DENY:               return "Denied";
+    }
+    return NULL;
+}
+
+static inline bool
+ad_gpo_service_in_list(char **list, size_t nlist, const char *str)
+{
+    size_t i;
+
+    for (i = 0; i < nlist; i++) {
+        if (strcasecmp(list[i], str) == 0) {
+            break;
+        }
+    }
+
+    return (i < nlist) ? true : false;
+}
+
+
+errno_t
+ad_gpo_parse_map_option_helper(enum gpo_map_type gpo_map_type,
+                               hash_key_t key,
+                               hash_table_t *options_table)
+{
+    hash_value_t val;
+    int hret;
+    int ret;
+
+    hret = hash_lookup(options_table, &key, &val);
+    if (hret != HASH_SUCCESS && hret != HASH_ERROR_KEY_NOT_FOUND) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error checking hash table: [%s]\n",
+              hash_error_string(hret));
+        ret = EINVAL;
+        goto done;
+    } else if (hret == HASH_SUCCESS) {
+        /* handle unexpected case where mapping for key already exists */
+        if (val.i == gpo_map_type) {
+            /* mapping for key exists for same map type; no error */
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "PAM service %s maps to %s multiple times\n", key.str,
+                  gpo_map_type_string(gpo_map_type));
+            ret = EOK;
+        } else {
+            /* mapping for key exists for different map type; error! */
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "PAM service %s maps to both %s and %s\n", key.str,
+                  gpo_map_type_string(val.i), gpo_map_type_string(gpo_map_type));
+            ret = EINVAL;
+        }
+        goto done;
+    } else {
+        /* handle expected case where mapping for key doesn't already exist */
+        val.type = HASH_VALUE_INT;
+        val.i = gpo_map_type;
+
+        hret = hash_enter(options_table, &key, &val);
+        if (hret != HASH_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, "Error checking hash table: [%s]\n",
+                  hash_error_string(hret));
+            ret = EIO;
+            goto done;
+        }
+        ret = EOK;
+    }
+
+done:
+    return ret;
+}
+
+errno_t
+ad_gpo_parse_map_option(TALLOC_CTX *mem_ctx,
+                        enum gpo_map_type gpo_map_type,
+                        hash_table_t *options_table,
+                        char *conf_str,
+                        const char **defaults)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    char **conf_list = NULL;
+    int conf_list_size = 0;
+    char **add_list = NULL;
+    char **remove_list = NULL;
+    int ai = 0, ri = 0;
+    int i;
+    hash_key_t key;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "gpo_map_type: %s\n",
+          gpo_map_type_string(gpo_map_type));
+
+    if (conf_str) {
+        ret = split_on_separator(tmp_ctx, conf_str, ',', true, true,
+                                 &conf_list, &conf_list_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot parse list of service names %s: %d\n", conf_str, ret);
+            ret = EINVAL;
+            goto done;
+        }
+
+        add_list = talloc_zero_array(tmp_ctx, char *, conf_list_size);
+        remove_list = talloc_zero_array(tmp_ctx, char *, conf_list_size);
+        if (add_list == NULL || remove_list == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    for (i = 0; i < conf_list_size; i++) {
+        switch (conf_list[i][0]) {
+        case '+':
+            add_list[ai] = conf_list[i] + 1;
+            ai++;
+            continue;
+        case '-':
+            remove_list[ri] = conf_list[i] + 1;
+            ri++;
+            continue;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, "ad_gpo_map values must start with"
+                  "either '+' (for adding service) or '-' (for removing service), "
+                  "got '%s'\n",
+                  conf_list[i]);
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    /* Start by adding explicitly added services ('+') to hashtable */
+    for (i = 0; i < ai; i++) {
+        /* if the service is explicitly configured to be removed, skip it */
+        if (ad_gpo_service_in_list(remove_list, ri, add_list[i])) {
+            continue;
+        }
+
+        key.type = HASH_KEY_STRING;
+        key.str = (char *)add_list[i];
+
+        ret = ad_gpo_parse_map_option_helper(gpo_map_type, key, options_table);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid configuration: %d\n", ret);
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Explicitly added service: %s\n", key.str);
+    }
+
+    /* Add defaults to hashtable */
+    for (i = 0; defaults[i]; i++) {
+        /* if the service is explicitly configured to be removed, skip it */
+        if (ad_gpo_service_in_list(remove_list, ri, defaults[i])) {
+            continue;
+        }
+
+        key.type = HASH_KEY_STRING;
+        key.str = talloc_strdup(mem_ctx, defaults[i]);
+
+        ret = ad_gpo_parse_map_option_helper(gpo_map_type, key, options_table);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid configuration: %d\n", ret);
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Default service (not explicitly removed): %s\n",
+              key.str);
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+ad_gpo_parse_map_options(struct ad_access_ctx *access_ctx)
+{
+    char *gpo_default_right_config;
+    enum gpo_map_type gpo_default_right;
+    errno_t ret;
+    int i;
+
+    for (i = 0; i < GPO_MAP_NUM_OPTS; i++) {
+
+        struct gpo_map_option_entry entry = gpo_map_option_entries[i];
+
+        char *entry_config =  dp_opt_get_string(access_ctx->ad_options,
+                                                entry.ad_basic_opt);
+
+        ret = ad_gpo_parse_map_option(access_ctx, entry.gpo_map_type,
+                                      access_ctx->gpo_map_options_table,
+                                      entry_config, entry.gpo_map_defaults);
+
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid configuration: %d\n", ret);
+            ret = EINVAL;
+            goto fail;
+        }
+    }
+
+    /* default right (applicable for services without any mapping) */
+    gpo_default_right_config =
+        dp_opt_get_string(access_ctx->ad_options, AD_GPO_DEFAULT_RIGHT);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "gpo_default_right_config: %s\n",
+          gpo_default_right_config);
+
+    /* if default right not set in config, set them to DENY */
+    if (gpo_default_right_config == NULL) {
+        gpo_default_right = GPO_MAP_DENY;
+    } else if (strncasecmp(gpo_default_right_config, "interactive",
+                           strlen("interactive")) == 0) {
+        gpo_default_right = GPO_MAP_INTERACTIVE;
+    } else if (strncasecmp(gpo_default_right_config, "remote_interactive",
+                           strlen("remote_interactive")) == 0) {
+        gpo_default_right = GPO_MAP_REMOTE_INTERACTIVE;
+    } else if (strncasecmp(gpo_default_right_config, "network",
+                           strlen("network")) == 0) {
+        gpo_default_right = GPO_MAP_NETWORK;
+    } else if (strncasecmp(gpo_default_right_config, "batch",
+                           strlen("batch")) == 0) {
+        gpo_default_right = GPO_MAP_BATCH;
+    } else if (strncasecmp(gpo_default_right_config, "service",
+                           strlen("service")) == 0) {
+        gpo_default_right = GPO_MAP_SERVICE;
+    } else if (strncasecmp(gpo_default_right_config, "permit",
+                           strlen("permit")) == 0) {
+        gpo_default_right = GPO_MAP_PERMIT;
+    } else if (strncasecmp(gpo_default_right_config, "deny",
+                           strlen("deny")) == 0) {
+        gpo_default_right = GPO_MAP_DENY;
+    } else {
+        ret = EINVAL;
+        goto fail;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "gpo_default_right: %d\n", gpo_default_right);
+    access_ctx->gpo_default_right = gpo_default_right;
+
+fail:
+    return ret;
+}
 
 /* == ad_gpo_access_send/recv helpers =======================================*/
 
@@ -747,6 +1056,7 @@ check_rights(char **privilege_sids,
 static errno_t
 ad_gpo_access_check(TALLOC_CTX *mem_ctx,
                     enum gpo_access_control_mode gpo_mode,
+                    enum gpo_map_type gpo_map_type,
                     const char *user,
                     struct sss_domain_info *domain,
                     char **allowed_sids,
@@ -763,6 +1073,7 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
     int j;
 
     DEBUG(SSSDBG_TRACE_FUNC, "POLICY FILE:\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "gpo_map_type: %d\n", gpo_map_type);
     DEBUG(SSSDBG_TRACE_FUNC, "allowed_size = %d\n", allowed_size);
     for (j= 0; j < allowed_size; j++) {
         DEBUG(SSSDBG_TRACE_FUNC, "allowed_sids[%d] = %s\n", j,
@@ -792,7 +1103,8 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
               group_sids[j]);
     }
 
-    /* If AllowLogonLocally is not defined, all users are allowed */
+    DEBUG(SSSDBG_TRACE_FUNC, "gpo_map_type: %d\n", gpo_map_type);
+
     if (allowed_size == 0) {
         access_granted = true;
     }  else {
@@ -864,6 +1176,8 @@ static errno_t gpo_child_init(void)
 struct ad_gpo_access_state {
     struct tevent_context *ev;
     struct ldb_context *ldb_ctx;
+    enum gpo_access_control_mode gpo_mode;
+    enum gpo_map_type gpo_map_type;
     struct sdap_id_conn_ctx *conn;
     struct sdap_id_op *sdap_op;
     char *server_hostname;
@@ -871,7 +1185,6 @@ struct ad_gpo_access_state {
     int timeout;
     struct sss_domain_info *domain;
     const char *user;
-    enum gpo_access_control_mode gpo_mode;
     int gpo_timeout_option;
     const char *ad_hostname;
     const char *target_dn;
@@ -890,6 +1203,7 @@ static void ad_gpo_process_gpo_done(struct tevent_req *subreq);
 static errno_t ad_gpo_cse_step(struct tevent_req *req);
 static errno_t ad_gpo_parse_policy_file(TALLOC_CTX *mem_ctx,
                                         const char *filename,
+                                        enum gpo_map_type gpo_map_type,
                                         char ***allowed_sids,
                                         int *allowed_size,
                                         char ***denied_sids,
@@ -901,7 +1215,8 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
                    struct tevent_context *ev,
                    struct sss_domain_info *domain,
                    struct ad_access_ctx *ctx,
-                   const char *user)
+                   const char *user,
+                   const char *service)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -909,6 +1224,10 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     char *server_uri;
     LDAPURLDesc *lud;
     errno_t ret;
+    int hret;
+    hash_key_t key;
+    hash_value_t val;
+    enum gpo_map_type gpo_map_type;
 
     /* setup logging for gpo child */
     gpo_child_init();
@@ -919,6 +1238,58 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    /* determine service's option_type (e.g. interactive, network, etc) */
+    key.type = HASH_KEY_STRING;
+    key.str = talloc_strdup(state, service);
+
+    hret = hash_lookup(ctx->gpo_map_options_table, &key, &val);
+    if (hret != HASH_SUCCESS && hret != HASH_ERROR_KEY_NOT_FOUND) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error checking hash table: [%s]\n",
+              hash_error_string(hret));
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    /* if service isn't mapped, map it to value of ad_gpo_default_right option */
+    if (hret == HASH_ERROR_KEY_NOT_FOUND) {
+        DEBUG(SSSDBG_TRACE_FUNC, "using default right\n");
+        gpo_map_type = ctx->gpo_default_right;
+    } else {
+        gpo_map_type = (enum gpo_map_type) val.i;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "service %s maps to %s\n", service,
+          gpo_map_type_string(gpo_map_type));
+
+    if (gpo_map_type == GPO_MAP_PERMIT) {
+        ret = EOK;
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+        goto immediately;
+    }
+
+    if (gpo_map_type == GPO_MAP_DENY) {
+        switch (ctx->gpo_access_control_mode) {
+        case GPO_ACCESS_CONTROL_ENFORCING:
+            ret = EACCES;
+            goto immediately;
+        case GPO_ACCESS_CONTROL_PERMISSIVE:
+            DEBUG(SSSDBG_TRACE_FUNC, "access denied: permissive mode\n");
+            sss_log_ext(SSS_LOG_WARNING, LOG_AUTHPRIV, "Warning: user would " \
+                        "have been denied GPO-based logon access if the " \
+                        "ad_gpo_access_control option were set to enforcing " \
+                        "mode.");
+            ret = EOK;
+            tevent_req_done(req);
+            tevent_req_post(req, ev);
+            goto immediately;
+        default:
+            ret = EINVAL;
+            goto immediately;
+        }
+    }
+
+    state->gpo_map_type = gpo_map_type;
     state->domain = domain;
     state->dacl_filtered_gpos = NULL;
     state->num_dacl_filtered_gpos = 0;
@@ -994,7 +1365,8 @@ process_offline_gpo(TALLOC_CTX *mem_ctx,
                     const char *user,
                     enum gpo_access_control_mode gpo_mode,
                     struct sss_domain_info *domain,
-                    struct ldb_message *gpo_cache_entry)
+                    struct ldb_message *gpo_cache_entry,
+                    enum gpo_map_type gpo_map_type)
 {
     const char *policy_filename = NULL;
     const char *cached_gpo_guid;
@@ -1029,6 +1401,7 @@ process_offline_gpo(TALLOC_CTX *mem_ctx,
 
     ret = ad_gpo_parse_policy_file(mem_ctx,
                                    policy_filename,
+                                   gpo_map_type,
                                    &allowed_sids,
                                    &allowed_size,
                                    &denied_sids,
@@ -1042,7 +1415,7 @@ process_offline_gpo(TALLOC_CTX *mem_ctx,
     }
 
     ret = ad_gpo_access_check
-        (mem_ctx, gpo_mode, user, domain,
+        (mem_ctx, gpo_mode, gpo_map_type, user, domain,
          allowed_sids, allowed_size, denied_sids, denied_size);
 
  done:
@@ -1053,7 +1426,8 @@ static errno_t
 process_offline_gpos(TALLOC_CTX *mem_ctx,
                      const char *user,
                      enum gpo_access_control_mode gpo_mode,
-                     struct sss_domain_info *domain)
+                     struct sss_domain_info *domain,
+                     enum gpo_map_type gpo_map_type)
 {
     struct ldb_result *res;
     struct ldb_message *gpo_cache_entry;
@@ -1083,7 +1457,7 @@ process_offline_gpos(TALLOC_CTX *mem_ctx,
     for (i = 0; i < res->count; i++){
         gpo_cache_entry = res->msgs[i];
         ret = process_offline_gpo(mem_ctx, user, gpo_mode, domain,
-                                  gpo_cache_entry);
+                                  gpo_cache_entry, gpo_map_type);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "process_offline_gpo failed [%d](%s)\n",
@@ -1129,7 +1503,8 @@ ad_gpo_connect_done(struct tevent_req *subreq)
             ret = process_offline_gpos(state,
                                        state->user,
                                        state->gpo_mode,
-                                       state->domain);
+                                       state->domain,
+                                       state->gpo_map_type);
 
             if (ret == EOK) {
                 DEBUG(SSSDBG_TRACE_FUNC, "process_offline_gpos succeeded\n");
@@ -1579,6 +1954,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
 
     ret = ad_gpo_parse_policy_file(state,
                                    policy_filename,
+                                   state->gpo_map_type,
                                    &allowed_sids,
                                    &allowed_size,
                                    &denied_sids,
@@ -1592,8 +1968,8 @@ ad_gpo_cse_done(struct tevent_req *subreq)
     }
 
     ret = ad_gpo_access_check
-        (state, state->gpo_mode, state->user, state->domain,
-         allowed_sids, allowed_size, denied_sids, denied_size);
+        (state, state->gpo_mode, state->gpo_map_type, state->user,
+         state->domain, allowed_sids, allowed_size, denied_sids, denied_size);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -3141,8 +3517,7 @@ create_cse_send_buffer(TALLOC_CTX *mem_ctx,
 /*
  * This function uses the input ini_config object to parse the logon right value
  * associated with the input name. This value is a list of sids, and is used
- * to populate the output parameters. The input name can be either
- * ALLOW_LOGON_LOCALLY or DENY_LOGON_LOCALLY.
+ * to populate the output parameters.
  */
 static errno_t
 parse_logon_right_with_libini(TALLOC_CTX *mem_ctx,
@@ -3229,6 +3604,7 @@ parse_logon_right_with_libini(TALLOC_CTX *mem_ctx,
 static errno_t
 ad_gpo_parse_policy_file(TALLOC_CTX *mem_ctx,
                          const char *filename,
+                         enum gpo_map_type gpo_map_type,
                          char ***allowed_sids,
                          int *allowed_size,
                          char ***denied_sids,
@@ -3241,7 +3617,8 @@ ad_gpo_parse_policy_file(TALLOC_CTX *mem_ctx,
     char **deny_sids = NULL;
     int allow_size = 0;
     int deny_size = 0;
-    const char *key = NULL;
+    const char *allow_key = NULL;
+    const char *deny_key = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
 
     tmp_ctx = talloc_new(NULL);
@@ -3271,29 +3648,53 @@ ad_gpo_parse_policy_file(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    key = ALLOW_LOGON_LOCALLY;
+    switch (gpo_map_type) {
+    case GPO_MAP_INTERACTIVE:
+        allow_key = ALLOW_LOGON_INTERACTIVE;
+        deny_key = DENY_LOGON_INTERACTIVE;
+        break;
+    case GPO_MAP_REMOTE_INTERACTIVE:
+        allow_key = ALLOW_LOGON_REMOTE_INTERACTIVE;
+        deny_key = DENY_LOGON_REMOTE_INTERACTIVE;
+        break;
+    case GPO_MAP_NETWORK:
+        allow_key = ALLOW_LOGON_NETWORK;
+        deny_key = DENY_LOGON_NETWORK;
+        break;
+    case GPO_MAP_BATCH:
+        allow_key = ALLOW_LOGON_BATCH;
+        deny_key = DENY_LOGON_BATCH;
+        break;
+    case GPO_MAP_SERVICE:
+        allow_key = ALLOW_LOGON_SERVICE;
+        deny_key = DENY_LOGON_SERVICE;
+        break;
+    default:
+        ret = EINVAL;
+        goto done;
+    }
+
     ret = parse_logon_right_with_libini(tmp_ctx,
                                         ini_config,
-                                        key,
+                                        allow_key,
                                         &allow_size,
                                         &allow_sids);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "parse_logon_right_with_libini failed for %s [%d][%s]\n",
-              key, ret, strerror(ret));
+              allow_key, ret, strerror(ret));
         goto done;
     }
 
-    key = DENY_LOGON_LOCALLY;
     ret = parse_logon_right_with_libini(tmp_ctx,
                                         ini_config,
-                                        DENY_LOGON_LOCALLY,
+                                        deny_key,
                                         &deny_size,
                                         &deny_sids);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "parse_logon_right_with_libini failed for %s [%d][%s]\n",
-              key, ret, strerror(ret));
+              deny_key, ret, strerror(ret));
         goto done;
     }
 
