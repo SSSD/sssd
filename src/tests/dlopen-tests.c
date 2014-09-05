@@ -43,7 +43,9 @@ struct so {
     { "libsss_nss_idmap.so", { LIBPFX"libsss_nss_idmap.so", NULL } },
     { "libnss_sss.so", { LIBPFX"libnss_sss.so", NULL } },
     { "pam_sss.so", { LIBPFX"pam_sss.so", NULL } },
+#ifdef BUILD_LIBWBCLIENT
     { "libwbclient.so", { LIBPFX"libwbclient.so", NULL } },
+#endif /* BUILD_LIBWBCLIENT */
 #ifdef BUILD_IFP
     { "libsss_simpleifp.so", { LIBPFX"libsss_simpleifp.so", NULL } },
 #endif /* BUILD_IFP */
