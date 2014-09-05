@@ -189,7 +189,7 @@ START_TEST(ipa_hbac_test_allow_all)
     TALLOC_CTX *test_ctx;
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
-    struct hbac_info *info;
+    struct hbac_info *info = NULL;
     bool is_valid;
     uint32_t missing_attrs;
 
@@ -225,7 +225,8 @@ START_TEST(ipa_hbac_test_allow_all)
                 hbac_result_string(HBAC_EVAL_ALLOW),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
-
+    hbac_free_info(info);
+    info = NULL;
     talloc_free(test_ctx);
 }
 END_TEST
@@ -236,7 +237,7 @@ START_TEST(ipa_hbac_test_allow_user)
     TALLOC_CTX *test_ctx;
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
-    struct hbac_info *info;
+    struct hbac_info *info = NULL;
     bool is_valid;
     uint32_t missing_attrs;
 
@@ -282,6 +283,8 @@ START_TEST(ipa_hbac_test_allow_user)
                 hbac_result_string(HBAC_EVAL_ALLOW),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     /* Negative test */
     rules[0]->users->names[0] = HBAC_TEST_INVALID_USER;
@@ -299,6 +302,8 @@ START_TEST(ipa_hbac_test_allow_user)
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     talloc_free(test_ctx);
 }
@@ -310,7 +315,7 @@ START_TEST(ipa_hbac_test_allow_utf8)
     TALLOC_CTX *test_ctx;
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
-    struct hbac_info *info;
+    struct hbac_info *info = NULL;
     bool is_valid;
     uint32_t missing_attrs;
 
@@ -379,6 +384,9 @@ START_TEST(ipa_hbac_test_allow_utf8)
                 hbac_result_string(HBAC_EVAL_ALLOW),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
+
 
     /* Negative test - a different letter */
     rules[0]->users->names[0] = (const char *) &user_utf8_lowcase_neg;
@@ -391,6 +399,8 @@ START_TEST(ipa_hbac_test_allow_utf8)
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     /* Negative test - Turkish dotless i. We cannot know that capital I
      * casefolds into dotless i unless we know the language is Turkish */
@@ -410,6 +420,8 @@ START_TEST(ipa_hbac_test_allow_utf8)
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     talloc_free(test_ctx);
 }
@@ -421,7 +433,7 @@ START_TEST(ipa_hbac_test_allow_group)
     TALLOC_CTX *test_ctx;
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
-    struct hbac_info *info;
+    struct hbac_info *info = NULL;
     bool is_valid;
     uint32_t missing_attrs;
 
@@ -468,6 +480,8 @@ START_TEST(ipa_hbac_test_allow_group)
                 hbac_result_string(HBAC_EVAL_ALLOW),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     /* Negative test */
     rules[0]->users->groups[0] = HBAC_TEST_INVALID_GROUP;
@@ -485,6 +499,8 @@ START_TEST(ipa_hbac_test_allow_group)
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     talloc_free(test_ctx);
 }
@@ -496,7 +512,7 @@ START_TEST(ipa_hbac_test_allow_svc)
     TALLOC_CTX *test_ctx;
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
-    struct hbac_info *info;
+    struct hbac_info *info = NULL;
     bool is_valid;
     uint32_t missing_attrs;
 
@@ -542,6 +558,8 @@ START_TEST(ipa_hbac_test_allow_svc)
                 hbac_result_string(HBAC_EVAL_ALLOW),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     /* Negative test */
     rules[0]->services->names[0] = HBAC_TEST_INVALID_SERVICE;
@@ -559,6 +577,8 @@ START_TEST(ipa_hbac_test_allow_svc)
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     talloc_free(test_ctx);
 }
@@ -570,7 +590,7 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
     TALLOC_CTX *test_ctx;
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
-    struct hbac_info *info;
+    struct hbac_info *info = NULL;
     bool is_valid;
     uint32_t missing_attrs;
 
@@ -617,6 +637,8 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
                 hbac_result_string(HBAC_EVAL_ALLOW),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     /* Negative test */
     rules[0]->services->groups[0] = HBAC_TEST_INVALID_SERVICEGROUP;
@@ -634,6 +656,8 @@ START_TEST(ipa_hbac_test_allow_svcgroup)
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     talloc_free(test_ctx);
 }
@@ -645,7 +669,7 @@ START_TEST(ipa_hbac_test_allow_srchost)
     TALLOC_CTX *test_ctx;
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
-    struct hbac_info *info;
+    struct hbac_info *info = NULL;
     bool is_valid;
     uint32_t missing_attrs;
 
@@ -691,6 +715,8 @@ START_TEST(ipa_hbac_test_allow_srchost)
                 hbac_result_string(HBAC_EVAL_ALLOW),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     /* Negative test */
     rules[0]->srchosts->names[0] = HBAC_TEST_INVALID_SRCHOST;
@@ -708,6 +734,8 @@ START_TEST(ipa_hbac_test_allow_srchost)
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     talloc_free(test_ctx);
 }
@@ -719,7 +747,7 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
     TALLOC_CTX *test_ctx;
     struct hbac_rule **rules;
     struct hbac_eval_req *eval_req;
-    struct hbac_info *info;
+    struct hbac_info *info = NULL;
     bool is_valid;
     uint32_t missing_attrs;
 
@@ -766,6 +794,8 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
                 hbac_result_string(HBAC_EVAL_ALLOW),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     /* Negative test */
     rules[0]->srchosts->groups[0] = HBAC_TEST_INVALID_SRCHOSTGROUP;
@@ -783,6 +813,8 @@ START_TEST(ipa_hbac_test_allow_srchostgroup)
                 hbac_result_string(HBAC_EVAL_DENY),
                 hbac_result_string(result),
                 info ? hbac_error_string(info->code):"Unknown");
+    hbac_free_info(info);
+    info = NULL;
 
     talloc_free(test_ctx);
 }
