@@ -36,18 +36,22 @@ enum input_types {
 
 enum request_types {
     REQ_SIMPLE = 1,
-    REQ_FULL
+    REQ_FULL,
+    REQ_FULL_WITH_MEMBERS
 };
 
 enum response_types {
     RESP_SID = 1,
     RESP_NAME,
     RESP_USER,
-    RESP_GROUP
+    RESP_GROUP,
+    RESP_USER_GROUPLIST,
+    RESP_GROUP_MEMBERS
 };
 
 /* ==Sid2Name Extended Operation============================================= */
 #define EXOP_SID2NAME_OID "2.16.840.1.113730.3.8.10.4"
+#define EXOP_SID2NAME_V1_OID "2.16.840.1.113730.3.8.10.4.1"
 
 struct ipa_s2n_exop_state {
     struct sdap_handle *sh;
@@ -65,6 +69,8 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
 static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
                                             struct sdap_handle *sh,
+                                            bool is_v1,
+                                            int timeout,
                                             struct berval *bv)
 {
     struct tevent_req *req = NULL;
@@ -81,18 +87,19 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Executing extended operation\n");
 
-    ret = ldap_extended_operation(state->sh->ldap, EXOP_SID2NAME_OID,
-                                  bv, NULL, NULL, &msgid);
+    ret = ldap_extended_operation(state->sh->ldap,
+                               is_v1 ? EXOP_SID2NAME_V1_OID : EXOP_SID2NAME_OID,
+                               bv, NULL, NULL, &msgid);
     if (ret == -1 || msgid == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_extended_operation failed\n");
         ret = ERR_NETWORK_IO;
         goto fail;
     }
-    DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_extended_operation sent, msgid = %d\n", msgid);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_extended_operation sent, msgid = %d\n",
+                                  msgid);
 
-    /* FIXME: get timeouts from configuration, for now 10 secs. */
-    ret = sdap_op_add(state, ev, state->sh, msgid, ipa_s2n_exop_done, req, 10,
-                      &state->op);
+    ret = sdap_op_add(state, ev, state->sh, msgid, ipa_s2n_exop_done, req,
+                      timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         ret = ERR_INTERNAL;
@@ -129,7 +136,8 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
                             &result, &errmsg, NULL, NULL,
                             NULL, 0);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n", state->op->msgid);
+        DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n",
+                                 state->op->msgid);
         ret = ERR_NETWORK_IO;
         goto done;
     }
@@ -145,7 +153,8 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     ret = ldap_parse_extended_result(state->sh->ldap, reply->msg,
                                       &retoid, &retdata, 0);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_extendend_result failed (%d)\n", ret);
+        DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_extendend_result failed (%d)\n",
+                                 ret);
         ret = ERR_NETWORK_IO;
         goto done;
     }
@@ -250,6 +259,7 @@ done:
  *    requestType ENUMERATED {
  *        simple (1),
  *        full (2)
+ *        full_with_members (3)
  *    },
  *    data InputData
  * }
@@ -370,7 +380,9 @@ done:
  *        sid (1),
  *        name (2),
  *        posix_user (3),
- *        posix_group (4)
+ *        posix_group (4),
+ *        posix_user_grouplist (5),
+ *        posix_group_members (6)
  *    },
  *    data OutputData
  * }
@@ -379,7 +391,10 @@ done:
  *    sid OCTET STRING,
  *    name NameDomainData,
  *    user PosixUser,
- *    group PosixGroup
+ *    group PosixGroup,
+ *    usergrouplist PosixUserGrouplist,
+ *    groupmembers PosixGroupMembers
+ *
  * }
  *
  * NameDomainData ::= SEQUENCE {
@@ -400,6 +415,27 @@ done:
  *    gid INTEGER
  * }
  *
+ * PosixUserGrouplist ::= SEQUENCE {
+ *    domain_name OCTET STRING,
+ *    user_name OCTET STRING,
+ *    uid INTEGER,
+ *    gid INTEGER,
+ *    gecos OCTET STRING,
+ *    home_directory OCTET STRING,
+ *    shell OCTET STRING,
+ *    grouplist GroupNameList
+ * }
+ *
+ * GroupNameList ::= SEQUENCE OF OCTET STRING
+ *
+ * PosixGroupMembers ::= SEQUENCE {
+ *    domain_name OCTET STRING,
+ *    group_name OCTET STRING,
+ *    gid INTEGER,
+ *    members GroupMemberList
+ * }
+ *
+ * GroupMemberList ::= SEQUENCE OF OCTET STRING
  */
 
 struct resp_attrs {
@@ -411,7 +447,226 @@ struct resp_attrs {
         char *sid_str;
         char *name;
     } a;
+    size_t ngroups;
+    char **groups;
+    struct sysdb_attrs *sysdb_attrs;
 };
+
+static errno_t get_extra_attrs(BerElement *ber, struct resp_attrs *resp_attrs)
+{
+    ber_tag_t tag;
+    ber_len_t ber_len;
+    char *ber_cookie;
+    char *name;
+    struct berval **values;
+    struct ldb_val v;
+    int ret;
+    size_t c;
+
+    if (resp_attrs->sysdb_attrs == NULL) {
+        resp_attrs->sysdb_attrs = sysdb_new_attrs(resp_attrs);
+        if (resp_attrs->sysdb_attrs == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
+            return ENOMEM;
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Found new sequence.\n");
+    for (tag = ber_first_element(ber, &ber_len, &ber_cookie);
+         tag != LBER_DEFAULT;
+         tag = ber_next_element(ber, &ber_len, ber_cookie)) {
+
+        tag = ber_scanf(ber, "{a{V}}", &name, &values);
+        if (tag == LBER_ERROR) {
+            DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
+            return EINVAL;
+        }
+        DEBUG(SSSDBG_TRACE_ALL, "Extra attribute [%s].\n", name);
+
+        for (c = 0; values[c] != NULL; c++) {
+
+            v.data = (uint8_t *) values[c]->bv_val;
+            v.length = values[c]->bv_len;
+
+            ret = sysdb_attrs_add_val(resp_attrs->sysdb_attrs, name, &v);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val failed.\n");
+                ldap_memfree(name);
+                ber_bvecfree(values);
+                return ret;
+            }
+        }
+
+        ldap_memfree(name);
+        ber_bvecfree(values);
+    }
+
+    return EOK;
+}
+
+static errno_t add_v1_user_data(BerElement *ber, struct resp_attrs *attrs)
+{
+    ber_tag_t tag;
+    ber_len_t ber_len;
+    int ret;
+    char *gecos = NULL;
+    char *homedir = NULL;
+    char *shell = NULL;
+    char **list = NULL;
+    size_t c;
+
+    tag = ber_scanf(ber, "aaa", &gecos, &homedir, &shell);
+    if (tag == LBER_ERROR) {
+        DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (gecos == NULL || *gecos == '\0') {
+        attrs->a.user.pw_gecos = NULL;
+    } else {
+        attrs->a.user.pw_gecos = talloc_strdup(attrs, gecos);
+        if (attrs->a.user.pw_gecos == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    if (homedir == NULL || *homedir == '\0') {
+        attrs->a.user.pw_dir = NULL;
+    } else {
+        attrs->a.user.pw_dir = talloc_strdup(attrs, homedir);
+        if (attrs->a.user.pw_dir == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    if (shell == NULL || *shell == '\0') {
+        attrs->a.user.pw_shell = NULL;
+    } else {
+        attrs->a.user.pw_shell = talloc_strdup(attrs, shell);
+        if (attrs->a.user.pw_shell == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    tag = ber_scanf(ber, "{v}", &list);
+    if (tag == LBER_ERROR) {
+        DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    for (attrs->ngroups = 0; list[attrs->ngroups] != NULL;
+         attrs->ngroups++);
+
+    if (attrs->ngroups > 0) {
+        attrs->groups = talloc_array(attrs, char *, attrs->ngroups);
+        if (attrs->groups == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        for (c = 0; c < attrs->ngroups; c++) {
+            attrs->groups[c] = talloc_strdup(attrs->groups,
+                                             list[c]);
+            if (attrs->groups[c] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+    }
+
+    tag = ber_peek_tag(ber, &ber_len);
+    DEBUG(SSSDBG_TRACE_ALL, "BER tag is [%d]\n", (int) tag);
+    if (tag == LBER_SEQUENCE) {
+        ret = get_extra_attrs(ber, attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_extra_attrs failed.\n");
+            goto done;
+        }
+    }
+
+
+    ret = EOK;
+
+done:
+    ber_memfree(gecos);
+    ber_memfree(homedir);
+    ber_memfree(shell);
+    ber_memvfree((void **) list);
+
+    return ret;
+}
+
+static errno_t add_v1_group_data(BerElement *ber, struct resp_attrs *attrs)
+{
+    ber_tag_t tag;
+    ber_len_t ber_len;
+    int ret;
+    char **list = NULL;
+    size_t c;
+
+    tag = ber_scanf(ber, "{v}", &list);
+    if (tag == LBER_ERROR) {
+        DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    for (attrs->ngroups = 0; list[attrs->ngroups] != NULL;
+         attrs->ngroups++);
+
+    if (attrs->ngroups > 0) {
+        attrs->a.group.gr_mem = talloc_zero_array(attrs, char *,
+                                                attrs->ngroups + 1);
+        if (attrs->a.group.gr_mem == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        for (c = 0; c < attrs->ngroups; c++) {
+            attrs->a.group.gr_mem[c] =
+                                talloc_strdup(attrs->a.group.gr_mem,
+                                              list[c]);
+            if (attrs->a.group.gr_mem[c] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+    }
+
+    tag = ber_peek_tag(ber, &ber_len);
+    DEBUG(SSSDBG_TRACE_ALL, "BER tag is [%d]\n", (int) tag);
+    if (tag == LBER_SEQUENCE) {
+        ret = get_extra_attrs(ber, attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_extra_attrs failed.\n");
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    ber_memvfree((void **) list);
+
+    return ret;
+}
+
+static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
+                                    struct req_input *req_input,
+                                    struct resp_attrs *attrs,
+                                    struct resp_attrs *simple_attrs);
 
 static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                                      char *retoid,
@@ -428,16 +683,21 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
     gid_t gid;
     struct resp_attrs *attrs = NULL;
     char *sid_str;
+    bool is_v1 = false;
 
     if (retoid == NULL || retdata == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing OID or data.\n");
         return EINVAL;
     }
 
-    if (strcmp(retoid, EXOP_SID2NAME_OID) != 0) {
+    if (strcmp(retoid, EXOP_SID2NAME_V1_OID) == 0) {
+        is_v1 = true;
+    } else if (strcmp(retoid, EXOP_SID2NAME_OID) == 0) {
+        is_v1 = false;
+    } else {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Result has wrong OID, expected [%s], got [%s].\n",
-              EXOP_SID2NAME_OID, retoid);
+              "Result has wrong OID, expected [%s] or [%s], got [%s].\n",
+              EXOP_SID2NAME_OID, EXOP_SID2NAME_V1_OID, retoid);
         return EINVAL;
     }
 
@@ -463,7 +723,8 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
 
     switch (type) {
         case RESP_USER:
-            tag = ber_scanf(ber, "{aaii}}", &domain_name, &name, &uid, &gid);
+        case RESP_USER_GROUPLIST:
+            tag = ber_scanf(ber, "{aaii", &domain_name, &name, &uid, &gid);
             if (tag == LBER_ERROR) {
                 DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
                 ret = EINVAL;
@@ -485,9 +746,25 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
             attrs->a.user.pw_uid = uid;
             attrs->a.user.pw_gid = gid;
 
+            if (is_v1) {
+                ret = add_v1_user_data(ber, attrs);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "add_v1_user_data failed.\n");
+                    goto done;
+                }
+            }
+
+            tag = ber_scanf(ber, "}}");
+            if (tag == LBER_ERROR) {
+                DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
+                ret = EINVAL;
+                goto done;
+            }
+
             break;
         case RESP_GROUP:
-            tag = ber_scanf(ber, "{aai}}", &domain_name, &name, &gid);
+        case RESP_GROUP_MEMBERS:
+            tag = ber_scanf(ber, "{aai", &domain_name, &name, &gid);
             if (tag == LBER_ERROR) {
                 DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
                 ret = EINVAL;
@@ -507,6 +784,21 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
             }
 
             attrs->a.group.gr_gid = gid;
+
+            if (is_v1) {
+                ret = add_v1_group_data(ber, attrs);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "add_v1_group_data failed.\n");
+                    goto done;
+                }
+            }
+
+            tag = ber_scanf(ber, "}}");
+            if (tag == LBER_ERROR) {
+                DEBUG(SSSDBG_OP_FAILURE, "ber_scanf failed.\n");
+                ret = EINVAL;
+                goto done;
+            }
 
             break;
         case RESP_SID:
@@ -572,6 +864,166 @@ done:
     return ret;
 }
 
+struct ipa_s2n_get_groups_state {
+    struct tevent_context *ev;
+    struct sss_domain_info *dom;
+    struct sdap_handle *sh;
+    struct req_input req_input;
+    char **group_list;
+    size_t group_idx;
+    int exop_timeout;
+};
+
+static errno_t ipa_s2n_get_groups_step(struct tevent_req *req);
+static void ipa_s2n_get_groups_next(struct tevent_req *subreq);
+
+static struct tevent_req *ipa_s2n_get_groups_send(TALLOC_CTX *mem_ctx,
+                                                  struct tevent_context *ev,
+                                                  struct sss_domain_info *dom,
+                                                  struct sdap_handle *sh,
+                                                  int exop_timeout,
+                                                  char **group_list)
+{
+    int ret;
+    struct ipa_s2n_get_groups_state *state;
+    struct tevent_req *req;
+
+    req = tevent_req_create(mem_ctx, &state, struct ipa_s2n_get_groups_state);
+    if (req == NULL) {
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->dom = dom;
+    state->sh = sh;
+    state->group_list = group_list;
+    state->group_idx = 0;
+    state->req_input.type = REQ_INP_NAME;
+    state->req_input.inp.name = NULL;
+    state->exop_timeout = exop_timeout;
+
+    ret = ipa_s2n_get_groups_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_groups_step failed.\n");
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static errno_t ipa_s2n_get_groups_step(struct tevent_req *req)
+{
+    int ret;
+    struct ipa_s2n_get_groups_state *state = tevent_req_data(req,
+                                               struct ipa_s2n_get_groups_state);
+    struct berval *bv_req;
+    struct tevent_req *subreq;
+    struct sss_domain_info *obj_domain;
+    struct sss_domain_info *parent_domain;
+    char *group_name = NULL;
+    char *domain_name = NULL;
+
+    parent_domain = get_domains_head(state->dom);
+
+    ret = sss_parse_name(state, parent_domain->names,
+                         state->group_list[state->group_idx],
+                         &domain_name, &group_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
+                                    state->group_list[state->group_idx],
+                                    ret, sss_strerror(ret));
+        return ret;
+    }
+
+    obj_domain = find_domain_by_name(parent_domain, domain_name, true);
+    if (obj_domain == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
+        return ENOMEM;
+    }
+
+    state->req_input.inp.name = group_name;
+
+    ret = s2n_encode_request(state, obj_domain->name, BE_REQ_GROUP,
+                             REQ_FULL_WITH_MEMBERS,
+                             &state->req_input, &bv_req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "s2n_encode_request failed.\n");
+        return ret;
+    }
+
+    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, true,
+                               state->exop_timeout, bv_req);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq, ipa_s2n_get_groups_next, req);
+
+    return EOK;
+}
+
+static void ipa_s2n_get_groups_next(struct tevent_req *subreq)
+{
+    int ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_s2n_get_groups_state *state = tevent_req_data(req,
+                                               struct ipa_s2n_get_groups_state);
+    char *retoid = NULL;
+    struct berval *retdata = NULL;
+    struct resp_attrs *attrs;
+
+    ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "s2n exop request failed.\n");
+        goto fail;
+    }
+
+    ret = s2n_response_to_attrs(state, retoid, retdata, &attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
+        goto fail;
+    }
+
+    ret = ipa_s2n_save_objects(state->dom, &state->req_input, attrs, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
+        goto fail;
+    }
+
+    state->group_idx++;
+    if (state->group_list[state->group_idx] == NULL) {
+        tevent_req_done(req);
+        return;
+    }
+
+    ret = ipa_s2n_get_groups_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_groups_step failed.\n");
+        goto fail;
+    }
+
+    return;
+
+fail:
+    tevent_req_error(req,ret);
+    return;
+}
+
+static int ipa_s2n_get_groups_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 struct ipa_s2n_get_user_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
@@ -581,6 +1033,8 @@ struct ipa_s2n_get_user_state {
     int entry_type;
     enum request_types request_type;
     struct resp_attrs *attrs;
+    struct resp_attrs *simple_attrs;
+    int exop_timeout;
 };
 
 static void ipa_s2n_get_user_done(struct tevent_req *subreq);
@@ -598,6 +1052,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     struct berval *bv_req = NULL;
     int ret = EFAULT;
+    bool is_v1 = false;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_s2n_get_user_state);
     if (req == NULL) {
@@ -610,7 +1065,22 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     state->sh = sh;
     state->req_input = req_input;
     state->entry_type = entry_type;
-    state->request_type = REQ_FULL;
+    state->attrs = NULL;
+    state->simple_attrs = NULL;
+    state->exop_timeout = dp_opt_get_int(opts->basic, SDAP_SEARCH_TIMEOUT);
+
+    if (sdap_is_extension_supported(sh, EXOP_SID2NAME_V1_OID)) {
+        state->request_type = REQ_FULL_WITH_MEMBERS;
+        is_v1 = true;
+    } else if (sdap_is_extension_supported(sh, EXOP_SID2NAME_OID)) {
+        state->request_type = REQ_FULL;
+        is_v1 = false;
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Extdom not supported on the server, "
+                              "cannot resolve objects from trusted domains.\n");
+        ret = EIO;
+        goto fail;
+    }
 
     ret = s2n_encode_request(state, dom->name, entry_type, state->request_type,
                              req_input, &bv_req);
@@ -618,7 +1088,8 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, bv_req);
+    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, is_v1,
+                               state->exop_timeout, bv_req);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
         ret = ENOMEM;
@@ -635,6 +1106,159 @@ fail:
     return req;
 }
 
+static errno_t process_members(struct sss_domain_info *domain,
+                               struct sysdb_attrs *group_attrs,
+                               char **members)
+{
+    int ret;
+    size_t c;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    const char *dn_str;
+    struct sss_domain_info *obj_domain;
+    struct sss_domain_info *parent_domain;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    parent_domain = get_domains_head(domain);
+
+    for (c = 0; members[c] != NULL; c++) {
+        obj_domain = find_domain_by_object_name(parent_domain, members[c]);
+        if (obj_domain == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_object_name failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_search_user_by_name(tmp_ctx, obj_domain, members[c], NULL,
+                                        &msg);
+        if (ret == EOK) {
+            dn_str = ldb_dn_get_linearized(msg->dn);
+            if (dn_str == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_get_linearized failed.\n");
+                goto done;
+            }
+
+            DEBUG(SSSDBG_TRACE_ALL, "Adding member [%s][%s]\n",
+                                    members[c], dn_str);
+
+            ret = sysdb_attrs_add_string(group_attrs, SYSDB_MEMBER, dn_str);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+                goto done;
+            }
+        } else if (ret == ENOENT) {
+            DEBUG(SSSDBG_TRACE_ALL, "Adding ghost member [%s]\n", members[c]);
+
+            ret = sysdb_attrs_add_string(group_attrs, SYSDB_GHOST, members[c]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+                goto done;
+            }
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_name failed.\n");
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t get_group_dn_list(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *dom,
+                                 size_t ngroups, char **groups,
+                                 struct ldb_dn ***_dn_list,
+                                 char ***_missing_groups)
+{
+    int ret;
+    size_t c;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn **dn_list = NULL;
+    char **missing_groups = NULL;
+    struct ldb_message *msg = NULL;
+    size_t n_dns = 0;
+    size_t n_missing = 0;
+    struct sss_domain_info *obj_domain;
+    struct sss_domain_info *parent_domain;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    dn_list = talloc_zero_array(tmp_ctx, struct ldb_dn *, ngroups + 1);
+    missing_groups = talloc_zero_array(tmp_ctx, char *, ngroups + 1);
+    if (dn_list == NULL || missing_groups == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array_zero failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    parent_domain = (dom->parent == NULL) ? dom : dom->parent;
+
+    for (c = 0; c < ngroups; c++) {
+        obj_domain = find_domain_by_object_name(parent_domain, groups[c]);
+        if (obj_domain == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_object_name failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_search_group_by_name(tmp_ctx, obj_domain, groups[c], NULL,
+                                         &msg);
+        if (ret == EOK) {
+            dn_list[n_dns] = ldb_dn_copy(dn_list, msg->dn);
+            if (dn_list[n_dns] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_copy failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            n_dns++;
+        } else if (ret == ENOENT) {
+            missing_groups[n_missing] = talloc_strdup(missing_groups,
+                                                      groups[c]);
+            if (missing_groups[n_missing] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            n_missing++;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_group_by_name failed.\n");
+            goto done;
+        }
+    }
+
+    if (n_missing != 0) {
+        *_missing_groups = talloc_steal(mem_ctx, missing_groups);
+    } else {
+        *_missing_groups = NULL;
+    }
+
+    if (n_dns != 0) {
+        *_dn_list = talloc_steal(mem_ctx, dn_list);
+    } else {
+        *dn_list = NULL;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static void ipa_s2n_get_groups_done(struct tevent_req  *subreq);
 static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -645,18 +1269,9 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     char *retoid = NULL;
     struct berval *retdata = NULL;
     struct resp_attrs *attrs = NULL;
-    struct resp_attrs *simple_attrs = NULL;
-    time_t now;
-    uint64_t timeout = 10*60*60; /* FIXME: find a better timeout ! */
-    struct sss_nss_homedir_ctx homedir_ctx;
-    const char *homedir = NULL;
-    struct sysdb_attrs *user_attrs = NULL;
-    struct sysdb_attrs *group_attrs = NULL;
-    char *name;
-    char *realm;
-    char *upn;
     struct berval *bv_req = NULL;
-    gid_t gid;
+    char **missing_groups = NULL;
+    struct ldb_dn **group_dn_list = NULL;
 
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
@@ -666,6 +1281,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     }
 
     switch (state->request_type) {
+    case REQ_FULL_WITH_MEMBERS:
     case REQ_FULL:
         ret = s2n_response_to_attrs(state, retoid, retdata, &attrs);
         if (ret != EOK) {
@@ -688,7 +1304,34 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
         state->attrs = attrs;
 
-        if (state->req_input->type == REQ_INP_SECID) {
+        if (attrs->response_type == RESP_USER_GROUPLIST) {
+            ret = get_group_dn_list(state, state->dom,
+                                    attrs->ngroups, attrs->groups,
+                                    &group_dn_list, &missing_groups);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "get_group_dn_list failed.\n");
+                goto done;
+            }
+
+            if (missing_groups != NULL) {
+                subreq = ipa_s2n_get_groups_send(state, state->ev, state->dom,
+                                                 state->sh, state->exop_timeout,
+                                                 missing_groups);
+                if (subreq == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "ipa_s2n_get_groups_send failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+                tevent_req_set_callback(subreq, ipa_s2n_get_groups_done,
+                                        req);
+
+                return;
+            }
+        }
+
+        if (state->req_input->type == REQ_INP_SECID
+                || attrs->response_type == RESP_GROUP_MEMBERS) {
             /* We already know the SID, we do not have to read it. */
             break;
         }
@@ -702,7 +1345,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             goto done;
         }
 
-        subreq = ipa_s2n_exop_send(state, state->ev, state->sh, bv_req);
+        subreq = ipa_s2n_exop_send(state, state->ev, state->sh, false,
+                                   state->exop_timeout, bv_req);
         if (subreq == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
             ret = ENOMEM;
@@ -713,7 +1357,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         return;
 
     case REQ_SIMPLE:
-        ret = s2n_response_to_attrs(state, retoid, retdata, &simple_attrs);
+        ret = s2n_response_to_attrs(state, retoid, retdata,
+                                    &state->simple_attrs);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
             goto done;
@@ -730,40 +1375,79 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing data of full request.\n");
         ret = EINVAL;
         goto done;
+    }
+
+    ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
+                               state->simple_attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
+        goto done;
+    }
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
     } else {
-        attrs = state->attrs;
+        tevent_req_error(req, ret);
+    }
+    return;
+}
+
+static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
+                                    struct req_input *req_input,
+                                    struct resp_attrs *attrs,
+                                    struct resp_attrs *simple_attrs)
+{
+    int ret;
+    time_t now;
+    uint64_t timeout = 10*60*60; /* FIXME: find a better timeout ! */
+    struct sss_nss_homedir_ctx homedir_ctx;
+    char *name;
+    char *realm;
+    char *upn;
+    gid_t gid;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
     }
 
     now = time(NULL);
 
+    if (attrs->sysdb_attrs == NULL) {
+        attrs->sysdb_attrs = sysdb_new_attrs(attrs);
+        if (attrs->sysdb_attrs == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     switch (attrs->response_type) {
         case RESP_USER:
-            if (state->dom->subdomain_homedir) {
+        case RESP_USER_GROUPLIST:
+            if (dom->subdomain_homedir
+                    && attrs->a.user.pw_dir == NULL) {
                 ZERO_STRUCT(homedir_ctx);
                 homedir_ctx.username = attrs->a.user.pw_name;
                 homedir_ctx.uid = attrs->a.user.pw_uid;
-                homedir_ctx.domain = state->dom->name;
-                homedir_ctx.flatname = state->dom->flat_name;
-                homedir_ctx.config_homedir_substr = state->dom->homedir_substr;
+                homedir_ctx.domain = dom->name;
+                homedir_ctx.flatname = dom->flat_name;
+                homedir_ctx.config_homedir_substr = dom->homedir_substr;
 
-                homedir = expand_homedir_template(state,
-                                                  state->dom->subdomain_homedir,
+                attrs->a.user.pw_dir = expand_homedir_template(attrs,
+                                                  dom->subdomain_homedir,
                                                   &homedir_ctx);
-                if (homedir == NULL) {
+                if (attrs->a.user.pw_dir == NULL) {
                     ret = ENOMEM;
                     goto done;
                 }
             }
 
-            user_attrs = sysdb_new_attrs(state);
-            if (user_attrs == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-
             /* we always use the fully qualified name for subdomain users */
-            name = sss_tc_fqname(state, state->dom->names, state->dom,
+            name = sss_tc_fqname(tmp_ctx, dom->names, dom,
                                  attrs->a.user.pw_name);
             if (!name) {
                 DEBUG(SSSDBG_OP_FAILURE, "failed to format user name.\n");
@@ -771,7 +1455,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 goto done;
             }
 
-            ret = sysdb_attrs_add_lc_name_alias(user_attrs, name);
+            ret = sysdb_attrs_add_lc_name_alias(attrs->sysdb_attrs, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "sysdb_attrs_add_lc_name_alias failed.\n");
@@ -784,13 +1468,13 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
              * access to the regex to deconstruct it */
             /* FIXME: The real UPN is available from the PAC, we should get
              * it from there. */
-            realm = get_uppercase_realm(state, state->dom->name);
+            realm = get_uppercase_realm(tmp_ctx, dom->name);
             if (!realm) {
                 DEBUG(SSSDBG_OP_FAILURE, "failed to get realm.\n");
                 ret = ENOMEM;
                 goto done;
             }
-            upn = talloc_asprintf(state, "%s@%s",
+            upn = talloc_asprintf(tmp_ctx, "%s@%s",
                                   attrs->a.user.pw_name, realm);
             if (!upn) {
                 DEBUG(SSSDBG_OP_FAILURE, "failed to format UPN.\n");
@@ -798,44 +1482,49 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 goto done;
             }
 
-            ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
+            ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_UPN, upn);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
                 goto done;
             }
 
-            if (state->req_input->type == REQ_INP_SECID) {
-                ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR,
-                                             state->req_input->inp.secid);
+            if (req_input->type == REQ_INP_SECID) {
+                ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_SID_STR,
+                                             req_input->inp.secid);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_attrs_add_string failed.\n");
                     goto done;
                 }
             }
 
-            if (simple_attrs != NULL && simple_attrs->response_type == RESP_SID) {
-                ret = sysdb_attrs_add_string(user_attrs, SYSDB_SID_STR,
+            if (simple_attrs != NULL
+                    && simple_attrs->response_type == RESP_SID) {
+                ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_SID_STR,
                                              simple_attrs->a.sid_str);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_attrs_add_string failed.\n");
                     goto done;
                 }
             }
 
             gid = 0;
-            if (state->dom->mpg == false) {
+            if (dom->mpg == false) {
                 gid = attrs->a.user.pw_gid;
             }
 
-            ret = sysdb_store_user(state->dom, name, NULL,
+            ret = sysdb_store_user(dom, name, NULL,
                                    attrs->a.user.pw_uid,
-                                   gid, NULL, /* gecos */
-                                   homedir, NULL, NULL, user_attrs, NULL,
+                                   gid, attrs->a.user.pw_gecos,
+                                   attrs->a.user.pw_dir, attrs->a.user.pw_shell,
+                                   NULL, attrs->sysdb_attrs, NULL,
                                    timeout, now);
             break;
         case RESP_GROUP:
+        case RESP_GROUP_MEMBERS:
             /* we always use the fully qualified name for subdomain users */
-            name = sss_tc_fqname(state, state->dom->names, state->dom,
+            name = sss_tc_fqname(tmp_ctx, dom->names, dom,
                                  attrs->a.group.gr_name);
             if (!name) {
                 DEBUG(SSSDBG_OP_FAILURE, "failed to format user name,\n");
@@ -843,40 +1532,43 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                 goto done;
             }
 
-            group_attrs = sysdb_new_attrs(state);
-            if (group_attrs == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-
-            ret = sysdb_attrs_add_lc_name_alias(group_attrs, name);
+            ret = sysdb_attrs_add_lc_name_alias(attrs->sysdb_attrs, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "sysdb_attrs_add_lc_name_alias failed.\n");
                 goto done;
             }
 
-            if (state->req_input->type == REQ_INP_SECID) {
-                ret = sysdb_attrs_add_string(group_attrs, SYSDB_SID_STR,
-                                             state->req_input->inp.secid);
+            if (req_input->type == REQ_INP_SECID) {
+                ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_SID_STR,
+                                             req_input->inp.secid);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_attrs_add_string failed.\n");
                     goto done;
                 }
             }
 
-            if (simple_attrs != NULL && simple_attrs->response_type == RESP_SID) {
-                ret = sysdb_attrs_add_string(group_attrs, SYSDB_SID_STR,
+            if (simple_attrs != NULL
+                && simple_attrs->response_type == RESP_SID) {
+                ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_SID_STR,
                                              simple_attrs->a.sid_str);
                 if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_attrs_add_string failed.\n");
                     goto done;
                 }
             }
 
-            ret = sysdb_store_group(state->dom, name, attrs->a.group.gr_gid,
-                                    group_attrs, timeout, now);
+            ret = process_members(dom, attrs->sysdb_attrs,
+                                  attrs->a.group.gr_mem);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "process_members failed.\n");
+                goto done;
+            }
+
+            ret = sysdb_store_group(dom, name, attrs->a.group.gr_gid,
+                                    attrs->sysdb_attrs, timeout, now);
             break;
         default:
             DEBUG(SSSDBG_OP_FAILURE, "Unexpected response type [%d].\n",
@@ -886,13 +1578,36 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     }
 
 done:
-    talloc_free(user_attrs);
-    talloc_free(group_attrs);
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static void ipa_s2n_get_groups_done(struct tevent_req  *subreq)
+{
+    int ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_s2n_get_user_state *state = tevent_req_data(req,
+                                                struct ipa_s2n_get_user_state);
+
+    ret = ipa_s2n_get_groups_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "s2n get_groups request failed.\n");
         tevent_req_error(req, ret);
+        return;
     }
+
+    ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
+                               state->simple_attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
     return;
 }
 
