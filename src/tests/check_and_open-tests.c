@@ -110,6 +110,7 @@ START_TEST(test_symlink)
 
     fail_unless(ret == EINVAL,
                 "check_and_open_readonly succeeded on symlink");
+    free(newpath);
 }
 END_TEST
 
@@ -136,6 +137,7 @@ START_TEST(test_follow_symlink)
 
     fail_unless(ret == EOK,
                 "check_and_open_readonly failed on symlink with follow=true");
+    free(newpath);
 }
 END_TEST
 
