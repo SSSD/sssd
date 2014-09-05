@@ -218,6 +218,7 @@ if HAVE_CMOCKA
         test_copy_ccache \
         test_copy_keytab \
         test_child_common \
+        responder_cache_req-tests \
         $(NULL)
 
 if BUILD_IFP
@@ -390,6 +391,7 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_get_domains.c \
     src/responder/common/responder_utils.c \
+    src/responder/common/responder_cache_req.c \
     src/monitor/monitor_iface_generated.c \
     src/monitor/monitor_iface_generated.h \
     src/providers/data_provider_iface_generated.c \
@@ -501,6 +503,7 @@ dist_noinst_HEADERS = \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
     src/responder/common/responder_sbus.h \
+    src/responder/common/responder_cache_req.h \
     src/responder/pam/pamsrv.h \
     src/responder/pam/pam_helpers.h \
     src/responder/nss/nsssrv.h \
@@ -1698,7 +1701,8 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/responder_packet.c \
      src/responder/common/responder_cmd.c \
      src/responder/common/negcache.c \
-     src/responder/common/responder_common.c
+     src/responder/common/responder_common.c \
+     src/responder/common/responder_cache_req.c
 
 TEST_MOCK_PROVIDER_OBJ = \
      src/util/sss_ldap.c \
@@ -2177,6 +2181,24 @@ test_child_common_LDADD = \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
     libsss_debug.la \
+    libsss_test_common.la \
+    $(NULL)
+
+responder_cache_req_tests_SOURCES = \
+    $(TEST_MOCK_OBJ) \
+    $(TEST_MOCK_RESP_OBJ) \
+    src/tests/cmocka/test_responder_cache_req.c \
+    $(NULL)
+responder_cache_req_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+responder_cache_req_tests_LDFLAGS = \
+    -Wl,-wrap,sss_dp_get_account_send \
+    $(NULL)
+responder_cache_req_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     $(NULL)
 
