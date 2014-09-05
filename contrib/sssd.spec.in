@@ -790,13 +790,13 @@ rm -rf $RPM_BUILD_ROOT
 
 %files libwbclient
 %defattr(-,root,root,-)
-%{_libdir}/libwbclient.so.*
+%{_libdir}/%{name}/modules/libwbclient.so.*
 
 %files libwbclient-devel
 %defattr(-,root,root,-)
-%{_includedir}/wbclient.h
-%{_libdir}/libwbclient.so
-%{_libdir}/pkgconfig/wbclient.pc
+%{_includedir}/wbclient_sssd.h
+%{_libdir}/%{name}/modules/libwbclient.so
+%{_libdir}/pkgconfig/wbclient_sssd.pc
 
 %if (0%{?use_systemd} == 1)
 # systemd

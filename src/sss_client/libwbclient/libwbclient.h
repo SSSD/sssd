@@ -35,7 +35,7 @@
 
 /* Public headers */
 
-#include "wbclient.h"
+#include "wbclient_sssd.h"
 
 /* Private headers */
 

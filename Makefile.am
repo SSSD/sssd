@@ -44,6 +44,9 @@ endif
 if BUILD_CIFS_IDMAP_PLUGIN
 cifsplugindir = @cifspluginpath@
 endif
+if BUILD_LIBWBCLIENT
+libwbclientdir = @appmodpath@
+endif
 sssdconfdir = $(sysconfdir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
@@ -793,10 +796,11 @@ include_HEADERS = \
     $(NULL)
 
 if BUILD_LIBWBCLIENT
-lib_LTLIBRARIES += libwbclient.la
-pkgconfig_DATA += src/sss_client/libwbclient/wbclient.pc
+libwbclient_LTLIBRARIES = libwbclient.la
+pkgconfig_DATA += src/sss_client/libwbclient/wbclient_sssd.pc
 
-EXTRA_libwbclient_la_DEPENDENCIES = src/sss_client/libwbclient/wbclient.exports
+EXTRA_libwbclient_la_DEPENDENCIES = \
+    src/sss_client/libwbclient/wbclient.exports
 libwbclient_la_SOURCES = \
     src/sss_client/libwbclient/wbc_guid.c \
     src/sss_client/libwbclient/wbc_idmap_common.c \
@@ -819,7 +823,7 @@ libwbclient_la_LDFLAGS = \
 
 dist_noinst_DATA += src/sss_client/libwbclient/wbclient.exports
 
-include_HEADERS += src/sss_client/libwbclient/wbclient.h
+include_HEADERS += src/sss_client/libwbclient/wbclient_sssd.h
 endif #BUILD_LIBWBCLIENT
 
 if BUILD_IFP
