@@ -622,6 +622,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
+%{_mandir}/man5/sss_rpcidmapd.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_cache.8*
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <refentryinfo>
+        <productname>sss rpc.idmapd plugin</productname>
+        <author>
+            <firstname>Noam</firstname>
+            <surname>Meltzer</surname>
+            <affiliation>
+                <orgname>Primary Data Inc.</orgname>
+            </affiliation>
+            <contrib>Developer (2013-2014)</contrib>
+        </author>
+        <author>
+            <firstname>Noam</firstname>
+            <surname>Meltzer</surname>
+            <contrib>Developer (2014-)</contrib>
+            <email>tsnoam@gmail.com</email>
+        </author>
+    </refentryinfo>
+
+    <refmeta>
+        <refentrytitle>sss_rpcidmapd</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_rpcidmapd</refname>
+        <refpurpose>sss plugin configuration directives for rpc.idmapd</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='conf-file'>
+        <title>CONFIGURATION FILE</title>
+        <para>
+            rpc.idmapd configuration file is usually found at
+            <emphasis>/etc/idmapd.conf</emphasis>. See
+            <citerefentry>
+                <refentrytitle>idmapd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> for more information.
+        </para>
+    </refsect1>
+
+    <refsect1 id='sss-conf-extension'>
+        <title>SSS CONFIGURATION EXTENSION</title>
+        <refsect2 id='enable-sss'>
+            <title>Enable SSS plugin</title>
+            <para>
+                In section <quote>[Translation]</quote>, modify/set
+                <quote>Method</quote> attribute to contain
+                <emphasis>sss</emphasis>.
+            </para>
+        </refsect2>
+        <refsect2 id='sss-conf-sect'>
+            <title>[sss] config section</title>
+            <para>
+                In order to change the default of one of the configuration
+                attributes of the <emphasis>sss</emphasis> plugin listed
+                below you will need to create a config section for it, named
+                <quote>[sss]</quote>.
+            </para>
+            <variablelist>
+                <title>Configuration attributes</title>
+                <varlistentry>
+                    <term>memcache (bool)</term>
+                    <listitem>
+                        <para>
+                            Indicates whether or not to use memcache
+                            optimisation technique.
+                        </para>
+                        <para>
+                            Default: True
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+    </refsect1>
+
+    <refsect1 id='sssd-integration'>
+        <title>SSSD INTEGRATION</title>
+        <para>
+            The sss plugin requires the <emphasis>NSS Responder</emphasis>
+            to be enabled in sssd.
+        </para>
+        <para>
+            The attribute <quote>use_fully_qualified_names</quote> must be
+            enabled on all domains (NFSv4 clients expect a fully qualified name
+            to be sent on the wire).
+        </para>
+    </refsect1>
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following example shows a minimal idmapd.conf which makes use of
+            the sss plugin.
+            <programlisting>
+[General]
+Verbosity = 2
+# domain must be synced between NFSv4 server and clients
+# Solaris/Illumos/AIX use "localdomain" as default!
+Domain = default
+
+[Mapping]
+Nobody-User = nfsnobody
+Nobody-Group = nfsnobody
+
+[Translation]
+Method = sss
+</programlisting>
+        </para>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>idmapd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+        </para>
+    </refsect1>
+</refentry>
+</reference>

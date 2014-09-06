@@ -83,5 +83,9 @@
             <citerefentry>
                 <refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>.
+            <citerefentry>
+                <refentrytitle>sss_rpcidmapd</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
         </para>
     </refsect1>
