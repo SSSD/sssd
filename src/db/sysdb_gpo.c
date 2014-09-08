@@ -352,3 +352,96 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+static inline bool
+sysdb_gpo_guid_in_list(const char **gpo_guid_list, int num_gpos, const char *gpo_guid)
+{
+    size_t i;
+
+    for (i = 0; i < num_gpos; i++) {
+        if (strcasecmp(gpo_guid_list[i], gpo_guid) == 0) {
+            break;
+        }
+    }
+
+    return (i < num_gpos) ? true : false;
+}
+
+errno_t
+sysdb_gpo_delete_stale_gpos(TALLOC_CTX *mem_ctx,
+                            struct sss_domain_info *domain,
+                            const char **gpo_guid_list,
+                            int num_gpos)
+{
+    struct ldb_result *res;
+    errno_t ret, sret;
+    int i;
+    bool in_transaction = false;
+    const char *cached_gpo_guid;
+    bool stale_gpo_found = false;
+
+    ret = sysdb_transaction_start(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
+        goto done;
+    }
+
+    in_transaction = true;
+
+    ret = sysdb_gpo_get_gpos(mem_ctx, domain, &res);
+    if (ret != EOK && ret != ENOENT) {
+        goto done;
+    } else if (ret != ENOENT) {
+        for (i = 0; i < res->count; i++) {
+            cached_gpo_guid = ldb_msg_find_attr_as_string(res->msgs[i],
+                                                          SYSDB_GPO_GUID_ATTR,
+                                                          NULL);
+            if (cached_gpo_guid == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "No gpo_guid attribute found in gpo cache entry\n");
+                ret = EFAULT;
+                goto done;
+            }
+
+            if (sysdb_gpo_guid_in_list(gpo_guid_list, num_gpos, cached_gpo_guid)) {
+                /* the cached_gpo_guid is still applicable, skip it */
+                continue;
+            } else {
+                stale_gpo_found = true;
+                /* the cached_gpo_guid is no longer applicable, delete it */
+                DEBUG(SSSDBG_TRACE_FUNC, "Deleting stale GPO [gpo_guid:%s]\n",
+                      cached_gpo_guid);
+
+                ret = sysdb_delete_entry(domain->sysdb, res->msgs[i]->dn, true);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "Could not delete GPO cache entry [gpo_guid:%s]\n",
+                          cached_gpo_guid);
+                    goto done;
+                }
+            }
+        }
+    }
+
+    if (!stale_gpo_found) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No stale GPOs found\n");
+    }
+
+    ret = sysdb_transaction_commit(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not commit transaction: [%s]\n", strerror(ret));
+        goto done;
+    }
+    in_transaction = false;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(domain->sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not cancel transaction\n");
+        }
+    }
+    return ret;
+
+}

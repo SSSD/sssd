@@ -908,4 +908,9 @@ errno_t sysdb_gpo_get_gpos(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
                            struct ldb_result **_result);
 
+errno_t sysdb_gpo_delete_stale_gpos(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char **gpo_guid_list,
+                                    int num_gpos);
+
 #endif /* __SYS_DB_H__ */
