@@ -56,6 +56,56 @@ void set_entry_parse(struct mock_ldap_entry *entry)
     will_return_always(mock_ldap_entry_get, entry);
 }
 
+LDAPDerefRes *mock_deref_res(TALLOC_CTX *mem_ctx,
+                             struct mock_ldap_entry *entry)
+{
+    LDAPDerefRes *dref;
+    LDAPDerefVal *dval, *dvaltail = NULL;
+    size_t nattr;
+    size_t nval;
+
+    dref = talloc_zero(mem_ctx, LDAPDerefRes);
+    assert_non_null(dref);
+
+    dref->derefVal.bv_val = talloc_strdup(dref, entry->dn);
+    assert_non_null(dref->derefVal.bv_val);
+    dref->derefVal.bv_len = strlen(entry->dn);
+
+    if (entry->attrs == NULL) {
+        /* no attributes, done */
+        return dref;
+    }
+
+    for (nattr = 0; entry->attrs[nattr].name; nattr++) {
+        dval = talloc_zero(dref, LDAPDerefVal);
+        assert_non_null(dval);
+
+        dval->type = talloc_strdup(dval, entry->attrs[nattr].name);
+        assert_non_null(dval->type);
+
+        for (nval = 0; entry->attrs[nattr].values[nval]; nval++);
+
+        dval->vals = talloc_zero_array(dval, struct berval, nval+1);
+        assert_non_null(dval->vals);
+        for (nval = 0; entry->attrs[nattr].values[nval]; nval++) {
+            dval->vals[nval].bv_val = talloc_strdup(dval->vals,
+                                             entry->attrs[nattr].values[nval]);
+            assert_non_null(dval->vals[nval].bv_val);
+            dval->vals[nval].bv_len = strlen(dval->vals[nval].bv_val);
+        }
+
+        if (dvaltail != NULL) {
+            dvaltail->next = dval;
+            dvaltail = dvaltail->next;
+        } else {
+            dvaltail = dval;
+            dref->attrVals = dval;
+        }
+    }
+
+    return dref;
+}
+
 /* libldap wrappers */
 int __wrap_ldap_set_option(LDAP *ld,
                            int option,
@@ -121,7 +171,6 @@ struct berval **__wrap_ldap_get_values_len(LDAP *ld,
             return NULL;
         }
         vals[i]->bv_len = strlen(attrvals[i]);
-        assert_non_null(vals[i]->bv_len);
     }
 
     return vals;
@@ -424,6 +473,116 @@ void test_parse_dups(void **state)
     talloc_free(attrs);
 }
 
+void test_parse_deref(void **state)
+{
+    errno_t ret;
+    struct sdap_attr_map_info minfo;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct sdap_deref_attrs **res;
+    LDAPDerefRes *dref;
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    const char *extra_values[] = { "extra", NULL };
+    struct mock_ldap_attr test_ipa_user_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { .name = "extra", .values = extra_values },
+        { NULL, NULL }
+    };
+    struct mock_ldap_entry test_ipa_user;
+    test_ipa_user.dn = "cn=testuser,dc=example,dc=com";
+    test_ipa_user.attrs = test_ipa_user_attrs;
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &minfo.map);
+    minfo.num_attrs = SDAP_OPTS_USER;
+    assert_int_equal(ret, ERR_OK);
+
+    dref = mock_deref_res(test_ctx, &test_ipa_user);
+    assert_non_null(dref);
+
+    ret = sdap_parse_deref(test_ctx, &minfo, 1, dref, &res);
+    talloc_free(dref);
+    talloc_free(minfo.map);
+    assert_int_equal(ret, ERR_OK);
+    assert_non_null(res);
+
+    /* The extra attribute must not be downloaded, it's not present in map */
+    assert_non_null(res[0]);
+    assert_true(res[0]->map == minfo.map);
+
+    assert_entry_has_attr(res[0]->attrs, SYSDB_ORIG_DN,
+                          "cn=testuser,dc=example,dc=com");
+    assert_entry_has_attr(res[0]->attrs, SYSDB_NAME, "tuser1");
+    assert_entry_has_no_attr(res[0]->attrs, "extra");
+    talloc_free(res);
+}
+
+void test_parse_deref_no_attrs(void **state)
+{
+    errno_t ret;
+    struct sdap_attr_map_info minfo;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct sdap_deref_attrs **res;
+    LDAPDerefRes *dref;
+
+    struct mock_ldap_entry test_ipa_user;
+    test_ipa_user.dn = "cn=testuser,dc=example,dc=com";
+    test_ipa_user.attrs = NULL;
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &minfo.map);
+    minfo.num_attrs = SDAP_OPTS_USER;
+    assert_int_equal(ret, ERR_OK);
+
+    dref = mock_deref_res(test_ctx, &test_ipa_user);
+    assert_non_null(dref);
+
+    ret = sdap_parse_deref(test_ctx, &minfo, 1, dref, &res);
+    talloc_free(dref);
+    talloc_free(minfo.map);
+    assert_int_equal(ret, ERR_OK);
+    assert_null(res); /* res must be NULL on receiving no attributes */
+}
+
+void test_parse_deref_map_mismatch(void **state)
+{
+    errno_t ret;
+    struct sdap_attr_map_info minfo;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct sdap_deref_attrs **res;
+    LDAPDerefRes *dref;
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    struct mock_ldap_attr test_ipa_user_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { NULL, NULL }
+    };
+    struct mock_ldap_entry test_ipa_user;
+    test_ipa_user.dn = "cn=testuser,dc=example,dc=com";
+    test_ipa_user.attrs = test_ipa_user_attrs;
+
+    ret = sdap_copy_map(test_ctx, rfc2307_group_map, SDAP_OPTS_GROUP, &minfo.map);
+    minfo.num_attrs = SDAP_OPTS_GROUP;
+    assert_int_equal(ret, ERR_OK);
+
+    dref = mock_deref_res(test_ctx, &test_ipa_user);
+    assert_non_null(dref);
+
+    ret = sdap_parse_deref(test_ctx, &minfo, 1, dref, &res);
+    talloc_free(dref);
+    talloc_free(minfo.map);
+    assert_int_equal(ret, ERR_OK);
+    assert_non_null(res);
+    /* the group map didn't match, so no attrs will be parsed out of the map */
+    assert_null(res[0]->attrs);
+    talloc_free(res);
+}
+
 /* Negative test - objectclass doesn't match the map */
 void test_parse_bad_oc(void **state)
 {
@@ -548,6 +707,12 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_parse_dups,
                                  parse_entry_test_setup,
                                  parse_entry_test_teardown),
+        unit_test_setup_teardown(test_parse_deref,
+                                 parse_entry_test_setup,
+                                 parse_entry_test_teardown),
+        unit_test_setup_teardown(test_parse_deref_no_attrs,
+                                 parse_entry_test_setup,
+                                 parse_entry_test_teardown),
         /* Negative tests */
         unit_test_setup_teardown(test_parse_no_oc,
                                  parse_entry_test_setup,
@@ -556,6 +721,9 @@ int main(int argc, const char *argv[])
                                  parse_entry_test_setup,
                                  parse_entry_test_teardown),
         unit_test_setup_teardown(test_parse_no_dn,
+                                 parse_entry_test_setup,
+                                 parse_entry_test_teardown),
+        unit_test_setup_teardown(test_parse_deref_map_mismatch,
                                  parse_entry_test_setup,
                                  parse_entry_test_teardown),
     };
