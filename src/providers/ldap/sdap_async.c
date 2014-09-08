@@ -1061,6 +1061,12 @@ static errno_t add_to_deref_reply(TALLOC_CTX *mem_ctx,
 {
     int i;
 
+    if (res == NULL) {
+        /* Nothing to add, probably ACIs prevented us from dereferencing
+         * the attribute */
+        return EOK;
+    }
+
     for (i=0; i < num_maps; i++) {
         if (res[i]->attrs == NULL) continue; /* Nothing in this map */
 
@@ -1829,7 +1835,7 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
         }
 
         ret = add_to_deref_reply(state, state->num_maps,
-                                    &state->dreply, res);
+                                 &state->dreply, res);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "add_to_deref_reply failed.\n");
             goto done;

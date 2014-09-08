@@ -580,10 +580,11 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
           "Dereferenced DN: %s\n", orig_dn);
 
     if (!dref->attrVals) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Dereferenced entry [%s] has no attributes\n",
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Dereferenced entry [%s] has no attributes, skipping\n",
               orig_dn);
-        ret = EINVAL;
+        *_res = NULL;
+        ret = EOK;
         goto done;
     }
 
