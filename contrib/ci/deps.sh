@@ -89,6 +89,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libtevent-dev
         libtool
         libxml2-utils
+        make
         python-dev
         samba-dev
         systemd
