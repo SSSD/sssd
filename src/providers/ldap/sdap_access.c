@@ -1461,6 +1461,12 @@ static void sdap_access_lock_get_lockout_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct sdap_access_lock_req_ctx);
 
     ret = sdap_get_generic_recv(subreq, state, &num_results, &results);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve ppolicy\n");
+        ret = ERR_NETWORK_IO;
+        goto done;
+    }
+
     talloc_zfree(subreq);
 
     /* Check the number of responses we got
