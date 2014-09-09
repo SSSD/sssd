@@ -304,17 +304,21 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     }
     sdap_id_ctx = ad_id_ctx->sdap_id_ctx;
 
-    /* Currently only LDAP port for AD is used because POSIX
-     * attributes are not replicated to GC by default
+    /* We read users and groups from GC. From groups, we may switch to
+     * using LDAP connection in the group request itself, but in order
+     * to resolve Universal group memberships, we also need the GC
+     * connection
      */
-
-    if ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_INITGROUPS) {
+    switch (state->ar->entry_type & BE_REQ_TYPE_MASK) {
+    case BE_REQ_INITGROUPS:
+    case BE_REQ_GROUP:
         clist = ad_gc_conn_list(req, ad_id_ctx, state->user_dom);
         if (clist == NULL) {
             ret = ENOMEM;
             goto fail;
         }
-    } else {
+        break;
+    default:
         clist = talloc_zero_array(req, struct sdap_id_conn_ctx *, 2);
         if (clist == NULL) {
             ret = ENOMEM;
