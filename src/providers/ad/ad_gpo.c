@@ -61,11 +61,8 @@
 #define AD_AT_GPOPTIONS "gpOptions"
 #define AD_AT_NT_SEC_DESC "nTSecurityDescriptor"
 #define AD_AT_CN "cn"
-#define AD_AT_DISPLAY_NAME "displayName"
 #define AD_AT_FILE_SYS_PATH "gPCFileSysPath"
-#define AD_AT_VERSION_NUMBER "versionNumber"
 #define AD_AT_MACHINE_EXT_NAMES "gPCMachineExtensionNames"
-#define AD_AT_USER_EXT_NAMES "gPCUserExtensionNames"
 #define AD_AT_FUNC_VERSION "gPCFunctionalityVersion"
 #define AD_AT_FLAGS "flags"
 
@@ -78,9 +75,6 @@
 #define SMB_STANDARD_URI "smb://"
 #define BUFSIZE 65536
 
-#define GPO_VERSION_USER(x) (x >> 16)
-#define GPO_VERSION_MACHINE(x) (x & 0xffff)
-
 #define RIGHTS_SECTION "Privilege Rights"
 #define ALLOW_LOGON_INTERACTIVE "SeInteractiveLogonRight"
 #define DENY_LOGON_INTERACTIVE "SeDenyInteractiveLogonRight"
@@ -91,7 +85,7 @@
 #define ALLOW_LOGON_BATCH "SeBatchLogonRight"
 #define DENY_LOGON_BATCH "SeDenyBatchLogonRight"
 #define ALLOW_LOGON_SERVICE "SeServiceLogonRight"
-#define DENY_LOGON_SERVICE "SeServiceBatchLogonRight"
+#define DENY_LOGON_SERVICE "SeDenyServiceLogonRight"
 
 #define GP_EXT_GUID_SECURITY "{827D319E-6EAC-11D2-A4EA-00C04F79F83A}"
 #define GP_EXT_GUID_SECURITY_SUFFIX "/Machine/Microsoft/Windows NT/SecEdit/GptTmpl.inf"
@@ -122,16 +116,15 @@ struct gp_gpo {
     struct security_descriptor *gpo_sd;
     const char *gpo_dn;
     const char *gpo_guid;
-    const char *gpo_display_name;
     const char *smb_server;
     const char *smb_share;
     const char *smb_path;
-    uint32_t gpc_version;
     const char **gpo_cse_guids;
     int num_gpo_cse_guids;
     int gpo_func_version;
     int gpo_flags;
     bool send_to_child;
+    const char *policy_filename;
 };
 
 enum ace_eval_status {
@@ -164,6 +157,7 @@ int ad_gpo_process_gpo_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx,
                             struct gp_gpo ***candidate_gpos,
                             int *num_candidate_gpos);
+
 struct tevent_req *ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            bool send_to_child,
@@ -176,9 +170,7 @@ struct tevent_req *ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
                                            int cached_gpt_version,
                                            int gpo_timeout_option);
 int ad_gpo_process_cse_recv(struct tevent_req *req,
-                            TALLOC_CTX *mem_ctx,
-                            int *_sysvol_gpt_version,
-                            const char **_policy_filename);
+                            TALLOC_CTX *mem_ctx);
 
 /* == ad_gpo_parse_map_options and helpers ==================================*/
 
@@ -200,6 +192,8 @@ struct gpo_map_option_entry {
     enum gpo_map_type gpo_map_type;
     enum ad_basic_opt ad_basic_opt;
     const char **gpo_map_defaults;
+    const char *allow_key;
+    const char *deny_key;
 };
 
 const char *gpo_map_interactive_defaults[] =
@@ -213,16 +207,20 @@ const char *gpo_map_permit_defaults[] = {GPO_SUDO, GPO_SUDO_I, NULL};
 const char *gpo_map_deny_defaults[] = {NULL};
 
 struct gpo_map_option_entry gpo_map_option_entries[] = {
-    {GPO_MAP_INTERACTIVE, AD_GPO_MAP_INTERACTIVE, gpo_map_interactive_defaults},
+    {GPO_MAP_INTERACTIVE, AD_GPO_MAP_INTERACTIVE, gpo_map_interactive_defaults,
+     ALLOW_LOGON_INTERACTIVE, DENY_LOGON_INTERACTIVE},
     {GPO_MAP_REMOTE_INTERACTIVE, AD_GPO_MAP_REMOTE_INTERACTIVE,
-     gpo_map_remote_interactive_defaults},
-    {GPO_MAP_NETWORK, AD_GPO_MAP_NETWORK, gpo_map_network_defaults},
-    {GPO_MAP_BATCH, AD_GPO_MAP_BATCH, gpo_map_batch_defaults},
-    {GPO_MAP_SERVICE, AD_GPO_MAP_SERVICE, gpo_map_service_defaults},
-    {GPO_MAP_PERMIT, AD_GPO_MAP_PERMIT, gpo_map_permit_defaults},
-    {GPO_MAP_DENY, AD_GPO_MAP_DENY, gpo_map_deny_defaults},
+     gpo_map_remote_interactive_defaults,
+     ALLOW_LOGON_REMOTE_INTERACTIVE, DENY_LOGON_REMOTE_INTERACTIVE},
+    {GPO_MAP_NETWORK, AD_GPO_MAP_NETWORK, gpo_map_network_defaults,
+     ALLOW_LOGON_NETWORK, DENY_LOGON_NETWORK},
+    {GPO_MAP_BATCH, AD_GPO_MAP_BATCH, gpo_map_batch_defaults,
+     ALLOW_LOGON_BATCH, DENY_LOGON_BATCH},
+    {GPO_MAP_SERVICE, AD_GPO_MAP_SERVICE, gpo_map_service_defaults,
+     ALLOW_LOGON_SERVICE, DENY_LOGON_SERVICE},
+    {GPO_MAP_PERMIT, AD_GPO_MAP_PERMIT, gpo_map_permit_defaults, NULL, NULL},
+    {GPO_MAP_DENY, AD_GPO_MAP_DENY, gpo_map_deny_defaults, NULL, NULL},
 };
-
 
 const char* gpo_map_type_string(int gpo_map_type)
 {
@@ -251,7 +249,6 @@ ad_gpo_service_in_list(char **list, size_t nlist, const char *str)
 
     return (i < nlist) ? true : false;
 }
-
 
 errno_t
 ad_gpo_parse_map_option_helper(enum gpo_map_type gpo_map_type,
@@ -326,7 +323,7 @@ ad_gpo_parse_map_option(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "gpo_map_type: %s\n",
+    DEBUG(SSSDBG_TRACE_ALL, "gpo_map_type: %s\n",
           gpo_map_type_string(gpo_map_type));
 
     if (conf_str) {
@@ -383,7 +380,7 @@ ad_gpo_parse_map_option(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, "Explicitly added service: %s\n", key.str);
+        DEBUG(SSSDBG_TRACE_ALL, "Explicitly added service: %s\n", key.str);
     }
 
     /* Add defaults to hashtable */
@@ -402,7 +399,7 @@ ad_gpo_parse_map_option(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, "Default service (not explicitly removed): %s\n",
+        DEBUG(SSSDBG_TRACE_ALL, "Default service (not explicitly removed): %s\n",
               key.str);
     }
 
@@ -442,7 +439,7 @@ ad_gpo_parse_map_options(struct ad_access_ctx *access_ctx)
     gpo_default_right_config =
         dp_opt_get_string(access_ctx->ad_options, AD_GPO_DEFAULT_RIGHT);
 
-    DEBUG(SSSDBG_TRACE_FUNC, "gpo_default_right_config: %s\n",
+    DEBUG(SSSDBG_TRACE_ALL, "gpo_default_right_config: %s\n",
           gpo_default_right_config);
 
     /* if default right not set in config, set them to DENY */
@@ -474,7 +471,7 @@ ad_gpo_parse_map_options(struct ad_access_ctx *access_ctx)
         goto fail;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "gpo_default_right: %d\n", gpo_default_right);
+    DEBUG(SSSDBG_TRACE_ALL, "gpo_default_right: %d\n", gpo_default_right);
     access_ctx->gpo_default_right = gpo_default_right;
 
 fail:
@@ -791,7 +788,6 @@ static errno_t ad_gpo_evaluate_dacl(struct security_acl *dacl,
  * _dacl_filtered_gpos output parameter. The filtering algorithm is
  * defined in [MS-GPOL] 3.2.5.1.6
  */
-
 static errno_t
 ad_gpo_filter_gpos_by_dacl(TALLOC_CTX *mem_ctx,
                            const char *user,
@@ -1002,9 +998,9 @@ ad_gpo_filter_gpos_by_cse_guid(TALLOC_CTX *mem_ctx,
 }
 
 /*
- * This cse-specific function (GP_EXT_GUID_SECURITY) populates the output
- * parameter (found) based on whether the input user_sid or any of the input
- * group_sids appear in the input list of privilege_sids.
+ * This cse-specific function (GP_EXT_GUID_SECURITY) returns a boolean value
+ * based on whether the input user_sid or any of the input group_sids appear
+ * in the input list of privilege_sids.
  */
 static bool
 check_rights(char **privilege_sids,
@@ -1030,8 +1026,167 @@ check_rights(char **privilege_sids,
 }
 
 /*
- * This cse-specific function (GP_EXT_GUID_SECURITY) performs HBAC policy
- * application and determines whether logon access is granted or denied for
+ * This function parses the input ini_config object (which represents
+ * the cse-specific filename), and returns the policy_setting_value
+ * corresponding to the input policy_setting_key.
+ */
+static errno_t
+ad_gpo_extract_policy_setting(TALLOC_CTX *mem_ctx,
+                              struct ini_cfgobj *ini_config,
+                              const char *policy_setting_key,
+                              char **_policy_setting_value)
+{
+    struct value_obj *vobj = NULL;
+    int ret;
+    const char *policy_setting_value;
+
+    ret = ini_get_config_valueobj(RIGHTS_SECTION, policy_setting_key, ini_config,
+                                  INI_GET_FIRST_VALUE, &vobj);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "ini_get_config_valueobj failed [%d][%s]\n", ret, strerror(ret));
+        goto done;
+    }
+    if (vobj == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "section/name not found: [%s][%s]\n",
+              RIGHTS_SECTION, policy_setting_key);
+        ret = ENOENT;
+        goto done;
+    }
+    policy_setting_value = ini_get_string_config_value(vobj, &ret);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "ini_get_string_config_value failed [%d][%s]\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    if (policy_setting_value[0]) {
+        *_policy_setting_value = talloc_strdup(mem_ctx, policy_setting_value);
+        if (!*_policy_setting_value) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        /* This is an explicitly empty policy setting.
+         * We need to remove this from the LDB.
+         */
+        *_policy_setting_value = NULL;
+    }
+
+    ret = EOK;
+
+ done:
+
+    return ret;
+}
+
+/*
+ * This function parses the cse-specific (GP_EXT_GUID_SECURITY) filename,
+ * and stores the allow_key and deny_key of all of the gpo_map_types present
+ * in the file (as part of the GPO Result object in the sysdb cache).
+ */
+static errno_t
+ad_gpo_store_policy_settings(TALLOC_CTX *mem_ctx,
+                             struct sss_domain_info *domain,
+                             const char *filename)
+{
+    struct ini_cfgfile *file_ctx = NULL;
+    struct ini_cfgobj *ini_config = NULL;
+    int ret;
+    int i;
+    char *allow_value = NULL;
+    char *deny_value = NULL;
+    const char *allow_key = NULL;
+    const char *deny_key = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ini_config_create(&ini_config);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "ini_config_create failed [%d][%s]\n", ret, strerror(ret));
+        goto done;
+    }
+
+    ret = ini_config_file_open(filename, 0, &file_ctx);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "ini_config_file_open failed [%d][%s]\n", ret, strerror(ret));
+        goto done;
+    }
+
+    ret = ini_config_parse(file_ctx, INI_STOP_ON_NONE, 0, 0, ini_config);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "ini_config_parse failed [%d][%s]\n", ret, strerror(ret));
+        goto done;
+    }
+
+    for (i = 0; i < GPO_MAP_NUM_OPTS; i++) {
+
+        struct gpo_map_option_entry entry = gpo_map_option_entries[i];
+
+        allow_key = entry.allow_key;
+        if (allow_key != NULL) {
+            DEBUG(SSSDBG_TRACE_ALL, "allow_key = %s\n", allow_key);
+            ret = ad_gpo_extract_policy_setting(tmp_ctx,
+                                                ini_config,
+                                                allow_key,
+                                                &allow_value);
+            if (ret != EOK && ret != ENOENT) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "ad_gpo_extract_policy_setting failed for %s [%d][%s]\n",
+                      allow_key, ret, strerror(ret));
+                goto done;
+            } else if (ret != ENOENT) {
+                ret = sysdb_gpo_store_gpo_result_setting(domain,
+                                                         allow_key,
+                                                         allow_value);
+            }
+        }
+
+        deny_key = entry.deny_key;
+        if (deny_key != NULL) {
+            DEBUG(SSSDBG_TRACE_ALL, "deny_key = %s\n", deny_key);
+            ret = ad_gpo_extract_policy_setting(tmp_ctx,
+                                                ini_config,
+                                                deny_key,
+                                                &deny_value);
+            if (ret != EOK && ret != ENOENT) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "ad_gpo_extract_policy_setting failed for %s [%d][%s]\n",
+                      deny_key, ret, strerror(ret));
+                goto done;
+            } else if (ret != ENOENT) {
+                ret = sysdb_gpo_store_gpo_result_setting(domain,
+                                                         deny_key,
+                                                         deny_value);
+            }
+        }
+    }
+
+    ret = EOK;
+
+ done:
+
+    if (ret != EOK) {
+      DEBUG(SSSDBG_CRIT_FAILURE, "Error encountered: %d.\n", ret);
+    }
+    ini_config_file_destroy(file_ctx);
+    ini_config_destroy(ini_config);
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+/*
+ * This cse-specific function (GP_EXT_GUID_SECURITY) performs the access
+ * check for determining whether logon access is granted or denied for
  * the {user,domain} tuple specified in the inputs. This function returns EOK
  * to indicate that access is granted. Any other return value indicates that
  * access is denied.
@@ -1047,7 +1202,7 @@ check_rights(char **privilege_sids,
  *    appear in denied_sids
  *
  * Note that a deployment that is unaware of GPO-based access-control policy
- * settings is unaffected by them (b/c the absence of allowed_sids grants access).
+ * settings is unaffected by them (b/c absence of allowed_sids grants access).
  *
  * Note that if a principal_sid appears in both allowed_sids and denied_sids,
  * the "allowed_sids_condition" is met, but the "denied_sids_condition" is not.
@@ -1072,18 +1227,17 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
     int ret;
     int j;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "POLICY FILE:\n");
-    DEBUG(SSSDBG_TRACE_FUNC, "gpo_map_type: %d\n", gpo_map_type);
+    DEBUG(SSSDBG_TRACE_FUNC, "RESULTANT POLICY:\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "gpo_map_type: %s\n",
+          gpo_map_type_string(gpo_map_type));
     DEBUG(SSSDBG_TRACE_FUNC, "allowed_size = %d\n", allowed_size);
     for (j= 0; j < allowed_size; j++) {
-        DEBUG(SSSDBG_TRACE_FUNC, "allowed_sids[%d] = %s\n", j,
-              allowed_sids[j]);
+        DEBUG(SSSDBG_TRACE_FUNC, "allowed_sids[%d] = %s\n", j, allowed_sids[j]);
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "denied_size = %d\n", denied_size);
     for (j= 0; j < denied_size; j++) {
-        DEBUG(SSSDBG_TRACE_FUNC, " denied_sids[%d] = %s\n", j,
-              denied_sids[j]);
+        DEBUG(SSSDBG_TRACE_FUNC, " denied_sids[%d] = %s\n", j, denied_sids[j]);
     }
 
     ret = ad_gpo_get_sids(mem_ctx, user, domain, &user_sid,
@@ -1103,14 +1257,14 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
               group_sids[j]);
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "gpo_map_type: %d\n", gpo_map_type);
-
     if (allowed_size == 0) {
         access_granted = true;
     }  else {
         access_granted = check_rights(allowed_sids, allowed_size, user_sid,
                                       group_sids, group_size);
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "POLICY DECISION:\n");
 
     DEBUG(SSSDBG_TRACE_FUNC, " access_granted = %d\n", access_granted);
 
@@ -1171,6 +1325,124 @@ static errno_t gpo_child_init(void)
     return EOK;
 }
 
+/*
+ * This function retrieves the raw policy_setting_value for the input key from
+ * the GPO_Result object in the sysdb cache. It then parses the raw value and
+ * uses the results to populate the output parameters with the sids_list and
+ * the size of the sids_list.
+ */
+errno_t
+parse_policy_setting_value(TALLOC_CTX *mem_ctx,
+                           struct sss_domain_info *domain,
+                           const char *key,
+                           char ***_sids_list,
+                           int *_sids_list_size)
+{
+    int ret;
+    int i;
+    const char *value;
+    int sids_list_size;
+    char **sids_list = NULL;
+
+    ret = sysdb_gpo_get_gpo_result_setting(mem_ctx, domain, key, &value);
+
+    if (value == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "No value for key [%s] found in gpo result\n", key);
+        sids_list_size = 0;
+    } else {
+        ret = split_on_separator(mem_ctx, value, ',', true, true,
+                                 &sids_list, &sids_list_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot parse list of sids %s: %d\n", value, ret);
+            ret = EINVAL;
+            goto done;
+        }
+
+        for (i = 0; i < sids_list_size; i++) {
+            /* remove the asterisk prefix found on sids */
+            sids_list[i]++;
+        }
+    }
+
+    *_sids_list = talloc_steal(mem_ctx, sids_list);
+    *_sids_list_size = sids_list_size;
+
+    ret = EOK;
+
+ done:
+    return ret;
+}
+
+/*
+ * This cse-specific function (GP_EXT_GUID_SECURITY) performs HBAC policy
+ * processing and determines whether logon access is granted or denied for
+ * the {user,domain} tuple specified in the inputs. This function returns EOK
+ * to indicate that access is granted. Any other return value indicates that
+ * access is denied.
+ *
+ * Internally, this function retrieves the allow_value and deny_value for the
+ * input gpo_map_type from the GPO Result object in the sysdb cache, parses
+ * the values into allow_sids and deny_sids, and executes the access control
+ * algorithm which compares the allow_sids and deny_sids against the user_sid
+ * and group_sids for the input user.
+ */
+static errno_t
+ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
+                               enum gpo_access_control_mode gpo_mode,
+                               enum gpo_map_type gpo_map_type,
+                               const char *user,
+                               struct sss_domain_info *domain)
+{
+    int ret;
+    const char *allow_key = NULL;
+    char **allow_sids;
+    int allow_size ;
+    const char *deny_key = NULL;
+    char **deny_sids;
+    int deny_size;
+
+    allow_key = gpo_map_option_entries[gpo_map_type].allow_key;
+    DEBUG(SSSDBG_TRACE_ALL, "allow_key: %s\n", allow_key);
+    deny_key = gpo_map_option_entries[gpo_map_type].deny_key;
+    DEBUG(SSSDBG_TRACE_ALL, "deny_key: %s\n", deny_key);
+
+    ret = parse_policy_setting_value(mem_ctx, domain, allow_key,
+                                     &allow_sids, &allow_size);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "parse_policy_setting_value failed; allow_size %d: %d\n",
+              allow_size, ret);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = parse_policy_setting_value(mem_ctx, domain, deny_key,
+                                     &deny_sids, &deny_size);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "parse_policy_setting_value failed; deny_size %d: %d\n",
+              deny_size, ret);
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* perform access check with the final resultant allow_sids and deny_sids */
+    ret = ad_gpo_access_check(mem_ctx, gpo_mode, gpo_map_type, user, domain,
+                              allow_sids, allow_size, deny_sids, deny_size);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "GPO access check failed: [%d](%s)\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+ done:
+    return ret;
+}
+
 /* == ad_gpo_access_send/recv implementation ================================*/
 
 struct ad_gpo_access_state {
@@ -1201,13 +1473,6 @@ static void ad_gpo_process_som_done(struct tevent_req *subreq);
 static void ad_gpo_process_gpo_done(struct tevent_req *subreq);
 
 static errno_t ad_gpo_cse_step(struct tevent_req *req);
-static errno_t ad_gpo_parse_policy_file(TALLOC_CTX *mem_ctx,
-                                        const char *filename,
-                                        enum gpo_map_type gpo_map_type,
-                                        char ***allowed_sids,
-                                        int *allowed_size,
-                                        char ***denied_sids,
-                                        int *denied_size);
 static void ad_gpo_cse_done(struct tevent_req *subreq);
 
 struct tevent_req *
@@ -1361,109 +1626,24 @@ immediately:
 }
 
 static errno_t
-process_offline_gpo(TALLOC_CTX *mem_ctx,
-                    const char *user,
-                    enum gpo_access_control_mode gpo_mode,
-                    struct sss_domain_info *domain,
-                    struct ldb_message *gpo_cache_entry,
-                    enum gpo_map_type gpo_map_type)
-{
-    const char *policy_filename = NULL;
-    const char *cached_gpo_guid;
-    char **allowed_sids;
-    int allowed_size;
-    char **denied_sids;
-    int denied_size;
-    int ret;
-
-    cached_gpo_guid = ldb_msg_find_attr_as_string(gpo_cache_entry,
-                                                  SYSDB_GPO_GUID_ATTR, NULL);
-
-    if (cached_gpo_guid == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "No gpo_guid attribute found in gpo cache entry\n");
-        ret = EFAULT;
-        goto done;
-    }
-
-    policy_filename = talloc_asprintf(mem_ctx,
-                                      GPO_CACHE_PATH"/%s/Policies/%s%s",
-                                      domain->name,
-                                      cached_gpo_guid,
-                                      GP_EXT_GUID_SECURITY_SUFFIX);
-
-    if (policy_filename == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "policy_filename:%s\n", policy_filename);
-
-    ret = ad_gpo_parse_policy_file(mem_ctx,
-                                   policy_filename,
-                                   gpo_map_type,
-                                   &allowed_sids,
-                                   &allowed_size,
-                                   &denied_sids,
-                                   &denied_size);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot parse policy file: [%s][%d][%s]\n",
-              policy_filename, ret, strerror(ret));
-        goto done;
-    }
-
-    ret = ad_gpo_access_check
-        (mem_ctx, gpo_mode, gpo_map_type, user, domain,
-         allowed_sids, allowed_size, denied_sids, denied_size);
-
- done:
-    return ret;
-}
-
-static errno_t
 process_offline_gpos(TALLOC_CTX *mem_ctx,
                      const char *user,
                      enum gpo_access_control_mode gpo_mode,
                      struct sss_domain_info *domain,
                      enum gpo_map_type gpo_map_type)
+
 {
-    struct ldb_result *res;
-    struct ldb_message *gpo_cache_entry;
     errno_t ret;
-    int i;
 
-    ret = sysdb_gpo_get_gpos(mem_ctx, domain, &res);
-
+    ret = ad_gpo_perform_hbac_processing(mem_ctx,
+                                         gpo_mode,
+                                         gpo_map_type,
+                                         user,
+                                         domain);
     if (ret != EOK) {
-        switch (ret) {
-        case ENOENT:
-            DEBUG(SSSDBG_OP_FAILURE, "No GPOs available in cache\n");
-            /* if there are no GPOs available, we allow access by default */
-            ret = EOK;
-            goto done;
-        default:
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Could not read GPOs from cache: [%s]\n",
-                  strerror(ret));
-            goto done;
-        }
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Retrieving GPOs from cache\n");
-    DEBUG(SSSDBG_TRACE_FUNC, "Found %d GPO(s) in cache\n", res->count);
-
-    for (i = 0; i < res->count; i++){
-        gpo_cache_entry = res->msgs[i];
-        ret = process_offline_gpo(mem_ctx, user, gpo_mode, domain,
-                                  gpo_cache_entry, gpo_map_type);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "process_offline_gpo failed [%d](%s)\n",
-                  ret, sss_strerror(ret));
-            goto done;
-        }
+        DEBUG(SSSDBG_OP_FAILURE, "HBAC processing failed: [%d](%s}\n",
+              ret, sss_strerror(ret));
+        goto done;
     }
 
     /* we have successfully processed all offline gpos */
@@ -1720,8 +1900,9 @@ ad_gpo_process_som_done(struct tevent_req *subreq)
  * reduces it to a list of cse_filtered_gpos, based on whether each GPO's list
  * of cse_guids includes the "SecuritySettings" CSE GUID (used for HBAC).
  *
- * This function then sends each cse_filtered_gpo to the CSE processing engine
- * for policy application, which currently consists of HBAC functionality.
+ * Ultimately, this function then sends each cse_filtered_gpo to the gpo_child,
+ * which retrieves the GPT.INI and policy files (as needed). Once all files
+ * have been downloaded, the ad_gpo_cse_done function performs HBAC processing.
  */
 static void
 ad_gpo_process_gpo_done(struct tevent_req *subreq)
@@ -1822,22 +2003,20 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
           state->num_cse_filtered_gpos);
 
     /*
-     * we now have the array of applicable gpos in hand; however, since we
-     * may have cached a larger set of gpo-guids previously, we delete
-     * all stale gpo cache entries (i.e. entries that have a gpo-guid that
-     * doesn't match any of the gpo-guids in the cse_filtered_gpo_guids list)
+     * before we start processing each gpo, we delete the GPO Result object
+     * from the sysdb cache so that any previous policy settings are cleared;
+     * subsequent functions will add the GPO Result object (and populate it
+     * with resultant policy settings) for this policy application
      */
-    ret = sysdb_gpo_delete_stale_gpos(state, state->domain,
-                                      cse_filtered_gpo_guids,
-                                      state->num_cse_filtered_gpos);
+    ret = sysdb_gpo_delete_gpo_result_object(state, state->domain);
     if (ret != EOK) {
         switch (ret) {
         case ENOENT:
-            DEBUG(SSSDBG_TRACE_FUNC, "No GPOs available in cache\n");
+            DEBUG(SSSDBG_TRACE_FUNC, "No GPO Result available in cache\n");
             break;
         default:
             DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Could not delete stale GPOs from cache: [%s]\n",
+                  "Could not delete GPO Result from cache: [%s]\n",
                   strerror(ret));
             goto done;
         }
@@ -1871,7 +2050,7 @@ ad_gpo_cse_step(struct tevent_req *req)
     struct gp_gpo *cse_filtered_gpo =
         state->cse_filtered_gpos[state->cse_gpo_index];
 
-    /* cse_filtered_gpo is NULL only after all GPOs have been processed */
+    /* cse_filtered_gpo is NULL after all GPO policy files have been downloaded */
     if (cse_filtered_gpo == NULL) return EOK;
 
     DEBUG(SSSDBG_TRACE_FUNC, "cse filtered_gpos[%d]->gpo_guid is %s\n",
@@ -1886,6 +2065,15 @@ ad_gpo_cse_step(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, "smb_share: %s\n", cse_filtered_gpo->smb_share);
     DEBUG(SSSDBG_TRACE_FUNC, "smb_path: %s\n", cse_filtered_gpo->smb_path);
     DEBUG(SSSDBG_TRACE_FUNC, "gpo_guid: %s\n", cse_filtered_gpo->gpo_guid);
+
+    cse_filtered_gpo->policy_filename =
+        talloc_asprintf(state,
+                        GPO_CACHE_PATH"%s%s",
+                        cse_filtered_gpo->smb_path,
+                        GP_EXT_GUID_SECURITY_SUFFIX);
+    if (cse_filtered_gpo->policy_filename == NULL) {
+        return ENOMEM;
+    }
 
     /* retrieve gpo cache entry; set cached_gpt_version to -1 if unavailable */
     DEBUG(SSSDBG_TRACE_FUNC, "retrieving GPO from cache [%s]\n",
@@ -1947,13 +2135,12 @@ ad_gpo_cse_step(struct tevent_req *req)
 }
 
 /*
- * This cse-specific function (GP_EXT_GUID_SECURITY) retrieves a list of
- * allowed_sids and denied_sids, and uses them to determine whether logon
- * access is granted or denied for the state's {user, domain} tuple.
- *
- * If it is determined that the current cse_filtered_gpo grants access, then
- * we process the next cse_filtered_gpo in the list. At any time, if access is
- * denied, we return immediately with an error.
+ * This cse-specific function (GP_EXT_GUID_SECURITY) increments the
+ * cse_gpo_index until the policy settings for all applicable GPOs have been
+ * stored as part of the GPO Result object in the sysdb cache. Once all
+ * GPOs have been processed, this functions performs HBAC processing by
+ * comparing the resultant policy setting values in the GPO Result object
+ * with the user_sid/group_sids of interest.
  */
 static void
 ad_gpo_cse_done(struct tevent_req *subreq)
@@ -1961,12 +2148,6 @@ ad_gpo_cse_done(struct tevent_req *subreq)
     struct tevent_req *req;
     struct ad_gpo_access_state *state;
     int ret;
-    int sysvol_gpt_version;
-    const char *policy_filename = NULL;
-    char **allowed_sids;
-    int allowed_size;
-    char **denied_sids;
-    int denied_size;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
@@ -1978,8 +2159,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_FUNC, "gpo_guid: %s\n", gpo_guid);
 
-    ret = ad_gpo_process_cse_recv(subreq, state, &sysvol_gpt_version,
-                                  &policy_filename);
+    ret = ad_gpo_process_cse_recv(subreq, state);
 
     talloc_zfree(subreq);
 
@@ -1989,34 +2169,31 @@ ad_gpo_cse_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = ad_gpo_parse_policy_file(state,
-                                   policy_filename,
-                                   state->gpo_map_type,
-                                   &allowed_sids,
-                                   &allowed_size,
-                                   &denied_sids,
-                                   &denied_size);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Cannot parse policy file: [%s][%d][%s]\n",
-              policy_filename, ret, strerror(ret));
-        goto done;
-    }
-
-    ret = ad_gpo_access_check
-        (state, state->gpo_mode, state->gpo_map_type, state->user,
-         state->domain, allowed_sids, allowed_size, denied_sids, denied_size);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "GPO access check failed: [%d](%s)\n",
-              ret, strerror(ret));
-        goto done;
-    }
+    /*
+     * now that the policy file for this gpo have been downloaded to the
+     * GPO CACHE, we store all of the supported keys present in the file
+     * (as part of the GPO Result object in the sysdb cache).
+     */
+    ret = ad_gpo_store_policy_settings(state, state->domain,
+                                       cse_filtered_gpo->policy_filename);
 
     state->cse_gpo_index++;
     ret = ad_gpo_cse_step(req);
+
+    if (ret == EOK) {
+        /* ret is EOK only after all GPO policy files have been downloaded */
+        ret = ad_gpo_perform_hbac_processing(state,
+                                             state->gpo_mode,
+                                             state->gpo_map_type,
+                                             state->user,
+                                             state->domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "HBAC processing failed: [%d](%s}\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+
+    }
 
  done:
 
@@ -2213,7 +2390,7 @@ ad_gpo_populate_gplink_list(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL, "som_dn: %s\n", som_dn);
+    DEBUG(SSSDBG_TRACE_FUNC, "som_dn: %s\n", som_dn);
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         ret = ENOMEM;
@@ -2228,7 +2405,7 @@ ad_gpo_populate_gplink_list(TALLOC_CTX *mem_ctx,
     }
 
     if (gplink_count == 0) {
-        ret = EINVAL;
+        ret = EOK;
         goto done;
     }
 
@@ -3236,8 +3413,7 @@ immediately:
 static errno_t
 ad_gpo_get_gpo_attrs_step(struct tevent_req *req)
 {
-    const char *attrs[] = {AD_AT_NT_SEC_DESC, AD_AT_CN, AD_AT_DISPLAY_NAME,
-                           AD_AT_FILE_SYS_PATH, AD_AT_VERSION_NUMBER,
+    const char *attrs[] = {AD_AT_NT_SEC_DESC, AD_AT_CN, AD_AT_FILE_SYS_PATH,
                            AD_AT_MACHINE_EXT_NAMES, AD_AT_FUNC_VERSION,
                            AD_AT_FLAGS, NULL};
     struct tevent_req *subreq;
@@ -3276,7 +3452,6 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     struct sysdb_attrs **results;
     struct ldb_message_element *el = NULL;
     const char *gpo_guid = NULL;
-    const char *gpo_display_name = NULL;
     const char *raw_file_sys_path = NULL;
     char *file_sys_path = NULL;
     uint8_t *raw_machine_ext_names = NULL;
@@ -3329,25 +3504,6 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_ALL, "populating attrs for gpo_guid: %s\n",
           gp_gpo->gpo_guid);
 
-    /* retrieve AD_AT_DISPLAY_NAME */
-    ret = sysdb_attrs_get_string(results[0], AD_AT_DISPLAY_NAME,
-                                 &gpo_display_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sysdb_attrs_get_string failed: [%d](%s)\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    gp_gpo->gpo_display_name = talloc_steal(gp_gpo, gpo_display_name);
-    if (gp_gpo->gpo_display_name == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_ALL, "gpo_display_name: %s\n",
-                            gp_gpo->gpo_display_name);
-
     /* retrieve AD_AT_FILE_SYS_PATH */
     ret = sysdb_attrs_get_string(results[0],
                                  AD_AT_FILE_SYS_PATH,
@@ -3375,43 +3531,6 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_ALL, "smb_server: %s\n", gp_gpo->smb_server);
     DEBUG(SSSDBG_TRACE_ALL, "smb_share: %s\n", gp_gpo->smb_share);
     DEBUG(SSSDBG_TRACE_ALL, "smb_path: %s\n", gp_gpo->smb_path);
-
-    /* retrieve AD_AT_VERSION_NUMBER */
-    ret = sysdb_attrs_get_uint32_t(results[0], AD_AT_VERSION_NUMBER,
-                                   &gp_gpo->gpc_version);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sysdb_attrs_get_uint32_t failed: [%d](%s)\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
-    DEBUG(SSSDBG_TRACE_ALL, "gpc_version: %d\n", gp_gpo->gpc_version);
-
-    /* retrieve AD_AT_MACHINE_EXT_NAMES */
-    ret = sysdb_attrs_get_el(results[0], AD_AT_MACHINE_EXT_NAMES, &el);
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el() failed\n");
-        goto done;
-    }
-    if ((ret == ENOENT) || (el->num_values == 0)) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "machine_ext_names not found or has no value\n");
-        ret = ENOENT;
-        goto done;
-    }
-
-    raw_machine_ext_names = el[0].values[0].data;
-
-    ret = ad_gpo_parse_machine_ext_names(gp_gpo,
-                                         (char *)raw_machine_ext_names,
-                                         &gp_gpo->gpo_cse_guids,
-                                         &gp_gpo->num_gpo_cse_guids);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "ad_gpo_parse_machine_ext_names() failed\n");
-        goto done;
-    }
 
     /* retrieve AD_AT_FUNC_VERSION */
     ret = sysdb_attrs_get_int32_t(results[0], AD_AT_FUNC_VERSION,
@@ -3458,7 +3577,37 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
         goto done;
     }
 
-    state->gpo_index++;
+    /* retrieve AD_AT_MACHINE_EXT_NAMES */
+    ret = sysdb_attrs_get_el(results[0], AD_AT_MACHINE_EXT_NAMES, &el);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el() failed\n");
+        goto done;
+    }
+
+    if ((ret == ENOENT) || (el->num_values == 0)) {
+        /*
+         * if gpo has no machine_ext_names (which is perfectly valid: it could
+         * have only user_ext_names, for example), we continue to next gpo
+         */
+        DEBUG(SSSDBG_TRACE_ALL,
+              "machine_ext_names attribute not found or has no value\n");
+        state->gpo_index++;
+    } else {
+        raw_machine_ext_names = el[0].values[0].data;
+
+        ret = ad_gpo_parse_machine_ext_names(gp_gpo,
+                                             (char *)raw_machine_ext_names,
+                                             &gp_gpo->gpo_cse_guids,
+                                             &gp_gpo->num_gpo_cse_guids);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ad_gpo_parse_machine_ext_names() failed\n");
+            goto done;
+        }
+
+        state->gpo_index++;
+    }
+
     ret = ad_gpo_get_gpo_attrs_step(req);
 
  done:
@@ -3551,207 +3700,6 @@ create_cse_send_buffer(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-/*
- * This function uses the input ini_config object to parse the logon right value
- * associated with the input name. This value is a list of sids, and is used
- * to populate the output parameters.
- */
-static errno_t
-parse_logon_right_with_libini(TALLOC_CTX *mem_ctx,
-                              struct ini_cfgobj *ini_config,
-                              const char *name,
-                              int *_size,
-                              char ***_sids)
-{
-    int ret = 0;
-    struct value_obj *vobj = NULL;
-    char **ini_sids = NULL;
-    char *ini_sid = NULL;
-    int num_ini_sids = 0;
-    char **sids = NULL;
-    int i;
-    TALLOC_CTX *tmp_ctx = NULL;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = ini_get_config_valueobj(RIGHTS_SECTION, name, ini_config,
-                                  INI_GET_FIRST_VALUE, &vobj);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_get_config_valueobj failed [%d][%s]\n", ret, strerror(ret));
-        goto done;
-    }
-    if (vobj == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "section/name not found: [%s][%s]\n",
-              RIGHTS_SECTION, name);
-        ret = EOK;
-        goto done;
-    }
-    ini_sids = ini_get_string_config_array(vobj, NULL, &num_ini_sids, &ret);
-
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_get_string_config_array failed [%d][%s]\n",
-              ret, strerror(ret));
-        goto done;
-    }
-
-    sids = talloc_array(tmp_ctx, char *, num_ini_sids + 1);
-    if (sids == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    for (i = 0; i < num_ini_sids; i++) {
-        ini_sid = ini_sids[i];
-
-        /* remove the asterisk prefix found on sids in the .inf policy file */
-        if (ini_sid[0] == '*') {
-            ini_sid++;
-        }
-        sids[i] = talloc_strdup(sids, ini_sid);
-        if (sids[i] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-    sids[i] = NULL;
-
-    *_size = num_ini_sids;
-    *_sids = talloc_steal(mem_ctx, sids);
-
-    ret = EOK;
-
- done:
-
-    ini_free_string_config_array(ini_sids);
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-/*
- * This function parses the cse-specific (GP_EXT_GUID_SECURITY) input data_buf,
- * and uses the results to populate the output parameters with the list of
- * allowed_sids and denied_sids
- */
-static errno_t
-ad_gpo_parse_policy_file(TALLOC_CTX *mem_ctx,
-                         const char *filename,
-                         enum gpo_map_type gpo_map_type,
-                         char ***allowed_sids,
-                         int *allowed_size,
-                         char ***denied_sids,
-                         int *denied_size)
-{
-    struct ini_cfgfile *file_ctx = NULL;
-    struct ini_cfgobj *ini_config = NULL;
-    int ret;
-    char **allow_sids = NULL;
-    char **deny_sids = NULL;
-    int allow_size = 0;
-    int deny_size = 0;
-    const char *allow_key = NULL;
-    const char *deny_key = NULL;
-    TALLOC_CTX *tmp_ctx = NULL;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = ini_config_create(&ini_config);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_config_create failed [%d][%s]\n", ret, strerror(ret));
-        goto done;
-    }
-
-    ret = ini_config_file_open(filename, 0, &file_ctx);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_config_file_open failed [%d][%s]\n", ret, strerror(ret));
-        goto done;
-    }
-
-    ret = ini_config_parse(file_ctx, INI_STOP_ON_NONE, 0, 0, ini_config);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "ini_config_parse failed [%d][%s]\n", ret, strerror(ret));
-        goto done;
-    }
-
-    switch (gpo_map_type) {
-    case GPO_MAP_INTERACTIVE:
-        allow_key = ALLOW_LOGON_INTERACTIVE;
-        deny_key = DENY_LOGON_INTERACTIVE;
-        break;
-    case GPO_MAP_REMOTE_INTERACTIVE:
-        allow_key = ALLOW_LOGON_REMOTE_INTERACTIVE;
-        deny_key = DENY_LOGON_REMOTE_INTERACTIVE;
-        break;
-    case GPO_MAP_NETWORK:
-        allow_key = ALLOW_LOGON_NETWORK;
-        deny_key = DENY_LOGON_NETWORK;
-        break;
-    case GPO_MAP_BATCH:
-        allow_key = ALLOW_LOGON_BATCH;
-        deny_key = DENY_LOGON_BATCH;
-        break;
-    case GPO_MAP_SERVICE:
-        allow_key = ALLOW_LOGON_SERVICE;
-        deny_key = DENY_LOGON_SERVICE;
-        break;
-    default:
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = parse_logon_right_with_libini(tmp_ctx,
-                                        ini_config,
-                                        allow_key,
-                                        &allow_size,
-                                        &allow_sids);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "parse_logon_right_with_libini failed for %s [%d][%s]\n",
-              allow_key, ret, strerror(ret));
-        goto done;
-    }
-
-    ret = parse_logon_right_with_libini(tmp_ctx,
-                                        ini_config,
-                                        deny_key,
-                                        &deny_size,
-                                        &deny_sids);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "parse_logon_right_with_libini failed for %s [%d][%s]\n",
-              deny_key, ret, strerror(ret));
-        goto done;
-    }
-
-    *allowed_sids = talloc_steal(mem_ctx, allow_sids);
-    *allowed_size = allow_size;
-    *denied_sids = talloc_steal(mem_ctx, deny_sids);
-    *denied_size = deny_size;
-
- done:
-
-    if (ret != EOK) {
-      DEBUG(SSSDBG_CRIT_FAILURE, "Error encountered: %d.\n", ret);
-    }
-
-    ini_config_file_destroy(file_ctx);
-    ini_config_destroy(ini_config);
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
 static errno_t
 ad_gpo_parse_gpo_child_response(TALLOC_CTX *mem_ctx,
                                 uint8_t *buf,
@@ -3787,8 +3735,6 @@ struct ad_gpo_process_cse_state {
     const char *gpo_guid;
     const char *smb_path;
     const char *smb_cse_suffix;
-    int sysvol_gpt_version;
-    const char *policy_filename;
     pid_t child_pid;
     uint8_t *buf;
     ssize_t len;
@@ -3837,9 +3783,11 @@ static void gpo_cse_step(struct tevent_req *subreq);
 static void gpo_cse_done(struct tevent_req *subreq);
 
 /*
- * This cse-specific function (GP_EXT_GUID_SECURITY) retrieves the data
- * referenced by the input smb_uri, and uses the parsed results to populate the
- * state's list of allowed_sids and denied_sids.
+ * This cse-specific function (GP_EXT_GUID_SECURITY) sends the input smb uri
+ * components and cached_gpt_version to the gpo child, which, in turn,
+ * will download the GPT.INI file and policy files (as needed) and store
+ * them in the GPO_CACHE directory. Note that if the send_to_child input is
+ * false, this function simply completes the request.
  */
 struct tevent_req *
 ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
@@ -3866,25 +3814,11 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->sysvol_gpt_version = -1;
-
     if (!send_to_child) {
         /*
-         * if we don't need to talk to child (b/c cache timeout is valid),
-         * we simply set the policy_filename and complete the request
+         * if we don't need to talk to child (b/c cache timeout is still valid),
+         * we simply complete the request
          */
-        state->policy_filename =
-            talloc_asprintf(state,
-                            GPO_CACHE_PATH"/%s/Policies/%s%s",
-                            domain->name,
-                            gpo_guid,
-                            GP_EXT_GUID_SECURITY_SUFFIX);
-        if (state->policy_filename == NULL) {
-            ret = ENOMEM;
-            goto immediately;
-        }
-
-        DEBUG(SSSDBG_TRACE_FUNC, "policy_filename:%s\n", state->policy_filename);
         ret = EOK;
         goto immediately;
     }
@@ -4009,17 +3943,6 @@ static void gpo_cse_done(struct tevent_req *subreq)
         tevent_req_error(req, child_result);
     }
 
-    state->sysvol_gpt_version = sysvol_gpt_version;
-    state->policy_filename = talloc_asprintf(state,
-                                             GPO_CACHE_PATH"%s%s",
-                                             state->smb_path,
-                                             state->smb_cse_suffix);
-    if (state->policy_filename == NULL) {
-        tevent_req_error(req, ENOMEM);
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "policy_filename:%s\n", state->policy_filename);
-
     now = time(NULL);
     DEBUG(SSSDBG_TRACE_FUNC, "sysvol_gpt_version: %d\n", sysvol_gpt_version);
     ret = sysdb_gpo_store_gpo(state->domain, state->gpo_guid, sysvol_gpt_version,
@@ -4036,19 +3959,9 @@ static void gpo_cse_done(struct tevent_req *subreq)
 }
 
 int ad_gpo_process_cse_recv(struct tevent_req *req,
-                            TALLOC_CTX *mem_ctx,
-                            int *_sysvol_gpt_version,
-                            const char **_policy_filename)
+                            TALLOC_CTX *mem_ctx)
 {
-    struct ad_gpo_process_cse_state *state;
-
-    state = tevent_req_data(req, struct ad_gpo_process_cse_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *_sysvol_gpt_version = state->sysvol_gpt_version;
-    *_policy_filename = talloc_steal(mem_ctx, state->policy_filename);
-
     return EOK;
 }
 

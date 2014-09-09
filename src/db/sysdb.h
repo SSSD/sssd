@@ -876,6 +876,8 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
 
 #define SYSDB_GPO_CONTAINER "cn=gpos,cn=ad,cn=custom"
 
+/* === Functions related to GPO entries === */
+
 #define SYSDB_GPO_OC "gpo"
 #define SYSDB_GPO_FILTER "(objectClass="SYSDB_GPO_OC")"
 #define SYSDB_GPO_GUID_FILTER "(&(objectClass="SYSDB_GPO_OC")("SYSDB_GPO_GUID_ATTR"=%s))"
@@ -908,9 +910,28 @@ errno_t sysdb_gpo_get_gpos(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
                            struct ldb_result **_result);
 
-errno_t sysdb_gpo_delete_stale_gpos(TALLOC_CTX *mem_ctx,
-                                    struct sss_domain_info *domain,
-                                    const char **gpo_guid_list,
-                                    int num_gpos);
+/* === Functions related to GPO Result object === */
+
+#define SYSDB_GPO_RESULT_OC "gpo_result"
+#define SYSDB_GPO_RESULT_FILTER "(objectClass="SYSDB_GPO_RESULT_OC")"
+
+#define SYSDB_TMPL_GPO_RESULT_BASE SYSDB_GPO_CONTAINER","SYSDB_DOM_BASE
+#define SYSDB_TMPL_GPO_RESULT "cn=%s,"SYSDB_TMPL_GPO_RESULT_BASE
+
+errno_t sysdb_gpo_get_gpo_result_object(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *domain,
+                                        struct ldb_result **_result);
+
+errno_t sysdb_gpo_delete_gpo_result_object(TALLOC_CTX *mem_ctx,
+                                           struct sss_domain_info *domain);
+
+errno_t sysdb_gpo_store_gpo_result_setting(struct sss_domain_info *domain,
+                                           const char *policy_setting_key,
+                                           const char *policy_setting_value);
+
+errno_t sysdb_gpo_get_gpo_result_setting(TALLOC_CTX *mem_ctx,
+                                         struct sss_domain_info *domain,
+                                         const char *policy_setting_key,
+                                         const char **policy_setting_value);
 
 #endif /* __SYS_DB_H__ */

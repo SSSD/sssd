@@ -256,7 +256,6 @@ void test_populate_gplink_list_malformed(void **state)
     };
 
     test_populate_gplink_list(NULL, false, &expected);
-    test_populate_gplink_list("[malformed", false, &expected);
     test_populate_gplink_list("[malformed]", false, &expected);
     /* the GPLinkOptions value (after semicolon) must be between 0 and 3 */
     test_populate_gplink_list("[gpo_dn; 4]", false, &expected);
