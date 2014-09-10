@@ -540,6 +540,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     enum idmap_error_code err;
     char *sid;
     const char *member_filter[2];
+    char *oc_list;
 
     req = tevent_req_create(memctx, &state, struct groups_get_state);
     if (!req) return NULL;
@@ -645,21 +646,26 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         goto done;
     }
 
+    oc_list = sdap_make_oc_list(state, ctx->opts->group_map);
+    if (oc_list == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create objectClass list.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     if (state->use_id_mapping || filter_type == BE_FILTER_SECID) {
         /* When mapping IDs or looking for SIDs, we don't want to limit
          * ourselves to groups with a GID value
          */
 
         state->filter = talloc_asprintf(state,
-                                        "(&(%s=%s)(objectclass=%s)(%s=*))",
-                                        attr_name, clean_name,
-                                        ctx->opts->group_map[SDAP_OC_GROUP].name,
+                                        "(&(%s=%s)(%s)(%s=*))",
+                                        attr_name, clean_name, oc_list,
                                         ctx->opts->group_map[SDAP_AT_GROUP_NAME].name);
     } else {
         state->filter = talloc_asprintf(state,
-                                        "(&(%s=%s)(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
-                                        attr_name, clean_name,
-                                        ctx->opts->group_map[SDAP_OC_GROUP].name,
+                                        "(&(%s=%s)(%s)(%s=*)(&(%s=*)(!(%s=0))))",
+                                        attr_name, clean_name, oc_list,
                                         ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
                                         ctx->opts->group_map[SDAP_AT_GROUP_GID].name,
                                         ctx->opts->group_map[SDAP_AT_GROUP_GID].name);

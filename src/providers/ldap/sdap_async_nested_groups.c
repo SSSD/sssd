@@ -1712,6 +1712,7 @@ sdap_nested_group_lookup_group_send(TALLOC_CTX *mem_ctx,
      const char **attrs = NULL;
      const char *base_filter = NULL;
      const char *filter = NULL;
+     char *oc_list;
      errno_t ret;
 
      req = tevent_req_create(mem_ctx, &state,
@@ -1728,8 +1729,14 @@ sdap_nested_group_lookup_group_send(TALLOC_CTX *mem_ctx,
      }
 
      /* create filter */
-     base_filter = talloc_asprintf(attrs, "(&(objectclass=%s)(%s=*))",
-                                   map[SDAP_OC_GROUP].name,
+     oc_list = sdap_make_oc_list(state, map);
+     if (oc_list == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create objectClass list.\n");
+        ret = ENOMEM;
+        goto immediately;
+     }
+
+     base_filter = talloc_asprintf(attrs, "(&(%s)(%s=*))", oc_list,
                                    map[SDAP_AT_GROUP_NAME].name);
      if (base_filter == NULL) {
          ret = ENOMEM;

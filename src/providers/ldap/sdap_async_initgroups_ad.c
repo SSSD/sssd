@@ -70,6 +70,7 @@ sdap_get_ad_match_rule_initgroups_send(TALLOC_CTX *mem_ctx,
     struct sdap_ad_match_rule_initgr_state *state;
     const char **filter_members;
     char *sanitized_user_dn;
+    char *oc_list;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_ad_match_rule_initgr_state);
@@ -122,13 +123,19 @@ sdap_get_ad_match_rule_initgroups_send(TALLOC_CTX *mem_ctx,
     /* Craft a special filter according to
      * http://msdn.microsoft.com/en-us/library/windows/desktop/aa746475%28v=vs.85%29.aspx
      */
+    oc_list = sdap_make_oc_list(state, state->opts->group_map);
+    if (oc_list == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create objectClass list.\n");
+        ret = ENOMEM;
+        goto immediate;
+    }
+
     state->base_filter =
             talloc_asprintf(state,
-                            "(&(%s:%s:=%s)(objectClass=%s))",
+                            "(&(%s:%s:=%s)(%s))",
                             state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                             SDAP_MATCHING_RULE_IN_CHAIN,
-                            sanitized_user_dn,
-                            state->opts->group_map[SDAP_OC_GROUP].name);
+                            sanitized_user_dn, oc_list);
     talloc_zfree(sanitized_user_dn);
     if (!state->base_filter) {
         ret = ENOMEM;
