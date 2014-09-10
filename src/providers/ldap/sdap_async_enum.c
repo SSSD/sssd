@@ -717,6 +717,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     struct enum_groups_state *state;
     int ret;
     bool use_mapping;
+    char *oc_list;
 
     req = tevent_req_create(memctx, &state, struct enum_groups_state);
     if (!req) return NULL;
@@ -732,9 +733,14 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                                         sdom->dom->domain_id);
 
     /* We always want to filter on objectclass and an available name */
-    state->filter = talloc_asprintf(state,
-                               "(&(objectclass=%s)(%s=*)",
-                               ctx->opts->group_map[SDAP_OC_GROUP].name,
+    oc_list = sdap_make_oc_list(state, ctx->opts->group_map);
+    if (oc_list == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create objectClass list.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    state->filter = talloc_asprintf(state, "(&(%s)(%s=*)", oc_list,
                                ctx->opts->group_map[SDAP_AT_GROUP_NAME].name);
     if (!state->filter) {
         DEBUG(SSSDBG_MINOR_FAILURE,

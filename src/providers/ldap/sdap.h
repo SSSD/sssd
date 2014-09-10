@@ -562,4 +562,6 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                                       struct sdap_server_opts **srv_opts);
 void sdap_steal_server_opts(struct sdap_id_ctx *id_ctx,
                             struct sdap_server_opts **srv_opts);
+
+char *sdap_make_oc_list(TALLOC_CTX *mem_ctx, struct sdap_attr_map *map);
 #endif /* _SDAP_H_ */
