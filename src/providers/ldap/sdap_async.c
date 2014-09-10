@@ -1645,6 +1645,7 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
 struct sdap_x_deref_search_state {
     struct sdap_handle *sh;
     struct sdap_op *op;
+    struct sdap_options *opts;
     struct sdap_attr_map_info *maps;
     LDAPControl **ctrls;
 
@@ -1670,6 +1671,7 @@ sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     state->sh = sh;
     state->maps = maps;
     state->op = NULL;
+    state->opts = opts;
     state->num_maps = num_maps;
     state->ctrls = talloc_zero_array(state, LDAPControl *, 2);
     if (state->ctrls == NULL) {
@@ -1821,11 +1823,18 @@ static void sdap_x_deref_search_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
+    struct sdap_x_deref_search_state *state = tevent_req_data(req,
+                                            struct sdap_x_deref_search_state);
     int ret;
 
     ret = sdap_get_generic_ext_recv(subreq);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret == ERR_REFERRAL) {
+        if (dp_opt_get_bool(state->opts->basic, SDAP_REFERRALS)) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    } else if (ret) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "sdap_get_generic_ext_recv failed [%d]: %s\n",
                   ret, sss_strerror(ret));
@@ -2082,11 +2091,18 @@ static void sdap_asq_search_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
+    struct sdap_asq_search_state *state =
+                tevent_req_data(req, struct sdap_asq_search_state);
     int ret;
 
     ret = sdap_get_generic_ext_recv(subreq);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret == ERR_REFERRAL) {
+        if (dp_opt_get_bool(state->opts->basic, SDAP_REFERRALS)) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    } else if (ret) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "sdap_get_generic_ext_recv failed [%d]: %s\n",
                   ret, sss_strerror(ret));
