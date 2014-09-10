@@ -290,6 +290,7 @@ enum sdap_user_attrs {
  * Functions depend on this */
 enum sdap_group_attrs {
     SDAP_OC_GROUP = 0,
+    SDAP_OC_GROUP_ALT,
     SDAP_AT_GROUP_NAME,
     SDAP_AT_GROUP_PWD,
     SDAP_AT_GROUP_GID,
