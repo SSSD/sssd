@@ -310,14 +310,23 @@ done:
 
 /* =Search-User-by-[UID/SID/NAME]============================================= */
 
-int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
-                              struct sss_domain_info *domain,
-                              const char *name,
-                              const char **attrs,
-                              struct ldb_message **msg)
+enum sysdb_obj_type {
+    SYSDB_UNKNOWN = 0,
+    SYSDB_USER,
+    SYSDB_GROUP
+};
+
+static int sysdb_search_by_name(TALLOC_CTX *mem_ctx,
+                                struct sss_domain_info *domain,
+                                const char *name,
+                                enum sysdb_obj_type type,
+                                const char **attrs,
+                                struct ldb_message **msg)
 {
     TALLOC_CTX *tmp_ctx;
-    const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
+    const char *def_attrs[] = { SYSDB_NAME, NULL, NULL };
+    const char *base_tmpl = NULL;
+    const char *filter_tmpl = NULL;
     struct ldb_message **msgs = NULL;
     struct ldb_dn *basedn;
     size_t msgs_count = 0;
@@ -326,13 +335,28 @@ int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
     char *filter;
     int ret;
 
+    switch (type) {
+    case SYSDB_USER:
+        def_attrs[1] = SYSDB_UIDNUM;
+        base_tmpl = SYSDB_TMPL_USER_BASE;
+        filter_tmpl = SYSDB_PWNAM_FILTER;
+        break;
+    case SYSDB_GROUP:
+        def_attrs[1] = SYSDB_GIDNUM;
+        base_tmpl = SYSDB_TMPL_GROUP_BASE;
+        filter_tmpl = SYSDB_GRNAM_FILTER;
+        break;
+    default:
+        return EINVAL;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
     basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            SYSDB_TMPL_USER_BASE, domain->name);
+                            base_tmpl, domain->name);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -344,7 +368,7 @@ int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    filter = talloc_asprintf(tmp_ctx, SYSDB_PWNAM_FILTER, lc_sanitized_name,
+    filter = talloc_asprintf(tmp_ctx, filter_tmpl, lc_sanitized_name,
                              sanitized_name, sanitized_name);
     if (!filter) {
         ret = ENOMEM;
@@ -369,6 +393,15 @@ done:
     }
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *domain,
+                              const char *name,
+                              const char **attrs,
+                              struct ldb_message **msg)
+{
+    return sysdb_search_by_name(mem_ctx, domain, name, SYSDB_USER, attrs, msg);
 }
 
 int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
@@ -509,41 +542,7 @@ int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
                                const char **attrs,
                                struct ldb_message **msg)
 {
-    TALLOC_CTX *tmp_ctx;
-    static const char *def_attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
-    struct ldb_message **msgs = NULL;
-    struct ldb_dn *basedn;
-    size_t msgs_count = 0;
-    int ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    basedn = sysdb_group_dn(tmp_ctx, domain, name);
-    if (!basedn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, basedn, LDB_SCOPE_BASE,
-                             NULL, attrs?attrs:def_attrs, &msgs_count, &msgs);
-    if (ret) {
-        goto done;
-    }
-
-    *msg = talloc_steal(mem_ctx, msgs[0]);
-
-done:
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, "No such entry\n");
-    }
-    else if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
-    }
-    talloc_zfree(tmp_ctx);
-    return ret;
+    return sysdb_search_by_name(mem_ctx, domain, name, SYSDB_GROUP, attrs, msg);
 }
 
 int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
