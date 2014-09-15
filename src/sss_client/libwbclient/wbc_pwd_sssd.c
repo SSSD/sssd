@@ -243,7 +243,7 @@ wbcErr wbcGetpwnam(const char *name, struct passwd **pwd)
 
     status = ctx->getpwnam_r(name, &lpwd, buffer, buflen, &nss_errno);
     wbc_status = nss_to_wbc(status);
-    if (WBC_ERROR_IS_OK(wbc_status)) {
+    if (WBC_ERROR_IS_OK(wbc_status) == true) {
         wbc_status = copy_pwd(&lpwd, pwd);
     }
 
@@ -278,7 +278,7 @@ wbcErr wbcGetpwuid(uid_t uid, struct passwd **pwd)
 
     status = ctx->getpwuid_r(uid, &lpwd, buffer, buflen, &nss_errno);
     wbc_status = nss_to_wbc(status);
-    if (WBC_ERROR_IS_OK(wbc_status)) {
+    if (WBC_ERROR_IS_OK(wbc_status) == true) {
         wbc_status = copy_pwd(&lpwd, pwd);
     }
 
@@ -401,7 +401,7 @@ wbcErr wbcGetgrnam(const char *name, struct group **grp)
         memset(grp, 0, sizeof(struct group));
         status = ctx->getgrnam_r(name, &lgrp, buffer, buflen, &nss_errno);
         wbc_status = nss_to_wbc(status);
-        if (WBC_ERROR_IS_OK(wbc_status)) {
+        if (WBC_ERROR_IS_OK(wbc_status) == true) {
             wbc_status = copy_grp(&lgrp, grp);
         }
     } while (status == NSS_STATUS_TRYAGAIN && nss_errno == ERANGE \
@@ -445,7 +445,7 @@ wbcErr wbcGetgrgid(gid_t gid, struct group **grp)
         memset(grp, 0, sizeof(struct group));
         status = ctx->getgrgid_r(gid, &lgrp, buffer, buflen, &nss_errno);
         wbc_status = nss_to_wbc(status);
-        if (WBC_ERROR_IS_OK(wbc_status)) {
+        if (WBC_ERROR_IS_OK(wbc_status) == true) {
             wbc_status = copy_grp(&lgrp, grp);
         }
     } while (status == NSS_STATUS_TRYAGAIN && nss_errno == ERANGE \
@@ -514,7 +514,7 @@ wbcErr wbcGetpwent(struct passwd **pwd)
 
     status = ctx->getpwent_r(&lpwd, buffer, buflen, &nss_errno);
     wbc_status = nss_to_wbc(status);
-    if (WBC_ERROR_IS_OK(wbc_status)) {
+    if (WBC_ERROR_IS_OK(wbc_status) == true) {
         wbc_status = copy_pwd(&lpwd, pwd);
     }
 
@@ -588,7 +588,7 @@ wbcErr wbcGetgrent(struct group **grp)
         memset(grp, 0, sizeof(struct group));
         status = ctx->getgrent_r(&lgrp, buffer, buflen, &nss_errno);
         wbc_status = nss_to_wbc(status);
-        if (WBC_ERROR_IS_OK(wbc_status)) {
+        if (WBC_ERROR_IS_OK(wbc_status) == true) {
             wbc_status = copy_grp(&lgrp, grp);
         }
     } while (status == NSS_STATUS_TRYAGAIN && nss_errno == ERANGE \

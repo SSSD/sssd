@@ -365,7 +365,7 @@ static void pc_init_sig_handler(struct tevent_context *ev,
                       "child [%d] was stopped by signal [%d].\n", ret,
                           WSTOPSIG(child_status));
             }
-            if (WIFCONTINUED(child_status)) {
+            if (WIFCONTINUED(child_status) == true) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "child [%d] was resumed by delivery of SIGCONT.\n",
                           ret);
@@ -522,7 +522,7 @@ static void proxy_child_sig_handler(struct tevent_context *ev,
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "child [%d] exited with status [%d].\n", ret,
                       WEXITSTATUS(child_status));
-        } else if (WIFSIGNALED(child_status)) {
+        } else if (WIFSIGNALED(child_status) == true) {
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "child [%d] was terminated by signal [%d].\n", ret,
                       WTERMSIG(child_status));
@@ -532,7 +532,7 @@ static void proxy_child_sig_handler(struct tevent_context *ev,
                       "child [%d] was stopped by signal [%d].\n", ret,
                           WSTOPSIG(child_status));
             }
-            if (WIFCONTINUED(child_status)) {
+            if (WIFCONTINUED(child_status) == true) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "child [%d] was resumed by delivery of SIGCONT.\n",
                           ret);

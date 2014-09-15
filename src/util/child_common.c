@@ -568,7 +568,7 @@ static void child_sig_handler(struct tevent_context *ev,
                       "child [%d] was stopped by signal [%d].\n", ret,
                           WSTOPSIG(child_ctx->child_status));
             }
-            if (WIFCONTINUED(child_ctx->child_status)) {
+            if (WIFCONTINUED(child_ctx->child_status) == true) {
                 DEBUG(SSSDBG_TRACE_LIBS,
                       "child [%d] was resumed by delivery of SIGCONT.\n",
                           ret);

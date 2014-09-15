@@ -794,7 +794,7 @@ hbac_rule_set_enabled(HbacRuleObject *self, PyObject *enabled, void *closure)
 
         Py_DECREF(utf8_str);
         return 0;
-    } else if (PyBool_Check(enabled)) {
+    } else if (PyBool_Check(enabled) == true) {
         self->enabled = (enabled == Py_True);
         return 0;
     } else if (PYNUMBER_CHECK(enabled)) {
