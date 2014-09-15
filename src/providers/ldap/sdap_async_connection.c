@@ -833,12 +833,13 @@ static void simple_bind_done(struct sdap_op *op,
                     goto done;
                 }
                 state->ppolicy->expire = strtouint32(nval, NULL, 10);
-                ret = errno;
+                lret = errno;
                 talloc_zfree(nval);
-                if (ret != EOK) {
+                if (lret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
                           "Couldn't convert control response "
-                           "to an integer [%s].\n", strerror(ret));
+                           "to an integer [%s].\n", strerror(lret));
+                    ret = ERR_INTERNAL;
                     goto done;
                 }
 
