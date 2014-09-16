@@ -1648,6 +1648,15 @@ fallback_homedir = /home/%u
                             IPA.
                         </para>
                         <para>
+                            <quote>ad</quote> to load a list of subdomains
+                            from an Active Directory server. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring
+                            the AD provider.
+                        </para>
+                        <para>
                             <quote>none</quote> disallows fetching subdomains
                             explicitly.
                         </para>
