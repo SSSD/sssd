@@ -1692,9 +1692,10 @@ struct sdap_x_deref_search_state {
 static struct tevent_req *
 sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                          struct sdap_options *opts, struct sdap_handle *sh,
-                         const char *base_dn, const char *deref_attr,
-                         const char **attrs, struct sdap_attr_map_info *maps,
-                         int num_maps, int timeout)
+                         const char *base_dn, const char *filter,
+                         const char *deref_attr, const char **attrs,
+                         struct sdap_attr_map_info *maps, int num_maps,
+                         int timeout)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
@@ -1728,7 +1729,9 @@ sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     DEBUG(SSSDBG_TRACE_FUNC,
           "Dereferencing entry [%s] using OpenLDAP deref\n", base_dn);
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
-                                       LDAP_SCOPE_BASE, NULL, attrs,
+                                       filter == NULL ? LDAP_SCOPE_BASE
+                                                      : LDAP_SCOPE_SUBTREE,
+                                       filter, attrs,
                                        false, state->ctrls, NULL, 0, timeout,
                                        true, sdap_x_deref_parse_entry,
                                        state);
@@ -2532,6 +2535,69 @@ struct sdap_deref_search_state {
 };
 
 static void sdap_deref_search_done(struct tevent_req *subreq);
+static void sdap_deref_search_with_filter_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_deref_search_with_filter_send(TALLOC_CTX *memctx,
+                                   struct tevent_context *ev,
+                                   struct sdap_options *opts,
+                                   struct sdap_handle *sh,
+                                   const char *search_base,
+                                   const char *filter,
+                                   const char *deref_attr,
+                                   const char **attrs,
+                                   int num_maps,
+                                   struct sdap_attr_map_info *maps,
+                                   int timeout)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_deref_search_state *state;
+
+    req = tevent_req_create(memctx, &state, struct sdap_deref_search_state);
+    if (!req) return NULL;
+
+    state->sh = sh;
+    state->reply_count = 0;
+    state->reply = NULL;
+
+    if (sdap_is_control_supported(sh, LDAP_CONTROL_X_DEREF)) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Server supports OpenLDAP deref\n");
+        state->deref_type = SDAP_DEREF_OPENLDAP;
+
+        subreq = sdap_x_deref_search_send(state, ev, opts, sh, search_base,
+                                          filter, deref_attr, attrs, maps,
+                                          num_maps, timeout);
+        if (!subreq) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot start OpenLDAP deref search\n");
+            goto fail;
+        }
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Server does not support any known deref method!\n");
+        goto fail;
+    }
+
+    tevent_req_set_callback(subreq, sdap_deref_search_with_filter_done, req);
+    return req;
+
+fail:
+    talloc_zfree(req);
+    return NULL;
+}
+
+static void sdap_deref_search_with_filter_done(struct tevent_req *subreq)
+{
+    sdap_deref_search_done(subreq);
+}
+
+int sdap_deref_search_with_filter_recv(struct tevent_req *req,
+                                       TALLOC_CTX *mem_ctx,
+                                       size_t *reply_count,
+                                       struct sdap_deref_attrs ***reply)
+{
+    return sdap_deref_search_recv(req, mem_ctx, reply_count, reply);
+}
 
 struct tevent_req *
 sdap_deref_search_send(TALLOC_CTX *memctx,
@@ -2571,7 +2637,7 @@ sdap_deref_search_send(TALLOC_CTX *memctx,
         DEBUG(SSSDBG_TRACE_INTERNAL, "Server supports OpenLDAP deref\n");
         state->deref_type = SDAP_DEREF_OPENLDAP;
 
-        subreq = sdap_x_deref_search_send(state, ev, opts, sh, base_dn,
+        subreq = sdap_x_deref_search_send(state, ev, opts, sh, base_dn, NULL,
                                           deref_attr, attrs, maps, num_maps,
                                           timeout);
         if (!subreq) {

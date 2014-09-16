@@ -196,6 +196,23 @@ int sdap_get_generic_recv(struct tevent_req *req,
 bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts);
 
 struct tevent_req *
+sdap_deref_search_with_filter_send(TALLOC_CTX *memctx,
+                                   struct tevent_context *ev,
+                                   struct sdap_options *opts,
+                                   struct sdap_handle *sh,
+                                   const char *search_base,
+                                   const char *filter,
+                                   const char *deref_attr,
+                                   const char **attrs,
+                                   int num_maps,
+                                   struct sdap_attr_map_info *maps,
+                                   int timeout);
+int sdap_deref_search_with_filter_recv(struct tevent_req *req,
+                                       TALLOC_CTX *mem_ctx,
+                                       size_t *reply_count,
+                                       struct sdap_deref_attrs ***reply);
+
+struct tevent_req *
 sdap_deref_search_send(TALLOC_CTX *memctx,
                        struct tevent_context *ev,
                        struct sdap_options *opts,
