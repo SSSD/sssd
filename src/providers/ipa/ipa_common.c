@@ -149,6 +149,9 @@ static errno_t ipa_parse_search_base(TALLOC_CTX *mem_ctx,
     case IPA_RANGES_SEARCH_BASE:
         class_name = "IPA_RANGES";
         break;
+    case IPA_VIEWS_SEARCH_BASE:
+        class_name = "IPA_VIEWS";
+        break;
     default:
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Unknown search base type: [%d]\n", class);
@@ -530,6 +533,29 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                                 &ipa_opts->ranges_search_bases);
     if (ret != EOK) goto done;
 
+    if (NULL == dp_opt_get_string(ipa_opts->basic,
+                                  IPA_VIEWS_SEARCH_BASE)) {
+        value = talloc_asprintf(tmpctx, "cn=views,cn=accounts,%s", basedn);
+        if (value == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = dp_opt_set_string(ipa_opts->basic, IPA_VIEWS_SEARCH_BASE, value);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
+                  ipa_opts->basic[IPA_VIEWS_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->basic,
+                                    IPA_VIEWS_SEARCH_BASE));
+    }
+    ret = ipa_parse_search_base(ipa_opts, ipa_opts->basic,
+                                IPA_VIEWS_SEARCH_BASE,
+                                &ipa_opts->views_search_bases);
+    if (ret != EOK) goto done;
+
     ret = sdap_get_map(ipa_opts->id, cdb, conf_path,
                        ipa_attr_map,
                        SDAP_AT_GENERAL,
@@ -607,6 +633,24 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                        ipa_selinux_user_map,
                        IPA_OPTS_SELINUX_USERMAP,
                        &ipa_opts->selinuxuser_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(ipa_opts->id,
+                       cdb, conf_path,
+                       ipa_view_map,
+                       IPA_OPTS_VIEW,
+                       &ipa_opts->view_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(ipa_opts->id,
+                       cdb, conf_path,
+                       ipa_override_map,
+                       IPA_OPTS_OVERRIDE,
+                       &ipa_opts->override_map);
     if (ret != EOK) {
         goto done;
     }

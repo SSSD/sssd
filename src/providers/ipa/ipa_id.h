@@ -31,6 +31,8 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ipa/ipa_subdomains.h"
 
+#define IPA_DEFAULT_VIEW_NAME "Default Trust View"
+
 void ipa_account_info_handler(struct be_req *breq);
 struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,

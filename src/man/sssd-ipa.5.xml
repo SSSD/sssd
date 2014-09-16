@@ -346,6 +346,25 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ipa_views_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            views containers.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>cn=views,cn=accounts,%basedn</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_validate (boolean)</term>
                     <listitem>
                         <para>
@@ -519,6 +538,129 @@
                 </varlistentry>
             </variablelist>
         </para>
+        <refsect2 id='views'>
+            <title>VIEWS AND OVERRIDES</title>
+            <para>
+                SSSD can handle views and overrides which are offered by
+                FreeIPA 4.1 and later version. Since all paths and objectclasses
+                are fixed on the server side there is basically no need to
+                configure anything. For completeness the related options are
+                listed here with their default values.
+                <variablelist>
+                    <varlistentry>
+                        <term>ipa_view_class (string)</term>
+                        <listitem>
+                            <para>
+                                Objectclass of the view container.
+                            </para>
+                            <para>
+                                Default: nsContainer
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_view_name (string)</term>
+                        <listitem>
+                            <para>
+                                Name of the attribute holding the name of the
+                                view.
+                            </para>
+                            <para>
+                                Default: cn
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_overide_object_class (string)</term>
+                        <listitem>
+                            <para>
+                                Objectclass of the override objects.
+                            </para>
+                            <para>
+                                Default: ipaOverrideAnchor
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_anchor_uuid (string)</term>
+                        <listitem>
+                            <para>
+                                Name of the attribute containing the reference
+                                to the original object in a remote domain.
+                            </para>
+                            <para>
+                                Default: ipaAnchorUUID
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_user_override_object_class (string)</term>
+                        <listitem>
+                            <para>
+                                Name of the objectclass for user overrides. It
+                                is used to determine if the found override
+                                object is related to a user or a group.
+                            </para>
+                            <para>
+                                User overrides can contain attributes given by
+                                <itemizedlist>
+                                    <listitem>
+                                        <para>ldap_user_name</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_uid_number</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_gid_number</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_gecos</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_home_directory</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_shell</para>
+                                    </listitem>
+                                </itemizedlist>
+                            </para>
+                            <para>
+                                Default: ipaUserOverride
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_group_override_object_class (string)</term>
+                        <listitem>
+                            <para>
+                                Name of the objectclass for group overrides. It
+                                is used to determine if the found override
+                                object is related to a user or a group.
+                            </para>
+                            <para>
+                                Group overrides can contain attributes given by
+                                <itemizedlist>
+                                    <listitem>
+                                        <para>ldap_group_name</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_group_gid_number</para>
+                                    </listitem>
+                                </itemizedlist>
+                            </para>
+                            <para>
+                                Default: ipaGroupOverride
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                </variablelist>
+            </para>
+        </refsect2>
     </refsect1>
 
     <refsect1 id='subdomains_provider'>

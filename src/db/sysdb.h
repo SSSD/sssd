@@ -150,6 +150,10 @@
 #define SYSDB_VIEW_CLASS "view"
 #define SYSDB_VIEW_NAME "viewName"
 #define SYSDB_DEFAULT_VIEW_NAME "default"
+#define SYSDB_OVERRIDE_CLASS "overrride"
+#define SYSDB_OVERRIDE_ANCHOR_UUID "overrideAnchorUUID"
+#define SYSDB_OVERRIDE_USER_CLASS "userOverride"
+#define SYSDB_OVERRIDE_GROUP_CLASS "groupOverride"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 

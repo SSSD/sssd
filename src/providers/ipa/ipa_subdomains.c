@@ -26,6 +26,8 @@
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_common.h"
+#include "providers/ipa/ipa_id.h"
+
 #include <ctype.h>
 
 #define SUBDOMAINS_FILTER "objectclass=ipaNTTrustedDomain"
@@ -43,6 +45,8 @@
 #define IPA_BASE_RID "ipaBaseRID"
 #define IPA_SECONDARY_BASE_RID "ipaSecondaryBaseRID"
 #define OBJECTCLASS "objectClass"
+
+#define IPA_ASSIGNED_ID_VIEW "ipaAssignedIDView"
 
 /* do not refresh more often than every 5 seconds for now */
 #define IPA_SUBDOMAIN_REFRESH_LIMIT 5
@@ -70,6 +74,7 @@ struct ipa_subdomains_ctx {
     struct sdap_search_base **search_bases;
     struct sdap_search_base **master_search_bases;
     struct sdap_search_base **ranges_search_bases;
+    struct sdap_search_base **host_search_bases;
 
     time_t last_refreshed;
     struct tevent_timer *timer_event;
@@ -943,6 +948,134 @@ ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
     return EAGAIN;
 }
 
+static void ipa_get_view_name_done(struct tevent_req *req);
+static errno_t ipa_check_master(struct ipa_subdomains_req_ctx *ctx);
+
+static errno_t ipa_get_view_name(struct ipa_subdomains_req_ctx *ctx)
+{
+    struct tevent_req *req;
+    struct sdap_search_base *base;
+    const char *attrs[] = {IPA_CN, OBJECTCLASS, NULL};
+    struct sdap_attr_map_info *maps;
+
+    maps = talloc_zero(ctx, struct sdap_attr_map_info);
+    if (maps == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        return ENOMEM;
+    }
+    maps->map = ctx->sd_ctx->id_ctx->ipa_options->view_map;
+    maps->num_attrs = IPA_OPTS_VIEW;
+
+    base = ctx->search_bases[ctx->search_base_iter];
+    if (base == NULL) {
+        return EOK;
+    }
+
+    req = sdap_deref_search_with_filter_send(ctx, ctx->sd_ctx->be_ctx->ev,
+                        ctx->sd_ctx->sdap_id_ctx->opts,
+                        sdap_id_op_handle(ctx->sdap_op),
+                        base->basedn,
+                        ctx->current_filter, IPA_ASSIGNED_ID_VIEW, attrs,
+                        1, maps,
+                        dp_opt_get_int(ctx->sd_ctx->sdap_id_ctx->opts->basic,
+                                       SDAP_SEARCH_TIMEOUT));
+
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, ipa_get_view_name_done, ctx);
+
+    return EAGAIN;
+}
+
+static void ipa_get_view_name_done(struct tevent_req *req)
+{
+    int ret;
+    struct ipa_subdomains_req_ctx *ctx;
+    size_t reply_count;
+    struct sdap_deref_attrs **reply = NULL;
+    const char *view_name;
+    int dp_error = DP_ERR_FATAL;
+
+    ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
+
+    ret = sdap_deref_search_with_filter_recv(req, ctx, &reply_count, &reply);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_view_name request failed.\n");
+        goto done;
+    }
+
+    if (reply_count == 0) {
+        ctx->search_base_iter++;
+        ret = ipa_get_view_name(ctx);
+        if (ret == EAGAIN) {
+            return;
+        } else if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC, "No view found, using default.\n");
+            view_name = SYSDB_DEFAULT_VIEW_NAME;
+        } else {
+            goto done;
+        }
+    } else if (reply_count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "get_view_name request returned more than one object.\n");
+        ret = EINVAL;
+        goto done;
+    } else {
+        ret = sysdb_attrs_get_string(reply[0]->attrs, SYSDB_VIEW_NAME,
+                                     &view_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Found view name [%s].\n", view_name);
+    if (strcmp(view_name, IPA_DEFAULT_VIEW_NAME) == 0) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Found IPA default view name, replacing with sysdb default.\n");
+        view_name = SYSDB_DEFAULT_VIEW_NAME;
+    }
+
+    if (ctx->sd_ctx->id_ctx->view_name != NULL
+            && strcmp(ctx->sd_ctx->id_ctx->view_name, view_name) != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "View name changed, this is currently not supported!\n");
+    } else {
+        ret = sysdb_update_view_name(ctx->sd_ctx->be_ctx->domain->sysdb,
+                                     view_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot add/update view name to sysdb.\n");
+        } else {
+            if (ctx->sd_ctx->id_ctx->view_name == NULL) {
+                ctx->sd_ctx->id_ctx->view_name =
+                                              talloc_strdup(ctx->sd_ctx->id_ctx,
+                                                            view_name);
+                if (ctx->sd_ctx->id_ctx->view_name == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot copy view name.\n");
+                }
+            }
+        }
+    }
+
+    ret = ipa_check_master(ctx);
+    if (ret == EAGAIN) {
+        return;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+done:
+    if (ret == EOK) {
+        dp_error = DP_ERR_OK;
+    }
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
+}
+
 static void ipa_subdomains_handler_done(struct tevent_req *req)
 {
     int ret;
@@ -1005,9 +1138,54 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         }
     }
 
+    ctx->search_base_iter = 0;
+    ctx->search_bases = ctx->sd_ctx->host_search_bases;
+    talloc_zfree(ctx->current_filter);
+    ctx->current_filter = talloc_asprintf(ctx, "(&(objectClass=%s)(%s=%s))",
+              ctx->sd_ctx->id_ctx->ipa_options->host_map[IPA_OC_HOST].name,
+              ctx->sd_ctx->id_ctx->ipa_options->host_map[IPA_AT_HOST_FQDN].name,
+              dp_opt_get_string(ctx->sd_ctx->id_ctx->ipa_options->basic,
+                                IPA_HOSTNAME));
+    if (ctx->current_filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (ctx->sd_ctx->id_ctx->server_mode == NULL) {
+        /* Only get view on clients, on servers it is always 'default' */
+        ret = ipa_get_view_name(ctx);
+        if (ret == EAGAIN) {
+            return;
+        } else if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = ipa_check_master(ctx);
+    if (ret == EAGAIN) {
+        return;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+done:
+    if (ret == EOK) {
+        dp_error = DP_ERR_OK;
+    }
+    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
+}
+
+static errno_t ipa_check_master(struct ipa_subdomains_req_ctx *ctx)
+{
+    int ret;
+    struct sss_domain_info *domain;
+
+    domain = ctx->sd_ctx->be_ctx->domain;
+
     ret = sysdb_master_domain_update(domain);
     if (ret != EOK) {
-        goto done;
+        return ret;
     }
 
     if (domain->flat_name == NULL ||
@@ -1018,19 +1196,13 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         ctx->search_bases = ctx->sd_ctx->master_search_bases;
         ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);
         if (ret == EAGAIN) {
-            return;
+            return EAGAIN;
         } else if (ret != EOK) {
-            goto done;
+            return ret;
         }
-    } else {
-        ret = EOK;
     }
 
-done:
-    if (ret == EOK) {
-        dp_error = DP_ERR_OK;
-    }
-    be_req_terminate(ctx->be_req, dp_error, ret, NULL);
+    return EOK;
 }
 
 
@@ -1328,6 +1500,7 @@ int ipa_subdom_init(struct be_ctx *be_ctx,
     ctx->search_bases = id_ctx->ipa_options->subdomains_search_bases;
     ctx->master_search_bases = id_ctx->ipa_options->master_domain_search_bases;
     ctx->ranges_search_bases = id_ctx->ipa_options->ranges_search_bases;
+    ctx->host_search_bases = id_ctx->ipa_options->host_search_bases;
     ctx->configured_explicit = configured_explicit;
     ctx->disabled_until = 0;
     *ops = &ipa_subdomains_ops;

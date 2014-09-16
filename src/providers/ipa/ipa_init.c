@@ -244,6 +244,20 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     server_mode = dp_opt_get_bool(ipa_options->basic, IPA_SERVER_MODE);
 
     if (server_mode == true) {
+        ipa_ctx->view_name = talloc_strdup(ipa_ctx, SYSDB_DEFAULT_VIEW_NAME);
+        if (ipa_ctx->view_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_update_view_name(bectx->domain->sysdb, ipa_ctx->view_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot add/update view name to sysdb.\n");
+            goto done;
+        }
+
         ipa_servers = dp_opt_get_string(ipa_options->basic, IPA_SERVER);
         if (srv_in_server_list(ipa_servers) == true
                 || dp_opt_get_bool(ipa_options->basic,
@@ -295,26 +309,41 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
                       "will be ignored in ipa_server_mode\n");
             }
         }
-    } else if (dp_opt_get_bool(ipa_options->basic, IPA_ENABLE_DNS_SITES)) {
-        /* use IPA plugin */
-        ipa_domain = dp_opt_get_string(ipa_options->basic, IPA_DOMAIN);
-        srv_ctx = ipa_srv_plugin_ctx_init(bectx, bectx->be_res->resolv,
-                                          hostname, ipa_domain);
-        if (srv_ctx == NULL) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
-            ret = ENOMEM;
-            goto done;
+    } else {
+        ret = sysdb_get_view_name(ipa_ctx, bectx->domain->sysdb,
+                                  &ipa_ctx->view_name);
+        if (ret != EOK) {
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Cannot find view name in the cache. " \
+                      "Will do online lookup later.\n");
+            } else {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_view_name failed.\n");
+                goto done;
+            }
         }
 
-        be_fo_set_srv_lookup_plugin(bectx, ipa_srv_plugin_send,
-                                    ipa_srv_plugin_recv, srv_ctx, "IPA");
-    } else {
-        /* fall back to standard plugin on clients. */
-        ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
-                                        "[%d]: %s\n", ret, strerror(ret));
-            goto done;
+        if (dp_opt_get_bool(ipa_options->basic, IPA_ENABLE_DNS_SITES)) {
+            /* use IPA plugin */
+            ipa_domain = dp_opt_get_string(ipa_options->basic, IPA_DOMAIN);
+            srv_ctx = ipa_srv_plugin_ctx_init(bectx, bectx->be_res->resolv,
+                                              hostname, ipa_domain);
+            if (srv_ctx == NULL) {
+                DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
+                ret = ENOMEM;
+                goto done;
+            }
+
+            be_fo_set_srv_lookup_plugin(bectx, ipa_srv_plugin_send,
+                                        ipa_srv_plugin_recv, srv_ctx, "IPA");
+        } else {
+            /* fall back to standard plugin on clients. */
+            ret = be_fo_set_dns_srv_lookup_plugin(bectx, hostname);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
+                                            "[%d]: %s\n", ret, strerror(ret));
+                goto done;
+            }
         }
     }
 

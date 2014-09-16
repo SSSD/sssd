@@ -53,6 +53,7 @@ enum ipa_basic_opt {
     IPA_RANGES_SEARCH_BASE,
     IPA_ENABLE_DNS_SITES,
     IPA_SERVER_MODE,
+    IPA_VIEWS_SEARCH_BASE,
 
     IPA_OPTS_BASIC /* opts counter */
 };
@@ -107,6 +108,30 @@ enum ipa_selinux_usermap_attrs {
     IPA_OPTS_SELINUX_USERMAP /* attrs counter */
 };
 
+enum ipa_view_attrs {
+    IPA_OC_VIEW = 0,
+    IPA_AT_VIEW_NAME,
+
+    IPA_OPTS_VIEW
+};
+
+enum ipa_override_attrs {
+    IPA_OC_OVERRIDE = 0,
+    IPA_AT_OVERRIDE_ANCHOR_UUID,
+    IPA_OC_OVERRIDE_USER,
+    IPA_OC_OVERRIDE_GROUP,
+    IPA_AT_OVERRIDE_USER_NAME,
+    IPA_AT_OVERRIDE_UID_NUMBER,
+    IPA_AT_OVERRIDE_USER_GID_NUMBER,
+    IPA_AT_OVERRIDE_GECOS,
+    IPA_AT_OVERRIDE_HOMEDIR,
+    IPA_AT_OVERRIDE_SHELL,
+    IPA_AT_OVERRIDE_GROUP_NAME,
+    IPA_AT_OVERRIDE_GROUP_GID_NUMBER,
+
+    IPA_OPTS_OVERRIDE
+};
+
 struct ipa_auth_ctx {
     struct krb5_ctx *krb5_auth_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
@@ -120,6 +145,7 @@ struct ipa_id_ctx {
     struct sdap_id_ctx *sdap_id_ctx;
     struct ipa_options *ipa_options;
 
+    char *view_name;
     /* Only used with server mode */
     struct ipa_server_mode_ctx *server_mode;
 };
@@ -130,6 +156,8 @@ struct ipa_options {
     struct sdap_attr_map *host_map;
     struct sdap_attr_map *hostgroup_map;
     struct sdap_attr_map *selinuxuser_map;
+    struct sdap_attr_map *view_map;
+    struct sdap_attr_map *override_map;
 
     struct sdap_search_base **host_search_bases;
     struct sdap_search_base **hbac_search_bases;
@@ -137,6 +165,7 @@ struct ipa_options {
     struct sdap_search_base **subdomains_search_bases;
     struct sdap_search_base **master_domain_search_bases;
     struct sdap_search_base **ranges_search_bases;
+    struct sdap_search_base **views_search_bases;
     struct ipa_service *service;
 
     /* id provider */

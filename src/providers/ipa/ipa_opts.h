@@ -50,6 +50,7 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_ranges_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ipa_enable_dns_sites", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ipa_server_mode", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ipa_views_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
 
@@ -260,6 +261,28 @@ struct sdap_attr_map ipa_selinux_user_map[] = {
     { "ipa_selinux_usermap_user_category", "userCategory", SYSDB_USER_CATEGORY, NULL},
     { "ipa_selinux_usermap_host_category", "hostCategory", SYSDB_HOST_CATEGORY, NULL},
     { "ipa_selinux_usermap_uuid", "ipaUniqueID", SYSDB_UUID, NULL},
+    SDAP_ATTR_MAP_TERMINATOR
+};
+
+struct sdap_attr_map ipa_view_map[] = {
+    { "ipa_view_class", "nsContainer", SYSDB_VIEW_CLASS, NULL},
+    { "ipa_view_name", "cn", SYSDB_VIEW_NAME, NULL},
+    SDAP_ATTR_MAP_TERMINATOR
+};
+
+struct sdap_attr_map ipa_override_map[] = {
+    { "ipa_overide_object_class", "ipaOverrideAnchor", SYSDB_OVERRIDE_CLASS, NULL},
+    { "ipa_anchor_uuid", "ipaAnchorUUID", SYSDB_OVERRIDE_ANCHOR_UUID, NULL},
+    { "ipa_user_override_object_class", "ipaUserOverride", SYSDB_OVERRIDE_USER_CLASS, NULL},
+    { "ipa_group_override_object_class", "ipaGroupOverride", SYSDB_OVERRIDE_GROUP_CLASS, NULL},
+    { "ldap_user_name", "uid", SYSDB_NAME, NULL },
+    { "ldap_user_uid_number", "uidNumber", SYSDB_UIDNUM, NULL },
+    { "ldap_user_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
+    { "ldap_user_gecos", "gecos", SYSDB_GECOS, NULL },
+    { "ldap_user_home_directory", "homeDirectory", SYSDB_HOMEDIR, NULL },
+    { "ldap_user_shell", "loginShell", SYSDB_SHELL, NULL },
+    { "ldap_group_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
