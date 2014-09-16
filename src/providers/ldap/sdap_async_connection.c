@@ -1413,6 +1413,37 @@ static void sdap_cli_auth_step(struct tevent_req *req);
 static void sdap_cli_auth_done(struct tevent_req *subreq);
 static void sdap_cli_rootdse_auth_done(struct tevent_req *subreq);
 
+static errno_t
+decide_tls_usage(enum connect_tls force_tls, struct dp_option *basic,
+                 const char *uri, bool *_use_tls)
+{
+    bool use_tls = true;
+
+    switch (force_tls) {
+    case CON_TLS_DFL:
+        use_tls = dp_opt_get_bool(basic, SDAP_ID_TLS);
+        break;
+    case CON_TLS_ON:
+        use_tls = true;
+        break;
+    case CON_TLS_OFF:
+        use_tls = false;
+        break;
+    default:
+        return EINVAL;
+        break;
+    }
+
+    if (use_tls && sdap_is_secure_uri(uri)) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "[%s] is a secure channel. No need to run START_TLS\n", uri);
+        use_tls = false;
+    }
+
+    *_use_tls = use_tls;
+    return EOK;
+}
+
 struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sdap_options *opts,
@@ -1476,21 +1507,14 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     int ret;
-    bool use_tls = true;
+    bool use_tls;
 
-    switch (state->force_tls) {
-    case CON_TLS_DFL:
-        use_tls = dp_opt_get_bool(state->opts->basic, SDAP_ID_TLS);
-        break;
-    case CON_TLS_ON:
-        use_tls = true;
-        break;
-    case CON_TLS_OFF:
-        use_tls = false;
-        break;
-    default:
+    ret = decide_tls_usage(state->force_tls, state->opts->basic,
+                           state->service->uri, &use_tls);
+
+    if (ret != EOK) {
         tevent_req_error(req, EINVAL);
-        break;
+        return;
     }
 
     ret = be_resolve_server_recv(subreq, &state->srv);
@@ -1501,13 +1525,6 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
          * was found good, go offline */
         tevent_req_error(req, EIO);
         return;
-    }
-
-    if (use_tls && sdap_is_secure_uri(state->service->uri)) {
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              "[%s] is a secure channel. No need to run START_TLS\n",
-                  state->service->uri);
-        use_tls = false;
     }
 
     subreq = sdap_connect_send(state, state->ev, state->opts,
