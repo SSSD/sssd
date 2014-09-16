@@ -668,6 +668,7 @@ libsss_util_la_SOURCES = \
     src/db/sysdb_services.c \
     src/db/sysdb_autofs.c \
     src/db/sysdb_subdomains.c \
+    src/db/sysdb_views.c \
     src/db/sysdb_ranges.c \
     src/db/sysdb_idmap.c \
     src/db/sysdb_gpo.c \

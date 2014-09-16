@@ -36,11 +36,13 @@
 #define SYSDB_CUSTOM_CONTAINER "cn=custom"
 #define SYSDB_NETGROUP_CONTAINER "cn=Netgroups"
 #define SYSDB_RANGE_CONTAINER "cn=ranges"
+#define SYSDB_VIEW_CONTAINER "cn=views"
 #define SYSDB_TMPL_USER_BASE SYSDB_USERS_CONTAINER","SYSDB_DOM_BASE
 #define SYSDB_TMPL_GROUP_BASE SYSDB_GROUPS_CONTAINER","SYSDB_DOM_BASE
 #define SYSDB_TMPL_CUSTOM_BASE SYSDB_CUSTOM_CONTAINER","SYSDB_DOM_BASE
 #define SYSDB_TMPL_NETGROUP_BASE SYSDB_NETGROUP_CONTAINER","SYSDB_DOM_BASE
 #define SYSDB_TMPL_RANGE_BASE SYSDB_RANGE_CONTAINER","SYSDB_BASE
+#define SYSDB_TMPL_VIEW_BASE SYSDB_VIEW_CONTAINER","SYSDB_BASE
 
 #define SYSDB_SUBDOMAIN_CLASS "subdomain"
 #define SYSDB_USER_CLASS "user"
@@ -144,6 +146,10 @@
 
 #define SYSDB_AD_ACCOUNT_EXPIRES "adAccountExpires"
 #define SYSDB_AD_USER_ACCOUNT_CONTROL "adUserAccountControl"
+
+#define SYSDB_VIEW_CLASS "view"
+#define SYSDB_VIEW_NAME "viewName"
+#define SYSDB_DEFAULT_VIEW_NAME "default"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
@@ -411,6 +417,11 @@ errno_t sysdb_get_ranges(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 errno_t sysdb_range_create(struct sysdb_ctx *sysdb, struct range_info *range);
 errno_t sysdb_update_ranges(struct sysdb_ctx *sysdb,
                             struct range_info **ranges);
+
+errno_t sysdb_update_view_name(struct sysdb_ctx *sysdb, const char *view_name);
+
+errno_t sysdb_get_view_name(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                            char **view_name);
 
 /* Sysdb initialization.
  * call this function *only* once to initialize the database and get
