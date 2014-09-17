@@ -2337,6 +2337,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_subdomains.c \
     src/providers/ipa/ipa_subdomains_id.c \
     src/providers/ipa/ipa_subdomains_ext_groups.c \
+    src/providers/ipa/ipa_views.c \
     src/providers/ipa/ipa_s2n_exop.c \
     src/providers/ipa/ipa_hbac_hosts.c \
     src/providers/ipa/ipa_hbac_private.h \

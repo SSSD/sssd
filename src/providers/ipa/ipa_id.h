@@ -76,4 +76,16 @@ struct tevent_req *ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
 
 errno_t ipa_get_ad_acct_recv(struct tevent_req *req, int *dp_error_out);
 
+struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct sdap_id_ctx *sdap_id_ctx,
+                                            struct ipa_options *ipa_options,
+                                            const char *ipa_realm,
+                                            const char *view_name,
+                                            const char *obj_sid);
+
+errno_t ipa_get_ad_override_recv(struct tevent_req *req, int *dp_error_out,
+                                 TALLOC_CTX *mem_ctx,
+                                 struct sysdb_attrs **override_attrs);
+
 #endif
