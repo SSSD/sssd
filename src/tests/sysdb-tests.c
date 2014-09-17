@@ -4972,6 +4972,7 @@ START_TEST(test_sysdb_subdomain_group_ops)
     struct sss_domain_info *subdomain = NULL;
     struct ldb_message *msg = NULL;
     struct ldb_dn *check_dn = NULL;
+    struct sysdb_attrs *group_attrs;
 
     ret = setup_sysdb_tests(&test_ctx);
     fail_if(ret != EOK, "Could not set up the test");
@@ -4989,29 +4990,45 @@ START_TEST(test_sysdb_subdomain_group_ops)
     fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
                             ret, strerror(ret));
 
+    group_attrs = sysdb_new_attrs(test_ctx);
+    fail_unless(group_attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_string(group_attrs, SYSDB_NAME_ALIAS, "subdomgroup");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
+
     ret = sysdb_store_group(subdomain,
-                            "subdomgroup", 12345, NULL, -1, 0);
-    fail_unless(ret == EOK, "sysdb_store_domgroup failed.");
+                            "subDomGroup", 12345, group_attrs, -1, 0);
+    fail_unless(ret == EOK, "sysdb_store_group failed.");
 
     check_dn = ldb_dn_new(test_ctx, test_ctx->sysdb->ldb,
-                          "name=subdomgroup,cn=groups,cn=test.sub,cn=sysdb");
+                          "name=subDomGroup,cn=groups,cn=test.sub,cn=sysdb");
     fail_unless(check_dn != NULL);
 
+    ret = sysdb_search_group_by_name(test_ctx, subdomain, "subDomGroup", NULL,
+                                     &msg);
+    fail_unless(ret == EOK, "sysdb_search_group_by_name failed with [%d][%s].",
+                            ret, strerror(ret));
+    fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
+                "Unexpected DN returned");
+
+    /* subdomains are case insensitive, so it should be possible to search
+    the group with a lowercase name version, too */
     ret = sysdb_search_group_by_name(test_ctx, subdomain, "subdomgroup", NULL,
                                      &msg);
-    fail_unless(ret == EOK, "sysdb_search_domgroup_by_name failed with [%d][%s].",
+    fail_unless(ret == EOK, "case-insensitive group search failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
-                "Unexpedted DN returned");
+                "Unexpected DN returned");
+
 
     ret = sysdb_search_group_by_gid(test_ctx, subdomain, 12345, NULL, &msg);
-    fail_unless(ret == EOK, "sysdb_search_domgroup_by_gid failed with [%d][%s].",
+    fail_unless(ret == EOK, "sysdb_search_group_by_gid failed with [%d][%s].",
                             ret, strerror(ret));
     fail_unless(ldb_dn_compare(msg->dn, check_dn) == 0,
                 "Unexpedted DN returned");
 
-    ret = sysdb_delete_group(subdomain, "subdomgroup", 12345);
-    fail_unless(ret == EOK, "sysdb_delete_domgroup failed with [%d][%s].",
+    ret = sysdb_delete_group(subdomain, "subDomGroup", 12345);
+    fail_unless(ret == EOK, "sysdb_delete_group failed with [%d][%s].",
                             ret, strerror(ret));
 
 }
