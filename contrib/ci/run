@@ -197,7 +197,6 @@ function build_debug()
     # Not building "tests" due to https://fedorahosted.org/sssd/ticket/2350
     stage make-tests        make-check-wrap -j $CPU_NUM check -- true
 
-    # Ignored until issues found by Valgrind are fixed
     status=0
     CK_FORK=no \
         stage make-check-valgrind \
@@ -214,6 +213,7 @@ function build_debug()
                                     --verbose ||
             status=$?
     mv "$test_dir" ci-test-dir
+    ((status == 0))
 
     if "$MODERATE"; then
         test_dir_distcheck=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
