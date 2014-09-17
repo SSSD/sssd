@@ -520,6 +520,54 @@ static int test_set_netgroup_attr(struct test_data *data)
     return ret;
 }
 
+START_TEST (test_sysdb_user_new_id)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    const char *username;
+    struct sysdb_attrs *attrs = NULL;
+    struct ldb_message *msg;
+    const char *get_attrs[] = { SYSDB_DESCRIPTION, NULL };
+    const char *desc;
+    const char *desc_in = "testuser_new_id_desc";
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    username = "testuser_newid";
+
+    attrs = sysdb_new_attrs(test_ctx);
+    fail_if(attrs == NULL);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_DESCRIPTION, desc_in);
+    fail_if(ret != EOK);
+
+    ret = sysdb_add_user(test_ctx->domain, username,
+                         0, 0, username, "/", "/bin/bash",
+                         NULL, attrs, 0, 0);
+    fail_if(ret != EOK, "Could not store user %s", username);
+
+    ret = sysdb_search_user_by_name(test_ctx,
+                                    test_ctx->domain,
+                                    username, get_attrs, &msg);
+    fail_if(ret != EOK, "Could not retrieve user %s", username);
+
+    desc = ldb_msg_find_attr_as_string(msg, SYSDB_DESCRIPTION, NULL);
+    fail_unless(desc != NULL);
+    ck_assert_str_eq(desc, desc_in);
+
+    ret = sysdb_delete_user(test_ctx->domain, username, 0);
+    fail_unless(ret == EOK, "sysdb_delete_user error [%d][%s]",
+                            ret, strerror(ret));
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_store_user)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -5702,6 +5750,9 @@ Suite *create_sysdb_suite(void)
 
     /* test getting next id works */
     tcase_add_test(tc_sysdb, test_sysdb_get_new_id);
+
+    /* Add a user with an automatic ID */
+    tcase_add_test(tc_sysdb, test_sysdb_user_new_id);
 
     /* Create a new user */
     tcase_add_loop_test(tc_sysdb, test_sysdb_add_user,27000,27010);
