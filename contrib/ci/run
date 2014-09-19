@@ -156,7 +156,9 @@ function mock_privileged_conf()
 # Args: chroot [mock_arg...]
 function mock_privileged_deps()
 {
-    declare -r chroot="$1"; shift
+    declare -r chroot_name="$1"; shift
+    declare -r config=$(basename $(readlink -f "/etc/mock/${chroot_name}.cfg"))
+    declare -r chroot="${config%.cfg}"
     declare repo
 
     if [[ "$chroot" == fedora-* ]]; then
@@ -230,11 +232,8 @@ function build_debug()
 
         if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
             stage make-srpm     env -u CFLAGS -- make srpm
-            stage mock-epel6    mock_privileged_deps "epel-6-$ARCH" \
-                                     --resultdir ci-mock-result-epel6 \
-                                     rpmbuild/SRPMS/*.src.rpm
-            stage mock-fedora20 mock_privileged_deps "fedora-20-$ARCH" \
-                                     --resultdir ci-mock-result-fedora20 \
+            stage mock-build    mock_privileged_deps "default" \
+                                     --resultdir ci-mock-result \
                                      rpmbuild/SRPMS/*.src.rpm
         fi
     fi
