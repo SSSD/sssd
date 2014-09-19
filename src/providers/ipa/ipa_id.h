@@ -52,6 +52,7 @@ void ipa_check_online(struct be_req *be_req);
 
 struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
                                               struct tevent_context *ev,
+                                              struct ipa_id_ctx *ipa_ctx,
                                               struct sdap_options *opts,
                                               struct sss_domain_info *dom,
                                               struct sdap_handle *sh,
@@ -61,7 +62,7 @@ int ipa_s2n_get_acct_info_recv(struct tevent_req *req);
 
 struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
                                             struct tevent_context *ev,
-                                            struct sdap_id_ctx *ctx,
+                                            struct ipa_id_ctx *ipa_ctx,
                                             struct be_acct_req *ar);
 int ipa_get_subdom_acct_recv(struct tevent_req *req, int *dp_error_out);
 

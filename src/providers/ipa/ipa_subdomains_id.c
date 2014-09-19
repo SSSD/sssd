@@ -36,6 +36,7 @@
 
 struct ipa_get_subdom_acct {
     struct tevent_context *ev;
+    struct ipa_id_ctx *ipa_ctx;
     struct sdap_id_ctx *ctx;
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
@@ -53,7 +54,7 @@ static void ipa_get_subdom_acct_done(struct tevent_req *subreq);
 
 struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
                                             struct tevent_context *ev,
-                                            struct sdap_id_ctx *ctx,
+                                            struct ipa_id_ctx *ipa_ctx,
                                             struct be_acct_req *ar)
 {
     struct tevent_req *req;
@@ -65,7 +66,8 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     state->ev = ev;
-    state->ctx = ctx;
+    state->ipa_ctx = ipa_ctx;
+    state->ctx = ipa_ctx->sdap_id_ctx;
     state->dp_error = DP_ERR_FATAL;
 
     state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
@@ -184,6 +186,7 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
 
     subreq = ipa_s2n_get_acct_info_send(state,
                                         state->ev,
+                                        state->ipa_ctx,
                                         state->ctx->opts,
                                         state->domain,
                                         sdap_id_op_handle(state->op),

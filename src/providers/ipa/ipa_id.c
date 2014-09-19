@@ -90,7 +90,7 @@ void ipa_account_info_handler(struct be_req *breq)
         if (dp_opt_get_bool(ipa_ctx->ipa_options->basic, IPA_SERVER_MODE)) {
             req = ipa_get_ad_acct_send(breq, be_ctx->ev, ipa_ctx, breq, ar);
         } else {
-            req = ipa_get_subdom_acct_send(breq, be_ctx->ev, ctx, ar);
+            req = ipa_get_subdom_acct_send(breq, be_ctx->ev, ipa_ctx, ar);
         }
     } else if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_NETGROUP) {
         /* netgroups are handled by a separate request function */

@@ -874,6 +874,7 @@ done:
 
 struct ipa_s2n_get_groups_state {
     struct tevent_context *ev;
+    struct ipa_id_ctx *ipa_ctx;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
     struct req_input req_input;
@@ -887,6 +888,7 @@ static void ipa_s2n_get_groups_next(struct tevent_req *subreq);
 
 static struct tevent_req *ipa_s2n_get_groups_send(TALLOC_CTX *mem_ctx,
                                                   struct tevent_context *ev,
+                                                  struct ipa_id_ctx *ipa_ctx,
                                                   struct sss_domain_info *dom,
                                                   struct sdap_handle *sh,
                                                   int exop_timeout,
@@ -902,6 +904,7 @@ static struct tevent_req *ipa_s2n_get_groups_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
+    state->ipa_ctx = ipa_ctx;
     state->dom = dom;
     state->sh = sh;
     state->group_list = group_list;
@@ -1034,6 +1037,7 @@ static int ipa_s2n_get_groups_recv(struct tevent_req *req)
 
 struct ipa_s2n_get_user_state {
     struct tevent_context *ev;
+    struct ipa_id_ctx *ipa_ctx;
     struct sdap_options *opts;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
@@ -1049,6 +1053,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq);
 
 struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
                                               struct tevent_context *ev,
+                                              struct ipa_id_ctx *ipa_ctx,
                                               struct sdap_options *opts,
                                               struct sss_domain_info *dom,
                                               struct sdap_handle *sh,
@@ -1068,6 +1073,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
+    state->ipa_ctx = ipa_ctx;
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
@@ -1322,7 +1328,8 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             }
 
             if (missing_groups != NULL) {
-                subreq = ipa_s2n_get_groups_send(state, state->ev, state->dom,
+                subreq = ipa_s2n_get_groups_send(state, state->ev,
+                                                 state->ipa_ctx, state->dom,
                                                  state->sh, state->exop_timeout,
                                                  missing_groups);
                 if (subreq == NULL) {
