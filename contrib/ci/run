@@ -204,7 +204,6 @@ function build_debug()
                                 libtool --mode=execute \
                                     valgrind-condense 99 \
                                     '!(*.py|*dlopen-tests)' -- \
-                                    --vgdb=no \
                                     --trace-children=yes \
                                     --trace-children-skip='*/bin/*,*/sbin/*' \
                                     --leak-check=full \
