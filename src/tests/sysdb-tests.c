@@ -3455,6 +3455,45 @@ START_TEST (test_sysdb_attrs_to_list)
 }
 END_TEST
 
+START_TEST(test_sysdb_get_real_name)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct sysdb_attrs *user_attrs;
+    const char *str;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    user_attrs = sysdb_new_attrs(test_ctx);
+    fail_unless(user_attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_string(user_attrs, SYSDB_NAME_ALIAS, "alias");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
+
+    ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, "foo@bar");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
+
+    ret = sysdb_store_user(test_ctx->domain, "RealName",
+                           NULL, 22345, 0, "gecos",
+                           "/home/realname", "/bin/bash",
+                           NULL, user_attrs, NULL, -1, 0);
+    fail_unless(ret == EOK, "sysdb_store_user failed.");
+
+    /* Get real, uncanonicalized name as string */
+    ret = sysdb_get_real_name(test_ctx, test_ctx->domain, "alias", &str);
+    fail_unless(ret == EOK, "sysdb_get_real_name failed.");
+    fail_unless(strcmp(str, "RealName") == 0, "Expected [%s], got [%s].",
+                                              "RealName", str);
+
+    ret = sysdb_get_real_name(test_ctx, test_ctx->domain, "foo@bar", &str);
+    fail_unless(ret == EOK, "sysdb_get_real_name failed.");
+    fail_unless(strcmp(str, "RealName") == 0, "Expected [%s], got [%s].",
+                                              "foo@bar", str);
+
+}
+END_TEST
+
 START_TEST(test_group_rename)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -4549,6 +4588,7 @@ START_TEST (test_sysdb_search_return_ENOENT)
     struct ldb_message **msgs = NULL;
     struct ldb_result *res = NULL;
     size_t count;
+    const char *str = NULL;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -4561,6 +4601,12 @@ START_TEST (test_sysdb_search_return_ENOENT)
     fail_unless(ret == ENOENT, "sysdb_search_user_by_name error [%d][%s].",
                                ret, strerror(ret));
     talloc_zfree(msg);
+
+    ret = sysdb_get_real_name(test_ctx, test_ctx->domain,
+                              "nonexisting_user", &str);
+    fail_unless(ret == ENOENT, "sysdb_get_real_name error [%d][%s].",
+                               ret, strerror(ret));
+    talloc_zfree(str);
 
     ret = sysdb_search_user_by_uid(test_ctx, test_ctx->domain,
                                    1234, NULL, &msg);
@@ -5892,6 +5938,9 @@ Suite *create_sysdb_suite(void)
 
     /* Test SID string searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_sid_str);
+
+    /* Test canonicalizing names */
+    tcase_add_test(tc_sysdb, test_sysdb_get_real_name);
 
     /* Test user and group renames */
     tcase_add_test(tc_sysdb, test_group_rename);

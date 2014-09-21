@@ -329,7 +329,7 @@ errno_t sysdb_attrs_primary_name_list(struct sysdb_ctx *sysdb,
                                       char ***name_list);
 errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
                             struct sss_domain_info *domain,
-                            const char *name,
+                            const char *name_or_upn,
                             const char **_cname);
 
 errno_t sysdb_msg2attrs(TALLOC_CTX *mem_ctx, size_t count,
