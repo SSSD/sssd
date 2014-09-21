@@ -568,7 +568,8 @@ int main(int argc, const char *argv[])
     /* set up things like debug, signals, daemonization, etc... */
     debug_log_file = "sssd_nss";
 
-    ret = server_setup("sssd[nss]", 0, 0, 0, CONFDB_NSS_CONF_ENTRY, &main_ctx);
+    ret = server_setup("sssd[nss]", 0, uid, gid, CONFDB_NSS_CONF_ENTRY,
+                       &main_ctx);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();
