@@ -2916,7 +2916,7 @@ static int data_provider_logrotate(struct sbus_request *dbus_req, void *data)
     errno_t ret;
     struct be_ctx *be_ctx = talloc_get_type(data, struct be_ctx);
 
-    ret = monitor_common_rotate_logs(be_ctx->cdb, be_ctx->conf_path);
+    ret = server_common_rotate_logs(be_ctx->cdb, be_ctx->conf_path);
     if (ret != EOK) return ret;
 
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);

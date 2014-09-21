@@ -162,40 +162,6 @@ int monitor_common_res_init(struct sbus_request *dbus_req, void *data)
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
 
-errno_t monitor_common_rotate_logs(struct confdb_ctx *confdb,
-                                   const char *conf_path)
-{
-    errno_t ret;
-    int old_debug_level = debug_level;
-
-    ret = rotate_debug_files();
-    if (ret) {
-        sss_log(SSS_LOG_ALERT, "Could not rotate debug files! [%d][%s]\n",
-                               ret, strerror(ret));
-        return ret;
-    }
-
-    /* Get new debug level from the confdb */
-    ret = confdb_get_int(confdb, conf_path,
-                         CONFDB_SERVICE_DEBUG_LEVEL,
-                         old_debug_level,
-                         &debug_level);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) [%s]\n",
-                  ret, strerror(ret));
-        /* Try to proceed with the old value */
-        debug_level = old_debug_level;
-    }
-
-    if (debug_level != old_debug_level) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Debug level changed to %#.4x\n", debug_level);
-        debug_level = debug_convert_old_level(debug_level);
-    }
-
-    return EOK;
-}
-
 errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
                          struct tevent_context *ev,
                          struct mon_cli_iface *mon_iface,

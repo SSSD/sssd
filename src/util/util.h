@@ -237,6 +237,8 @@ struct main_context {
     pid_t parent_pid;
 };
 
+errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
+                                  const char *conf_entry);
 int die_if_parent_died(void);
 int pidfile(const char *path, const char *name);
 int server_setup(const char *name, int flags,

@@ -40,8 +40,6 @@ int monitor_common_send_id(struct sbus_connection *conn,
                            const char *name, uint16_t version);
 int monitor_common_pong(struct sbus_request *dbus_req, void *data);
 int monitor_common_res_init(struct sbus_request *dbus_req, void *data);
-int monitor_common_rotate_logs(struct confdb_ctx *confdb,
-                               const char *conf_entry);
 
 errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
                          struct tevent_context *ev,

@@ -1025,7 +1025,7 @@ int responder_logrotate(struct sbus_request *dbus_req, void *data)
     errno_t ret;
     struct resp_ctx *rctx = talloc_get_type(data, struct resp_ctx);
 
-    ret = monitor_common_rotate_logs(rctx->cdb, rctx->confdb_service_path);
+    ret = server_common_rotate_logs(rctx->cdb, rctx->confdb_service_path);
     if (ret != EOK) return ret;
 
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
