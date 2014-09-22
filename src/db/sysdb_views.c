@@ -180,9 +180,11 @@ done:
     return ret;
 }
 
-static errno_t add_aliases_for_name_override(struct sss_domain_info *domain,
-                                             struct sysdb_attrs *attrs,
-                                             const char *name_override)
+static errno_t
+add_name_and_aliases_for_name_override(struct sss_domain_info *domain,
+                                       struct sysdb_attrs *attrs,
+                                       bool add_name,
+                                       const char *name_override)
 {
     char *fq_name = NULL;
     int ret;
@@ -200,24 +202,37 @@ static errno_t add_aliases_for_name_override(struct sss_domain_info *domain,
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS,
                                          fq_name);
         }
-        talloc_free(fq_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sysdb_attrs_add_lc_name_alias failed.\n");
-            return ret;
+            goto done;
+        }
+    }
+
+    if (add_name) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_DEFAULT_OVERRIDE_NAME,
+                                     fq_name == NULL ? name_override : fq_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_lc_name_alias failed.\n");
+            goto done;
         }
     }
 
     if (!domain->case_sensitive) {
         ret = sysdb_attrs_add_lc_name_alias(attrs, name_override);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "sysdb_attrs_add_lc_name_alias failed.\n");
-            return ret;
-        }
+    } else {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, name_override);
+    }
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_lc_name_alias failed.\n");
+        goto done;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(fq_name);
+    return ret;
 }
 
 errno_t sysdb_store_override(struct sss_domain_info *domain,
@@ -329,10 +344,11 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
 
         ret = sysdb_attrs_get_string(attrs, SYSDB_NAME, &name_override);
         if (ret == EOK) {
-            ret = add_aliases_for_name_override(domain, attrs, name_override);
+            ret = add_name_and_aliases_for_name_override(domain, attrs, false,
+                                                         name_override);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "add_aliases_for_name_override failed.\n");
+                      "add_name_and_aliases_for_name_override failed.\n");
                 goto done;
             }
         } else if (ret != ENOENT) {
@@ -459,5 +475,171 @@ done:
     }
 
     talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static errno_t safe_original_attributes(struct sss_domain_info *domain,
+                                        struct sysdb_attrs *attrs,
+                                        struct ldb_dn *obj_dn,
+                                        const char **allowed_attrs)
+{
+    int ret;
+    size_t c;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *orig_obj;
+    char *orig_attr_name;
+    struct ldb_message_element *el = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &orig_obj, obj_dn,
+                     LDB_SCOPE_BASE, NULL, NULL);
+    if (ret != EOK || orig_obj->count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Original object not found.\n");
+        goto done;
+    }
+
+    /* Safe orginal values in attributes prefixed by OriginalAD. */
+    for (c = 0; allowed_attrs[c] != NULL; c++) {
+        el = ldb_msg_find_element(orig_obj->msgs[0], allowed_attrs[c]);
+        if (el != NULL) {
+            orig_attr_name = talloc_asprintf(tmp_ctx, "%s%s",
+                                             ORIGINALAD_PREFIX,
+                                             allowed_attrs[c]);
+            if (orig_attr_name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sysdb_attrs_add_val(attrs, orig_attr_name,
+                                      &el->values[0]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_attrs_add_val failed.\n");
+                goto done;
+            }
+        } else {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Original object does not have [%s] set.\n",
+                  allowed_attrs[c]);
+        }
+    }
+
+    /* Add existing aliases to new ones */
+    el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_NAME_ALIAS);
+    if (el != NULL) {
+        for (c = 0; c < el->num_values; c++) {
+            /* To avoid issue with ldb_modify if e.g. the orginal and the
+             * override name are the same, we use the *_safe version here. */
+            ret = sysdb_attrs_add_val_safe(attrs, SYSDB_NAME_ALIAS,
+                                           &el->values[c]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val failed.\n");
+                goto done;
+            }
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
+                                     struct sysdb_attrs *override_attrs,
+                                     struct ldb_dn *obj_dn)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_attrs *attrs;
+    size_t c;
+    struct ldb_message_element *el = NULL;
+    const char *allowed_attrs[] = { SYSDB_UIDNUM,
+                                    SYSDB_GIDNUM,
+                                    SYSDB_GECOS,
+                                    SYSDB_HOMEDIR,
+                                    SYSDB_SHELL,
+                                    SYSDB_NAME,
+                                    NULL };
+    bool override_attrs_found = false;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    attrs = sysdb_new_attrs(tmp_ctx);
+    if (attrs == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (c = 0; allowed_attrs[c] != NULL; c++) {
+        ret = sysdb_attrs_get_el_ext(override_attrs, allowed_attrs[c], false,
+                                     &el);
+        if (ret == EOK) {
+            override_attrs_found = true;
+
+            if (strcmp(allowed_attrs[c], SYSDB_NAME) == 0) {
+                if (el->values[0].data[el->values[0].length] != '\0') {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "String attribute does not end with \\0.\n");
+                    ret = EINVAL;
+                    goto done;
+                }
+
+                ret = add_name_and_aliases_for_name_override(domain, attrs,
+                                                   true,
+                                                   (char *) el->values[0].data);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "add_name_and_aliases_for_name_override failed.\n");
+                    goto done;
+                }
+            } else {
+                ret = sysdb_attrs_add_val(attrs,  allowed_attrs[c],
+                                          &el->values[0]);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val failed.\n");
+                    goto done;
+                }
+                DEBUG(SSSDBG_TRACE_ALL, "Override [%s] with [%.*s] for [%s].\n",
+                                        allowed_attrs[c],
+                                        (int) el->values[0].length,
+                                        el->values[0].data,
+                                        ldb_dn_get_linearized(obj_dn));
+            }
+        } else if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el_ext failed.\n");
+            goto done;
+        }
+    }
+
+    if (override_attrs_found) {
+        ret = safe_original_attributes(domain, attrs, obj_dn, allowed_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "safe_original_attributes failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_set_entry_attr(domain->sysdb, obj_dn, attrs, SYSDB_MOD_REP);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_entry_attr failed.\n");
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
