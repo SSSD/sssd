@@ -12,8 +12,7 @@ It accepts options to choose from three test sets: "essential", "moderate" and
 "rigorous" (-e/-m/-r), with the essential set selected by default.
 
 Essential tests include building everything and running the built-in test
-suite under Valgrind, completing in under 5 minutes. Valgrind failures are
-ignored for now.
+suite under Valgrind, completing in under 5 minutes.
 
 Moderate tests include essential tests, plus a distcheck target build and mock
 package builds for Fedora and RHEL on Red Hat distros. They complete in about
