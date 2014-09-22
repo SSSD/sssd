@@ -154,6 +154,8 @@
 #define SYSDB_OVERRIDE_ANCHOR_UUID "overrideAnchorUUID"
 #define SYSDB_OVERRIDE_USER_CLASS "userOverride"
 #define SYSDB_OVERRIDE_GROUP_CLASS "groupOverride"
+#define SYSDB_OVERRIDE_DN "overrideDN"
+#define SYSDB_OVERRIDE_OBJECT_DN "overrideObjectDN"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
@@ -224,6 +226,7 @@
 #define SYSDB_TMPL_CUSTOM_SUBTREE "cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 #define SYSDB_TMPL_CUSTOM SYSDB_NAME"=%s,cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 #define SYSDB_TMPL_RANGE SYSDB_NAME"=%s,"SYSDB_TMPL_RANGE_BASE
+#define SYSDB_TMPL_OVERRIDE SYSDB_OVERRIDE_ANCHOR_UUID"=%s,cn=%s,"SYSDB_TMPL_VIEW_BASE
 
 #define SYSDB_MOD_ADD LDB_FLAG_MOD_ADD
 #define SYSDB_MOD_DEL LDB_FLAG_MOD_DELETE
@@ -731,6 +734,11 @@ errno_t sysdb_update_members_dn(struct sss_domain_info *member_domain,
                                 enum sysdb_member_type type,
                                 const char *const *add_groups,
                                 const char *const *del_groups);
+
+errno_t sysdb_store_override(struct sss_domain_info *domain,
+                             const char *view_name,
+                             enum sysdb_member_type type,
+                             struct sysdb_attrs *attrs, struct ldb_dn *obj_dn);
 
 /* Password caching function.
  * If you are in a transaction ignore sysdb and pass in the handle.
