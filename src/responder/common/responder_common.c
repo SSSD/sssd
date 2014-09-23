@@ -159,7 +159,7 @@ errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
     return EACCES;
 }
 
-errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *cvs_string,
+errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
                                 bool allow_sss_loop,
                                 size_t *_uid_count, uid_t **_uids)
 {
@@ -169,9 +169,8 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *cvs_string,
     int list_size;
     uid_t *uids = NULL;
     char *endptr;
-    struct passwd *pwd;
 
-    ret = split_on_separator(mem_ctx, cvs_string, ',', true, false,
+    ret = split_on_separator(mem_ctx, csv_string, ',', true, false,
                              &list, &list_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "split_on_separator failed [%d][%s].\n",
@@ -211,17 +210,13 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *cvs_string,
                 goto done;
             }
 
-            errno = 0;
-            pwd = getpwnam(list[c]);
-            if (pwd == NULL) {
+            ret = sss_user_by_name_or_uid(list[c], &uids[c], NULL);
+            if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "List item [%s] is neither a valid "
-                                          "UID nor a user name which cloud be "
-                                          "resolved by getpwnam().\n", list[c]);
-                ret = EINVAL;
+                                         "UID nor a user name which could be "
+                                         "resolved by getpwnam().\n", list[c]);
                 goto done;
             }
-
-            uids[c] = pwd->pw_uid;
         }
     }
 

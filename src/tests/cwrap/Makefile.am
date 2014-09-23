@@ -45,6 +45,8 @@ if HAVE_UID_WRAPPER
 check_PROGRAMS += \
     become_user-tests \
     server-tests \
+    usertools-tests \
+    responder_common-tests \
     $(NULL)
 endif # HAVE_UID_WRAPPER
 endif # HAVE_NSS_WRAPPER
@@ -103,6 +105,58 @@ server_tests_LDADD = \
     $(SSSD_LIBS) \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_crypt.la \
+    $(abs_top_builddir)/libsss_test_common.la \
+    $(NULL)
+
+usertools_tests_SOURCES = \
+    test_usertools.c \
+    ../../../src/util/domain_info_utils.c \
+    ../../../src/util/safe-format-string.c \
+    ../../../src/util/usertools.c \
+    ../../../src/util/strtonum.c \
+    ../../../src/util/backup_file.c \
+    ../../../src/util/atomic_io.c \
+    ../../../src/util/util.c \
+    ../../../src/util/util_errors.c \
+    ../../../src/util/sss_tc_utf8.c \
+    ../../../src/util/sss_utf8.c \
+    ../../../src/confdb/confdb.c \
+    ../../../src/db/sysdb.c \
+    ../../../src/db/sysdb_upgrade.c \
+    ../../../src/db/sysdb_autofs.c \
+    ../../../src/db/sysdb_search.c \
+    ../../../src/db/sysdb_services.c \
+    ../../../src/db/sysdb_ops.c \
+    ../../../src/db/sysdb_views.c \
+    $(NULL)
+usertools_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+usertools_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(UNICODE_LIBS) \
+    $(SSSD_LIBS) \
+    $(abs_top_builddir)/libsss_debug.la \
+    $(abs_top_builddir)/libsss_crypt.la \
+    $(abs_top_builddir)/libsss_test_common.la \
+    $(NULL)
+
+responder_common_tests_SOURCES =\
+    test_responder_common.c \
+    ../../../src/responder/common/responder_common.c \
+    ../../../src/responder/common/responder_packet.c \
+    ../../../src/responder/common/responder_cmd.c \
+    $(NULL)
+responder_common_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+responder_common_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(UNICODE_LIBS) \
+    $(SSSD_LIBS) \
+    $(abs_top_builddir)/libsss_debug.la \
+    $(abs_top_builddir)/libsss_crypt.la \
+    $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_test_common.la \
     $(NULL)
 
