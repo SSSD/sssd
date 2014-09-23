@@ -191,8 +191,8 @@ static void ipa_get_ad_override_done(struct tevent_req *subreq)
     struct ipa_get_ad_override_state *state = tevent_req_data(req,
                                               struct ipa_get_ad_override_state);
     int ret;
-    size_t reply_count;
-    struct sysdb_attrs **reply;
+    size_t reply_count = 0;
+    struct sysdb_attrs **reply = NULL;
 
     ret = sdap_get_generic_recv(subreq, state, &reply_count, &reply);
     talloc_zfree(subreq);

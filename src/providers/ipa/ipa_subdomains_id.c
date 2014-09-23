@@ -259,9 +259,12 @@ struct ipa_get_ad_acct_state {
     struct be_req *be_req;
     struct be_acct_req *ar;
     struct sss_domain_info *user_dom;
+    char *object_sid;
+    struct ldb_message *obj_msg;
 };
 
 static void ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq);
+static void ipa_get_ad_override_done(struct tevent_req *subreq);
 static void ipa_get_ad_acct_done(struct tevent_req *subreq);
 static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
                                            struct sss_domain_info *dom);
@@ -290,6 +293,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     state->ipa_ctx = ipa_ctx;
     state->be_req = be_req;
     state->ar = ar;
+    state->obj_msg = NULL;
 
     /* This can only be a subdomain request, verify subdomain */
     state->user_dom = find_domain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
@@ -491,67 +495,50 @@ done:
 
 static errno_t
 apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
-                        int filter_type, const char *filter_value)
+                        struct ldb_message *msg)
 {
     errno_t ret;
     uint32_t uid;
     const char *fqname;
     const char *homedir = NULL;
-    struct ldb_result *res = NULL;
-    struct ldb_message *msg = NULL;
-    const char *attrs[] = { SYSDB_NAME,
-                            SYSDB_UIDNUM,
-                            NULL };
+    struct ldb_message_element *msg_el = NULL;
+    size_t c;
 
-    if (filter_type == BE_FILTER_NAME) {
-        ret = sysdb_getpwnam(mem_ctx, dom, filter_value, &res);
-        if (res && res->count == 0) {
-            ret = ENOENT;
-        }
-    } else if (filter_type == BE_FILTER_IDNUM) {
-        errno = 0;
-        uid = strtouint32(filter_value, NULL, 10);
-        if (errno != 0) {
-            ret = errno;
-            goto done;
-        }
-        ret = sysdb_getpwuid(mem_ctx, dom, uid, &res);
-        if (res && res->count == 0) {
-            ret = ENOENT;
-        }
-    } else if (filter_type == BE_FILTER_SECID) {
-        ret = sysdb_search_user_by_sid_str(mem_ctx, dom, filter_value,
-                                           attrs, &msg);
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Unsupported filter type: [%d].\n", filter_type);
-        ret = EINVAL;
+    msg_el = ldb_msg_find_element(msg, SYSDB_OBJECTCLASS);
+    if (msg_el == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_find_element failed.\n");
+        ret = ENOENT;
         goto done;
     }
 
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to make request to our cache: [%d]: [%s]\n",
-               ret, sss_strerror(ret));
-        goto done;
-    } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Cannot find [%s] with search type [%d]\n",
-              filter_value, filter_type);
+    for (c = 0; c < msg_el->num_values; c++) {
+        if (strncmp(SYSDB_USER_CLASS, (const char *)msg_el->values[c].data,
+                    msg_el->values[c].length) == 0) {
+            break;
+        }
+    }
+    if (c == msg_el->num_values) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "User objectclass not found, object is not a user.\n");
+        ret = ENOENT;
         goto done;
     }
 
-    if (res != NULL) {
-        msg = res->msgs[0];
-    }
     /*
      * Homedir is always overriden by subdomain_homedir even if it was
      * explicitly set by user.
      */
     fqname = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    if (fqname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing user name.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
     if (uid == 0) {
         DEBUG(SSSDBG_OP_FAILURE, "UID for user [%s] is not known.\n",
-                                  filter_value);
+                                  fqname);
         ret = ENOENT;
         goto done;
     }
@@ -576,6 +563,115 @@ done:
     return ret;
 }
 
+static errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
+                                     struct sss_domain_info *dom,
+                                     struct be_acct_req *ar,
+                                     struct ldb_message **_msg)
+{
+    errno_t ret;
+    uint32_t id;
+    struct ldb_message *msg = NULL;
+    struct ldb_result *res = NULL;
+    const char *attrs[] = { SYSDB_NAME,
+                            SYSDB_UIDNUM,
+                            SYSDB_SID_STR,
+                            SYSDB_OBJECTCLASS,
+                            NULL };
+    char *name;
+
+    if (ar->filter_type == BE_FILTER_SECID) {
+        ret = sysdb_search_object_by_sid(mem_ctx, dom, ar->filter_value, attrs,
+                                         &res);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to make request to our cache: [%d]: [%s]\n",
+                   ret, sss_strerror(ret));
+            goto done;
+        }
+
+        *_msg = res->msgs[0];
+
+        ret = EOK;
+        goto done;
+    }
+
+    if (ar->filter_type == BE_FILTER_IDNUM) {
+        errno = 0;
+        id = strtouint32(ar->filter_value, NULL, 10);
+        if (errno != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_OP_FAILURE, "strtouint32 failed.\n");
+            goto done;
+        }
+
+        switch (ar->entry_type & BE_REQ_TYPE_MASK) {
+        case BE_REQ_GROUP:
+            ret = sysdb_search_group_by_gid(mem_ctx, dom, id, attrs, &msg);
+            break;
+        case BE_REQ_INITGROUPS:
+        case BE_REQ_USER:
+        case BE_REQ_USER_AND_GROUP:
+            ret = sysdb_search_user_by_uid(mem_ctx, dom, id, attrs, &msg);
+            if (ret == ENOENT && (ar->entry_type & BE_REQ_TYPE_MASK)
+                                                     == BE_REQ_USER_AND_GROUP) {
+                ret = sysdb_search_group_by_gid(mem_ctx, dom, id, attrs, &msg);
+            }
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected entry type [%d].\n",
+                                        (ar->entry_type & BE_REQ_TYPE_MASK));
+            ret = EINVAL;
+            goto done;
+        }
+    } else if (ar->filter_type == BE_FILTER_NAME) {
+        name = sss_get_domain_name(mem_ctx, ar->filter_value, dom);
+        if (name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_get_domain_name failed\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        switch (ar->entry_type & BE_REQ_TYPE_MASK) {
+        case BE_REQ_GROUP:
+            ret = sysdb_search_group_by_name(mem_ctx, dom, name, attrs, &msg);
+            break;
+        case BE_REQ_INITGROUPS:
+        case BE_REQ_USER:
+        case BE_REQ_USER_AND_GROUP:
+            ret = sysdb_search_user_by_name(mem_ctx, dom, name, attrs, &msg);
+            if (ret == ENOENT && (ar->entry_type & BE_REQ_TYPE_MASK)
+                                                     == BE_REQ_USER_AND_GROUP) {
+                ret = sysdb_search_group_by_name(mem_ctx, dom, name,
+                                                 attrs, &msg);
+            }
+            break;
+        default:
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected entry type [%d].\n",
+                                        (ar->entry_type & BE_REQ_TYPE_MASK));
+            ret = EINVAL;
+            goto done;
+        }
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected filter type.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to make request to our cache: [%d]: [%s]\n",
+               ret, sss_strerror(ret));
+        goto done;
+    }
+
+    *_msg = msg;
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
 static void
 ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
 {
@@ -584,6 +680,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
     struct ipa_get_ad_acct_state *state = tevent_req_data(req,
                                                 struct ipa_get_ad_acct_state);
     errno_t ret;
+    const char *sid;
 
     ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
@@ -593,14 +690,88 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
         return;
     }
 
+    ret = get_object_from_cache(state, state->user_dom, state->ar,
+                                &state->obj_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_object_from_cache failed.\n");
+        goto fail;
+    }
+
     ret = apply_subdomain_homedir(state, state->user_dom,
-                                  state->ar->filter_type,
-                                  state->ar->filter_value);
+                                  state->obj_msg);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "apply_subdomain_homedir failed: [%d]: [%s].\n",
                ret, sss_strerror(ret));
         goto fail;
+    }
+
+    sid = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_SID_STR, NULL);
+    if (sid == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find a SID.\n");
+        ret = EINVAL;
+        goto fail;
+    }
+
+    state->object_sid = talloc_strdup(state, sid);
+    if (state->object_sid == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    subreq = ipa_get_ad_override_send(state, state->ev,
+                                      state->ipa_ctx->sdap_id_ctx,
+                                      state->ipa_ctx->ipa_options,
+                                      state->ipa_ctx->server_mode->realm,
+                                      state->ipa_ctx->view_name,
+                                      state->object_sid);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ipa_get_ad_override_done, req);
+
+    return;
+
+fail:
+    state->dp_error = DP_ERR_FATAL;
+    tevent_req_error(req, ret);
+    return;
+}
+
+
+static void
+ipa_get_ad_override_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_get_ad_acct_state *state = tevent_req_data(req,
+                                                struct ipa_get_ad_acct_state);
+    errno_t ret;
+    struct sysdb_attrs *override_attrs = NULL;
+
+    ret = ipa_get_ad_override_recv(subreq, &state->dp_error, state,
+                                   &override_attrs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
+        tevent_req_error(req, ret);
+        return;
+
+    }
+
+    if (override_attrs != NULL) {
+        /* We are in ipa-server-mode, so the view is the default view by
+         * definition. */
+        ret = sysdb_apply_default_override(state->user_dom,
+                                           override_attrs,
+                                           state->obj_msg->dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_apply_default_override failed.\n");
+            goto fail;
+        }
     }
 
     if ((state->ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_INITGROUPS) {
@@ -645,6 +816,7 @@ ipa_get_ad_acct_done(struct tevent_req *subreq)
                                   ret);
         tevent_req_error(req, ret);
         return;
+
     }
 
     tevent_req_done(req);

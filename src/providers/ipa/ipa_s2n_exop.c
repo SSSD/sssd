@@ -674,7 +674,9 @@ done:
 static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct req_input *req_input,
                                     struct resp_attrs *attrs,
-                                    struct resp_attrs *simple_attrs);
+                                    struct resp_attrs *simple_attrs,
+                                    const char *view_name,
+                                    struct sysdb_attrs *override_attrs);
 
 static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                                      char *retoid,
@@ -881,9 +883,11 @@ struct ipa_s2n_get_groups_state {
     char **group_list;
     size_t group_idx;
     int exop_timeout;
+    struct resp_attrs *attrs;
 };
 
 static errno_t ipa_s2n_get_groups_step(struct tevent_req *req);
+static void ipa_s2n_get_groups_get_override_done(struct tevent_req *subreq);
 static void ipa_s2n_get_groups_next(struct tevent_req *subreq);
 
 static struct tevent_req *ipa_s2n_get_groups_send(TALLOC_CTX *mem_ctx,
@@ -912,6 +916,7 @@ static struct tevent_req *ipa_s2n_get_groups_send(TALLOC_CTX *mem_ctx,
     state->req_input.type = REQ_INP_NAME;
     state->req_input.inp.name = NULL;
     state->exop_timeout = exop_timeout;
+    state->attrs = NULL;
 
     ret = ipa_s2n_get_groups_step(req);
     if (ret != EOK) {
@@ -988,7 +993,7 @@ static void ipa_s2n_get_groups_next(struct tevent_req *subreq)
                                                struct ipa_s2n_get_groups_state);
     char *retoid = NULL;
     struct berval *retdata = NULL;
-    struct resp_attrs *attrs;
+    const char *sid_str;
 
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
@@ -997,13 +1002,59 @@ static void ipa_s2n_get_groups_next(struct tevent_req *subreq)
         goto fail;
     }
 
-    ret = s2n_response_to_attrs(state, retoid, retdata, &attrs);
+    talloc_zfree(state->attrs);
+    ret = s2n_response_to_attrs(state, retoid, retdata, &state->attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
         goto fail;
     }
 
-    ret = ipa_s2n_save_objects(state->dom, &state->req_input, attrs, NULL);
+    ret = sysdb_attrs_get_string(state->attrs->sysdb_attrs, SYSDB_SID_STR,
+                                 &sid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+        goto fail;
+    }
+
+    subreq = ipa_get_ad_override_send(state, state->ev,
+                           state->ipa_ctx->sdap_id_ctx,
+                           state->ipa_ctx->ipa_options,
+                           dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
+                                             IPA_KRB5_REALM),
+                           state->ipa_ctx->view_name,
+                           sid_str);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ipa_s2n_get_groups_get_override_done, req);
+
+    return;
+
+fail:
+    tevent_req_error(req,ret);
+    return;
+}
+
+static void ipa_s2n_get_groups_get_override_done(struct tevent_req *subreq)
+{
+    int ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_s2n_get_groups_state *state = tevent_req_data(req,
+                                               struct ipa_s2n_get_groups_state);
+    struct sysdb_attrs *override_attrs = NULL;
+
+    ret = ipa_get_ad_override_recv(subreq, NULL, state, &override_attrs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
+        goto fail;
+    }
+
+    ret = ipa_s2n_save_objects(state->dom, &state->req_input, state->attrs,
+                               NULL, state->ipa_ctx->view_name, override_attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
         goto fail;
@@ -1046,6 +1097,7 @@ struct ipa_s2n_get_user_state {
     enum request_types request_type;
     struct resp_attrs *attrs;
     struct resp_attrs *simple_attrs;
+    struct resp_attrs *override_attrs;
     int exop_timeout;
 };
 
@@ -1273,6 +1325,7 @@ done:
 }
 
 static void ipa_s2n_get_groups_done(struct tevent_req  *subreq);
+static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq);
 static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -1286,6 +1339,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     struct berval *bv_req = NULL;
     char **missing_groups = NULL;
     struct ldb_dn **group_dn_list = NULL;
+    const char *sid_str;
 
     ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
     talloc_zfree(subreq);
@@ -1392,10 +1446,44 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
-                               state->simple_attrs);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
+    if (state->simple_attrs != NULL
+            && state->simple_attrs->response_type == RESP_SID) {
+        sid_str = state->simple_attrs->a.sid_str;
+        ret = EOK;
+    } else if (state->attrs->sysdb_attrs != NULL) {
+        ret = sysdb_attrs_get_string(state->attrs->sysdb_attrs, SYSDB_SID_STR,
+                                     &sid_str);
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "No SID available.\n");
+        ret = ENOENT;
+    }
+
+    if (ret == ENOENT) {
+        ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
+                                   state->simple_attrs, NULL, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
+            goto done;
+        }
+    } else if (ret == EOK) {
+        subreq = ipa_get_ad_override_send(state, state->ev,
+                           state->ipa_ctx->sdap_id_ctx,
+                           state->ipa_ctx->ipa_options,
+                           dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
+                                             IPA_KRB5_REALM),
+                           state->ipa_ctx->view_name,
+                           sid_str);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        tevent_req_set_callback(subreq, ipa_s2n_get_user_get_override_done,
+                                req);
+
+        return;
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
         goto done;
     }
 
@@ -1411,17 +1499,23 @@ done:
 static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct req_input *req_input,
                                     struct resp_attrs *attrs,
-                                    struct resp_attrs *simple_attrs)
+                                    struct resp_attrs *simple_attrs,
+                                    const char *view_name,
+                                    struct sysdb_attrs *override_attrs)
 {
     int ret;
     time_t now;
     uint64_t timeout = 10*60*60; /* FIXME: find a better timeout ! */
     struct sss_nss_homedir_ctx homedir_ctx;
-    char *name;
+    char *name = NULL;
     char *realm;
-    char *upn;
+    char *upn = NULL;
     gid_t gid;
     TALLOC_CTX *tmp_ctx;
+    const char *sid_str;
+    const char *tmp_str;
+    struct ldb_result *res;
+    enum sysdb_member_type type;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1440,9 +1534,59 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
         }
     }
 
+    if (attrs->sysdb_attrs != NULL) {
+        ret = sysdb_attrs_get_string(attrs->sysdb_attrs,
+                                     ORIGINALAD_PREFIX SYSDB_NAME, &tmp_str);
+        if (ret == EOK) {
+            name = talloc_strdup(tmp_ctx, tmp_str);
+            if (name == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(SSSDBG_TRACE_ALL, "Found original AD name [%s].\n", name);
+        } else if (ret == ENOENT) {
+            name = NULL;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(attrs->sysdb_attrs,
+                                     SYSDB_DEFAULT_OVERRIDE_NAME, &tmp_str);
+        if (ret == EOK) {
+            ret = sysdb_attrs_add_lc_name_alias(attrs->sysdb_attrs, tmp_str);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_attrs_add_lc_name_alias failed.\n");
+                goto done;
+            }
+        } else if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string(attrs->sysdb_attrs, SYSDB_UPN, &tmp_str);
+        if (ret == EOK) {
+            upn = talloc_strdup(tmp_ctx, tmp_str);
+            if (upn == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            DEBUG(SSSDBG_TRACE_ALL, "Found original AD upn [%s].\n", upn);
+        } else if (ret == ENOENT) {
+            upn = NULL;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+    }
+
     switch (attrs->response_type) {
         case RESP_USER:
         case RESP_USER_GROUPLIST:
+            type = SYSDB_MEMBER_USER;
             if (dom->subdomain_homedir
                     && attrs->a.user.pw_dir == NULL) {
                 ZERO_STRUCT(homedir_ctx);
@@ -1461,13 +1605,15 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 }
             }
 
-            /* we always use the fully qualified name for subdomain users */
-            name = sss_tc_fqname(tmp_ctx, dom->names, dom,
-                                 attrs->a.user.pw_name);
-            if (!name) {
-                DEBUG(SSSDBG_OP_FAILURE, "failed to format user name.\n");
-                ret = ENOMEM;
-                goto done;
+            if (name == NULL) {
+                /* we always use the fully qualified name for subdomain users */
+                name = sss_tc_fqname(tmp_ctx, dom->names, dom,
+                                     attrs->a.user.pw_name);
+                if (!name) {
+                    DEBUG(SSSDBG_OP_FAILURE, "failed to format user name.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
             }
 
             ret = sysdb_attrs_add_lc_name_alias(attrs->sysdb_attrs, name);
@@ -1477,35 +1623,43 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 goto done;
             }
 
-            /* We also have to store a fake UPN here, because otherwise the
-             * krb5 child later won't be able to properly construct one as
-             * the username is fully qualified but the child doesn't have
-             * access to the regex to deconstruct it */
-            /* FIXME: The real UPN is available from the PAC, we should get
-             * it from there. */
-            realm = get_uppercase_realm(tmp_ctx, dom->name);
-            if (!realm) {
-                DEBUG(SSSDBG_OP_FAILURE, "failed to get realm.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-            upn = talloc_asprintf(tmp_ctx, "%s@%s",
-                                  attrs->a.user.pw_name, realm);
-            if (!upn) {
-                DEBUG(SSSDBG_OP_FAILURE, "failed to format UPN.\n");
-                ret = ENOMEM;
-                goto done;
-            }
+            if (upn == NULL) {
+                /* We also have to store a fake UPN here, because otherwise the
+                 * krb5 child later won't be able to properly construct one as
+                 * the username is fully qualified but the child doesn't have
+                 * access to the regex to deconstruct it */
+                /* FIXME: The real UPN is available from the PAC, we should get
+                 * it from there. */
+                realm = get_uppercase_realm(tmp_ctx, dom->name);
+                if (!realm) {
+                    DEBUG(SSSDBG_OP_FAILURE, "failed to get realm.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+                upn = talloc_asprintf(tmp_ctx, "%s@%s",
+                                      attrs->a.user.pw_name, realm);
+                if (!upn) {
+                    DEBUG(SSSDBG_OP_FAILURE, "failed to format UPN.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
 
-            ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_UPN, upn);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
-                goto done;
+                /* We might already have the SID or the UPN from other sources
+                 * hence sysdb_attrs_add_string_safe is used to avoid double
+                 * entries. */
+                ret = sysdb_attrs_add_string_safe(attrs->sysdb_attrs, SYSDB_UPN,
+                                                  upn);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_attrs_add_string failed.\n");
+                    goto done;
+                }
             }
 
             if (req_input->type == REQ_INP_SECID) {
-                ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_SID_STR,
-                                             req_input->inp.secid);
+                ret = sysdb_attrs_add_string_safe(attrs->sysdb_attrs,
+                                                  SYSDB_SID_STR,
+                                                  req_input->inp.secid);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "sysdb_attrs_add_string failed.\n");
@@ -1515,8 +1669,9 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
 
             if (simple_attrs != NULL
                     && simple_attrs->response_type == RESP_SID) {
-                ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_SID_STR,
-                                             simple_attrs->a.sid_str);
+                ret = sysdb_attrs_add_string_safe(attrs->sysdb_attrs,
+                                                  SYSDB_SID_STR,
+                                                  simple_attrs->a.sid_str);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "sysdb_attrs_add_string failed.\n");
@@ -1535,16 +1690,24 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                    attrs->a.user.pw_dir, attrs->a.user.pw_shell,
                                    NULL, attrs->sysdb_attrs, NULL,
                                    timeout, now);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_user failed.\n");
+                goto done;
+            }
             break;
         case RESP_GROUP:
         case RESP_GROUP_MEMBERS:
-            /* we always use the fully qualified name for subdomain users */
-            name = sss_tc_fqname(tmp_ctx, dom->names, dom,
-                                 attrs->a.group.gr_name);
-            if (!name) {
-                DEBUG(SSSDBG_OP_FAILURE, "failed to format user name,\n");
-                ret = ENOMEM;
-                goto done;
+            type = SYSDB_MEMBER_GROUP;
+
+            if (name == NULL) {
+                /* we always use the fully qualified name for subdomain users */
+                name = sss_tc_fqname(tmp_ctx, dom->names, dom,
+                                     attrs->a.group.gr_name);
+                if (!name) {
+                    DEBUG(SSSDBG_OP_FAILURE, "failed to format user name,\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
             }
 
             ret = sysdb_attrs_add_lc_name_alias(attrs->sysdb_attrs, name);
@@ -1554,9 +1717,12 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 goto done;
             }
 
+            /* We might already have the SID from other sources hence
+             * sysdb_attrs_add_string_safe is used to avoid double entries. */
             if (req_input->type == REQ_INP_SECID) {
-                ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_SID_STR,
-                                             req_input->inp.secid);
+                ret = sysdb_attrs_add_string_safe(attrs->sysdb_attrs,
+                                                  SYSDB_SID_STR,
+                                                  req_input->inp.secid);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "sysdb_attrs_add_string failed.\n");
@@ -1566,8 +1732,9 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
 
             if (simple_attrs != NULL
                 && simple_attrs->response_type == RESP_SID) {
-                ret = sysdb_attrs_add_string(attrs->sysdb_attrs, SYSDB_SID_STR,
-                                             simple_attrs->a.sid_str);
+                ret = sysdb_attrs_add_string_safe(attrs->sysdb_attrs,
+                                                  SYSDB_SID_STR,
+                                                  simple_attrs->a.sid_str);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "sysdb_attrs_add_string failed.\n");
@@ -1584,12 +1751,37 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
 
             ret = sysdb_store_group(dom, name, attrs->a.group.gr_gid,
                                     attrs->sysdb_attrs, timeout, now);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_group failed.\n");
+                goto done;
+            }
             break;
         default:
             DEBUG(SSSDBG_OP_FAILURE, "Unexpected response type [%d].\n",
                                       attrs->response_type);
             ret = EINVAL;
             goto done;
+    }
+
+    ret = sysdb_attrs_get_string(attrs->sysdb_attrs, SYSDB_SID_STR, &sid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot find SID of object with override.\n");
+        goto done;
+    }
+
+    ret = sysdb_search_object_by_sid(tmp_ctx, dom, sid_str, NULL, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot find object with override with SID [%s].\n", sid_str);
+        goto done;
+    }
+
+    ret = sysdb_store_override(dom, view_name, type, override_attrs,
+                               res->msgs[0]->dn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_override failed.\n");
+        goto done;
     }
 
 done:
@@ -1605,6 +1797,7 @@ static void ipa_s2n_get_groups_done(struct tevent_req  *subreq)
                                                       struct tevent_req);
     struct ipa_s2n_get_user_state *state = tevent_req_data(req,
                                                 struct ipa_s2n_get_user_state);
+    const char *sid_str;
 
     ret = ipa_s2n_get_groups_recv(subreq);
     talloc_zfree(subreq);
@@ -1614,8 +1807,63 @@ static void ipa_s2n_get_groups_done(struct tevent_req  *subreq)
         return;
     }
 
+    ret = sysdb_attrs_get_string(state->attrs->sysdb_attrs, SYSDB_SID_STR,
+                                 &sid_str);
+    if (ret == ENOENT) {
+        ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
+                                   state->simple_attrs, NULL, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
+            goto fail;
+        }
+        tevent_req_done(req);
+        return;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+        goto fail;
+    }
+
+    subreq = ipa_get_ad_override_send(state, state->ev,
+                           state->ipa_ctx->sdap_id_ctx,
+                           state->ipa_ctx->ipa_options,
+                           dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
+                                             IPA_KRB5_REALM),
+                           state->ipa_ctx->view_name,
+                           sid_str);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ipa_s2n_get_user_get_override_done, req);
+
+    return;
+
+fail:
+    tevent_req_error(req, ret);
+    return;
+}
+
+static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq)
+{
+    int ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_s2n_get_user_state *state = tevent_req_data(req,
+                                                struct ipa_s2n_get_user_state);
+    struct sysdb_attrs *override_attrs = NULL;
+
+    ret = ipa_get_ad_override_recv(subreq, NULL, state, &override_attrs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
+        tevent_req_error(req, ret);
+        return;
+    }
+
     ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
-                               state->simple_attrs);
+                               state->simple_attrs, state->ipa_ctx->view_name,
+                               override_attrs);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
         tevent_req_error(req, ret);
