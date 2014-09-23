@@ -1519,7 +1519,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
         }
     }
 
-    sam_account_name = talloc_asprintf(state, "%s$", state->ad_hostname);
+    sam_account_name = sss_krb5_get_primary(state, "%S$", state->ad_hostname);
     if (sam_account_name == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1542,7 +1542,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
                              state->opts->user_map[SDAP_OC_USER].name,
                              state->opts->user_map[SDAP_AT_USER_NAME].name,
                              sam_account_name);
-
+    talloc_zfree(sam_account_name);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;
