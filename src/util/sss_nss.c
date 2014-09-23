@@ -147,6 +147,17 @@ char *expand_homedir_template(TALLOC_CTX *mem_ctx, const char *template,
                                            homedir_ctx->config_homedir_substr);
                 break;
 
+            case 'P':
+                if (homedir_ctx->upn == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Cannot expand user principal name template "
+                          "string is empty.\n");
+                    goto done;
+                }
+                result = talloc_asprintf_append(result, "%s%s", p,
+                                                homedir_ctx->upn);
+                break;
+
             case '%':
                 result = talloc_asprintf_append(result, "%s%%", p);
                 break;

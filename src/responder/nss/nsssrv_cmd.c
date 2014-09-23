@@ -306,6 +306,7 @@ static int fill_pwent(struct sss_packet *packet,
 {
     struct ldb_message *msg;
     uint8_t *body;
+    const char *upn;
     const char *tmpstr;
     const char *orig_name;
     struct sized_string name;
@@ -337,6 +338,7 @@ static int fill_pwent(struct sss_packet *packet,
 
         msg = msgs[i];
 
+        upn = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
         orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
         uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
         gid = get_gid_override(msg, dom);
@@ -395,6 +397,7 @@ static int fill_pwent(struct sss_packet *packet,
         homedir_ctx.username = name.str;
         homedir_ctx.uid = uid;
         homedir_ctx.domain = dom->name;
+        homedir_ctx.upn = upn;
 
         tmpstr = get_homedir_override(tmp_ctx, msg, nctx, dom, &homedir_ctx);
         if (!tmpstr) {

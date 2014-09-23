@@ -24,6 +24,10 @@
                 <listitem><para>fully qualified user name (user@domain)</para></listitem>
             </varlistentry>
             <varlistentry>
+                <term>%P</term>
+                <listitem><para>UPN - User Principal Name (name@REALM)</para></listitem>
+            </varlistentry>
+            <varlistentry>
                 <term>%o</term>
                 <listitem><para>
                     The original home directory retrieved

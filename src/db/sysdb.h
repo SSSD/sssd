@@ -179,7 +179,9 @@
                         SYSDB_DEFAULT_ATTRS, \
                         SYSDB_PRIMARY_GROUP_GIDNUM, \
                         SYSDB_SID_STR, \
+                        SYSDB_UPN, \
                         NULL}
+
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
                            SYSDB_MEMBERUID, \
                            SYSDB_GHOST, \
