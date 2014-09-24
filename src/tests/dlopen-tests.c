@@ -38,6 +38,7 @@ struct so {
     const char *libs[6];
 } so[] = {
     { "libsss_debug.so", { LIBPFX"libsss_debug.so", NULL } },
+    { "libsss_semanage.so", { LIBPFX"libsss_semanage.so", NULL } },
     { "libipa_hbac.so", { LIBPFX"libipa_hbac.so", NULL } },
     { "libsss_idmap.so", { LIBPFX"libsss_idmap.so", NULL } },
     { "libsss_nss_idmap.so", { LIBPFX"libsss_nss_idmap.so", NULL } },

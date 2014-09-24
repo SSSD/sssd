@@ -476,10 +476,6 @@ if BUILD_SELINUX
     PYTHON_BINDINGS_LIBS += $(SELINUX_LIBS)
     TOOLS_LIBS += $(SELINUX_LIBS)
 endif
-if BUILD_SEMANAGE
-    PYTHON_BINDINGS_LIBS += $(SEMANAGE_LIBS)
-    TOOLS_LIBS += $(SEMANAGE_LIBS)
-endif
 
 dist_noinst_HEADERS = \
     src/monitor/monitor.h \
@@ -728,11 +724,26 @@ libsss_util_la_SOURCES += \
 endif
 libsss_util_la_LDFLAGS = -avoid-version
 
+pkglib_LTLIBRARIES += libsss_semanage.la
+libsss_semanage_la_SOURCES = \
+    src/util/sss_semanage.c \
+    $(NULL)
+libsss_semanage_la_LIBADD = \
+    libsss_debug.la \
+    $(NULL)
+if BUILD_SEMANAGE
+libsss_semanage_la_LIBADD += $(SEMANAGE_LIBS)
+endif
+
+libsss_semanage_la_LDFLAGS = \
+    -avoid-version
+
 SSSD_INTERNAL_LTLIBS = \
     libsss_util.la \
     libsss_crypt.la \
     libsss_debug.la \
-    libsss_child.la
+    libsss_child.la \
+    $(NULL)
 
 if BUILD_IFP
 if BUILD_CONFIG_LIB
@@ -1065,7 +1076,9 @@ sss_useradd_SOURCES = \
     $(SSSD_TOOLS_OBJ)
 sss_useradd_LDADD = \
     $(TOOLS_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_semanage.la \
+    $(NULL)
 
 sss_userdel_SOURCES = \
     src/tools/sss_userdel.c \
@@ -1073,7 +1086,9 @@ sss_userdel_SOURCES = \
 sss_userdel_LDADD = \
     $(TOOLS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(CLIENT_LIBS)
+    $(CLIENT_LIBS) \
+    libsss_semanage.la \
+    $(NULL)
 sss_userdel_CFLAGS = \
     $(AM_CFLAGS)
 
@@ -1099,7 +1114,9 @@ sss_usermod_SOURCES = \
 sss_usermod_LDADD = \
     $(TOOLS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(CLIENT_LIBS)
+    $(CLIENT_LIBS) \
+    libsss_semanage.la \
+    $(NULL)
 sss_usermod_CFLAGS = $(AM_CFLAGS)
 
 sss_groupmod_SOURCES = \
@@ -2372,7 +2389,9 @@ libsss_ipa_la_LIBADD = \
     libsss_ldap_common.la \
     libsss_krb5_common.la \
     libipa_hbac.la \
-    libsss_idmap.la
+    libsss_idmap.la \
+    libsss_semanage.la \
+    $(NULL)
 libsss_ipa_la_LDFLAGS = \
     -avoid-version \
     -module

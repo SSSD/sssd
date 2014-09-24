@@ -123,7 +123,5 @@ int copy_tree(const char *src_root, const char *dst_root,
 /* from selinux.c */
 int selinux_file_context(const char *dst_name);
 int reset_selinux_file_context(void);
-int set_seuser(const char *login_name, const char *seuser_name);
-int del_seuser(const char *login_name);
 
 #endif  /* __TOOLS_UTIL_H__ */

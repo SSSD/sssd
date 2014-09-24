@@ -591,4 +591,8 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
                      struct sss_creds **saved_creds);
 errno_t restore_creds(struct sss_creds *saved_creds);
 
+/* from sss_semanage.c */
+int set_seuser(const char *login_name, const char *seuser_name);
+int del_seuser(const char *login_name);
+
 #endif /* __SSSD_UTIL_H__ */
