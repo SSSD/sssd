@@ -34,9 +34,6 @@ struct sss_domain_info *get_domains_head(struct sss_domain_info *domain)
     /* get to the top level domain */
     for (dom = domain; dom->parent != NULL; dom = dom->parent);
 
-    /* proceed to the list head */
-    for (; dom->prev != NULL; dom = dom->prev);
-
     return dom;
 }
 
