@@ -1833,7 +1833,8 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
     if (ret != EOK) {
         switch (ret) {
         case ENOENT:
-            DEBUG(SSSDBG_OP_FAILURE, "No GPOs available in cache\n");
+            DEBUG(SSSDBG_TRACE_FUNC, "No GPOs available in cache\n");
+            break;
         default:
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Could not delete stale GPOs from cache: [%s]\n",
