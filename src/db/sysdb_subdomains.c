@@ -175,6 +175,35 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                     }
                 }
 
+                if (!dom->has_views && dom->view_name == NULL) {
+                    /* maybe views are not initialized, copy from parent */
+                    dom->has_views = dom->parent->has_views;
+                    if (dom->parent->view_name != NULL) {
+                        dom->view_name = talloc_strdup(dom,
+                                                       dom->parent->view_name);
+                        if (dom->view_name == NULL) {
+                            DEBUG(SSSDBG_OP_FAILURE,
+                                  "Failed to copy parent's view name.\n");
+                            ret = ENOMEM;
+                            goto done;
+                        }
+                    }
+                } else {
+                    if (dom->has_views != dom->parent->has_views
+                            || strcmp(dom->view_name,
+                                      dom->parent->view_name) != 0) {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                            "Sub-domain [%s][%s] and parent [%s][%s] " \
+                            "views are different.\n",
+                            dom->has_views ? "has view" : "has no view",
+                            dom->view_name,
+                            dom->parent->has_views ? "has view" : "has no view",
+                            dom->parent->view_name);
+                        ret = EINVAL;
+                        goto done;
+                    }
+                }
+
                 break;
             }
         }
@@ -210,6 +239,7 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
                            SYSDB_SUBDOMAIN_ID,
                            SYSDB_SUBDOMAIN_FOREST,
                            NULL};
+    char *view_name = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -291,6 +321,92 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
             goto done;
         }
     }
+
+    ret = sysdb_get_view_name(tmp_ctx, domain->sysdb, &view_name);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_get_view_name failed.\n");
+        goto done;
+    }
+
+    /* If no view is defined the default view will be used. In this case
+     * domain->has_views is FALSE and
+     * domain->view_name is set to SYSDB_DEFAULT_VIEW_NAME
+     *
+     * If there is a view defined
+     * domain->has_views is TRUE and
+     * domain->view_name is set to the given view name
+     *
+     * Currently changing the view is not supported hence we have to check for
+     * changes and error out accordingly.
+     */
+    if (ret == ENOENT || view_name == NULL
+            || strcmp(view_name, SYSDB_DEFAULT_VIEW_NAME) == 0) {
+        /* handle default view */
+        if (domain->has_views) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "View name change is currently not supported. " \
+                  "New view is the default view while current view is [%s]. " \
+                  "View name is not changed!\n", domain->view_name);
+        } else {
+            if (domain->view_name == NULL) {
+                domain->view_name = talloc_strdup(domain,
+                                                  SYSDB_DEFAULT_VIEW_NAME);
+                if (domain->view_name == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+            } else {
+                if (strcmp(domain->view_name, SYSDB_DEFAULT_VIEW_NAME) != 0) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Domain [%s] has no view but view name [%s] " \
+                          "is not the default view name [%s].\n",
+                          domain->name, domain->view_name,
+                          SYSDB_DEFAULT_VIEW_NAME);
+                    ret = EINVAL;
+                    goto done;
+                }
+            }
+        }
+    } else {
+        /* handle view other than default */
+        if (domain->has_views) {
+            if (strcmp(domain->view_name, view_name) != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "View name change is currently not supported. " \
+                      "New view is [%s] while current view is [%s]. " \
+                      "View name is not changed!\n",
+                      view_name, domain->view_name);
+            }
+        } else {
+            if (domain->view_name == NULL) {
+                domain->has_views = true;
+                domain->view_name = talloc_steal(domain, view_name);
+                if (domain->view_name == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_steal failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+            } else {
+                if (strcmp(domain->view_name, SYSDB_DEFAULT_VIEW_NAME) == 0) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                        "View name change is currently not supported. " \
+                        "New view is [%s] while current is the default view. " \
+                        "View name is not changed!\n", view_name);
+                } else {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Domain currently has no views, " \
+                          "but current view name is set to [%s] " \
+                          "and new view name is [%s].\n",
+                          domain->view_name, view_name);
+                    ret = EINVAL;
+                    goto done;
+                }
+            }
+        }
+    }
+
+    ret = EOK;
 
 done:
     talloc_free(tmp_ctx);

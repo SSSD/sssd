@@ -87,6 +87,7 @@ struct parse_inp_test_ctx {
 void parse_inp_test_setup(void **state)
 {
     struct parse_inp_test_ctx *parse_inp_ctx;
+    int ret;
 
     assert_true(leak_check_setup());
     parse_inp_ctx = talloc_zero(global_talloc_context, struct parse_inp_test_ctx);
@@ -105,6 +106,12 @@ void parse_inp_test_setup(void **state)
 
     /* Testing the request race condition should be a special case */
     gettimeofday(&parse_inp_ctx->rctx->get_domains_last_call, NULL);
+
+    /* sysdb_master_domain_update sets the view name, if we do not call it
+     * here we get a leak check warning when sysdb_master_domain_update is
+     * called later while processing the tests. */
+    ret = sysdb_master_domain_update(parse_inp_ctx->tctx->dom);
+    assert_int_equal(ret, EOK);
 
     check_leaks_push(parse_inp_ctx);
     *state = parse_inp_ctx;
