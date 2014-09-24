@@ -1799,8 +1799,13 @@ static errno_t sdap_x_deref_parse_entry(struct sdap_handle *sh,
     }
 
     if (!ctrls) {
+        /* When we attempt to request attributes that are not present in
+         * the dereferenced links, some serves might not send the dereference
+         * control back at all. Be permissive and treat the search as if
+         * it didn't find anything.
+         */
         DEBUG(SSSDBG_MINOR_FAILURE, "No controls found for entry\n");
-        ret = ENOENT;
+        ret = EOK;
         goto done;
     }
 
