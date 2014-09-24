@@ -546,8 +546,7 @@ errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
 
 #define IS_SUBDOMAIN(dom) ((dom)->parent != NULL)
 
-errno_t sss_write_domain_mappings(struct sss_domain_info *domain,
-                                  bool add_capaths);
+errno_t sss_write_domain_mappings(struct sss_domain_info *domain);
 
 errno_t get_dom_names(TALLOC_CTX *mem_ctx,
                       struct sss_domain_info *start_dom,

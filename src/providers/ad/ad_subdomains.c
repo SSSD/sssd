@@ -467,7 +467,7 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *ctx)
         return ret;
     }
 
-    ret = sss_write_domain_mappings(ctx->be_ctx->domain, false);
+    ret = sss_write_domain_mappings(ctx->be_ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "sss_krb5_write_mappings failed.\n");
         /* Just continue */

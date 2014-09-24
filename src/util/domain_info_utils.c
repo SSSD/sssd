@@ -364,7 +364,7 @@ sss_krb5_touch_config(void)
 }
 
 errno_t
-sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
+sss_write_domain_mappings(struct sss_domain_info *domain)
 {
     struct sss_domain_info *dom;
     struct sss_domain_info *parent_dom;
@@ -378,7 +378,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
     mode_t old_mode;
     FILE *fstream = NULL;
     int i;
-    bool capaths_started;
+    bool capaths_started = false;
     char *uc_forest;
     char *uc_parent;
 
@@ -466,48 +466,45 @@ sss_write_domain_mappings(struct sss_domain_info *domain, bool add_capaths)
         }
     }
 
-    if (add_capaths) {
-        capaths_started = false;
-        parent_dom = domain;
-        uc_parent = get_uppercase_realm(tmp_ctx, parent_dom->name);
-        if (uc_parent == NULL) {
+    parent_dom = domain;
+    uc_parent = get_uppercase_realm(tmp_ctx, parent_dom->name);
+    if (uc_parent == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (dom = get_next_domain(domain, true);
+            dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
+            dom = get_next_domain(dom, false)) {
+
+        if (dom->forest == NULL) {
+            continue;
+        }
+
+        uc_forest = get_uppercase_realm(tmp_ctx, dom->forest);
+        if (uc_forest == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
             ret = ENOMEM;
             goto done;
         }
 
-        for (dom = get_next_domain(domain, true);
-             dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-             dom = get_next_domain(dom, false)) {
-
-            if (dom->forest == NULL) {
-                continue;
-            }
-
-            uc_forest = get_uppercase_realm(tmp_ctx, dom->forest);
-            if (uc_forest == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "get_uppercase_realm failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
-
-            if (!capaths_started) {
-                ret = fprintf(fstream, "[capaths]\n");
-                if (ret < 0) {
-                    DEBUG(SSSDBG_OP_FAILURE, "fprintf failed\n");
-                    ret = EIO;
-                    goto done;
-                }
-                capaths_started = true;
-            }
-
-            ret = fprintf(fstream, "%s = {\n  %s = %s\n}\n%s = {\n  %s = %s\n}\n",
-                                   dom->realm, uc_parent, uc_forest,
-                                   uc_parent, dom->realm, uc_forest);
+        if (!capaths_started) {
+            ret = fprintf(fstream, "[capaths]\n");
             if (ret < 0) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "fprintf failed\n");
+                DEBUG(SSSDBG_OP_FAILURE, "fprintf failed\n");
+                ret = EIO;
                 goto done;
             }
+            capaths_started = true;
+        }
+
+        ret = fprintf(fstream, "%s = {\n  %s = %s\n}\n%s = {\n  %s = %s\n}\n",
+                                dom->realm, uc_parent, uc_forest,
+                                uc_parent, dom->realm, uc_forest);
+        if (ret < 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "fprintf failed\n");
+            goto done;
         }
     }
 

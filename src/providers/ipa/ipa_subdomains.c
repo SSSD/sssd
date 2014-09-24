@@ -287,9 +287,7 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
         return ret;
     }
 
-    ret = sss_write_domain_mappings(ctx->be_ctx->domain,
-                    dp_opt_get_bool(ctx->id_ctx->ipa_options->basic,
-                    IPA_SERVER_MODE));
+    ret = sss_write_domain_mappings(ctx->be_ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
                 "sss_krb5_write_mappings failed.\n");
