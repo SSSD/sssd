@@ -220,6 +220,17 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     }
 
     dom->parent = parent;
+
+    /* Sub-domains always have the same view as the parent */
+    dom->has_views = parent->has_views;
+    if (parent->view_name != NULL) {
+        dom->view_name = talloc_strdup(dom, parent->view_name);
+        if (dom->view_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy parent's view name.\n");
+            goto fail;
+        }
+    }
+
     dom->name = talloc_strdup(dom, name);
     if (dom->name == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to copy domain name.\n");
