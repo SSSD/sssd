@@ -583,6 +583,40 @@ void test_parse_deref_map_mismatch(void **state)
     talloc_free(res);
 }
 
+void test_parse_secondary_oc(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_group;
+    struct sdap_attr_map *map;
+
+    const char *oc_values[] = { "secondaryOC", NULL };
+    const char *uid_values[] = { "tgroup1", NULL };
+    struct mock_ldap_attr test_rfc2307_group_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_group.dn = "cn=testgroup,dc=example,dc=com";
+    test_rfc2307_group.attrs = test_rfc2307_group_attrs;
+    set_entry_parse(&test_rfc2307_group);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_group_map, SDAP_OPTS_GROUP, &map);
+    assert_int_equal(ret, ERR_OK);
+    map[SDAP_OC_GROUP_ALT].name = discard_const("secondaryOC");
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_GROUP,
+                           &attrs, false);
+    assert_int_equal(ret, ERR_OK);
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
 /* Negative test - objectclass doesn't match the map */
 void test_parse_bad_oc(void **state)
 {
@@ -711,6 +745,9 @@ int main(int argc, const char *argv[])
                                  parse_entry_test_setup,
                                  parse_entry_test_teardown),
         unit_test_setup_teardown(test_parse_deref_no_attrs,
+                                 parse_entry_test_setup,
+                                 parse_entry_test_teardown),
+        unit_test_setup_teardown(test_parse_secondary_oc,
                                  parse_entry_test_setup,
                                  parse_entry_test_teardown),
         /* Negative tests */
