@@ -652,10 +652,10 @@ done:
     return ret;
 }
 
-static errno_t write_selinux_login_file(const char *orig_name,
-                                        struct sss_domain_info *dom,
-                                        char *string);
-static errno_t remove_selinux_login_file(const char *username);
+static errno_t
+set_seuser_helper(const char *orig_name, struct sss_domain_info *dom,
+                  const char *seuser_mls_string);
+
 
 /* Choose best selinux user based on given order and write
  * the user to selinux login file. */
@@ -666,9 +666,9 @@ static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
                                   const char *default_user)
 {
     TALLOC_CTX *tmp_ctx;
-    char *file_content = NULL;
+    char *seuser_mls_str = NULL;
     const char *tmp_str;
-    errno_t ret, err;
+    errno_t ret;
     int i, j;
 
     tmp_ctx = talloc_new(NULL);
@@ -679,8 +679,8 @@ static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
 
     /* If no maps match, we'll use the default SELinux user from the
      * config */
-    file_content = talloc_strdup(tmp_ctx, default_user);
-    if (file_content == NULL) {
+    seuser_mls_str = talloc_strdup(tmp_ctx, default_user);
+    if (seuser_mls_str == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -702,12 +702,12 @@ static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
             tmp_str = sss_selinux_map_get_seuser(usermaps[j]);
 
             if (tmp_str && !strcasecmp(tmp_str, mo_ctx->order_array[i])) {
-                /* If file_content contained something, overwrite it.
+                /* If seuser_mls_str contained something, overwrite it.
                  * This record has higher priority.
                  */
-                talloc_zfree(file_content);
-                file_content = talloc_strdup(tmp_ctx, tmp_str);
-                if (file_content == NULL) {
+                talloc_zfree(seuser_mls_str);
+                seuser_mls_str = talloc_strdup(tmp_ctx, tmp_str);
+                if (seuser_mls_str == NULL) {
                     ret = ENOMEM;
                     goto done;
                 }
@@ -716,42 +716,46 @@ static errno_t choose_best_seuser(struct sysdb_attrs **usermaps,
         }
     }
 
-    ret = write_selinux_login_file(pd->user, user_domain, file_content);
+    ret = set_seuser_helper(pd->user, user_domain, seuser_mls_str);
 done:
-    if (!file_content) {
-        err = remove_selinux_login_file(pd->user);
-        /* Don't overwrite original error condition if there was one */
-        if (ret == EOK) ret = err;
-    }
     talloc_free(tmp_ctx);
     return ret;
 }
 
-static errno_t write_selinux_login_file(const char *orig_name,
-                                        struct sss_domain_info *dom,
-                                        char *string)
+static errno_t
+set_seuser_helper(const char *orig_name, struct sss_domain_info *dom,
+                  const char *seuser_mls_string)
 {
-    char *path = NULL;
-    char *tmp_path = NULL;
-    ssize_t written;
-    size_t len;
-    int fd = -1;
-    mode_t oldmask;
+    errno_t ret;
+    char *seuser;
+    char *mls_range;
+    char *ptr;
+    char *username;
+    char *username_final;
     TALLOC_CTX *tmp_ctx;
-    char *full_string = NULL;
-    int enforce;
-    errno_t ret = EOK;
-    const char *username;
-
-    len = strlen(string);
-    if (len == 0) {
-        return EINVAL;
-    }
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
+    }
+
+    /* Split seuser and mls_range */
+    seuser = talloc_strdup(tmp_ctx, seuser_mls_string);
+    if (seuser == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ptr = seuser;
+    while (*ptr != ':' && *ptr != '\0') {
+        ptr++;
+    }
+    if (*ptr == '\0') {
+        /* No mls_range specified */
+        mls_range = NULL;
+    } else {
+        *ptr = '\0'; /* split */
+        mls_range = ptr + 1;
     }
 
     /* pam_selinux needs the username in the same format getpwnam() would
@@ -763,112 +767,22 @@ static errno_t write_selinux_login_file(const char *orig_name,
         goto done;
     }
 
-    path = selogin_path(tmp_ctx, username);
-    if (path == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    tmp_path = talloc_asprintf(tmp_ctx, "%sXXXXXX", path);
-    if (tmp_path == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    oldmask = umask(022);
-    fd = mkstemp(tmp_path);
-    ret = errno;
-    umask(oldmask);
-    if (fd < 0) {
-        if (ret == ENOENT) {
-            /* if selinux is disabled and selogin dir does not exist,
-             * just ignore the error */
-            if (selinux_getenforcemode(&enforce) == 0 && enforce == -1) {
-                ret = EOK;
-                goto done;
-            }
-
-            /* continue if we can't get enforce mode or selinux is enabled */
+    if (dom->fqnames) {
+        username_final = talloc_asprintf(tmp_ctx, dom->names->fq_fmt,
+                                         username, dom->name);
+        if (username_final == NULL) {
+            ret = ENOMEM;
+            goto done;
         }
-
-        DEBUG(SSSDBG_OP_FAILURE, "unable to create temp file [%s] "
-              "for SELinux data [%d]: %s\n", tmp_path, ret, strerror(ret));
-        goto done;
-    }
-
-    full_string = talloc_asprintf(tmp_ctx, "%s:%s", ALL_SERVICES, string);
-    if (full_string == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    len = strlen(full_string);
-
-    errno = 0;
-    written = sss_atomic_write_s(fd, full_string, len);
-    if (written == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "writing to SELinux data file %s"
-                                  "failed [%d]: %s", tmp_path, ret,
-                                  strerror(ret));
-        goto done;
-    }
-
-    if (written != len) {
-        DEBUG(SSSDBG_OP_FAILURE, "Expected to write %zd bytes, wrote %zu",
-                                  written, len);
-        ret = EIO;
-        goto done;
-    }
-
-    errno = 0;
-    if (rename(tmp_path, path) < 0) {
-        ret = errno;
     } else {
-        ret = EOK;
+        username_final = username;
     }
-    close(fd);
-    fd = -1;
 
+    ret = set_seuser(username_final, seuser, mls_range);
 done:
-    if (fd != -1) {
-        close(fd);
-        if (unlink(tmp_path) < 0) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Could not remove file [%s]",
-                                         tmp_path);
-        }
-    }
-
     talloc_free(tmp_ctx);
     return ret;
 }
-
-static errno_t remove_selinux_login_file(const char *username)
-{
-    char *path;
-    errno_t ret;
-
-    path = selogin_path(NULL, username);
-    if (!path) return ENOMEM;
-
-    errno = 0;
-    ret = unlink(path);
-    if (ret < 0) {
-        ret = errno;
-        if (ret == ENOENT) {
-            /* Just return success if the file was not there */
-            ret = EOK;
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Could not remove login file %s [%d]: %s\n",
-                   path, ret, strerror(ret));
-        }
-    }
-
-    talloc_free(path);
-    return ret;
-}
-
 
 /* A more generic request to gather all SELinux and HBAC rules. Updates
  * cache if necessary
