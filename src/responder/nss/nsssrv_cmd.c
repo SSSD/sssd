@@ -179,7 +179,8 @@ static const char *get_homedir_override(TALLOC_CTX *mem_ctx,
     const char *orig_name = homedir_ctx->username;
     errno_t ret;
 
-    homedir = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
+    homedir = sss_view_ldb_msg_find_attr_as_string(dom, msg, SYSDB_HOMEDIR,
+                                                   NULL);
     homedir_ctx->original = homedir;
 
     /* Subdomain users store FQDN in their name attribute */
@@ -243,7 +244,8 @@ static const char *get_shell_override(TALLOC_CTX *mem_ctx,
         return nctx->override_shell;
     }
 
-    user_shell = ldb_msg_find_attr_as_string(msg, SYSDB_SHELL, NULL);
+    user_shell = sss_view_ldb_msg_find_attr_as_string(dom, msg, SYSDB_SHELL,
+                                                      NULL);
     if (!user_shell) {
         /* Check whether there is a default shell specified */
         if (dom->default_shell) {
@@ -339,9 +341,37 @@ static int fill_pwent(struct sss_packet *packet,
         msg = msgs[i];
 
         upn = ldb_msg_find_attr_as_string(msg, SYSDB_UPN, NULL);
-        orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-        uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
-        gid = get_gid_override(msg, dom);
+
+        if (DOM_HAS_VIEWS(dom)) {
+            orig_name = ldb_msg_find_attr_as_string(msg,
+                                                    OVERRIDE_PREFIX SYSDB_NAME,
+                                                    NULL);
+            if (orig_name != NULL && IS_SUBDOMAIN(dom)) {
+                /* Override names are not fully qualified */
+                add_domain = true;
+            }
+
+            gid = ldb_msg_find_attr_as_uint64(msg,
+                                              OVERRIDE_PREFIX SYSDB_GIDNUM, 0);
+        } else {
+            orig_name = NULL;
+            gid = 0;
+        }
+
+        if (orig_name == NULL) {
+            orig_name = ldb_msg_find_attr_as_string(msg,
+                                                    SYSDB_DEFAULT_OVERRIDE_NAME,
+                                                    NULL);
+            if (orig_name == NULL) {
+                orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+            }
+        }
+
+        uid = sss_view_ldb_msg_find_attr_as_uint64(dom, msg, SYSDB_UIDNUM, 0);
+
+        if (gid == 0) {
+            gid = get_gid_override(msg, dom);
+        }
 
         if (!orig_name || !uid || !gid) {
             DEBUG(SSSDBG_OP_FAILURE, "Incomplete user object for %s[%llu]! Skipping\n",
@@ -385,7 +415,8 @@ static int fill_pwent(struct sss_packet *packet,
 
         to_sized_string(&name, tmpstr);
 
-        tmpstr = ldb_msg_find_attr_as_string(msg, SYSDB_GECOS, NULL);
+        tmpstr = sss_view_ldb_msg_find_attr_as_string(dom, msg, SYSDB_GECOS,
+                                                      NULL);
         if (!tmpstr) {
             to_sized_string(&gecos, "");
         } else {
@@ -405,6 +436,7 @@ static int fill_pwent(struct sss_packet *packet,
         } else {
             to_sized_string(&homedir, tmpstr);
         }
+
         tmpstr = get_shell_override(tmp_ctx, msg, nctx, dom);
         if (!tmpstr) {
             to_sized_string(&shell, "");
@@ -734,6 +766,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
     int ret;
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_message *msg;
+    const char *extra_flag = NULL;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -827,7 +860,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
                 dctx->res->msgs[0] = talloc_steal(dctx->res->msgs, msg);
             }
         } else {
-            ret = sysdb_getpwnam(cmdctx, dom, name, &dctx->res);
+            ret = sysdb_getpwnam_with_views(cmdctx, dom, name, &dctx->res);
         }
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -871,11 +904,17 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
-            ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_USER, name, 0,
-                              cmdctx->name_is_upn ? EXTRA_NAME_IS_UPN : NULL,
-                              nss_cmd_getby_dp_callback,
-                              dctx);
+
+            if (cmdctx->name_is_upn) {
+                extra_flag = EXTRA_NAME_IS_UPN;
+            } else if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+                extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+            } else {
+                extra_flag = NULL;
+            }
+
+            ret = check_cache(dctx, nctx, dctx->res, SSS_DP_USER, name, 0,
+                              extra_flag, nss_cmd_getby_dp_callback, dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
@@ -1453,6 +1492,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
     struct nss_ctx *nctx;
     int ret;
     int err;
+    const char *extra_flag = NULL;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1492,7 +1532,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
             goto done;
         }
 
-        ret = sysdb_getpwuid(cmdctx, dom, cmdctx->id, &dctx->res);
+        ret = sysdb_getpwuid_with_views(cmdctx, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to make request to our cache!\n");
@@ -1523,9 +1563,15 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
-            ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_USER, NULL, cmdctx->id, NULL,
-                              nss_cmd_getby_dp_callback,
+
+            if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+                extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+            } else {
+                extra_flag = NULL;
+            }
+
+            ret = check_cache(dctx, nctx, dctx->res, SSS_DP_USER, NULL,
+                              cmdctx->id, extra_flag, nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
