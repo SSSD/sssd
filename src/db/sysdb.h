@@ -43,6 +43,7 @@
 #define SYSDB_TMPL_NETGROUP_BASE SYSDB_NETGROUP_CONTAINER","SYSDB_DOM_BASE
 #define SYSDB_TMPL_RANGE_BASE SYSDB_RANGE_CONTAINER","SYSDB_BASE
 #define SYSDB_TMPL_VIEW_BASE SYSDB_VIEW_CONTAINER","SYSDB_BASE
+#define SYSDB_TMPL_VIEW_SEARCH_BASE "cn=%s,"SYSDB_TMPL_VIEW_BASE
 
 #define SYSDB_SUBDOMAIN_CLASS "subdomain"
 #define SYSDB_USER_CLASS "user"
@@ -199,12 +200,17 @@
                         SYSDB_PRIMARY_GROUP_GIDNUM, \
                         SYSDB_SID_STR, \
                         SYSDB_UPN, \
+                        SYSDB_OVERRIDE_DN, \
+                        SYSDB_DEFAULT_OVERRIDE_NAME, \
                         NULL}
 
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
                            SYSDB_MEMBERUID, \
                            SYSDB_GHOST, \
                            SYSDB_DEFAULT_ATTRS, \
+                           SYSDB_SID_STR, \
+                           SYSDB_OVERRIDE_DN, \
+                           SYSDB_DEFAULT_OVERRIDE_NAME, \
                            NULL}
 
 #define SYSDB_NETGR_ATTRS {SYSDB_NAME, SYSDB_NETGROUP_TRIPLE, \
@@ -226,7 +232,7 @@
 #define SYSDB_TMPL_CUSTOM_SUBTREE "cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 #define SYSDB_TMPL_CUSTOM SYSDB_NAME"=%s,cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 #define SYSDB_TMPL_RANGE SYSDB_NAME"=%s,"SYSDB_TMPL_RANGE_BASE
-#define SYSDB_TMPL_OVERRIDE SYSDB_OVERRIDE_ANCHOR_UUID"=%s,cn=%s,"SYSDB_TMPL_VIEW_BASE
+#define SYSDB_TMPL_OVERRIDE SYSDB_OVERRIDE_ANCHOR_UUID"=%s,"SYSDB_TMPL_VIEW_SEARCH_BASE
 
 #define SYSDB_MOD_ADD LDB_FLAG_MOD_ADD
 #define SYSDB_MOD_DEL LDB_FLAG_MOD_DELETE
@@ -437,6 +443,22 @@ errno_t sysdb_get_view_name(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                                      struct sysdb_attrs *override_attrs,
                                      struct ldb_dn *obj_dn);
+
+errno_t sysdb_search_user_override_by_name(TALLOC_CTX *mem_ctx,
+                                           struct sss_domain_info *domain,
+                                           const char *name,
+                                           struct ldb_result **override_obj,
+                                           struct ldb_result **orig_obj);
+
+errno_t sysdb_search_group_override_by_name(TALLOC_CTX *mem_ctx,
+                                            struct sss_domain_info *domain,
+                                            const char *name,
+                                            struct ldb_result **override_obj,
+                                            struct ldb_result **orig_obj);
+
+errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
+                                      struct ldb_message *obj,
+                                      struct ldb_message *override_obj);
 
 /* Sysdb initialization.
  * call this function *only* once to initialize the database and get
