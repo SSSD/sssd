@@ -836,6 +836,56 @@ fallback_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pam_trusted_users (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the comma-separated list of UID values or
+                            user names that are allowed to access the PAM
+                            responder. User names are resolved to UIDs at
+                            startup.
+                        </para>
+                        <para>
+                            Default: all (All users are allowed to access
+                            the PAM responder)
+                        </para>
+                        <para>
+                            Please note that UID 0 is always allowed to access
+                            the PAM responder even in case it is not in the
+                            pam_trusted_users list.
+                        </para>
+                        <para>
+                            Also please note that if there is a user name in
+                            pam_trusted_users list which fails to be resolved
+                            it will cause that SSSD will not be started.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>pam_public_domains (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the comma-separated list of domain names
+                            that are accessible even to untrusted users.
+                        </para>
+                        <para>
+                            Two special values for pam_public_domains option
+                            are defined:
+                        </para>
+                        <para>
+                            all (Untrusted users are allowed to access
+                            all domains in PAM responder.)
+                        </para>
+                        <para>
+                            none (Untrusted users are not allowed to access
+                            any domains PAM in responder.)
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </refsect2>
 

@@ -111,6 +111,8 @@
 #define CONFDB_PAM_VERBOSITY "pam_verbosity"
 #define CONFDB_PAM_ID_TIMEOUT "pam_id_timeout"
 #define CONFDB_PAM_PWD_EXPIRATION_WARNING "pam_pwd_expiration_warning"
+#define CONFDB_PAM_TRUSTED_USERS "pam_trusted_users"
+#define CONFDB_PAM_PUBLIC_DOMAINS "pam_public_domains"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"

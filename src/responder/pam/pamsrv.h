@@ -37,6 +37,13 @@ struct pam_ctx {
     int neg_timeout;
     time_t id_timeout;
     hash_table_t *id_table;
+    size_t trusted_uids_count;
+    uid_t *trusted_uids;
+    bool is_uid_trusted;
+
+    /* List of domains that are accessible even for untrusted users. */
+    char **public_domains;
+    int public_domains_count;
 };
 
 struct pam_auth_dp_req {

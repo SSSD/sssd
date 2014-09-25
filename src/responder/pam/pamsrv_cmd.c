@@ -762,6 +762,45 @@ static int pam_auth_req_destructor(struct pam_auth_req *preq)
     return 0;
 }
 
+static bool is_uid_trusted(uint32_t uid,
+                           size_t trusted_uids_count,
+                           uid_t *trusted_uids)
+{
+    size_t i;
+
+    /* root is always trusted */
+    if (uid == 0) {
+        return true;
+    }
+
+    /* All uids are allowed */
+    if (trusted_uids_count == 0) {
+        return true;
+    }
+
+    for(i = 0; i < trusted_uids_count; i++) {
+        if (trusted_uids[i] == uid) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool is_domain_public(char *name,
+                             char **public_dom_names,
+                             size_t public_dom_names_count)
+{
+    size_t i;
+
+    for(i=0; i < public_dom_names_count; i++) {
+        if (strcmp(name, public_dom_names[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
     struct sss_domain_info *dom;
@@ -772,6 +811,15 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     struct pam_ctx *pctx =
             talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
     struct tevent_req *req;
+
+    pctx->is_uid_trusted = is_uid_trusted(cctx->client_euid,
+                                          pctx->trusted_uids_count,
+                                          pctx->trusted_uids);
+
+    if (!pctx->is_uid_trusted) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "uid %"PRIu32" is not trusted.\n",
+              cctx->client_euid);
+    }
 
     preq = talloc_zero(cctx, struct pam_auth_req);
     if (!preq) {
@@ -813,6 +861,17 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             goto done;
         }
 
+        /* Untrusted users can access only public domains. */
+        if (!pctx->is_uid_trusted &&
+            !is_domain_public(pd->domain, pctx->public_domains,
+                              pctx->public_domains_count)) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Untrusted user %"PRIu32" cannot access unpublic domain %s.\n",
+                  cctx->client_euid, pd->domain);
+            ret = EPERM;
+            goto done;
+        }
+
         ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
                                       preq->domain, pd->user);
         if (ncret == EEXIST) {
@@ -825,6 +884,17 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
              dom;
              dom = get_next_domain(dom, false)) {
             if (dom->fqnames) continue;
+
+            /* Untrusted users can access only public domains. */
+            if (!pctx->is_uid_trusted &&
+                !is_domain_public(dom->name, pctx->public_domains,
+                                  pctx->public_domains_count)) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Untrusted user %"PRIu32" cannot access unpublic domain %s."
+                      " Trying next domain.\n",
+                      cctx->client_euid, dom->name);
+                continue;
+            }
 
             ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
                                           dom, pd->user);
@@ -920,7 +990,6 @@ done:
 }
 
 static void pam_dp_send_acct_req_done(struct tevent_req *req);
-
 static int pam_check_user_search(struct pam_auth_req *preq)
 {
     struct sss_domain_info *dom = preq->domain;
@@ -936,9 +1005,14 @@ static int pam_check_user_search(struct pam_auth_req *preq)
 
     while (dom) {
        /* if it is a domainless search, skip domains that require fully
-         * qualified names instead */
+        * qualified names instead, also untrusted users can access only
+        * public domains */
         while (dom && !preq->pd->domain && !preq->pd->name_is_upn
-                && dom->fqnames) {
+               && (dom->fqnames ||
+                   (!pctx->is_uid_trusted &&
+                    !is_domain_public(dom->name,
+                                      pctx->public_domains,
+                                      pctx->public_domains_count)))) {
             dom = get_next_domain(dom, false);
         }
 

@@ -569,3 +569,63 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+/* Save domain names, do not descend. */
+errno_t get_dom_names(TALLOC_CTX *mem_ctx,
+                      struct sss_domain_info *start_dom,
+                      char ***_dom_names,
+                      int *_dom_names_count)
+{
+    struct sss_domain_info *dom;
+    TALLOC_CTX *tmp_ctx;
+    char **dom_names;
+    size_t count, i;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* get count of domains*/
+    count = 0;
+    dom = start_dom;
+    while (dom) {
+        count++;
+        dom = get_next_domain(dom, false);
+    }
+
+    dom_names = talloc_array(tmp_ctx, char*, count);
+    if (dom_names == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* copy names */
+    i = 0;
+    dom = start_dom;
+    while (dom) {
+        dom_names[i] = talloc_strdup(dom_names, dom->name);
+        if (dom_names[i] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        dom = get_next_domain(dom, false);
+        i++;
+    }
+
+    if (_dom_names != NULL ) {
+        *_dom_names = talloc_steal(mem_ctx, dom_names);
+    }
+
+    if (_dom_names_count != NULL ) {
+        *_dom_names_count =  count;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}

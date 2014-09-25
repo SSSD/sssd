@@ -547,6 +547,11 @@ errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
 errno_t sss_write_domain_mappings(struct sss_domain_info *domain,
                                   bool add_capaths);
 
+errno_t get_dom_names(TALLOC_CTX *mem_ctx,
+                      struct sss_domain_info *start_dom,
+                      char ***_dom_names,
+                      int *_dom_names_count);
+
 /* from util_lock.c */
 errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                          int num_tries, useconds_t wait);

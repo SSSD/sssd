@@ -46,6 +46,10 @@
 #include "responder/common/responder_sbus.h"
 
 #define DEFAULT_PAM_FD_LIMIT 8192
+#define ALL_UIDS_ALLOWED "all"
+#define ALL_DOMAIMS_ARE_PUBLIC "all"
+#define NO_DOMAIMS_ARE_PUBLIC "none"
+#define DEFAULT_ALLOWED_UIDS ALL_UIDS_ALLOWED
 
 struct mon_cli_iface monitor_pam_methods = {
     { &mon_cli_iface_meta, 0 },
@@ -99,6 +103,82 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
     /* pam_shutdown(rctx); */
 }
 
+static errno_t get_trusted_uids(struct pam_ctx *pctx)
+{
+    char *uid_str;
+    errno_t ret;
+
+    ret = confdb_get_string(pctx->rctx->cdb, pctx->rctx,
+                            CONFDB_PAM_CONF_ENTRY, CONFDB_PAM_TRUSTED_USERS,
+                            DEFAULT_ALLOWED_UIDS, &uid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get allowed UIDs.\n");
+        goto done;
+    }
+
+    if (strcmp(uid_str, ALL_UIDS_ALLOWED) == 0) {
+         DEBUG(SSSDBG_TRACE_FUNC, "All UIDs are allowed.\n");
+         pctx->trusted_uids_count = 0;
+    } else {
+        ret = csv_string_to_uid_array(pctx->rctx, uid_str, true,
+                                      &pctx->trusted_uids_count,
+                                      &pctx->trusted_uids);
+    }
+
+    talloc_free(uid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set allowed UIDs.\n");
+        goto done;
+    }
+
+done:
+    return ret;
+}
+
+static errno_t get_public_domains(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx)
+{
+    char *domains_str = NULL;
+    errno_t ret;
+
+    ret = confdb_get_string(pctx->rctx->cdb, pctx->rctx,
+                            CONFDB_PAM_CONF_ENTRY, CONFDB_PAM_PUBLIC_DOMAINS,
+                            NO_DOMAIMS_ARE_PUBLIC, &domains_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get allowed UIDs.\n");
+        goto done;
+    }
+
+    if (strcmp(domains_str, ALL_DOMAIMS_ARE_PUBLIC) == 0) { /* all */
+        /* copy all domains */
+        ret = get_dom_names(mem_ctx,
+                            pctx->rctx->domains,
+                            &pctx->public_domains,
+                            &pctx->public_domains_count);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "get_dom_names failed.\n");
+            goto done;
+        }
+    } else if (strcmp(domains_str, NO_DOMAIMS_ARE_PUBLIC) == 0) { /* none */
+        pctx->public_domains = NULL;
+        pctx->public_domains_count = 0;
+    } else {
+        ret = split_on_separator(mem_ctx, domains_str, ',', true, false,
+                                 &pctx->public_domains,
+                                 &pctx->public_domains_count);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "split_on_separator failed [%d][%s].\n",
+                  ret, strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(domains_str);
+    return ret;
+}
+
 static int pam_process_init(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct confdb_ctx *cdb)
@@ -135,6 +215,20 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
     pctx->rctx = rctx;
     pctx->rctx->pvt_ctx = pctx;
+
+    ret = get_trusted_uids(pctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "get_trusted_uids failed: %d:[%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = get_public_domains(pctx, pctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "get_public_domains failed: %d:[%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
     /* Enable automatic reconnection to the Data Provider */
 

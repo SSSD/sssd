@@ -82,6 +82,8 @@ option_strings = {
     'pam_verbosity' : _('What kind of messages are displayed to the user during authentication'),
     'pam_id_timeout' : _('How many seconds to keep identity information cached for PAM requests'),
     'pam_pwd_expiration_warning' : _('How many days before password expiration a warning should be displayed'),
+    'pam_trusted_users' : _('List of trusted uids or user\'s name'),
+    'pam_public_domains' : _('List of domains accessible even for untrusted users.'),
 
     # [sudo]
     'sudo_timed' : _('Whether to evaluate the time-based attributes in sudo rules'),
