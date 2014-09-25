@@ -26,8 +26,10 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
-static char *
-get_primary(TALLOC_CTX *mem_ctx, const char *pattern, const char *hostname)
+char *
+sss_krb5_get_primary(TALLOC_CTX *mem_ctx,
+                     const char *pattern,
+                     const char *hostname)
 {
     char *primary;
     char *dot;
@@ -132,7 +134,9 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
 
     do {
         if (primary_patterns[i]) {
-            primary = get_primary(tmp_ctx, primary_patterns[i], hostname);
+            primary = sss_krb5_get_primary(tmp_ctx,
+                                           primary_patterns[i],
+                                           hostname);
             if (primary == NULL) {
                 ret = ENOMEM;
                 goto done;
