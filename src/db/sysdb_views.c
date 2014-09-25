@@ -648,7 +648,9 @@ done:
 
 
 #define SYSDB_USER_NAME_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_USER_CLASS")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
+#define SYSDB_USER_UID_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_USER_CLASS")("SYSDB_UIDNUM"=%lu))"
 #define SYSDB_GROUP_NAME_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_GROUP_CLASS")(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)))"
+#define SYSDB_GROUP_GID_OVERRIDE_FILTER "(&(objectClass="SYSDB_OVERRIDE_GROUP_CLASS")("SYSDB_GIDNUM"=%lu))"
 
 enum override_object_type {
     OO_TYPE_UNDEF = 0,
@@ -800,6 +802,132 @@ errno_t sysdb_search_group_override_by_name(TALLOC_CTX *mem_ctx,
 {
     return sysdb_search_override_by_name(mem_ctx, domain, name, OO_TYPE_GROUP,
                                          override_obj, orig_obj);
+}
+
+static errno_t sysdb_search_override_by_id(TALLOC_CTX *mem_ctx,
+                                           struct sss_domain_info *domain,
+                                           unsigned long int id,
+                                           enum override_object_type type,
+                                           struct ldb_result **override_obj,
+                                           struct ldb_result **orig_obj)
+{
+    TALLOC_CTX *tmp_ctx;
+    static const char *user_attrs[] = SYSDB_PW_ATTRS;
+    static const char *group_attrs[] = SYSDB_GRSRC_ATTRS;
+    const char **attrs;
+    struct ldb_dn *base_dn;
+    struct ldb_result *override_res;
+    struct ldb_result *orig_res;
+    int ret;
+    const char *orig_obj_dn;
+    const char *filter;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
+                             SYSDB_TMPL_VIEW_SEARCH_BASE, domain->view_name);
+    if (base_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new_fmt failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    switch(type) {
+    case OO_TYPE_USER:
+        filter = SYSDB_USER_UID_OVERRIDE_FILTER;
+        attrs = user_attrs;
+        break;
+    case OO_TYPE_GROUP:
+        filter = SYSDB_GROUP_GID_OVERRIDE_FILTER;
+        attrs = group_attrs;
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected override object type [%d].\n",
+                                   type);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &override_res, base_dn,
+                     LDB_SCOPE_SUBTREE, attrs, filter, id);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    if (override_res->count == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "No user override found for %s with id [%lu].\n",
+              (type == OO_TYPE_USER ? "user" : "group"), id);
+        ret = ENOENT;
+        goto done;
+    } else if (override_res->count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Found more than one override for id [%lu]\n.", id);
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (orig_obj != NULL) {
+        orig_obj_dn = ldb_msg_find_attr_as_string(override_res->msgs[0],
+                                                  SYSDB_OVERRIDE_OBJECT_DN,
+                                                  NULL);
+        if (orig_obj_dn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Missing link to original object in override [%s].\n",
+                  ldb_dn_get_linearized(override_res->msgs[0]->dn));
+            ret = EINVAL;
+            goto done;
+        }
+
+        base_dn = ldb_dn_new(tmp_ctx, domain->sysdb->ldb, orig_obj_dn);
+        if (base_dn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &orig_res, base_dn,
+                         LDB_SCOPE_BASE, attrs, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        *orig_obj = talloc_steal(mem_ctx, orig_res);
+    }
+
+
+    *override_obj = talloc_steal(mem_ctx, override_res);
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_search_user_override_by_uid(TALLOC_CTX *mem_ctx,
+                                          struct sss_domain_info *domain,
+                                          uid_t uid,
+                                           struct ldb_result **override_obj,
+                                           struct ldb_result **orig_obj)
+{
+    return sysdb_search_override_by_id(mem_ctx, domain, uid, OO_TYPE_USER,
+                                       override_obj, orig_obj);
+}
+
+errno_t sysdb_search_group_override_by_gid(TALLOC_CTX *mem_ctx,
+                                            struct sss_domain_info *domain,
+                                            gid_t gid,
+                                            struct ldb_result **override_obj,
+                                            struct ldb_result **orig_obj)
+{
+    return sysdb_search_override_by_id(mem_ctx, domain, gid, OO_TYPE_GROUP,
+                                       override_obj, orig_obj);
 }
 
 /**

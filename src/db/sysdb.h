@@ -201,6 +201,7 @@
                         SYSDB_SID_STR, \
                         SYSDB_UPN, \
                         SYSDB_OVERRIDE_DN, \
+                        SYSDB_OVERRIDE_OBJECT_DN, \
                         SYSDB_DEFAULT_OVERRIDE_NAME, \
                         NULL}
 
@@ -210,6 +211,7 @@
                            SYSDB_DEFAULT_ATTRS, \
                            SYSDB_SID_STR, \
                            SYSDB_OVERRIDE_DN, \
+                           SYSDB_OVERRIDE_OBJECT_DN, \
                            SYSDB_DEFAULT_OVERRIDE_NAME, \
                            NULL}
 
@@ -456,9 +458,31 @@ errno_t sysdb_search_group_override_by_name(TALLOC_CTX *mem_ctx,
                                             struct ldb_result **override_obj,
                                             struct ldb_result **orig_obj);
 
+errno_t sysdb_search_user_override_by_uid(TALLOC_CTX *mem_ctx,
+                                          struct sss_domain_info *domain,
+                                          uid_t uid,
+                                           struct ldb_result **override_obj,
+                                           struct ldb_result **orig_obj);
+
+errno_t sysdb_search_group_override_by_gid(TALLOC_CTX *mem_ctx,
+                                            struct sss_domain_info *domain,
+                                            gid_t gid,
+                                            struct ldb_result **override_obj,
+                                            struct ldb_result **orig_obj);
+
 errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
                                       struct ldb_message *obj,
                                       struct ldb_message *override_obj);
+
+errno_t sysdb_getpwnam_with_views(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  const char *name,
+                                  struct ldb_result **res);
+
+errno_t sysdb_getpwuid_with_views(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  uid_t uid,
+                                  struct ldb_result **res);
 
 /* Sysdb initialization.
  * call this function *only* once to initialize the database and get
