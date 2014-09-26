@@ -484,6 +484,21 @@ errno_t sysdb_getpwuid_with_views(TALLOC_CTX *mem_ctx,
                                   uid_t uid,
                                   struct ldb_result **res);
 
+struct ldb_message_element *
+sss_view_ldb_msg_find_element(struct sss_domain_info *dom,
+                              const struct ldb_message *msg,
+                              const char *attr_name);
+
+const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
+                                                 const struct ldb_message *msg,
+                                                 const char *attr_name,
+                                                 const char * default_value);
+
+uint64_t sss_view_ldb_msg_find_attr_as_uint64(struct sss_domain_info *dom,
+                                              const struct ldb_message *msg,
+                                              const char *attr_name,
+                                              uint64_t default_value);
+
 /* Sysdb initialization.
  * call this function *only* once to initialize the database and get
  * the sysdb ctx */

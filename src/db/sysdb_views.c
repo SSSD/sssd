@@ -1056,3 +1056,119 @@ done:
 
     return ret;
 }
+
+struct ldb_message_element *
+sss_view_ldb_msg_find_element(struct sss_domain_info *dom,
+                                              const struct ldb_message *msg,
+                                              const char *attr_name)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct ldb_message_element *val;
+    char *override_attr_name;
+
+    if (DOM_HAS_VIEWS(dom)) {
+        tmp_ctx = talloc_new(NULL);
+        if (tmp_ctx == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+            val = NULL;
+            goto done;
+        }
+
+        override_attr_name = talloc_asprintf(tmp_ctx, "%s%s", OVERRIDE_PREFIX,
+                                                              attr_name);
+        if (override_attr_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            val = NULL;
+            goto done;
+        }
+
+        val = ldb_msg_find_element(msg, override_attr_name);
+        if (val != NULL) {
+            goto done;
+        }
+    }
+
+    val = ldb_msg_find_element(msg, attr_name);
+
+done:
+    talloc_free(tmp_ctx);
+    return val;
+}
+
+uint64_t sss_view_ldb_msg_find_attr_as_uint64(struct sss_domain_info *dom,
+                                              const struct ldb_message *msg,
+                                              const char *attr_name,
+                                              uint64_t default_value)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    uint64_t val;
+    char *override_attr_name;
+
+    if (DOM_HAS_VIEWS(dom)) {
+        tmp_ctx = talloc_new(NULL);
+        if (tmp_ctx == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+            val = default_value;
+            goto done;
+        }
+
+        override_attr_name = talloc_asprintf(tmp_ctx, "%s%s", OVERRIDE_PREFIX,
+                                                              attr_name);
+        if (override_attr_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            val = default_value;
+            goto done;
+        }
+
+        if (ldb_msg_find_element(msg, override_attr_name) != NULL) {
+            val = ldb_msg_find_attr_as_uint64(msg, override_attr_name,
+                                              default_value);
+            goto done;
+        }
+    }
+
+    val = ldb_msg_find_attr_as_uint64(msg, attr_name, default_value);
+
+done:
+    talloc_free(tmp_ctx);
+    return val;
+}
+
+const char *sss_view_ldb_msg_find_attr_as_string(struct sss_domain_info *dom,
+                                                 const struct ldb_message *msg,
+                                                 const char *attr_name,
+                                                 const char * default_value)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *val;
+    char *override_attr_name;
+
+    if (DOM_HAS_VIEWS(dom)) {
+        tmp_ctx = talloc_new(NULL);
+        if (tmp_ctx == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+            val = default_value;
+            goto done;
+        }
+
+        override_attr_name = talloc_asprintf(tmp_ctx, "%s%s", OVERRIDE_PREFIX,
+                                                              attr_name);
+        if (override_attr_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            val = default_value;
+            goto done;
+        }
+
+        if (ldb_msg_find_element(msg, override_attr_name) != NULL) {
+            val = ldb_msg_find_attr_as_string(msg, override_attr_name,
+                                              default_value);
+            goto done;
+        }
+    }
+
+    val = ldb_msg_find_attr_as_string(msg, attr_name, default_value);
+
+done:
+    talloc_free(tmp_ctx);
+    return val;
+}
