@@ -603,6 +603,119 @@ done:
     return ret;
 }
 
+int sysdb_initgroups_with_views(TALLOC_CTX *mem_ctx,
+                                struct sss_domain_info *domain,
+                                const char *name,
+                                struct ldb_result **_res)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    struct ldb_dn *user_dn;
+    struct ldb_request *req;
+    struct ldb_control **ctrl;
+    struct ldb_asq_control *control;
+    static const char *attrs[] = SYSDB_INITGR_ATTRS;
+    int ret;
+    size_t c;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_getpwnam_with_views(tmp_ctx, domain, name, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_getpwnam failed: [%d][%s]\n",
+                  ret, strerror(ret));
+        goto done;
+    }
+
+    if (res->count == 0) {
+        /* User is not cached yet */
+        *_res = talloc_steal(mem_ctx, res);
+        ret = EOK;
+        goto done;
+
+    } else if (res->count != 1) {
+        ret = EIO;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb_getpwnam returned count: [%d]\n", res->count);
+        goto done;
+    }
+
+    /* no need to steal the dn, we are not freeing the result */
+    user_dn = res->msgs[0]->dn;
+
+    /* note we count on the fact that the default search callback
+     * will just keep appending values. This is by design and can't
+     * change so it is ok to already have a result (from the getpwnam)
+     * even before we call the next search */
+
+    ctrl = talloc_array(tmp_ctx, struct ldb_control *, 2);
+    if (!ctrl) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ctrl[1] = NULL;
+    ctrl[0] = talloc(ctrl, struct ldb_control);
+    if (!ctrl[0]) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ctrl[0]->oid = LDB_CONTROL_ASQ_OID;
+    ctrl[0]->critical = 1;
+    control = talloc(ctrl[0], struct ldb_asq_control);
+    if (!control) {
+        ret = ENOMEM;
+        goto done;
+    }
+    control->request = 1;
+    control->source_attribute = talloc_strdup(control, SYSDB_INITGR_ATTR);
+    if (!control->source_attribute) {
+        ret = ENOMEM;
+        goto done;
+    }
+    control->src_attr_len = strlen(control->source_attribute);
+    ctrl[0]->data = control;
+
+    ret = ldb_build_search_req(&req, domain->sysdb->ldb, tmp_ctx,
+                               user_dn, LDB_SCOPE_BASE,
+                               SYSDB_INITGR_FILTER, attrs, ctrl,
+                               res, ldb_search_default_callback,
+                               NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = ldb_request(domain->sysdb->ldb, req);
+    if (ret == LDB_SUCCESS) {
+        ret = ldb_wait(req->handle, LDB_WAIT_ALL);
+    }
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    if (DOM_HAS_VIEWS(domain)) {
+        /* Skip user entry because it already has override values added */
+        for (c = 1; c < res->count; c++) {
+            ret = sysdb_add_overrides_to_object(domain, res->msgs[c], NULL);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_add_overrides_to_object failed.\n");
+                goto done;
+            }
+        }
+    }
+
+    *_res = talloc_steal(mem_ctx, res);
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *domain,
                         const char *name,

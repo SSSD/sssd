@@ -226,6 +226,7 @@
                             SYSDB_ORIG_DN, \
                             SYSDB_SID_STR, \
                             SYSDB_NAME, \
+                            SYSDB_OVERRIDE_DN, \
                             NULL}
 
 #define SYSDB_TMPL_USER SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE
@@ -564,6 +565,11 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      struct sss_domain_info *domain,
                      const char *name,
                      struct ldb_result **res);
+
+int sysdb_initgroups_with_views(TALLOC_CTX *mem_ctx,
+                                struct sss_domain_info *domain,
+                                const char *name,
+                                struct ldb_result **res);
 
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *domain,
