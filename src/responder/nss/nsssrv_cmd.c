@@ -3782,7 +3782,8 @@ done:
 
 /* FIXME: what about mpg, should we return the user's GID ? */
 /* FIXME: should we filter out GIDs ? */
-static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
+static int fill_initgr(struct sss_packet *packet, struct sss_domain_info *dom,
+                       struct ldb_result *res)
 {
     uint8_t *body;
     size_t blen;
@@ -3806,14 +3807,15 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
     }
     sss_packet_get_body(packet, &body, &blen);
 
-    orig_primary_gid = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                   SYSDB_PRIMARY_GROUP_GIDNUM,
-                                                   0);
+    orig_primary_gid = sss_view_ldb_msg_find_attr_as_uint64(dom, res->msgs[0],
+                                                     SYSDB_PRIMARY_GROUP_GIDNUM,
+                                                     0);
 
     /* If the GID of the original primary group is available but equal to the
     * current primary GID it must not be added. */
     if (orig_primary_gid != 0) {
-        gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
+        gid = sss_view_ldb_msg_find_attr_as_uint64(dom, res->msgs[0],
+                                                   SYSDB_GIDNUM, 0);
 
         if (orig_primary_gid == gid) {
             orig_primary_gid = 0;
@@ -3826,8 +3828,10 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
 
     /* skip first entry, it's the user entry */
     for (i = 0; i < num; i++) {
-        gid = ldb_msg_find_attr_as_uint64(res->msgs[i + 1], SYSDB_GIDNUM, 0);
-        posix = ldb_msg_find_attr_as_string(res->msgs[i + 1], SYSDB_POSIX, NULL);
+        gid = sss_view_ldb_msg_find_attr_as_uint64(dom, res->msgs[i + 1],
+                                                   SYSDB_GIDNUM, 0);
+        posix = ldb_msg_find_attr_as_string(res->msgs[i + 1],
+                                            SYSDB_POSIX, NULL);
         if (!gid) {
             if (posix && strcmp(posix, "FALSE") == 0) {
                 skipped++;
@@ -3878,7 +3882,7 @@ static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
         return EFAULT;
     }
 
-    ret = fill_initgr(cctx->creq->out, dctx->res);
+    ret = fill_initgr(cctx->creq->out, dctx->domain, dctx->res);
     if (ret) {
         return ret;
     }
@@ -3898,6 +3902,8 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_message *msg;
     const char *sysdb_name;
+    size_t c;
+    const char *extra_flag = NULL;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -3977,8 +3983,19 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             }
 
             ret = sysdb_initgroups(cmdctx, dom, sysdb_name, &dctx->res);
+            if (ret == EOK && DOM_HAS_VIEWS(dom)) {
+                for (c = 0; c < dctx->res->count; c++) {
+                    ret = sysdb_add_overrides_to_object(dom, dctx->res->msgs[c],
+                                                        NULL);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "sysdb_add_overrides_to_object failed.\n");
+                        return ret;
+                    }
+                }
+            }
         } else {
-            ret = sysdb_initgroups(cmdctx, dom, name, &dctx->res);
+            ret = sysdb_initgroups_with_views(cmdctx, dom, name, &dctx->res);
         }
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -4009,11 +4026,17 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
-            ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_INITGROUPS, name, 0,
-                              cmdctx->name_is_upn ? EXTRA_NAME_IS_UPN : NULL,
-                              nss_cmd_getby_dp_callback,
-                              dctx);
+
+            if (cmdctx->name_is_upn) {
+                extra_flag = EXTRA_NAME_IS_UPN;
+            } else if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+                extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+            } else {
+                extra_flag = NULL;
+            }
+
+            ret = check_cache(dctx, nctx, dctx->res, SSS_DP_INITGROUPS, name, 0,
+                              extra_flag, nss_cmd_getby_dp_callback, dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
