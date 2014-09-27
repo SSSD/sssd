@@ -58,6 +58,7 @@
 #define PW_RESET_MSG_MAX_SIZE 4096
 
 #define OPT_RETRY_KEY "retry="
+#define OPT_DOMAINS_KEY "domains="
 
 struct pam_items {
     const char* pam_service;
@@ -81,6 +82,8 @@ struct pam_items {
     pid_t cli_pid;
     const char *login_name;
     char *domain_name;
+    const char *requested_domains;
+    size_t requested_domains_size;
 };
 
 #define DEBUG_MGS_LEN 1024
@@ -246,6 +249,9 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
     len += pi->pam_newauthtok != NULL ?
                 3*sizeof(uint32_t) + pi->pam_newauthtok_size : 0;
     len += 3*sizeof(uint32_t); /* cli_pid */
+    len += *pi->requested_domains != '\0' ?
+                2*sizeof(uint32_t) + pi->requested_domains_size : 0;
+
 
     buf = malloc(len);
     if (buf == NULL) {
@@ -269,6 +275,9 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
                           &buf[rp]);
 
     rp += add_string_item(SSS_PAM_ITEM_RHOST, pi->pam_rhost, pi->pam_rhost_size,
+                          &buf[rp]);
+
+    rp += add_string_item(SSS_PAM_ITEM_REQUESTED_DOMAINS, pi->requested_domains, pi->requested_domains_size,
                           &buf[rp]);
 
     rp += add_uint32_t_item(SSS_PAM_ITEM_CLI_PID, (uint32_t) pi->cli_pid,
@@ -1061,6 +1070,9 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
 
     pi->domain_name = NULL;
 
+    if (pi->requested_domains == NULL) pi->requested_domains = "";
+    pi->requested_domains_size = strlen(pi->requested_domains) + 1;
+
     return PAM_SUCCESS;
 }
 
@@ -1080,6 +1092,7 @@ static void print_pam_items(struct pam_items *pi)
     D(("Authtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_authtok)));
     D(("Newauthtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_newauthtok)));
     D(("Cli_PID: %d", pi->cli_pid));
+    D(("Requested domains: %s", pi->requested_domains));
 }
 
 static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
@@ -1271,7 +1284,8 @@ static int prompt_new_password(pam_handle_t *pamh, struct pam_items *pi)
 }
 
 static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
-                      uint32_t *flags, int *retries, bool *quiet_mode)
+                      uint32_t *flags, int *retries, bool *quiet_mode,
+                      const char **domains)
 {
     char *ep;
 
@@ -1284,6 +1298,14 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             *flags |= FLAGS_USE_FIRST_PASS;
         } else if (strcmp(*argv, "use_authtok") == 0) {
             *flags |= FLAGS_USE_AUTHTOK;
+        } else if (strncmp(*argv, OPT_DOMAINS_KEY, strlen(OPT_DOMAINS_KEY)) == 0) {
+            if (*(*argv+strlen(OPT_DOMAINS_KEY)) == '\0') {
+                logger(pamh, LOG_ERR, "Missing argument to option domains.");
+                *domains = "";
+            } else {
+                *domains = *argv+strlen(OPT_DOMAINS_KEY);
+            }
+
         } else if (strncmp(*argv, OPT_RETRY_KEY, strlen(OPT_RETRY_KEY)) == 0) {
             if (*(*argv+6) == '\0') {
                 logger(pamh, LOG_ERR, "Missing argument to option retry.");
@@ -1443,12 +1465,15 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
     bool retry = false;
     bool quiet_mode = false;
     int retries = 0;
+    const char *domains = NULL;
 
     bindtextdomain(PACKAGE, LOCALEDIR);
 
     D(("Hello pam_sssd: %d", task));
 
-    eval_argv(pamh, argc, argv, &flags, &retries, &quiet_mode);
+    eval_argv(pamh, argc, argv, &flags, &retries, &quiet_mode, &domains);
+
+    pi.requested_domains = domains;
 
     ret = get_pam_items(pamh, &pi);
     if (ret != PAM_SUCCESS) {

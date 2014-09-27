@@ -44,6 +44,28 @@ enum pam_verbosity {
 
 static void pam_reply(struct pam_auth_req *preq);
 
+static bool is_domain_requested(struct pam_data *pd, const char *domain_name)
+{
+    int i;
+
+    /* If none specific domains got requested via pam, all domains are allowed.
+     * Which mimics the default/original behaviour.
+     */
+    if (!pd->requested_domains) {
+        return true;
+    }
+
+    for (i = 0; pd->requested_domains[i]; i++) {
+        if (strcmp(domain_name, pd->requested_domains[i])) {
+            continue;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 static int extract_authtok_v2(struct sss_auth_token *tok,
                               size_t data_size, uint8_t *body, size_t blen,
                               size_t *c)
@@ -143,6 +165,7 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
     int ret;
     uint32_t start;
     uint32_t terminator;
+    char *requested_domains;
 
     if (blen < 4*sizeof(uint32_t)+2) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Received data is invalid.\n");
@@ -193,6 +216,20 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                 case SSS_PAM_ITEM_RHOST:
                     ret = extract_string(&pd->rhost, size, body, blen, &c);
                     if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_REQUESTED_DOMAINS:
+                    ret = extract_string(&requested_domains, size, body, blen,
+                                         &c);
+                    if (ret != EOK) return ret;
+
+                    ret = split_on_separator(pd, requested_domains, ',', true,
+                                             true, &pd->requested_domains,
+                                             NULL);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "Failed to parse requested_domains list!\n");
+                        return ret;
+                    }
                     break;
                 case SSS_PAM_ITEM_CLI_PID:
                     ret = extract_uint32_t(&pd->cli_pid, size,
@@ -879,6 +916,12 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             ret = ENOENT;
             goto done;
         }
+
+        /* skip this domain if not requested */
+        if (!is_domain_requested(pd, pd->domain)) {
+            ret = ENOENT;
+            goto done;
+        }
     } else {
         for (dom = preq->cctx->rctx->domains;
              dom;
@@ -896,6 +939,11 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
                 continue;
             }
 
+            /* skip this domain if not requested */
+            if (!is_domain_requested(pd, dom->name)) {
+                continue;
+            }
+
             ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
                                           dom, pd->user);
             if (ncret == ENOENT) {
@@ -910,7 +958,8 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
                   "User [%s@%s] filtered out (negative cache). "
                    "Trying next domain.\n", pd->user, dom->name);
         }
-        if (!dom) {
+
+        if (!dom || !is_domain_requested(pd, dom->name)) {
             ret = ENOENT;
             goto done;
         }

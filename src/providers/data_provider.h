@@ -172,6 +172,7 @@ struct pam_data {
     char *tty;
     char *ruser;
     char *rhost;
+    char **requested_domains;
     struct sss_auth_token *authtok;
     struct sss_auth_token *newauthtok;
     uint32_t cli_pid;
