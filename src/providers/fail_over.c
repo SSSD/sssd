@@ -289,7 +289,7 @@ get_srv_data_status(struct srv_data *data)
             data->last_status_change.tv_sec = 0;
             DEBUG(SSSDBG_TRACE_FUNC,
                   "Changing state of SRV lookup from 'SRV_RESOLVE_ERROR' to "
-                  "'SRV_NEUTRAL'.\n.");
+                  "'SRV_NEUTRAL'.\n");
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Unknown state for SRV server!\n");

@@ -433,7 +433,7 @@ errno_t write_krb5info_file(const char *realm, const char *server,
     } else if (strcmp(service, SSS_KRB5KPASSWD_FO_SRV) == 0) {
         name_tmpl = KPASSWDINFO_TMPL;
     } else {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported service [%s]\n.", service);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported service [%s].\n", service);
         return EINVAL;
     }
 

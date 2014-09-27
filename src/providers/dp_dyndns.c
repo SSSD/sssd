@@ -406,7 +406,7 @@ nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
      */
     if (servername) {
         DEBUG(SSSDBG_FUNC_DATA,
-              "Creating update message for server [%s] and realm [%s]\n.",
+              "Creating update message for server [%s] and realm [%s].\n",
                servername, realm);
 
         /* Add the server, realm and headers */

@@ -1411,7 +1411,7 @@ static void sdap_nested_group_single_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Error processing nested groups "
-                                    "[%d]: %s\n.", ret, strerror(ret));
+                                    "[%d]: %s.\n", ret, strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
