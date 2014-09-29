@@ -2617,7 +2617,7 @@ static int fill_grent(struct sss_packet *packet,
     size_t blen;
     uint32_t gid;
     const char *tmpstr;
-    const char *orig_name;
+    const char *orig_name = NULL;
     struct sized_string name;
     struct sized_string pwfield;
     struct sized_string fullname;
@@ -2660,8 +2660,25 @@ static int fill_grent(struct sss_packet *packet,
         rsize = 0;
 
         /* find group name/gid */
-        orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-        gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+        if (DOM_HAS_VIEWS(dom)) {
+            orig_name = ldb_msg_find_attr_as_string(msg,
+                                                    OVERRIDE_PREFIX SYSDB_NAME,
+                                                    NULL);
+            if (orig_name != NULL && IS_SUBDOMAIN(dom)) {
+                /* Override names are not fully qualified */
+                add_domain = true;
+            }
+        }
+        if (orig_name == NULL) {
+            orig_name = ldb_msg_find_attr_as_string(msg,
+                                                    SYSDB_DEFAULT_OVERRIDE_NAME,
+                                                    NULL);
+            if (orig_name == NULL) {
+                orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+            }
+        }
+
+        gid = sss_view_ldb_msg_find_attr_as_uint64(dom, msg, SYSDB_GIDNUM, 0);
         if (!orig_name || !gid) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Incomplete group object for %s[%llu]! Skipping\n",
@@ -2753,7 +2770,7 @@ static int fill_grent(struct sss_packet *packet,
 
         memnum = 0;
         if (!dom->ignore_group_members) {
-            el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+            el = sss_view_ldb_msg_find_element(dom, msg, SYSDB_MEMBERUID);
             if (el) {
                 ret = fill_members(packet, dom, nctx, el, &rzero, &rsize,
                                    &memnum);
@@ -2765,6 +2782,13 @@ static int fill_grent(struct sss_packet *packet,
             }
             el = ldb_msg_find_element(msg, SYSDB_GHOST);
             if (el) {
+                if (DOM_HAS_VIEWS(dom) && el->num_values != 0) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Domain has a view [%s] but group [%s] still has " \
+                          "ghost members.\n", dom->view_name, orig_name);
+                    num = 0;
+                    goto done;
+                }
                 ret = fill_members(packet, dom, nctx, el, &rzero, &rsize,
                                    &memnum);
                 if (ret != EOK) {
@@ -2864,6 +2888,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
     char *name = NULL;
     struct nss_ctx *nctx;
     int ret;
+    const char *extra_flag = NULL;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -2927,7 +2952,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             return EIO;
         }
 
-        ret = sysdb_getgrnam(cmdctx, dom, name, &dctx->res);
+        ret = sysdb_getgrnam_with_views(cmdctx, dom, name, &dctx->res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to make request to our cache!\n");
@@ -2971,10 +2996,15 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
-            ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_GROUP, name, 0, NULL,
-                              nss_cmd_getby_dp_callback,
-                              dctx);
+
+            if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+                extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+            } else {
+                extra_flag = NULL;
+            }
+
+            ret = check_cache(dctx, nctx, dctx->res, SSS_DP_GROUP, name, 0,
+                              extra_flag, nss_cmd_getby_dp_callback, dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
@@ -3016,6 +3046,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
     struct nss_ctx *nctx;
     int ret;
     int err;
+    const char *extra_flag = NULL;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -3055,7 +3086,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
             goto done;
         }
 
-        ret = sysdb_getgrgid(cmdctx, dom, cmdctx->id, &dctx->res);
+        ret = sysdb_getgrgid_with_views(cmdctx, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to make request to our cache!\n");
@@ -3086,9 +3117,15 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
-            ret = check_cache(dctx, nctx, dctx->res,
-                              SSS_DP_GROUP, NULL, cmdctx->id, NULL,
-                              nss_cmd_getby_dp_callback,
+
+            if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+                extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+            } else {
+                extra_flag = NULL;
+            }
+
+            ret = check_cache(dctx, nctx, dctx->res, SSS_DP_GROUP, NULL,
+                              cmdctx->id, extra_flag, nss_cmd_getby_dp_callback,
                               dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
