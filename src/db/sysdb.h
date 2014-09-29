@@ -475,6 +475,9 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
                                       struct ldb_message *obj,
                                       struct ldb_message *override_obj);
 
+errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
+                                         struct ldb_message *obj);
+
 errno_t sysdb_getpwnam_with_views(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *domain,
                                   const char *name,
@@ -484,6 +487,16 @@ errno_t sysdb_getpwuid_with_views(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *domain,
                                   uid_t uid,
                                   struct ldb_result **res);
+
+int sysdb_getgrnam_with_views(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *domain,
+                              const char *name,
+                              struct ldb_result **res);
+
+int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *domain,
+                              gid_t gid,
+                              struct ldb_result **res);
 
 struct ldb_message_element *
 sss_view_ldb_msg_find_element(struct sss_domain_info *dom,

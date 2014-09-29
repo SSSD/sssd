@@ -335,6 +335,90 @@ static int mpg_res_convert(struct ldb_result *res)
     return EOK;
 }
 
+int sysdb_getgrnam_with_views(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *domain,
+                              const char *name,
+                              struct ldb_result **res)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct ldb_result *orig_obj = NULL;
+    struct ldb_result *override_obj = NULL;
+    struct ldb_message_element *el;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    /* If there are views we first have to search the overrides for matches */
+    if (DOM_HAS_VIEWS(domain)) {
+        ret = sysdb_search_group_override_by_name(tmp_ctx, domain, name,
+                                                  &override_obj, &orig_obj);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_search_group_override_by_name failed.\n");
+            goto done;
+        }
+    }
+
+    /* If there are no views or nothing was found in the overrides the
+     * original objects are searched. */
+    if (orig_obj == NULL) {
+        ret = sysdb_getgrnam(tmp_ctx, domain, name, &orig_obj);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_getgrnam failed.\n");
+            goto done;
+        }
+    }
+
+    /* If there are views we have to check if override values must be added to
+     * the original object. */
+    if (DOM_HAS_VIEWS(domain) && orig_obj->count == 1) {
+        el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
+        if (el != NULL && el->num_values != 0) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Group object [%s], contains ghost entries which must be " \
+                  "resolved before overrides can be applied.\n",
+                   ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
+            ret = ENOENT;
+            goto done;
+        }
+
+        ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
+                          override_obj == NULL ? NULL : override_obj ->msgs[0]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_add_group_member_overrides failed.\n");
+            goto done;
+        }
+    }
+
+    *res = talloc_steal(mem_ctx, orig_obj);
+    ret = EOK;
+
+done:
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_ALL, "Returning empty result.\n");
+        *res = talloc_zero(mem_ctx, struct ldb_result);
+        if (*res == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+            ret = ENOMEM;
+        } else {
+            ret = EOK;
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domain,
                    const char *name,
@@ -400,6 +484,90 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
 
 done:
     talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *domain,
+                              gid_t gid,
+                              struct ldb_result **res)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct ldb_result *orig_obj = NULL;
+    struct ldb_result *override_obj = NULL;
+    struct ldb_message_element *el;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    /* If there are views we first have to search the overrides for matches */
+    if (DOM_HAS_VIEWS(domain)) {
+        ret = sysdb_search_group_override_by_gid(tmp_ctx, domain, gid,
+                                                 &override_obj, &orig_obj);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_search_group_override_by_gid failed.\n");
+            goto done;
+        }
+    }
+
+    /* If there are no views or nothing was found in the overrides the
+     * original objects are searched. */
+    if (orig_obj == NULL) {
+        ret = sysdb_getgrgid(tmp_ctx, domain, gid, &orig_obj);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_getgrgid failed.\n");
+            goto done;
+        }
+    }
+
+    /* If there are views we have to check if override values must be added to
+     * the original object. */
+    if (DOM_HAS_VIEWS(domain) && orig_obj->count == 1) {
+        el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
+        if (el != NULL && el->num_values != 0) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Group object [%s], contains ghost entries which must be " \
+                  "resolved before overrides can be applied.\n",
+                   ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
+            ret = ENOENT;
+            goto done;
+        }
+
+        ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
+                          override_obj == NULL ? NULL : override_obj ->msgs[0]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_add_group_member_overrides(domain, orig_obj->msgs[0]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_add_group_member_overrides failed.\n");
+            goto done;
+        }
+    }
+
+    *res = talloc_steal(mem_ctx, orig_obj);
+    ret = EOK;
+
+done:
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_ALL, "Returning empty result.\n");
+        *res = talloc_zero(mem_ctx, struct ldb_result);
+        if (*res == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+            ret = ENOMEM;
+        } else {
+            ret = EOK;
+        }
+    }
+
+    talloc_free(tmp_ctx);
     return ret;
 }
 

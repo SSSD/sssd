@@ -1057,6 +1057,136 @@ done:
     return ret;
 }
 
+errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
+                                         struct ldb_message *obj)
+{
+    int ret;
+    size_t c;
+    struct ldb_message_element *members;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *member_dn;
+    struct ldb_result *member_obj;
+    struct ldb_result *override_obj;
+    static const char *member_attrs[] = SYSDB_PW_ATTRS;
+    const char *override_dn_str;
+    struct ldb_dn *override_dn;
+    const char *memberuid;
+
+    members = ldb_msg_find_element(obj, SYSDB_MEMBER);
+    if (members == NULL || members->num_values == 0) {
+        DEBUG(SSSDBG_TRACE_ALL, "Group has no members.\n");
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (c = 0; c < members->num_values; c++) {
+        member_dn = ldb_dn_from_ldb_val(tmp_ctx, domain->sysdb->ldb,
+                                        &members->values[c]);
+        if (member_dn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_from_ldb_val failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_search(domain->sysdb->ldb, member_dn, &member_obj, member_dn,
+                         LDB_SCOPE_BASE, member_attrs, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        if (member_obj->count != 1) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Base search for member object returned [%d] results.\n",
+                  member_obj->count);
+            ret = EINVAL;
+            goto done;
+        }
+
+        override_dn_str = ldb_msg_find_attr_as_string(member_obj->msgs[0],
+                                                      SYSDB_OVERRIDE_DN, NULL);
+        if (override_dn_str == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Missing override DN for objext [%s].\n",
+                  ldb_dn_get_linearized(member_obj->msgs[0]->dn));
+            ret = ENOENT;
+            goto done;
+        }
+
+        override_dn = ldb_dn_new(member_obj, domain->sysdb->ldb,
+                                 override_dn_str);
+        if (override_dn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        memberuid = NULL;
+        if (ldb_dn_compare(member_obj->msgs[0]->dn, override_dn) != 0) {
+            DEBUG(SSSDBG_TRACE_ALL, "Checking override for object [%s].\n",
+                  ldb_dn_get_linearized(member_obj->msgs[0]->dn));
+
+            ret = ldb_search(domain->sysdb->ldb, member_obj, &override_obj,
+                             override_dn, LDB_SCOPE_BASE, member_attrs, NULL);
+            if (ret != LDB_SUCCESS) {
+                ret = sysdb_error_to_errno(ret);
+                goto done;
+            }
+
+            if (override_obj->count != 1) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                     "Base search for override object returned [%d] results.\n",
+                     member_obj->count);
+                ret = EINVAL;
+                goto done;
+            }
+
+            memberuid = ldb_msg_find_attr_as_string(override_obj->msgs[0],
+                                                    SYSDB_NAME,
+                                                    NULL);
+        }
+
+        if (memberuid == NULL) {
+            DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
+
+            memberuid = ldb_msg_find_attr_as_string(member_obj->msgs[0],
+                                                    SYSDB_NAME,
+                                                    NULL);
+            if (memberuid == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Object [%s] has no name.\n",
+                      ldb_dn_get_linearized(member_obj->msgs[0]->dn));
+                ret = EINVAL;
+                goto done;
+            }
+        }
+
+        ret = ldb_msg_add_string(obj, OVERRIDE_PREFIX SYSDB_MEMBERUID,
+                                 memberuid);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_string failed.\n");
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        /* Free all temporary data of the current member to avoid memory usage
+         * spikes. All temporary data should be allocated below member_dn. */
+        talloc_free(member_dn);
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 struct ldb_message_element *
 sss_view_ldb_msg_find_element(struct sss_domain_info *dom,
                                               const struct ldb_message *msg,
