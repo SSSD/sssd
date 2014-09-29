@@ -139,14 +139,17 @@ sequence_as_string_list(PyObject *seq, const char *paramname)
 
         utf_item = get_utf8_string(item, p);
         if (utf_item == NULL) {
+            Py_DECREF(item);
             return NULL;
         }
 
         ret[i] = py_strdup(PyString_AsString(utf_item));
         Py_DECREF(utf_item);
         if (!ret[i]) {
+            Py_DECREF(item);
             return NULL;
         }
+        Py_DECREF(item);
     }
 
     ret[i] = NULL;
@@ -242,10 +245,7 @@ str_concat_sequence(PyObject *seq, const char *delim)
         if (item == NULL) goto fail;
 
         part = PyString_AsString(item);
-        if (part == NULL) {
-            Py_DECREF(item);
-            goto fail;
-        }
+        if (part == NULL) goto fail;
 
         if (s) {
             s = py_strcat_realloc(s, delim);
@@ -260,7 +260,9 @@ str_concat_sequence(PyObject *seq, const char *delim)
     }
 
     return s;
+
 fail:
+    Py_XDECREF(item);
     PyMem_Free(s);
     return NULL;
 }
@@ -269,11 +271,13 @@ fail:
 static void
 set_hbac_exception(PyObject *exc, struct hbac_info *error)
 {
-    PyErr_SetObject(exc,
-                    Py_BuildValue(sss_py_const_p(char, "(i,s)"),
-                                  error->code,
-                                  error->rule_name ? \
-                                        error->rule_name : "no rule"));
+    PyObject *obj;
+
+    obj = Py_BuildValue(sss_py_const_p(char, "(i,s)"), error->code,
+                        error->rule_name ? error->rule_name : "no rule");
+
+    PyErr_SetObject(exc, obj);
+    Py_XDECREF(obj);
 }
 
 /* ==================== HBAC Rule Element ========================*/
