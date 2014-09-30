@@ -43,6 +43,9 @@
             <arg choice='opt'>
                 <replaceable>ignore_authinfo_unavail</replaceable>
             </arg>
+            <arg choice='opt'>
+                <replaceable>domains=X</replaceable>
+            </arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -128,6 +131,30 @@
                     Specifies  that  the  PAM module should return PAM_IGNORE
                     if it cannot contact the SSSD daemon. This causes
                     the PAM framework to ignore this module.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>domains</option>
+                </term>
+                <listitem>
+                    <para>
+                        Allows the administrator to restrict the domains a
+                        particular PAM service is allowed to authenticate
+                        against. The format is a comma-separated list of
+                        SSSD domain names, as specified in the sssd.conf file.
+                    </para>
+                    <para>
+                        NOTE: Must be used in conjunction with the
+                        <quote>pam_trusted_users</quote> and
+                        <quote>pam_public_domains</quote> options.
+                        Please see the
+                        <citerefentry>
+                            <refentrytitle>sssd.conf</refentrytitle>
+                            <manvolnum>5</manvolnum>
+                        </citerefentry> manual page for more information
+                        on these two PAM responder options.
+                    </para>
                 </listitem>
             </varlistentry>
         </variablelist>
