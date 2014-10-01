@@ -620,27 +620,36 @@ static errno_t add_v1_group_data(BerElement *ber, struct resp_attrs *attrs)
         goto done;
     }
 
-    for (attrs->ngroups = 0; list[attrs->ngroups] != NULL;
-         attrs->ngroups++);
+    if (list != NULL) {
+        for (attrs->ngroups = 0; list[attrs->ngroups] != NULL;
+             attrs->ngroups++);
 
-    if (attrs->ngroups > 0) {
-        attrs->a.group.gr_mem = talloc_zero_array(attrs, char *,
-                                                attrs->ngroups + 1);
+        if (attrs->ngroups > 0) {
+            attrs->a.group.gr_mem = talloc_zero_array(attrs, char *,
+                                                    attrs->ngroups + 1);
+            if (attrs->a.group.gr_mem == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+
+            for (c = 0; c < attrs->ngroups; c++) {
+                attrs->a.group.gr_mem[c] =
+                                    talloc_strdup(attrs->a.group.gr_mem,
+                                                  list[c]);
+                if (attrs->a.group.gr_mem[c] == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+            }
+        }
+    } else {
+        attrs->a.group.gr_mem = talloc_zero_array(attrs, char *, 1);
         if (attrs->a.group.gr_mem == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
             ret = ENOMEM;
             goto done;
-        }
-
-        for (c = 0; c < attrs->ngroups; c++) {
-            attrs->a.group.gr_mem[c] =
-                                talloc_strdup(attrs->a.group.gr_mem,
-                                              list[c]);
-            if (attrs->a.group.gr_mem[c] == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
-                goto done;
-            }
         }
     }
 
