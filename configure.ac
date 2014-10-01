@@ -137,6 +137,7 @@ WITH_SAMBA
 WITH_NFS
 WITH_NFS_LIB_PATH
 WITH_LIBWBCLIENT
+WITH_SSSD_USER
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])

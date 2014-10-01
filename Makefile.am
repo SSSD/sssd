@@ -78,6 +78,14 @@ sudolibdir = @sudolibpath@
 UNICODE_LIBS=@UNICODE_LIBS@
 
 MKDIR_P = @MKDIR_P@
+INSTALL = @INSTALL@
+
+SSSD_USER = @SSSD_USER@
+
+INSTALL_USER_DIR_FLAGS = -d
+if SSSD_USER
+INSTALL_USER_DIR_FLAGS += -o $(SSSD_USER) -g $(SSSD_USER)
+endif
 
 AM_CFLAGS =
 if WANT_AUX_INFO
@@ -2740,24 +2748,27 @@ installsssddirs::
     $(DESTDIR)$(bindir) \
     $(DESTDIR)$(sbindir) \
     $(DESTDIR)$(mandir) \
+    $(DESTDIR)$(pidpath) \
     $(DESTDIR)$(pluginpath) \
     $(DESTDIR)$(libdir)/ldb \
     $(DESTDIR)$(dbuspolicydir) \
     $(DESTDIR)$(dbusservicedir) \
-    $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(sssdlibdir) \
     $(DESTDIR)$(pkglibdir) \
-    $(DESTDIR)$(sssdconfdir) \
     $(DESTDIR)$(sssddatadir) \
+    $(DESTDIR)$(sudolibdir) \
+    $(DESTDIR)$(autofslibdir) \
+    $(NULL); \
+	$(INSTALL) $(INSTALL_USER_DIR_FLAGS) \
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(mcpath) \
-    $(DESTDIR)$(pidpath) \
-    $(DESTDIR)$(logpath) \
+    $(DESTDIR)$(pipepath) \
+    $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(pubconfpath) \
     $(DESTDIR)$(pubconfpath)/krb5.include.d \
     $(DESTDIR)$(gpocachepath) \
-    $(DESTDIR)$(sudolibdir) \
-    $(DESTDIR)$(autofslibdir) \
+    $(DESTDIR)$(sssdconfdir) \
+    $(DESTDIR)$(logpath) \
     $(NULL)
 
 if HAVE_DOXYGEN

@@ -737,3 +737,22 @@ AC_DEFUN([WITH_NFS_LIB_PATH],
     fi
     AC_SUBST(nfslibpath)
   ])
+
+AC_DEFUN([WITH_SSSD_USER],
+  [ AC_ARG_WITH([sssd-user],
+                [AS_HELP_STRING([--with-sssd-user=<user>],
+                                [User for running SSSD (root)]
+                               )
+                ]
+               )
+
+    SSSD_USER=root
+
+    if test x"$with_sssd_user" != x; then
+        SSSD_USER=$with_sssd_user
+    fi
+
+    AC_SUBST(SSSD_USER)
+    AC_DEFINE_UNQUOTED(SSSD_USER, "$SSSD_USER", ["The default user to run SSSD as"])
+    AM_CONDITIONAL([SSSD_USER], [test x"$with_sssd_user" != x])
+  ])
