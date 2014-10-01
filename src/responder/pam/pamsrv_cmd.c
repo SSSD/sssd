@@ -1051,6 +1051,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
     static const char *user_attrs[] = SYSDB_PW_ATTRS;
     struct ldb_message *msg;
+    struct ldb_result *res;
 
     while (dom) {
        /* if it is a domainless search, skip domains that require fully
@@ -1122,7 +1123,16 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         if (preq->pd->name_is_upn) {
             ret = sysdb_search_user_by_upn(preq, dom, name, user_attrs, &msg);
         } else {
-            ret = sysdb_search_user_by_name(preq, dom, name, user_attrs, &msg);
+            ret = sysdb_getpwnam(preq, dom, name, &res);
+            if (res->count > 1) {
+                DEBUG(SSSDBG_FATAL_FAILURE,
+                      "getpwnam call returned more than one result !?!\n");
+                return ENOENT;
+            } else if (res->count == 0) {
+                ret = ENOENT;
+            } else {
+                msg = res->msgs[0];
+            }
         }
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
