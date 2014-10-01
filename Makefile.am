@@ -75,6 +75,8 @@ sudolibdir = @sudolibpath@
 
 UNICODE_LIBS=@UNICODE_LIBS@
 
+MKDIR_P = @MKDIR_P@
+
 AM_CFLAGS =
 if WANT_AUX_INFO
     AM_CFLAGS += -aux-info $@.X
@@ -1182,7 +1184,7 @@ TESTS_ENVIRONMENT = LDB_MODULES_PATH=$(abs_top_builddir)/ldb_mod_test_dir \
                     $(AUX_TESTS_ENVIRONMENT)
 
 ldb_mod_test_dir: memberof.la
-	mkdir -p $(builddir)/ldb_mod_test_dir
+	$(MKDIR_P) $(builddir)/ldb_mod_test_dir
 	cp $(builddir)/.libs/memberof.so $(builddir)/ldb_mod_test_dir
 
 check_LTLIBRARIES = \
@@ -2702,7 +2704,7 @@ src/sysv/systemd/journal.conf: src/sysv/systemd/journal.conf.in Makefile
 	$(replace_script)
 
 installsssddirs::
-	mkdir -p \
+	$(MKDIR_P) \
     $(DESTDIR)$(includedir) \
     $(DESTDIR)$(libdir) \
     $(DESTDIR)$(bindir) \
@@ -2725,7 +2727,8 @@ installsssddirs::
     $(DESTDIR)$(pubconfpath)/krb5.include.d \
     $(DESTDIR)$(gpocachepath) \
     $(DESTDIR)$(sudolibdir) \
-    $(DESTDIR)$(autofslibdir)
+    $(DESTDIR)$(autofslibdir) \
+    $(NULL)
 
 if HAVE_DOXYGEN
 docs:
@@ -2770,15 +2773,15 @@ if BUILD_PYTHON_BINDINGS
 	fi
 endif
 	for doc in $(SSSD_DOCS); do \
-		mkdir -p $$doc $(DESTDIR)/$(docdir); \
+		$(MKDIR_P) $$doc $(DESTDIR)/$(docdir); \
 		cp -a $$doc $(DESTDIR)/$(docdir)/; \
 	done;
 
 if HAVE_SYSTEMD_UNIT
-	mkdir -p $(DESTDIR)$(systemdunitdir)
-	mkdir -p $(DESTDIR)$(systemdconfdir)
+	$(MKDIR_P) $(DESTDIR)$(systemdunitdir)
+	$(MKDIR_P) $(DESTDIR)$(systemdconfdir)
 else
-	mkdir -p $(DESTDIR)$(initdir)
+	$(MKDIR_P) $(DESTDIR)$(initdir)
 endif
 
 install-data-hook:
@@ -2786,7 +2789,7 @@ install-data-hook:
        $(DESTDIR)/$(nsslibdir)/libnss_sss.so
 	mv $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2.0.0 $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2
 	if [ ! $(krb5rcachedir) = "__LIBKRB5_DEFAULTS__" ]; then \
-        mkdir -p $(DESTDIR)/$(krb5rcachedir) ; \
+        $(MKDIR_P) $(DESTDIR)/$(krb5rcachedir) ; \
 	fi
 
 uninstall-hook:
@@ -2835,11 +2838,11 @@ dist_noinst_DATA += \
     COPYING
 
 rpmroot:
-	mkdir -p $(RPMBUILD)/BUILD
-	mkdir -p $(RPMBUILD)/RPMS
-	mkdir -p $(RPMBUILD)/SOURCES
-	mkdir -p $(RPMBUILD)/SPECS
-	mkdir -p $(RPMBUILD)/SRPMS
+	$(MKDIR_P) $(RPMBUILD)/BUILD
+	$(MKDIR_P) $(RPMBUILD)/RPMS
+	$(MKDIR_P) $(RPMBUILD)/SOURCES
+	$(MKDIR_P) $(RPMBUILD)/SPECS
+	$(MKDIR_P) $(RPMBUILD)/SRPMS
 
 rpmbrprep: dist-gzip rpmroot
 if GIT_CHECKOUT
