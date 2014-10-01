@@ -2461,7 +2461,7 @@ static int fill_members(struct sss_packet *packet,
     sss_packet_get_body(packet, &body, &blen);
     for (i = 0; i < el->num_values; i++) {
         tmpstr = sss_get_cased_name(tmp_ctx, (char *)el->values[i].data,
-                                    dom->case_sensitive);
+                                    dom->case_preserve);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_get_cased_name failed, skipping\n");
