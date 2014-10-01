@@ -148,6 +148,7 @@
 #define DP_SEC_ID_LEN (sizeof(DP_SEC_ID) - 1)
 
 #define EXTRA_NAME_IS_UPN "U"
+#define EXTRA_INPUT_MAYBE_WITH_VIEW "V"
 
 /* AUTH related common data and functions */
 

@@ -53,18 +53,20 @@ int ipa_get_netgroups_recv(struct tevent_req *req,
 void ipa_check_online(struct be_req *be_req);
 
 struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
-                                              struct tevent_context *ev,
-                                              struct ipa_id_ctx *ipa_ctx,
-                                              struct sdap_options *opts,
-                                              struct sss_domain_info *dom,
-                                              struct sdap_handle *sh,
-                                              int entry_type,
-                                              struct req_input *req_input);
+                                             struct tevent_context *ev,
+                                             struct ipa_id_ctx *ipa_ctx,
+                                             struct sdap_options *opts,
+                                             struct sss_domain_info *dom,
+                                             struct sysdb_attrs *override_attrs,
+                                             struct sdap_handle *sh,
+                                             int entry_type,
+                                             struct req_input *req_input);
 int ipa_s2n_get_acct_info_recv(struct tevent_req *req);
 
 struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
                                             struct tevent_context *ev,
                                             struct ipa_id_ctx *ipa_ctx,
+                                            struct sysdb_attrs *override_attrs,
                                             struct be_acct_req *ar);
 int ipa_get_subdom_acct_recv(struct tevent_req *req, int *dp_error_out);
 
@@ -72,9 +74,14 @@ struct tevent_req *ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
                                         struct ipa_id_ctx *ipa_ctx,
                                         struct be_req *be_req,
+                                        struct sysdb_attrs *override_attrs,
                                         struct be_acct_req *ar);
 
 errno_t ipa_get_ad_acct_recv(struct tevent_req *req, int *dp_error_out);
+
+errno_t get_be_acct_req_for_sid(TALLOC_CTX *mem_ctx, const char *sid,
+                                const char *domain_name,
+                                struct be_acct_req **_ar);
 
 struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
@@ -82,10 +89,18 @@ struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
                                             struct ipa_options *ipa_options,
                                             const char *ipa_realm,
                                             const char *view_name,
-                                            const char *obj_sid);
+                                            struct be_acct_req *ar);
 
 errno_t ipa_get_ad_override_recv(struct tevent_req *req, int *dp_error_out,
                                  TALLOC_CTX *mem_ctx,
                                  struct sysdb_attrs **override_attrs);
+
+struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
+                                              struct tevent_context *ev,
+                                              struct ipa_id_ctx *ipa_ctx,
+                                              struct be_req *be_req,
+                                              struct be_acct_req *ar);
+
+errno_t ipa_subdomain_account_recv(struct tevent_req *req, int *dp_error_out);
 
 #endif

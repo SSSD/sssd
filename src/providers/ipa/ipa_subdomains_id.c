@@ -34,6 +34,281 @@
 #include "providers/ad/ad_id.h"
 #include "providers/ipa/ipa_subdomains.h"
 
+struct ipa_subdomain_account_state {
+    struct tevent_context *ev;
+    struct ipa_id_ctx *ipa_ctx;
+    struct sdap_id_ctx *ctx;
+    struct sdap_id_op *op;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+    struct be_req *be_req;
+    struct be_acct_req *ar;
+
+    bool ipa_server_mode;
+    int entry_type;
+    const char *filter;
+    int filter_type;
+    struct sysdb_attrs *override_attrs;
+
+    int dp_error;
+};
+
+static void ipa_subdomain_account_connected(struct tevent_req *subreq);
+static void ipa_subdomain_account_got_override(struct tevent_req *subreq);
+static void ipa_subdomain_account_done(struct tevent_req *subreq);
+static errno_t ipa_subdomain_account_get_original_step(struct tevent_req *req,
+                                                       struct be_acct_req *ar);
+
+struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
+                                              struct tevent_context *ev,
+                                              struct ipa_id_ctx *ipa_ctx,
+                                              struct be_req *be_req,
+                                              struct be_acct_req *ar)
+{
+    struct tevent_req *req;
+    struct ipa_subdomain_account_state *state;
+    struct tevent_req *subreq;
+    int ret;
+
+    req = tevent_req_create(memctx, &state, struct ipa_subdomain_account_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
+         return NULL;
+    }
+
+    state->ev = ev;
+    state->ipa_ctx = ipa_ctx;
+    state->ctx = ipa_ctx->sdap_id_ctx;
+    state->dp_error = DP_ERR_FATAL;
+
+    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
+    if (!state->op) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    state->domain = find_domain_by_name(state->ctx->be->domain,
+                                        ar->domain, true);
+    if (state->domain == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+    state->sysdb = state->domain->sysdb;
+    state->be_req = be_req;
+    state->ar = ar;
+    state->ipa_server_mode = dp_opt_get_bool(state->ipa_ctx->ipa_options->basic,
+                                             IPA_SERVER_MODE);
+    state->override_attrs = NULL;
+
+    /* With views we cannot got directly to the look up the AD objects but
+     * have to check first if the request matches an override in the given
+     * view. But there are cases where this can be skipped and the AD object
+     * can be searched directly:
+     * - searches by SID: because we do not override the SID
+     * - if the responder does not send the EXTRA_INPUT_MAYBE_WITH_VIEW flags,
+     *   because in this case the entry was found in the cache and the
+     *   original value is used for the search (e.g. during cache updates) */
+    if (state->ar->filter_type == BE_FILTER_SECID
+            || (!state->ipa_server_mode
+                && state->ar->extra_value != NULL
+                && strcmp(state->ar->extra_value,
+                          EXTRA_INPUT_MAYBE_WITH_VIEW) != 0 ))  {
+        ret = ipa_subdomain_account_get_original_step(req, state->ar);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ipa_subdomain_account_get_original_step failed.\n");
+            goto fail;
+        }
+
+        return req;
+    }
+
+    subreq = sdap_id_op_connect_send(state->op, state, &ret);
+    if (!subreq) {
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ipa_subdomain_account_connected, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void ipa_subdomain_account_connected(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_subdomain_account_state *state = tevent_req_data(req,
+                                            struct ipa_subdomain_account_state);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect request failed.\n");
+        goto fail;
+    }
+
+    subreq = ipa_get_ad_override_send(state, state->ev, state->ctx,
+                          state->ipa_ctx->ipa_options,
+                          dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
+                                            IPA_KRB5_REALM),
+                          state->ipa_ctx->view_name, state->ar);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomain_account_got_override, req);
+
+    return;
+
+fail:
+    state->dp_error = dp_error;
+    tevent_req_error(req, ret);
+    return;
+}
+
+#define OVERRIDE_ANCHOR_SID_PREFIX ":SID:"
+#define OVERRIDE_ANCHOR_SID_PREFIX_LEN (sizeof(OVERRIDE_ANCHOR_SID_PREFIX) -1 )
+
+static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_subdomain_account_state *state = tevent_req_data(req,
+                                            struct ipa_subdomain_account_state);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+    const char *anchor = NULL;
+    struct be_acct_req *ar;
+
+    ret = ipa_get_ad_override_recv(subreq, &dp_error, state,
+                                   &state->override_attrs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
+        goto fail;
+    }
+
+    if (state->override_attrs != NULL) {
+        ret = sysdb_attrs_get_string(state->override_attrs,
+                                     SYSDB_OVERRIDE_ANCHOR_UUID,
+                                     &anchor);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto fail;
+        }
+        if (anchor != NULL && strncmp(OVERRIDE_ANCHOR_SID_PREFIX, anchor,
+                                      OVERRIDE_ANCHOR_SID_PREFIX_LEN) == 0) {
+
+            ret = get_be_acct_req_for_sid(state,
+                                        anchor + OVERRIDE_ANCHOR_SID_PREFIX_LEN,
+                                        state->ar->domain,
+                                        &ar);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+                goto fail;
+            }
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unsupported override anchor type [%s].\n", anchor);
+            ret = EINVAL;
+            goto fail;
+        }
+    } else {
+        ar = state->ar;
+    }
+
+    ret = ipa_subdomain_account_get_original_step(req, ar);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ipa_subdomain_account_get_original_step failed.\n");
+        goto fail;
+    }
+
+    return;
+
+fail:
+    state->dp_error = dp_error;
+    tevent_req_error(req, ret);
+    return;
+}
+
+static errno_t ipa_subdomain_account_get_original_step(struct tevent_req *req,
+                                                       struct be_acct_req *ar)
+{
+    struct ipa_subdomain_account_state *state = tevent_req_data(req,
+                                            struct ipa_subdomain_account_state);
+    struct tevent_req *subreq;
+
+    if (state->ipa_server_mode) {
+        subreq = ipa_get_ad_acct_send(state, state->ev, state->ipa_ctx,
+                                      state->be_req, state->override_attrs, ar);
+    } else {
+        subreq = ipa_get_subdom_acct_send(state, state->ev, state->ipa_ctx,
+                                          state->override_attrs, ar);
+    }
+
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_*_acct_send failed.\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, ipa_subdomain_account_done, req);
+
+    return EOK;
+}
+
+
+static void ipa_subdomain_account_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_subdomain_account_state *state = tevent_req_data(req,
+                                            struct ipa_subdomain_account_state);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+
+    if (state->ipa_server_mode) {
+        ret = ipa_get_ad_acct_recv(subreq, &dp_error);
+    } else {
+        ret = ipa_get_subdom_acct_recv(subreq, &dp_error);
+    }
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_*_acct request failed: %d\n", ret);
+        state->dp_error = dp_error;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->dp_error = DP_ERR_OK;
+    tevent_req_done(req);
+    return;
+}
+
+errno_t ipa_subdomain_account_recv(struct tevent_req *req, int *dp_error_out)
+{
+    struct ipa_subdomain_account_state *state = tevent_req_data(req,
+                                            struct ipa_subdomain_account_state);
+
+    if (dp_error_out) {
+        *dp_error_out = state->dp_error;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 struct ipa_get_subdom_acct {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
@@ -41,6 +316,7 @@ struct ipa_get_subdom_acct {
     struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
+    struct sysdb_attrs *override_attrs;
 
     int entry_type;
     const char *filter;
@@ -55,6 +331,7 @@ static void ipa_get_subdom_acct_done(struct tevent_req *subreq);
 struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
                                             struct tevent_context *ev,
                                             struct ipa_id_ctx *ipa_ctx,
+                                            struct sysdb_attrs *override_attrs,
                                             struct be_acct_req *ar)
 {
     struct tevent_req *req;
@@ -69,6 +346,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     state->ipa_ctx = ipa_ctx;
     state->ctx = ipa_ctx->sdap_id_ctx;
     state->dp_error = DP_ERR_FATAL;
+    state->override_attrs = override_attrs;
 
     state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
@@ -189,6 +467,7 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
                                         state->ipa_ctx,
                                         state->ctx->opts,
                                         state->domain,
+                                        state->override_attrs,
                                         sdap_id_op_handle(state->op),
                                         state->entry_type,
                                         req_input);
@@ -260,11 +539,13 @@ struct ipa_get_ad_acct_state {
     struct be_acct_req *ar;
     struct sss_domain_info *user_dom;
     char *object_sid;
+    struct sysdb_attrs *override_attrs;
     struct ldb_message *obj_msg;
 };
 
 static void ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq);
 static void ipa_get_ad_override_done(struct tevent_req *subreq);
+static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req);
 static void ipa_get_ad_acct_done(struct tevent_req *subreq);
 static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
                                            struct sss_domain_info *dom);
@@ -274,6 +555,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct ipa_id_ctx *ipa_ctx,
                      struct be_req *be_req,
+                     struct sysdb_attrs *override_attrs,
                      struct be_acct_req *ar)
 {
     errno_t ret;
@@ -294,6 +576,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     state->be_req = be_req;
     state->ar = ar;
     state->obj_msg = NULL;
+    state->override_attrs = override_attrs;
 
     /* This can only be a subdomain request, verify subdomain */
     state->user_dom = find_domain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
@@ -681,6 +964,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
                                                 struct ipa_get_ad_acct_state);
     errno_t ret;
     const char *sid;
+    struct be_acct_req *ar;
 
     ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
@@ -706,32 +990,48 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    sid = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_SID_STR, NULL);
-    if (sid == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find a SID.\n");
-        ret = EINVAL;
-        goto fail;
-    }
+    if (state->override_attrs == NULL) {
+        sid = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_SID_STR, NULL);
+        if (sid == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find a SID.\n");
+            ret = EINVAL;
+            goto fail;
+        }
 
-    state->object_sid = talloc_strdup(state, sid);
-    if (state->object_sid == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-        ret = ENOMEM;
-        goto fail;
-    }
+        state->object_sid = talloc_strdup(state, sid);
+        if (state->object_sid == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto fail;
+        }
 
-    subreq = ipa_get_ad_override_send(state, state->ev,
-                                      state->ipa_ctx->sdap_id_ctx,
-                                      state->ipa_ctx->ipa_options,
-                                      state->ipa_ctx->server_mode->realm,
-                                      state->ipa_ctx->view_name,
-                                      state->object_sid);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
-        ret = ENOMEM;
-        goto fail;
+        ret = get_be_acct_req_for_sid(state, state->object_sid,
+                                      state->user_dom->name, &ar);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+            goto fail;
+        }
+
+        subreq = ipa_get_ad_override_send(state, state->ev,
+                                          state->ipa_ctx->sdap_id_ctx,
+                                          state->ipa_ctx->ipa_options,
+                                          state->ipa_ctx->server_mode->realm,
+                                          state->ipa_ctx->view_name,
+                                          ar);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+            ret = ENOMEM;
+            goto fail;
+        }
+        tevent_req_set_callback(subreq, ipa_get_ad_override_done, req);
+    } else {
+        ret = ipa_get_ad_apply_override_step(req);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ipa_get_ad_apply_override_step failed.\n");
+            goto fail;
+        }
     }
-    tevent_req_set_callback(subreq, ipa_get_ad_override_done, req);
 
     return;
 
@@ -750,10 +1050,9 @@ ipa_get_ad_override_done(struct tevent_req *subreq)
     struct ipa_get_ad_acct_state *state = tevent_req_data(req,
                                                 struct ipa_get_ad_acct_state);
     errno_t ret;
-    struct sysdb_attrs *override_attrs = NULL;
 
     ret = ipa_get_ad_override_recv(subreq, &state->dp_error, state,
-                                   &override_attrs);
+                                   &state->override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
@@ -762,21 +1061,42 @@ ipa_get_ad_override_done(struct tevent_req *subreq)
 
     }
 
-    if (override_attrs != NULL) {
+    ret = ipa_get_ad_apply_override_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_apply_override_step failed.\n");
+        goto fail;
+    }
+
+    return;
+
+fail:
+    state->dp_error = DP_ERR_FATAL;
+    tevent_req_error(req, ret);
+    return;
+}
+
+static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
+{
+    struct ipa_get_ad_acct_state *state = tevent_req_data(req,
+                                                struct ipa_get_ad_acct_state);
+    errno_t ret;
+    struct tevent_req *subreq;
+
+    if (state->override_attrs != NULL) {
         /* We are in ipa-server-mode, so the view is the default view by
          * definition. */
         ret = sysdb_apply_default_override(state->user_dom,
-                                           override_attrs,
+                                           state->override_attrs,
                                            state->obj_msg->dn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_apply_default_override failed.\n");
-            goto fail;
+            return ret;
         }
     }
 
     if ((state->ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_INITGROUPS) {
         tevent_req_done(req);
-        return;
+        return EOK;
     }
 
     /* For initgroups request we have to check IPA group memberships of AD
@@ -787,17 +1107,12 @@ ipa_get_ad_override_done(struct tevent_req *subreq)
                                          state->ipa_ctx->sdap_id_ctx,
                                          state->ipa_ctx->server_mode->realm);
     if (subreq == NULL) {
-        ret = ENOMEM;
-        goto fail;
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_memberships_send failed.\n");
+        return ENOMEM;
     }
     tevent_req_set_callback(subreq, ipa_get_ad_acct_done, req);
 
-    return;
-
-fail:
-    state->dp_error = DP_ERR_FATAL;
-    tevent_req_error(req, ret);
-    return;
+    return EOK;
 }
 
 static void
