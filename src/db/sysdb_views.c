@@ -661,14 +661,12 @@ enum override_object_type {
 static errno_t sysdb_search_override_by_name(TALLOC_CTX *mem_ctx,
                                              struct sss_domain_info *domain,
                                              const char *name,
-                                             enum override_object_type type,
+                                             const char *filter,
+                                             const char **attrs,
                                              struct ldb_result **override_obj,
                                              struct ldb_result **orig_obj)
 {
     TALLOC_CTX *tmp_ctx;
-    static const char *user_attrs[] = SYSDB_PW_ATTRS;
-    static const char *group_attrs[] = SYSDB_GRSRC_ATTRS;
-    const char **attrs;
     struct ldb_dn *base_dn;
     struct ldb_result *override_res;
     struct ldb_result *orig_res;
@@ -677,7 +675,6 @@ static errno_t sysdb_search_override_by_name(TALLOC_CTX *mem_ctx,
     const char *src_name;
     int ret;
     const char *orig_obj_dn;
-    const char *filter;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -705,22 +702,6 @@ static errno_t sysdb_search_override_by_name(TALLOC_CTX *mem_ctx,
                                       &sanitized_name, &lc_sanitized_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize_for_dom failed.\n");
-        goto done;
-    }
-
-    switch(type) {
-    case OO_TYPE_USER:
-        filter = SYSDB_USER_NAME_OVERRIDE_FILTER;
-        attrs = user_attrs;
-        break;
-    case OO_TYPE_GROUP:
-        filter = SYSDB_GROUP_NAME_OVERRIDE_FILTER;
-        attrs = group_attrs;
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected override object type [%d].\n",
-                                   type);
-        ret = EINVAL;
         goto done;
     }
 
@@ -784,14 +765,42 @@ done:
     return ret;
 }
 
+errno_t sysdb_search_user_override_attrs_by_name(TALLOC_CTX *mem_ctx,
+                                             struct sss_domain_info *domain,
+                                             const char *name,
+                                             const char **attrs,
+                                             struct ldb_result **override_obj,
+                                             struct ldb_result **orig_obj)
+{
+
+    return sysdb_search_override_by_name(mem_ctx, domain, name,
+                                         SYSDB_USER_NAME_OVERRIDE_FILTER,
+                                         attrs, override_obj, orig_obj);
+}
+
+errno_t sysdb_search_group_override_attrs_by_name(TALLOC_CTX *mem_ctx,
+                                            struct sss_domain_info *domain,
+                                            const char *name,
+                                            const char **attrs,
+                                            struct ldb_result **override_obj,
+                                            struct ldb_result **orig_obj)
+{
+    return sysdb_search_override_by_name(mem_ctx, domain, name,
+                                         SYSDB_GROUP_NAME_OVERRIDE_FILTER,
+                                         attrs, override_obj, orig_obj);
+}
+
 errno_t sysdb_search_user_override_by_name(TALLOC_CTX *mem_ctx,
                                            struct sss_domain_info *domain,
                                            const char *name,
                                            struct ldb_result **override_obj,
                                            struct ldb_result **orig_obj)
 {
-    return sysdb_search_override_by_name(mem_ctx, domain, name, OO_TYPE_USER,
-                                         override_obj, orig_obj);
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    return sysdb_search_override_by_name(mem_ctx, domain, name,
+                                         SYSDB_USER_NAME_OVERRIDE_FILTER,
+                                         attrs, override_obj, orig_obj);
 }
 
 errno_t sysdb_search_group_override_by_name(TALLOC_CTX *mem_ctx,
@@ -800,8 +809,11 @@ errno_t sysdb_search_group_override_by_name(TALLOC_CTX *mem_ctx,
                                             struct ldb_result **override_obj,
                                             struct ldb_result **orig_obj)
 {
-    return sysdb_search_override_by_name(mem_ctx, domain, name, OO_TYPE_GROUP,
-                                         override_obj, orig_obj);
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    return sysdb_search_override_by_name(mem_ctx, domain, name,
+                                         SYSDB_GROUP_NAME_OVERRIDE_FILTER,
+                                         attrs, override_obj, orig_obj);
 }
 
 static errno_t sysdb_search_override_by_id(TALLOC_CTX *mem_ctx,

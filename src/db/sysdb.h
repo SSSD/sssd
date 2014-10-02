@@ -447,6 +447,20 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                                      struct sysdb_attrs *override_attrs,
                                      struct ldb_dn *obj_dn);
 
+errno_t sysdb_search_user_override_attrs_by_name(TALLOC_CTX *mem_ctx,
+                                            struct sss_domain_info *domain,
+                                            const char *name,
+                                            const char **attrs,
+                                            struct ldb_result **override_obj,
+                                            struct ldb_result **orig_obj);
+
+errno_t sysdb_search_group_override_attrs_by_name(TALLOC_CTX *mem_ctx,
+                                            struct sss_domain_info *domain,
+                                            const char *name,
+                                            const char **attrs,
+                                            struct ldb_result **override_obj,
+                                            struct ldb_result **orig_obj);
+
 errno_t sysdb_search_user_override_by_name(TALLOC_CTX *mem_ctx,
                                            struct sss_domain_info *domain,
                                            const char *name,
