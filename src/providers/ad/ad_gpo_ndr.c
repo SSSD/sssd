@@ -69,7 +69,7 @@ ndr_pull_security_ace_flags(struct ndr_pull *ndr,
                             uint8_t *r)
 {
     uint8_t v;
-    NDR_CHECK(ndr_pull_uint8(ndr, NDR_SCALARS, &v));
+    NDR_CHECK(ndr_pull_uint8(ndr, ndr_flags, &v));
     *r = v;
     return NDR_ERR_SUCCESS;
 }
@@ -81,7 +81,7 @@ ndr_pull_security_ace_type(struct ndr_pull *ndr,
                            enum security_ace_type *r)
 {
     uint8_t v;
-    NDR_CHECK(ndr_pull_enum_uint8(ndr, NDR_SCALARS, &v));
+    NDR_CHECK(ndr_pull_enum_uint8(ndr, ndr_flags, &v));
     *r = v;
     return NDR_ERR_SUCCESS;
 }
@@ -93,7 +93,7 @@ ndr_pull_security_ace_object_flags(struct ndr_pull *ndr,
                                    uint32_t *r)
 {
     uint32_t v;
-    NDR_CHECK(ndr_pull_uint32(ndr, NDR_SCALARS, &v));
+    NDR_CHECK(ndr_pull_uint32(ndr, ndr_flags, &v));
     *r = v;
     return NDR_ERR_SUCCESS;
 }
@@ -314,7 +314,7 @@ ndr_pull_security_acl_revision(struct ndr_pull *ndr,
                                enum security_acl_revision *r)
 {
     uint16_t v;
-    NDR_CHECK(ndr_pull_enum_uint1632(ndr, NDR_SCALARS, &v));
+    NDR_CHECK(ndr_pull_enum_uint1632(ndr, ndr_flags, &v));
     *r = v;
     return NDR_ERR_SUCCESS;
 }
@@ -369,7 +369,7 @@ ndr_pull_security_descriptor_revision(struct ndr_pull *ndr,
                                       enum security_descriptor_revision *r)
 {
     uint8_t v;
-    NDR_CHECK(ndr_pull_enum_uint8(ndr, NDR_SCALARS, &v));
+    NDR_CHECK(ndr_pull_enum_uint8(ndr, ndr_flags, &v));
     *r = v;
     return NDR_ERR_SUCCESS;
 }
@@ -382,7 +382,7 @@ ndr_pull_security_descriptor_type(struct ndr_pull *ndr,
                                   uint16_t *r)
 {
     uint16_t v;
-    NDR_CHECK(ndr_pull_uint16(ndr, NDR_SCALARS, &v));
+    NDR_CHECK(ndr_pull_uint16(ndr, ndr_flags, &v));
     *r = v;
     return NDR_ERR_SUCCESS;
 }
