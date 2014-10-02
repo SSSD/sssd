@@ -1123,7 +1123,7 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
     } else {
         switch (gpo_mode) {
         case GPO_ACCESS_CONTROL_ENFORCING:
-            return EACCES;
+            return ERR_ACCESS_DENIED;
         case GPO_ACCESS_CONTROL_PERMISSIVE:
             DEBUG(SSSDBG_TRACE_FUNC, "access denied: permissive mode\n");
             sss_log_ext(SSS_LOG_WARNING, LOG_AUTHPRIV, "Warning: user would " \
@@ -1271,7 +1271,7 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     if (gpo_map_type == GPO_MAP_DENY) {
         switch (ctx->gpo_access_control_mode) {
         case GPO_ACCESS_CONTROL_ENFORCING:
-            ret = EACCES;
+            ret = ERR_ACCESS_DENIED;
             goto immediately;
         case GPO_ACCESS_CONTROL_PERMISSIVE:
             DEBUG(SSSDBG_TRACE_FUNC, "access denied: permissive mode\n");
