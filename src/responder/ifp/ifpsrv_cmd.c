@@ -39,13 +39,16 @@ ifp_user_get_attr_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
                        const char *inp, const char **attrs);
 static errno_t ifp_user_get_attr_recv(TALLOC_CTX *mem_ctx,
                                       struct tevent_req *req,
-                                      struct ldb_result **_res);
+                                      struct ldb_result **_res,
+                                      struct sss_domain_info **_domain);
 
 static void ifp_user_get_attr_process(struct tevent_req *req);
 
 static errno_t
-ifp_user_get_attr_handle_reply(struct ifp_req *ireq,
-                               const char **attrs, struct ldb_result *res);
+ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
+                               struct ifp_req *ireq,
+                               const char **attrs,
+                               struct ldb_result *res);
 static errno_t
 ifp_user_get_attr_unpack_msg(struct ifp_attr_req *attr_req);
 
@@ -143,10 +146,11 @@ static void ifp_user_get_attr_process(struct tevent_req *req)
     struct ifp_attr_req *attr_req;
     errno_t ret;
     struct ldb_result *res = NULL;
+    struct sss_domain_info *dom = NULL;
 
     attr_req = tevent_req_callback_data(req, struct ifp_attr_req);
 
-    ret = ifp_user_get_attr_recv(attr_req, req, &res);
+    ret = ifp_user_get_attr_recv(attr_req, req, &res, &dom);
     talloc_zfree(req);
     if (ret == ENOENT) {
         sbus_request_fail_and_finish(attr_req->ireq->dbus_req,
@@ -162,7 +166,7 @@ static void ifp_user_get_attr_process(struct tevent_req *req)
         return;
     }
 
-    ret = ifp_user_get_attr_handle_reply(attr_req->ireq,
+    ret = ifp_user_get_attr_handle_reply(dom, attr_req->ireq,
                                          attr_req->attrs, res);
     if (ret != EOK) {
         sbus_request_fail_and_finish(attr_req->ireq->dbus_req,
@@ -194,8 +198,10 @@ ifp_user_get_attr_replace_space(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
-ifp_user_get_attr_handle_reply(struct ifp_req *ireq,
-                               const char **attrs, struct ldb_result *res)
+ifp_user_get_attr_handle_reply(struct sss_domain_info *domain,
+                               struct ifp_req *ireq,
+                               const char **attrs,
+                               struct ldb_result *res)
 {
     errno_t ret;
     dbus_bool_t dbret;
@@ -226,7 +232,7 @@ ifp_user_get_attr_handle_reply(struct ifp_req *ireq,
 
     if (res->count > 0) {
         for (ai = 0; attrs[ai]; ai++) {
-            el = ldb_msg_find_element(res->msgs[0], attrs[ai]);
+            el = sss_view_ldb_msg_find_element(domain, res->msgs[0], attrs[ai]);
             if (el == NULL || el->num_values == 0) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Attribute %s not present or has no values\n",
@@ -265,7 +271,8 @@ ifp_user_get_attr_handle_reply(struct ifp_req *ireq,
 }
 
 static void ifp_user_get_groups_process(struct tevent_req *req);
-static errno_t ifp_user_get_groups_reply(struct ifp_req *ireq,
+static errno_t ifp_user_get_groups_reply(struct sss_domain_info *domain,
+                                         struct ifp_req *ireq,
                                          struct ldb_result *res);
 
 int ifp_user_get_groups(struct sbus_request *dbus_req,
@@ -325,10 +332,11 @@ static void ifp_user_get_groups_process(struct tevent_req *req)
     struct ifp_attr_req *group_req;
     errno_t ret;
     struct ldb_result *res;
+    struct sss_domain_info *dom;
 
     group_req = tevent_req_callback_data(req, struct ifp_attr_req);
 
-    ret = ifp_user_get_attr_recv(group_req, req, &res);
+    ret = ifp_user_get_attr_recv(group_req, req, &res, &dom);
     talloc_zfree(req);
     if (ret == ENOENT) {
         sbus_request_fail_and_finish(group_req->ireq->dbus_req,
@@ -344,7 +352,7 @@ static void ifp_user_get_groups_process(struct tevent_req *req)
         return;
     }
 
-    ret = ifp_user_get_groups_reply(group_req->ireq, res);
+    ret = ifp_user_get_groups_reply(dom, group_req->ireq, res);
     if (ret != EOK) {
         sbus_request_fail_and_finish(group_req->ireq->dbus_req,
                                sbus_error_new(group_req->ireq->dbus_req,
@@ -355,7 +363,9 @@ static void ifp_user_get_groups_process(struct tevent_req *req)
 }
 
 static errno_t
-ifp_user_get_groups_reply(struct ifp_req *ireq, struct ldb_result *res)
+ifp_user_get_groups_reply(struct sss_domain_info *domain,
+                          struct ifp_req *ireq,
+                          struct ldb_result *res)
 {
     int i, num;
     const char *name;
@@ -369,7 +379,9 @@ ifp_user_get_groups_reply(struct ifp_req *ireq, struct ldb_result *res)
     }
 
     for (i = 0; i < num; i++) {
-        name = ldb_msg_find_attr_as_string(res->msgs[i + 1], SYSDB_NAME, NULL);
+        name = sss_view_ldb_msg_find_attr_as_string(domain,
+                                                    res->msgs[i + 1],
+                                                    SYSDB_NAME, NULL);
         if (name == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Skipping a group with no name\n");
             continue;
@@ -417,6 +429,7 @@ int ifp_cache_check(struct ifp_user_get_attr_state *state,
                     enum sss_dp_acct_type search_type,
                     sss_dp_callback_t callback,
                     unsigned int cache_refresh_percent,
+                    const char *extra_flag,
                     void *pvt);
 void ifp_user_get_attr_done(struct tevent_req *req);
 
@@ -511,6 +524,7 @@ static errno_t ifp_user_get_attr_search(struct tevent_req *req)
     struct ifp_user_get_attr_state *state = tevent_req_data(req,
                                             struct ifp_user_get_attr_state);
     struct sss_domain_info *dom = state->dom;
+    const char *extra_flag = NULL;
     char *name = NULL;
     errno_t ret;
 
@@ -571,12 +585,12 @@ static errno_t ifp_user_get_attr_search(struct tevent_req *req)
 
         switch (state->search_type) {
             case SSS_DP_USER:
-                ret = sysdb_get_user_attr(state, dom, name,
-                                          state->attrs, &state->res);
+                ret = sysdb_get_user_attr_with_views(state, dom, name,
+                                                  state->attrs, &state->res);
                 break;
             case SSS_DP_INITGROUPS:
-                ret = sysdb_initgroups(state, dom, name,
-                                       &state->res);
+                ret = sysdb_initgroups_with_views(state, dom, name,
+                                                  &state->res);
                 break;
             default:
                 DEBUG(SSSDBG_OP_FAILURE, "Unsupported operation\n");
@@ -619,8 +633,12 @@ static errno_t ifp_user_get_attr_search(struct tevent_req *req)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (state->check_provider) {
+            if (DOM_HAS_VIEWS(dom) && state->res->count == 0) {
+                extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+            }
+
             ret = ifp_cache_check(state, state->search_type,
-                                  ifp_dp_callback, 0, req);
+                                  ifp_dp_callback, 0, extra_flag, req);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
@@ -644,6 +662,7 @@ int ifp_cache_check(struct ifp_user_get_attr_state *state,
                     enum sss_dp_acct_type search_type,
                     sss_dp_callback_t callback,
                     unsigned int cache_refresh_percent,
+                    const char *extra_flag,
                     void *pvt)
 {
     uint64_t cache_expire = 0;
@@ -693,7 +712,7 @@ int ifp_cache_check(struct ifp_user_get_attr_state *state,
 
         req = sss_dp_get_account_send(state, state->rctx, state->dom, true,
                                       search_type, state->name, 0,
-                                      NULL);
+                                      extra_flag);
         if (req == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending out-of-band data provider "
@@ -716,7 +735,7 @@ int ifp_cache_check(struct ifp_user_get_attr_state *state,
         state->check_provider = false;
 
         req = sss_dp_get_account_send(state, state->rctx, state->dom, true,
-                                      search_type, state->name, 0, NULL);
+                                      search_type, state->name, 0, extra_flag);
         if (req == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");
@@ -792,7 +811,8 @@ static void ifp_dp_callback(uint16_t err_maj, uint32_t err_min,
 static errno_t
 ifp_user_get_attr_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
-                       struct ldb_result **_res)
+                       struct ldb_result **_res,
+                       struct sss_domain_info **_domain)
 {
     struct ifp_user_get_attr_state *state = tevent_req_data(req,
                                             struct ifp_user_get_attr_state);
@@ -807,6 +827,11 @@ ifp_user_get_attr_recv(TALLOC_CTX *mem_ctx,
     if (_res) {
         *_res = talloc_steal(mem_ctx, state->res);
     }
+
+    if (_domain) {
+        *_domain = state->dom;
+    }
+
     return EOK;
 }
 
