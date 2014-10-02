@@ -4615,11 +4615,12 @@ static errno_t fill_orig(struct sss_packet *packet,
 static errno_t fill_name(struct sss_packet *packet,
                          struct sss_domain_info *dom,
                          enum sss_id_type id_type,
+                         bool apply_no_view,
                          struct ldb_message *msg)
 {
     int ret;
     TALLOC_CTX *tmp_ctx = NULL;
-    const char *orig_name;
+    const char *orig_name = NULL;
     const char *cased_name;
     const char *fq_name;
     struct sized_string name;
@@ -4628,7 +4629,25 @@ static errno_t fill_name(struct sss_packet *packet,
     size_t blen;
     size_t pctr = 0;
 
-    orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    if (apply_no_view) {
+        orig_name = ldb_msg_find_attr_as_string(msg,
+                                                ORIGINALAD_PREFIX SYSDB_NAME,
+                                                NULL);
+    } else {
+        if (DOM_HAS_VIEWS(dom)) {
+            orig_name = ldb_msg_find_attr_as_string(msg,
+                                                    OVERRIDE_PREFIX SYSDB_NAME,
+                                                    NULL);
+            if (orig_name != NULL && IS_SUBDOMAIN(dom)) {
+                /* Override names are un-qualified */
+                add_domain = true;
+            }
+        }
+    }
+
+    if (orig_name == NULL) {
+        orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    }
     if (orig_name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing name.\n");
         return EINVAL;
@@ -4747,6 +4766,7 @@ static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
         ret = fill_name(cctx->creq->out,
                         dctx->domain,
                         id_type,
+                        true,
                         dctx->res->msgs[0]);
         break;
     case SSS_NSS_GETIDBYSID:

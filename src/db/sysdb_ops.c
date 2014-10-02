@@ -3507,6 +3507,7 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
 {
     TALLOC_CTX *tmp_ctx;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_GIDNUM,
+                                ORIGINALAD_PREFIX SYSDB_NAME,
                                 SYSDB_OBJECTCLASS, NULL };
     struct ldb_dn *basedn;
     int ret;
