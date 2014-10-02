@@ -612,6 +612,12 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         const char **attributes,
                         struct ldb_result **res);
 
+int sysdb_get_user_attr_with_views(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *domain,
+                                   const char *name,
+                                   const char **attributes,
+                                   struct ldb_result **res);
+
 int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
                             struct sss_domain_info *domain,
                             const char *netgrname,
