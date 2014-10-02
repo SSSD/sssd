@@ -169,8 +169,8 @@ struct tevent_req *ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
                                            const char *smb_cse_suffix,
                                            int cached_gpt_version,
                                            int gpo_timeout_option);
-int ad_gpo_process_cse_recv(struct tevent_req *req,
-                            TALLOC_CTX *mem_ctx);
+
+int ad_gpo_process_cse_recv(struct tevent_req *req);
 
 /* == ad_gpo_parse_map_options and helpers ==================================*/
 
@@ -1087,8 +1087,7 @@ ad_gpo_extract_policy_setting(TALLOC_CTX *mem_ctx,
  * in the file (as part of the GPO Result object in the sysdb cache).
  */
 static errno_t
-ad_gpo_store_policy_settings(TALLOC_CTX *mem_ctx,
-                             struct sss_domain_info *domain,
+ad_gpo_store_policy_settings(struct sss_domain_info *domain,
                              const char *filename)
 {
     struct ini_cfgfile *file_ctx = NULL;
@@ -2159,7 +2158,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_FUNC, "gpo_guid: %s\n", gpo_guid);
 
-    ret = ad_gpo_process_cse_recv(subreq, state);
+    ret = ad_gpo_process_cse_recv(subreq);
 
     talloc_zfree(subreq);
 
@@ -2174,7 +2173,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
      * GPO CACHE, we store all of the supported keys present in the file
      * (as part of the GPO Result object in the sysdb cache).
      */
-    ret = ad_gpo_store_policy_settings(state, state->domain,
+    ret = ad_gpo_store_policy_settings(state->domain,
                                        cse_filtered_gpo->policy_filename);
 
     state->cse_gpo_index++;
@@ -3701,8 +3700,7 @@ create_cse_send_buffer(TALLOC_CTX *mem_ctx,
 }
 
 static errno_t
-ad_gpo_parse_gpo_child_response(TALLOC_CTX *mem_ctx,
-                                uint8_t *buf,
+ad_gpo_parse_gpo_child_response(uint8_t *buf,
                                 ssize_t size,
                                 uint32_t *_sysvol_gpt_version,
                                 uint32_t *_result)
@@ -3929,7 +3927,7 @@ static void gpo_cse_done(struct tevent_req *subreq)
     close(state->io->read_from_child_fd);
     state->io->read_from_child_fd = -1;
 
-    ret = ad_gpo_parse_gpo_child_response(state, state->buf, state->len,
+    ret = ad_gpo_parse_gpo_child_response(state->buf, state->len,
                                           &sysvol_gpt_version, &child_result);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -3958,8 +3956,7 @@ static void gpo_cse_done(struct tevent_req *subreq)
     return;
 }
 
-int ad_gpo_process_cse_recv(struct tevent_req *req,
-                            TALLOC_CTX *mem_ctx)
+int ad_gpo_process_cse_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
