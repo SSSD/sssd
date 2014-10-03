@@ -411,6 +411,32 @@ errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
     return EOK;
 }
 
+static const char *get_db_path(void)
+{
+#ifdef UNIT_TESTING
+#ifdef TEST_DB_PATH
+    return TEST_DB_PATH;
+#else
+    #error "TEST_DB_PATH must be defined when unit testing server.c!"
+#endif /* TEST_DB_PATH */
+#else
+    return DB_PATH;
+#endif /* UNIT_TESTING */
+}
+
+static const char *get_pid_path(void)
+{
+#ifdef UNIT_TESTING
+#ifdef TEST_PID_PATH
+    return TEST_PID_PATH;
+#else
+    #error "TEST_PID_PATH must be defined when unit testing server.c!"
+#endif /* TEST_PID_PATH */
+#else
+    return PID_PATH;
+#endif
+}
+
 int server_setup(const char *name, int flags,
                  uid_t uid, gid_t gid,
                  const char *conf_entry,
@@ -468,10 +494,10 @@ int server_setup(const char *name, int flags,
     }
 
     if (flags & FLAGS_PID_FILE) {
-        ret = pidfile(PID_PATH, name);
+        ret = pidfile(get_pid_path(), name);
         if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Error creating pidfile: %s/%s! "
-                  "(%d [%s])\n", PID_PATH, name, ret, strerror(ret));
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error creating pidfile: %s/%s.pid! "
+                  "(%d [%s])\n", get_pid_path(), name, ret, strerror(ret));
             return ret;
         }
     }
@@ -513,7 +539,8 @@ int server_setup(const char *name, int flags,
     ctx->parent_pid = getppid();
     ctx->event_ctx = event_ctx;
 
-    conf_db = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
+    conf_db = talloc_asprintf(ctx, "%s/%s",
+                              get_db_path(), CONFDB_FILE);
     if (conf_db == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory, aborting!\n");
         return ENOMEM;
