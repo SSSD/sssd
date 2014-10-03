@@ -159,34 +159,38 @@ void test_dom_suite_cleanup(const char *tests_path,
         return;
     }
 
-    conf_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, confdb_path);
-    if (!conf_db) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not construct conf_db path\n");
-        goto done;
+    if (confdb_path != NULL) {
+        conf_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, confdb_path);
+        if (!conf_db) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "Could not construct conf_db path\n");
+            goto done;
+        }
+
+        errno = 0;
+        ret = unlink(conf_db);
+        if (ret != 0 && errno != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "Could not delete the test config ldb file (%d) (%s)\n",
+                errno, strerror(errno));
+        }
     }
 
-    errno = 0;
-    ret = unlink(conf_db);
-    if (ret != 0 && errno != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not delete the test config ldb file (%d) (%s)\n",
-               errno, strerror(errno));
-    }
+    if (sysdb_path != NULL) {
+        sys_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, sysdb_path);
+        if (!sys_db) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "Could not construct sys_db path\n");
+            goto done;
+        }
 
-    sys_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, sysdb_path);
-    if (!sys_db) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not construct sys_db path\n");
-        goto done;
-    }
-
-    errno = 0;
-    ret = unlink(sys_db);
-    if (ret != 0 && errno != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not delete the test ldb file (%d) (%s)\n",
-               errno, strerror(errno));
+        errno = 0;
+        ret = unlink(sys_db);
+        if (ret != 0 && errno != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "Could not delete the test ldb file (%d) (%s)\n",
+                errno, strerror(errno));
+        }
     }
 
     errno = 0;
