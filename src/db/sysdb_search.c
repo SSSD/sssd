@@ -478,6 +478,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
+    const char *src_name;
     char *sanitized_name;
     char *lc_sanitized_name;
     int ret;
@@ -494,8 +495,16 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_filter_sanitize_for_dom(tmp_ctx, name, domain, &sanitized_name,
-                                      &lc_sanitized_name);
+    /* If this is a subdomain we need to use fully qualified names for the
+     * search as well by default */
+    src_name = sss_get_domain_name(tmp_ctx, name, domain);
+    if (!src_name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_filter_sanitize_for_dom(tmp_ctx, src_name, domain,
+                                      &sanitized_name, &lc_sanitized_name);
     if (ret != EOK) {
         goto done;
     }
