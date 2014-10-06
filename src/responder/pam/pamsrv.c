@@ -316,10 +316,13 @@ int main(int argc, const char *argv[])
     poptContext pc;
     struct main_context *main_ctx;
     int ret;
+    uid_t uid;
+    gid_t gid;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
+        SSSD_SERVER_OPTS(uid, gid)
         POPT_TABLEEND
     };
 
@@ -344,7 +347,7 @@ int main(int argc, const char *argv[])
     /* set up things like debug, signals, daemonization, etc... */
     debug_log_file = "sssd_pam";
 
-    ret = server_setup("sssd[pam]", 0, CONFDB_PAM_CONF_ENTRY, &main_ctx);
+    ret = server_setup("sssd[pam]", 0, 0, 0, CONFDB_PAM_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

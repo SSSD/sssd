@@ -504,10 +504,13 @@ int main(int argc, const char *argv[])
     int ret;
     long id;
     char *pam_target = NULL;
+    uid_t uid;
+    gid_t gid;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
+        SSSD_SERVER_OPTS(uid, gid)
         {"domain", 0, POPT_ARG_STRING, &domain, 0,
          _("Domain of the information provider (mandatory)"), NULL },
         {"id", 0, POPT_ARG_LONG, &id, 0,
@@ -557,7 +560,7 @@ int main(int argc, const char *argv[])
     conf_entry = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, domain);
     if (!conf_entry) return 2;
 
-    ret = server_setup(srv_name, 0, conf_entry, &main_ctx);
+    ret = server_setup(srv_name, 0, 0, 0, conf_entry, &main_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up mainloop [%d]\n", ret);
         return 2;

@@ -412,6 +412,7 @@ errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
 }
 
 int server_setup(const char *name, int flags,
+                 uid_t uid, gid_t gid,
                  const char *conf_entry,
                  struct main_context **main_ctx)
 {
@@ -425,6 +426,13 @@ int server_setup(const char *name, int flags,
     bool dm;
     struct tevent_signal *tes;
     struct logrotate_ctx *lctx;
+
+    ret = become_user(uid, gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
+        return ret;
+    }
 
     debug_prg_name = strdup(name);
     if (!debug_prg_name) {

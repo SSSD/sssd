@@ -2804,10 +2804,13 @@ int main(int argc, const char *argv[])
     struct main_context *main_ctx;
     char *confdb_path;
     int ret;
+    uid_t uid;
+    gid_t gid;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
+        SSSD_SERVER_OPTS(uid, gid)
         {"domain", 0, POPT_ARG_STRING, &be_domain, 0,
          _("Domain of the information provider (mandatory)"), NULL },
         POPT_TABLEEND
@@ -2847,7 +2850,7 @@ int main(int argc, const char *argv[])
     confdb_path = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (!confdb_path) return 2;
 
-    ret = server_setup(srv_name, 0, confdb_path, &main_ctx);
+    ret = server_setup(srv_name, 0, 0, 0, confdb_path, &main_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up mainloop [%d]\n", ret);
         return 2;

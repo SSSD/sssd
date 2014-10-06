@@ -175,6 +175,12 @@ errno_t set_debug_file_from_fd(const int fd);
 
 #define SSSD_MAIN_OPTS SSSD_DEBUG_OPTS
 
+#define SSSD_SERVER_OPTS(uid, gid) \
+        {"uid", 0, POPT_ARG_INT, &uid, 0, \
+          _("The user ID to run the server as"), NULL}, \
+        {"gid", 0, POPT_ARG_INT, &gid, 0, \
+          _("The group ID to run the server as"), NULL},
+
 #define FLAGS_NONE 0x0000
 #define FLAGS_DAEMON 0x0001
 #define FLAGS_INTERACTIVE 0x0002
@@ -242,6 +248,7 @@ errno_t server_common_rotate_logs(struct confdb_ctx *confdb,
 int die_if_parent_died(void);
 int pidfile(const char *path, const char *name);
 int server_setup(const char *name, int flags,
+                 uid_t uid, gid_t gid,
                  const char *conf_entry,
                  struct main_context **main_ctx);
 void server_loop(struct main_context *main_ctx);

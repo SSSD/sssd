@@ -2855,7 +2855,8 @@ int main(int argc, const char *argv[])
     ret = close(STDIN_FILENO);
     if (ret != EOK) return 6;
 
-    ret = server_setup(MONITOR_NAME, flags, monitor->conf_path, &main_ctx);
+    ret = server_setup(MONITOR_NAME, flags, 0, 0,
+                       monitor->conf_path, &main_ctx);
     if (ret != EOK) return 2;
 
     monitor->is_daemon = !opt_interactive;

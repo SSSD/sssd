@@ -706,14 +706,17 @@ libsss_util_la_SOURCES = \
     src/util/util_sss_idmap.c \
     src/util/well_known_sids.c \
     src/util/string_utils.c \
+    src/util/become_user.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SYSTEMD_LOGIN_CFLAGS)
+    $(SYSTEMD_LOGIN_CFLAGS) \
+    $(NULL)
 libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
-    $(UNICODE_LIBS)
+    $(UNICODE_LIBS) \
+    $(NULL)
 if BUILD_SUDO
     libsss_util_la_SOURCES += src/db/sysdb_sudo.c
 endif
