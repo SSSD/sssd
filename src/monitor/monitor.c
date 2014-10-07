@@ -515,7 +515,11 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
         return ret;
     }
 
-    ret = sbus_new_server(ctx, ctx->ev, monitor_address,
+    /* If a service is running as unprivileged user, we need to make sure this
+     * user can access the monitor sbus server. root is still king, so we don't
+     * lose any access.
+     */
+    ret = sbus_new_server(ctx, ctx->ev, monitor_address, ctx->uid, ctx->gid,
                           false, &ctx->sbus_srv, monitor_service_init, ctx);
 
     talloc_free(monitor_address);

@@ -112,8 +112,8 @@ mock_server_child(void *data)
     ctx = talloc_new(NULL);
     loop = tevent_context_init(ctx);
 
-    verify_eq (sbus_new_server(ctx, loop, mock->dbus_address, false,
-                               &server, on_accept_connection, mock), EOK);
+    verify_eq (sbus_new_server(ctx, loop, mock->dbus_address, geteuid(), getegid(),
+                               false, &server, on_accept_connection, mock), EOK);
 
     tevent_add_fd(loop, ctx, mock->sync_fds[1], TEVENT_FD_READ,
                   on_sync_fd_written, &stop_server);

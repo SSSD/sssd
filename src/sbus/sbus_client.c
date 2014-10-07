@@ -32,6 +32,8 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
     struct sbus_connection *conn = NULL;
     int ret;
     char *filename;
+    uid_t check_uid;
+    gid_t check_gid;
 
     /* Validate input */
     if (server_address == NULL) {
@@ -45,8 +47,17 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    ret = check_file(filename,
-                     0, 0, S_IFSOCK|S_IRUSR|S_IWUSR, 0, NULL, true);
+    check_uid = geteuid();
+    check_gid = getegid();
+
+    /* Ignore ownership checks when the server runs as root. This is the
+     * case when privileged monitor is setting up sockets for unprivileged
+     * responders */
+    if (check_uid == 0) check_uid = -1;
+    if (check_gid == 0) check_gid = -1;
+
+    ret = check_file(filename, check_uid, check_gid,
+                     S_IFSOCK|S_IRUSR|S_IWUSR, 0, NULL, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "check_file failed for [%s].\n", filename);
         return EIO;

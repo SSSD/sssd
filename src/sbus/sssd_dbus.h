@@ -132,6 +132,7 @@ sbus_new_interface(TALLOC_CTX *mem_ctx,
 int sbus_new_server(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
                     const char *address,
+                    uid_t uid, gid_t gid,
                     bool use_symlink,
                     struct sbus_connection **server,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data);

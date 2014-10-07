@@ -2263,7 +2263,7 @@ static int be_srv_init(struct be_ctx *ctx)
         return ret;
     }
 
-    ret = sbus_new_server(ctx, ctx->ev, sbus_address,
+    ret = sbus_new_server(ctx, ctx->ev, sbus_address, 0, 0,
                           true, &ctx->sbus_srv, be_client_init, ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");
