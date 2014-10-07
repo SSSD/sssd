@@ -1294,6 +1294,57 @@ done:
 }
 END_TEST
 
+START_TEST (test_sysdb_get_user_attr_subdomain)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct sss_domain_info *subdomain = NULL;
+    const char *attrs[] = { SYSDB_SHELL, NULL };
+    struct ldb_result *res;
+    const char *attrval;
+    const char *username = "test_sysdb_get_user_attr_subdomain";
+    const char *fq_name;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    /* Create subdomain */
+    subdomain = new_subdomain(test_ctx, test_ctx->domain,
+                              "test.sub", "TEST.SUB", "test", "S-3",
+                              false, false, NULL);
+    fail_if(subdomain == NULL, "Failed to create new subdomain.");
+
+    ret = sss_names_init_from_args(test_ctx,
+                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
+                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+                                   "(^(?P<name>[^@\\\\]+)$))",
+                                   "%1$s@%2$s", &subdomain->names);
+    fail_if(ret != EOK, "Failed to init names.");
+
+    /* Create user */
+    fq_name = sss_tc_fqname(test_ctx, subdomain->names, subdomain, username);
+    fail_if(fq_name == NULL, "Failed to create fq name.");
+
+    ret = sysdb_store_user(subdomain, fq_name, NULL, 12345, 0, "Gecos",
+                           "/home/userhome", "/bin/bash", NULL, NULL, NULL,
+                           -1, 0);
+    fail_if(ret != EOK, "sysdb_store_user failed.");
+
+    /* Test */
+    ret = sysdb_get_user_attr(test_ctx, subdomain, username,
+                              attrs, &res);
+    fail_if(ret != EOK, "Could not get user attributes.");
+    fail_if(res->count != 1, "Invalid number of entries, expected 1, got %d",
+            res->count);
+
+    attrval = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, 0);
+    fail_if(strcmp(attrval, "/bin/bash") != 0, "Got bad attribute value.");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_add_group_member)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -5945,6 +5996,9 @@ Suite *create_sysdb_suite(void)
     /* Test user and group renames */
     tcase_add_test(tc_sysdb, test_group_rename);
     tcase_add_test(tc_sysdb, test_user_rename);
+
+    /* Test GetUserAttr with subdomain user */
+    tcase_add_test(tc_sysdb, test_sysdb_get_user_attr_subdomain);
 
 /* ===== NETGROUP TESTS ===== */
 
