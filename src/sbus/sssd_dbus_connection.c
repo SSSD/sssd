@@ -922,3 +922,23 @@ void sbus_conn_send_reply(struct sbus_connection *conn, DBusMessage *reply)
 {
     dbus_connection_send(conn->dbus.conn, reply, NULL);
 }
+
+dbus_bool_t is_uid_sssd_user(DBusConnection *connection,
+                             unsigned long   uid,
+                             void           *data)
+{
+    uid_t sssd_user = * (uid_t *) data;
+
+    if (uid == 0 || uid == sssd_user) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+void sbus_allow_uid(struct sbus_connection *conn, uid_t *uid)
+{
+    dbus_connection_set_unix_user_function(sbus_get_connection(conn),
+                                           is_uid_sssd_user,
+                                           uid, NULL);
+}

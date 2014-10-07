@@ -2392,6 +2392,9 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
     mini->ctx = ctx;
     mini->conn = conn;
 
+    /* Allow access from the SSSD user */
+    sbus_allow_uid(conn, &ctx->uid);
+
     /* 10 seconds should be plenty */
     tv = tevent_timeval_current_ofs(10, 0);
 

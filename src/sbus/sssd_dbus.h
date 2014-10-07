@@ -209,6 +209,10 @@ int sbus_conn_send(struct sbus_connection *conn,
 void sbus_conn_send_reply(struct sbus_connection *conn,
                           DBusMessage *reply);
 
+/* Set up D-BUS access control. If there is a SSSD user, we must allow
+ * him to connect. root is always allowed */
+void sbus_allow_uid(struct sbus_connection *conn, uid_t *uid);
+
 /*
  * This structure is passed to all dbus method and property
  * handlers. It is a talloc context which will be valid until
