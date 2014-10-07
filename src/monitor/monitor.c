@@ -154,9 +154,7 @@ struct config_file_ctx {
 struct mt_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
-    TALLOC_CTX *domain_ctx; /* Memory context for domain list */
     struct sss_domain_info *domains;
-    TALLOC_CTX *service_ctx; /* Memory context for services */
     char **services;
     int num_services;
     int started_services;
@@ -929,11 +927,7 @@ static int get_monitor_config(struct mt_ctx *ctx)
 
     ctx->service_id_timeout = timeout_seconds * 1000; /* service_id_timeout is in ms */
 
-    ctx->service_ctx = talloc_new(ctx);
-    if(!ctx->service_ctx) {
-        return ENOMEM;
-    }
-    ret = confdb_get_string_as_list(ctx->cdb, ctx->service_ctx,
+    ret = confdb_get_string_as_list(ctx->cdb, ctx,
                                     CONFDB_MONITOR_CONF_ENTRY,
                                     CONFDB_MONITOR_ACTIVE_SERVICES,
                                     &ctx->services);
@@ -942,7 +936,7 @@ static int get_monitor_config(struct mt_ctx *ctx)
         return EINVAL;
     }
 
-    ret = add_implicit_services(ctx->cdb, ctx->service_ctx, &ctx->services);
+    ret = add_implicit_services(ctx->cdb, ctx, &ctx->services);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to add implicit configured " \
                                   "services. Some functionality might " \
@@ -961,10 +955,6 @@ static int get_monitor_config(struct mt_ctx *ctx)
         ctx->num_services++;
     }
 
-    ctx->domain_ctx = talloc_new(ctx);
-    if(!ctx->domain_ctx) {
-        return ENOMEM;
-    }
     ret = confdb_get_domains(ctx->cdb, &ctx->domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "No domains configured.\n");
