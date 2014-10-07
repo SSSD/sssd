@@ -304,7 +304,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     struct ldb_val v;
     char *str;
     int lerrno;
-    int a, i, ret, ai;
+    int i, ret, ai;
+    int base_attr_idx = 0;
     const char *name;
     bool store;
     bool base64;
@@ -403,16 +404,17 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         }
 
         if (map) {
-            for (a = 1; a < attrs_num; a++) {
+            for (i = 1; i < attrs_num; i++) {
                 /* check if this attr is valid with the chosen schema */
-                if (!map[a].name) continue;
+                if (!map[i].name) continue;
                 /* check if it is an attr we are interested in */
-                if (strcasecmp(base_attr, map[a].name) == 0) break;
+                if (strcasecmp(base_attr, map[i].name) == 0) break;
             }
             /* interesting attr */
-            if (a < attrs_num) {
+            if (i < attrs_num) {
                 store = true;
-                name = map[a].sys_name;
+                name = map[i].sys_name;
+                base_attr_idx = i;
                 if (strcmp(name, SYSDB_SSH_PUBKEY) == 0) {
                     base64 = true;
                 }
@@ -478,7 +480,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                          * attrs in case there is a map. Find all that match
                          * and copy the value
                          */
-                        for (ai = a; ai < attrs_num; ai++) {
+                        for (ai = base_attr_idx; ai < attrs_num; ai++) {
                             /* check if this attr is valid with the chosen
                              * schema */
                             if (!map[ai].name) continue;
