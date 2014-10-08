@@ -4630,6 +4630,106 @@ START_TEST(test_sysdb_attrs_get_string_array)
 }
 END_TEST
 
+START_TEST(test_sysdb_attrs_add_val)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_val val = {discard_const(TEST_ATTR_VALUE),
+                          sizeof(TEST_ATTR_VALUE) - 1};
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed");
+
+    attrs = sysdb_new_attrs(NULL);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_val(attrs, TEST_ATTR_NAME, &val);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed.");
+
+    ret = sysdb_attrs_add_val(attrs, TEST_ATTR_NAME, &val);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed.");
+
+    fail_unless(attrs->num == 1, "Unexpected number of attributes.");
+    fail_unless(strcmp(attrs->a[0].name, TEST_ATTR_NAME) == 0,
+                "Unexpected attribute name.");
+    fail_unless(attrs->a[0].num_values == 2,
+                "Unexpected number of attribute values.");
+    fail_unless(ldb_val_string_cmp(&attrs->a[0].values[0],
+                                   TEST_ATTR_VALUE) == 0,
+                "Unexpected attribute value.");
+    fail_unless(ldb_val_string_cmp(&attrs->a[0].values[1],
+                                   TEST_ATTR_VALUE) == 0,
+                "Unexpected attribute value.");
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
+START_TEST(test_sysdb_attrs_add_val_safe)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_val val = {discard_const(TEST_ATTR_VALUE),
+                          sizeof(TEST_ATTR_VALUE) - 1};
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed");
+
+    attrs = sysdb_new_attrs(NULL);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_val(attrs, TEST_ATTR_NAME, &val);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed.");
+
+    ret = sysdb_attrs_add_val_safe(attrs, TEST_ATTR_NAME, &val);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed.");
+
+    fail_unless(attrs->num == 1, "Unexpected number of attributes.");
+    fail_unless(strcmp(attrs->a[0].name, TEST_ATTR_NAME) == 0,
+                "Unexpected attribute name.");
+    fail_unless(attrs->a[0].num_values == 1,
+                "Unexpected number of attribute values.");
+    fail_unless(ldb_val_string_cmp(&attrs->a[0].values[0],
+                                   TEST_ATTR_VALUE) == 0,
+                "Unexpected attribute value.");
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
+START_TEST(test_sysdb_attrs_add_string_safe)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed");
+
+    attrs = sysdb_new_attrs(NULL);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_string(attrs, TEST_ATTR_NAME, TEST_ATTR_VALUE);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed.");
+
+    ret = sysdb_attrs_add_string_safe(attrs, TEST_ATTR_NAME, TEST_ATTR_VALUE);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed.");
+
+    fail_unless(attrs->num == 1, "Unexpected number of attributes.");
+    fail_unless(strcmp(attrs->a[0].name, TEST_ATTR_NAME) == 0,
+                "Unexpected attribute name.");
+    fail_unless(attrs->a[0].num_values == 1,
+                "Unexpected number of attribute values.");
+    fail_unless(ldb_val_string_cmp(&attrs->a[0].values[0],
+                                   TEST_ATTR_VALUE) == 0,
+                "Unexpected attribute value.");
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_search_return_ENOENT)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -6033,6 +6133,9 @@ Suite *create_sysdb_suite(void)
 
 /* ===== UTIL TESTS ===== */
     tcase_add_test(tc_sysdb, test_sysdb_attrs_get_string_array);
+    tcase_add_test(tc_sysdb, test_sysdb_attrs_add_val);
+    tcase_add_test(tc_sysdb, test_sysdb_attrs_add_val_safe);
+    tcase_add_test(tc_sysdb, test_sysdb_attrs_add_string_safe);
 
 /* ===== Test search return empty result ===== */
     tcase_add_test(tc_sysdb, test_sysdb_search_return_ENOENT);

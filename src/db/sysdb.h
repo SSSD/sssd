@@ -287,6 +287,10 @@ struct range_info {
 /* values are copied in the structure, allocated on "attrs" */
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val);
+int sysdb_attrs_add_val_safe(struct sysdb_attrs *attrs,
+                             const char *name, const struct ldb_val *val);
+int sysdb_attrs_add_string_safe(struct sysdb_attrs *attrs,
+                                const char *name, const char *str);
 int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
                            const char *name, const char *str);
 int sysdb_attrs_add_lower_case_string(struct sysdb_attrs *attrs,

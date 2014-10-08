@@ -508,16 +508,29 @@ int sysdb_attrs_get_string_array(struct sysdb_attrs *attrs, const char *name,
     return EOK;
 }
 
-int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
-                        const char *name, const struct ldb_val *val)
+
+static int sysdb_attrs_add_val_int(struct sysdb_attrs *attrs,
+                                   const char *name, bool check_values,
+                                   const struct ldb_val *val)
 {
     struct ldb_message_element *el = NULL;
     struct ldb_val *vals;
     int ret;
+    size_t c;
 
     ret = sysdb_attrs_get_el(attrs, name, &el);
     if (ret != EOK) {
         return ret;
+    }
+
+    if (check_values) {
+        for (c = 0; c < el->num_values; c++) {
+            if (val->length == el->values[c].length
+                    && memcmp(val->data, el->values[c].data,
+                              val->length) == 0) {
+                return EOK;
+            }
+        }
     }
 
     vals = talloc_realloc(attrs->a, el->values,
@@ -534,6 +547,29 @@ int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
     el->num_values++;
 
     return EOK;
+}
+int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
+                        const char *name, const struct ldb_val *val)
+{
+    return sysdb_attrs_add_val_int(attrs, name, false, val);
+}
+
+/* Check if the same value already exists. */
+int sysdb_attrs_add_val_safe(struct sysdb_attrs *attrs,
+                             const char *name, const struct ldb_val *val)
+{
+    return sysdb_attrs_add_val_int(attrs, name, true, val);
+}
+
+int sysdb_attrs_add_string_safe(struct sysdb_attrs *attrs,
+                                const char *name, const char *str)
+{
+    struct ldb_val v;
+
+    v.data = (uint8_t *)discard_const(str);
+    v.length = strlen(str);
+
+    return sysdb_attrs_add_val_safe(attrs, name, &v);
 }
 
 int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
