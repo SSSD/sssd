@@ -46,7 +46,6 @@ man_MANS = \
     sssd-krb5.5 sssd-simple.5 \
     sssd_krb5_locator_plugin.8 sss_groupshow.8 \
     pam_sss.8 sss_obfuscate.8 sss_cache.8 sss_debuglevel.8 sss_seed.8 \
-    sss_rpcidmapd.5 \
     $(NULL)
 
 if BUILD_SAMBA
@@ -63,6 +62,10 @@ endif
 
 if BUILD_IFP
 man_MANS += sssd-ifp.5
+endif
+
+if BUILD_NFS_IDMAP
+man_MANS += sss_rpcidmapd.5
 endif
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
