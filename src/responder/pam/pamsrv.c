@@ -368,7 +368,7 @@ int main(int argc, const char *argv[])
         return 2;
     }
 
-    ret = server_setup("sssd[pam]", 0, 0, 0, CONFDB_PAM_CONF_ENTRY, &main_ctx);
+    ret = server_setup("sssd[pam]", 0, uid, gid, CONFDB_PAM_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();
