@@ -982,6 +982,7 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
             case SSS_NSS_GETNAMEBYSID:
             case SSS_NSS_GETIDBYSID:
             case SSS_NSS_GETSIDBYNAME:
+            case SSS_NSS_GETORIGBYNAME:
             case SSS_NSS_GETSIDBYID:
                 ret = nss_cmd_getbysid_send_reply(dctx);
                 break;
@@ -1064,6 +1065,7 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
         }
         break;
     case SSS_NSS_GETSIDBYNAME:
+    case SSS_NSS_GETORIGBYNAME:
         ret = nss_cmd_getsidby_search(dctx);
         if (ret == EOK) {
             ret = nss_cmd_getbysid_send_reply(dctx);
@@ -1172,6 +1174,7 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
     case SSS_NSS_GETGRNAM:
     case SSS_NSS_INITGR:
     case SSS_NSS_GETSIDBYNAME:
+    case SSS_NSS_GETORIGBYNAME:
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command type [%d].\n", cmd);
@@ -1322,6 +1325,7 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         break;
     case SSS_NSS_GETSIDBYNAME:
+    case SSS_NSS_GETORIGBYNAME:
         ret = nss_cmd_getsidby_search(dctx);
         if (ret == EOK) {
             ret = nss_cmd_getbysid_send_reply(dctx);
@@ -1417,6 +1421,7 @@ static void nss_cmd_getbynam_done(struct tevent_req *req)
         }
         break;
     case SSS_NSS_GETSIDBYNAME:
+    case SSS_NSS_GETORIGBYNAME:
         ret = nss_cmd_getsidby_search(dctx);
         if (ret == EOK) {
             ret = nss_cmd_getbysid_send_reply(dctx);
@@ -3996,7 +4001,18 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
     struct nss_ctx *nctx;
     int ret;
     int err;
-    const char *attrs[] = {SYSDB_NAME, SYSDB_OBJECTCLASS, SYSDB_SID_STR, NULL};
+    const char *attrs[] = {SYSDB_NAME, SYSDB_OBJECTCLASS, SYSDB_SID_STR,
+                           ORIGINALAD_PREFIX SYSDB_NAME,
+                           ORIGINALAD_PREFIX SYSDB_UIDNUM,
+                           ORIGINALAD_PREFIX SYSDB_GIDNUM,
+                           ORIGINALAD_PREFIX SYSDB_GECOS,
+                           ORIGINALAD_PREFIX SYSDB_HOMEDIR,
+                           ORIGINALAD_PREFIX SYSDB_SHELL,
+                           SYSDB_UPN,
+                           SYSDB_DEFAULT_OVERRIDE_NAME,
+                           SYSDB_AD_ACCOUNT_EXPIRES,
+                           SYSDB_AD_USER_ACCOUNT_CONTROL,
+                           SYSDB_DEFAULT_ATTRS, NULL};
     bool user_found = false;
     bool group_found = false;
     struct ldb_message *msg = NULL;
@@ -4195,7 +4211,8 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         }
 
         if (dctx->res->count == 0 && !dctx->check_provider) {
-            if (cmdctx->cmd == SSS_NSS_GETSIDBYNAME) {
+            if (cmdctx->cmd == SSS_NSS_GETSIDBYNAME
+                    || cmdctx->cmd == SSS_NSS_GETORIGBYNAME) {
                 ret = sss_ncache_set_user(nctx->ncache, false, dom, name);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_MINOR_FAILURE,
@@ -4428,6 +4445,67 @@ static errno_t fill_sid(struct sss_packet *packet,
     return EOK;
 }
 
+static errno_t fill_orig(struct sss_packet *packet,
+                         enum sss_id_type id_type,
+                         struct ldb_message *msg)
+{
+    int ret;
+    const char *tmp_str;
+    uint8_t *body;
+    size_t blen;
+    size_t pctr = 0;
+    size_t c;
+    size_t sum;
+    const char *orig_attr_list[] = {SYSDB_SID_STR,
+                                    ORIGINALAD_PREFIX SYSDB_NAME,
+                                    ORIGINALAD_PREFIX SYSDB_UIDNUM,
+                                    ORIGINALAD_PREFIX SYSDB_GIDNUM,
+                                    ORIGINALAD_PREFIX SYSDB_HOMEDIR,
+                                    ORIGINALAD_PREFIX SYSDB_GECOS,
+                                    ORIGINALAD_PREFIX SYSDB_SHELL,
+                                    SYSDB_UPN,
+                                    SYSDB_DEFAULT_OVERRIDE_NAME,
+                                    SYSDB_AD_ACCOUNT_EXPIRES,
+                                    SYSDB_AD_USER_ACCOUNT_CONTROL,
+                                    NULL};
+    struct sized_string keys[sizeof(orig_attr_list)];
+    struct sized_string vals[sizeof(orig_attr_list)];
+
+    sum = 0;
+    for (c = 0; orig_attr_list[c] != NULL; c++) {
+        tmp_str = ldb_msg_find_attr_as_string(msg, orig_attr_list[c], NULL);
+        if (tmp_str != NULL) {
+            to_sized_string(&keys[c], orig_attr_list[c]);
+            sum += keys[c].len;
+            to_sized_string(&vals[c], tmp_str);
+            sum += vals[c].len;
+        } else {
+            vals[c].len = 0;
+        }
+    }
+
+    ret = sss_packet_grow(packet, sum +  3 * sizeof(uint32_t));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_packet_grow failed.\n");
+        return ret;
+    }
+
+    sss_packet_get_body(packet, &body, &blen);
+    SAFEALIGN_SETMEM_UINT32(body, 1, &pctr); /* Num results */
+    SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
+    SAFEALIGN_COPY_UINT32(body + pctr, &id_type, &pctr);
+    for (c = 0; orig_attr_list[c] != NULL; c++) {
+        if (vals[c].len != 0) {
+            memcpy(&body[pctr], keys[c].str, keys[c].len);
+            pctr+= keys[c].len;
+            memcpy(&body[pctr], vals[c].str, vals[c].len);
+            pctr+= vals[c].len;
+        }
+    }
+
+    return EOK;
+}
+
 static errno_t fill_name(struct sss_packet *packet,
                          struct sss_domain_info *dom,
                          enum sss_id_type id_type,
@@ -4571,6 +4649,9 @@ static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
     case SSS_NSS_GETSIDBYNAME:
     case SSS_NSS_GETSIDBYID:
         ret = fill_sid(cctx->creq->out, id_type, dctx->res->msgs[0]);
+        break;
+    case SSS_NSS_GETORIGBYNAME:
+        ret = fill_orig(cctx->creq->out, id_type, dctx->res->msgs[0]);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported request type.\n");
@@ -4774,6 +4855,11 @@ static int nss_cmd_getidbysid(struct cli_ctx *cctx)
     return nss_cmd_getbysid(SSS_NSS_GETIDBYSID, cctx);
 }
 
+static int nss_cmd_getorigbyname(struct cli_ctx *cctx)
+{
+    return nss_cmd_getbynam(SSS_NSS_GETORIGBYNAME, cctx);
+}
+
 struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version nss_cli_protocol_version[] = {
@@ -4809,6 +4895,7 @@ static struct sss_cmd_table nss_cmds[] = {
     {SSS_NSS_GETSIDBYID, nss_cmd_getsidbyid},
     {SSS_NSS_GETNAMEBYSID, nss_cmd_getnamebysid},
     {SSS_NSS_GETIDBYSID, nss_cmd_getidbysid},
+    {SSS_NSS_GETORIGBYNAME, nss_cmd_getorigbyname},
     {SSS_CLI_NULL, NULL}
 };
 

@@ -122,8 +122,6 @@ struct sdap_ppolicy_data {
 
 #define SYSDB_PWD_ATTRIBUTE "pwdAttribute"
 
-#define SYSDB_AD_ACCOUNT_EXPIRES "adAccountExpires"
-#define SYSDB_AD_USER_ACCOUNT_CONTROL "adUserAccountControl"
 #define SYSDB_NDS_LOGIN_DISABLED "ndsLoginDisabled"
 #define SYSDB_NDS_LOGIN_EXPIRATION_TIME "ndsLoginExpirationTime"
 #define SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP "ndsLoginAllowedTimeMap"

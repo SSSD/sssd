@@ -138,6 +138,13 @@
 #define SYSDB_DOMAIN_ID "domainID"
 #define SYSDB_ID_RANGE_TYPE "idRangeType"
 
+#define ORIGINALAD_PREFIX "originalAD"
+#define OVERRIDE_PREFIX "override"
+#define SYSDB_DEFAULT_OVERRIDE_NAME "defaultOverrideName"
+
+#define SYSDB_AD_ACCOUNT_EXPIRES "adAccountExpires"
+#define SYSDB_AD_USER_ACCOUNT_CONTROL "adUserAccountControl"
+
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
 #define SYSDB_UC "objectclass="SYSDB_USER_CLASS
