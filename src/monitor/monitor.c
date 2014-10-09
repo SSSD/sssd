@@ -1696,7 +1696,6 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE, "Fatal error initializing confdb\n");
         goto done;
     }
-    talloc_zfree(cdb_file);
 
     ret = confdb_init_db(config_file, ctx->cdb);
     if (ret != EOK) {
@@ -1712,11 +1711,23 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* Allow configuration database to be accessible
+     * when SSSD runs as nonroot */
+    ret = chown(cdb_file, ctx->uid, ctx->gid);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "chown failed for [%s]: [%d][%s].\n",
+              cdb_file, ret, sss_strerror(ret));
+        goto done;
+    }
+
     *monitor = ctx;
 
     ret = EOK;
 
 done:
+    talloc_free(cdb_file);
     if (ret != EOK) {
         talloc_free(ctx);
     }
