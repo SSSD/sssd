@@ -533,6 +533,15 @@ uint64_t sss_view_ldb_msg_find_attr_as_uint64(struct sss_domain_info *dom,
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct sss_domain_info *domains,
                bool allow_upgrade);
+
+/* Same as sysdb_init, but additionally allows to change
+ * file ownership of the sysdb databases. */
+int sysdb_init_ext(TALLOC_CTX *mem_ctx,
+                   struct sss_domain_info *domains,
+                   bool allow_upgrade,
+                   bool chown_dbfile,
+                   uid_t uid, gid_t gid);
+
 /* used to initialize only one domain database.
  * Do NOT use if sysdb_init has already been called */
 int sysdb_domain_init(TALLOC_CTX *mem_ctx,
