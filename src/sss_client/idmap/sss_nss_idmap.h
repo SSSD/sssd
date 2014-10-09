@@ -37,6 +37,11 @@ enum sss_id_type {
     SSS_ID_TYPE_BOTH /* used for user or magic private groups */
 };
 
+struct sss_nss_kv {
+    char *key;
+    char *value;
+};
+
 /**
  * @brief Find SID by fully qualified name
  *
@@ -97,4 +102,31 @@ int sss_nss_getnamebysid(const char *sid, char **fq_name,
 int sss_nss_getidbysid(const char *sid, uint32_t *id,
                        enum sss_id_type *id_type);
 
+/**
+ * @brief Find original data by fully qualified name
+ *
+ * @param[in] fq_name  Fully qualified name of a user or a group
+ * @param[out] kv_list A NULL terminate list of key-value pairs where the key
+ *                     is the attribute name in the cache of SSSD,
+ *                     must be freed by the caller with sss_nss_free_kv()
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - 0 (EOK): success, sid contains the requested SID
+ *  - ENOENT: requested object was not found in the domain extracted from the given name
+ *  - ENETUNREACH: SSSD does not know how to handle the domain extracted from the given name
+ *  - ENOSYS: this call is not supported by the configured provider
+ *  - EINVAL: input cannot be parsed
+ *  - EIO: remote servers cannot be reached
+ *  - EFAULT: any other error
+ */
+int sss_nss_getorigbyname(const char *fq_name, struct sss_nss_kv **kv_list,
+                          enum sss_id_type *type);
+
+/**
+ * @brief Free key-value list returned by sss_nss_getorigbyname()
+ *
+ * @param[in] kv_list Key-value list returned by sss_nss_getorigbyname().
+ */
+void sss_nss_free_kv(struct sss_nss_kv *kv_list);
 #endif /* SSS_NSS_IDMAP_H_ */
