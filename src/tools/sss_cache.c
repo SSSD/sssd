@@ -129,8 +129,6 @@ int main(int argc, const char *argv[])
     }
 
     for (dinfo = tctx->domains; dinfo; dinfo = get_next_domain(dinfo, true)) {
-         sysdb = dinfo->sysdb;
-
         if (!IS_SUBDOMAIN(dinfo)) {
             /* Update list of subdomains for this domain */
             ret = sysdb_update_subdomains(dinfo);
