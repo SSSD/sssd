@@ -286,6 +286,7 @@ int sbus_request_return_array_as_variant(struct sbus_request *dbus_req,
                                         DBUS_ERROR_FAILED,
                                         "Could not close array\n"));
         ret = EINVAL;
+        goto done;
     }
 
     dbret = dbus_message_iter_close_container(&iter, &variant_iter);
@@ -298,6 +299,7 @@ int sbus_request_return_array_as_variant(struct sbus_request *dbus_req,
                                         DBUS_ERROR_FAILED,
                                         "Could not close variant\n"));
         ret = EINVAL;
+        goto done;
     }
 
 done:
