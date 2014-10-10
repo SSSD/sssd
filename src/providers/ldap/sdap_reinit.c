@@ -297,6 +297,12 @@ static errno_t sdap_reinit_delete_records(struct sss_domain_info *domain)
     /* purge untouched services */
     ret = sysdb_search_services(tmp_ctx, domain, "(!("SYSDB_USN"=*))",
                                 attrs, &msgs_num, &msgs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot search services [%d]: %s\n", ret, strerror(ret));
+        goto done;
+    }
+
     sdap_delete_msgs_dn(sysdb, msgs, msgs_num);
     talloc_zfree(msgs);
     msgs_num = 0;
