@@ -276,6 +276,14 @@ static void pac_lookup_sids_done(struct tevent_req *req)
     value.type = HASH_VALUE_ULONG;
 
     ret = hash_entries(pr_ctx->sid_table, &count, &entries);
+    if (ret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "hash_entries failed [%d][%s].\n",
+                                 ret, hash_error_string(ret));
+        talloc_free(pr_ctx);
+        pac_cmd_done(cctx, ret);
+        return;
+    }
+
     for (c = 0; c < count; c++) {
         if (entries[c].value.ul == 0) {
             ret =responder_get_domain_by_id(cctx->rctx,
