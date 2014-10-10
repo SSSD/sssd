@@ -28,6 +28,7 @@
 #include "util/util.h"
 #include "db/sysdb_sudo.h"
 #include "responder/sudo/sudosrv_private.h"
+#include "providers/data_provider.h"
 
 static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx);
 
@@ -77,6 +78,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
     struct tevent_req *dpreq;
     struct dp_callback_ctx *cb_ctx;
     const char *original_name = NULL;
+    const char *extra_flag = NULL;
     char *name = NULL;
     uid_t uid = 0;
     errno_t ret;
@@ -119,7 +121,7 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
         DEBUG(SSSDBG_FUNC_DATA, "Requesting info about [%s@%s]\n",
               name, dom->name);
 
-        ret = sysdb_getpwnam(dctx, dctx->domain, name, &user);
+        ret = sysdb_getpwnam_with_views(dctx, dctx->domain, name, &user);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to make request to our cache!\n");
@@ -157,9 +159,14 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
          * outdated, go to DP */
         if ((user->count == 0 || cache_expire < time(NULL))
             && dctx->check_provider) {
+
+            if (DOM_HAS_VIEWS(dom) && user->count == 0) {
+                extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+            }
+
             dpreq = sss_dp_get_account_send(cli_ctx, cli_ctx->rctx,
                                             dom, false, SSS_DP_INITGROUPS,
-                                            cmd_ctx->username, 0, NULL);
+                                            cmd_ctx->username, 0, extra_flag);
             if (!dpreq) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Out of memory sending data provider request\n");
@@ -187,7 +194,8 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
         }
 
         /* check uid */
-        uid = ldb_msg_find_attr_as_int(user->msgs[0], SYSDB_UIDNUM, 0);
+        uid = sss_view_ldb_msg_find_attr_as_uint64(dom, user->msgs[0],
+                                                   SYSDB_UIDNUM, 0);
         if (uid != cmd_ctx->uid) {
             /* if a multidomain search, try with next */
             if (cmd_ctx->check_next) {
