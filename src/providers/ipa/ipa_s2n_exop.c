@@ -359,8 +359,7 @@ static errno_t s2n_encode_request(TALLOC_CTX *mem_ctx,
     }
 
     ret = talloc_ber_flatten(mem_ctx, ber, _bv);
-    if (ret == -1) {
-        ret = EFAULT;
+    if (ret != EOK) {
         goto done;
     }
 
