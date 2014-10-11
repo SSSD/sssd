@@ -1431,8 +1431,8 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
                                      &allow_sids, &allow_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "parse_policy_setting_value failed; allow_size %d: %d\n",
-              allow_size, ret);
+              "parse_policy_setting_value failed for key %s: [%d](%s)\n",
+              allow_key, ret, sss_strerror(ret));
         ret = EINVAL;
         goto done;
     }
@@ -1441,8 +1441,8 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
                                      &deny_sids, &deny_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "parse_policy_setting_value failed; deny_size %d: %d\n",
-              deny_size, ret);
+              "parse_policy_setting_value failed for key %s: [%d](%s)\n",
+              deny_key, ret, sss_strerror(ret));
         ret = EINVAL;
         goto done;
     }
