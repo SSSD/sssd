@@ -645,7 +645,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc COPYING
 %{_libdir}/%{name}/libsss_krb5_common.so
-%{_libexecdir}/%{servicename}/ldap_child
+%attr(4750,root,sssd) %{_libexecdir}/%{servicename}/ldap_child
 %{_libexecdir}/%{servicename}/krb5_child
 
 %files krb5 -f sssd_krb5.lang

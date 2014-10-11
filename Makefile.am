@@ -2844,6 +2844,11 @@ else
 	$(MKDIR_P) $(DESTDIR)$(initdir)
 endif
 
+if SSSD_USER
+	chgrp $(SSSD_USER) $(sssdlibexecdir)/ldap_child
+	chmod 4750 $(sssdlibexecdir)/ldap_child
+endif
+
 install-data-hook:
 	rm $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2 \
        $(DESTDIR)/$(nsslibdir)/libnss_sss.so
