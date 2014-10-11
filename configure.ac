@@ -4,6 +4,8 @@ m4_include([version.m4])
 AC_INIT([sssd],
         VERSION_NUMBER,
         [sssd-devel@lists.fedorahosted.org])
+AC_CONFIG_SRCDIR([BUILD.txt])
+AC_CONFIG_AUX_DIR([build])
 
 m4_ifdef([AC_USE_SYSTEM_EXTENSIONS],
     [AC_USE_SYSTEM_EXTENSIONS],
@@ -11,8 +13,6 @@ m4_ifdef([AC_USE_SYSTEM_EXTENSIONS],
 
 CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
 
-AC_CONFIG_SRCDIR([BUILD.txt])
-AC_CONFIG_AUX_DIR([build])
 
 AM_INIT_AUTOMAKE([-Wall foreign subdir-objects tar-pax])
 AM_PROG_CC_C_O
