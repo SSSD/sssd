@@ -160,6 +160,83 @@ set_child_debugging(krb5_context ctx)
     return EOK;
 }
 
+static int lc_verify_keytab_ex(const char *principal,
+                               const char *keytab_name,
+                               krb5_context context,
+                               krb5_keytab keytab)
+{
+    bool found;
+    char *kt_principal;
+    krb5_error_code krberr;
+    krb5_kt_cursor cursor;
+    krb5_keytab_entry entry;
+
+    krberr = krb5_kt_start_seq_get(context, keytab, &cursor);
+    if (krberr) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Cannot read keytab [%s].\n", KEYTAB_CLEAN_NAME);
+
+        sss_log(SSS_LOG_ERR, "Error reading keytab file [%s]: [%d][%s]. "
+                             "Unable to create GSSAPI-encrypted LDAP "
+                             "connection.",
+                             KEYTAB_CLEAN_NAME, krberr,
+                             sss_krb5_get_error_message(context, krberr));
+
+        return EIO;
+    }
+
+    found = false;
+    while ((krb5_kt_next_entry(context, keytab, &entry, &cursor)) == 0) {
+        krberr = krb5_unparse_name(context, entry.principal, &kt_principal);
+        if (krberr) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Could not parse keytab entry\n");
+            sss_log(SSS_LOG_ERR, "Could not parse keytab entry\n");
+            return EIO;
+        }
+
+        if (strcmp(principal, kt_principal) == 0) {
+            found = true;
+        }
+        free(kt_principal);
+        krberr = sss_krb5_free_keytab_entry_contents(context, &entry);
+        if (krberr) {
+            /* This should never happen. The API docs for this function
+             * specify only success for this function
+             */
+            DEBUG(SSSDBG_CRIT_FAILURE,"Could not free keytab entry contents\n");
+            /* This is non-fatal, so we'll continue here */
+        }
+
+        if (found) {
+            break;
+        }
+    }
+
+    krberr = krb5_kt_end_seq_get(context, keytab, &cursor);
+    if (krberr) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not close keytab.\n");
+        sss_log(SSS_LOG_ERR, "Could not close keytab file [%s].",
+                             KEYTAB_CLEAN_NAME);
+        return EIO;
+    }
+
+    if (!found) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Principal [%s] not found in keytab [%s]\n",
+               principal,
+               KEYTAB_CLEAN_NAME);
+        sss_log(SSS_LOG_ERR, "Error processing keytab file [%s]: "
+                             "Principal [%s] was not found. "
+                             "Unable to create GSSAPI-encrypted LDAP connection.",
+                             KEYTAB_CLEAN_NAME, principal);
+
+        return EFAULT;
+    }
+
+    return EOK;
+}
+
 static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                                                const char *realm_str,
                                                const char *princ_str,
@@ -287,7 +364,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     }
 
     /* Verify the keytab */
-    ret = sss_krb5_verify_keytab_ex(full_princ, keytab_name, context, keytab);
+    ret = lc_verify_keytab_ex(full_princ, keytab_name, context, keytab);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
                 "Unable to verify principal is present in the keytab\n");

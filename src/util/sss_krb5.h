@@ -70,9 +70,6 @@ void KRB5_CALLCONV sss_krb5_get_init_creds_opt_free (krb5_context context,
 
 void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name);
 
-int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
-                              krb5_context context, krb5_keytab keytab);
-
 krb5_error_code find_principal_in_keytab(krb5_context ctx,
                                          krb5_keytab keytab,
                                          const char *pattern_primary,
