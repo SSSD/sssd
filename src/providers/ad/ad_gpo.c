@@ -1147,6 +1147,13 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
                 ret = sysdb_gpo_store_gpo_result_setting(domain,
                                                          allow_key,
                                                          allow_value);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "sysdb_gpo_store_gpo_result_setting failed for key:"
+                          "'%s' value:'%s' [%d][%s]\n", allow_key, allow_value,
+                          ret, sss_strerror(ret));
+                    goto done;
+                }
             }
         }
 
@@ -1166,6 +1173,13 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
                 ret = sysdb_gpo_store_gpo_result_setting(domain,
                                                          deny_key,
                                                          deny_value);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "sysdb_gpo_store_gpo_result_setting failed for key:"
+                          "'%s' value:'%s' [%d][%s]\n", deny_key, deny_value,
+                          ret, sss_strerror(ret));
+                    goto done;
+                }
             }
         }
     }
