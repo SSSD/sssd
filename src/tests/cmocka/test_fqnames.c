@@ -480,6 +480,29 @@ void sss_parse_name_fail(void **state)
     sss_parse_name_check(test_ctx, NAME"\\", EINVAL, NULL, NULL);
 }
 
+void test_sss_get_domain_name(void **state)
+{
+    struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
+                                                   struct parse_name_test_ctx);
+    struct {
+        const char *input;
+        struct sss_domain_info *domain;
+        const char *expected;
+    } data[] = {{"user", test_ctx->dom, "user"},
+                {"user", test_ctx->subdom, "user@" SUBDOMNAME},
+                {"user@" SUBDOMNAME, test_ctx->subdom, "user@" SUBDOMNAME},
+                {NULL, NULL, NULL}};
+    char *name;
+    int i;
+
+    for (i = 0; data[i].input != NULL; i++) {
+        name = sss_get_domain_name(test_ctx, data[i].input, data[i].domain);
+        assert_non_null(name);
+        assert_string_equal(name, data[i].expected);
+        talloc_free(name);
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -518,6 +541,10 @@ int main(int argc, const char *argv[])
                                  parse_name_test_setup,
                                  parse_name_test_teardown),
         unit_test_setup_teardown(sss_parse_name_fail,
+                                 parse_name_test_setup,
+                                 parse_name_test_teardown),
+
+        unit_test_setup_teardown(test_sss_get_domain_name,
                                  parse_name_test_setup,
                                  parse_name_test_teardown),
     };
