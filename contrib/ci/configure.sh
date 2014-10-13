@@ -38,13 +38,6 @@ if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ]]; then
     )
 fi
 
-if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
-    CONFIGURE_ARG_LIST+=(
-        # TODO Remove once libini_config >= 1.1.0 becomes available
-        "--without-samba"
-    )
-fi
-
 declare -r -a CONFIGURE_ARG_LIST
 
 fi # _CONFIGURE_SH
