@@ -637,13 +637,25 @@ sss_get_domain_name(TALLOC_CTX *mem_ctx,
                     struct sss_domain_info *dom)
 {
     char *user_name;
+    char *domain = NULL;
+    int ret;
 
-    if (IS_SUBDOMAIN(dom) && dom->fqnames) {
+    /* check if the name already contains domain part */
+    if (dom->names != NULL) {
+        ret = sss_parse_name(mem_ctx, dom->names, orig_name, &domain, NULL);
+        if (ret != EOK) {
+            return NULL;
+        }
+    }
+
+    if (IS_SUBDOMAIN(dom) && dom->fqnames && domain == NULL) {
         /* we always use the fully qualified name for subdomain users */
         user_name = sss_tc_fqname(mem_ctx, dom->names, dom, orig_name);
     } else {
         user_name = talloc_strdup(mem_ctx, orig_name);
     }
+
+    talloc_free(domain);
 
     return user_name;
 }
