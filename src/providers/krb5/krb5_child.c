@@ -1840,11 +1840,60 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
     return EOK;
 }
 
+enum k5c_fast_opt {
+    K5C_FAST_NEVER,
+    K5C_FAST_TRY,
+    K5C_FAST_DEMAND,
+};
+
+static errno_t check_use_fast(enum k5c_fast_opt *_fast_val)
+{
+    char *use_fast_str;
+    enum k5c_fast_opt fast_val;
+
+    use_fast_str = getenv(SSSD_KRB5_USE_FAST);
+    if (use_fast_str == NULL || strcasecmp(use_fast_str, "never") == 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Not using FAST.\n");
+        fast_val = K5C_FAST_NEVER;
+    } else if (strcasecmp(use_fast_str, "try") == 0) {
+        fast_val = K5C_FAST_TRY;
+    } else if (strcasecmp(use_fast_str, "demand") == 0) {
+        fast_val = K5C_FAST_DEMAND;
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+                "Unsupported value [%s] for krb5_use_fast.\n",
+                use_fast_str);
+        return EINVAL;
+    }
+
+    *_fast_val = fast_val;
+    return EOK;
+}
+
 static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 {
     krb5_error_code kerr;
-    char *use_fast_str;
     int parse_flags;
+    enum k5c_fast_opt fast_val;
+
+    kerr = check_use_fast(&fast_val);
+    if (kerr != EOK) {
+        return kerr;
+    }
+
+    if (offline || (fast_val == K5C_FAST_NEVER && kr->validate == false)) {
+        /* If krb5_child was started as setuid, but we don't need to
+         * perform either validation or FAST, just drop privileges to
+         * the user who is logging in. The same applies to the offline case
+         */
+        kerr = become_user(kr->uid, kr->gid);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
+            return kerr;
+        }
+    }
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
 
     kr->realm = getenv(SSSD_KRB5_REALM);
     if (kr->realm == NULL) {
@@ -1931,18 +1980,12 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     if (!offline) {
         set_canonicalize_option(kr->options);
 
-        use_fast_str = getenv(SSSD_KRB5_USE_FAST);
-        if (use_fast_str == NULL || strcasecmp(use_fast_str, "never") == 0) {
-            DEBUG(SSSDBG_CONF_SETTINGS, "Not using FAST.\n");
-        } else if (strcasecmp(use_fast_str, "try") == 0) {
-            kerr = k5c_setup_fast(kr, false);
-        } else if (strcasecmp(use_fast_str, "demand") == 0) {
-            kerr = k5c_setup_fast(kr, true);
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Unsupported value [%s] for krb5_use_fast.\n",
-                   use_fast_str);
-            return EINVAL;
+        if (fast_val != K5C_FAST_NEVER) {
+            kerr = k5c_setup_fast(kr, fast_val == K5C_FAST_DEMAND);
+            if (kerr != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Cannot set up FAST\n");
+                return kerr;
+            }
         }
     }
 

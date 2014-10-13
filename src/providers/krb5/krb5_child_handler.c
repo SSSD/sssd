@@ -284,14 +284,6 @@ static errno_t fork_child(struct tevent_req *req)
     pid = fork();
 
     if (pid == 0) { /* child */
-        if (state->kr->run_as_user) {
-            ret = become_user(state->kr->uid, state->kr->gid);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
-                return ret;
-            }
-        }
-
         err = exec_child(state,
                          pipefd_to_child, pipefd_from_child,
                          KRB5_CHILD, state->kr->krb5_ctx->child_debug_fd);
