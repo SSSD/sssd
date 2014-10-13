@@ -1449,7 +1449,7 @@
                     <listitem>
                         <para>
                             Specifies acceptable cipher suites.  Typically this
-                            is a colon sperated list.  See 
+                            is a colon sperated list.  See
                             <citerefentry><refentrytitle>ldap.conf</refentrytitle>
                             <manvolnum>5</manvolnum></citerefentry> for format.
                         </para>
@@ -1922,6 +1922,9 @@ ldap_access_filter = (employeeType=admin)
                             attribute 'pwdAccountLockedTime' is present and has
                             value of '000001010000Z'. Please see the option
                             ldap_pwdlockout_dn.
+
+                            Please note that 'access_provider = ldap' must
+                            be set for this feature to work.
                         </para>
                         <para>
                             <emphasis>expire</emphasis>: use
@@ -2484,6 +2487,27 @@ ldap_access_filter = (employeeType=admin)
     [domain/LDAP]
     id_provider = ldap
     auth_provider = ldap
+    ldap_uri = ldap://ldap.mydomain.org
+    ldap_search_base = dc=mydomain,dc=org
+    ldap_tls_reqcert = demand
+    cache_credentials = true
+</programlisting>
+        </para>
+    </refsect1>
+    <refsect1 id='ldap_access_filter_example'>
+        <title>LDAP ACCESS FILTER EXAMPLE</title>
+        <para>
+            The following example assumes that SSSD is correctly
+            configured and to use the ldap_access_order=lockout.
+        </para>
+        <para>
+<programlisting>
+    [domain/LDAP]
+    id_provider = ldap
+    auth_provider = ldap
+    access_provider = ldap
+    ldap_access_order = lockout
+    ldap_pwdlockout_dn = cn=ppolicy,ou=policies,dc=mydomain,dc=org
     ldap_uri = ldap://ldap.mydomain.org
     ldap_search_base = dc=mydomain,dc=org
     ldap_tls_reqcert = demand
