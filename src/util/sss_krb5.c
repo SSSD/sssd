@@ -758,8 +758,15 @@ void sss_krb5_get_init_creds_opt_set_canonicalize(krb5_get_init_creds_opt *opts,
 void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
                           const char **realm, int *len)
 {
-    *realm = krb5_principal_get_realm(context, princ);
-    *len = strlen(*realm);
+    const char *realm_str = krb5_principal_get_realm(context, princ);
+
+    if (realm_str != NULL) {
+        *realm = realm_str;
+        *len = strlen(realm_str);
+    } else {
+        *realm = NULL;
+        *len = 0;
+    }
 }
 #else
 void sss_krb5_princ_realm(krb5_context context, krb5_const_principal princ,
