@@ -1276,7 +1276,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
 {
     errno_t ret;
     int dp_error = DP_ERR_FATAL;
-    size_t reply_count;
+    size_t reply_count = 0;
     struct sysdb_attrs **reply = NULL;
     struct ipa_subdomains_req_ctx *ctx;
 
