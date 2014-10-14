@@ -66,7 +66,9 @@ do { \
 			(p)->next = (p)->prev = NULL; \
 		} else { \
 			type tmp; \
-			for (tmp = (list); tmp->next; tmp = tmp->next) ; \
+			for (tmp = (list); tmp->next; tmp = tmp->next) { \
+				/* no op */ \
+			} \
 			tmp->next = (p); \
 			(p)->next = NULL; \
 			(p)->prev = tmp; \
@@ -102,7 +104,9 @@ do { \
 			(list1) = (list2); \
 		} else { \
 			type tmp; \
-			for (tmp = (list1); tmp->next; tmp = tmp->next) ; \
+			for (tmp = (list1); tmp->next; tmp = tmp->next) { \
+				/* no op */ \
+			} \
 			tmp->next = (list2); \
 			if (list2) { \
 				(list2)->prev = tmp;	\
@@ -118,7 +122,9 @@ do { \
                     DLIST_CONCATENATE(list1, list2, type); \
                 } else { \
                     type tmp; \
-                    for (tmp = (list2); tmp->next; tmp = tmp->next) ; \
+                    for (tmp = (list2); tmp->next; tmp = tmp->next) { \
+                        /* no op */ \
+                    } \
                     (list2)->prev = (el); \
                     tmp->next = (el)->next; \
                     (el)->next = (list2); \
