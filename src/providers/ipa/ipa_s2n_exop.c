@@ -1196,6 +1196,11 @@ static errno_t process_members(struct sss_domain_info *domain,
     struct sss_domain_info *obj_domain;
     struct sss_domain_info *parent_domain;
 
+    if (members == NULL) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "No members\n");
+        return EOK;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
@@ -1731,6 +1736,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                     goto done;
                 }
             }
+            DEBUG(SSSDBG_TRACE_FUNC, "Processing group %s\n", name);
 
             ret = sysdb_attrs_add_lc_name_alias(attrs->sysdb_attrs, name);
             if (ret != EOK) {
