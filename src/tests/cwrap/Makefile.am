@@ -1,4 +1,5 @@
 AM_CPPFLAGS = \
+    -std=gnu99 \
     -Wall \
     -I$(top_srcdir)/src \
     -I. \
