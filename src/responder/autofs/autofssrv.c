@@ -132,7 +132,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     autofs_cmds = get_autofs_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            autofs_cmds,
-                           SSS_AUTOFS_SOCKET_NAME, NULL,
+                           SSS_AUTOFS_SOCKET_NAME, -1, NULL, -1,
                            CONFDB_AUTOFS_CONF_ENTRY,
                            SSS_AUTOFS_SBUS_SERVICE_NAME,
                            SSS_AUTOFS_SBUS_SERVICE_VERSION,

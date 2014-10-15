@@ -92,7 +92,7 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
     ssh_cmds = get_ssh_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
                            ssh_cmds,
-                           SSS_SSH_SOCKET_NAME, NULL,
+                           SSS_SSH_SOCKET_NAME, -1, NULL, -1,
                            CONFDB_SSH_CONF_ENTRY,
                            SSS_SSH_SBUS_SERVICE_NAME,
                            SSS_SSH_SBUS_SERVICE_VERSION,

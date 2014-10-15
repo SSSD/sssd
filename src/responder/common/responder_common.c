@@ -689,9 +689,11 @@ static int set_unix_socket(struct resp_ctx *rctx)
     if (rctx->sock_name != NULL ) {
         /* Set the umask so that permissions are set right on the socket.
          * It must be readable and writable by anybody on the system. */
-        ret = create_pipe_fd(rctx->sock_name, &rctx->lfd, 0111);
-        if (ret != EOK) {
-            return ret;
+        if (rctx->lfd == -1) {
+            ret = create_pipe_fd(rctx->sock_name, &rctx->lfd, 0111);
+            if (ret != EOK) {
+                return ret;
+            }
         }
 
         accept_ctx = talloc_zero(rctx, struct accept_fd_ctx);
@@ -710,9 +712,11 @@ static int set_unix_socket(struct resp_ctx *rctx)
 
     if (rctx->priv_sock_name != NULL ) {
         /* create privileged pipe */
-        ret = create_pipe_fd(rctx->priv_sock_name, &rctx->priv_lfd, 0177);
-        if (ret != EOK) {
-            goto failed;
+        if (rctx->priv_lfd == -1) {
+            ret = create_pipe_fd(rctx->priv_sock_name, &rctx->priv_lfd, 0177);
+            if (ret != EOK) {
+                goto failed;
+            }
         }
 
         accept_ctx = talloc_zero(rctx, struct accept_fd_ctx);
@@ -755,7 +759,9 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct confdb_ctx *cdb,
                      struct sss_cmd_table sss_cmds[],
                      const char *sss_pipe_name,
+                     int pipe_fd,
                      const char *sss_priv_pipe_name,
+                     int priv_pipe_fd,
                      const char *confdb_service_path,
                      const char *svc_name,
                      uint16_t svc_version,
@@ -779,6 +785,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->sss_cmds = sss_cmds;
     rctx->sock_name = sss_pipe_name;
     rctx->priv_sock_name = sss_priv_pipe_name;
+    rctx->lfd = pipe_fd;
+    rctx->priv_lfd = priv_pipe_fd;
     rctx->confdb_service_path = confdb_service_path;
     rctx->shutting_down = false;
 
