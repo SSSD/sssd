@@ -1306,6 +1306,14 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
             return ENOMEM;
         }
 
+        svc->command = talloc_asprintf_append(svc->command,
+                " --uid %"SPRIuid" --gid %"SPRIgid,
+                ctx->uid, ctx->gid);
+        if (!svc->command) {
+            talloc_free(svc);
+            return ENOMEM;
+        }
+
         if (cmdline_debug_level != SSSDBG_UNRESOLVED) {
             svc->command = talloc_asprintf_append(
                 svc->command, " -d %#.4x", cmdline_debug_level

@@ -116,6 +116,8 @@ struct be_ctx {
     struct sss_domain_info *domain;
     const char *identity;
     const char *conf_path;
+    uid_t uid;
+    gid_t gid;
     struct be_failover_ctx *be_fo;
     struct be_resolv_ctx *be_res;
 

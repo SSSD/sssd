@@ -2226,6 +2226,9 @@ static int be_client_init(struct sbus_connection *conn, void *data)
     becli->conn = conn;
     becli->initialized = false;
 
+    /* Allow access from the SSSD user */
+    sbus_allow_uid(conn, &bectx->uid);
+
     /* 5 seconds should be plenty */
     tv = tevent_timeval_current_ofs(5, 0);
 
@@ -2251,7 +2254,8 @@ static int be_client_init(struct sbus_connection *conn, void *data)
 
 /* be_srv_init
  * set up per-domain sbus channel */
-static int be_srv_init(struct be_ctx *ctx)
+static int be_srv_init(struct be_ctx *ctx,
+                       uid_t uid, gid_t gid)
 {
     char *sbus_address;
     int ret;
@@ -2263,7 +2267,10 @@ static int be_srv_init(struct be_ctx *ctx)
         return ret;
     }
 
-    ret = sbus_new_server(ctx, ctx->ev, sbus_address, 0, 0,
+    ctx->uid = uid;
+    ctx->gid = gid;
+
+    ret = sbus_new_server(ctx, ctx->ev, sbus_address, uid, gid,
                           true, &ctx->sbus_srv, be_client_init, ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");
@@ -2554,6 +2561,7 @@ done:
 
 int be_process_init(TALLOC_CTX *mem_ctx,
                     const char *be_domain,
+                    uid_t uid, gid_t gid,
                     struct tevent_context *ev,
                     struct confdb_ctx *cdb)
 {
@@ -2609,7 +2617,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = be_srv_init(ctx);
+    ret = be_srv_init(ctx, uid, gid);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error setting up server bus\n");
         goto fail;
@@ -2870,7 +2878,7 @@ int main(int argc, const char *argv[])
     }
 
     ret = be_process_init(main_ctx,
-                          be_domain,
+                          be_domain, uid, gid,
                           main_ctx->event_ctx,
                           main_ctx->confdb_ctx);
     if (ret != EOK) {
