@@ -584,10 +584,69 @@ static int sss_dp_init(struct resp_ctx *rctx,
     return EOK;
 }
 
+int create_pipe_fd(const char *sock_name, int *fd, mode_t umaskval)
+{
+    struct sockaddr_un addr;
+    errno_t ret;
+
+    *fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (*fd == -1) {
+        return EIO;
+    }
+
+    umask(umaskval);
+
+    ret = set_nonblocking(*fd);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = set_close_on_exec(*fd);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, sock_name, sizeof(addr.sun_path) - 1);
+    addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
+
+    /* make sure we have no old sockets around */
+    ret = unlink(sock_name);
+    if (ret != 0 && errno != ENOENT) {
+        ret = errno;
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot remove old socket (errno=%d), bind might fail!\n", ret);
+    }
+
+    if (bind(*fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unable to bind on socket '%s'\n", sock_name);
+        ret = EIO;
+        goto done;
+    }
+    if (listen(*fd, 10) != 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unable to listen on socket '%s'\n", sock_name);
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    /* we want default permissions on created files to be very strict,
+       so set our umask to 0177 */
+    umask(0177);
+    if (ret != EOK) {
+        close(*fd);
+    }
+    return ret;
+}
+
 /* create a unix socket and listen to it */
 static int set_unix_socket(struct resp_ctx *rctx)
 {
-    struct sockaddr_un addr;
     errno_t ret;
     struct accept_fd_ctx *accept_ctx;
 
@@ -628,42 +687,11 @@ static int set_unix_socket(struct resp_ctx *rctx)
 #endif
 
     if (rctx->sock_name != NULL ) {
-        rctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (rctx->lfd == -1) {
-            return EIO;
-        }
-
         /* Set the umask so that permissions are set right on the socket.
          * It must be readable and writable by anybody on the system. */
-        umask(0111);
-
-        ret = set_nonblocking(rctx->lfd);
+        ret = create_pipe_fd(rctx->sock_name, &rctx->lfd, 0111);
         if (ret != EOK) {
-            goto failed;
-        }
-
-        ret = set_close_on_exec(rctx->lfd);
-        if (ret != EOK) {
-            goto failed;
-        }
-
-        memset(&addr, 0, sizeof(addr));
-        addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, rctx->sock_name, sizeof(addr.sun_path)-1);
-        addr.sun_path[sizeof(addr.sun_path)-1] = '\0';
-
-        /* make sure we have no old sockets around */
-        unlink(rctx->sock_name);
-
-        if (bind(rctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Unable to bind on socket '%s'\n", rctx->sock_name);
-            goto failed;
-        }
-        if (listen(rctx->lfd, 10) != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Unable to listen on socket '%s'\n", rctx->sock_name);
-            goto failed;
+            return ret;
         }
 
         accept_ctx = talloc_zero(rctx, struct accept_fd_ctx);
@@ -682,39 +710,8 @@ static int set_unix_socket(struct resp_ctx *rctx)
 
     if (rctx->priv_sock_name != NULL ) {
         /* create privileged pipe */
-        rctx->priv_lfd = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (rctx->priv_lfd == -1) {
-            close(rctx->lfd);
-            return EIO;
-        }
-
-        umask(0177);
-
-        ret = set_nonblocking(rctx->priv_lfd);
+        ret = create_pipe_fd(rctx->priv_sock_name, &rctx->priv_lfd, 0177);
         if (ret != EOK) {
-            goto failed;
-        }
-
-        ret = set_close_on_exec(rctx->priv_lfd);
-        if (ret != EOK) {
-            goto failed;
-        }
-
-        memset(&addr, 0, sizeof(addr));
-        addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, rctx->priv_sock_name, sizeof(addr.sun_path)-1);
-        addr.sun_path[sizeof(addr.sun_path)-1] = '\0';
-
-        unlink(rctx->priv_sock_name);
-
-        if (bind(rctx->priv_lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Unable to bind on socket '%s'\n", rctx->priv_sock_name);
-            goto failed;
-        }
-        if (listen(rctx->priv_lfd, 10) != 0) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "Unable to listen on socket '%s'\n", rctx->priv_sock_name);
             goto failed;
         }
 
@@ -733,15 +730,9 @@ static int set_unix_socket(struct resp_ctx *rctx)
         }
     }
 
-    /* we want default permissions on created files to be very strict,
-       so set our umask to 0177 */
-    umask(0177);
     return EOK;
 
 failed:
-    /* we want default permissions on created files to be very strict,
-       so set our umask to 0177 */
-    umask(0177);
     close(rctx->lfd);
     close(rctx->priv_lfd);
     return EIO;
