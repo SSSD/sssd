@@ -1123,7 +1123,7 @@ static int pam_check_user_search(struct pam_auth_req *preq)
         if (preq->pd->name_is_upn) {
             ret = sysdb_search_user_by_upn(preq, dom, name, user_attrs, &msg);
         } else {
-            ret = sysdb_getpwnam(preq, dom, name, &res);
+            ret = sysdb_getpwnam_with_views(preq, dom, name, &res);
             if (res->count > 1) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
                       "getpwnam call returned more than one result !?!\n");
