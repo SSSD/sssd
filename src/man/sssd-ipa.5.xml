@@ -626,6 +626,9 @@
                                     <listitem>
                                         <para>ldap_user_shell</para>
                                     </listitem>
+                                    <listitem>
+                                        <para>ldap_user_ssh_public_key</para>
+                                    </listitem>
                                 </itemizedlist>
                             </para>
                             <para>

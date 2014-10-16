@@ -560,6 +560,8 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
     TALLOC_CTX *tmp_ctx;
     struct sysdb_attrs *attrs;
     size_t c;
+    size_t d;
+    size_t num_values;
     struct ldb_message_element *el = NULL;
     const char *allowed_attrs[] = { SYSDB_UIDNUM,
                                     SYSDB_GIDNUM,
@@ -567,6 +569,7 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                                     SYSDB_HOMEDIR,
                                     SYSDB_SHELL,
                                     SYSDB_NAME,
+                                    SYSDB_SSH_PUBKEY,
                                     NULL };
     bool override_attrs_found = false;
 
@@ -584,7 +587,6 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
     }
 
     for (c = 0; allowed_attrs[c] != NULL; c++) {
-        /* TODO: add nameAlias for case-insentitive searches */
         ret = sysdb_attrs_get_el_ext(override_attrs, allowed_attrs[c], false,
                                      &el);
         if (ret == EOK) {
@@ -607,17 +609,30 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                     goto done;
                 }
             } else {
-                ret = sysdb_attrs_add_val(attrs,  allowed_attrs[c],
-                                          &el->values[0]);
-                if (ret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val failed.\n");
-                    goto done;
+                num_values = el->num_values;
+                /* Only SYSDB_SSH_PUBKEY is allowed to have multiple values. */
+                if (strcmp(allowed_attrs[c], SYSDB_SSH_PUBKEY) != 0
+                        && num_values != 1) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "Override attribute for [%s] has more [%zd] " \
+                          "than one value, using only the first.\n",
+                          allowed_attrs[c], num_values);
+                    num_values = 1;
                 }
-                DEBUG(SSSDBG_TRACE_ALL, "Override [%s] with [%.*s] for [%s].\n",
-                                        allowed_attrs[c],
-                                        (int) el->values[0].length,
-                                        el->values[0].data,
-                                        ldb_dn_get_linearized(obj_dn));
+
+                for (d = 0; d < num_values; d++) {
+                    ret = sysdb_attrs_add_val(attrs,  allowed_attrs[c],
+                                              &el->values[d]);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "sysdb_attrs_add_val failed.\n");
+                        goto done;
+                    }
+                    DEBUG(SSSDBG_TRACE_ALL,
+                          "Override [%s] with [%.*s] for [%s].\n",
+                          allowed_attrs[c], (int) el->values[d].length,
+                          el->values[d].data, ldb_dn_get_linearized(obj_dn));
+                }
             }
         } else if (ret != ENOENT) {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el_ext failed.\n");
@@ -983,6 +998,7 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
         {SYSDB_HOMEDIR, OVERRIDE_PREFIX SYSDB_HOMEDIR},
         {SYSDB_SHELL, OVERRIDE_PREFIX SYSDB_SHELL},
         {SYSDB_NAME, OVERRIDE_PREFIX SYSDB_NAME},
+        {SYSDB_SSH_PUBKEY, OVERRIDE_PREFIX SYSDB_SSH_PUBKEY},
         {NULL, NULL}
     };
     size_t c;

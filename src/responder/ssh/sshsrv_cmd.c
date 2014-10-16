@@ -232,8 +232,8 @@ ssh_user_pubkeys_search_next(struct ssh_cmd_ctx *cmd_ctx)
         return EFAULT;
     }
 
-    ret = sysdb_get_user_attr(cmd_ctx, cmd_ctx->domain,
-                              cmd_ctx->name, attrs, &res);
+    ret = sysdb_get_user_attr_with_views(cmd_ctx, cmd_ctx->domain,
+                                         cmd_ctx->name, attrs, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to make request to our cache!\n");
@@ -782,6 +782,65 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     return EOK;
 }
 
+static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
+                                          struct ldb_message_element *el,
+                                          size_t fqname_len,
+                                          const char *fqname,
+                                          size_t *c)
+{
+    struct cli_ctx *cctx = cmd_ctx->cctx;
+    uint8_t *key;
+    size_t key_len;
+    uint8_t *body;
+    size_t body_len;
+    int ret;
+    size_t d;
+    TALLOC_CTX *tmp_ctx;
+
+    if (el == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Mssing element, nothing to do.\n");
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    for (d = 0; d < el->num_values; d++) {
+        key = sss_base64_decode(tmp_ctx, (const char *) el->values[d].data,
+                                &key_len);
+        if (key == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sss_packet_grow(cctx->creq->out,
+                              3*sizeof(uint32_t) + key_len + fqname_len);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_packet_grow failed.\n");
+            goto done;
+        }
+        sss_packet_get_body(cctx->creq->out, &body, &body_len);
+
+        SAFEALIGN_SET_UINT32(body+(*c), 0, c);
+        SAFEALIGN_SET_UINT32(body+(*c), fqname_len, c);
+        safealign_memcpy(body+(*c), fqname, fqname_len, c);
+        SAFEALIGN_SET_UINT32(body+(*c), key_len, c);
+        safealign_memcpy(body+(*c), key, key_len, c);
+
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static errno_t
 ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
 {
@@ -790,14 +849,13 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     uint8_t *body;
     size_t body_len;
     size_t c = 0;
-    unsigned int i;
-    struct ldb_message_element *el;
+    struct ldb_message_element *el = NULL;
+    struct ldb_message_element *el_override = NULL;
+    struct ldb_message_element *el_orig = NULL;
     uint32_t count = 0;
     const char *name;
     char *fqname;
     uint32_t fqname_len;
-    uint8_t *key;
-    size_t key_len;
 
     ret = sss_packet_new(cctx->creq, 0,
                          sss_packet_get_cmd(cctx->creq->in),
@@ -811,6 +869,20 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
         count = el->num_values;
     }
 
+    el_orig = ldb_msg_find_element(cmd_ctx->result,
+                                  ORIGINALAD_PREFIX SYSDB_SSH_PUBKEY);
+    if (el_orig) {
+        count = el_orig->num_values;
+    }
+
+    if (DOM_HAS_VIEWS(cmd_ctx->domain)) {
+        el_override = ldb_msg_find_element(cmd_ctx->result,
+                                           OVERRIDE_PREFIX SYSDB_SSH_PUBKEY);
+        if (el_override) {
+            count += el_override->num_values;
+        }
+    }
+
     ret = sss_packet_grow(cctx->creq->out, 2*sizeof(uint32_t));
     if (ret != EOK) {
         return ret;
@@ -820,7 +892,7 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
     SAFEALIGN_SET_UINT32(body+c, count, &c);
     SAFEALIGN_SET_UINT32(body+c, 0, &c);
 
-    if (!el) {
+    if (count == 0) {
         return EOK;
     }
 
@@ -840,30 +912,23 @@ ssh_cmd_build_reply(struct ssh_cmd_ctx *cmd_ctx)
 
     fqname_len = strlen(fqname)+1;
 
-    for (i = 0; i < el->num_values; i++) {
-        key = sss_base64_decode(cmd_ctx,
-                                (const char *)el->values[i].data,
-                                &key_len);
-        if (!key) {
-            return ENOMEM;
-        }
+    ret = decode_and_add_base64_data(cmd_ctx, el, fqname_len, fqname, &c);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
+        return ret;
+    }
 
-        ret = sss_packet_grow(cctx->creq->out,
-                              3*sizeof(uint32_t) + key_len + fqname_len);
-        if (ret != EOK) {
-            talloc_free(key);
-            return ret;
-        }
-        sss_packet_get_body(cctx->creq->out, &body, &body_len);
+    ret = decode_and_add_base64_data(cmd_ctx, el_orig, fqname_len, fqname, &c);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
+        return ret;
+    }
 
-        SAFEALIGN_SET_UINT32(body+c, 0, &c);
-        SAFEALIGN_SET_UINT32(body+c, fqname_len, &c);
-        safealign_memcpy(body+c, fqname, fqname_len, &c);
-        SAFEALIGN_SET_UINT32(body+c, key_len, &c);
-        safealign_memcpy(body+c, key, key_len, &c);
-
-        talloc_free(key);
-        count++;
+    ret = decode_and_add_base64_data(cmd_ctx, el_override, fqname_len, fqname,
+                                     &c);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "decode_and_add_base64_data failed.\n");
+        return ret;
     }
 
     return EOK;
