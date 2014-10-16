@@ -467,7 +467,7 @@ make %{?_smp_mflags} docs
 
 %check
 export CK_TIMEOUT_MULTIPLIER=10
-make %{?_smp_mflags} check
+make %{?_smp_mflags} check VERBOSE=yes
 unset CK_TIMEOUT_MULTIPLIER
 
 %install
