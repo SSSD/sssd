@@ -123,7 +123,7 @@ void nss_update_pw_memcache(struct nss_ctx *nctx)
     now = time(NULL);
 
     for (dom = nctx->rctx->domains; dom; dom = get_next_domain(dom, false)) {
-        ret = sysdb_enumpwent(nctx, dom, &res);
+        ret = sysdb_enumpwent_with_views(nctx, dom, &res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to enumerate users for domain [%s]\n", dom->name);
@@ -140,7 +140,8 @@ void nss_update_pw_memcache(struct nss_ctx *nctx)
             /* names require more manipulation (build up fqname conditionally),
              * but uidNumber is unique and always resolvable too, so we use
              * that to update the cache, as it points to the same entry */
-            id = ldb_msg_find_attr_as_string(res->msgs[i], SYSDB_UIDNUM, NULL);
+            id = sss_view_ldb_msg_find_attr_as_string(dom, res->msgs[i],
+                                                      SYSDB_UIDNUM, NULL);
             if (!id) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to find uidNumber in %s.\n",
@@ -2062,7 +2063,7 @@ static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
             }
         }
 
-        ret = sysdb_enumpwent(dctx, dom, &res);
+        ret = sysdb_enumpwent_with_views(dctx, dom, &res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Enum from cache failed, skipping domain [%s]\n",
@@ -2395,7 +2396,7 @@ void nss_update_gr_memcache(struct nss_ctx *nctx)
     now = time(NULL);
 
     for (dom = nctx->rctx->domains; dom; dom = get_next_domain(dom, false)) {
-        ret = sysdb_enumgrent(nctx, dom, &res);
+        ret = sysdb_enumgrent_with_views(nctx, dom, &res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to enumerate users for domain [%s]\n", dom->name);
@@ -2412,7 +2413,8 @@ void nss_update_gr_memcache(struct nss_ctx *nctx)
             /* names require more manipulation (build up fqname conditionally),
              * but uidNumber is unique and always resolvable too, so we use
              * that to update the cache, as it points to the same entry */
-            id = ldb_msg_find_attr_as_string(res->msgs[i], SYSDB_GIDNUM, NULL);
+            id = sss_view_ldb_msg_find_attr_as_string(dom, res->msgs[i],
+                                                      SYSDB_GIDNUM, NULL);
             if (!id) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Failed to find gidNumber in %s.\n",
@@ -3406,7 +3408,7 @@ static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
             }
         }
 
-        ret = sysdb_enumgrent(dctx, dom, &res);
+        ret = sysdb_enumgrent_with_views(dctx, dom, &res);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Enum from cache failed, skipping domain [%s]\n",
