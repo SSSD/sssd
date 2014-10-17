@@ -195,7 +195,7 @@ int main(int argc, const char *argv[])
     /* set up things like debug, signals, daemonization, etc... */
     debug_log_file = "sssd_sudo";
 
-    ret = server_setup("sssd[sudo]", 0, 0, 0, CONFDB_SUDO_CONF_ENTRY,
+    ret = server_setup("sssd[sudo]", 0, uid, gid, CONFDB_SUDO_CONF_ENTRY,
                        &main_ctx);
     if (ret != EOK) {
         return 2;

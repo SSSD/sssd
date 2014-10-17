@@ -1065,7 +1065,8 @@ static bool svc_supported_as_nonroot(const char *svc_name)
     if ((strcmp(svc_name, "nss") == 0)
         || (strcmp(svc_name, "pam") == 0)
         || (strcmp(svc_name, "autofs") == 0)
-        || (strcmp(svc_name, "pac") == 0)) {
+        || (strcmp(svc_name, "pac") == 0)
+        || (strcmp(svc_name, "sudo") == 0)) {
         return true;
     }
     return false;
