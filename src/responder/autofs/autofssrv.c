@@ -238,7 +238,7 @@ int main(int argc, const char *argv[])
     /* set up things like debug, signals, daemonization, etc... */
     debug_log_file = "sssd_autofs";
 
-    ret = server_setup("sssd[autofs]", 0, 0, 0,
+    ret = server_setup("sssd[autofs]", 0, uid, gid,
                        CONFDB_AUTOFS_CONF_ENTRY, &main_ctx);
     if (ret != EOK) {
         return 2;
