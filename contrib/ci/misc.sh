@@ -28,49 +28,6 @@ function rm_rf_ro()
     rm -Rf -- "$@"
 }
 
-# Run "scan-build" with output to a single specified directory, instead of
-# a subdirectory.
-# Args: dir [scan_build_arg...]
-function scan_build_single()
-{
-    declare -r dir="$1";    shift
-    declare entry
-    declare subdir
-    declare status
-
-    set +o errexit
-    scan-build -o "$dir" "$@"
-    status="$?"
-    set -o errexit
-
-    for entry in "$dir/"*; do
-        if [ -n "${subdir+set}" ] || ! [ -d "$entry" ]; then
-            echo 'Unexpected entries in scan-build output directory' >&2
-            exit 1
-        fi
-        subdir="$entry"
-    done
-
-    mv "$subdir/"* "$dir"
-    rmdir "$subdir"
-    return "$status"
-}
-
-# Check if a scan-build result directory has any non-empty .plist files.
-# Args: dir
-function scan_check()
-{
-    declare -r dir="$1"
-    declare f
-    for f in "$dir"/*.plist; do
-        if [ "`xqilla -i \"\$f\" /dev/stdin \
-                <<<'count(/plist/dict/array[count(*) > 0])'`" != 0 ]; then
-            return 1
-        fi
-    done
-    return 0
-}
-
 # Extract line and function coverage percentage from a "genhtml" or "lcov
 # --summary" output.
 # Input: "genhtml" or "lcov --summary" output

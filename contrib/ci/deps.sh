@@ -25,7 +25,6 @@ declare -r _DEPS_SH=
 declare -a DEPS_LIST=(
     lcov
     valgrind
-    xqilla
 )
 
 if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
