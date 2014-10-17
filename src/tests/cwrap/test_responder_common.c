@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <talloc.h>
 
 #include <popt.h>
 #include "util/util.h"
@@ -105,6 +106,93 @@ void test_csv_to_uid_list_neg(void **state)
     talloc_free(tmp_ctx);
 }
 
+struct create_pipe_ctx {
+    int fd;
+    const char *sock_name;
+};
+
+void test_create_pipe_fd_setup(void **state)
+{
+    struct create_pipe_ctx *ctx;
+
+    ctx = talloc(global_talloc_context, struct create_pipe_ctx);
+    assert_non_null(ctx);
+    ctx->fd = -1;
+
+    *state = ctx;
+}
+
+void check_sock_properties(struct create_pipe_ctx *ctx, mode_t mode)
+{
+    int ret;
+    int optval;
+    socklen_t optlen;
+    struct stat sbuf;
+
+    /* Check existence of the file and the permissions */
+    ret = stat(ctx->sock_name, &sbuf);
+    assert_int_equal(ret, 0);
+    assert_true(S_ISSOCK(sbuf.st_mode));
+    assert_true((sbuf.st_mode & ~S_IFMT) == mode);
+
+    /* Check it's a UNIX socket */
+    optlen = sizeof(optval);
+    ret = getsockopt(ctx->fd, SOL_SOCKET, SO_DOMAIN, &optval, &optlen);
+    assert_int_equal(ret, 0);
+    assert_int_equal(optval, AF_UNIX);
+
+    optlen = sizeof(optval);
+    ret = getsockopt(ctx->fd, SOL_SOCKET, SO_TYPE, &optval, &optlen);
+    assert_int_equal(ret, 0);
+    assert_int_equal(optval, SOCK_STREAM);
+
+    /* Make sure this is a listening socket */
+    optlen = sizeof(optval);
+    ret = getsockopt(ctx->fd, SOL_SOCKET, SO_ACCEPTCONN, &optval, &optlen);
+    assert_int_equal(ret, 0);
+    assert_int_equal(optval, 1);
+
+    /* Check the right protocol */
+    optlen = sizeof(optval);
+    ret = getsockopt(ctx->fd, SOL_SOCKET, SO_PROTOCOL, &optval, &optlen);
+    assert_int_equal(ret, 0);
+    assert_int_equal(optval, 0);
+
+}
+
+void test_create_pipe_fd(void **state)
+{
+    int ret;
+    struct create_pipe_ctx *ctx;
+
+    ctx = talloc_get_type(*state, struct create_pipe_ctx);
+
+    ctx->sock_name = __FUNCTION__;
+
+    ret = create_pipe_fd(ctx->sock_name, &ctx->fd, 0111);
+    assert_int_equal(ret, EOK);
+    assert_int_not_equal(ctx->fd, -1);
+    check_sock_properties(ctx, 0666);
+
+    /* Make sure we can overwrite an existing socket */
+    ret = create_pipe_fd(ctx->sock_name, &ctx->fd, 0000);
+    assert_int_equal(ret, EOK);
+    assert_int_not_equal(ctx->fd, -1);
+    check_sock_properties(ctx, 0777);
+}
+
+void test_create_pipe_fd_teardown(void **state)
+{
+    struct create_pipe_ctx *ctx;
+
+    ctx = talloc_get_type(*state, struct create_pipe_ctx);
+
+    if (ctx->fd != -1) {
+        unlink(ctx->sock_name);
+        close(ctx->fd);
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -119,6 +207,9 @@ int main(int argc, const char *argv[])
         unit_test(test_uid_csv_to_uid_list),
         unit_test(test_name_csv_to_uid_list),
         unit_test(test_csv_to_uid_list_neg),
+        unit_test_setup_teardown(test_create_pipe_fd,
+                                 test_create_pipe_fd_setup,
+                                 test_create_pipe_fd_teardown)
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
