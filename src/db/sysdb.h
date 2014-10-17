@@ -543,6 +543,10 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sss_domain_info *domain,
                     struct ldb_result **res);
 
+int sysdb_enumpwent_with_views(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domain,
+                               struct ldb_result **res);
+
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    struct sss_domain_info *domain,
                    const char *name,
@@ -556,6 +560,10 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct sss_domain_info *domain,
                     struct ldb_result **res);
+
+int sysdb_enumgrent_with_views(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domain,
+                               struct ldb_result **res);
 
 struct sysdb_netgroup_ctx {
     enum {SYSDB_NETGROUP_TRIPLE_VAL, SYSDB_NETGROUP_GROUP_VAL} type;

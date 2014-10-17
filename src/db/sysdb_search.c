@@ -291,6 +291,46 @@ done:
     return ret;
 }
 
+int sysdb_enumpwent_with_views(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domain,
+                               struct ldb_result **_res)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    size_t c;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_enumpwent(tmp_ctx, domain, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_enumpwent failed.\n");
+        goto done;
+    }
+
+    if (DOM_HAS_VIEWS(domain)) {
+        for (c = 0; c < res->count; c++) {
+            ret = sysdb_add_overrides_to_object(domain, res->msgs[c], NULL);
+            /* enumeration assumes that the cache is up-to-date, hence we do not
+             * need to handle ENOENT separately. */
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
+                goto done;
+            }
+        }
+    }
+
+    *_res = talloc_steal(mem_ctx, res);
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 /* groups */
 
 static int mpg_convert(struct ldb_message *msg)
@@ -663,6 +703,54 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
     if (ret) {
         goto done;
     }
+
+    *_res = talloc_steal(mem_ctx, res);
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+int sysdb_enumgrent_with_views(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domain,
+                               struct ldb_result **_res)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    size_t c;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_enumgrent(tmp_ctx, domain,&res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_enumgrent failed.\n");
+        goto done;
+    }
+
+    if (DOM_HAS_VIEWS(domain)) {
+        for (c = 0; c < res->count; c++) {
+            ret = sysdb_add_overrides_to_object(domain, res->msgs[c], NULL);
+            /* enumeration assumes that the cache is up-to-date, hence we do not
+             * need to handle ENOENT separately. */
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_add_overrides_to_object failed.\n");
+                goto done;
+            }
+
+            ret = sysdb_add_group_member_overrides(domain, res->msgs[c]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_add_group_member_overrides failed.\n");
+                goto done;
+            }
+        }
+    }
+
 
     *_res = talloc_steal(mem_ctx, res);
 
