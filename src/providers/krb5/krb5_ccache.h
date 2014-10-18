@@ -35,12 +35,7 @@ struct tgt_times {
     time_t renew_till;
 };
 
-errno_t create_ccache_dir(const char *ccdirname,
-                          pcre *illegal_re,
-                          uid_t uid, gid_t gid);
-
-errno_t sss_krb5_precreate_ccache(const char *ccname, pcre *illegal_re,
-                                  uid_t uid, gid_t gid);
+errno_t sss_krb5_precreate_ccache(const char *ccname, uid_t uid, gid_t gid);
 
 errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid);
 

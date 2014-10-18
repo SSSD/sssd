@@ -302,7 +302,9 @@ static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
             DEBUG(SSSDBG_TRACE_ALL, "Recreating  ccache file.\n");
             ccname_template = dp_opt_get_cstring(kr->krb5_ctx->opts,
                                                  KRB5_CCNAME_TMPL);
-            kr->ccname = expand_ccname_template(kr, kr, ccname_template, true,
+            kr->ccname = expand_ccname_template(kr, kr, ccname_template,
+                                                kr->krb5_ctx->illegal_path_re,
+                                                true,
                                                 be_ctx->domain->case_sensitive);
             if (kr->ccname == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "expand_ccname_template failed.\n");
@@ -310,7 +312,6 @@ static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
             }
 
             ret = sss_krb5_precreate_ccache(kr->ccname,
-                                            kr->krb5_ctx->illegal_path_re,
                                             kr->uid, kr->gid);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "ccache creation failed.\n");

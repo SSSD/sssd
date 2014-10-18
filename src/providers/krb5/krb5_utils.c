@@ -202,9 +202,31 @@ done:
 #define S_EXP_USERNAME "{username}"
 #define L_EXP_USERNAME (sizeof(S_EXP_USERNAME) - 1)
 
+static errno_t
+check_ccache_re(const char *filename, pcre *illegal_re)
+{
+    errno_t ret;
+
+    ret = pcre_exec(illegal_re, NULL, filename, strlen(filename),
+                    0, 0, NULL, 0);
+    if (ret == 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Illegal pattern in ccache directory name [%s].\n", filename);
+        return EINVAL;
+    } else if (ret == PCRE_ERROR_NOMATCH) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Ccache directory name [%s] does not contain "
+               "illegal patterns.\n", filename);
+        return EOK;
+    }
+
+    DEBUG(SSSDBG_CRIT_FAILURE, "pcre_exec failed [%d].\n", ret);
+    return EFAULT;
+}
+
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
-                             const char *template, bool file_mode,
-                             bool case_sensitive)
+                             const char *template, pcre *illegal_re,
+                             bool file_mode, bool case_sensitive)
 {
     char *copy;
     char *p;
@@ -217,6 +239,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
     TALLOC_CTX *tmp_ctx = NULL;
     char action;
     bool rerun;
+    int ret;
 
     if (template == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing template.\n");
@@ -320,7 +343,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                     }
 
                     dummy = expand_ccname_template(tmp_ctx, kr, cache_dir_tmpl,
-                                                   false, case_sensitive);
+                                                   illegal_re, false, case_sensitive);
                     if (dummy == NULL) {
                         DEBUG(SSSDBG_CRIT_FAILURE,
                               "Expanding credential cache directory "
@@ -409,6 +432,13 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
     if (result == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf_append failed.\n");
         goto done;
+    }
+
+    if (illegal_re != NULL) {
+        ret = check_ccache_re(result, illegal_re);
+        if (ret != EOK) {
+            goto done;
+        }
     }
 
     res = talloc_move(mem_ctx, &result);

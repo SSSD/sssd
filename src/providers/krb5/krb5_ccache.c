@@ -33,28 +33,6 @@
 #include "util/sss_krb5.h"
 #include "util/util.h"
 
-static errno_t
-check_ccache_re(const char *filename, pcre *illegal_re)
-{
-    errno_t ret;
-
-    ret = pcre_exec(illegal_re, NULL, filename, strlen(filename),
-                    0, 0, NULL, 0);
-    if (ret == 0) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Illegal pattern in ccache directory name [%s].\n", filename);
-        return EINVAL;
-    } else if (ret == PCRE_ERROR_NOMATCH) {
-        DEBUG(SSSDBG_TRACE_LIBS,
-              "Ccache directory name [%s] does not contain "
-               "illegal patterns.\n", filename);
-        return EOK;
-    }
-
-    DEBUG(SSSDBG_CRIT_FAILURE, "pcre_exec failed [%d].\n", ret);
-    return EFAULT;
-}
-
 struct string_list {
     struct string_list *next;
     struct string_list *prev;
@@ -162,9 +140,7 @@ static errno_t check_parent_stat(struct stat *parent_stat, uid_t uid)
     return EOK;
 }
 
-errno_t create_ccache_dir(const char *ccdirname,
-                          pcre *illegal_re,
-                          uid_t uid, gid_t gid)
+static errno_t create_ccache_dir(const char *ccdirname, uid_t uid, gid_t gid)
 {
     int ret = EFAULT;
     struct stat parent_stat;
@@ -186,13 +162,6 @@ errno_t create_ccache_dir(const char *ccdirname,
               "Only absolute paths are allowed, not [%s] .\n", ccdirname);
         ret = EINVAL;
         goto done;
-    }
-
-    if (illegal_re != NULL) {
-        ret = check_ccache_re(ccdirname, illegal_re);
-        if (ret != EOK) {
-            goto done;
-        }
     }
 
     ret = find_ccdir_parent_data(tmp_ctx, ccdirname, &parent_stat,
@@ -242,8 +211,7 @@ done:
     return ret;
 }
 
-errno_t sss_krb5_precreate_ccache(const char *ccname, pcre *illegal_re,
-                                  uid_t uid, gid_t gid)
+errno_t sss_krb5_precreate_ccache(const char *ccname, uid_t uid, gid_t gid)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *filename;
@@ -287,7 +255,7 @@ errno_t sss_krb5_precreate_ccache(const char *ccname, pcre *illegal_re,
         *end = '\0';
     } while (*(end+1) == '\0');
 
-    ret = create_ccache_dir(ccdirname, illegal_re, uid, gid);
+    ret = create_ccache_dir(ccdirname, uid, gid);
 done:
     talloc_free(tmp_ctx);
     return ret;
