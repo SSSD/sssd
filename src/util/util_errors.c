@@ -31,6 +31,7 @@ struct err_string error_to_str[] = {
     { "Invalid credential type" },  /* ERR_INVALID_CRED_TYPE */
     { "No credentials available" }, /* ERR_NO_CREDS */
     { "Credentials are expired" }, /* ERR_CREDS_EXPIRED */
+    { "Credentials are expired, old ccache was removed" }, /* ERR_CREDS_EXPIRED_CCACHE */
     { "Failure setting user credentials"}, /* ERR_CREDS_INVALID */
     { "No cached credentials available" }, /* ERR_NO_CACHED_CREDS */
     { "Cached credentials are expired" }, /* ERR_CACHED_CREDS_EXPIRED */

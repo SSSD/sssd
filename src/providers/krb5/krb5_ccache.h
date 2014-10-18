@@ -39,8 +39,9 @@ errno_t sss_krb5_precreate_ccache(const char *ccname, uid_t uid, gid_t gid);
 
 errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid);
 
-errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
-                                    const char *ccname, const char *principal);
+errno_t sss_krb5_check_ccache_princ(krb5_context kctx,
+                                    const char *ccname,
+                                    krb5_principal user_princ);
 
 errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
                                   const char *realm, const char *principal);

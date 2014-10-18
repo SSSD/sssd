@@ -2496,27 +2496,36 @@ libsss_ad_la_LDFLAGS = \
 
 krb5_child_SOURCES = \
     src/providers/krb5/krb5_child.c \
+    src/providers/krb5/krb5_ccache.c \
     src/providers/dp_pam_data_util.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \
+    src/util/find_uid.c \
     src/util/atomic_io.c \
     src/util/authtok.c \
     src/util/util.c \
     src/util/signal.c \
+    src/util/strtonum.c \
     src/util/become_user.c \
     src/sss_client/common.c \
     $(NULL)
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
-    $(KRB5_CFLAGS)
+    $(KRB5_CFLAGS) \
+    $(PCRE_CFLAGS) \
+    $(SYSTEMD_LOGIN_CFLAGS) \
+    $(NULL)
 krb5_child_LDADD = \
     libsss_debug.la \
     $(TALLOC_LIBS) \
     $(POPT_LIBS) \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
-    $(CLIENT_LIBS)
+    $(CLIENT_LIBS) \
+    $(PCRE_LIBS) \
+    $(SYSTEMD_LOGIN_LIBS) \
+    $(NULL)
 
 ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \

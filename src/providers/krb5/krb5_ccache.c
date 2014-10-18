@@ -374,49 +374,32 @@ done:
 
 /* This function is called only as a way to validate that we have the
  * right cache */
-errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
-                                    const char *ccname, const char *principal)
+errno_t sss_krb5_check_ccache_princ(krb5_context kctx,
+                                    const char *ccname,
+                                    krb5_principal user_princ)
 {
-    struct sss_krb5_ccache *cc = NULL;
+    krb5_ccache kcc = NULL;
     krb5_principal ccprinc = NULL;
-    krb5_principal kprinc = NULL;
     krb5_error_code kerr;
     const char *cc_type;
-    TALLOC_CTX *tmp_ctx;
     errno_t ret;
 
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
-
-    ret = sss_open_ccache_as_user(tmp_ctx, ccname, uid, gid, &cc);
-    if (ret) {
-        goto done;
-    }
-
-    cc_type = krb5_cc_get_type(cc->context, cc->ccache);
-
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Searching for [%s] in cache of type [%s]\n", principal, cc_type);
-
-    kerr = krb5_parse_name(cc->context, principal, &kprinc);
-    if (kerr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_parse_name failed.\n");
+    kerr = krb5_cc_resolve(kctx, ccname, &kcc);
+    if (kerr) {
         ret = ERR_INTERNAL;
         goto done;
     }
 
-    kerr = krb5_cc_get_principal(cc->context, cc->ccache, &ccprinc);
+    cc_type = krb5_cc_get_type(kctx, kcc);
+
+    kerr = krb5_cc_get_principal(kctx, kcc, &ccprinc);
     if (kerr != 0) {
-        KRB5_DEBUG(SSSDBG_OP_FAILURE, cc->context, kerr);
+        KRB5_DEBUG(SSSDBG_OP_FAILURE, kctx, kerr);
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_get_principal failed.\n");
     }
 
     if (ccprinc) {
-        if (krb5_principal_compare(cc->context, kprinc, ccprinc) == TRUE) {
+        if (krb5_principal_compare(kctx, user_princ, ccprinc) == TRUE) {
             /* found in the primary ccache */
             ret = EOK;
             goto done;
@@ -425,23 +408,23 @@ errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
 
 #ifdef HAVE_KRB5_CC_COLLECTION
 
-    if (krb5_cc_support_switch(cc->context, cc_type)) {
+    if (krb5_cc_support_switch(kctx, cc_type)) {
 
-        krb5_cc_close(cc->context, cc->ccache);
-        cc->ccache = NULL;
+        krb5_cc_close(kctx, kcc);
+        kcc = NULL;
 
-        kerr = krb5_cc_set_default_name(cc->context, ccname);
+        kerr = krb5_cc_set_default_name(kctx, ccname);
         if (kerr != 0) {
-            KRB5_DEBUG(SSSDBG_MINOR_FAILURE, cc->context, kerr);
+            KRB5_DEBUG(SSSDBG_MINOR_FAILURE, kctx, kerr);
             /* try to continue despite failure */
         }
 
-        kerr = krb5_cc_cache_match(cc->context, kprinc, &cc->ccache);
+        kerr = krb5_cc_cache_match(kctx, user_princ, &kcc);
         if (kerr == 0) {
             ret = EOK;
             goto done;
         }
-        KRB5_DEBUG(SSSDBG_TRACE_INTERNAL, cc->context, kerr);
+        KRB5_DEBUG(SSSDBG_TRACE_INTERNAL, kctx, kerr);
     }
 
 #endif /* HAVE_KRB5_CC_COLLECTION */
@@ -449,11 +432,12 @@ errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
     ret = ERR_NOT_FOUND;
 
 done:
-    if (cc) {
-        krb5_free_principal(cc->context, ccprinc);
-        krb5_free_principal(cc->context, kprinc);
+    if (ccprinc) {
+        krb5_free_principal(kctx, ccprinc);
     }
-    talloc_free(tmp_ctx);
+    if (kcc) {
+        krb5_cc_close(kctx, kcc);
+    }
     return ret;
 }
 

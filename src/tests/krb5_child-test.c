@@ -239,8 +239,7 @@ create_dummy_req(TALLOC_CTX *mem_ctx, const char *user,
         kr->ccname = expand_ccname_template(kr, kr,
                                         dp_opt_get_cstring(kr->krb5_ctx->opts,
                                                            KRB5_CCNAME_TMPL),
-                                            kr->krb5_ctx->illegal_path_re,
-                                            true, true);
+                                            kr->krb5_ctx->illegal_path_re, true, true);
         if (!kr->ccname) goto fail;
 
         DEBUG(SSSDBG_FUNC_DATA, "ccname [%s] uid [%llu] gid [%llu]\n",

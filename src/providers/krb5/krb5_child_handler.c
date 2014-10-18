@@ -144,6 +144,11 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
         kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
         buf->size += 4*sizeof(uint32_t) + strlen(kr->ccname) + strlen(keytab) +
                      sss_authtok_get_size(kr->pd->authtok);
+
+        buf->size += sizeof(uint32_t);
+        if (kr->old_ccname) {
+            buf->size += strlen(kr->old_ccname);
+        }
     }
 
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
@@ -181,6 +186,14 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
         kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
         SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(kr->ccname), &rp);
         safealign_memcpy(&buf->data[rp], kr->ccname, strlen(kr->ccname), &rp);
+
+        if (kr->old_ccname) {
+            SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(kr->old_ccname), &rp);
+            safealign_memcpy(&buf->data[rp], kr->old_ccname,
+                             strlen(kr->old_ccname), &rp);
+        } else {
+            SAFEALIGN_SET_UINT32(&buf->data[rp], 0, &rp);
+        }
 
         SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(keytab), &rp);
         safealign_memcpy(&buf->data[rp], keytab, strlen(keytab), &rp);

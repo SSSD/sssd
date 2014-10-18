@@ -33,6 +33,7 @@
 #include "util/sss_krb5.h"
 #include "util/user_info_msg.h"
 #include "util/child_common.h"
+#include "util/find_uid.h"
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
@@ -61,6 +62,10 @@ struct krb5_req {
     const char *upn;
     uid_t uid;
     gid_t gid;
+
+    char *old_ccname;
+    bool old_cc_valid;
+    bool old_cc_active;
 };
 
 static krb5_context krb5_error_ctx;
@@ -1021,6 +1026,24 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         goto done;
     }
 
+    /* Successfull authentication! Check if ccache contains the
+     * right principal...
+     */
+    kerr = sss_krb5_check_ccache_princ(kr->ctx, kr->ccname, kr->creds->client);
+    if (kerr) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "No ccache for %s in %s?\n", kr->upn, kr->ccname);
+        goto done;
+    }
+
+    kerr = safe_remove_old_ccache_file(kr->old_ccname, kr->ccname,
+                                       kr->uid, kr->gid);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to remove old ccache file [%s], "
+              "please remove it manually.\n", kr->old_ccname);
+    }
+
     kerr = add_ticket_times_and_upn_to_response(kr);
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1094,6 +1117,7 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
     int realm_length;
     size_t msg_len;
     uint8_t *msg;
+    uint32_t user_info_type;
 
     DEBUG(SSSDBG_TRACE_LIBS, "Password change operation\n");
 
@@ -1222,6 +1246,14 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
     krb5_free_cred_contents(kr->ctx, kr->creds);
 
     if (kr->otp == true) {
+        user_info_type = SSS_PAM_USER_INFO_OTP_CHPASS;
+        ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO, sizeof(uint32_t),
+                               (const uint8_t *) &user_info_type);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+            /* Not fatal */
+        }
+
         sss_authtok_set_empty(kr->pd->newauthtok);
         return map_krb5_error(kerr);
     }
@@ -1298,6 +1330,21 @@ static errno_t tgt_req_child(struct krb5_req *kr)
     krb5_free_cred_contents(kr->ctx, kr->creds);
     if (kerr == 0) {
         ret = ERR_CREDS_EXPIRED;
+
+        /* If the password is expired we can safely remove the ccache from the
+         * cache and disk if it is not actively used anymore. This will allow
+         * to create a new random ccache if sshd with privilege separation is
+         * used. */
+        if (kr->old_cc_active == false && kr->old_ccname) {
+            ret = safe_remove_old_ccache_file(kr->old_ccname, NULL,
+                    kr->uid, kr->gid);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                        "Failed to remove old ccache file [%s], "
+                        "please remove it manually.\n", kr->old_ccname);
+            }
+            ret = ERR_CREDS_EXPIRED_CCACHE;
+        }
     } else {
         ret = map_krb5_error(kerr);
     }
@@ -1423,12 +1470,17 @@ static errno_t create_empty_ccache(struct krb5_req *kr)
     krb5_creds *creds = NULL;
     krb5_error_code kerr;
 
-    DEBUG(SSSDBG_TRACE_LIBS, "Creating empty ccache\n");
-
-    kerr = create_empty_cred(kr->ctx, kr->princ, &creds);
-    if (kerr == 0) {
-        kerr = create_ccache(kr->ccname, creds);
+    if (kr->old_cc_valid == false) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Creating empty ccache\n");
+        kerr = create_empty_cred(kr->ctx, kr->princ, &creds);
+        if (kerr == 0) {
+            kerr = create_ccache(kr->ccname, creds);
+        }
+    } else {
+        DEBUG(SSSDBG_TRACE_LIBS, "Existing ccache still valid, reusing\n");
+        kerr = 0;
     }
+
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
     } else {
@@ -1529,6 +1581,17 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
         if ((p + len ) > size) return EINVAL;
+
+        if (len > 0) {
+            kr->old_ccname = talloc_strndup(pd, (char *)(buf + p), len);
+            if (kr->old_ccname == NULL) return ENOMEM;
+            p += len;
+        } else {
+            DEBUG(SSSDBG_TRACE_INTERNAL, "No old ccache\n");
+        }
+
+        SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
+        if ((p + len ) > size) return EINVAL;
         kr->keytab = talloc_strndup(pd, (char *)(buf + p), len);
         if (kr->keytab == NULL) return ENOMEM;
         p += len;
@@ -1538,10 +1601,14 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
             return ret;
         }
 
-        DEBUG(SSSDBG_CONF_SETTINGS, "ccname: [%s] keytab: [%s]\n",
-              kr->ccname, kr->keytab);
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "ccname: [%s] old_ccname: [%s] keytab: [%s]\n",
+              kr->ccname,
+              kr->old_ccname ? kr->old_ccname : "not set",
+              kr->keytab);
     } else {
         kr->ccname = NULL;
+        kr->old_ccname = NULL;
         kr->keytab = NULL;
         sss_authtok_set_empty(pd->authtok);
     }
@@ -1870,6 +1937,126 @@ static errno_t check_use_fast(enum k5c_fast_opt *_fast_val)
     return EOK;
 }
 
+static errno_t old_ccache_valid(struct krb5_req *kr, bool *_valid)
+{
+    errno_t ret;
+    bool valid;
+
+    valid = false;
+
+    ret = sss_krb5_cc_verify_ccache(kr->old_ccname,
+                                    kr->uid, kr->gid,
+                                    kr->realm, kr->upn);
+    switch (ret) {
+        case ERR_NOT_FOUND:
+        case ENOENT:
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Saved ccache %s doesn't exist, ignoring\n", kr->old_ccname);
+            break;
+        case EINVAL:
+            /* cache found but no tgt or expired */
+        case EOK:
+            valid = true;
+            break;
+        default:
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot check if saved ccache %s is valid\n",
+                   kr->old_ccname);
+            return ret;
+    }
+
+    *_valid = valid;
+    return EOK;
+}
+
+static int k5c_check_old_ccache(struct krb5_req *kr)
+{
+    errno_t ret;
+
+    if (kr->old_ccname) {
+        ret = old_ccache_valid(kr, &kr->old_cc_valid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "old_ccache_valid failed.\n");
+            return ret;
+        }
+
+        ret = check_if_uid_is_active(kr->uid, &kr->old_cc_active);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "check_if_uid_is_active failed.\n");
+            return ret;
+        }
+
+        DEBUG(SSSDBG_TRACE_ALL,
+                "Ccache_file is [%s] and is %s active and TGT is %s valid.\n",
+                kr->old_ccname ? kr->old_ccname : "not set",
+                kr->old_cc_active ? "" : "not",
+                kr->old_cc_valid ? "" : "not");
+    }
+
+    return EOK;
+}
+
+static int k5c_precreate_ccache(struct krb5_req *kr, uint32_t offline)
+{
+    errno_t ret;
+
+    /* The ccache file should be (re)created if one of the following conditions
+     * is true:
+     * - it doesn't exist (kr->old_ccname == NULL)
+     * - the backend is online and the current ccache file is not used, i.e
+     * the related user is currently not logged in and it is not a renewal
+     * request
+     * (offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)
+     * - the backend is offline and the current cache file not used and
+     * it does not contain a valid tgt
+     * (offline && !kr->old_cc_active && !kr->valid_tgt)
+     */
+    if (kr->old_ccname == NULL ||
+            (offline && !kr->old_cc_active && !kr->old_cc_valid) ||
+            (!offline && !kr->old_cc_active && kr->pd->cmd != SSS_CMD_RENEW)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Recreating ccache\n");
+
+        ret = sss_krb5_precreate_ccache(kr->ccname, kr->uid, kr->gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "ccache creation failed.\n");
+            return ret;
+        }
+    } else {
+        /* We can reuse the old ccache */
+        kr->ccname = kr->old_ccname;
+    }
+
+    return EOK;
+}
+
+static int k5c_ccache_setup(struct krb5_req *kr, uint32_t offline)
+{
+    errno_t ret;
+
+    if (kr->pd->cmd == SSS_PAM_ACCT_MGMT) {
+        return EOK;
+    }
+
+    ret = k5c_check_old_ccache(kr);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot check old ccache\n");
+        return ret;
+    }
+
+    /* Pre-creating the ccache must be done as root, otherwise we can't mkdir
+     * some of the DIR: cache components. One example is /run/user/$UID because
+     * logind doesn't create the directory until the session phase, whereas
+     * we need the directory during the auth phase already
+     */
+    ret = k5c_precreate_ccache(kr, offline);
+    if (ret != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot precreate ccache\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
 static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 {
     krb5_error_code kerr;
@@ -1877,6 +2064,11 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     enum k5c_fast_opt fast_val;
 
     kerr = check_use_fast(&fast_val);
+    if (kerr != EOK) {
+        return kerr;
+    }
+
+    kerr = k5c_ccache_setup(kr, offline);
     if (kerr != EOK) {
         return kerr;
     }
@@ -1974,7 +2166,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 
     kerr = set_lifetime_options(kr->options);
     if (kerr != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, ("set_lifetime_options failed.\n"));
+        DEBUG(SSSDBG_OP_FAILURE, "set_lifetime_options failed.\n");
         return kerr;
     }
 
