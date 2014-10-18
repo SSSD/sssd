@@ -39,21 +39,7 @@
 #include "util/child_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
-
-static errno_t safe_remove_old_ccache_file(const char *old_ccache,
-                                           const char *new_ccache,
-                                           uid_t uid, gid_t gid)
-{
-    if ((old_ccache == new_ccache)
-        || (old_ccache && new_ccache
-            && (strcmp(old_ccache, new_ccache) == 0))) {
-        DEBUG(SSSDBG_TRACE_FUNC, "New and old ccache file are the same, "
-                                  "none will be deleted.\n");
-        return EOK;
-    }
-
-    return sss_krb5_cc_destroy(old_ccache, uid, gid);
-}
+#include "providers/krb5/krb5_ccache.h"
 
 static errno_t
 check_old_ccache(const char *old_ccache, struct krb5child_req *kr,

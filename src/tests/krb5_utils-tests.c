@@ -27,6 +27,7 @@
 #include <check.h>
 
 #include "providers/krb5/krb5_utils.h"
+#include "providers/krb5/krb5_ccache.h"
 #include "providers/krb5/krb5_auth.h"
 #include "tests/common.h"
 

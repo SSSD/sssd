@@ -73,13 +73,6 @@ enum krb5_opts {
 
 typedef enum { INIT_PW, INIT_KT, RENEW, VALIDATE } action_type;
 
-struct tgt_times {
-    time_t authtime;
-    time_t starttime;
-    time_t endtime;
-    time_t renew_till;
-};
-
 struct krb5_service {
     char *name;
     char *realm;

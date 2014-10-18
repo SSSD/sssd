@@ -27,6 +27,7 @@
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
+#include "providers/krb5/krb5_ccache.h"
 
 #define INITIAL_TGT_TABLE_SIZE 10
 

@@ -37,6 +37,7 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_utils.h"
+#include "providers/krb5/krb5_ccache.h"
 
 extern struct dp_option default_krb5_opts[];
 

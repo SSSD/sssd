@@ -1885,6 +1885,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
         /* If krb5_child was started as setuid, but we don't need to
          * perform either validation or FAST, just drop privileges to
          * the user who is logging in. The same applies to the offline case
+         * the user who is logging in. The same applies to the offline case.
          */
         kerr = become_user(kr->uid, kr->gid);
         if (kerr != 0) {

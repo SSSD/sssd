@@ -42,24 +42,9 @@ errno_t check_if_cached_upn_needs_update(struct sysdb_ctx *sysdb,
                                          const char *user,
                                          const char *upn);
 
-errno_t create_ccache_dir(const char *dirname, pcre *illegal_re,
-                          uid_t uid, gid_t gid);
-
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              const char *template, bool file_mode,
                              bool case_sensitive);
-
-errno_t sss_krb5_precreate_ccache(const char *ccname, pcre *illegal_re,
-                                  uid_t uid, gid_t gid);
-errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid);
-errno_t sss_krb5_check_ccache_princ(uid_t uid, gid_t gid,
-                                    const char *ccname, const char *principal);
-errno_t sss_krb5_cc_verify_ccache(const char *ccname, uid_t uid, gid_t gid,
-                                  const char *realm, const char *principal);
-
-errno_t get_ccache_file_data(const char *ccache_file, const char *client_name,
-                             struct tgt_times *tgtt);
-
 
 errno_t get_domain_or_subdomain(struct be_ctx *be_ctx,
                                 char *domain_name,
