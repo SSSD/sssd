@@ -96,8 +96,8 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     }
 
     /* ticket lifetime */
-    SAFEALIGN_COPY_INT32_CHECK(&ibuf->lifetime, buf + p, size, &p);
-    DEBUG(SSSDBG_TRACE_LIBS, "lifetime: %d\n", ibuf->lifetime);
+    SAFEALIGN_COPY_UINT32_CHECK(&ibuf->lifetime, buf + p, size, &p);
+    DEBUG(SSSDBG_TRACE_LIBS, "lifetime: %u\n", ibuf->lifetime);
 
     return EOK;
 }
