@@ -76,6 +76,7 @@ void test_switch_user(void **state)
     struct passwd *sssd;
     TALLOC_CTX *tmp_ctx;
     struct sss_creds *saved_creds;
+    struct sss_creds *saved_creds2 = NULL;
 
     check_leaks_push(global_talloc_context);
     tmp_ctx = talloc_new(global_talloc_context);
@@ -101,6 +102,12 @@ void test_switch_user(void **state)
     assert_non_null(saved_creds);
     assert_int_equal(saved_creds->uid, 0);
     assert_int_equal(saved_creds->gid, 0);
+
+    /* Attempt to restore creds again */
+    ret = switch_creds(tmp_ctx, sssd->pw_uid, sssd->pw_gid,
+                       0, NULL, &saved_creds2);
+    assert_int_equal(ret, EOK);
+    assert_null(saved_creds2);
 
     /* restore root */
     ret = restore_creds(saved_creds);

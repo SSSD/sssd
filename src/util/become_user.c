@@ -90,8 +90,13 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
     struct sss_creds *ssc = NULL;
     int size;
     int ret;
+    uid_t myuid;
+    uid_t mygid;
 
     DEBUG(SSSDBG_FUNC_DATA, "Switch user to [%d][%d].\n", uid, gid);
+
+    myuid = geteuid();
+    mygid = getegid();
 
     if (saved_creds) {
         /* save current user credentials */
@@ -124,8 +129,8 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
         }
 
         /* we care only about effective ids */
-        ssc->uid = geteuid();
-        ssc->gid = getegid();
+        ssc->uid = myuid;
+        ssc->gid = mygid;
     }
 
     /* if we are regaining root set euid first so that we have CAP_SETUID back,
@@ -141,7 +146,12 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
         }
     }
 
-    /* TODO: use prctl to get/set capabilities too ? */
+    /* TODO: use libcap-ng if we need to get/set capabilities too ? */
+
+    if (myuid == uid && mygid == gid) {
+        DEBUG(SSSDBG_FUNC_DATA, "Already user [%"SPRIuid"].\n", uid);
+        return EOK;
+    }
 
     /* try to setgroups first should always work if CAP_SETUID is set,
      * otherwise it will always fail, failure is not critical though as
@@ -177,11 +187,9 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
 
 done:
     if (ret) {
-        if (ssc) {
-            /* attempt to restore creds first */
-            restore_creds(ssc);
-            talloc_free(ssc);
-        }
+        /* attempt to restore creds first */
+        restore_creds(ssc);
+        talloc_free(ssc);
     } else if (saved_creds) {
         *saved_creds = ssc;
     }
@@ -190,6 +198,11 @@ done:
 
 errno_t restore_creds(struct sss_creds *saved_creds)
 {
+    if (saved_creds == NULL) {
+        /* In case save_creds was saved with the UID already dropped */
+        return EOK;
+    }
+
     return switch_creds(saved_creds,
                         saved_creds->uid,
                         saved_creds->gid,
