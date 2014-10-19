@@ -49,6 +49,8 @@ struct input_buffer {
     const char *princ_str;
     const char *keytab_name;
     krb5_deltat lifetime;
+    uid_t uid;
+    gid_t gid;
 };
 
 static errno_t unpack_buffer(uint8_t *buf, size_t size,
@@ -98,6 +100,12 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     /* ticket lifetime */
     SAFEALIGN_COPY_UINT32_CHECK(&ibuf->lifetime, buf + p, size, &p);
     DEBUG(SSSDBG_TRACE_LIBS, "lifetime: %u\n", ibuf->lifetime);
+
+    /* UID and GID to run as */
+    SAFEALIGN_COPY_UINT32_CHECK(&ibuf->uid, buf + p, size, &p);
+    SAFEALIGN_COPY_UINT32_CHECK(&ibuf->gid, buf + p, size, &p);
+    DEBUG(SSSDBG_FUNC_DATA,
+          "Will run as [%"SPRIuid"][%"SPRIgid"].\n", ibuf->uid, ibuf->gid);
 
     return EOK;
 }
@@ -242,6 +250,8 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                                                const char *princ_str,
                                                const char *keytab_name,
                                                const krb5_deltat lifetime,
+                                               uid_t uid,
+                                               gid_t gid,
                                                const char **ccname_out,
                                                time_t *expire_time_out)
 {
@@ -372,11 +382,31 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         goto done;
     }
 
-    ccname_file_dummy = talloc_asprintf(tmp_ctx, "%s/ccache_%s_XXXXXX",
-                                        DB_PATH, realm_name);
+    memset(&my_creds, 0, sizeof(my_creds));
+    memset(&options, 0, sizeof(options));
+
+    krb5_get_init_creds_opt_set_address_list(&options, NULL);
+    krb5_get_init_creds_opt_set_forwardable(&options, 0);
+    krb5_get_init_creds_opt_set_proxiable(&options, 0);
+    krb5_get_init_creds_opt_set_tkt_life(&options, lifetime);
+
+    tmp_str = getenv("KRB5_CANONICALIZE");
+    if (tmp_str != NULL && strcasecmp(tmp_str, "true") == 0) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Will canonicalize principals\n");
+        canonicalize = 1;
+    }
+    sss_krb5_get_init_creds_opt_set_canonicalize(&options, canonicalize);
+
     ccname_file = talloc_asprintf(tmp_ctx, "%s/ccache_%s",
                                   DB_PATH, realm_name);
-    if (ccname_file_dummy == NULL || ccname_file == NULL) {
+    if (ccname_file == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ccname_file_dummy = talloc_asprintf(tmp_ctx, "%s/ccache_%s_XXXXXX",
+                                        DB_PATH, realm_name);
+    if (ccname_file_dummy == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -393,6 +423,29 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
      */
     close(fd);
 
+    krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
+                                        keytab, 0, NULL, &options);
+    krb5_kt_close(context, keytab);
+    keytab = NULL;
+    if (krberr) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to init credentials: %s\n",
+               sss_krb5_get_error_message(context, krberr));
+        sss_log(SSS_LOG_ERR,
+                "Failed to initialize credentials using keytab [%s]: %s. "
+                "Unable to create GSSAPI-encrypted LDAP connection.",
+                KEYTAB_CLEAN_NAME,
+                sss_krb5_get_error_message(context, krberr));
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "credentials initialized\n");
+
+    krberr = become_user(uid, gid);
+    if (krberr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
+        goto done;
+    }
+
     ccname_dummy = talloc_asprintf(tmp_ctx, "FILE:%s", ccname_file_dummy);
     ccname = talloc_asprintf(tmp_ctx, "FILE:%s", ccname_file);
     if (ccname_dummy == NULL || ccname == NULL) {
@@ -407,36 +460,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                   sss_krb5_get_error_message(context, krberr));
         goto done;
     }
-
-    memset(&my_creds, 0, sizeof(my_creds));
-    memset(&options, 0, sizeof(options));
-
-    krb5_get_init_creds_opt_set_address_list(&options, NULL);
-    krb5_get_init_creds_opt_set_forwardable(&options, 0);
-    krb5_get_init_creds_opt_set_proxiable(&options, 0);
-    krb5_get_init_creds_opt_set_tkt_life(&options, lifetime);
-
-    tmp_str = getenv("KRB5_CANONICALIZE");
-    if (tmp_str != NULL && strcasecmp(tmp_str, "true") == 0) {
-        DEBUG(SSSDBG_CONF_SETTINGS, "Will canonicalize principals\n");
-        canonicalize = 1;
-    }
-    sss_krb5_get_init_creds_opt_set_canonicalize(&options, canonicalize);
-
-    krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
-                                        keytab, 0, NULL, &options);
-    if (krberr) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Failed to init credentials: %s\n",
-               sss_krb5_get_error_message(context, krberr));
-        sss_log(SSS_LOG_ERR,
-                "Failed to initialize credentials using keytab [%s]: %s. "
-                "Unable to create GSSAPI-encrypted LDAP connection.",
-                KEYTAB_CLEAN_NAME,
-                sss_krb5_get_error_message(context, krberr));
-        goto done;
-    }
-    DEBUG(SSSDBG_TRACE_INTERNAL, "credentials initialized\n");
 
     /* Use updated principal if changed due to canonicalization. */
     krberr = krb5_cc_initialize(context, ccache, my_creds.client);
@@ -643,6 +666,7 @@ int main(int argc, const char *argv[])
     kerr = ldap_child_get_tgt_sync(main_ctx,
                                    ibuf->realm_str, ibuf->princ_str,
                                    ibuf->keytab_name, ibuf->lifetime,
+                                   ibuf->uid, ibuf->gid,
                                    &ccname, &expire_time);
     if (kerr != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_child_get_tgt_sync failed.\n");

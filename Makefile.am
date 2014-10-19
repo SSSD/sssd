@@ -2517,7 +2517,9 @@ ldap_child_SOURCES = \
     src/util/atomic_io.c \
     src/util/authtok.c \
     src/util/util.c \
-    src/util/signal.c
+    src/util/signal.c \
+    src/util/become_user.c \
+    $(NULL)
 ldap_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \
