@@ -665,6 +665,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING
 %attr(755,root,root) %dir %{pubconfpath}/krb5.include.d
 %{_libdir}/%{name}/libsss_ipa.so
+%attr(4750,root,sssd) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang

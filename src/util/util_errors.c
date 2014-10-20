@@ -62,6 +62,7 @@ struct err_string error_to_str[] = {
     { "Bus method not supported" }, /* ERR_SBUS_NOSUP */
     { "Cannot connect to system bus" }, /* ERR_NO_SYSBUS */
     { "LDAP search returned a referral" }, /* ERR_REFERRAL */
+    { "Error setting SELinux user context" }, /* ERR_SELINUX_CONTEXT */
 };
 
 
