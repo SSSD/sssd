@@ -218,6 +218,7 @@ errno_t set_debug_file_from_fd(const int fd);
 /* From debug.c */
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap);
+int chown_debug_file(const char *filename, uid_t uid, gid_t gid);
 int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec);
 int open_debug_file(void);
 int rotate_debug_files(void);

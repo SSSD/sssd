@@ -427,6 +427,12 @@ int server_setup(const char *name, int flags,
     struct tevent_signal *tes;
     struct logrotate_ctx *lctx;
 
+    ret = chown_debug_file(NULL, uid, gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot chown the debug files, debugging might not work!\n");
+    }
+
     ret = become_user(uid, gid);
     if (ret != EOK) {
         DEBUG(SSSDBG_FUNC_DATA,
