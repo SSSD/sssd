@@ -1161,6 +1161,20 @@ static void krb5_auth_done(struct tevent_req *subreq)
         krb5_auth_store_creds(state->domain, pd);
     }
 
+    if (res->otp == true && pd->cmd == SSS_PAM_AUTHENTICATE) {
+        uint32_t otp_flag = 1;
+        ret = pam_add_response(pd, SSS_OTP, sizeof(uint32_t),
+                               (const uint8_t *) &otp_flag);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "pam_add_response failed: %d (%s).\n",
+                  ret, sss_strerror(ret));
+            state->pam_status = PAM_SYSTEM_ERR;
+            state->dp_err = DP_ERR_OK;
+            goto done;
+        }
+    }
+
     state->pam_status = PAM_SUCCESS;
     state->dp_err = DP_ERR_OK;
     ret = EOK;
