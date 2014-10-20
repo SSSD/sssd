@@ -133,7 +133,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     }
 
     ret = ldap_parse_result(state->sh->ldap, reply->msg,
-                            &result, &errmsg, NULL, NULL,
+                            &result, NULL, &errmsg, NULL,
                             NULL, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n",
@@ -142,10 +142,13 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "ldap_extended_operation result: %s(%d), %s\n",
-            sss_ldap_err2string(result), result, errmsg);
+    DEBUG(result == LDAP_SUCCESS ? SSSDBG_TRACE_FUNC : SSSDBG_OP_FAILURE,
+          "ldap_extended_operation result: %s(%d), %s.\n",
+          sss_ldap_err2string(result), result, errmsg);
 
     if (result != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldap_extended_operation failed, " \
+                                 "server logs might contain more details.\n");
         ret = ERR_NETWORK_IO;
         goto done;
     }
