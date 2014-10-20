@@ -589,6 +589,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/libsss_debug.so
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
+%{_libdir}/%{name}/libsss_semanage.so
 
 # 3rd party application libraries
 %{_libdir}/sssd/modules/libsss_autofs.so
