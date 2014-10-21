@@ -30,7 +30,6 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
                         struct be_ctx *bectx)
 {
     errno_t ret;
-    FILE *debug_filep;
     time_t renew_intv = 0;
     krb5_deltat renew_interval_delta;
     char *renew_interval_str;
@@ -83,22 +82,15 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
         goto done;
     }
 
-    if (debug_to_file != 0) {
-        ret = open_debug_file_ex(KRB5_CHILD_LOG_FILE, &debug_filep, false);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) [%s]\n",
-                    ret, strerror(ret));
-            goto done;
-        }
-
-        krb5_auth_ctx->child_debug_fd = fileno(debug_filep);
-        if (krb5_auth_ctx->child_debug_fd == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "fileno failed [%d][%s]\n", errno, strerror(errno));
-            ret = errno;
-            goto done;
-        }
+    krb5_auth_ctx->child_debug_fd = -1; /* -1 means not initialized */
+    ret = child_debug_init(KRB5_CHILD_LOG_FILE,
+                           &krb5_auth_ctx->child_debug_fd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not set krb5_child debugging!\n");
+        goto done;
     }
+
+    ret = EOK;
 
 done:
     return ret;

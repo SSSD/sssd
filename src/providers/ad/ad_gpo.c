@@ -1313,29 +1313,10 @@ ad_gpo_access_check(TALLOC_CTX *mem_ctx,
 }
 
 #define GPO_CHILD_LOG_FILE "gpo_child"
+
 static errno_t gpo_child_init(void)
 {
-    int ret;
-    FILE *debug_filep;
-
-    if (debug_to_file != 0 && gpo_child_debug_fd == -1) {
-        ret = open_debug_file_ex(GPO_CHILD_LOG_FILE, &debug_filep, false);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) [%s]\n",
-                        ret, strerror(ret));
-            return ret;
-        }
-
-        gpo_child_debug_fd = fileno(debug_filep);
-        if (gpo_child_debug_fd == -1) {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                  "fileno failed [%d][%s]\n", errno, strerror(errno));
-            ret = errno;
-            return ret;
-        }
-    }
-
-    return EOK;
+    return child_debug_init(GPO_CHILD_LOG_FILE, &gpo_child_debug_fd);
 }
 
 /*

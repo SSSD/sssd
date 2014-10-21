@@ -120,4 +120,6 @@ void child_cleanup(int readfd, int writefd);
 
 int child_io_destructor(void *ptr);
 
+errno_t child_debug_init(const char *logfile, int *debug_fd);
+
 #endif /* __CHILD_COMMON_H__ */

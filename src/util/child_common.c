@@ -801,3 +801,32 @@ int child_io_destructor(void *ptr)
 
     return EOK;
 }
+
+errno_t child_debug_init(const char *logfile, int *debug_fd)
+{
+    int ret;
+    FILE *debug_filep;
+
+    if (debug_fd == NULL) {
+        return EOK;
+    }
+
+    if (debug_to_file != 0 && *debug_fd == -1) {
+        ret = open_debug_file_ex(logfile, &debug_filep, false);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Error setting up logging (%d) [%s]\n",
+                        ret, sss_strerror(ret));
+            return ret;
+        }
+
+        *debug_fd = fileno(debug_filep);
+        if (*debug_fd == -1) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "fileno failed [%d][%s]\n", errno, strerror(errno));
+            ret = errno;
+            return ret;
+        }
+    }
+
+    return EOK;
+}
