@@ -3954,11 +3954,13 @@ static void gpo_cse_done(struct tevent_req *subreq)
               "ad_gpo_parse_gpo_child_response failed: [%d][%s]\n",
               ret, strerror(ret));
         tevent_req_error(req, ret);
+        return;
     } else if (child_result != 0){
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Error in gpo_child: [%d][%s]\n",
               child_result, strerror(child_result));
         tevent_req_error(req, child_result);
+        return;
     }
 
     now = time(NULL);
