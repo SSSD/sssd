@@ -721,7 +721,7 @@ static errno_t sysdb_search_override_by_name(TALLOC_CTX *mem_ctx,
         goto done;
     } else if (override_res->count > 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Found more than one override for name [%s]\n.", name);
+              "Found more than one override for name [%s].\n", name);
         ret = EINVAL;
         goto done;
     }
@@ -878,7 +878,7 @@ static errno_t sysdb_search_override_by_id(TALLOC_CTX *mem_ctx,
         goto done;
     } else if (override_res->count > 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Found more than one override for id [%lu]\n.", id);
+              "Found more than one override for id [%lu].\n", id);
         ret = EINVAL;
         goto done;
     }
