@@ -55,12 +55,13 @@ static void wait_for_bg_server(const char *pidfile)
         struct stat sb;
 
         count++;
-        if (count > 100) {
+        if (count > 200) {
+            fail();
             break;
         }
 
         ret = stat(pidfile, &sb);
-        usleep(50);
+        usleep(50000);
     } while (ret != 0);
 
     /* read the pidfile */
@@ -198,7 +199,9 @@ int main(int argc, const char *argv[])
     test_dom_suite_setup(TEST_DB_PATH);
 
     rv = run_tests(tests);
-    test_dom_suite_cleanup(TEST_DB_PATH, CONFDB_FILE, NULL);
+    if (rv != 0) {
+        test_dom_suite_cleanup(TEST_DB_PATH, CONFDB_FILE, NULL);
+    }
 
     return rv;
 }
