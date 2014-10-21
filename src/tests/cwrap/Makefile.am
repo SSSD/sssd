@@ -42,10 +42,10 @@ check_PROGRAMS =
 if HAVE_CMOCKA
 if HAVE_NSS_WRAPPER
 if HAVE_UID_WRAPPER
-check_PROGRAMS = \
-	become_user-tests \
-	server-tests \
-	$(NULL)
+check_PROGRAMS += \
+    become_user-tests \
+    server-tests \
+    $(NULL)
 endif # HAVE_UID_WRAPPER
 endif # HAVE_NSS_WRAPPER
 endif # HAVE_CMOCKA
