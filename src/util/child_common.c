@@ -772,3 +772,32 @@ void child_cleanup(int readfd, int writefd)
         }
     }
 }
+
+int child_io_destructor(void *ptr)
+{
+    int ret;
+    struct child_io_fds *io = talloc_get_type(ptr, struct child_io_fds);
+    if (io == NULL) return EOK;
+
+    if (io->write_to_child_fd != -1) {
+        ret = close(io->write_to_child_fd);
+        io->write_to_child_fd = -1;
+        if (ret != EOK) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "close failed [%d][%s].\n", ret, strerror(ret));
+        }
+    }
+
+    if (io->read_from_child_fd != -1) {
+        ret = close(io->read_from_child_fd);
+        io->read_from_child_fd = -1;
+        if (ret != EOK) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "close failed [%d][%s].\n", ret, strerror(ret));
+        }
+    }
+
+    return EOK;
+}

@@ -41,11 +41,6 @@
 #define TIME_T_MAX LONG_MAX
 #define int64_to_time_t(val) ((time_t)((val) < TIME_T_MAX ? val : TIME_T_MAX))
 
-struct io {
-    int read_from_child_fd;
-    int write_to_child_fd;
-};
-
 struct handle_child_state {
     struct tevent_context *ev;
     struct krb5child_req *kr;
@@ -55,37 +50,8 @@ struct handle_child_state {
     struct tevent_timer *timeout_handler;
     pid_t child_pid;
 
-    struct io *io;
+    struct child_io_fds *io;
 };
-
-static int child_io_destructor(void *ptr)
-{
-    int ret;
-    struct io *io = talloc_get_type(ptr, struct io);
-    if (io == NULL) return EOK;
-
-    if (io->write_to_child_fd != -1) {
-        ret = close(io->write_to_child_fd);
-        io->write_to_child_fd = -1;
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "close failed [%d][%s].\n", ret, strerror(ret));
-        }
-    }
-
-    if (io->read_from_child_fd != -1) {
-        ret = close(io->read_from_child_fd);
-        io->read_from_child_fd = -1;
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "close failed [%d][%s].\n", ret, strerror(ret));
-        }
-    }
-
-    return EOK;
-}
 
 static errno_t pack_authtok(struct io_buffer *buf, size_t *rp,
                             struct sss_auth_token *tok)
@@ -391,7 +357,7 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
     state->child_pid = -1;
     state->timeout_handler = NULL;
 
-    state->io = talloc(state, struct io);
+    state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
         ret = ENOMEM;

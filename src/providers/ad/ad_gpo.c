@@ -3756,45 +3756,8 @@ struct ad_gpo_process_cse_state {
     pid_t child_pid;
     uint8_t *buf;
     ssize_t len;
-    struct io *io;
+    struct child_io_fds *io;
 };
-
-struct io {
-    int read_from_child_fd;
-    int write_to_child_fd;
-};
-
-static errno_t
-gpo_child_io_destructor(void *ptr)
-{
-    int ret;
-    struct io *io;
-
-    io = talloc_get_type(ptr, struct io);
-    if (io == NULL) return EOK;
-
-    if (io->write_to_child_fd != -1) {
-        ret = close(io->write_to_child_fd);
-        io->write_to_child_fd = -1;
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "close failed [%d][%s].\n", ret, strerror(ret));
-        }
-    }
-
-    if (io->read_from_child_fd != -1) {
-        ret = close(io->read_from_child_fd);
-        io->read_from_child_fd = -1;
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "close failed [%d][%s].\n", ret, strerror(ret));
-        }
-    }
-
-    return EOK;
-}
 
 static errno_t gpo_fork_child(struct tevent_req *req);
 static void gpo_cse_step(struct tevent_req *subreq);
@@ -3849,7 +3812,7 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
     state->gpo_guid = gpo_guid;
     state->smb_path = smb_path;
     state->smb_cse_suffix = smb_cse_suffix;
-    state->io = talloc(state, struct io);
+    state->io = talloc(state, struct child_io_fds);
     if (state->io == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
         ret = ENOMEM;
@@ -3858,7 +3821,7 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
 
     state->io->write_to_child_fd = -1;
     state->io->read_from_child_fd = -1;
-    talloc_set_destructor((void *) state->io, gpo_child_io_destructor);
+    talloc_set_destructor((void *) state->io, child_io_destructor);
 
     /* prepare the data to pass to child */
     ret = create_cse_send_buffer(state, smb_server, smb_share, smb_path,

@@ -45,6 +45,11 @@ struct io_buffer {
     size_t size;
 };
 
+struct child_io_fds {
+    int read_from_child_fd;
+    int write_to_child_fd;
+};
+
 /* COMMON SIGCHLD HANDLING */
 typedef void (*sss_child_fn_t)(int pid, int wait_status, void *pvt);
 
@@ -112,5 +117,7 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
                    const char *binary, int debug_fd);
 
 void child_cleanup(int readfd, int writefd);
+
+int child_io_destructor(void *ptr);
 
 #endif /* __CHILD_COMMON_H__ */
