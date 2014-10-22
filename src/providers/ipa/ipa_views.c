@@ -208,15 +208,22 @@ struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
     state->sdap_id_ctx = sdap_id_ctx;
     state->ipa_options = ipa_options;
     state->ipa_realm = ipa_realm;
+    state->ar = ar;
+    state->dp_error = -1;
+    state->override_attrs = NULL;
+    state->filter = NULL;
+
+    if (view_name == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "View not defined, nothing to do.\n");
+        ret = EOK;
+        goto done;
+    }
+
     if (strcmp(view_name, SYSDB_DEFAULT_VIEW_NAME) == 0) {
         state->ipa_view_name = IPA_DEFAULT_VIEW_NAME;
     } else {
         state->ipa_view_name = view_name;
     }
-    state->ar = ar;
-    state->dp_error = -1;
-    state->override_attrs = NULL;
-    state->filter = NULL;
 
     state->sdap_op = sdap_id_op_create(state,
                                        state->sdap_id_ctx->conn->conn_cache);
