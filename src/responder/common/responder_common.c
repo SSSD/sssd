@@ -584,24 +584,25 @@ static int sss_dp_init(struct resp_ctx *rctx,
     return EOK;
 }
 
-int create_pipe_fd(const char *sock_name, int *fd, mode_t umaskval)
+int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
 {
     struct sockaddr_un addr;
     errno_t ret;
+    int fd;
 
-    *fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (*fd == -1) {
+    fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd == -1) {
         return EIO;
     }
 
     umask(umaskval);
 
-    ret = set_nonblocking(*fd);
+    ret = set_nonblocking(fd);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = set_close_on_exec(*fd);
+    ret = set_close_on_exec(fd);
     if (ret != EOK) {
         goto done;
     }
@@ -619,13 +620,13 @@ int create_pipe_fd(const char *sock_name, int *fd, mode_t umaskval)
               "Cannot remove old socket (errno=%d), bind might fail!\n", ret);
     }
 
-    if (bind(*fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+    if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to bind on socket '%s'\n", sock_name);
         ret = EIO;
         goto done;
     }
-    if (listen(*fd, 10) != 0) {
+    if (listen(fd, 10) == -1) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Unable to listen on socket '%s'\n", sock_name);
         ret = EIO;
@@ -638,8 +639,10 @@ done:
     /* we want default permissions on created files to be very strict,
        so set our umask to 0177 */
     umask(0177);
-    if (ret != EOK) {
-        close(*fd);
+    if (ret == EOK) {
+        *_fd = fd;
+    } else {
+        close(fd);
     }
     return ret;
 }
