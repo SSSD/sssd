@@ -1723,7 +1723,9 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
      * when SSSD runs as nonroot */
     ret = chown(cdb_file, ctx->uid, ctx->gid);
     if (ret != 0) {
-        ret = errno;
+        /* Init ret to suppress gcc warning with high -O level */
+        ret = EINVAL;
+        if (errno) ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
               "chown failed for [%s]: [%d][%s].\n",
               cdb_file, ret, sss_strerror(ret));
