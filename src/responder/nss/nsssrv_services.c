@@ -642,7 +642,7 @@ fill_service(struct sss_packet *packet,
 
         /* Get the service name */
         orig_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_sensitive);
+        tmpstr = sss_get_cased_name(tmp_ctx, orig_name, dom->case_preserve);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Could not identify service name, skipping\n");
@@ -677,7 +677,7 @@ fill_service(struct sss_packet *packet,
             orig_proto = (const char *)el->values[0].data;
         }
 
-        tmpstr = sss_get_cased_name(tmp_ctx, orig_proto, dom->case_sensitive);
+        tmpstr = sss_get_cased_name(tmp_ctx, orig_proto, dom->case_preserve);
         if (tmpstr == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_get_cased_name failed, skipping\n");
