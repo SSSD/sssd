@@ -38,6 +38,10 @@
 
 extern hash_table_t *dp_requests;
 
+/* we want default permissions on created files to be very strict,
+ * so set our umask to 0177 */
+#define DFL_RSP_UMASK 0177
+
 /* if there is a provider other than the special local */
 #define NEED_CHECK_PROVIDER(provider) \
     (provider != NULL && strcmp(provider, "local") != 0)
