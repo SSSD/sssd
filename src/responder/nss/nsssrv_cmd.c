@@ -4148,18 +4148,19 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
     struct nss_ctx *nctx;
     int ret;
     int err;
-    const char *attrs[] = {SYSDB_NAME, SYSDB_OBJECTCLASS, SYSDB_SID_STR,
-                           ORIGINALAD_PREFIX SYSDB_NAME,
-                           ORIGINALAD_PREFIX SYSDB_UIDNUM,
-                           ORIGINALAD_PREFIX SYSDB_GIDNUM,
-                           ORIGINALAD_PREFIX SYSDB_GECOS,
-                           ORIGINALAD_PREFIX SYSDB_HOMEDIR,
-                           ORIGINALAD_PREFIX SYSDB_SHELL,
-                           SYSDB_UPN,
-                           SYSDB_DEFAULT_OVERRIDE_NAME,
-                           SYSDB_AD_ACCOUNT_EXPIRES,
-                           SYSDB_AD_USER_ACCOUNT_CONTROL,
-                           SYSDB_DEFAULT_ATTRS, NULL};
+    const char *default_attrs[] = {SYSDB_NAME, SYSDB_OBJECTCLASS, SYSDB_SID_STR,
+                                   ORIGINALAD_PREFIX SYSDB_NAME,
+                                   ORIGINALAD_PREFIX SYSDB_UIDNUM,
+                                   ORIGINALAD_PREFIX SYSDB_GIDNUM,
+                                   ORIGINALAD_PREFIX SYSDB_GECOS,
+                                   ORIGINALAD_PREFIX SYSDB_HOMEDIR,
+                                   ORIGINALAD_PREFIX SYSDB_SHELL,
+                                   SYSDB_UPN,
+                                   SYSDB_DEFAULT_OVERRIDE_NAME,
+                                   SYSDB_AD_ACCOUNT_EXPIRES,
+                                   SYSDB_AD_USER_ACCOUNT_CONTROL,
+                                   SYSDB_DEFAULT_ATTRS, NULL};
+    const char **attrs;
     bool user_found = false;
     bool group_found = false;
     struct ldb_message *msg = NULL;
@@ -4279,6 +4280,18 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
                   "Fatal: Sysdb CTX not found for this domain!\n");
             ret = EIO;
             goto done;
+        }
+
+        attrs = default_attrs;
+        if (cmdctx->cmd == SSS_NSS_GETORIGBYNAME
+                && nctx->extra_attributes != NULL) {
+            ret = add_strings_lists(cmdctx, default_attrs,
+                                    nctx->extra_attributes, false,
+                                    discard_const(&attrs));
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "add_strings_lists failed.\n");
+                goto done;
+            }
         }
 
         if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
@@ -4593,16 +4606,21 @@ static errno_t fill_sid(struct sss_packet *packet,
 }
 
 static errno_t fill_orig(struct sss_packet *packet,
+                         struct resp_ctx *rctx,
                          enum sss_id_type id_type,
                          struct ldb_message *msg)
 {
     int ret;
+    TALLOC_CTX *tmp_ctx;
     const char *tmp_str;
     uint8_t *body;
     size_t blen;
     size_t pctr = 0;
     size_t c;
     size_t sum;
+    size_t found;
+    size_t extra_attrs_count = 0;
+    const char **extra_attrs_list = NULL;
     const char *orig_attr_list[] = {SYSDB_SID_STR,
                                     ORIGINALAD_PREFIX SYSDB_NAME,
                                     ORIGINALAD_PREFIX SYSDB_UIDNUM,
@@ -4615,42 +4633,83 @@ static errno_t fill_orig(struct sss_packet *packet,
                                     SYSDB_AD_ACCOUNT_EXPIRES,
                                     SYSDB_AD_USER_ACCOUNT_CONTROL,
                                     NULL};
-    struct sized_string keys[sizeof(orig_attr_list)];
-    struct sized_string vals[sizeof(orig_attr_list)];
+    struct sized_string *keys;
+    struct sized_string *vals;
+    struct nss_ctx *nctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    nctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+    if (nctx->extra_attributes != NULL) {
+        extra_attrs_list = nctx->extra_attributes;
+            for(extra_attrs_count = 0;
+                extra_attrs_list[extra_attrs_count] != NULL;
+                extra_attrs_count++);
+    }
+
+    keys = talloc_array(tmp_ctx, struct sized_string,
+                        sizeof(orig_attr_list) + extra_attrs_count);
+    vals = talloc_array(tmp_ctx, struct sized_string,
+                        sizeof(orig_attr_list) + extra_attrs_count);
+    if (keys == NULL || vals == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
     sum = 0;
+    found = 0;
     for (c = 0; orig_attr_list[c] != NULL; c++) {
         tmp_str = ldb_msg_find_attr_as_string(msg, orig_attr_list[c], NULL);
         if (tmp_str != NULL) {
-            to_sized_string(&keys[c], orig_attr_list[c]);
-            sum += keys[c].len;
-            to_sized_string(&vals[c], tmp_str);
-            sum += vals[c].len;
-        } else {
-            vals[c].len = 0;
+            to_sized_string(&keys[found], orig_attr_list[c]);
+            sum += keys[found].len;
+            to_sized_string(&vals[found], tmp_str);
+            sum += vals[found].len;
+
+            found++;
+        }
+    }
+
+    for (c = 0; c < extra_attrs_count; c++) {
+        tmp_str = ldb_msg_find_attr_as_string(msg, extra_attrs_list[c], NULL);
+        if (tmp_str != NULL) {
+            to_sized_string(&keys[found], extra_attrs_list[c]);
+            sum += keys[found].len;
+            to_sized_string(&vals[found], tmp_str);
+            sum += vals[found].len;
+
+            found++;
         }
     }
 
     ret = sss_packet_grow(packet, sum +  3 * sizeof(uint32_t));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_packet_grow failed.\n");
-        return ret;
+        goto done;
     }
 
     sss_packet_get_body(packet, &body, &blen);
     SAFEALIGN_SETMEM_UINT32(body, 1, &pctr); /* Num results */
     SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
     SAFEALIGN_COPY_UINT32(body + pctr, &id_type, &pctr);
-    for (c = 0; orig_attr_list[c] != NULL; c++) {
-        if (vals[c].len != 0) {
-            memcpy(&body[pctr], keys[c].str, keys[c].len);
-            pctr+= keys[c].len;
-            memcpy(&body[pctr], vals[c].str, vals[c].len);
-            pctr+= vals[c].len;
-        }
+    for (c = 0; c < found; c++) {
+        memcpy(&body[pctr], keys[c].str, keys[c].len);
+        pctr+= keys[c].len;
+        memcpy(&body[pctr], vals[c].str, vals[c].len);
+        pctr+= vals[c].len;
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
 static errno_t fill_name(struct sss_packet *packet,
@@ -4818,7 +4877,8 @@ static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
         ret = fill_sid(cctx->creq->out, id_type, dctx->res->msgs[0]);
         break;
     case SSS_NSS_GETORIGBYNAME:
-        ret = fill_orig(cctx->creq->out, id_type, dctx->res->msgs[0]);
+        ret = fill_orig(cctx->creq->out, cctx->rctx, id_type,
+                        dctx->res->msgs[0]);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported request type.\n");

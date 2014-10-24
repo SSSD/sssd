@@ -52,6 +52,8 @@ struct nss_test_ctx {
     bool ncache_hit;
 };
 
+const char *global_extra_attrs[] = {"phone", "mobile", NULL};
+
 struct nss_test_ctx *nss_test_ctx;
 
 /* Mock NSS structure */
@@ -1000,6 +1002,7 @@ void test_nss_setup(struct sss_test_conf_param params[],
     nss_test_ctx->rctx = mock_rctx(nss_test_ctx, nss_test_ctx->tctx->ev,
                                    nss_test_ctx->tctx->dom, nss_test_ctx->nctx);
     assert_non_null(nss_test_ctx->rctx);
+    nss_test_ctx->rctx->cdb = nss_test_ctx->tctx->confdb;
     nss_test_ctx->nctx->rctx = nss_test_ctx->rctx;
 
     /* Create client context */
@@ -1827,6 +1830,122 @@ void test_nss_getorigbyname(void **state)
     assert_int_equal(ret, EOK);
 }
 
+static int test_nss_getorigbyname_extra_check(uint32_t status, uint8_t *body,
+                                              size_t blen)
+{
+    const char *s;
+    enum sss_id_type id_type;
+    size_t rp = 2 * sizeof(uint32_t);
+
+    assert_int_equal(status, EOK);
+
+    SAFEALIGN_COPY_UINT32(&id_type, body+rp, &rp);
+    assert_int_equal(id_type, SSS_ID_TYPE_UID);
+
+    /* Sequence of null terminated strings */
+    s = (char *) body+rp;
+    assert_string_equal(s, SYSDB_SID_STR);
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "S-1-2-3-4");
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, ORIGINALAD_PREFIX SYSDB_NAME);
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "orig_name");
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, ORIGINALAD_PREFIX SYSDB_UIDNUM);
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "1234");
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "phone");
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "+12-34 56 78");
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "mobile");
+    rp += strlen(s) + 1;
+    assert_true(rp < blen);
+
+    s = (char *) body+rp;
+    assert_string_equal(s, "+98-76 54 32");
+    rp += strlen(s) + 1;
+    assert_int_equal(rp, blen);
+
+    return EOK;
+}
+
+void test_nss_getorigbyname_extra_attrs(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, ORIGINALAD_PREFIX SYSDB_NAME,
+                                 "orig_name");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_uint32(attrs, ORIGINALAD_PREFIX SYSDB_UIDNUM, 1234);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, "phone", "+12-34 56 78");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, "mobile", "+98-76 54 32");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, "not_extra", "abc");
+    assert_int_equal(ret, EOK);
+
+    /* Prime the cache with a valid user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "testuserorigextra", 2345, 6789,
+                         "test user orig extra",
+                         "/home/testuserorigextra", "/bin/sh", NULL,
+                         attrs, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testuserorigextra");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETORIGBYNAME);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getorigbyname_extra_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETORIGBYNAME,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void nss_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
@@ -1846,6 +1965,18 @@ void nss_fqdn_test_setup(void **state)
     };
 
     test_nss_setup(params, state);
+}
+
+void nss_test_setup_extra_attr(void **state)
+{
+    struct sss_test_conf_param params[] = {
+        { "enumerate", "false" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_nss_setup(params, state);
+
+    nss_test_ctx->nctx->extra_attributes = global_extra_attrs;
 }
 
 void nss_subdom_test_setup(void **state)
@@ -1963,6 +2094,8 @@ int main(int argc, const char *argv[])
                                  nss_test_setup, nss_test_teardown),
         unit_test_setup_teardown(test_nss_getorigbyname,
                                  nss_test_setup, nss_test_teardown),
+        unit_test_setup_teardown(test_nss_getorigbyname_extra_attrs,
+                                 nss_test_setup_extra_attr, nss_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
