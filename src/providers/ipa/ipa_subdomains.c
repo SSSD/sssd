@@ -109,6 +109,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     char *ad_domain;
     struct sdap_domain *sdom;
     errno_t ret;
+    const char *extra_attrs;
 
     ad_options = ad_create_default_options(id_ctx, id_ctx->server_mode->realm,
                                            id_ctx->server_mode->hostname);
@@ -133,6 +134,36 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD realm\n");
         talloc_free(ad_options);
         return ret;
+    }
+
+    extra_attrs = dp_opt_get_string(id_ctx->sdap_id_ctx->opts->basic,
+                            SDAP_USER_EXTRA_ATTRS);
+    if (extra_attrs != NULL) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Setting extra attrs for subdomain [%s] to [%s].\n", ad_domain,
+                                                                   extra_attrs);
+
+        ret = dp_opt_set_string(ad_options->id->basic, SDAP_USER_EXTRA_ATTRS,
+                                extra_attrs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "dp_opt_get_string failed.\n");
+            talloc_free(ad_options);
+            return ret;
+        }
+
+        ret = sdap_extend_map_with_list(ad_options->id, ad_options->id,
+                                        SDAP_USER_EXTRA_ATTRS,
+                                        ad_options->id->user_map,
+                                        SDAP_OPTS_USER,
+                                        &ad_options->id->user_map,
+                                        &ad_options->id->user_map_cnt);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_extend_map_with_list failed.\n");
+            talloc_free(ad_options);
+            return ret;
+        }
+    } else {
+        DEBUG(SSSDBG_TRACE_ALL, "No extra attrs set.\n");
     }
 
     gc_service_name = talloc_asprintf(ad_options, "%s%s", "gc_", subdom->name);
