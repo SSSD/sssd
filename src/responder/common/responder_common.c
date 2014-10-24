@@ -587,6 +587,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
 int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
 {
     struct sockaddr_un addr;
+    mode_t orig_umaskval;
     errno_t ret;
     int fd;
 
@@ -595,7 +596,7 @@ int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
         return EIO;
     }
 
-    umask(umaskval);
+    orig_umaskval = umask(umaskval);
 
     ret = set_nonblocking(fd);
     if (ret != EOK) {
@@ -636,9 +637,8 @@ int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
     ret = EOK;
 
 done:
-    /* we want default permissions on created files to be very strict,
-       so set our umask to 0177 */
-    umask(0177);
+    /* restore previous umask value */
+    umask(orig_umaskval);
     if (ret == EOK) {
         *_fd = fd;
     } else {
