@@ -1107,7 +1107,7 @@ static void sdap_print_server(struct sdap_handle *sh)
         return;
     }
 
-    ret = getsockname(fd, (struct sockaddr *) &ss, &ss_len);
+    ret = getpeername(fd, (struct sockaddr *) &ss, &ss_len);
     if (ret == -1) {
         DEBUG(SSSDBG_MINOR_FAILURE, "getsockname failed\n");
         return;
