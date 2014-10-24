@@ -2669,6 +2669,9 @@ static int fill_grent(struct sss_packet *packet,
         rsize = 0;
 
         /* find group name/gid */
+
+        /* start with an empty name for each iteration */
+        orig_name = NULL;
         if (DOM_HAS_VIEWS(dom)) {
             orig_name = ldb_msg_find_attr_as_string(msg,
                                                     OVERRIDE_PREFIX SYSDB_NAME,
