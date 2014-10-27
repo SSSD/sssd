@@ -875,6 +875,114 @@ void test_expand_homedir_template(void **state)
     talloc_free(tmp_ctx);
 }
 
+void setup_add_strings_lists(void **state)
+{
+    assert_true(leak_check_setup());
+
+    check_leaks_push(global_talloc_context);
+}
+
+void teardown_add_strings_lists(void **state)
+{
+    assert_true(check_leaks_pop(global_talloc_context) == true);
+    assert_true(leak_check_teardown());
+}
+
+void test_add_strings_lists(void **state)
+{
+    const char *l1[] = {"a", "b", "c", NULL};
+    const char *l2[] = {"1", "2", "3", NULL};
+    char **res;
+    int ret;
+    size_t c;
+    size_t d;
+
+    ret = add_strings_lists(global_talloc_context, NULL, NULL, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    assert_null(res[0]);
+    talloc_free(res);
+
+    ret = add_strings_lists(global_talloc_context, NULL, NULL, false, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    assert_null(res[0]);
+    talloc_free(res);
+
+    ret = add_strings_lists(global_talloc_context, l1, NULL, false, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; l1[c] != NULL; c++) {
+        /* 'copy_strings' is 'false', pointers must be equal */
+        assert_int_equal(memcmp(&l1[c], &res[c], sizeof(char *)), 0);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists(global_talloc_context, l1, NULL, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; l1[c] != NULL; c++) {
+        /* 'copy_strings' is 'true', pointers must be different, but strings
+         * must be equal */
+        assert_int_not_equal(memcmp(&l1[c], &res[c], sizeof(char *)), 0);
+        assert_string_equal(l1[c], res[c]);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists(global_talloc_context, NULL, l1, false, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; l1[c] != NULL; c++) {
+        /* 'copy_strings' is 'false', pointers must be equal */
+        assert_int_equal(memcmp(&l1[c], &res[c], sizeof(char *)), 0);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists(global_talloc_context, NULL, l1, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; l1[c] != NULL; c++) {
+        /* 'copy_strings' is 'true', pointers must be different, but strings
+         * must be equal */
+        assert_int_not_equal(memcmp(&l1[c], &res[c], sizeof(char *)), 0);
+        assert_string_equal(l1[c], res[c]);
+    }
+    assert_null(res[c]);
+    talloc_free(res);
+
+    ret = add_strings_lists(global_talloc_context, l1, l2, false, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; l1[c] != NULL; c++) {
+        /* 'copy_strings' is 'false', pointers must be equal */
+        assert_int_equal(memcmp(&l1[c], &res[c], sizeof(char *)), 0);
+    }
+    for (d = 0; l2[d] != NULL; d++) {
+        assert_int_equal(memcmp(&l2[d], &res[c+d], sizeof(char *)), 0);
+    }
+    assert_null(res[c+d]);
+    talloc_free(res);
+
+    ret = add_strings_lists(global_talloc_context, l1, l2, true, &res);
+    assert_int_equal(ret, EOK);
+    assert_non_null(res);
+    for (c = 0; l1[c] != NULL; c++) {
+        /* 'copy_strings' is 'true', pointers must be different, but strings
+         * must be equal */
+        assert_int_not_equal(memcmp(&l1[c], &res[c], sizeof(char *)), 0);
+        assert_string_equal(l1[c], res[c]);
+    }
+    for (d = 0; l2[d] != NULL; d++) {
+        assert_int_not_equal(memcmp(&l2[d], &res[c+d], sizeof(char *)), 0);
+        assert_string_equal(l2[d], res[c+d]);
+    }
+    assert_null(res[c+d]);
+    talloc_free(res);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -919,6 +1027,9 @@ int main(int argc, const char *argv[])
         unit_test(test_textual_public_key),
         unit_test(test_replace_whitespaces),
         unit_test(test_reverse_replace_whitespaces),
+        unit_test_setup_teardown(test_add_strings_lists,
+                                 setup_add_strings_lists,
+                                 teardown_add_strings_lists),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

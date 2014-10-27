@@ -426,6 +426,24 @@ errno_t sss_hash_create_ex(TALLOC_CTX *mem_ctx,
                            hash_delete_callback *delete_callback,
                            void *delete_private_data);
 
+/**
+ * @brief Add two list of strings
+ *
+ * Create a new NULL-termintated list of strings by adding two lists together.
+ *
+ * @param[in] mem_ctx      Talloc memory context for the new list.
+ * @param[in] l1           First NULL-termintated list of strings.
+ * @param[in] l2           Second NULL-termintated list of strings.
+ * @param[in] copy_strings If set to 'true' the list items will be copied
+ *                         otherwise only the pointers to the items are
+ *                         copied.
+ * @param[out] new_list    New NULL-terminated list of strings. Must be freed
+ *                         with talloc_free() by the caller. If copy_strings
+ *                         is 'true' the new elements will be freed as well.
+ */
+errno_t add_strings_lists(TALLOC_CTX *mem_ctx, const char **l1, const char **l2,
+                          bool copy_strings, char ***_new_list);
+
 /* Copy a NULL-terminated string list
  * Returns NULL on out of memory error or invalid input
  */
