@@ -948,6 +948,8 @@ errno_t sysdb_search_group_override_by_gid(TALLOC_CTX *mem_ctx,
  * @param[in] domain Domain struct, needed to access the cache
  * @oaram[in] obj The original object
  * @param[in] override_obj The object with the override data, may be NULL
+ * @param[in] req_attrs List of attributes to be requested, if not set a
+ *                      default list dependig on the object type will be used
  *
  * @return EOK - Override data was added successfully
  * @return ENOMEM - There was insufficient memory to complete the operation
@@ -958,7 +960,8 @@ errno_t sysdb_search_group_override_by_gid(TALLOC_CTX *mem_ctx,
  */
 errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
                                       struct ldb_message *obj,
-                                      struct ldb_message *override_obj)
+                                      struct ldb_message *override_obj,
+                                      const char **req_attrs)
 {
     int ret;
     const char *override_dn_str;
@@ -983,7 +986,8 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
         {NULL, NULL}
     };
     size_t c;
-    const char *tmp_str;
+    size_t d;
+    struct ldb_message_element *tmp_el;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1016,12 +1020,15 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
             goto done;
         }
 
-        uid = ldb_msg_find_attr_as_uint64(obj, SYSDB_UIDNUM, 0);
-        if (uid == 0) {
-            /* No UID hence group object */
-            attrs = group_attrs;
-        } else {
-            attrs = user_attrs;
+        attrs = req_attrs;
+        if (attrs == NULL) {
+            uid = ldb_msg_find_attr_as_uint64(obj, SYSDB_UIDNUM, 0);
+            if (uid == 0) {
+                /* No UID hence group object */
+                attrs = group_attrs;
+            } else {
+                attrs = user_attrs;
+            }
         }
 
         ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, override_dn,
@@ -1050,14 +1057,16 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
     }
 
     for (c = 0; attr_map[c].attr != NULL; c++) {
-        tmp_str = ldb_msg_find_attr_as_string(override, attr_map[c].attr, NULL);
-        if (tmp_str != NULL) {
-            talloc_steal(obj, tmp_str);
-            ret = ldb_msg_add_string(obj, attr_map[c].new_attr, tmp_str);
-            if (ret != LDB_SUCCESS) {
-                DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_string failed.\n");
-                ret = sysdb_error_to_errno(ret);
-                goto done;
+        tmp_el = ldb_msg_find_element(override, attr_map[c].attr);
+        if (tmp_el != NULL) {
+            for (d = 0; d < tmp_el->num_values; d++) {
+                ret = ldb_msg_add_steal_value(obj, attr_map[c].new_attr,
+                                              &tmp_el->values[d]);
+                if (ret != LDB_SUCCESS) {
+                    DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_value failed.\n");
+                    ret = sysdb_error_to_errno(ret);
+                    goto done;
+                }
             }
         }
     }

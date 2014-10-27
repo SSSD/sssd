@@ -487,7 +487,8 @@ errno_t sysdb_search_group_override_by_gid(TALLOC_CTX *mem_ctx,
 
 errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
                                       struct ldb_message *obj,
-                                      struct ldb_message *override_obj);
+                                      struct ldb_message *override_obj,
+                                      const char **req_attrs);
 
 errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
                                          struct ldb_message *obj);

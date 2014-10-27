@@ -4064,7 +4064,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             if (ret == EOK && DOM_HAS_VIEWS(dom)) {
                 for (c = 0; c < dctx->res->count; c++) {
                     ret = sysdb_add_overrides_to_object(dom, dctx->res->msgs[c],
-                                                        NULL);
+                                                        NULL, NULL);
                     if (ret != EOK) {
                         DEBUG(SSSDBG_OP_FAILURE,
                               "sysdb_add_overrides_to_object failed.\n");
