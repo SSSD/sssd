@@ -2896,6 +2896,19 @@ int main(int argc, const char *argv[])
         return 3;
     }
 
+    ret = chown_debug_file(NULL, uid, gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot chown the debug files, debugging might not work!\n");
+    }
+
+    ret = become_user(uid, gid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "Cannot become user [%"SPRIuid"][%"SPRIgid"].\n", uid, gid);
+        return ret;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Backend provider (%s) started!\n", be_domain);
 
     /* loop on main */
