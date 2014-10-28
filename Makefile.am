@@ -409,6 +409,7 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_dp.c \
     src/responder/common/responder_packet.c \
     src/responder/common/responder_get_domains.c \
+    src/responder/common/responder_utils.c \
     src/monitor/monitor_iface_generated.c \
     src/monitor/monitor_iface_generated.h \
     src/providers/data_provider_iface_generated.c \
@@ -2025,7 +2026,9 @@ ifp_tests_SOURCES = \
     src/tests/cmocka/test_ifp.c \
     src/responder/ifp/ifpsrv_cmd.c \
     src/responder/ifp/ifp_iface_generated.c \
-    src/responder/ifp/ifpsrv_util.c
+    src/responder/ifp/ifpsrv_util.c \
+    src/responder/common/responder_utils.c \
+    $(NULL)
 ifp_tests_CFLAGS = \
     $(AM_CFLAGS)
 ifp_tests_LDADD = \

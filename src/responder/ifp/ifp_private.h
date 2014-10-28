@@ -82,5 +82,8 @@ char *_ifp_reply_objpath(TALLOC_CTX *mem_ctx, const char *base,
 errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,
                                struct ldb_message_element *el);
 const char **ifp_parse_attr_list(TALLOC_CTX *mem_ctx, const char *conf_str);
+const char **
+ifp_parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
+                       const char **defaults);
 bool ifp_attr_allowed(const char *whitelist[], const char *attr);
 #endif /* _IFPSRV_PRIVATE_H_ */

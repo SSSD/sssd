@@ -329,4 +329,6 @@ sss_parse_inp_send(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx,
 errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                            char **_name, char **_domname);
 
+const char **parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
+                                const char **defaults);
 #endif /* __SSS_RESPONDER_H__ */
