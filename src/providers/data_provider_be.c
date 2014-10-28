@@ -105,6 +105,16 @@ static struct bet_data bet_data[] = {
     {BET_MAX, NULL, NULL}
 };
 
+struct bet_queue_item {
+    struct bet_queue_item *prev;
+    struct bet_queue_item *next;
+
+    TALLOC_CTX *mem_ctx;
+    struct be_req *be_req;
+    be_req_fn_t fn;
+
+};
+
 #define REQ_PHASE_ACCESS 0
 #define REQ_PHASE_SELINUX 1
 
