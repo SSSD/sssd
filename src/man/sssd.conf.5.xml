@@ -711,6 +711,32 @@ fallback_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>user_attributes (string)</term>
+                    <listitem>
+                        <para>
+                            Some of the additional NSS responder requests can
+                            return more attributes than just the POSIX ones
+                            defined by the NSS interface. The list of attributes
+                            is controlled by this option. It is handle the same
+                            way as the <quote>user_attributes</quote> option of
+                            the InfoPipe responder (see
+                            <citerefentry>
+                                <refentrytitle>sssd-ifp</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>
+                            for details) but with no default values.
+                        </para>
+                        <para>
+                            To make configuration more easy the NSS responder
+                            will check the InfoPipe option if it is not set for
+                            the NSS responder.
+                        </para>
+                        <para>
+                            Default: not set, fallback to InfoPipe option
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
         <refsect2 id='PAM'>

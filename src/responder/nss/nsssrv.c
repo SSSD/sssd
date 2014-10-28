@@ -214,6 +214,7 @@ static int nss_get_config(struct nss_ctx *nctx,
                           struct confdb_ctx *cdb)
 {
     int ret;
+    char *tmp_str;
 
     ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_ENUM_CACHE_TIMEOUT, 120,
@@ -297,6 +298,25 @@ static int nss_get_config(struct nss_ctx *nctx,
                             CONFDB_DEFAULT_HOMEDIR_SUBSTRING,
                             &nctx->homedir_substr);
     if (ret != EOK) goto done;
+
+
+    ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                            CONFDB_IFP_USER_ATTR_LIST, NULL, &tmp_str);
+    if (ret != EOK) goto done;
+
+    if (tmp_str == NULL) {
+        ret = confdb_get_string(cdb, nctx, CONFDB_IFP_CONF_ENTRY,
+                                CONFDB_IFP_USER_ATTR_LIST, NULL, &tmp_str);
+        if (ret != EOK) goto done;
+    }
+
+    if (tmp_str != NULL) {
+        nctx->extra_attributes = parse_attr_list_ex(nctx, tmp_str, NULL);
+        if (nctx->extra_attributes == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
 
     ret = 0;
 done:

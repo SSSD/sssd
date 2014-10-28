@@ -75,6 +75,8 @@ struct nss_ctx {
 
     struct sss_idmap_ctx *idmap_ctx;
     struct sss_names_ctx *global_names;
+
+    const char **extra_attributes;
 };
 
 struct nss_packet;
