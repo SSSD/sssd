@@ -215,6 +215,7 @@ if HAVE_CMOCKA
         sss_sifp-tests \
         test_search_bases \
         sdap-tests \
+        test_sysdb_views \
         $(NULL)
 
 if BUILD_IFP
@@ -2059,6 +2060,21 @@ sss_sifp_tests_LDADD = \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 endif # BUILD_IFP
+
+test_sysdb_views_SOURCES = \
+    src/tests/cmocka/test_sysdb_views.c \
+    $(NULL)
+test_sysdb_views_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_sysdb_views_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(LDB_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
 
 endif # HAVE_CMOCKA
 
