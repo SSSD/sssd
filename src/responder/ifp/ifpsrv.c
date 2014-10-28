@@ -376,7 +376,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
                             CONFDB_IFP_CONF_ENTRY, CONFDB_IFP_USER_ATTR_LIST,
                             NULL, &attr_list_str);
     if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get allowed UIDs.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get user attribute list.\n");
         goto fail;
     }
 
