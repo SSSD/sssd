@@ -942,7 +942,7 @@ static errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to make request to our cache: [%d]: [%s]\n",
                ret, sss_strerror(ret));
@@ -950,8 +950,6 @@ static errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
     }
 
     *_msg = msg;
-
-    ret = EOK;
 
 done:
     return ret;
@@ -978,7 +976,11 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
 
     ret = get_object_from_cache(state, state->user_dom, state->ar,
                                 &state->obj_msg);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Object not found, ending request\n");
+        tevent_req_done(req);
+        return;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "get_object_from_cache failed.\n");
         goto fail;
     }
