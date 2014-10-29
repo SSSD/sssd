@@ -3654,7 +3654,7 @@ static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
         }
     }
 
-    if (ael != NULL) {
+    if (ael != NULL && ael->num > 0) {
         /* Add itself to the list of the parents to also get the memberuid */
         parents->dns = talloc_realloc(parents, parents->dns,
                                     struct ldb_dn *, parents->num + 1);
@@ -3724,7 +3724,7 @@ static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
     }
 
     /* prepare del sets */
-    if (del != NULL) {
+    if (del != NULL && del->num > 0) {
         for (i = 0; i < del->num; i++) {
             ret = mbof_append_delop(first, del->dns[i]);
             if (ret != LDB_SUCCESS) {
