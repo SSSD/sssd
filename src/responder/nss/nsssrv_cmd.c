@@ -559,6 +559,25 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
     return EOK;
 }
 
+/* Currently only refreshing expired netgroups is supported. */
+static bool
+is_refreshed_on_bg(int req_type,
+                   enum sss_dp_acct_type refresh_expired_interval)
+{
+    if (refresh_expired_interval == 0) {
+        return false;
+    }
+
+    switch (req_type) {
+    case SSS_DP_NETGR:
+        return true;
+    default:
+        return false;
+    }
+
+    return false;
+}
+
 static void nsssrv_dp_send_acct_req_done(struct tevent_req *req);
 
 /* FIXME: do not check res->count, but get in a msgs and check in parent */
@@ -585,25 +604,35 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
     if ((req_type == SSS_DP_USER || req_type == SSS_DP_NETGR) &&
             (res->count > 1)) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "getpwXXX call returned more than one result!"
-                  " DB Corrupted?\n");
+              "getpwXXX call returned more than one result! DB Corrupted?\n");
         return ENOENT;
     }
 
-    /* if we have any reply let's check cache validity */
+    /* if we have any reply let's check cache validity, but ignore netgroups
+     * if refresh_expired_interval is set (which implies that another method
+     * is used to refresh netgroups)
+     */
     if (res->count > 0) {
-        if (req_type == SSS_DP_INITGROUPS) {
-            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                      SYSDB_INITGR_EXPIRE, 1);
-        }
-        if (cacheExpire == 0) {
-            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                      SYSDB_CACHE_EXPIRE, 0);
-        }
+        if (is_refreshed_on_bg(req_type,
+                               dctx->domain->refresh_expired_interval)) {
+            ret = EOK;
+        } else {
+            if (req_type == SSS_DP_INITGROUPS) {
+                cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                          SYSDB_INITGR_EXPIRE,
+                                                          1);
+            }
+            if (cacheExpire == 0) {
+                cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                          SYSDB_CACHE_EXPIRE,
+                                                          0);
+            }
 
-        /* if we have any reply let's check cache validity */
-        ret = sss_cmd_check_cache(res->msgs[0], nctx->cache_refresh_percent,
-                                  cacheExpire);
+            /* if we have any reply let's check cache validity */
+            ret = sss_cmd_check_cache(res->msgs[0],
+                                      nctx->cache_refresh_percent,
+                                      cacheExpire);
+        }
         if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_FUNC, "Cached entry is valid, returning..\n");
             return EOK;
