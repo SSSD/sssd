@@ -1058,6 +1058,21 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    /* detect and fix misconfiguration */
+    if (domain->refresh_expired_interval > entry_cache_timeout) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "refresh_expired_interval (%d) cannot be greater then "
+              "entry_cache_timeout (%u)\n",
+              domain->refresh_expired_interval, entry_cache_timeout);
+
+        domain->refresh_expired_interval = 0.75 * entry_cache_timeout;
+
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "refresh_expired_interval is being set to recommended value "
+              "entry_cache_timeout * 0.75 (%u).\n",
+              domain->refresh_expired_interval);
+    }
+
     /* Set the PAM warning time, if specified. If not specified, pass on
      * the "not set" value of "-1" which means "use provider default". The
      * value 0 means "always display the warning if server sends one" */
