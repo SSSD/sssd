@@ -539,7 +539,7 @@ struct ipa_get_ad_acct_state {
     struct ipa_id_ctx *ipa_ctx;
     struct be_req *be_req;
     struct be_acct_req *ar;
-    struct sss_domain_info *user_dom;
+    struct sss_domain_info *obj_dom;
     char *object_sid;
     struct sysdb_attrs *override_attrs;
     struct ldb_message *obj_msg;
@@ -581,15 +581,15 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     state->override_attrs = override_attrs;
 
     /* This can only be a subdomain request, verify subdomain */
-    state->user_dom = find_domain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
-                                          ar->domain, true);
-    if (state->user_dom == NULL) {
+    state->obj_dom = find_domain_by_name(ipa_ctx->sdap_id_ctx->be->domain,
+                                         ar->domain, true);
+    if (state->obj_dom == NULL) {
         ret = EINVAL;
         goto fail;
     }
 
     /* Let's see if this subdomain has a ad_id_ctx */
-    ad_id_ctx = ipa_get_ad_id_ctx(ipa_ctx, state->user_dom);
+    ad_id_ctx = ipa_get_ad_id_ctx(ipa_ctx, state->obj_dom);
     if (ad_id_ctx == NULL) {
         ret = EINVAL;
         goto fail;
@@ -604,7 +604,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     switch (state->ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_INITGROUPS:
     case BE_REQ_GROUP:
-        clist = ad_gc_conn_list(req, ad_id_ctx, state->user_dom);
+        clist = ad_gc_conn_list(req, ad_id_ctx, state->obj_dom);
         if (clist == NULL) {
             ret = ENOMEM;
             goto fail;
@@ -621,7 +621,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Now we already need ad_id_ctx in particular sdap_id_conn_ctx */
-    sdom = sdap_domain_get(sdap_id_ctx->opts, state->user_dom);
+    sdom = sdap_domain_get(sdap_id_ctx->opts, state->obj_dom);
     if (sdom == NULL) {
         ret = EIO;
         goto fail;
@@ -974,7 +974,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = get_object_from_cache(state, state->user_dom, state->ar,
+    ret = get_object_from_cache(state, state->obj_dom, state->ar,
                                 &state->obj_msg);
     if (ret == ENOENT) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Object not found, ending request\n");
@@ -985,7 +985,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
         goto fail;
     }
 
-    ret = apply_subdomain_homedir(state, state->user_dom,
+    ret = apply_subdomain_homedir(state, state->obj_dom,
                                   state->obj_msg);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1010,7 +1010,7 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
         }
 
         ret = get_be_acct_req_for_sid(state, state->object_sid,
-                                      state->user_dom->name, &ar);
+                                      state->obj_dom->name, &ar);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
             goto fail;
@@ -1089,7 +1089,7 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
     if (state->override_attrs != NULL) {
         /* We are in ipa-server-mode, so the view is the default view by
          * definition. */
-        ret = sysdb_apply_default_override(state->user_dom,
+        ret = sysdb_apply_default_override(state->obj_dom,
                                            state->override_attrs,
                                            state->obj_msg->dn);
         if (ret != EOK) {
@@ -1107,7 +1107,7 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
      * users. */
     subreq = ipa_get_ad_memberships_send(state, state->ev, state->ar,
                                          state->ipa_ctx->server_mode,
-                                         state->user_dom,
+                                         state->obj_dom,
                                          state->ipa_ctx->sdap_id_ctx,
                                          state->ipa_ctx->server_mode->realm);
     if (subreq == NULL) {
