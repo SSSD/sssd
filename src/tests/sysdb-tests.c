@@ -4746,6 +4746,12 @@ START_TEST (test_sysdb_search_return_ENOENT)
     fail_if(ret != EOK, "Could not set up the test");
     check_leaks_push(test_ctx);
 
+    /* id mapping */
+    ret = sysdb_idmap_get_mappings(test_ctx, test_ctx->domain, &res);
+    fail_unless(ret == ENOENT, "sysdb_idmap_get_mappings error [%d][%s].",
+                ret, strerror(ret));
+    talloc_zfree(res);
+
     /* Search user */
     ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain,
                                     "nonexisting_user", NULL, &msg);

@@ -230,7 +230,7 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (ret == EOK && res->count > 0) {
+    if (ret == EOK) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Initializing [%d] domains for ID-mapping\n", res->count);
 

@@ -280,7 +280,6 @@ sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
                          struct ldb_result **_result)
 {
     errno_t ret;
-    int lret;
     struct ldb_dn *base_dn;
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
@@ -298,19 +297,19 @@ sysdb_idmap_get_mappings(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, SYSDB_IDMAP_FILTER);
-    if (lret) {
+    SSS_LDB_SEARCH(ret, domain->sysdb->ldb, tmp_ctx, &res, base_dn,
+                   LDB_SCOPE_SUBTREE, attrs, SYSDB_IDMAP_FILTER);
+    if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not locate ID mappings: [%s]\n",
-               ldb_strerror(lret));
-        ret = sysdb_error_to_errno(lret);
+              sss_strerror(ret));
         goto done;
     }
 
     *_result = talloc_steal(mem_ctx, res);
 
     ret = EOK;
+
 done:
     talloc_free(tmp_ctx);
     return ret;
