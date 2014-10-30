@@ -2887,6 +2887,12 @@ if SSSD_USER
 	-chown $(SSSD_USER):$(SSSD_USER) \
 	$(SSSD_USER_DIRS)
 endif
+	$(INSTALL) -d -m 0700 $(DESTDIR)$(dbpath) $(DESTDIR)$(logpath) \
+            $(DESTDIR)$(pipepath)/private
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(mcpath) $(DESTDIR)$(pipepath) \
+            $(DESTDIR)$(pubconfpath) \
+            $(DESTDIR)$(pubconfpath)/krb5.include.d $(DESTDIR)$(gpocachepath)
+	$(INSTALL) -d -m 0711 $(DESTDIR)$(sssdconfdir)
 
 if HAVE_DOXYGEN
 docs:
