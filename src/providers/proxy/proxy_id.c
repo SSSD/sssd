@@ -222,6 +222,7 @@ static int save_user(struct sss_domain_info *domain,
     struct sysdb_attrs *attrs = NULL;
     errno_t ret;
     const char *cased_alias;
+    const char *lc_pw_name = NULL;
 
     if (pwd->pw_shell && pwd->pw_shell[0] != '\0') {
         shell = pwd->pw_shell;
@@ -239,31 +240,42 @@ static int save_user(struct sss_domain_info *domain,
         attrs = sysdb_new_attrs(NULL);
         if (!attrs) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Allocation error ?!\n");
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
     }
 
     if (lowercase) {
-        ret = sysdb_attrs_add_lc_name_alias(attrs, pwd->pw_name);
+        lc_pw_name = sss_tc_utf8_str_tolower(attrs, pwd->pw_name);
+        if (lc_pw_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lc_pw_name);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
-            talloc_zfree(attrs);
-            return ret;
+            ret = ENOMEM;
+            goto done;
         }
+
     }
 
     if (alias) {
         cased_alias = sss_get_cased_name(attrs, alias, !lowercase);
         if (!cased_alias) {
-            talloc_zfree(attrs);
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
 
-        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, cased_alias);
-        if (ret) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
-            talloc_zfree(attrs);
-            return ret;
+        /* Add the alias only if it differs from lowercased pw_name */
+        if (lc_pw_name == NULL || strcmp(cased_alias, lc_pw_name) != 0) {
+            ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, cased_alias);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
+                goto done;
+            }
         }
     }
 
@@ -280,13 +292,14 @@ static int save_user(struct sss_domain_info *domain,
                            NULL,
                            cache_timeout,
                            0);
-    talloc_zfree(attrs);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not add user to cache\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+done:
+    talloc_zfree(attrs);
+    return ret;
 }
 
 /* =Getpwuid-wrapper======================================================*/
@@ -527,6 +540,7 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
     errno_t ret, sret;
     struct sysdb_attrs *attrs = NULL;
     const char *cased_alias;
+    const char *lc_gr_name = NULL;
     TALLOC_CTX *tmp_ctx;
     time_t now = time(NULL);
     bool in_transaction = false;
@@ -578,27 +592,34 @@ static int save_group(struct sysdb_ctx *sysdb, struct sss_domain_info *dom,
                 goto done;
             }
         }
+    }
 
-        if (dom->case_sensitive == false) {
-            ret = sysdb_attrs_add_lc_name_alias(attrs, grp->gr_name);
-            if (ret) {
-                DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
-                ret = ENOMEM;
-                goto done;
-            }
+    if (dom->case_sensitive == false) {
+        lc_gr_name = sss_tc_utf8_str_tolower(attrs, grp->gr_name);
+        if (lc_gr_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
+            ret = ENOMEM;
+            goto done;
         }
 
-        if (alias) {
-            cased_alias = sss_get_cased_name(attrs, alias, dom->case_sensitive);
-            if (!cased_alias) {
-                talloc_zfree(attrs);
-                return ENOMEM;
-            }
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, lc_gr_name);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
 
+    if (alias) {
+        cased_alias = sss_get_cased_name(attrs, alias, dom->case_sensitive);
+        if (!cased_alias) {
+            ret = ENOMEM;
+            DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
+            goto done;
+        }
+
+        if (lc_gr_name == NULL || strcmp(cased_alias, lc_gr_name)) {
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME_ALIAS, cased_alias);
             if (ret) {
                 DEBUG(SSSDBG_OP_FAILURE, "Could not add name alias\n");
-                ret = ENOMEM;
                 goto done;
             }
         }
