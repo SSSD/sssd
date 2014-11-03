@@ -25,6 +25,193 @@
 
 #include "tests/common.h"
 
+static errno_t
+mock_confdb(TALLOC_CTX *mem_ctx,
+            const char *tests_path,
+            const char *cdb_file,
+            struct confdb_ctx **_cdb)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct confdb_ctx *cdb = NULL;
+    char *cdb_path = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    cdb_path = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, cdb_file);
+    if (cdb_path == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* connect to the confdb */
+    ret = confdb_init(tmp_ctx, &cdb, cdb_path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "confdb_init failed: %d\n", ret);
+        goto done;
+    }
+
+    *_cdb = talloc_steal(mem_ctx, cdb);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+mock_confdb_domain(TALLOC_CTX *mem_ctx,
+                   struct confdb_ctx *cdb,
+                   const char *db_path,
+                   const char *name,
+                   const char *id_provider,
+                   struct sss_test_conf_param *params,
+                   char **_cdb_path)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *val[2] = {NULL, NULL};
+    char *cdb_path = NULL;
+    char **array = NULL;
+    char *list = NULL;
+    bool exists = false;
+    errno_t ret;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, ("talloc_new() failed\n"));
+        return ENOMEM;
+    }
+
+    /* get current domain list */
+    ret = confdb_get_string(cdb, tmp_ctx, "config/sssd", "domains",
+                            NULL, &list);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* check if the domain is already in */
+    if (list != NULL) {
+        ret = split_on_separator(tmp_ctx, list, ',', true, true, &array, NULL);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        for (i = 0; array[i] != NULL; i++) {
+            if (strcmp(array[i], name) == 0) {
+                exists = true;
+                break;
+            }
+        }
+    }
+
+    /* add domain to the list of enabled domains */
+    if (!exists) {
+        if (list == NULL) {
+            list = talloc_strdup(tmp_ctx, name);
+        } else {
+            list = talloc_asprintf_append(list, ", %s", name);
+        }
+
+        if (list == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        val[0] = list;
+        ret = confdb_add_param(cdb, true, "config/sssd", "domains", val);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to change domain list [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    /* create domain section */
+    cdb_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL, name);
+    if (cdb_path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    val[0] = id_provider;
+    ret = confdb_add_param(cdb, true, cdb_path, "id_provider", val);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add id_provider [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (params != NULL) {
+        for (i = 0; params[i].key != NULL; i++) {
+            val[0] = params[i].value;
+            ret = confdb_add_param(cdb, true, cdb_path, params[i].key, val);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add parameter %s [%d]: "
+                      "%s\n", params[i].key, ret, sss_strerror(ret));
+                goto done;
+            }
+        }
+    }
+
+    if (_cdb_path != NULL) {
+        *_cdb_path = talloc_steal(mem_ctx, cdb_path);
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+mock_domain(TALLOC_CTX *mem_ctx,
+            struct confdb_ctx *cdb,
+            const char *db_path,
+            const char *name,
+            struct sss_domain_info **_domain)
+{
+    struct sss_domain_info *domain = NULL;
+    errno_t ret;
+
+    /* initialize sysdb */
+    ret = sssd_domain_init(mem_ctx, cdb, name, db_path, &domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sssd_domain_init() of %s failed "
+              "[%d]: %s\n", name, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* init with an AD-style regex to be able to test flat name */
+    ret = sss_names_init_from_args(domain,
+                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
+                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
+                                   "(^(?P<name>[^@\\\\]+)$))",
+                                   "%1$s@%2$s", &domain->names);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cannot create names context\n");
+        goto done;
+    }
+
+    if (_domain != NULL) {
+        *_domain = domain;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(domain);
+    }
+    return ret;
+}
+
 struct sss_test_ctx *
 create_dom_test_ctx(TALLOC_CTX *mem_ctx,
                     const char *tests_path,
@@ -34,95 +221,40 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
                     struct sss_test_conf_param *params)
 {
     struct sss_test_ctx *test_ctx;
-    size_t i;
-    const char *val[2];
-    val[1] = NULL;
     errno_t ret;
-    char *dompath;
 
     test_ctx = create_ev_test_ctx(mem_ctx);
     if (test_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "create_ev_test_ctx() failed\n");
         goto fail;
     }
 
-    test_ctx->confdb_path = talloc_asprintf(test_ctx, "%s/%s",
-                                            tests_path, confdb_path);
-    if (test_ctx->confdb_path == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
-        goto fail;
-    }
-
-    test_ctx->conf_dom_path = talloc_asprintf(test_ctx,
-                                              CONFDB_DOMAIN_PATH_TMPL,
-                                              domain_name);
-    if (test_ctx->conf_dom_path == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
-        goto fail;
-    }
-
-    /* Connect to the conf db */
-    ret = confdb_init(test_ctx, &test_ctx->confdb, test_ctx->confdb_path);
+    ret = mock_confdb(test_ctx, tests_path, confdb_path, &test_ctx->confdb);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "confdb_init failed: %d\n", ret);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize confdb [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto fail;
     }
 
-    val[0] = domain_name;
-    ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/sssd", "domains", val);
+    ret = mock_confdb_domain(test_ctx, test_ctx->confdb, tests_path,
+                             domain_name, id_provider, params,
+                             &test_ctx->conf_dom_path);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "cannot add domain: %d\n", ret);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize confdb domain "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         goto fail;
     }
 
-    dompath = talloc_asprintf(test_ctx, "config/domain/%s", domain_name);
-    if (dompath == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
-        goto fail;
-    }
-
-    val[0] = id_provider;
-    ret = confdb_add_param(test_ctx->confdb, true,
-                           dompath, "id_provider", val);
+    ret = mock_domain(test_ctx, test_ctx->confdb, tests_path, domain_name,
+                      &test_ctx->dom);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "cannot add id_provider: %d\n", ret);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize sss domain "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         goto fail;
     }
 
-    if (params) {
-        for (i=0; params[i].key; i++) {
-            val[0] = params[i].value;
-            ret = confdb_add_param(test_ctx->confdb, true,
-                                   dompath, params[i].key,
-                                   val);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "cannot add parameter %s: %d\n", params[i].key, ret);
-                goto fail;
-            }
-        }
-    }
-
-    ret = sssd_domain_init(test_ctx, test_ctx->confdb, domain_name,
-                           tests_path, &test_ctx->dom);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "cannot add id_provider: %d\n", ret);
-        goto fail;
-    }
     test_ctx->sysdb = test_ctx->dom->sysdb;
-
-    /* Init with an AD-style regex to be able to test flat name */
-    ret = sss_names_init_from_args(test_ctx,
-                                   "(((?P<domain>[^\\\\]+)\\\\(?P<name>.+$))|" \
-                                   "((?P<name>[^@]+)@(?P<domain>.+$))|" \
-                                   "(^(?P<name>[^@\\\\]+)$))",
-                                   "%1$s@%2$s", &test_ctx->nctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "cannot create names context\n");
-        goto fail;
-    }
-    test_ctx->dom->names = test_ctx->nctx;
+    test_ctx->nctx = test_ctx->dom->names;
 
     return test_ctx;
 
