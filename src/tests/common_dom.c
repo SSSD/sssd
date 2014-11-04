@@ -213,15 +213,18 @@ done:
 }
 
 struct sss_test_ctx *
-create_dom_test_ctx(TALLOC_CTX *mem_ctx,
-                    const char *tests_path,
-                    const char *confdb_path,
-                    const char *domain_name,
-                    const char *id_provider,
-                    struct sss_test_conf_param *params)
+create_multidom_test_ctx(TALLOC_CTX *mem_ctx,
+                         const char *tests_path,
+                         const char *cdb_file,
+                         const char **domains,
+                         const char *id_provider,
+                         struct sss_test_conf_param *params)
 {
-    struct sss_test_ctx *test_ctx;
+    struct sss_domain_info *domain = NULL;
+    struct sss_test_ctx *test_ctx = NULL;
+    char *cdb_path = NULL;
     errno_t ret;
+    int i;
 
     test_ctx = create_ev_test_ctx(mem_ctx);
     if (test_ctx == NULL) {
@@ -229,38 +232,64 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = mock_confdb(test_ctx, tests_path, confdb_path, &test_ctx->confdb);
+    ret = mock_confdb(test_ctx, tests_path, cdb_file, &test_ctx->confdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize confdb [%d]: %s\n",
               ret, sss_strerror(ret));
         goto fail;
     }
 
-    ret = mock_confdb_domain(test_ctx, test_ctx->confdb, tests_path,
-                             domain_name, id_provider, params,
-                             &test_ctx->conf_dom_path);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize confdb domain "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto fail;
+    /* create confdb objects for the domains */
+    for (i = 0; domains[i] != NULL; i++) {
+        ret = mock_confdb_domain(test_ctx, test_ctx->confdb, tests_path,
+                                 domains[i], id_provider, params,
+                                 (cdb_path == NULL ? &cdb_path : NULL));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize confdb domain "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto fail;
+        }
     }
 
-    ret = mock_domain(test_ctx, test_ctx->confdb, tests_path, domain_name,
-                      &test_ctx->dom);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize sss domain "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto fail;
+    /* initialize domain list and sysdb of the domains */
+    for (i = 0; domains[i] != NULL; i++) {
+        ret = mock_domain(test_ctx, test_ctx->confdb, tests_path, domains[i],
+                          (domain == NULL ? &domain : NULL));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add new domain [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto fail;
+        }
     }
 
+    /* the first domain we obtained is already head of the complete list */
+    test_ctx->dom = domain;
+
+    /* set data from the first domain */
     test_ctx->sysdb = test_ctx->dom->sysdb;
     test_ctx->nctx = test_ctx->dom->names;
+    test_ctx->conf_dom_path = cdb_path;
 
     return test_ctx;
 
 fail:
     talloc_free(test_ctx);
     return NULL;
+}
+
+
+struct sss_test_ctx *
+create_dom_test_ctx(TALLOC_CTX *mem_ctx,
+                    const char *tests_path,
+                    const char *confdb_path,
+                    const char *domain_name,
+                    const char *id_provider,
+                    struct sss_test_conf_param *params)
+{
+    const char *domains[] = {domain_name, NULL};
+
+    return create_multidom_test_ctx(mem_ctx, tests_path, confdb_path, domains,
+                                    id_provider, params);
 }
 
 void test_dom_suite_setup(const char *tests_path)
