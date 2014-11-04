@@ -305,6 +305,71 @@ void test_dom_suite_setup(const char *tests_path)
     }
 }
 
+void test_multidom_suite_cleanup(const char *tests_path,
+                                 const char *cdb_file,
+                                 const char **domains)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *cdb_path = NULL;
+    char *sysdb_path = NULL;
+    errno_t ret;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return;
+    }
+
+    if (cdb_file != NULL) {
+        cdb_path = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, cdb_file);
+        if (cdb_path == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not contruct cdb path\n");
+            goto done;
+        }
+
+        errno = 0;
+        ret = unlink(cdb_path);
+        if (ret != 0 && errno != ENOENT) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not delete the test config "
+                  "ldb file [%d]: (%s)\n", ret, sss_strerror(ret));
+        }
+    }
+
+    if (domains != NULL) {
+        for (i = 0; domains[i] != NULL; i++) {
+            sysdb_path = talloc_asprintf(tmp_ctx, "%s/cache_%s.ldb",
+                                         tests_path, domains[i]);
+            if (sysdb_path == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Could not construct sysdb path\n");
+                goto done;
+            }
+
+            errno = 0;
+            ret = unlink(sysdb_path);
+            if (ret != 0 && errno != ENOENT) {
+                ret = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE, "Could not delete the test domain "
+                      "ldb file [%d]: (%s)\n", ret, sss_strerror(ret));
+            }
+
+            talloc_zfree(sysdb_path);
+        }
+    }
+
+    errno = 0;
+    ret = rmdir(tests_path);
+    if (ret != 0 && errno != ENOENT) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not delete the test dir (%d) (%s)\n",
+              ret, sss_strerror(ret));
+    }
+
+done:
+    talloc_free(tmp_ctx);
+}
+
 void test_dom_suite_cleanup(const char *tests_path,
                             const char *confdb_path,
                             const char *sysdb_path)

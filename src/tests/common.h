@@ -95,6 +95,10 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
 
 void test_dom_suite_setup(const char *tests_path);
 
+void test_multidom_suite_cleanup(const char *tests_path,
+                                 const char *cdb_file,
+                                 const char **domains);
+
 void test_dom_suite_cleanup(const char *tests_path,
                             const char *confdb_path,
                             const char *sysdb_path);
