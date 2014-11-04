@@ -3474,6 +3474,58 @@ START_TEST (test_sysdb_memberof_user_cleanup)
 }
 END_TEST
 
+START_TEST (test_sysdb_set_get_bool)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_dn *dn, *ne_dn;
+    bool value;
+    int ret;
+    const char *attr_val = "BOOL_VALUE";
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    dn = sysdb_domain_dn(test_ctx, test_ctx->domain);
+    fail_unless(dn != NULL);
+
+    /* attribute is not created yet */
+    ret = sysdb_get_bool(test_ctx->sysdb, dn, attr_val,
+                         &value);
+    fail_unless(ret == ENOENT,
+                "sysdb_get_bool returned %d:[%s], but ENOENT is expected",
+                ret, sss_strerror(ret));
+
+    /* add attribute */
+    ret = sysdb_set_bool(test_ctx->sysdb, dn, test_ctx->domain->name,
+                         attr_val, true);
+    fail_unless(ret == EOK);
+
+    /* successfully obtain attribute */
+    ret = sysdb_get_bool(test_ctx->sysdb, dn, attr_val,
+                         &value);
+    fail_unless(ret == EOK, "sysdb_get_bool failed %d:[%s]",
+                ret, sss_strerror(ret));
+    fail_unless(value == true);
+
+    /* use non-existing DN */
+    ne_dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb, SYSDB_DOM_BASE,
+                        "non-existing domain");
+    fail_unless(ne_dn != NULL);
+    ret = sysdb_get_bool(test_ctx->sysdb, ne_dn, attr_val,
+                         &value);
+    fail_unless(ret == ENOENT,
+                "sysdb_get_bool returned %d:[%s], but ENOENT is expected",
+                ret, sss_strerror(ret));
+
+    /* free ctx */
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_attrs_to_list)
 {
     struct sysdb_attrs *attrs_list[3];
@@ -4907,10 +4959,9 @@ START_TEST(test_sysdb_has_enumerated)
     fail_if(ret != EOK, "Could not set up the test");
 
     ret = sysdb_has_enumerated(test_ctx->domain, &enumerated);
-    fail_if(ret != EOK, "Error [%d][%s] checking enumeration",
-                        ret, strerror(ret));
-
-    fail_if(enumerated, "Enumeration should default to false");
+    fail_if(ret != ENOENT,
+            "Error [%d][%s] checking enumeration ENOENT is expected",
+            ret, strerror(ret));
 
     ret = sysdb_set_enumerated(test_ctx->domain, true);
     fail_if(ret != EOK, "Error [%d][%s] setting enumeration",
@@ -6196,6 +6247,9 @@ Suite *create_sysdb_suite(void)
 
 /* ===== Test search return empty result ===== */
     tcase_add_test(tc_sysdb, test_sysdb_search_return_ENOENT);
+
+/* ===== Misc ===== */
+    tcase_add_test(tc_sysdb, test_sysdb_set_get_bool);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);

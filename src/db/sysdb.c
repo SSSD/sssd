@@ -1508,6 +1508,7 @@ errno_t sysdb_get_bool(struct sysdb_ctx *sysdb,
     errno_t ret;
     int lret;
     const char *attrs[2] = {attr_name, NULL};
+    struct ldb_message_element *el;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1530,12 +1531,18 @@ errno_t sysdb_get_bool(struct sysdb_ctx *sysdb,
          * to contain this attribute.
          */
         *value = false;
-        ret = EOK;
+        ret = ENOENT;
         goto done;
     } else if (res->count != 1) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Got more than one reply for base search!\n");
         ret = EIO;
+        goto done;
+    }
+
+    el = ldb_msg_find_element(res->msgs[0], attr_name);
+    if (el == NULL || el->num_values == 0) {
+        ret = ENOENT;
         goto done;
     }
 
