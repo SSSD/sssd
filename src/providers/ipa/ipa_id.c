@@ -56,6 +56,13 @@ static const char *ipa_account_info_error_text(int ret, int *dp_error,
     return default_text;
 }
 
+static struct tevent_req *
+ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
+                             struct ipa_id_ctx *ipa_ctx, struct be_req *be_req,
+                             struct be_acct_req *ar);
+
+static int ipa_id_get_account_info_recv(struct tevent_req *req, int *dp_error);
+
 static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
                                                    struct tevent_context *ev,
                                                    struct ipa_id_ctx *ipa_ctx,
@@ -100,7 +107,9 @@ void ipa_account_info_handler(struct be_req *breq)
     } else {
         /* any account request is handled by sdap,
          * any invalid request is caught there. */
-        return sdap_handle_account_info(breq, ctx, ctx->conn);
+
+        req = ipa_id_get_account_info_send(breq, be_ctx->ev, ipa_ctx, breq,
+                                           ar);
     }
 
     if (!req) {
@@ -115,13 +124,18 @@ static void ipa_account_info_done(struct tevent_req *req)
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     struct be_acct_req *ar = talloc_get_type(be_req_get_data(breq),
                                              struct be_acct_req);
+    struct be_ctx *be_ctx = be_req_get_be_ctx(breq);
     const char *error_text;
     int ret, dp_error;
 
     if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_NETGROUP) {
         ret = ipa_id_get_netgroup_recv(req, &dp_error);
     } else {
-        ret = ipa_subdomain_account_recv(req, &dp_error);
+        if (strcasecmp(ar->domain, be_ctx->domain->name) != 0) {
+            ret = ipa_subdomain_account_recv(req, &dp_error);
+        } else {
+            ret = ipa_id_get_account_info_recv(req, &dp_error);
+        }
     }
     talloc_zfree(req);
 
@@ -130,6 +144,393 @@ static void ipa_account_info_done(struct tevent_req *req)
     sdap_handler_done(breq, dp_error, ret, error_text);
 }
 
+struct ipa_id_get_account_info_state {
+    struct tevent_context *ev;
+    struct ipa_id_ctx *ipa_ctx;
+    struct sdap_id_ctx *ctx;
+    struct sdap_id_op *op;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+    struct be_req *be_req;
+    struct be_acct_req *ar;
+    const char *realm;
+
+    struct sysdb_attrs *override_attrs;
+    struct ldb_message *obj_msg;
+    int dp_error;
+};
+
+static void ipa_id_get_account_info_connected(struct tevent_req *subreq);
+static void ipa_id_get_account_info_got_override(struct tevent_req *subreq);
+static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
+                                                        struct be_acct_req *ar);
+static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq);
+static void ipa_id_get_account_info_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
+                             struct ipa_id_ctx *ipa_ctx, struct be_req *be_req,
+                             struct be_acct_req *ar)
+{
+    int ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct ipa_id_get_account_info_state *state;
+
+    req = tevent_req_create(memctx, &state,
+                            struct ipa_id_get_account_info_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->ipa_ctx = ipa_ctx;
+    state->ctx = ipa_ctx->sdap_id_ctx;
+    state->dp_error = DP_ERR_FATAL;
+
+    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
+    if (state->op == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    state->domain = find_domain_by_name(state->ctx->be->domain,
+                                        ar->domain, true);
+    if (state->domain == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+    state->sysdb = state->domain->sysdb;
+    state->be_req = be_req;
+    state->ar = ar;
+    state->realm = dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
+                                     IPA_KRB5_REALM);
+    if (state->realm == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No Kerberos realm for IPA?\n");
+        ret = EINVAL;
+        goto fail;
+    }
+
+    /* We can skip the override lookup and go directly to the original object
+     * if
+     * - the lookup is by SID
+     * - there is no view set of it is the default view
+     * - if the EXTRA_INPUT_MAYBE_WITH_VIEW flag is not set
+     */
+    if (state->ipa_ctx->view_name == NULL
+            || state->ar->filter_type == BE_FILTER_SECID
+            || strcmp(state->ipa_ctx->view_name,
+                      SYSDB_DEFAULT_VIEW_NAME) == 0
+            || state->ar->extra_value == NULL
+            || strcmp(state->ar->extra_value,
+                      EXTRA_INPUT_MAYBE_WITH_VIEW) != 0 ) {
+        ret = ipa_id_get_account_info_get_original_step(req, ar);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ipa_subdomain_account_get_original_step failed.\n");
+            goto fail;
+        }
+    } else {
+        subreq = sdap_id_op_connect_send(state->op, state, &ret);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
+            goto fail;
+        }
+        tevent_req_set_callback(subreq, ipa_id_get_account_info_connected, req);
+    }
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void ipa_id_get_account_info_connected(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_id_get_account_info_state *state = tevent_req_data(req,
+                                          struct ipa_id_get_account_info_state);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect request failed.\n");
+        goto fail;
+    }
+
+    subreq = ipa_get_ad_override_send(state, state->ev, state->ctx,
+                                      state->ipa_ctx->ipa_options, state->realm,
+                                      state->ipa_ctx->view_name, state->ar);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    tevent_req_set_callback(subreq, ipa_id_get_account_info_got_override, req);
+
+    return;
+
+fail:
+    state->dp_error = dp_error;
+    tevent_req_error(req, ret);
+    return;
+}
+
+static void ipa_id_get_account_info_got_override(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_id_get_account_info_state *state = tevent_req_data(req,
+                                          struct ipa_id_get_account_info_state);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+    const char *anchor = NULL;
+    char *anchor_domain;
+    char *ipa_uuid;
+
+    ret = ipa_get_ad_override_recv(subreq, &dp_error, state,
+                                   &state->override_attrs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
+        goto fail;
+    }
+
+    if (state->override_attrs != NULL) {
+        ret = sysdb_attrs_get_string(state->override_attrs,
+                                     SYSDB_OVERRIDE_ANCHOR_UUID,
+                                     &anchor);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto fail;
+        }
+
+        ret = split_ipa_anchor(state, anchor, &anchor_domain, &ipa_uuid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unsupported override anchor [%s].\n", anchor);
+            ret = EINVAL;
+            goto fail;
+        }
+
+        if (strcmp(state->ar->domain, anchor_domain) == 0) {
+
+            ret = get_be_acct_req_for_uuid(state, ipa_uuid,
+                                           state->ar->domain,
+                                           &state->ar);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+                goto fail;
+            }
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Anchor from a different domain [%s], expected [%s]. " \
+                  "This is currently not supported, continue lookup in " \
+                  "local IPA domain.\n",
+                  anchor_domain, state->ar->domain);
+        }
+    }
+
+    ret = ipa_id_get_account_info_get_original_step(req, state->ar);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ipa_subdomain_account_get_original_step failed.\n");
+        goto fail;
+    }
+
+    return;
+
+fail:
+    state->dp_error = dp_error;
+    tevent_req_error(req, ret);
+    return;
+}
+
+static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
+                                                         struct be_acct_req *ar)
+{
+    struct ipa_id_get_account_info_state *state = tevent_req_data(req,
+                                          struct ipa_id_get_account_info_state);
+    struct tevent_req *subreq;
+
+    subreq = sdap_handle_acct_req_send(state, state->be_req, ar,
+                                       state->ipa_ctx->sdap_id_ctx,
+                                       state->ipa_ctx->sdap_id_ctx->opts->sdom,
+                                       state->ipa_ctx->sdap_id_ctx->conn, true);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct_req_send failed.\n");
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq, ipa_id_get_account_info_orig_done, req);
+
+    return EOK;
+}
+
+static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_id_get_account_info_state *state = tevent_req_data(req,
+                                          struct ipa_id_get_account_info_state);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+    const char *uuid;
+    const char *class;
+    enum sysdb_member_type type;
+
+    ret = sdap_handle_acct_req_recv(subreq, &dp_error, NULL, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct request failed: %d\n", ret);
+        goto fail;
+    }
+
+    ret = get_object_from_cache(state, state->domain, state->ar,
+                                &state->obj_msg);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Object not found, ending request\n");
+        tevent_req_done(req);
+        return;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_object_from_cache failed.\n");
+        goto fail;
+    }
+
+    if (state->override_attrs == NULL) {
+        uuid = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_UUID, NULL);
+        if (uuid == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find a UUID.\n");
+            ret = EINVAL;
+            goto fail;
+        }
+
+        ret = get_be_acct_req_for_uuid(state, uuid, state->domain->name,
+                                       &state->ar);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+            goto fail;
+        }
+
+        subreq = ipa_get_ad_override_send(state, state->ev,
+                                          state->ipa_ctx->sdap_id_ctx,
+                                          state->ipa_ctx->ipa_options,
+                                          state->realm,
+                                          state->ipa_ctx->view_name,
+                                          state->ar);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_override_send failed.\n");
+            ret = ENOMEM;
+            goto fail;
+        }
+        tevent_req_set_callback(subreq, ipa_id_get_account_info_done, req);
+        return;
+    } else {
+        class = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_OBJECTCLASS,
+                                            NULL);
+        if (class == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find an objectclass.\n");
+            ret = EINVAL;
+            goto fail;
+        }
+
+        if (strcmp(class, SYSDB_USER_CLASS) == 0) {
+            type = SYSDB_MEMBER_USER;
+        } else {
+            type = SYSDB_MEMBER_GROUP;
+        }
+
+        ret = sysdb_store_override(state->domain, state->ipa_ctx->view_name,
+                                   type,
+                                   state->override_attrs, state->obj_msg->dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_override failed.\n");
+            goto fail;
+        }
+    }
+
+    state->dp_error = DP_ERR_OK;
+    tevent_req_done(req);
+    return;
+
+fail:
+    state->dp_error = dp_error;
+    tevent_req_error(req, ret);
+    return;
+}
+
+static void ipa_id_get_account_info_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_id_get_account_info_state *state = tevent_req_data(req,
+                                          struct ipa_id_get_account_info_state);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+    const char *class;
+    enum sysdb_member_type type;
+
+    ret = ipa_get_ad_override_recv(subreq, &dp_error, state,
+                                   &state->override_attrs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
+        goto fail;
+    }
+
+    class = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_OBJECTCLASS,
+                                        NULL);
+    if (class == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find an objectclass.\n");
+        ret = EINVAL;
+        goto fail;
+    }
+
+    if (strcmp(class, SYSDB_USER_CLASS) == 0) {
+        type = SYSDB_MEMBER_USER;
+    } else {
+        type = SYSDB_MEMBER_GROUP;
+    }
+
+    ret = sysdb_store_override(state->domain, state->ipa_ctx->view_name,
+                               type,
+                               state->override_attrs, state->obj_msg->dn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_override failed.\n");
+        goto fail;
+    }
+
+    state->dp_error = DP_ERR_OK;
+    tevent_req_done(req);
+    return;
+
+fail:
+    state->dp_error = dp_error;
+    tevent_req_error(req, ret);
+    return;
+}
+
+static int ipa_id_get_account_info_recv(struct tevent_req *req, int *dp_error)
+{
+    struct ipa_id_get_account_info_state *state = tevent_req_data(req,
+                                          struct ipa_id_get_account_info_state);
+
+    if (dp_error) {
+        *dp_error = state->dp_error;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
 
 /* Request for netgroups
  * - first start here and then go to ipa_netgroups.c

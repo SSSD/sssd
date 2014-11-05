@@ -125,6 +125,21 @@ static errno_t be_acct_req_to_override_filter(TALLOC_CTX *mem_ctx,
         }
         break;
 
+    case BE_FILTER_UUID:
+        if ((ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_BY_UUID) {
+            filter = talloc_asprintf(mem_ctx, "(&(objectClass=%s)(%s=:IPA:%s:%s))",
+                       ipa_opts->override_map[IPA_OC_OVERRIDE].name,
+                       ipa_opts->override_map[IPA_AT_OVERRIDE_ANCHOR_UUID].name,
+                       dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN),
+                       ar->filter_value);
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unexpected entry type [%d] for UUID filter.\n",
+                  ar->entry_type);
+            return EINVAL;
+        }
+        break;
+
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Invalid sub-domain filter type.\n");
         return EINVAL;
