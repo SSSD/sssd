@@ -185,6 +185,7 @@
 #define SYSDB_NETGR_TRIPLES_FILTER "(|("SYSDB_NAME_ALIAS"=%s)("SYSDB_NAME"=%s)("SYSDB_NAME_ALIAS"=%s)("SYSDB_MEMBEROF"=%s))"
 
 #define SYSDB_SID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_SID_STR"=%s))"
+#define SYSDB_UUID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_UUID"=%s))"
 
 #define SYSDB_HAS_ENUMERATED "has_enumerated"
 
@@ -1029,6 +1030,12 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                                    const char *sid_str,
                                    const char **attrs,
                                    struct ldb_result **msg);
+
+errno_t sysdb_search_object_by_uuid(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char *uuid_str,
+                                    const char **attrs,
+                                    struct ldb_result **res);
 
 /* === Functions related to GPOs === */
 

@@ -5032,6 +5032,54 @@ START_TEST(test_sysdb_search_sid_str)
 }
 END_TEST
 
+START_TEST(test_sysdb_search_object_by_uuid)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_result *res;
+    struct sysdb_attrs *attrs = NULL;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    attrs = sysdb_new_attrs(test_ctx);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UUID,
+                                 "11111111-2222-3333-4444-555555555555");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_add_user(test_ctx->domain, "UUIDuser",
+                         123456, 0, "UUID user", "/home/uuiduser", "/bin/bash",
+                         NULL, attrs, 0, 0);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_object_by_uuid(test_ctx, test_ctx->domain,
+                                      "11111111-2222-3333-4444-555555555556",
+                                      NULL, &res);
+    fail_unless(ret == ENOENT,
+                "Unexpected return code from sysdb_search_object_by_uuid for "
+                "missing object, expected [%d], got [%d].", ENOENT, ret);
+
+    ret = sysdb_search_object_by_uuid(test_ctx, test_ctx->domain,
+                                      "11111111-2222-3333-4444-555555555555",
+                                      NULL, &res);
+    fail_unless(ret == EOK, "sysdb_search_object_by_uuid failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, " \
+                                 "expected [%u], get [%u].", 1, res->count);
+    fail_unless(strcmp(ldb_msg_find_attr_as_string(res->msgs[0],
+                                                   SYSDB_NAME, ""),
+                      "UUIDuser") == 0, "Unexpected object found, " \
+                      "expected [%s], got [%s].", "UUIDuser",
+                      ldb_msg_find_attr_as_string(res->msgs[0],SYSDB_NAME, ""));
+
+    talloc_free(test_ctx);
+}
+END_TEST
 
 START_TEST(test_sysdb_subdomain_create)
 {
@@ -6095,6 +6143,9 @@ Suite *create_sysdb_suite(void)
 
     /* Test SID string searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_sid_str);
+
+    /* Test UUID string searches */
+    tcase_add_test(tc_sysdb, test_sysdb_search_object_by_uuid);
 
     /* Test canonicalizing names */
     tcase_add_test(tc_sysdb, test_sysdb_get_real_name);

@@ -3499,12 +3499,79 @@ done:
     return ret;
 }
 
+static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *domain,
+                                   const char *filter_tmpl,
+                                   const char *str,
+                                   const char **attrs,
+                                   struct ldb_result **_res)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_GIDNUM,
+                                ORIGINALAD_PREFIX SYSDB_NAME,
+                                SYSDB_OBJECTCLASS, NULL };
+    struct ldb_dn *basedn;
+    int ret;
+    struct ldb_result *res = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE,
+                            domain->name);
+    if (basedn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new_fmt failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
+                     basedn, LDB_SCOPE_SUBTREE, attrs?attrs:def_attrs,
+                     filter_tmpl, str);
+    if (ret != EOK) {
+        ret = sysdb_error_to_errno(ret);
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_search failed.\n");
+        goto done;
+    }
+
+    if (res->count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Search for [%s]  with filter [%s] " \
+                                   "returned more than one object.\n",
+                                   str, filter_tmpl);
+        ret = EINVAL;
+        goto done;
+    } else if (res->count == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_res = talloc_steal(mem_ctx, res);
+
+done:
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No such entry.\n");
+    } else if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
+    }
+
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
 errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info *domain,
                                    const char *sid_str,
                                    const char **attrs,
                                    struct ldb_result **msg)
 {
+/* TODO: use
+    return sysdb_search_object_by_str_attr(mem_ctx, domain, SYSDB_SID_FILTER,
+                                           sid_str, attrs, res);
+
+    when verified that all callers can handle ENOENT correctly. */
+
     TALLOC_CTX *tmp_ctx;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_GIDNUM,
                                 ORIGINALAD_PREFIX SYSDB_NAME,
@@ -3552,4 +3619,14 @@ done:
 
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+errno_t sysdb_search_object_by_uuid(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char *uuid_str,
+                                    const char **attrs,
+                                    struct ldb_result **res)
+{
+    return sysdb_search_object_by_str_attr(mem_ctx, domain, SYSDB_UUID_FILTER,
+                                           uuid_str, attrs, res);
 }
