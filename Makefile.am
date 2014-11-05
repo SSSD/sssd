@@ -82,11 +82,6 @@ INSTALL = @INSTALL@
 
 SSSD_USER = @SSSD_USER@
 
-INSTALL_USER_DIR_FLAGS = -d
-if SSSD_USER
-INSTALL_USER_DIR_FLAGS += -o $(SSSD_USER) -g $(SSSD_USER)
-endif
-
 AM_CFLAGS =
 if WANT_AUX_INFO
     AM_CFLAGS += -aux-info $@.X
@@ -2798,6 +2793,18 @@ src/sysv/systemd/journal.conf: src/sysv/systemd/journal.conf.in Makefile
 	@$(MKDIR_P) src/sysv/systemd/
 	$(replace_script)
 
+SSSD_USER_DIRS = \
+    $(DESTDIR)$(dbpath) \
+    $(DESTDIR)$(mcpath) \
+    $(DESTDIR)$(pipepath) \
+    $(DESTDIR)$(pipepath)/private \
+    $(DESTDIR)$(pubconfpath) \
+    $(DESTDIR)$(pubconfpath)/krb5.include.d \
+    $(DESTDIR)$(gpocachepath) \
+    $(DESTDIR)$(sssdconfdir) \
+    $(DESTDIR)$(logpath) \
+    $(NULL)
+
 installsssddirs::
 	$(MKDIR_P) \
     $(DESTDIR)$(includedir) \
@@ -2815,18 +2822,12 @@ installsssddirs::
     $(DESTDIR)$(sssddatadir) \
     $(DESTDIR)$(sudolibdir) \
     $(DESTDIR)$(autofslibdir) \
-    $(NULL); \
-	$(INSTALL) $(INSTALL_USER_DIR_FLAGS) \
-    $(DESTDIR)$(dbpath) \
-    $(DESTDIR)$(mcpath) \
-    $(DESTDIR)$(pipepath) \
-    $(DESTDIR)$(pipepath)/private \
-    $(DESTDIR)$(pubconfpath) \
-    $(DESTDIR)$(pubconfpath)/krb5.include.d \
-    $(DESTDIR)$(gpocachepath) \
-    $(DESTDIR)$(sssdconfdir) \
-    $(DESTDIR)$(logpath) \
-    $(NULL)
+    $(SSSD_USER_DIRS) \
+    $(NULL);
+if SSSD_USER
+	-chown $(SSSD_USER):$(SSSD_USER) \
+	$(SSSD_USER_DIRS)
+endif
 
 if HAVE_DOXYGEN
 docs:
