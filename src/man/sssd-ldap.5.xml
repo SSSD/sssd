@@ -859,6 +859,19 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_group_uuid (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the UUID/GUID of
+                            an LDAP group object.
+                        </para>
+                        <para>
+                            Default: nsUniqueId
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_group_objectsid (string)</term>
                     <listitem>
                         <para>

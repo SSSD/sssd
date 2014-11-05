@@ -212,6 +212,7 @@ struct sdap_attr_map ipa_group_map[] = {
     { "ldap_group_pwd", "userPassword", SYSDB_PWD, NULL },
     { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
     { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
+    { "ldap_group_uuid", "nsUniqueId", SYSDB_UUID, NULL },
     { "ldap_group_objectsid", "ipaNTSecurityIdentifier", SYSDB_SID_STR, NULL },
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_group_entry_usn", NULL, SYSDB_USN, NULL },

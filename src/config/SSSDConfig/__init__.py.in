@@ -309,6 +309,7 @@ option_strings = {
     'ldap_group_pwd' : _('Group password'),
     'ldap_group_gid_number' : _('GID attribute'),
     'ldap_group_member' : _('Group member attribute'),
+    'ldap_group_uuid' : _('Group UUID attribute'),
     'ldap_group_objectsid' : _("objectSID attribute"),
     'ldap_group_modify_timestamp' : _('Modification time attribute for groups'),
     'ldap_group_type' : _('Type of the group and other flags'),
