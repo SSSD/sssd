@@ -187,6 +187,7 @@ struct sdap_attr_map ad_2008r2_user_map[] = {
     { "ldap_user_principal", "userPrincipalName", SYSDB_UPN, NULL },
     { "ldap_user_fullname", "name", SYSDB_FULLNAME, NULL },
     { "ldap_user_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
+    { "ldap_user_uuid", "objectGUID", SYSDB_UUID, NULL },
     { "ldap_user_objectsid", "objectSID", SYSDB_SID, NULL },
     { "ldap_user_primary_group", "primaryGroupID", SYSDB_PRIMARY_GROUP, NULL },
     { "ldap_user_modify_timestamp", "whenChanged", SYSDB_ORIG_MODSTAMP, NULL },

@@ -170,6 +170,7 @@ class SSSDConfigFile(SSSDChangeConf):
                     'ldap_user_gecos' : 'userGecos',
                     'ldap_user_home_directory' : 'userHomeDirectory',
                     'ldap_user_shell' : 'userShell',
+                    'ldap_user_uuid' : 'userUUID',
                     'ldap_user_principal' : 'userPrincipal',
                     'ldap_force_upper_case_realm' : 'force_upper_case_realm',
                     'ldap_user_fullname' : 'userFullname',
