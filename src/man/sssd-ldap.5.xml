@@ -345,7 +345,8 @@
                             an LDAP user object.
                         </para>
                         <para>
-                            Default: nsUniqueId
+                            Default: not set in the general case, objectGUID for
+                            AD and ipaUniqueID for IPA
                         </para>
                     </listitem>
                 </varlistentry>
@@ -866,7 +867,8 @@
                             an LDAP group object.
                         </para>
                         <para>
-                            Default: nsUniqueId
+                            Default: not set in the general case, objectGUID for
+                            AD and ipaUniqueID for IPA
                         </para>
                     </listitem>
                 </varlistentry>
