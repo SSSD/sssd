@@ -30,7 +30,7 @@
 
 #include "tests/cmocka/common_mock.h"
 
-#define TESTS_PATH "tests_sysdb"
+#define TESTS_PATH "tests_sysdb_views"
 #define TEST_CONF_FILE "tests_conf.ldb"
 
 struct sysdb_test_ctx {
@@ -226,6 +226,8 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     tests_set_cwd();
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
+    test_dom_suite_setup(TESTS_PATH);
     rv = run_tests(tests);
 
     if (rv == 0 && no_cleanup == 0) {
