@@ -120,7 +120,7 @@ void nss_setent_notify_done(struct getent_ctx *getent_ctx);
 errno_t check_cache(struct nss_dom_ctx *dctx,
                     struct nss_ctx *nctx,
                     struct ldb_result *res,
-                    int req_type,
+                    enum sss_dp_acct_type req_type,
                     const char *opt_name,
                     uint32_t opt_id,
                     const char *extra,

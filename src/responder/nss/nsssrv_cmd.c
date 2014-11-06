@@ -561,7 +561,7 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
 
 /* Currently only refreshing expired netgroups is supported. */
 static bool
-is_refreshed_on_bg(int req_type,
+is_refreshed_on_bg(enum sss_dp_acct_type req_type,
                    enum sss_dp_acct_type refresh_expired_interval)
 {
     if (refresh_expired_interval == 0) {
@@ -584,7 +584,7 @@ static void nsssrv_dp_send_acct_req_done(struct tevent_req *req);
 errno_t check_cache(struct nss_dom_ctx *dctx,
                     struct nss_ctx *nctx,
                     struct ldb_result *res,
-                    int req_type,
+                    enum sss_dp_acct_type req_type,
                     const char *opt_name,
                     uint32_t opt_id,
                     const char *extra,
@@ -4169,7 +4169,7 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
     char *name = NULL;
     char *req_name;
     uint32_t req_id;
-    int req_type;
+    enum sss_dp_acct_type req_type;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
