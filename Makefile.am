@@ -2064,6 +2064,7 @@ endif # BUILD_IFP
 
 test_sysdb_views_SOURCES = \
     src/tests/cmocka/test_sysdb_views.c \
+    src/providers/ipa/ipa_utils.c \
     $(NULL)
 test_sysdb_views_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2387,6 +2388,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_subdomains_id.c \
     src/providers/ipa/ipa_subdomains_ext_groups.c \
     src/providers/ipa/ipa_views.c \
+    src/providers/ipa/ipa_utils.c \
     src/providers/ipa/ipa_s2n_exop.c \
     src/providers/ipa/ipa_hbac_hosts.c \
     src/providers/ipa/ipa_hbac_private.h \

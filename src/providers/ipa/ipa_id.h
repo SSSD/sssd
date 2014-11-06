@@ -103,4 +103,6 @@ struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
 
 errno_t ipa_subdomain_account_recv(struct tevent_req *req, int *dp_error_out);
 
+errno_t split_ipa_anchor(TALLOC_CTX *mem_ctx, const char *anchor,
+                         char **_anchor_domain, char **_ipa_uuid);
 #endif

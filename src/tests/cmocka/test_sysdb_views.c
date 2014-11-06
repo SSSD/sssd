@@ -29,6 +29,7 @@
 #include <popt.h>
 
 #include "tests/cmocka/common_mock.h"
+#include "providers/ipa/ipa_id.h"
 
 #define TESTS_PATH "tests_sysdb_views"
 #define TEST_CONF_FILE "tests_conf.ldb"
@@ -189,6 +190,35 @@ void test_sysdb_add_overrides_to_object(void **state)
     assert_int_equal(ldb_val_string_cmp(&el->values[1], "OVERRIDEKEY2"), 0);
 }
 
+void test_split_ipa_anchor(void **state)
+{
+    int ret;
+    char *dom;
+    char *uuid;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                         struct sysdb_test_ctx);
+
+    ret = split_ipa_anchor(test_ctx, NULL, &dom, &uuid);
+    assert_int_equal(ret, EINVAL);
+
+    ret = split_ipa_anchor(test_ctx, "fwfkwjfkw", &dom, &uuid);
+    assert_int_equal(ret, ENOMSG);
+
+    ret = split_ipa_anchor(test_ctx, ":IPA:", &dom, &uuid);
+    assert_int_equal(ret, EINVAL);
+
+    ret = split_ipa_anchor(test_ctx, ":IPA:abc", &dom, &uuid);
+    assert_int_equal(ret, EINVAL);
+
+    ret = split_ipa_anchor(test_ctx, ":IPA:abc:", &dom, &uuid);
+    assert_int_equal(ret, EINVAL);
+
+    ret = split_ipa_anchor(test_ctx, ":IPA:abc:def", &dom, &uuid);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(dom, "abc");
+    assert_string_equal(uuid, "def");
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -205,6 +235,8 @@ int main(int argc, const char *argv[])
 
     const UnitTest tests[] = {
         unit_test_setup_teardown(test_sysdb_add_overrides_to_object,
+                                 test_sysdb_setup, test_sysdb_teardown),
+        unit_test_setup_teardown(test_split_ipa_anchor,
                                  test_sysdb_setup, test_sysdb_teardown),
     };
 
