@@ -241,8 +241,16 @@ int main(int argc, const char *argv[])
     DEBUG(SSSDBG_TRACE_FUNC, "performing selinux operations\n");
 
     ret = set_seuser(ibuf->username, ibuf->seuser, ibuf->mls_range);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set SELinux login context.\n");
+        goto fail;
+    }
 
     ret = prepare_response(main_ctx, ret, &resp);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to prepare response buffer.\n");
+        goto fail;
+    }
 
     errno = 0;
 
