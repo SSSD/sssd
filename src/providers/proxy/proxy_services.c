@@ -38,12 +38,14 @@ proxy_save_service(struct sss_domain_info *domain,
     const char **protocols;
     const char **cased_aliases;
     TALLOC_CTX *tmp_ctx;
+    char *lc_alias = NULL;
     time_t now = time(NULL);
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    cased_name = sss_get_cased_name(tmp_ctx, svc->s_name, !lowercase);
+    cased_name = sss_get_cased_name(tmp_ctx, svc->s_name,
+                                    domain->case_preserve);
     if (!cased_name) {
         ret = ENOMEM;
         goto done;
@@ -69,6 +71,24 @@ proxy_save_service(struct sss_domain_info *domain,
                                   !lowercase, &cased_aliases);
     if (ret != EOK) {
         goto done;
+    }
+
+    if (domain->case_preserve) {
+        /* Add lowercased alias to allow case-insensitive lookup */
+        lc_alias = sss_tc_utf8_str_tolower(tmp_ctx, svc->s_name);
+        if (lc_alias == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot convert name to lowercase.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = add_string_to_list(tmp_ctx, lc_alias,
+                                 discard_const_p(char **, &cased_aliases));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add lowercased name alias.\n");
+            goto done;
+        }
     }
 
     ret = sysdb_store_service(domain,
