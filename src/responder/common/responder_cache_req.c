@@ -26,6 +26,7 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "responder/common/responder_cache_req.h"
+#include "providers/data_provider.h"
 
 static errno_t cache_req_check_ncache(enum sss_dp_acct_type dp_type,
                                       struct sss_nc_ctx *ncache,
@@ -98,11 +99,11 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
     switch (dp_type) {
     case SSS_DP_USER:
         one_item_only = true;
-        ret = sysdb_getpwnam(mem_ctx, domain, name, &result);
+        ret = sysdb_getpwnam_with_views(mem_ctx, domain, name, &result);
         break;
     case SSS_DP_INITGROUPS:
         one_item_only = false;
-        ret = sysdb_initgroups(mem_ctx, domain, name, &result);
+        ret = sysdb_initgroups_with_views(mem_ctx, domain, name, &result);
         break;
     default:
         ret = EINVAL;
@@ -250,6 +251,7 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
 {
     struct cache_req_cache_state *state = NULL;
     struct tevent_req *subreq = NULL;
+    const char *extra_flag = NULL;
     uint64_t cache_expire = 0;
     errno_t ret;
 
@@ -296,9 +298,13 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
         /* Cache miss or the cache is expired. We need to get the updated
          * information before returning it. */
 
+        if (DOM_HAS_VIEWS(state->domain)) {
+            extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+        }
+
         subreq = sss_dp_get_account_send(state, state->rctx, state->domain,
                                          true, state->dp_type, state->name,
-                                         0, NULL);
+                                         0, extra_flag);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");
