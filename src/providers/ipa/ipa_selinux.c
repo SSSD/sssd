@@ -867,7 +867,7 @@ selinux_child_setup(TALLOC_CTX *mem_ctx,
 
     sci->seuser = talloc_strdup(sci, seuser);
     sci->mls_range = talloc_strdup(sci, mls_range);
-    sci->username = talloc_strdup(sci, username);
+    sci->username = talloc_strdup(sci, username_final);
     if (sci->seuser == NULL || sci->mls_range == NULL
         || sci->username == NULL) {
         ret = ENOMEM;
