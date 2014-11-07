@@ -214,6 +214,7 @@ if HAVE_CMOCKA
         test_search_bases \
         sdap-tests \
         test_sysdb_views \
+        test_be_ptask \
         $(NULL)
 
 if BUILD_IFP
@@ -2074,6 +2075,21 @@ test_sysdb_views_CFLAGS = \
 test_sysdb_views_LDADD = \
     $(CMOCKA_LIBS) \
     $(LDB_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_be_ptask_SOURCES = \
+    src/tests/cmocka/test_be_ptask.c \
+    src/providers/dp_ptask.c \
+    $(NULL)
+test_be_ptask_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_be_ptask_LDADD = \
+    $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
