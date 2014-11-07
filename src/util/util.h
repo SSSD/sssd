@@ -574,8 +574,7 @@ errno_t sssd_domain_init(TALLOC_CTX *mem_ctx,
 
 #define IS_SUBDOMAIN(dom) ((dom)->parent != NULL)
 
-/* Currently views are only supported for subdomains */
-#define DOM_HAS_VIEWS(dom) ((dom)->has_views && IS_SUBDOMAIN(dom))
+#define DOM_HAS_VIEWS(dom) ((dom)->has_views)
 
 errno_t sss_write_domain_mappings(struct sss_domain_info *domain);
 
