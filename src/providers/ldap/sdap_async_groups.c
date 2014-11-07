@@ -511,6 +511,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     bool posix_group;
     bool use_id_mapping;
     char *sid_str;
+    const char *uuid;
     struct sss_domain_info *subdomain;
     int32_t ad_group_type;
 
@@ -534,7 +535,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         ret = sysdb_attrs_add_string(group_attrs, SYSDB_SID_STR, sid_str);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Could not add SID string: [%s]\n",
-                                         strerror(ret));
+                                         sss_strerror(ret));
             goto done;
         }
     } else if (ret == ENOENT) {
@@ -543,8 +544,27 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         sid_str = NULL;
     } else {
         DEBUG(SSSDBG_MINOR_FAILURE, "Could not identify objectSID: [%s]\n",
-                                     strerror(ret));
+                                     sss_strerror(ret));
         sid_str = NULL;
+    }
+
+    /* Always store UUID if available */
+    ret = sysdb_attrs_get_string(attrs,
+                                 opts->group_map[SDAP_AT_GROUP_UUID].sys_name,
+                                 &uuid);
+    if (ret == EOK) {
+        ret = sysdb_attrs_add_string(group_attrs, SYSDB_UUID, uuid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Could not add UUID string: [%s]\n",
+                                         sss_strerror(ret));
+            goto done;
+        }
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_ALL, "UUID not available for group [%s].\n",
+                                 group_name);
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not identify UUID [%s]\n",
+                                     sss_strerror(ret));
     }
 
     /* If this object has a SID available, we will determine the correct
@@ -633,7 +653,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             } else if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Could not convert SID string: [%s]\n",
-                       strerror(ret));
+                       sss_strerror(ret));
                 goto done;
             }
 
@@ -652,7 +672,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             } else if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Error reading posix attribute: [%s]\n",
-                       strerror(ret));
+                       sss_strerror(ret));
                 goto done;
             }
 
@@ -662,7 +682,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Error setting posix attribute: [%s]\n",
-                       strerror(ret));
+                       sss_strerror(ret));
                 goto done;
             }
 
@@ -695,7 +715,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Error setting original DN: [%s]\n",
-               strerror(ret));
+               sss_strerror(ret));
         goto done;
     }
 
@@ -706,7 +726,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Error setting mod timestamp: [%s]\n",
-               strerror(ret));
+               sss_strerror(ret));
         goto done;
     }
 
@@ -715,7 +735,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     if (ret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Error looking up group USN: [%s]\n",
-               strerror(ret));
+               sss_strerror(ret));
         goto done;
     }
     if (el->num_values == 0) {
@@ -728,7 +748,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Error setting group USN: [%s]\n",
-                   strerror(ret));
+                   sss_strerror(ret));
             goto done;
         }
         usn_value = talloc_strdup(tmpctx, (const char*)el->values[0].data);
@@ -759,7 +779,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     if (ret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not store group with GID: [%s]\n",
-               strerror(ret));
+               sss_strerror(ret));
         goto done;
     }
 
@@ -775,7 +795,7 @@ done:
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Failed to save group [%s]: [%s]\n",
                group_name ? group_name : "Unknown",
-               strerror(ret));
+               sss_strerror(ret));
     }
     talloc_free(tmpctx);
     return ret;
