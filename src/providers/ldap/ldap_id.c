@@ -179,6 +179,20 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             goto done;
         }
         break;
+    case BE_FILTER_UUID:
+        attr_name = ctx->opts->user_map[SDAP_AT_USER_UUID].name;
+        if (attr_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "UUID search not configured for this backend.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        ret = sss_filter_sanitize(state, name, &clean_name);
+        if (ret != EOK) {
+            goto done;
+        }
+        break;
     default:
         ret = EINVAL;
         goto done;
@@ -458,8 +472,9 @@ static void users_get_done(struct tevent_req *subreq)
             break;
 
         case BE_FILTER_SECID:
-            /* Since it is not clear if the SID belongs to a user or a group
-             * we have nothing to do here. */
+        case BE_FILTER_UUID:
+            /* Since it is not clear if the SID/UUID belongs to a user or a
+             * group we have nothing to do here. */
             break;
 
         default:
@@ -629,6 +644,20 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         break;
     case BE_FILTER_SECID:
         attr_name = ctx->opts->group_map[SDAP_AT_GROUP_OBJECTSID].name;
+
+        ret = sss_filter_sanitize(state, name, &clean_name);
+        if (ret != EOK) {
+            goto done;
+        }
+        break;
+    case BE_FILTER_UUID:
+        attr_name = ctx->opts->group_map[SDAP_AT_GROUP_UUID].name;
+        if (attr_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "UUID search not configured for this backend.\n");
+            ret = EINVAL;
+            goto done;
+        }
 
         ret = sss_filter_sanitize(state, name, &clean_name);
         if (ret != EOK) {
@@ -884,8 +913,9 @@ static void groups_get_done(struct tevent_req *subreq)
             break;
 
         case BE_FILTER_SECID:
-            /* Since it is not clear if the SID belongs to a user or a group
-             * we have nothing to do here. */
+        case BE_FILTER_UUID:
+            /* Since it is not clear if the SID/UUID belongs to a user or a
+             * group we have nothing to do here. */
             break;
 
         default:
@@ -1401,7 +1431,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        if (ar->filter_type == BE_FILTER_SECID) {
+        if (ar->filter_type == BE_FILTER_SECID
+                || ar->filter_type == BE_FILTER_UUID) {
             ret = EINVAL;
             state->err = "Invalid filter type";
             goto done;
@@ -1417,6 +1448,21 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_BY_SECID:
         if (ar->filter_type != BE_FILTER_SECID) {
+            ret = EINVAL;
+            state->err = "Invalid filter type";
+            goto done;
+        }
+
+        subreq = get_user_and_group_send(breq, be_ctx->ev, id_ctx,
+                                         sdom, conn,
+                                         ar->filter_value,
+                                         ar->filter_type,
+                                         ar->attr_type,
+                                         noexist_delete);
+        break;
+
+    case BE_REQ_BY_UUID:
+        if (ar->filter_type != BE_FILTER_UUID) {
             ret = EINVAL;
             state->err = "Invalid filter type";
             goto done;
@@ -1503,6 +1549,8 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
         ret = services_get_recv(subreq, &state->dp_error, &state->sdap_ret);
         break;
     case BE_REQ_BY_SECID:
+        /* Fallthrough */
+    case BE_REQ_BY_UUID:
         /* Fallthrough */
     case BE_REQ_USER_AND_GROUP:
         err = "Lookup by SID failed";
