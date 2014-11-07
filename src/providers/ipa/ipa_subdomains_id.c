@@ -848,10 +848,10 @@ done:
     return ret;
 }
 
-static errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
-                                     struct sss_domain_info *dom,
-                                     struct be_acct_req *ar,
-                                     struct ldb_message **_msg)
+errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *dom,
+                              struct be_acct_req *ar,
+                              struct ldb_message **_msg)
 {
     errno_t ret;
     uint32_t id;
@@ -861,6 +861,7 @@ static errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
                             SYSDB_UIDNUM,
                             SYSDB_SID_STR,
                             SYSDB_OBJECTCLASS,
+                            SYSDB_UUID,
                             NULL };
     char *name;
 

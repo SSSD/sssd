@@ -109,4 +109,9 @@ errno_t ipa_subdomain_account_recv(struct tevent_req *req, int *dp_error_out);
 
 errno_t split_ipa_anchor(TALLOC_CTX *mem_ctx, const char *anchor,
                          char **_anchor_domain, char **_ipa_uuid);
+
+errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *dom,
+                              struct be_acct_req *ar,
+                              struct ldb_message **_msg);
 #endif
