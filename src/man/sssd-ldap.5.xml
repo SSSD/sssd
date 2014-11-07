@@ -991,7 +991,7 @@
                           Active Directory Server 2008 and later.
                         </para>
                         <para>
-                            Default: True
+                            Default: True for AD and IPA otherwise False.
                         </para>
                     </listitem>
                 </varlistentry>
