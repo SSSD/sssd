@@ -346,7 +346,7 @@
                             necessary for ActiveDirectory servers.
                         </para>
                         <para>
-                            Default: ipaNTSecurityIdentifier for IPA, objectSID
+                            Default: objectSid for ActiveDirectory, not set
                             for other servers.
                         </para>
                     </listitem>
@@ -851,7 +851,7 @@
                             necessary for ActiveDirectory servers.
                         </para>
                         <para>
-                            Default: ipaNTSecurityIdentifier for IPA, objectSID
+                            Default: objectSid for ActiveDirectory, not set
                             for other servers.
                         </para>
                     </listitem>
