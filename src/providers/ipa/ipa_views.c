@@ -140,9 +140,10 @@ static errno_t be_acct_req_to_override_filter(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-errno_t get_be_acct_req_for_sid(TALLOC_CTX *mem_ctx, const char *sid,
-                                const char *domain_name,
-                                struct be_acct_req **_ar)
+static errno_t get_be_acct_req_for_xyz(TALLOC_CTX *mem_ctx, const char *val,
+                                       const char *domain_name,
+                                       int type,
+                                       struct be_acct_req **_ar)
 {
     struct be_acct_req *ar;
 
@@ -152,9 +153,22 @@ errno_t get_be_acct_req_for_sid(TALLOC_CTX *mem_ctx, const char *sid,
         return ENOMEM;
     }
 
-    ar->entry_type = BE_REQ_BY_SECID;
-    ar->filter_type = BE_FILTER_SECID;
-    ar->filter_value = talloc_strdup(ar, sid);
+    switch (type) {
+    case BE_REQ_BY_SECID:
+        ar->entry_type = BE_REQ_BY_SECID;
+        ar->filter_type = BE_FILTER_SECID;
+        break;
+    case BE_REQ_BY_UUID:
+        ar->entry_type = BE_REQ_BY_UUID;
+        ar->filter_type = BE_FILTER_UUID;
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported request type [%d].\n", type);
+        talloc_free(ar);
+        return EINVAL;
+    }
+
+    ar->filter_value = talloc_strdup(ar, val);
     ar->domain = talloc_strdup(ar, domain_name);
     if (ar->filter_value == NULL || ar->domain == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
@@ -166,6 +180,22 @@ errno_t get_be_acct_req_for_sid(TALLOC_CTX *mem_ctx, const char *sid,
     *_ar = ar;
 
     return EOK;
+}
+
+errno_t get_be_acct_req_for_sid(TALLOC_CTX *mem_ctx, const char *sid,
+                                const char *domain_name,
+                                struct be_acct_req **_ar)
+{
+    return get_be_acct_req_for_xyz(mem_ctx, sid, domain_name, BE_REQ_BY_SECID,
+                                   _ar);
+}
+
+errno_t get_be_acct_req_for_uuid(TALLOC_CTX *mem_ctx, const char *uuid,
+                                 const char *domain_name,
+                                 struct be_acct_req **_ar)
+{
+    return get_be_acct_req_for_xyz(mem_ctx, uuid, domain_name, BE_REQ_BY_UUID,
+                                   _ar);
 }
 
 struct ipa_get_ad_override_state {
