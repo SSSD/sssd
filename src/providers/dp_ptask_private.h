@@ -38,6 +38,7 @@ struct be_ptask {
     void *pvt;
     const char *name;
 
+    time_t next_execution;  /* next time when the task is scheduled */
     time_t last_execution;  /* last time when send was called */
     struct tevent_req *req; /* active tevent request */
     struct tevent_timer *timer; /* active tevent timer */

@@ -238,6 +238,8 @@ static void be_ptask_schedule(struct be_ptask *task,
                                     task->name);
         be_ptask_disable(task);
     }
+
+    task->next_execution = tv.tv_sec;
 }
 
 errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
