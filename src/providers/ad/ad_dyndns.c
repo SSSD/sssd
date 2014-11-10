@@ -154,7 +154,7 @@ static void ad_dyndns_nsupdate_done(struct tevent_req *req)
         return;
     }
 
-    DEBUG(SSSDBG_OP_FAILURE, "DNS update finished\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "DNS update finished\n");
 }
 
 struct ad_dyndns_update_state {
