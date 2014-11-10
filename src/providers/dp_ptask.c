@@ -25,34 +25,12 @@
 
 #include "util/util.h"
 #include "providers/dp_backend.h"
+#include "providers/dp_ptask_private.h"
 #include "providers/dp_ptask.h"
 
 enum be_ptask_schedule {
     BE_PTASK_SCHEDULE_FROM_NOW,
     BE_PTASK_SCHEDULE_FROM_LAST
-};
-
-struct be_ptask {
-    struct tevent_context *ev;
-    struct be_ctx *be_ctx;
-    time_t period;
-    time_t enabled_delay;
-    time_t random_offset;
-    unsigned int ro_seed;
-    time_t timeout;
-    bool allow_backoff;
-    time_t max_backoff;
-    time_t backoff_delay;
-    enum be_ptask_offline offline;
-    be_ptask_send_t send_fn;
-    be_ptask_recv_t recv_fn;
-    void *pvt;
-    const char *name;
-
-    time_t last_execution;  /* last time when send was called */
-    struct tevent_req *req; /* active tevent request */
-    struct tevent_timer *timer; /* active tevent timer */
-    bool enabled;
 };
 
 static void be_ptask_schedule(struct be_ptask *task,

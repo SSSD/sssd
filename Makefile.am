@@ -553,6 +553,7 @@ dist_noinst_HEADERS = \
     src/providers/data_provider.h \
     src/providers/dp_backend.h \
     src/providers/dp_dyndns.h \
+    src/providers/dp_ptask_private.h \
     src/providers/dp_ptask.h \
     src/providers/dp_refresh.h \
     src/providers/fail_over.h \
