@@ -109,7 +109,10 @@ static void be_ptask_execute(struct tevent_context *ev,
             be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
             return;
         case BE_PTASK_OFFLINE_DISABLE:
-            /* This case is handled by offline callback. */
+            /* This case is normally handled by offline callback but we
+             * should handle it here as well since we can get here in some
+             * special cases for example unit tests or tevent events order. */
+            be_ptask_disable(task);
             return;
         case BE_PTASK_OFFLINE_EXECUTE:
             /* continue */
