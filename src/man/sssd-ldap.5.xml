@@ -2428,6 +2428,18 @@ ldap_access_filter = (employeeType=admin)
                     <term>ldap_group_search_base (string)</term>
                     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ldap_search_bases.xml" />
                 </varlistentry>
+            </variablelist>
+            <variablelist>
+                <note>
+                    <para>
+                        If the option <quote>ldap_use_tokengroups</quote> is
+                        enabled. The searches against Active Directory will
+                        not be restricted and return all groups memberships,
+                        even with no gid mapping. It is recommended to disable
+                        this feature, if group names are not being displayed
+                        correctly.
+                    </para>
+                </note>
 
                 <varlistentry>
                     <term>ldap_user_search_filter (string)</term>
