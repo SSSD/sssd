@@ -556,7 +556,9 @@ static errno_t handle_randomized(char *in)
         umask(old_umask);
         if (fd == -1) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, "mkstemp(\"%s\") failed!\n", ccname);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "mkstemp(\"%s\") failed [%d]: %s!\n",
+                  ccname, ret, strerror(ret));
             return ret;
         }
     }
@@ -592,43 +594,73 @@ static krb5_error_code create_ccache(char *ccname, krb5_creds *creds)
     }
 
     kerr = handle_randomized(ccname);
-    if (kerr) goto done;
+    if (kerr) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "handle_randomized failed: %d\n", kerr);
+        goto done;
+    }
 
     kerr = krb5_cc_resolve(kctx, ccname, &kcc);
-    if (kerr) goto done;
+    if (kerr) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        goto done;
+    }
 
     type = krb5_cc_get_type(kctx, kcc);
     DEBUG(SSSDBG_TRACE_ALL, "Initializing ccache of type [%s]\n", type);
 
 #ifdef HAVE_KRB5_CC_COLLECTION
     if (krb5_cc_support_switch(kctx, type)) {
+        DEBUG(SSSDBG_TRACE_ALL, "CC supports switch\n");
         kerr = krb5_cc_set_default_name(kctx, ccname);
-        if (kerr) goto done;
+        if (kerr) {
+            DEBUG(SSSDBG_TRACE_ALL, "Cannot set default name!\n");
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            goto done;
+        }
 
         kerr = krb5_cc_cache_match(kctx, creds->client, &cckcc);
         if (kerr == KRB5_CC_NOTFOUND) {
+            DEBUG(SSSDBG_TRACE_ALL, "Match not found\n");
             kerr = krb5_cc_new_unique(kctx, type, NULL, &cckcc);
             switch_to_cc = true;
         }
-        if (kerr) goto done;
+        if (kerr) {
+            DEBUG(SSSDBG_TRACE_ALL, "krb5_cc_cache_match failed\n");
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            goto done;
+        }
         krb5_cc_close(kctx, kcc);
         kcc = cckcc;
     }
 #endif
 
     kerr = krb5_cc_initialize(kctx, kcc, creds->client);
-    if (kerr) goto done;
+    if (kerr) {
+        DEBUG(SSSDBG_TRACE_ALL, "krb5_cc_initialize failed\n");
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        goto done;
+    }
 
     kerr = krb5_cc_store_cred(kctx, kcc, creds);
-    if (kerr) goto done;
+    if (kerr) {
+        DEBUG(SSSDBG_TRACE_ALL, "krb5_cc_store_cred failed\n");
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        goto done;
+    }
 
 #ifdef HAVE_KRB5_CC_COLLECTION
     if (switch_to_cc) {
+        DEBUG(SSSDBG_TRACE_ALL, "switch_to_cc\n");
         kerr = krb5_cc_switch(kctx, kcc);
-        if (kerr) goto done;
+        if (kerr) {
+            DEBUG(SSSDBG_TRACE_ALL, "krb5_cc_switch\n");
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            goto done;
+        }
     }
 #endif
 
+    DEBUG(SSSDBG_TRACE_ALL, "returning: %d\n", kerr);
 done:
     if (kcc) {
         /* FIXME: should we krb5_cc_destroy in case of error ? */
@@ -955,7 +987,6 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
     /* Use the updated principal in the creds in case canonicalized */
     kerr = create_ccache(ccname, &creds);
     if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
     kerr = 0;
@@ -1026,7 +1057,6 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     /* Use the updated principal in the creds in case canonicalized */
     kerr = create_ccache(cc_name, kr->creds);
     if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
 
@@ -1490,9 +1520,7 @@ static errno_t create_empty_ccache(struct krb5_req *kr)
         kerr = 0;
     }
 
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-    } else {
+    if (kerr == 0) {
         kerr = k5c_attach_ccname_msg(kr);
     }
 
