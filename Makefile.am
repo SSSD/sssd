@@ -2884,13 +2884,13 @@ else
 endif
 
 if SSSD_USER
-	-chgrp $(SSSD_USER) $(sssdlibexecdir)/ldap_child
-	chmod 4750 $(sssdlibexecdir)/ldap_child
-	-chgrp $(SSSD_USER) $(sssdlibexecdir)/krb5_child
-	chmod 4750 $(sssdlibexecdir)/krb5_child
+	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/ldap_child
+	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/krb5_child
+	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/krb5_child
 if BUILD_SEMANAGE
-	-chgrp $(SSSD_USER) $(sssdlibexecdir)/selinux_child
-	chmod 4750 $(sssdlibexecdir)/selinux_child
+	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
+	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
 endif
 endif
 
