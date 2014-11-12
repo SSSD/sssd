@@ -123,16 +123,12 @@ errno_t sysdb_update_view_name(struct sysdb_ctx *sysdb,
             goto done;
         } else {
             /* view name changed */
-            /* not supported atm */
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "View name changed from [%s] to [%s]. NOT SUPPORTED.\n",
-                  tmp_str, view_name);
-            ret = ENOTSUP;
-            goto done;
+            DEBUG(SSSDBG_CONF_SETTINGS,
+                  "View name changed from [%s] to [%s].\n", tmp_str, view_name);
         }
+    } else {
+        add_view_name = true;
     }
-
-    add_view_name = true;
 
     msg = ldb_msg_new(tmp_ctx);
     if (msg == NULL) {
