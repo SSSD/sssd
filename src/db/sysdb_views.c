@@ -180,6 +180,40 @@ done:
     return ret;
 }
 
+errno_t sysdb_delete_view_tree(struct sysdb_ctx *sysdb, const char *view_name)
+{
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, SYSDB_TMPL_VIEW_SEARCH_BASE,
+                        view_name);
+    if (dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new_fmt failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    ret = sysdb_delete_recursive(sysdb, dn, true);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_delete_recursive failed.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static errno_t
 add_name_and_aliases_for_name_override(struct sss_domain_info *domain,
                                        struct sysdb_attrs *attrs,

@@ -30,9 +30,21 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "providers/ipa/ipa_id.h"
+#include "db/sysdb_private.h" /* for sysdb->ldb member */
 
 #define TESTS_PATH "tests_sysdb_views"
 #define TEST_CONF_FILE "tests_conf.ldb"
+
+#define TEST_ANCHOR_PREFIX ":ANCHOR:"
+#define TEST_VIEW_NAME "test view"
+#define TEST_VIEW_CONTAINER "cn=" TEST_VIEW_NAME ",cn=views,cn=sysdb"
+#define TEST_USER_NAME "test_user"
+#define TEST_USER_UID 1234
+#define TEST_USER_GID 5678
+#define TEST_USER_GECOS "Gecos field"
+#define TEST_USER_HOMEDIR "/home/home"
+#define TEST_USER_SHELL "/bin/shell"
+#define TEST_USER_SID "S-1-2-3-4"
 
 struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
@@ -219,6 +231,66 @@ void test_split_ipa_anchor(void **state)
     assert_string_equal(uuid, "def");
 }
 
+void test_sysdb_delete_view_tree(void **state)
+{
+    int ret;
+    struct ldb_message *msg;
+    struct ldb_message **msgs = NULL;
+    struct sysdb_attrs *attrs;
+    size_t count;
+    struct ldb_dn *views_dn;
+
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                         struct sysdb_test_ctx);
+
+    test_ctx->domain->mpg = false;
+
+    ret = sysdb_update_view_name(test_ctx->domain->sysdb, TEST_VIEW_NAME);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_user(test_ctx->domain, TEST_USER_NAME, NULL,
+                           TEST_USER_UID, TEST_USER_GID, TEST_USER_GECOS,
+                           TEST_USER_HOMEDIR, TEST_USER_SHELL, NULL, NULL, NULL,
+                           0,0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+                                    NULL, &msg);
+    assert_int_equal(ret, EOK);
+    assert_non_null(msg);
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OVERRIDE_ANCHOR_UUID,
+                                 TEST_ANCHOR_PREFIX TEST_USER_SID);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+                               SYSDB_MEMBER_USER, attrs, msg->dn);
+    assert_int_equal(ret, EOK);
+
+    views_dn = ldb_dn_new(test_ctx, test_ctx->domain->sysdb->ldb,
+                          SYSDB_TMPL_VIEW_BASE);
+    assert_non_null(views_dn);
+
+    ret = sysdb_search_entry(test_ctx, test_ctx->domain->sysdb, views_dn,
+                             LDB_SCOPE_SUBTREE, NULL, NULL, &count, &msgs);
+    assert_int_equal(ret, EOK);
+    assert_true(count > 1);
+    assert_non_null(msgs);
+
+    ret = sysdb_delete_view_tree(test_ctx->domain->sysdb, TEST_VIEW_NAME);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_search_entry(test_ctx, test_ctx->domain->sysdb, views_dn,
+                             LDB_SCOPE_SUBTREE, NULL, NULL, &count, &msgs);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(count, 1);
+    assert_true(ldb_dn_compare(views_dn, msgs[0]->dn) == 0);
+
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -237,6 +309,8 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_sysdb_add_overrides_to_object,
                                  test_sysdb_setup, test_sysdb_teardown),
         unit_test_setup_teardown(test_split_ipa_anchor,
+                                 test_sysdb_setup, test_sysdb_teardown),
+        unit_test_setup_teardown(test_sysdb_delete_view_tree,
                                  test_sysdb_setup, test_sysdb_teardown),
     };
 
