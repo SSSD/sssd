@@ -446,6 +446,8 @@ errno_t sysdb_get_view_name(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
 errno_t sysdb_delete_view_tree(struct sysdb_ctx *sysdb, const char *view_name);
 
+errno_t sysdb_invalidate_overrides(struct sysdb_ctx *sysdb);
+
 errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                                      struct sysdb_attrs *override_attrs,
                                      struct ldb_dn *obj_dn);

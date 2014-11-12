@@ -291,6 +291,73 @@ void test_sysdb_delete_view_tree(void **state)
 
 }
 
+void test_sysdb_invalidate_overrides(void **state)
+{
+    int ret;
+    struct ldb_message *msg;
+    struct sysdb_attrs *attrs;
+    struct ldb_dn *views_dn;
+    const char *user_attrs[] = { SYSDB_NAME,
+                                 SYSDB_CACHE_EXPIRE,
+                                 SYSDB_OVERRIDE_DN,
+                                 NULL};
+
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                         struct sysdb_test_ctx);
+
+    test_ctx->domain->mpg = false;
+
+    ret = sysdb_update_view_name(test_ctx->domain->sysdb, TEST_VIEW_NAME);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_user(test_ctx->domain, TEST_USER_NAME, NULL,
+                           TEST_USER_UID, TEST_USER_GID, TEST_USER_GECOS,
+                           TEST_USER_HOMEDIR, TEST_USER_SHELL, NULL, NULL, NULL,
+                           10,0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+                                    NULL, &msg);
+    assert_int_equal(ret, EOK);
+    assert_non_null(msg);
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OVERRIDE_ANCHOR_UUID,
+                                 TEST_ANCHOR_PREFIX TEST_USER_SID);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+                               SYSDB_MEMBER_USER, attrs, msg->dn);
+    assert_int_equal(ret, EOK);
+
+    views_dn = ldb_dn_new(test_ctx, test_ctx->domain->sysdb->ldb,
+                          SYSDB_TMPL_VIEW_BASE);
+    assert_non_null(views_dn);
+
+    ret = sysdb_delete_view_tree(test_ctx->domain->sysdb, TEST_VIEW_NAME);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+                                    user_attrs, &msg);
+    assert_int_equal(ret, EOK);
+    assert_non_null(msg);
+    assert_true(ldb_msg_find_attr_as_uint64(msg, SYSDB_CACHE_EXPIRE, 0) > 1);
+    assert_non_null(ldb_msg_find_attr_as_string(msg, SYSDB_OVERRIDE_DN, NULL));
+
+    ret = sysdb_invalidate_overrides(test_ctx->domain->sysdb);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+                                    user_attrs, &msg);
+    assert_int_equal(ret, EOK);
+    assert_non_null(msg);
+    assert_int_equal(ldb_msg_find_attr_as_uint64(msg, SYSDB_CACHE_EXPIRE, 0),
+                     1);
+    assert_null(ldb_msg_find_attr_as_string(msg, SYSDB_OVERRIDE_DN, NULL));
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -311,6 +378,8 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_split_ipa_anchor,
                                  test_sysdb_setup, test_sysdb_teardown),
         unit_test_setup_teardown(test_sysdb_delete_view_tree,
+                                 test_sysdb_setup, test_sysdb_teardown),
+        unit_test_setup_teardown(test_sysdb_invalidate_overrides,
                                  test_sysdb_setup, test_sysdb_teardown),
     };
 

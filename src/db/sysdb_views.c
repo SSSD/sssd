@@ -214,6 +214,130 @@ done:
     return ret;
 }
 
+errno_t sysdb_invalidate_overrides(struct sysdb_ctx *sysdb)
+{
+    int ret;
+    int sret;
+    TALLOC_CTX *tmp_ctx;
+    bool in_transaction = false;
+    struct ldb_result *res;
+    size_t c;
+    struct ldb_message *msg;
+    struct ldb_dn *base_dn;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    base_dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
+    if (base_dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, SYSDB_CACHE_EXPIRE, LDB_FLAG_MOD_REPLACE,
+                            NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_empty failed.\n");
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, SYSDB_CACHE_EXPIRE, "1");
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_string failed.\n");
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, SYSDB_OVERRIDE_DN, LDB_FLAG_MOD_DELETE, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_empty failed.\n");
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_transaction_start failed.\n");
+        goto done;
+    }
+    in_transaction = true;
+
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn, LDB_SCOPE_SUBTREE,
+                     NULL, "%s", SYSDB_UC);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    for (c = 0; c < res->count; c++) {
+        msg->dn = res->msgs[c]->dn;
+
+        ret = ldb_modify(sysdb->ldb, msg);
+        if (ret != LDB_SUCCESS && ret != LDB_ERR_NO_SUCH_ATTRIBUTE) {
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_modify failed.\n");
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+    }
+
+    talloc_free(res);
+
+    ret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn, LDB_SCOPE_SUBTREE,
+                     NULL, "%s", SYSDB_GC);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_entry failed.\n");
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    for (c = 0; c < res->count; c++) {
+        msg->dn = res->msgs[c]->dn;
+
+        ret = ldb_modify(sysdb->ldb, msg);
+        if (ret != LDB_SUCCESS && ret != LDB_ERR_NO_SUCH_ATTRIBUTE) {
+            DEBUG(SSSDBG_OP_FAILURE, "ldb_modify failed.\n");
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        if (ret == EOK) {
+            sret = sysdb_transaction_commit(sysdb);
+            if (sret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_transaction_commit failed, " \
+                                         "nothing we can do about.\n");
+                ret = sret;
+            }
+        } else {
+            sret = sysdb_transaction_cancel(sysdb);
+            if (sret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_transaction_cancel failed, " \
+                                         "nothing we can do about.\n");
+            }
+        }
+    }
+
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 static errno_t
 add_name_and_aliases_for_name_override(struct sss_domain_info *domain,
                                        struct sysdb_attrs *attrs,
