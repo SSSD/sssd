@@ -2013,8 +2013,11 @@ fallback_homedir = /home/%u
                                 <listitem>
                                     <para>
                                         Same as False (case insensitive), but
-                                        does not lowercase names in the output
-                                        of getpwnam and getgrnam.
+                                        does not lowercase names in the result
+                                        of NSS operations. Note that name
+                                        aliases (and in case of services also
+                                        protocol names) are still lowercased in
+                                        the output.
                                     </para>
                                 </listitem>
                             </varlistentry>
