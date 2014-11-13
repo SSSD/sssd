@@ -73,7 +73,9 @@
                     <term>debug_timestamps (bool)</term>
                     <listitem>
                         <para>
-                            Add a timestamp to the debug messages
+                            Add a timestamp to the debug messages.
+                            If journald is enabled for SSSD debug logging this
+                            option is ignored.
                         </para>
                         <para>
                             Default: true
@@ -84,7 +86,9 @@
                     <term>debug_microseconds (bool)</term>
                     <listitem>
                         <para>
-                            Add microseconds to the timestamp in debug messages
+                            Add microseconds to the timestamp in debug messages.
+                            If journald is enabled for SSSD debug logging this
+                            option is ignored.
                         </para>
                         <para>
                             Default: false
