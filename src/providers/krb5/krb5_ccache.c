@@ -672,3 +672,113 @@ errno_t safe_remove_old_ccache_file(const char *old_ccache,
 
     return sss_krb5_cc_destroy(old_ccache, uid, gid);
 }
+
+krb5_error_code copy_ccache_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
+                                        const char *ccache_file,
+                                        char **_mem_name)
+{
+    krb5_error_code kerr;
+    krb5_ccache ccache;
+    krb5_ccache mem_ccache = NULL;
+    char *ccache_name = NULL;
+    krb5_principal princ = NULL;
+    char *mem_name = NULL;
+    char *sep;
+
+    kerr = krb5_cc_resolve(kctx, ccache_file, &ccache);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "error resolving ccache [%s].\n",
+                                    ccache_file);
+        return kerr;
+    }
+
+    kerr = krb5_cc_get_full_name(kctx, ccache, &ccache_name);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to read name for ccache [%s].\n",
+                                    ccache_file);
+        goto done;
+    }
+
+    sep = strchr(ccache_name, ':');
+    if (sep == NULL || sep[1] == '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Ccache name [%s] does not have delimiter[:] .\n", ccache_name);
+        kerr = KRB5KRB_ERR_GENERIC;
+        goto done;
+    }
+
+    if (strncmp(ccache_name, "MEMORY:", sizeof("MEMORY:") -1) == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Ccache [%s] is already memory ccache.\n",
+                                 ccache_name);
+        *_mem_name = talloc_strdup(mem_ctx, ccache_name);
+        if(*_mem_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            kerr = KRB5KRB_ERR_GENERIC;
+            goto done;
+        }
+        kerr = 0;
+        goto done;
+    }
+    if (strncmp(ccache_name, "FILE:", sizeof("FILE:") -1) == 0) {
+        mem_name = talloc_asprintf(mem_ctx, "MEMORY:%s", sep + 1);
+        if (mem_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            kerr = KRB5KRB_ERR_GENERIC;
+            goto done;
+        }
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unexpected ccache type for ccache [%s], " \
+                                    "currently only FILE is supported.\n",
+                                    ccache_name);
+        kerr = KRB5KRB_ERR_GENERIC;
+        goto done;
+    }
+
+    kerr = krb5_cc_resolve(kctx, mem_name, &mem_ccache);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "error resolving ccache [%s].\n", mem_name);
+        goto done;
+    }
+
+    kerr = krb5_cc_get_principal(kctx, ccache, &princ);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "error reading principal from ccache [%s].\n", ccache_name);
+        goto done;
+    }
+
+    kerr = krb5_cc_initialize(kctx, mem_ccache, princ);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to initialize ccache [%s].\n", mem_name);
+        goto done;
+    }
+
+    kerr = krb5_cc_copy_creds(kctx, ccache, mem_ccache);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to copy ccache [%s] to [%s].\n", ccache_name, mem_name);
+        goto done;
+    }
+
+    *_mem_name = mem_name;
+    kerr = 0;
+
+done:
+    if (kerr != 0) {
+        talloc_free(mem_name);
+    }
+
+    free(ccache_name);
+    krb5_free_principal(kctx, princ);
+
+    if (krb5_cc_close(kctx, ccache) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_cc_close failed.\n");
+    }
+
+    if (krb5_cc_close(kctx, mem_ccache) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_cc_close failed.\n");
+    }
+
+    return  kerr;
+}

@@ -215,6 +215,7 @@ if HAVE_CMOCKA
         sdap-tests \
         test_sysdb_views \
         test_be_ptask \
+        test_copy_ccache \
         $(NULL)
 
 if BUILD_IFP
@@ -2092,6 +2093,23 @@ test_be_ptask_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_copy_ccache_SOURCES = \
+    src/tests/cmocka/test_copy_ccache.c \
+    src/providers/krb5/krb5_ccache.c \
+    src/util/sss_krb5.c \
+    $(NULL)
+test_copy_ccache_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_copy_ccache_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     $(NULL)

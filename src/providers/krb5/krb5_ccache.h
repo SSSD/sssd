@@ -53,4 +53,21 @@ errno_t safe_remove_old_ccache_file(const char *old_ccache,
                                     const char *new_ccache,
                                     uid_t uid, gid_t gid);
 
+/**
+ * @brief Copy given ccache into a MEMORY ccache
+ *
+ * @param[in] mem_ctx Talloc memory context the new ccache name should be
+ *                    allocated on
+ * @param[in] kctx Kerberos context
+ * @param[in] ccache_file Name of existing ccache
+ * @param[out] _mem_name Name of the new MEMORY ccache
+ *
+ * In contrast to MEMORY keytabs MEMORY ccaches can and must be removed
+ * explicitly with krb5_cc_destroy() from the memory. Just calling
+ * krb5_cc_close() will keep the MEMORY ccache in memory even if there are no
+ * open handles for the given MEMORY ccache.
+ */
+krb5_error_code copy_ccache_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
+                                        const char *ccache_file,
+                                        char **_mem_name);
 #endif /* __KRB5_CCACHE_H__ */
