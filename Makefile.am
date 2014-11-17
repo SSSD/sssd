@@ -216,6 +216,7 @@ if HAVE_CMOCKA
         test_sysdb_views \
         test_be_ptask \
         test_copy_ccache \
+        test_copy_keytab \
         $(NULL)
 
 if BUILD_IFP
@@ -2106,6 +2107,23 @@ test_copy_ccache_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 test_copy_ccache_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_copy_keytab_SOURCES = \
+    src/tests/cmocka/test_copy_keytab.c \
+    src/providers/krb5/krb5_keytab.c \
+    src/util/sss_krb5.c \
+    $(NULL)
+test_copy_keytab_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_copy_keytab_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \

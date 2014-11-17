@@ -189,4 +189,35 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
                         struct bet_ops **ops,
                         void **pvt_auth_data);
 
+/* from krb5_keytab.c */
+
+/**
+ * @brief Copy given keytab into a MEMORY keytab
+ *
+ * @param[in] mem_ctx Talloc memory context the new keytab name should be
+ *                    allocated on
+ * @param[in] kctx Kerberos context
+ * @param[in] inp_keytab_file Existing keytab, if set to NULL the default
+ *                            keytab will be used
+ * @param[out] _mem_name Name of the new MEMORY keytab
+ * @param[out] _mem_keytab Krb5 keytab handle for the new MEMORY keytab, NULL
+ *                         may be passed here if the caller has no use for the
+ *                         handle
+ *
+ * The memory for the MEMORY keytab is handled by libkrb5 internally and
+ * a reference counter is used. If the reference counter of the specific
+ * MEMORY keytab reaches 0, i.e. no open ones are left, the memory is free.
+ * This means we cannot call krb5_kt_close() for the new MEMORY keytab  in
+ * copy_keytab_into_memory() because this would destroy it immediately. Hence
+ * we have to return the handle so that the caller can safely remove the
+ * MEMORY keytab if the is not needed anymore. Since libkrb5 frees the
+ * internal memory when the library is unloaded short running processes can
+ * safely pass NULL as the 5th argument because on exit all memory is freed.
+ * Long running processes which need more control over the memory consumption
+ * should close the handle for free the memory at runtime.
+ */
+krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
+                                        const char *inp_keytab_file,
+                                        char **_mem_name,
+                                        krb5_keytab *_mem_keytab);
 #endif /* __KRB5_COMMON_H__ */
