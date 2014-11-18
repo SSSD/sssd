@@ -708,6 +708,19 @@ AC_ARG_ENABLE([dbus-tests],
               [build_dbus_tests=yes])
 AM_CONDITIONAL([BUILD_DBUS_TESTS], [test x$build_dbus_tests = xyes])
 
+AC_ARG_ENABLE([sss-default-nss-plugin],
+              [AS_HELP_STRING([--enable-sss-default-nss-plugin],
+                              [This option change standard behaviour of sss nss
+                               plugin. If this option is enabled the sss nss
+                               plugin will behave as it was not in
+                               nsswitch.conf when sssd is not running.
+                               [default=no]])],
+              [enable_sss_default_nss_plugin=$enableval],
+              [enable_sss_default_nss_plugin=no])
+AS_IF([test x$enable_sss_default_nss_plugin = xyes],
+      AC_DEFINE_UNQUOTED([NONSTANDARD_SSS_NSS_BEHAVIOUR], [1],
+          [whether to build sssd nss plugin with nonstandard glibc behaviour]))
+
 AC_DEFUN([WITH_NFS],
   [ AC_ARG_WITH([nfsv4-idmapd-plugin],
                 [AC_HELP_STRING([--with-nfsv4-idmapd-plugin],
