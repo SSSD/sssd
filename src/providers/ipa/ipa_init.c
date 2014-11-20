@@ -225,7 +225,13 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
 
     /* Set up the ID mapping object */
     ret = ipa_idmap_init(sdap_ctx, sdap_ctx, &sdap_ctx->opts->idmap_ctx);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Could not initialize ID mapping. In case ID mapping properties "
+              "changed on the server, please remove the SSSD database\n");
+        goto done;
+    }
+
 
     ret = ldap_id_setup_tasks(sdap_ctx);
     if (ret != EOK) {
