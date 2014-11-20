@@ -1103,4 +1103,10 @@ errno_t sysdb_gpo_get_gpo_result_setting(TALLOC_CTX *mem_ctx,
                                          const char *policy_setting_key,
                                          const char **policy_setting_value);
 
+errno_t sysdb_get_sids_of_members(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *dom,
+                                  const char *group_name,
+                                  const char ***_sids,
+                                  const char ***_dns,
+                                  size_t *_n);
 #endif /* __SYS_DB_H__ */
