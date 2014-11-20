@@ -451,10 +451,6 @@ errno_t be_ptask_create_sync(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (_task != NULL) {
-        talloc_steal(*_task, ctx);
-    }
-
     ret = EOK;
 
 done:
