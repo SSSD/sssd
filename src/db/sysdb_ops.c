@@ -3517,3 +3517,87 @@ done:
     talloc_zfree(tmp_ctx);
     return ret;
 }
+
+errno_t sysdb_get_sids_of_members(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *dom,
+                                  const char *group_name,
+                                  const char ***_sids,
+                                  const char ***_dns,
+                                  size_t *_n)
+{
+    errno_t ret;
+    size_t i, m_count;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    struct ldb_message **members;
+    const char *attrs[] = { SYSDB_SID_STR, NULL };
+    const char **sids = NULL, **dns = NULL;
+    size_t n = 0;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_group_by_name(tmp_ctx, dom->sysdb, dom, group_name,
+                                     NULL, &msg);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* Get sid_str attribute of all elemets pointed to by group members */
+    ret = sysdb_asq_search(tmp_ctx, dom->sysdb, msg->dn, NULL, SYSDB_MEMBER, attrs,
+                           &m_count, &members);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    sids = talloc_array(tmp_ctx, const char*, m_count);
+    if (sids == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    dns = talloc_array(tmp_ctx, const char*, m_count);
+    if (dns == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i=0; i < m_count; i++) {
+        const char *sidstr;
+
+        sidstr = ldb_msg_find_attr_as_string(members[i], SYSDB_SID_STR, NULL);
+
+        if (sidstr != NULL) {
+            sids[n] = talloc_steal(sids, sidstr);
+
+            dns[n] = talloc_steal(dns, ldb_dn_get_linearized(members[i]->dn));
+            if (dns[n] == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            n++;
+        }
+    }
+
+    if (n == 0) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_n = n;
+    *_sids = talloc_steal(mem_ctx, sids);
+    *_dns = talloc_steal(mem_ctx, dns);
+
+    ret = EOK;
+
+done:
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No such entry\n");
+    } else if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}

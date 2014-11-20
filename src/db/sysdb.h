@@ -906,4 +906,11 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                                    const char *sid_str,
                                    const char **attrs,
                                    struct ldb_result **msg);
+
+errno_t sysdb_get_sids_of_members(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *dom,
+                                  const char *group_name,
+                                  const char ***_sids,
+                                  const char ***_dns,
+                                  size_t *_n);
 #endif /* __SYS_DB_H__ */

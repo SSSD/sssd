@@ -784,6 +784,87 @@ done:
     return ret;
 }
 
+static errno_t
+are_sids_from_same_dom(const char *sid1, const char *sid2, bool *_result)
+{
+    size_t len_prefix_sid1;
+    size_t len_prefix_sid2;
+    char *rid1, *rid2;
+    bool result;
+
+    rid1 = strrchr(sid1, '-');
+    if (rid1 == NULL) {
+        return EINVAL;
+    }
+
+    rid2 = strrchr(sid2, '-');
+    if (rid2 == NULL) {
+        return EINVAL;
+    }
+
+    len_prefix_sid1 = rid1 - sid1;
+    len_prefix_sid2 = rid2 - sid2;
+
+    result = (len_prefix_sid1 == len_prefix_sid2) &&
+        (strncmp(sid1, sid2, len_prefix_sid1) == 0);
+
+    *_result = result;
+
+    return EOK;
+}
+
+static errno_t
+retain_extern_members(TALLOC_CTX *mem_ctx,
+                      struct sss_domain_info *dom,
+                      const char *group_name,
+                      const char *group_sid,
+                      char ***_userdns,
+                      size_t *_nuserdns)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char **sids, **dns;
+    bool same_domain;
+    errno_t ret;
+    size_t i, n;
+    size_t nuserdns = 0;
+    const char **userdns = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_get_sids_of_members(tmp_ctx, dom, group_name, &sids, &dns, &n);
+    if (ret != EOK) {
+        if (ret != ENOENT) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "get_sids_of_members failed: %d [%s]\n",
+                  ret, sss_strerror(ret));
+        }
+        goto done;
+    }
+
+    for (i=0; i < n; i++) {
+        ret = are_sids_from_same_dom(group_sid, sids[i], &same_domain);
+        if (ret == EOK && !same_domain) {
+            DEBUG(SSSDBG_TRACE_ALL, "extern member: %s\n", dns[i]);
+            nuserdns++;
+            userdns = talloc_realloc(tmp_ctx, userdns, const char*, nuserdns);
+            if (userdns == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            userdns[nuserdns-1] = talloc_steal(userdns, dns[i]);
+        }
+    }
+    *_nuserdns = nuserdns;
+    *_userdns = discard_const(talloc_steal(mem_ctx, userdns));
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
 
 /* ==Save-Group-Memebrs=================================================== */
 
@@ -800,6 +881,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
 {
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs = NULL;
+    const char *group_sid;
     const char *group_name;
     char **userdns = NULL;
     size_t nuserdns = 0;
@@ -823,6 +905,28 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
                   "sdap_dn_by_primary_gid failed: [%d][%s].\n",
                    ret, strerror(ret));
             goto fail;
+        }
+    }
+
+    /* This is a temporal solution until the IPA provider is able to
+     * resolve external group membership.
+     * https://fedorahosted.org/sssd/ticket/2522
+     */
+    if (opts->schema_type == SDAP_SCHEMA_IPA_V1) {
+        ret = sysdb_attrs_get_string(attrs, SYSDB_SID_STR, &group_sid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Failed to get group sid\n");
+            group_sid = NULL;
+        }
+
+        if (group_sid != NULL) {
+            ret = retain_extern_members(memctx, dom, group_name, group_sid,
+                                        &userdns, &nuserdns);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_TRACE_INTERNAL,
+                      "retain_extern_members failed: %d:[%s].\n",
+                      ret, sss_strerror(ret));
+            }
         }
     }
 
