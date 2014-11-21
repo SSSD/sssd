@@ -646,7 +646,13 @@ sss_get_domain_name(TALLOC_CTX *mem_ctx,
     /* check if the name already contains domain part */
     if (dom->names != NULL) {
         ret = sss_parse_name(mem_ctx, dom->names, orig_name, &domain, NULL);
-        if (ret != EOK) {
+        if (ret == ERR_REGEX_NOMATCH) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "sss_parse_name could not parse domain from [%s]. "
+                  "Assuming it is not FQDN.\n", orig_name);
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "sss_parse_name failed [%d]: %s\n", ret, sss_strerror(ret));
             return NULL;
         }
     }
