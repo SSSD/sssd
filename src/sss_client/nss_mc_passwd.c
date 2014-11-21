@@ -28,7 +28,8 @@
 #include <time.h>
 #include "nss_mc.h"
 
-struct sss_cli_mc_ctx pw_mc_ctx = { false, -1, 0, NULL, 0, NULL, 0, NULL, 0 };
+struct sss_cli_mc_ctx pw_mc_ctx = { UNINITIALIZED, -1, 0, NULL, 0, NULL, 0,
+                                    NULL, 0, 0 };
 
 static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
                                        struct passwd *result,
@@ -170,6 +171,7 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
 
 done:
     free(rec);
+    __sync_sub_and_fetch(&pw_mc_ctx.active_threads, 1);
     return ret;
 }
 
@@ -192,7 +194,8 @@ errno_t sss_nss_mc_getpwuid(uid_t uid,
 
     len = snprintf(uidstr, 11, "%ld", (long)uid);
     if (len > 10) {
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     /* hashes are calculated including the NULL terminator */
@@ -236,6 +239,7 @@ errno_t sss_nss_mc_getpwuid(uid_t uid,
 
 done:
     free(rec);
+    __sync_sub_and_fetch(&pw_mc_ctx.active_threads, 1);
     return ret;
 }
 

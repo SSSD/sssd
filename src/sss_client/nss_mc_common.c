@@ -123,7 +123,7 @@ static errno_t sss_nss_mc_init_ctx(const char *name,
 
     sss_nss_lock();
     /* check if ctx is initialised by previous thread. */
-    if (ctx->initialized) {
+    if (ctx->initialized != UNINITIALIZED) {
         ret = sss_nss_check_header(ctx);
         goto done;
     }
@@ -163,7 +163,7 @@ static errno_t sss_nss_mc_init_ctx(const char *name,
         goto done;
     }
 
-    ctx->initialized = true;
+    ctx->initialized = INITIALIZED;
 
     ret = 0;
 
@@ -181,22 +181,52 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
 {
     char *envval;
     int ret;
+    bool need_decrement = false;
 
     envval = getenv("SSS_NSS_USE_MEMCACHE");
     if (envval && strcasecmp(envval, "NO") == 0) {
         return EPERM;
     }
 
-    if (ctx->initialized) {
+    switch (ctx->initialized) {
+    case UNINITIALIZED:
+        __sync_add_and_fetch(&ctx->active_threads, 1);
+        ret = sss_nss_mc_init_ctx(name, ctx);
+        if (ret) {
+            need_decrement = true;
+        }
+        break;
+    case INITIALIZED:
+        __sync_add_and_fetch(&ctx->active_threads, 1);
         ret = sss_nss_check_header(ctx);
-        goto done;
+        if (ret) {
+            need_decrement = true;
+        }
+        break;
+    case RECYCLED:
+        /* we need to safely destroy memory cache */
+        ret = EAGAIN;
+        break;
+    default:
+        ret = EFAULT;
     }
 
-    ret = sss_nss_mc_init_ctx(name, ctx);
-
-done:
     if (ret) {
-        sss_nss_mc_destroy_ctx(ctx);
+        if (ctx->initialized == INITIALIZED) {
+            ctx->initialized = RECYCLED;
+        }
+        if (ctx->initialized == RECYCLED && ctx->active_threads == 0) {
+            /* just one thread should call munmap */
+            sss_nss_lock();
+            if (ctx->initialized == RECYCLED) {
+                sss_nss_mc_destroy_ctx(ctx);
+            }
+            sss_nss_unlock();
+        }
+        if (need_decrement) {
+            /* In case of error, we will not touch mmapped area => decrement */
+            __sync_sub_and_fetch(&ctx->active_threads, 1);
+        }
     }
     return ret;
 }
