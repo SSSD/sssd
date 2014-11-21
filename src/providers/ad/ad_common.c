@@ -264,6 +264,7 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
     char *ad_hostname;
     char hostname[HOST_NAME_MAX + 1];
     char *case_sensitive_opt;
+    const char *opt_override;
 
     opts = talloc_zero(mem_ctx, struct ad_options);
     if (!opts) return ENOMEM;
@@ -359,20 +360,21 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    opt_override = dom->case_preserve ? "preserving" : "false";
+
     /* Set this in the confdb so that the responders pick it
      * up when they start up.
      */
-    ret = confdb_set_string(cdb, conf_path, "case_sensitive",
-                            case_sensitive_opt);
+    ret = confdb_set_string(cdb, conf_path, "case_sensitive", opt_override);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not set domain case-sensitive: [%s]\n",
+              "Could not set domain option case_sensitive: [%s]\n",
                strerror(ret));
         goto done;
     }
 
     DEBUG(SSSDBG_CONF_SETTINGS,
-          "Setting domain case-insensitive\n");
+          "Setting domain option case_sensitive to [%s]\n", opt_override);
 
     ret = EOK;
     *_opts = opts;
