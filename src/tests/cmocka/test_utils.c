@@ -30,7 +30,7 @@
 
 #define TESTS_PATH "tests_utils"
 #define TEST_CONF_DB "test_utils_conf.ldb"
-#define TEST_SYSDB_FILE "cache_utils_test.ldb"
+#define TEST_DOM_NAME "utils_test.ldb"
 
 #define DOM_COUNT 10
 #define DOMNAME_TMPL "name_%zu.dom"
@@ -1100,12 +1100,12 @@ int main(int argc, const char *argv[])
     /* Even though normally the tests should clean up after themselves
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
-    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
 
     rv = run_tests(tests);
     if (rv == 0) {
-        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }
     return rv;
 }

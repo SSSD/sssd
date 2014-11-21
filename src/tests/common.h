@@ -100,8 +100,8 @@ void test_multidom_suite_cleanup(const char *tests_path,
                                  const char **domains);
 
 void test_dom_suite_cleanup(const char *tests_path,
-                            const char *confdb_path,
-                            const char *sysdb_path);
+                            const char *cdb_file,
+                            const char *domain);
 
 struct tevent_req *
 test_request_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev, errno_t err);

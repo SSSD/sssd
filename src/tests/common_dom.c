@@ -339,8 +339,14 @@ void test_multidom_suite_cleanup(const char *tests_path,
 
     if (domains != NULL) {
         for (i = 0; domains[i] != NULL; i++) {
-            sysdb_path = talloc_asprintf(tmp_ctx, "%s/cache_%s.ldb",
-                                         tests_path, domains[i]);
+            if (strcmp(domains[i], LOCAL_SYSDB_FILE) == 0) {
+                /* local domain */
+                sysdb_path = talloc_asprintf(tmp_ctx, "%s/%s",
+                                             tests_path, domains[i]);
+            } else {
+                sysdb_path = talloc_asprintf(tmp_ctx, "%s/cache_%s.ldb",
+                                             tests_path, domains[i]);
+            }
             if (sysdb_path == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Could not construct sysdb path\n");
                 goto done;
@@ -371,62 +377,10 @@ done:
 }
 
 void test_dom_suite_cleanup(const char *tests_path,
-                            const char *confdb_path,
-                            const char *sysdb_path)
+                            const char *cdb_file,
+                            const char *domain)
 {
-    errno_t ret;
-    char *conf_db;
-    char *sys_db;
-    TALLOC_CTX *tmp_ctx;
+    const char *domains[] = {domain, NULL};
 
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed\n");
-        return;
-    }
-
-    if (confdb_path != NULL) {
-        conf_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, confdb_path);
-        if (!conf_db) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                "Could not construct conf_db path\n");
-            goto done;
-        }
-
-        errno = 0;
-        ret = unlink(conf_db);
-        if (ret != 0 && errno != ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                "Could not delete the test config ldb file (%d) (%s)\n",
-                errno, strerror(errno));
-        }
-    }
-
-    if (sysdb_path != NULL) {
-        sys_db = talloc_asprintf(tmp_ctx, "%s/%s", tests_path, sysdb_path);
-        if (!sys_db) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                "Could not construct sys_db path\n");
-            goto done;
-        }
-
-        errno = 0;
-        ret = unlink(sys_db);
-        if (ret != 0 && errno != ENOENT) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                "Could not delete the test ldb file (%d) (%s)\n",
-                errno, strerror(errno));
-        }
-    }
-
-    errno = 0;
-    ret = rmdir(tests_path);
-    if (ret != 0 && errno != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not delete the test dir (%d) (%s)\n",
-               errno, strerror(errno));
-    }
-
-done:
-    talloc_free(tmp_ctx);
+    test_multidom_suite_cleanup(tests_path, cdb_file, domains);
 }

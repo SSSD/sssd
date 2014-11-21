@@ -33,7 +33,6 @@
 #define TESTS_PATH "tests_opts"
 #define TEST_CONF_DB "test_opt_conf.ldb"
 #define TEST_DOM_NAME "opt_test"
-#define TEST_SYSDB_FILE "cache_"TEST_DOM_NAME".ldb"
 #define TEST_ID_PROVIDER "ldap"
 
 enum test_opts {
@@ -405,12 +404,12 @@ int main(int argc, const char *argv[])
     /* Even though normally the tests should clean up after themselves
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
-    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+    test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
 
     ret = run_tests(tests);
     if (ret == 0 && !no_cleanup) {
-        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }
     return ret;
 }
