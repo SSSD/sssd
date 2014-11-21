@@ -28,7 +28,8 @@
 #include <time.h>
 #include "nss_mc.h"
 
-struct sss_cli_mc_ctx gr_mc_ctx = { false, -1, 0, NULL, 0, NULL, 0, NULL, 0 };
+struct sss_cli_mc_ctx gr_mc_ctx = { UNINITIALIZED, -1, 0, NULL, 0, NULL, 0,
+                                    NULL, 0, 0 };
 
 static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
                                        struct group *result,
@@ -168,6 +169,7 @@ errno_t sss_nss_mc_getgrnam(const char *name, size_t name_len,
 
 done:
     free(rec);
+    __sync_sub_and_fetch(&gr_mc_ctx.active_threads, 1);
     return ret;
 }
 
@@ -190,7 +192,8 @@ errno_t sss_nss_mc_getgrgid(gid_t gid,
 
     len = snprintf(gidstr, 11, "%ld", (long)gid);
     if (len > 10) {
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     /* hashes are calculated including the NULL terminator */
@@ -234,6 +237,7 @@ errno_t sss_nss_mc_getgrgid(gid_t gid,
 
 done:
     free(rec);
+    __sync_sub_and_fetch(&gr_mc_ctx.active_threads, 1);
     return ret;
 }
 

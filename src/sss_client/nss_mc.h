@@ -33,9 +33,15 @@
 typedef int errno_t;
 #endif
 
+enum sss_mc_state {
+    UNINITIALIZED = 0,
+    INITIALIZED,
+    RECYCLED,
+};
+
 /* common stuff */
 struct sss_cli_mc_ctx {
-    bool initialized;
+    enum sss_mc_state initialized;
     int fd;
 
     uint32_t seed;          /* seed from the tables header */
@@ -48,6 +54,8 @@ struct sss_cli_mc_ctx {
 
     uint32_t *hash_table;   /* hash table address (in mmap) */
     uint32_t ht_size;       /* size of hash table */
+
+    uint32_t active_threads; /* count of threads which use memory cache */
 };
 
 errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx);
