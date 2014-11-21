@@ -4,7 +4,9 @@ AM_CPPFLAGS = \
     -I$(top_srcdir)/src \
     -I. \
     -DLOCALEDIR=\"$(localedir)\" \
+    -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
+    -DSYSCONFDIR=\"$(sysconfdir)\" \
     $(DBUS_CFLAGS) \
     $(GLIB2_CFLAGS) \
     $(NULL)

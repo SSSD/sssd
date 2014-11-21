@@ -353,7 +353,7 @@ AC_DEFUN([WITH_KRB5_CONF],
                 ]
                )
 
-    KRB5_CONF_PATH="${sysconfdir}/krb5.conf"
+    KRB5_CONF_PATH="\"SYSCONFDIR\"/krb5.conf"
     if test x"$with_krb5_conf" != x; then
         KRB5_CONF_PATH=$with_krb5_conf
     fi
