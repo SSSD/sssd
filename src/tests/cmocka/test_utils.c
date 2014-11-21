@@ -20,6 +20,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE
+#include <stdio.h>
 #include <popt.h>
 
 #include "tests/cmocka/common_mock.h"
@@ -983,6 +985,51 @@ void test_add_strings_lists(void **state)
     talloc_free(res);
 }
 
+void test_sss_write_krb5_conf_snippet(void **state)
+{
+    int ret;
+    char buf[PATH_MAX];
+    char *cwd;
+    char *path;
+    char *file;
+
+    ret = sss_write_krb5_conf_snippet(NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_write_krb5_conf_snippet("abc");
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_write_krb5_conf_snippet("");
+    assert_int_equal(ret, EOK);
+
+    ret = sss_write_krb5_conf_snippet("none");
+    assert_int_equal(ret, EOK);
+
+    cwd = getcwd(buf, PATH_MAX);
+    assert_non_null(cwd);
+
+    ret = asprintf(&path, "%s/%s", cwd, TESTS_PATH);
+    assert_true(ret > 0);
+
+    ret = asprintf(&file, "%s/%s/localauth_plugin", cwd, TESTS_PATH);
+    assert_true(ret > 0);
+
+    ret = sss_write_krb5_conf_snippet(path);
+    assert_int_equal(ret, EOK);
+
+    /* Check if writing a second time will work as well */
+    ret = sss_write_krb5_conf_snippet(path);
+    assert_int_equal(ret, EOK);
+
+#ifdef HAVE_KRB5_LOCALAUTH_PLUGIN
+    ret = unlink(file);
+    assert_int_equal(ret, EOK);
+#endif
+
+    free(file);
+    free(path);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1030,6 +1077,7 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_add_strings_lists,
                                  setup_add_strings_lists,
                                  teardown_add_strings_lists),
+        unit_test(test_sss_write_krb5_conf_snippet),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

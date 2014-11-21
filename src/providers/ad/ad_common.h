@@ -60,6 +60,7 @@ enum ad_basic_opt {
     AD_GPO_MAP_PERMIT,
     AD_GPO_MAP_DENY,
     AD_GPO_DEFAULT_RIGHT,
+    AD_KRB5_CONFD_PATH,
 
     AD_OPTS_BASIC /* opts counter */
 };

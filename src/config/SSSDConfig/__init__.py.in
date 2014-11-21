@@ -195,6 +195,7 @@ option_strings = {
     'krb5_realm' : _('Kerberos realm'),
     'krb5_auth_timeout' : _('Authentication timeout'),
     'krb5_use_kdcinfo' : _('Whether to create kdcinfo files'),
+    'krb5_confd_path' : _('Where to drop krb5 config snippets'),
 
     # [provider/krb5/auth]
     'krb5_ccachedir' : _('Directory to store credential caches'),

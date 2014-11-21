@@ -461,6 +461,14 @@ static errno_t ad_subdom_reinit(struct ad_subdomains_ctx *ctx)
 {
     errno_t ret;
 
+    ret = sss_write_krb5_conf_snippet(
+                            dp_opt_get_string(ctx->ad_id_ctx->ad_options->basic,
+                                              AD_KRB5_CONFD_PATH));
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "sss_write_krb5_conf_snippet failed.\n");
+        /* Just continue */
+    }
+
     ret = sysdb_update_subdomains(ctx->be_ctx->domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");

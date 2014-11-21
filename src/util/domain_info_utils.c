@@ -24,9 +24,6 @@
 #include "db/sysdb.h"
 #include "util/util.h"
 
-/* the directory domain - realm mappings are written to */
-#define KRB5_MAPPING_DIR PUBCONF_PATH"/krb5.include.d"
-
 struct sss_domain_info *get_domains_head(struct sss_domain_info *domain)
 {
     struct sss_domain_info *dom = NULL;
@@ -635,5 +632,148 @@ errno_t get_dom_names(TALLOC_CTX *mem_ctx,
 
 done:
     talloc_free(tmp_ctx);
+    return ret;
+}
+
+#define LOCALAUTH_PLUGIN_CONFIG \
+"[plugins]\n" \
+" localauth = {\n" \
+"  module = sssd:"APP_MODULES_PATH"/sssd_krb5_localauth_plugin.so\n" \
+"  enable_only = sssd\n" \
+" }"
+
+static errno_t sss_write_krb5_localauth_snippet(const char *path)
+{
+#ifdef HAVE_KRB5_LOCALAUTH_PLUGIN
+    int ret;
+    errno_t err;
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *tmp_file = NULL;
+    const char *file_name;
+    int fd = -1;
+    mode_t old_mode;
+    ssize_t written;
+    size_t size;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    file_name = talloc_asprintf(tmp_ctx, "%s/localauth_plugin", path);
+    if (file_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "File for localauth plugin configuration is [%s]\n",
+                             file_name);
+
+    tmp_file = talloc_asprintf(tmp_ctx, "%sXXXXXX", file_name);
+    if (tmp_file == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    old_mode = umask(077);
+    fd = mkstemp(tmp_file);
+    umask(old_mode);
+    if (fd < 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "creating the temp file [%s] for domain-realm "
+                                  "mappings failed.", tmp_file);
+        ret = EIO;
+        talloc_zfree(tmp_ctx);
+        goto done;
+    }
+
+    size = sizeof(LOCALAUTH_PLUGIN_CONFIG) -1;
+    written = sss_atomic_write_s(fd, discard_const(LOCALAUTH_PLUGIN_CONFIG),
+                                 size);
+    close(fd);
+    if (written == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "write failed [%d][%s]\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (written != size) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Wrote %zd bytes expected %zu\n", written, size);
+        ret = EIO;
+        goto done;
+    }
+
+    ret = rename(tmp_file, file_name);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "rename failed [%d][%s].\n", ret, sss_strerror(ret));
+        goto done;
+    }
+    tmp_file = NULL;
+
+    ret = chmod(file_name, 0644);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "chmod failed [%d][%s].\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+done:
+    if (tmp_file != NULL) {
+        err = unlink(tmp_file);
+        if (err == -1) {
+            err = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not remove file [%s]: [%d]: %s",
+                   tmp_file, err, sss_strerror(err));
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+#else
+    DEBUG(SSSDBG_TRACE_ALL, "Kerberos localauth plugin not available.\n");
+    return EOK;
+#endif
+}
+
+errno_t sss_write_krb5_conf_snippet(const char *path)
+{
+    errno_t ret;
+    errno_t err;
+
+    if (path != NULL && (*path == '\0' || strcasecmp(path, "none") == 0)) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Empty path, nothing to do.\n");
+        return EOK;
+    }
+
+    if (path == NULL || *path != '/') {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid or missing path [%s]-\n",
+                                    path == NULL ? "missing" : path);
+        return EINVAL;
+    }
+
+    ret = sss_write_krb5_localauth_snippet(path);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_write_krb5_localauth_snippet failed.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    err = sss_krb5_touch_config();
+    if (err != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to change last modification time "
+              "of krb5.conf. Created mappings may not be loaded.\n");
+        /* Ignore */
+    }
+
     return ret;
 }

@@ -54,6 +54,7 @@ enum ipa_basic_opt {
     IPA_ENABLE_DNS_SITES,
     IPA_SERVER_MODE,
     IPA_VIEWS_SEARCH_BASE,
+    IPA_KRB5_CONFD_PATH,
 
     IPA_OPTS_BASIC /* opts counter */
 };

@@ -447,6 +447,24 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>krb5_confd_path (string)</term>
+                    <listitem>
+                        <para>
+                            Absolute path of a directory where SSSD should place
+                            Kerberos configuration snippets.
+                        </para>
+                        <para>
+                            To disable the creation of the configuration
+                            snippets set the parameter to 'none'.
+                        </para>
+                        <para>
+                            Default: not set (krb5.include.d subdirectory of
+                            SSSD's pubconf directory)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ipa_hbac_refresh (integer)</term>
                     <listitem>
                         <para>
