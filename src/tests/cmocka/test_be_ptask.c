@@ -31,7 +31,7 @@
 #include "tests/common.h"
 
 #define DELAY  2
-#define PERIOD 10
+#define PERIOD 1
 
 #define new_test(test) \
     unit_test_setup_teardown(test_ ## test, test_setup, test_teardown)
@@ -702,6 +702,59 @@ void test_be_ptask_reschedule_timeout(void **state)
     assert_null(ptask);
 }
 
+void test_be_ptask_reschedule_backoff(void **state)
+{
+    struct test_ctx *test_ctx = (struct test_ctx *)(*state);
+    struct be_ptask *ptask = NULL;
+    time_t next_execution;
+    time_t now;
+    errno_t ret;
+
+    now = time(NULL);
+    ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
+                          BE_PTASK_OFFLINE_SKIP, PERIOD*2, test_be_ptask_send,
+                          test_be_ptask_recv, test_ctx, "Test ptask", &ptask);
+    assert_int_equal(ret, ERR_OK);
+    assert_non_null(ptask);
+    assert_non_null(ptask->timer);
+
+    /* first run */
+    next_execution = ptask->next_execution;
+
+    while (!test_ctx->done) {
+        tevent_loop_once(test_ctx->be_ctx->ev);
+    }
+
+    assert_true(now <= ptask->last_execution);
+    assert_true(now <= test_ctx->when);
+    assert_true(ptask->last_execution <= test_ctx->when);
+
+    assert_true(next_execution + PERIOD <= ptask->next_execution);
+    assert_int_equal(PERIOD*2, ptask->period);
+    assert_non_null(ptask->timer);
+
+    test_ctx->done = false;
+
+    /* second run */
+    now = time(NULL);
+    next_execution = ptask->next_execution;
+
+    while (!test_ctx->done) {
+        tevent_loop_once(test_ctx->be_ctx->ev);
+    }
+
+    assert_true(now + PERIOD <= ptask->last_execution);
+    assert_true(now + PERIOD <= test_ctx->when);
+    assert_true(ptask->last_execution <= test_ctx->when);
+
+    assert_true(next_execution + PERIOD*2 <= ptask->next_execution);
+    assert_int_equal(PERIOD*2, ptask->period);
+    assert_non_null(ptask->timer);
+
+    be_ptask_destroy(&ptask);
+    assert_null(ptask);
+}
+
 void test_be_ptask_get_period(void **state)
 {
     struct test_ctx *test_ctx = (struct test_ctx *)(*state);
@@ -809,6 +862,60 @@ void test_be_ptask_sync_reschedule_error(void **state)
     assert_null(ptask);
 }
 
+void test_be_ptask_sync_reschedule_backoff(void **state)
+{
+    struct test_ctx *test_ctx = (struct test_ctx *)(*state);
+    struct be_ptask *ptask = NULL;
+    time_t next_execution;
+    time_t now;
+    errno_t ret;
+
+    now = time(NULL);
+    ret = be_ptask_create_sync(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
+                               BE_PTASK_OFFLINE_SKIP, PERIOD*2,
+                               test_be_ptask_sync_error,
+                               test_ctx, "Test ptask", &ptask);
+    assert_int_equal(ret, ERR_OK);
+    assert_non_null(ptask);
+    assert_non_null(ptask->timer);
+
+    /* first run */
+    next_execution = ptask->next_execution;
+
+    while (!is_sync_ptask_finished(test_ctx, ptask)) {
+        tevent_loop_once(test_ctx->be_ctx->ev);
+    }
+
+    assert_true(now <= ptask->last_execution);
+    assert_true(now <= test_ctx->when);
+    assert_true(ptask->last_execution <= test_ctx->when);
+
+    assert_true(next_execution + PERIOD <= ptask->next_execution);
+    assert_int_equal(PERIOD*2, ptask->period);
+    assert_non_null(ptask->timer);
+
+    test_ctx->done = false;
+
+    /* second run */
+    now = time(NULL);
+    next_execution = ptask->next_execution;
+
+    while (!is_sync_ptask_finished(test_ctx, ptask)) {
+        tevent_loop_once(test_ctx->be_ctx->ev);
+    }
+
+    assert_true(now + PERIOD <= ptask->last_execution);
+    assert_true(now + PERIOD <= test_ctx->when);
+    assert_true(ptask->last_execution <= test_ctx->when);
+
+    assert_true(next_execution + PERIOD*2 <= ptask->next_execution);
+    assert_int_equal(PERIOD*2, ptask->period);
+    assert_non_null(ptask->timer);
+
+    be_ptask_destroy(&ptask);
+    assert_null(ptask);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -837,10 +944,12 @@ int main(int argc, const char *argv[])
         new_test(be_ptask_reschedule_null),
         new_test(be_ptask_reschedule_error),
         new_test(be_ptask_reschedule_timeout),
+        new_test(be_ptask_reschedule_backoff),
         new_test(be_ptask_get_period),
         new_test(be_ptask_create_sync),
         new_test(be_ptask_sync_reschedule_ok),
-        new_test(be_ptask_sync_reschedule_error)
+        new_test(be_ptask_sync_reschedule_error),
+        new_test(be_ptask_sync_reschedule_backoff)
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

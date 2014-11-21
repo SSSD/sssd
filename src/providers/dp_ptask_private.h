@@ -24,20 +24,20 @@
 struct be_ptask {
     struct tevent_context *ev;
     struct be_ctx *be_ctx;
-    time_t period;
+    time_t orig_period;
+    time_t first_delay;
     time_t enabled_delay;
     time_t random_offset;
     unsigned int ro_seed;
     time_t timeout;
-    bool allow_backoff;
     time_t max_backoff;
-    time_t backoff_delay;
     enum be_ptask_offline offline;
     be_ptask_send_t send_fn;
     be_ptask_recv_t recv_fn;
     void *pvt;
     const char *name;
 
+    time_t period;          /* computed period */
     time_t next_execution;  /* next time when the task is scheduled */
     time_t last_execution;  /* last time when send was called */
     struct tevent_req *req; /* active tevent request */

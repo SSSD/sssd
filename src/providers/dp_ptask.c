@@ -28,13 +28,21 @@
 #include "providers/dp_ptask_private.h"
 #include "providers/dp_ptask.h"
 
+#define backoff_allowed(ptask) (ptask->max_backoff != 0)
+
 enum be_ptask_schedule {
     BE_PTASK_SCHEDULE_FROM_NOW,
     BE_PTASK_SCHEDULE_FROM_LAST
 };
 
+enum be_ptask_delay {
+    BE_PTASK_FIRST_DELAY,
+    BE_PTASK_ENABLED_DELAY,
+    BE_PTASK_PERIOD
+};
+
 static void be_ptask_schedule(struct be_ptask *task,
-                              time_t delay,
+                              enum be_ptask_delay delay_type,
                               enum be_ptask_schedule from);
 
 static int be_ptask_destructor(void *pvt)
@@ -86,7 +94,7 @@ static void be_ptask_timeout(struct tevent_context *ev,
     DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: timed out\n", task->name);
 
     talloc_zfree(task->req);
-    be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
+    be_ptask_schedule(task, BE_PTASK_PERIOD, BE_PTASK_SCHEDULE_FROM_NOW);
 }
 
 static void be_ptask_done(struct tevent_req *req);
@@ -106,7 +114,8 @@ static void be_ptask_execute(struct tevent_context *ev,
         DEBUG(SSSDBG_TRACE_FUNC, "Back end is offline\n");
         switch (task->offline) {
         case BE_PTASK_OFFLINE_SKIP:
-            be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
+            be_ptask_schedule(task, BE_PTASK_PERIOD,
+                              BE_PTASK_SCHEDULE_FROM_NOW);
             return;
         case BE_PTASK_OFFLINE_DISABLE:
             /* This case is normally handled by offline callback but we
@@ -131,7 +140,7 @@ static void be_ptask_execute(struct tevent_context *ev,
         DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: failed to execute task, "
               "will try again later\n", task->name);
 
-        be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
+        be_ptask_schedule(task, BE_PTASK_PERIOD, BE_PTASK_SCHEDULE_FROM_NOW);
         return;
     }
 
@@ -150,7 +159,8 @@ static void be_ptask_execute(struct tevent_context *ev,
             DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: failed to set timeout, "
                   "the task will be rescheduled\n", task->name);
 
-            be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
+            be_ptask_schedule(task, BE_PTASK_PERIOD,
+                              BE_PTASK_SCHEDULE_FROM_NOW);
         }
     }
 
@@ -172,39 +182,47 @@ static void be_ptask_done(struct tevent_req *req)
         DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: finished successfully\n",
                                   task->name);
 
-        be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_LAST);
+        be_ptask_schedule(task, BE_PTASK_PERIOD, BE_PTASK_SCHEDULE_FROM_LAST);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Task [%s]: failed with [%d]: %s\n",
                                   task->name, ret, sss_strerror(ret));
 
-        be_ptask_schedule(task, task->period, BE_PTASK_SCHEDULE_FROM_NOW);
+        be_ptask_schedule(task, BE_PTASK_PERIOD, BE_PTASK_SCHEDULE_FROM_NOW);
         break;
     }
 }
 
 static void be_ptask_schedule(struct be_ptask *task,
-                              time_t delay,
+                              enum be_ptask_delay delay_type,
                               enum be_ptask_schedule from)
 {
     struct timeval tv;
+    time_t delay = 0;
 
     if (!task->enabled) {
         DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: disabled\n", task->name);
         return;
     }
 
-    if (task->allow_backoff) {
-        if (task->backoff_delay == 0) {
-            task->backoff_delay = task->period;
-        } else {
-            task->backoff_delay = (task->backoff_delay * 2 > task->max_backoff)
-                                  ? task->max_backoff
-                                  : task->backoff_delay * 2;
-            delay = task->backoff_delay;
+    switch (delay_type) {
+    case BE_PTASK_FIRST_DELAY:
+        delay = task->first_delay;
+        break;
+    case BE_PTASK_ENABLED_DELAY:
+        delay = task->enabled_delay;
+        break;
+    case BE_PTASK_PERIOD:
+        delay = task->period;
+
+        if (backoff_allowed(task) && task->period * 2 <= task->max_backoff) {
+            /* double the period for the next execution */
+            task->period *= 2;
         }
+        break;
     }
 
+    /* add random offset */
     if (task->random_offset != 0) {
         delay = delay + (rand_r(&task->ro_seed) % task->random_offset);
     }
@@ -274,9 +292,12 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
     task->ev = be_ctx->ev;
     task->be_ctx = be_ctx;
     task->period = period;
+    task->orig_period = period;
+    task->first_delay = first_delay;
     task->enabled_delay = enabled_delay;
     task->random_offset = random_offset;
     task->ro_seed = time(NULL) * getpid();
+    task->max_backoff = max_backoff;
     task->timeout = timeout;
     task->offline = offline;
     task->send_fn = send_fn;
@@ -286,11 +307,6 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
     if (task->name == NULL) {
         ret = ENOMEM;
         goto done;
-    }
-
-    if (max_backoff != 0) {
-        task->max_backoff = max_backoff;
-        task->allow_backoff = true;
     }
 
     task->enabled = true;
@@ -316,7 +332,7 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Periodic task [%s] was created\n", task->name);
 
-    be_ptask_schedule(task, first_delay, BE_PTASK_SCHEDULE_FROM_NOW);
+    be_ptask_schedule(task, BE_PTASK_FIRST_DELAY, BE_PTASK_SCHEDULE_FROM_NOW);
 
     if (_task != NULL) {
         *_task = task;
@@ -343,7 +359,7 @@ void be_ptask_enable(struct be_ptask *task)
     DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: enabling task\n", task->name);
 
     task->enabled = true;
-    be_ptask_schedule(task, task->enabled_delay, BE_PTASK_SCHEDULE_FROM_NOW);
+    be_ptask_schedule(task, BE_PTASK_ENABLED_DELAY, BE_PTASK_SCHEDULE_FROM_NOW);
 }
 
 /* Disable the task, but if a request already in progress, let it finish. */
@@ -353,10 +369,7 @@ void be_ptask_disable(struct be_ptask *task)
 
     talloc_zfree(task->timer);
     task->enabled = false;
-
-    if (task->allow_backoff) {
-        task->backoff_delay = 0;
-    }
+    task->period = task->orig_period;
 }
 
 void be_ptask_destroy(struct be_ptask **task)
