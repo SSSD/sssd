@@ -102,6 +102,18 @@ errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
     return 0;
 }
 
+static void sss_nss_mc_destroy_ctx(struct sss_cli_mc_ctx *ctx)
+{
+    if ((ctx->mmap_base != NULL) && (ctx->mmap_size != 0)) {
+        munmap(ctx->mmap_base, ctx->mmap_size);
+    }
+    if (ctx->fd != -1) {
+        close(ctx->fd);
+    }
+    memset(ctx, 0, sizeof(struct sss_cli_mc_ctx));
+    ctx->fd = -1;
+}
+
 static errno_t sss_nss_mc_init_ctx(const char *name,
                                    struct sss_cli_mc_ctx *ctx)
 {
@@ -157,14 +169,7 @@ static errno_t sss_nss_mc_init_ctx(const char *name,
 
 done:
     if (ret) {
-        if ((ctx->mmap_base != NULL) && (ctx->mmap_size != 0)) {
-            munmap(ctx->mmap_base, ctx->mmap_size);
-        }
-        if (ctx->fd != -1) {
-            close(ctx->fd);
-        }
-        memset(ctx, 0, sizeof(struct sss_cli_mc_ctx));
-        ctx->fd = -1;
+        sss_nss_mc_destroy_ctx(ctx);
     }
     free(file);
     sss_nss_unlock();
@@ -191,14 +196,7 @@ errno_t sss_nss_mc_get_ctx(const char *name, struct sss_cli_mc_ctx *ctx)
 
 done:
     if (ret) {
-        if ((ctx->mmap_base != NULL) && (ctx->mmap_size != 0)) {
-            munmap(ctx->mmap_base, ctx->mmap_size);
-        }
-        if (ctx->fd != -1) {
-            close(ctx->fd);
-        }
-        memset(ctx, 0, sizeof(struct sss_cli_mc_ctx));
-        ctx->fd = -1;
+        sss_nss_mc_destroy_ctx(ctx);
     }
     return ret;
 }
