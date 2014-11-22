@@ -740,7 +740,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq);
  * PAM_ENVIRONMENT, so that we can save performing some calls and cache
  * data. */
 
-errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
+static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
 {
     uint8_t *body;
     size_t blen;
