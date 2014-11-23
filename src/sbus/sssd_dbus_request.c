@@ -79,6 +79,7 @@ sbus_request_invoke_or_finish(struct sbus_request *dbus_req,
         sbus_request_finish(dbus_req, NULL);
         break;
     default:
+        dbus_error_init(&error);
         dbus_set_error_const(&error, DBUS_ERROR_FAILED, INTERNAL_ERROR);
         sbus_request_fail_and_finish(dbus_req, &error);
         break;
