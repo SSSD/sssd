@@ -849,15 +849,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
     struct tevent_req *req;
 
-    pctx->is_uid_trusted = is_uid_trusted(cctx->client_euid,
-                                          pctx->trusted_uids_count,
-                                          pctx->trusted_uids);
-
-    if (!pctx->is_uid_trusted) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "uid %"PRIu32" is not trusted.\n",
-              cctx->client_euid);
-    }
-
     preq = talloc_zero(cctx, struct pam_auth_req);
     if (!preq) {
         return ENOMEM;
@@ -871,6 +862,16 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         return ENOMEM;
     }
     pd = preq->pd;
+
+    preq->is_uid_trusted = is_uid_trusted(cctx->client_euid,
+                                          pctx->trusted_uids_count,
+                                          pctx->trusted_uids);
+
+    if (!preq->is_uid_trusted) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "uid %"PRIu32" is not trusted.\n",
+              cctx->client_euid);
+    }
+
 
     pd->cmd = pam_cmd;
     pd->priv = cctx->priv;
@@ -1304,7 +1305,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     }
 
     /* Untrusted users can access only public domains. */
-    if (!pctx->is_uid_trusted &&
+    if (!preq->is_uid_trusted &&
             !is_domain_public(preq->pd->domain, pctx->public_domains,
                             pctx->public_domains_count)) {
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -1317,7 +1318,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
 
     /* skip this domain if not requested and the user is trusted
      * as untrusted users can't request a domain */
-    if (pctx->is_uid_trusted &&
+    if (preq->is_uid_trusted &&
             !is_domain_requested(preq->pd, preq->pd->domain)) {
         preq->pd->pam_status = PAM_USER_UNKNOWN;
         pam_reply(preq);

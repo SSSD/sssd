@@ -39,7 +39,6 @@ struct pam_ctx {
     hash_table_t *id_table;
     size_t trusted_uids_count;
     uid_t *trusted_uids;
-    bool is_uid_trusted;
 
     /* List of domains that are accessible even for untrusted users. */
     char **public_domains;
@@ -58,6 +57,7 @@ struct pam_auth_req {
 
     pam_dp_callback_t *callback;
 
+    bool is_uid_trusted;
     bool check_provider;
     void *data;
 
