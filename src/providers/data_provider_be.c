@@ -1346,7 +1346,7 @@ static int be_pam_handler(struct sbus_request *dbus_req, void *user_data)
 
     ret = dp_unpack_pam_request(dbus_req->message, be_req, &pd, &dbus_error);
     if (!ret) {
-        DEBUG(SSSDBG_CRIT_FAILURE,"Failed, to parse message!\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse message!\n");
         talloc_free(be_req);
         return EIO;
     }
