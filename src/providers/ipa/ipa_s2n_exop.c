@@ -960,10 +960,15 @@ static errno_t ipa_s2n_get_groups_step(struct tevent_req *req)
         return ret;
     }
 
-    state->obj_domain = find_domain_by_name(parent_domain, domain_name, true);
-    if (state->obj_domain == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
-        return ENOMEM;
+    if (domain_name) {
+        state->obj_domain = find_domain_by_name(parent_domain,
+                                                domain_name, true);
+        if (state->obj_domain == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
+            return ENOMEM;
+        }
+    } else {
+        state->obj_domain = parent_domain;
     }
 
     state->req_input.inp.name = group_name;
