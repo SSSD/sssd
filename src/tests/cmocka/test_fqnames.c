@@ -326,7 +326,7 @@ void parse_name_test_teardown(void **state)
 
 void sss_parse_name_check(struct parse_name_test_ctx *test_ctx,
                           const char *input_name,
-                          const char exp_ret,
+                          const int exp_ret,
                           const char *exp_name,
                           const char *exp_domain)
 {
