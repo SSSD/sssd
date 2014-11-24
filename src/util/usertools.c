@@ -309,7 +309,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
 
     ret = pcre_exec(re, NULL, orig, origlen, 0, PCRE_NOTEMPTY, ovec, 30);
     if (ret == PCRE_ERROR_NOMATCH) {
-        return EINVAL;
+        return ERR_REGEX_NOMATCH;
     } else if (ret < 0) {
         DEBUG(SSSDBG_MINOR_FAILURE, "PCRE Matching error, %d\n", ret);
         return EINVAL;

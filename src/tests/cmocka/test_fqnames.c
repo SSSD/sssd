@@ -471,13 +471,13 @@ void sss_parse_name_fail(void **state)
     struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
                                                            struct parse_name_test_ctx);
 
-    sss_parse_name_check(test_ctx, "", EINVAL, NULL, NULL);
-    sss_parse_name_check(test_ctx, "@", EINVAL, NULL, NULL);
-    sss_parse_name_check(test_ctx, "\\", EINVAL, NULL, NULL);
-    sss_parse_name_check(test_ctx, "\\"NAME, EINVAL, NULL, NULL);
-    sss_parse_name_check(test_ctx, "@"NAME, EINVAL, NULL, NULL);
-    sss_parse_name_check(test_ctx, NAME"@", EINVAL, NULL, NULL);
-    sss_parse_name_check(test_ctx, NAME"\\", EINVAL, NULL, NULL);
+    sss_parse_name_check(test_ctx, "", ERR_REGEX_NOMATCH, NULL, NULL);
+    sss_parse_name_check(test_ctx, "@", ERR_REGEX_NOMATCH, NULL, NULL);
+    sss_parse_name_check(test_ctx, "\\", ERR_REGEX_NOMATCH, NULL, NULL);
+    sss_parse_name_check(test_ctx, "\\"NAME, ERR_REGEX_NOMATCH, NULL, NULL);
+    sss_parse_name_check(test_ctx, "@"NAME, ERR_REGEX_NOMATCH, NULL, NULL);
+    sss_parse_name_check(test_ctx, NAME"@", ERR_REGEX_NOMATCH, NULL, NULL);
+    sss_parse_name_check(test_ctx, NAME"\\", ERR_REGEX_NOMATCH, NULL, NULL);
 }
 
 void test_sss_get_domain_name(void **state)
