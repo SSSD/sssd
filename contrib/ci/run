@@ -188,6 +188,7 @@ function build_debug()
     export CFLAGS="$DEBUG_CFLAGS"
     declare test_dir
     declare test_dir_distcheck
+    declare intgcheck_configure_args
     declare distcheck_configure_args
     declare status
 
@@ -217,6 +218,14 @@ function build_debug()
     ((status == 0))
 
     if "$MODERATE"; then
+        if "$DEPS_INTGCHECK_SATISFIED"; then
+            printf -v intgcheck_configure_args " %q" \
+                        "${CONFIGURE_ARG_LIST[@]}"
+            stage make-intgcheck make -j $CPU_NUM intgcheck \
+                                      INTGCHECK_CONFIGURE_FLAGS=" \
+                                        $intgcheck_configure_args"
+        fi
+
         test_dir_distcheck=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
         # Single thread due to https://fedorahosted.org/sssd/ticket/2354
         status=0

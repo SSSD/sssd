@@ -19,7 +19,7 @@ if HAVE_MANPAGES
 SUBDIRS += src/man
 endif
 
-SUBDIRS += . src/tests/cwrap
+SUBDIRS += . src/tests/cwrap src/tests/intg
 
 # Some old versions of automake don't define builddir
 builddir ?= .
@@ -2423,6 +2423,32 @@ autofs_test_client_SOURCES = \
 autofs_test_client_CFLAGS = $(AM_CFLAGS)
 autofs_test_client_LDADD = -lpopt $(CLIENT_LIBS)
 endif
+
+#####################
+# Integration tests #
+#####################
+
+intgcheck:
+	set -e; \
+	rm -Rf intg; \
+	$(MKDIR_P) intg/bld; \
+	: Use /hopefully/ short prefix to keep D-Bus socket path short; \
+	prefix=`mktemp --tmpdir --directory sssd-intg.XXXXXXXX`; \
+	$(LN_S) "$$prefix" intg/pfx; \
+	cd intg/bld; \
+	$(abs_top_srcdir)/configure \
+	    --prefix="$$prefix" \
+	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
+	    --enable-intgcheck-reqs \
+	    $(INTGCHECK_CONFIGURE_FLAGS); \
+	$(MAKE) $(AM_MAKEFLAGS); \
+	: Force single-thread install to workaround concurrency issues; \
+	$(MAKE) $(AM_MAKEFLAGS) -j1 install; \
+	: Remove .la files from LDB module directory to avoid loader warnings; \
+	rm "$$prefix"/lib/ldb/*.la; \
+	$(MAKE) $(AM_MAKEFLAGS) -C src/tests/intg intgcheck-installed; \
+	cd ../..; \
+	rm -Rf "$$prefix" intg
 
 ####################
 # Client Libraries #

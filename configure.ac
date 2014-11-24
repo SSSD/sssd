@@ -175,6 +175,7 @@ m4_include([src/external/configlib.m4])
 m4_include([src/external/libnfsidmap.m4])
 m4_include([src/external/cwrap.m4])
 m4_include([src/external/libresolv.m4])
+m4_include([src/external/intgcheck.m4])
 
 if test x$build_config_lib = xyes; then
     m4_include([src/external/libaugeas.m4])
@@ -315,6 +316,8 @@ AM_CONDITIONAL([BUILD_PYTHON_BINDINGS],
                [test x"$with_python2_bindings" = xyes \
                      -o x"$with_python3_bindings" = xyes])
 
+AM_PYTHON2_MODULE([ldap])
+
 if test x$HAVE_SELINUX != x; then
     AM_CHECK_SELINUX
     AM_CHECK_SELINUX_LOGIN_DIR
@@ -387,6 +390,8 @@ AM_CHECK_CMOCKA
 AM_CHECK_UID_WRAPPER
 AM_CHECK_NSS_WRAPPER
 
+SSS_ENABLE_INTGCHECK_REQS
+
 AM_CONDITIONAL([HAVE_DEVSHM], [test -d /dev/shm])
 
 abs_build_dir=`pwd`
@@ -396,6 +401,7 @@ AC_SUBST([abs_builddir], $abs_build_dir)
 AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/sysv/sssd src/sysv/gentoo/sssd src/sysv/SUSE/sssd
                  po/Makefile.in src/man/Makefile src/tests/cwrap/Makefile
+                 src/tests/intg/Makefile
                  src/providers/ipa/ipa_hbac.pc src/providers/ipa/ipa_hbac.doxy
                  src/lib/idmap/sss_idmap.pc src/lib/idmap/sss_idmap.doxy
                  src/sss_client/sudo/sss_sudo.doxy

@@ -27,15 +27,23 @@ declare -a DEPS_LIST=(
     valgrind
 )
 
+# "Integration tests dependencies satisfied" flag
+declare DEPS_INTGCHECK_SATISFIED=true
+
 if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     declare _DEPS_LIST_SPEC
     DEPS_LIST+=(
         clang-analyzer
+        fakeroot
         libcmocka-devel
         mock
+        nss_wrapper
+        openldap-clients
+        openldap-servers
+        pytest
+        python-ldap
         rpm-build
         uid_wrapper
-        nss_wrapper
     )
     _DEPS_LIST_SPEC=`
         sed -e 's/@PACKAGE_VERSION@/0/g' \
@@ -98,6 +106,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         xml-core
         xsltproc
     )
+    DEPS_INTGCHECK_SATISFIED=false
 fi
 
 declare -a -r DEPS_LIST

@@ -44,6 +44,7 @@ if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-7.*- ]]; then
         "--without-python3-bindings"
     )
 fi
+
 declare -r -a CONFIGURE_ARG_LIST
 
 fi # _CONFIGURE_SH

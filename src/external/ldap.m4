@@ -90,3 +90,7 @@ AC_CHECK_TYPE([LDAPDerefRes],
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
 
+AC_PATH_PROG([SLAPD], [slapd], ,
+             [$PATH$PATH_SEPARATOR/usr/sbin$PATH_SEPARATOR])
+AS_IF([test -n "$SLAPD"], [HAVE_SLAPD=yes], [HAVE_SLAPD=no])
+AC_CHECK_PROG([HAVE_LDAPMODIFY], [ldapmodify], [yes], [no])
