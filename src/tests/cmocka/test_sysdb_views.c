@@ -138,6 +138,74 @@ static void test_sysdb_teardown(void **state)
     assert_true(leak_check_teardown());
 }
 
+static void test_sysdb_store_override(void **state)
+{
+    int ret;
+    struct ldb_message *msg;
+    struct ldb_message **msgs;
+    struct sysdb_attrs *attrs;
+    size_t count;
+    const char override_dn_str[] = SYSDB_OVERRIDE_ANCHOR_UUID "=" \
+                       TEST_ANCHOR_PREFIX TEST_USER_SID "," TEST_VIEW_CONTAINER;
+
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                         struct sysdb_test_ctx);
+
+    test_ctx->domain->mpg = false;
+
+    ret = sysdb_store_user(test_ctx->domain, TEST_USER_NAME, NULL,
+                           TEST_USER_UID, TEST_USER_GID, TEST_USER_GECOS,
+                           TEST_USER_HOMEDIR, TEST_USER_SHELL, NULL, NULL, NULL,
+                           0,0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, TEST_USER_NAME,
+                                    NULL, &msg);
+    assert_int_equal(ret, EOK);
+    assert_non_null(msg);
+
+    /* No override exists */
+    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+                               SYSDB_MEMBER_USER, NULL, msg->dn);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_search_entry(test_ctx, test_ctx->domain->sysdb,msg->dn,
+                             LDB_SCOPE_BASE, NULL, NULL, &count, &msgs);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(count, 1);
+    assert_string_equal(ldb_dn_get_linearized(msg->dn),
+                        ldb_msg_find_attr_as_string(msgs[0],
+                                                    SYSDB_OVERRIDE_DN, NULL));
+
+    ret = sysdb_invalidate_overrides(test_ctx->domain->sysdb);
+    assert_int_equal(ret, EOK);
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    /* Missing anchor attribute */
+    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+                               SYSDB_MEMBER_USER, attrs, msg->dn);
+    assert_int_equal(ret, EINVAL);
+
+    /* With anchor */
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OVERRIDE_ANCHOR_UUID,
+                                 TEST_ANCHOR_PREFIX TEST_USER_SID);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+                               SYSDB_MEMBER_USER, attrs, msg->dn);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_search_entry(test_ctx, test_ctx->domain->sysdb,msg->dn,
+                             LDB_SCOPE_BASE, NULL, NULL, &count, &msgs);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(count, 1);
+    assert_string_equal(override_dn_str, ldb_msg_find_attr_as_string(msgs[0],
+                                                      SYSDB_OVERRIDE_DN, NULL));
+
+}
+
 void test_sysdb_add_overrides_to_object(void **state)
 {
     int ret;
@@ -373,6 +441,8 @@ int main(int argc, const char *argv[])
     };
 
     const UnitTest tests[] = {
+        unit_test_setup_teardown(test_sysdb_store_override,
+                                 test_sysdb_setup, test_sysdb_teardown),
         unit_test_setup_teardown(test_sysdb_add_overrides_to_object,
                                  test_sysdb_setup, test_sysdb_teardown),
         unit_test_setup_teardown(test_split_ipa_anchor,
