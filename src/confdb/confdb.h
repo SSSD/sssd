@@ -484,7 +484,7 @@ int confdb_get_bool(struct confdb_ctx *cdb,
 int confdb_set_string(struct confdb_ctx *cdb,
                       const char *section,
                       const char *attribute,
-                      char *val);
+                      const char *val);
 
 /**
  * @brief Convenience function to retrieve a single-valued attribute as a
