@@ -127,6 +127,8 @@
 
 #define SYSDB_SSH_PUBKEY "sshPublicKey"
 
+#define SYSDB_AUTH_TYPE "authType"
+
 #define SYSDB_SUBDOMAIN_REALM "realmName"
 #define SYSDB_SUBDOMAIN_FLAT "flatName"
 #define SYSDB_SUBDOMAIN_ID "domainID"

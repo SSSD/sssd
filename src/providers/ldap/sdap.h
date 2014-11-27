@@ -280,6 +280,7 @@ enum sdap_user_attrs {
     SDAP_AT_NDS_LOGIN_EXPIRATION_TIME,
     SDAP_AT_NDS_LOGIN_ALLOWED_TIME_MAP,
     SDAP_AT_USER_SSH_PUBLIC_KEY,
+    SDAP_AT_USER_AUTH_TYPE,
 
     SDAP_OPTS_USER /* attrs counter */
 };

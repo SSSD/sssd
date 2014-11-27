@@ -311,6 +311,25 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
     }
 }
 
+static bool is_otp_enabled(struct ldb_message *user_msg)
+{
+    struct ldb_message_element *el;
+    size_t i;
+
+    el = ldb_msg_find_element(user_msg, SYSDB_AUTH_TYPE);
+    if (el == NULL) {
+        return false;
+    }
+
+    for (i = 0; i < el->num_values; i++) {
+        if (strcmp((const char * )el->values[i].data, "otp") == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /* krb5_auth request */
 
 struct krb5_auth_state {
@@ -344,8 +363,9 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     const char *realm;
     struct tevent_req *req;
     struct tevent_req *subreq;
-    int authtok_type;
+    enum sss_authtok_type authtok_type;
     int ret;
+    bool otp;
 
     req = tevent_req_create(mem_ctx, &state, struct krb5_auth_state);
     if (req == NULL) {
@@ -441,7 +461,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    attrs = talloc_array(state, const char *, 7);
+    attrs = talloc_array(state, const char *, 8);
     if (attrs == NULL) {
         ret = ENOMEM;
         goto done;
@@ -453,7 +473,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     attrs[3] = SYSDB_UIDNUM;
     attrs[4] = SYSDB_GIDNUM;
     attrs[5] = SYSDB_CANONICAL_UPN;
-    attrs[6] = NULL;
+    attrs[6] = SYSDB_AUTH_TYPE;
+    attrs[7] = NULL;
 
     ret = krb5_setup(state, pd, krb5_ctx, &state->kr);
     if (ret != EOK) {
@@ -545,6 +566,17 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         ret = EINVAL;
         goto done;
         break;
+    }
+
+    otp = is_otp_enabled(res->msgs[0]);
+    if (pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM && otp == true) {
+        /* To avoid consuming the OTP */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Skipping password checks for OTP-enabled user\n");
+        state->pam_status = PAM_SUCCESS;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
     }
 
     kr->srv = NULL;

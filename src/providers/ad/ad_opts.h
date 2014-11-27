@@ -212,6 +212,7 @@ struct sdap_attr_map ad_2008r2_user_map[] = {
     { "ldap_user_nds_login_expiration_time", NULL, SYSDB_NDS_LOGIN_EXPIRATION_TIME, NULL },
     { "ldap_user_nds_login_allowed_time_map", NULL, SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
     { "ldap_user_ssh_public_key", NULL, SYSDB_SSH_PUBKEY, NULL },
+    { "ldap_user_auth_type", NULL, SYSDB_AUTH_TYPE, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
