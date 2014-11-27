@@ -34,6 +34,7 @@
 #include "util/user_info_msg.h"
 #include "util/child_common.h"
 #include "util/find_uid.h"
+#include "src/util/util_errors.h"
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
@@ -2047,8 +2048,10 @@ static int k5c_ccache_setup(struct krb5_req *kr, uint32_t offline)
 
     ret = k5c_check_old_ccache(kr);
     if (ret != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot check old ccache\n");
-        return ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot check old ccache [%s]: [%d][%s]. " \
+                                   "Assuming old cache is invalid " \
+                                   "and not used.\n",
+                                   kr->old_ccname, ret, sss_strerror(ret));
     }
 
     /* Pre-creating the ccache must be done as root, otherwise we can't mkdir
