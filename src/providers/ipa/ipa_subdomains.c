@@ -1174,6 +1174,19 @@ static void ipa_get_view_name_done(struct tevent_req *req)
                 DEBUG(SSSDBG_CRIT_FAILURE, "Cannot copy view name.\n");
             }
         }
+
+        /* TODO: only needed if view changed */
+        ret = sysdb_master_domain_update(ctx->sd_ctx->be_ctx->domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_master_domain_update failed.\n");
+            goto done;
+        }
+
+        ret = sysdb_update_subdomains(ctx->sd_ctx->be_ctx->domain);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
+            goto done;
+        }
     }
 
     ret = ipa_check_master(ctx);

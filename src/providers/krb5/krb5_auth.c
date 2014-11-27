@@ -462,8 +462,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     }
     kr = state->kr;
 
-    ret = sysdb_get_user_attr(state, state->domain, state->pd->user, attrs,
-                              &res);
+    ret = sysdb_get_user_attr_with_views(state, state->domain, state->pd->user,
+                                         attrs, &res);
     if (ret) {
         DEBUG(SSSDBG_FUNC_DATA,
               "sysdb search for upn of user [%s] failed.\n", pd->user);
@@ -503,14 +503,18 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        kr->homedir = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_HOMEDIR,
-                                                  NULL);
+        kr->homedir = sss_view_ldb_msg_find_attr_as_string(state->domain,
+                                                           res->msgs[0],
+                                                           SYSDB_HOMEDIR,
+                                                           NULL);
         if (kr->homedir == NULL) {
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "Home directory for user [%s] not known.\n", pd->user);
         }
 
-        kr->uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
+        kr->uid = sss_view_ldb_msg_find_attr_as_uint64(state->domain,
+                                                       res->msgs[0],
+                                                       SYSDB_UIDNUM, 0);
         if (kr->uid == 0) {
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "UID for user [%s] not known.\n", pd->user);
@@ -518,7 +522,9 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        kr->gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
+        kr->gid = sss_view_ldb_msg_find_attr_as_uint64(state->domain,
+                                                       res->msgs[0],
+                                                       SYSDB_GIDNUM, 0);
         if (kr->gid == 0) {
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "GID for user [%s] not known.\n", pd->user);
