@@ -1110,23 +1110,44 @@ static void ipa_get_view_name_done(struct tevent_req *req)
               "View name changed, this is not supported at runtime. " \
               "Please restart SSSD to get the new view applied.\n");
     } else {
-        ctx->sd_ctx->view_read_at_init = true;
-        /* View name changed */
-        if (ctx->sd_ctx->id_ctx->view_name != NULL) {
-            ret = sysdb_transaction_start(ctx->sd_ctx->be_ctx->domain->sysdb);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_transaction_start failed.\n");
-                goto done;
-            }
+        if (ctx->sd_ctx->id_ctx->view_name == NULL
+            || strcmp(ctx->sd_ctx->id_ctx->view_name, view_name) != 0) {
+            /* View name changed */
 
-            if (strcmp(ctx->sd_ctx->id_ctx->view_name,
-                       SYSDB_DEFAULT_VIEW_NAME) != 0) {
-                /* Old view was not the default view, delete view tree */
-                ret = sysdb_delete_view_tree(ctx->sd_ctx->be_ctx->domain->sysdb,
-                                             ctx->sd_ctx->id_ctx->view_name);
+            if (ctx->sd_ctx->id_ctx->view_name != NULL) {
+                ret = sysdb_transaction_start(
+                                            ctx->sd_ctx->be_ctx->domain->sysdb);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
-                          "sysdb_delete_view_tree failed.\n");
+                          "sysdb_transaction_start failed.\n");
+                    goto done;
+                }
+
+                if (strcmp(ctx->sd_ctx->id_ctx->view_name,
+                           SYSDB_DEFAULT_VIEW_NAME) != 0) {
+                    /* Old view was not the default view, delete view tree */
+                    ret = sysdb_delete_view_tree(
+                                             ctx->sd_ctx->be_ctx->domain->sysdb,
+                                             ctx->sd_ctx->id_ctx->view_name);
+                    if (ret != EOK) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "sysdb_delete_view_tree failed.\n");
+                        sret = sysdb_transaction_cancel(
+                                            ctx->sd_ctx->be_ctx->domain->sysdb);
+                        if (sret != EOK) {
+                            DEBUG(SSSDBG_OP_FAILURE,
+                                  "sysdb_transaction_cancel failed.\n");
+                            goto done;
+                        }
+                        goto done;
+                    }
+                }
+
+                ret = sysdb_invalidate_overrides(
+                                            ctx->sd_ctx->be_ctx->domain->sysdb);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_invalidate_overrides failed.\n");
                     sret = sysdb_transaction_cancel(
                                             ctx->sd_ctx->be_ctx->domain->sysdb);
                     if (sret != EOK) {
@@ -1136,57 +1157,52 @@ static void ipa_get_view_name_done(struct tevent_req *req)
                     }
                     goto done;
                 }
-            }
 
-            ret = sysdb_invalidate_overrides(
+                ret = sysdb_transaction_commit(
                                             ctx->sd_ctx->be_ctx->domain->sysdb);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "sysdb_invalidate_overrides failed.\n");
-                sret = sysdb_transaction_cancel(
-                                            ctx->sd_ctx->be_ctx->domain->sysdb);
-                if (sret != EOK) {
-                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_transaction_cancel failed.\n");
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                                          "sysdb_transaction_commit failed.\n");
                     goto done;
                 }
-                goto done;
+
+                /* TODO: start referesh task */
             }
 
-            ret = sysdb_transaction_commit(ctx->sd_ctx->be_ctx->domain->sysdb);
+            ret = sysdb_update_view_name(ctx->sd_ctx->be_ctx->domain->sysdb,
+                                         view_name);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_transaction_commit failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Cannot add/update view name to sysdb.\n");
+            } else {
+                talloc_free(ctx->sd_ctx->id_ctx->view_name);
+                ctx->sd_ctx->id_ctx->view_name = talloc_strdup(
+                                                            ctx->sd_ctx->id_ctx,
+                                                            view_name);
+                if (ctx->sd_ctx->id_ctx->view_name == NULL) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "Cannot copy view name.\n");
+                }
+            }
+        }
+
+        if (!ctx->sd_ctx->view_read_at_init) {
+            /* refresh view data of all domains at startup */
+            ret = sysdb_master_domain_update(ctx->sd_ctx->be_ctx->domain);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_master_domain_update failed.\n");
                 goto done;
             }
 
-            /* TODO: start referesh task */
-        }
-
-        ret = sysdb_update_view_name(ctx->sd_ctx->be_ctx->domain->sysdb,
-                                     view_name);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Cannot add/update view name to sysdb.\n");
-        } else {
-            talloc_free(ctx->sd_ctx->id_ctx->view_name);
-            ctx->sd_ctx->id_ctx->view_name = talloc_strdup(ctx->sd_ctx->id_ctx,
-                                                           view_name);
-            if (ctx->sd_ctx->id_ctx->view_name == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Cannot copy view name.\n");
+            ret = sysdb_update_subdomains(ctx->sd_ctx->be_ctx->domain);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
+                goto done;
             }
         }
 
-        /* TODO: only needed if view changed */
-        ret = sysdb_master_domain_update(ctx->sd_ctx->be_ctx->domain);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_master_domain_update failed.\n");
-            goto done;
-        }
+        ctx->sd_ctx->view_read_at_init = true;
 
-        ret = sysdb_update_subdomains(ctx->sd_ctx->be_ctx->domain);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_update_subdomains failed.\n");
-            goto done;
-        }
     }
 
     ret = ipa_check_master(ctx);
