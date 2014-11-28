@@ -1680,8 +1680,11 @@ static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
     mcred.client = client_principal;
 
     krberr = krb5_cc_retrieve_cred(ctx, ccache, 0, &mcred, &cred);
-    if (krberr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_retrieve_cred failed.\n");
+    if (krberr == KRB5_FCC_NOFILE) {
+        DEBUG(SSSDBG_TRACE_LIBS, "FAST ccache must be recreated\n");
+    } else if (krberr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_retrieve_cred failed\n");
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, krberr);
         krberr = 0;
         goto done;
     }
