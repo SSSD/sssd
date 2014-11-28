@@ -278,6 +278,14 @@ static errno_t fork_child(struct tevent_req *req)
     errno_t err;
     struct handle_child_state *state = tevent_req_data(req,
                                                      struct handle_child_state);
+    const char *k5c_extra_args[3];
+
+    k5c_extra_args[0] = talloc_asprintf(state, "--fast-ccache-uid=%"SPRIuid, getuid());
+    k5c_extra_args[1] = talloc_asprintf(state, "--fast-ccache-gid=%"SPRIgid, getgid());
+    k5c_extra_args[2] = NULL;
+    if (k5c_extra_args[0] == NULL || k5c_extra_args[1] == NULL) {
+        return ENOMEM;
+    }
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
@@ -300,7 +308,7 @@ static errno_t fork_child(struct tevent_req *req)
         err = exec_child(state,
                          pipefd_to_child, pipefd_from_child,
                          KRB5_CHILD, state->kr->krb5_ctx->child_debug_fd,
-                         NULL);
+                         k5c_extra_args);
         if (err != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec KRB5 child: [%d][%s].\n",
                       err, strerror(err));

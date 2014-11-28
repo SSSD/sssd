@@ -74,6 +74,9 @@ struct krb5_req {
     bool old_cc_valid;
     bool old_cc_active;
     enum k5c_fast_opt fast_val;
+
+    uid_t fast_uid;
+    gid_t fast_gid;
 };
 
 static krb5_context krb5_error_ctx;
@@ -1009,17 +1012,6 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         DEBUG(SSSDBG_CONF_SETTINGS, "TGT validation is disabled.\n");
     }
 
-    if (kr->validate || kr->fast_ccname != NULL) {
-        /* We drop root privileges which were needed to read the keytab file
-         * for the validation of the credentials or for FAST here to run the
-         * ccache I/O operations with user privileges. */
-        kerr = become_user(kr->uid, kr->gid);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
-            return kerr;
-        }
-    }
-
     /* If kr->ccname is cache collection (DIR:/...), we want to work
      * directly with file ccache (DIR::/...), but cache collection
      * should be returned back to back end.
@@ -1440,17 +1432,6 @@ static errno_t renew_tgt_child(struct krb5_req *kr)
         DEBUG(SSSDBG_CONF_SETTINGS, "TGT validation is disabled.\n");
     }
 
-    if (kr->validate || kr->fast_ccname != NULL) {
-        /* We drop root privileges which were needed to read the keytab file
-         * for the validation of the credentials or for FAST here to run the
-         * ccache I/O operations with user privileges. */
-        kerr = become_user(kr->uid, kr->gid);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
-            goto done;
-        }
-    }
-
     kerr = krb5_cc_initialize(kr->ctx, ccache, kr->princ);
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
@@ -1724,6 +1705,8 @@ done:
 
 static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
                                          krb5_context ctx,
+                                         uid_t fast_uid,
+                                         gid_t fast_gid,
                                          const char *primary,
                                          const char *realm,
                                          const char *keytab_name,
@@ -1737,6 +1720,8 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
     krb5_keytab keytab = NULL;
     krb5_principal client_princ = NULL;
     krb5_principal server_princ = NULL;
+    pid_t fchild_pid;
+    int status;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1794,10 +1779,79 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
         }
     }
 
-    kerr = get_and_save_tgt_with_keytab(ctx, client_princ, keytab, ccname);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "get_and_save_tgt_with_keytab failed.\n");
-        goto done;
+    /* Need to recreate the FAST ccache */
+    fchild_pid = fork();
+    switch (fchild_pid) {
+        case -1:
+            DEBUG(SSSDBG_CRIT_FAILURE, "fork failed\n");
+            kerr = EIO;
+            goto done;
+        case 0:
+            /* Child */
+            debug_prg_name = talloc_asprintf(NULL, "[sssd[krb5_child[%d]]]", getpid());
+            if (debug_prg_name == NULL) {
+                debug_prg_name = "[sssd[krb5_child]]";
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
+                /* Try to carry on */
+            }
+
+            kerr = become_user(fast_uid, fast_gid);
+            if (kerr != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed: %d\n", kerr);
+                exit(1);
+            }
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+
+            kerr = get_and_save_tgt_with_keytab(ctx, client_princ,
+                                                keytab, ccname);
+            if (kerr != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "get_and_save_tgt_with_keytab failed: %d\n", kerr);
+                exit(2);
+            }
+            exit(0);
+        default:
+            /* Parent */
+            do {
+                errno = 0;
+                kerr = waitpid(fchild_pid, &status, 0);
+            } while (kerr == -1 && errno == EINTR);
+
+            if (kerr > 0) {
+                kerr = EIO;
+                if (WIFEXITED(status)) {
+                    kerr = WEXITSTATUS(status);
+                    /* Don't blindly fail if the child fails, but check
+                     * the ccache again */
+                    if (kerr != 0) {
+                        DEBUG(SSSDBG_MINOR_FAILURE,
+                              "Creating FAST ccache failed, krb5_child will "
+                              "likely fail!\n");
+                    }
+                } else {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "krb5_child subprocess %d terminated unexpectedly\n",
+                          fchild_pid);
+                }
+            } else {
+                DEBUG(SSSDBG_FUNC_DATA,
+                    "Failed to wait for children %d\n", fchild_pid);
+                kerr = EIO;
+            }
+    }
+
+    /* Check the ccache times again. Should be updated ... */
+    memset(&tgtt, 0, sizeof(tgtt));
+    kerr = get_tgt_times(ctx, ccname, server_princ, client_princ, &tgtt);
+    if (kerr == 0) {
+        if (tgtt.endtime > time(NULL)) {
+            DEBUG(SSSDBG_FUNC_DATA, "FAST TGT was successfully recreated!\n");
+            goto done;
+        } else {
+            kerr = ERR_CREDS_EXPIRED;
+            goto done;
+        }
     }
 
     kerr = 0;
@@ -1889,7 +1943,8 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
         fast_principal = NULL;
     }
 
-    kerr = check_fast_ccache(kr, kr->ctx, fast_principal, fast_principal_realm,
+    kerr = check_fast_ccache(kr, kr->ctx, kr->fast_uid, kr->fast_gid,
+                             fast_principal, fast_principal_realm,
                              kr->keytab, &kr->fast_ccname);
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "check_fast_ccache failed.\n");
@@ -2253,6 +2308,8 @@ int main(int argc, const char *argv[])
     int debug_fd = -1;
     errno_t ret;
     krb5_error_code kerr;
+    uid_t fast_uid;
+    gid_t fast_gid;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -2267,6 +2324,10 @@ int main(int argc, const char *argv[])
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
          &debug_to_stderr, 0,
          _("Send the debug output to stderr directly."), NULL },
+        {"fast-ccache-uid", 0, POPT_ARG_INT, &fast_uid, 0,
+          _("The user to create FAST ccache as"), NULL},
+        {"fast-ccache-gid", 0, POPT_ARG_INT, &fast_gid, 0,
+          _("The group to create FAST ccache as"), NULL},
         POPT_TABLEEND
     };
 
@@ -2312,6 +2373,9 @@ int main(int argc, const char *argv[])
         goto done;
     }
     talloc_steal(kr, debug_prg_name);
+
+    kr->fast_uid = fast_uid;
+    kr->fast_gid = fast_gid;
 
     ret = k5c_recv_data(kr, STDIN_FILENO, &offline);
     if (ret != EOK) {
