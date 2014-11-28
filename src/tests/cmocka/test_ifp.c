@@ -209,6 +209,8 @@ void test_el_to_dict(void **state)
     dbus_message_iter_get_basic(&iter_dict, &attr_val);
     assert_string_equal(attr_val, "two");
     assert_false(dbus_message_iter_next(&iter_dict));
+
+    talloc_free(sr);
 }
 
 static void assert_string_list_equal(const char **s1,
@@ -500,7 +502,8 @@ int main(int argc, const char *argv[])
         unit_test(ifp_test_req_create),
         unit_test(ifp_test_req_wrong_uid),
         unit_test(test_path_prefix),
-        unit_test(test_el_to_dict),
+        unit_test_setup_teardown(test_el_to_dict,
+                                 ifp_test_req_setup, ifp_test_req_teardown),
         unit_test(test_attr_acl),
         unit_test(test_attr_acl_ex),
         unit_test(test_attr_allowed),

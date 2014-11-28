@@ -130,10 +130,14 @@ leak_check_setup(void)
 bool
 leak_check_teardown(void)
 {
+    bool res;
     check_leaks_pop(global_talloc_context);
     if (snapshot_stack != NULL) {
         _set_leak_err_msg("Exiting with a non-empty stack");
         return false;
     }
-    return check_leaks(global_talloc_context, 0);
+    res = check_leaks(global_talloc_context, 0);
+    talloc_disable_null_tracking();
+    talloc_free(global_talloc_context);
+    return res;
 }
