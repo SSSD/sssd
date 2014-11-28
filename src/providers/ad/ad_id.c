@@ -155,6 +155,10 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     }
     talloc_zfree(subreq);
     if (ret != EOK) {
+        /* if GC was not used dp error should be set */
+        state->dp_error = dp_error;
+        state->err = err;
+
         tevent_req_error(req, ret);
         return;
     }
