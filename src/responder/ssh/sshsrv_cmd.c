@@ -536,7 +536,7 @@ static errno_t
 ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
 {
     TALLOC_CTX *tmp_ctx;
-    errno_t ret;
+    errno_t ret, tmp_ret;
     const char *attrs[] = {
         SYSDB_NAME,
         SYSDB_NAME_ALIAS,
@@ -654,7 +654,17 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
 
 done:
     if (fd != -1) close(fd);
-    if (ret != EOK && filename) unlink(filename);
+    if (ret != EOK && filename) {
+        tmp_ret = unlink(filename);
+        /* non-fatal failure */
+        if (tmp_ret != EOK) {
+            tmp_ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to remove file: %s - %d : [%s]!\n",
+                  filename, tmp_ret, sss_strerror(tmp_ret));
+        }
+    }
+
     talloc_free(tmp_ctx);
 
     return ret;

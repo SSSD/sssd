@@ -194,8 +194,14 @@ int pidfile(const char *path, const char *name)
 
         /* nothing in the file or no process */
         close(fd);
-        unlink(file);
-
+        ret = unlink(file);
+        /* non-fatal failure */
+        if (ret != EOK) {
+            ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to remove file: %s - %d [%s]!\n",
+                  file, ret, sss_strerror(ret));
+        }
     } else {
         if (err != ENOENT) {
             talloc_free(file);

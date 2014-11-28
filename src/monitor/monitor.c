@@ -1685,7 +1685,14 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
          * misconfiguration gets in the way
          */
         talloc_zfree(ctx->cdb);
-        unlink(cdb_file);
+        ret = unlink(cdb_file);
+        if (ret != EOK && errno != ENOENT) {
+            ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Purging existing confdb failed: %d [%s].\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
 
         ret = confdb_init(ctx, &ctx->cdb, cdb_file);
         if (ret != EOK) {

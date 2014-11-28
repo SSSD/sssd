@@ -192,7 +192,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     DBusError dbus_error;
     dbus_bool_t dbret;
     char *tmp;
-    int ret;
+    int ret, tmp_ret;
     char *filename;
     char *symlink_filename = NULL;
     const char *socket_address;
@@ -343,9 +343,17 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
 
     *_server = talloc_steal(mem_ctx, server);
     ret = EOK;
+
 done:
     if (ret != EOK && symlink_filename) {
-        unlink(symlink_filename);
+        tmp_ret = unlink(symlink_filename);
+        /* non-fatal failure */
+        if (tmp_ret != EOK) {
+            tmp_ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to remove symbolic link: %d [%s]!\n",
+                  tmp_ret, sss_strerror(tmp_ret));
+        }
     }
     talloc_free(tmp_ctx);
     return ret;
