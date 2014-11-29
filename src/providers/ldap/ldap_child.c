@@ -581,7 +581,7 @@ int main(int argc, const char *argv[])
     time_t expire_time = 0;
     struct input_buffer *ibuf = NULL;
     struct response *resp = NULL;
-    size_t written;
+    ssize_t written;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP

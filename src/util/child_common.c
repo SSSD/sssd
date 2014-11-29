@@ -319,7 +319,7 @@ struct write_pipe_state {
     int fd;
     uint8_t *buf;
     size_t len;
-    size_t written;
+    ssize_t written;
 };
 
 static void write_pipe_handler(struct tevent_context *ev,
@@ -384,7 +384,7 @@ static void write_pipe_handler(struct tevent_context *ev,
     }
 
     if (state->len != state->written) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Wrote %zu bytes, expected %zu\n",
+        DEBUG(SSSDBG_CRIT_FAILURE, "Wrote %zd bytes, expected %zu\n",
               state->written, state->len);
         tevent_req_error(req, EIO);
         return;

@@ -663,7 +663,7 @@ main(int argc, const char *argv[])
     ssize_t len = 0;
     struct input_buffer *ibuf = NULL;
     struct response *resp = NULL;
-    size_t written;
+    ssize_t written;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP

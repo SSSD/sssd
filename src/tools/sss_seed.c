@@ -62,7 +62,7 @@ struct seed_ctx {
 
 static int seed_prompt(const char *req)
 {
-    size_t len = 0;
+    ssize_t len = 0;
     size_t i = 0;
     char *prompt = NULL;
     int ret = EOK;

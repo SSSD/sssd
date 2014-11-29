@@ -708,7 +708,7 @@ static errno_t k5c_attach_ccname_msg(struct krb5_req *kr)
 
 static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error)
 {
-    size_t written;
+    ssize_t written;
     uint8_t *buf;
     size_t len;
     int ret;

@@ -37,8 +37,7 @@ static errno_t sss_mc_set_recycled(int fd)
     struct sss_mc_header h;
     off_t offset;
     off_t pos;
-    int ret;
-
+    ssize_t written;
 
     offset = MC_PTR_DIFF(&h.status, &h);
 
@@ -49,12 +48,12 @@ static errno_t sss_mc_set_recycled(int fd)
     }
 
     errno = 0;
-    ret = sss_atomic_write_s(fd, (uint8_t *)&w, sizeof(h.status));
-    if (ret == -1) {
+    written = sss_atomic_write_s(fd, (uint8_t *)&w, sizeof(h.status));
+    if (written == -1) {
         return errno;
     }
 
-    if (ret != sizeof(h.status)) {
+    if (written != sizeof(h.status)) {
         /* Write error */
         return EIO;
     }
