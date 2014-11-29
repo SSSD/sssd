@@ -46,6 +46,13 @@ struct sss_child_ctx {
     struct sss_sigchild_ctx *sigchld_ctx;
 };
 
+static void sss_child_handler(struct tevent_context *ev,
+                              struct tevent_signal *se,
+                              int signum,
+                              int count,
+                              void *siginfo,
+                              void *private_data);
+
 errno_t sss_sigchld_init(TALLOC_CTX *mem_ctx,
                          struct tevent_context *ev,
                          struct sss_sigchild_ctx **child_ctx)
@@ -177,12 +184,12 @@ static void sss_child_invoke_cb(struct tevent_context *ev,
     talloc_free(imm);
 }
 
-void sss_child_handler(struct tevent_context *ev,
-                       struct tevent_signal *se,
-                       int signum,
-                       int count,
-                       void *siginfo,
-                       void *private_data)
+static void sss_child_handler(struct tevent_context *ev,
+                              struct tevent_signal *se,
+                              int signum,
+                              int count,
+                              void *siginfo,
+                              void *private_data)
 {
     struct sss_sigchild_ctx *sigchld_ctx;
     struct tevent_immediate *imm;
@@ -261,6 +268,10 @@ struct sss_child_ctx_old {
     sss_child_callback_t cb;
     void *pvt;
 };
+
+static void child_sig_handler(struct tevent_context *ev,
+                              struct tevent_signal *sige, int signum,
+                              int count, void *__siginfo, void *pvt);
 
 int child_handler_setup(struct tevent_context *ev, int pid,
                         sss_child_callback_t cb, void *pvt,
@@ -533,9 +544,9 @@ void fd_nonblocking(int fd)
 static void child_invoke_callback(struct tevent_context *ev,
                                   struct tevent_immediate *imm,
                                   void *pvt);
-void child_sig_handler(struct tevent_context *ev,
-                       struct tevent_signal *sige, int signum,
-                       int count, void *__siginfo, void *pvt)
+static void child_sig_handler(struct tevent_context *ev,
+                              struct tevent_signal *sige, int signum,
+                              int count, void *__siginfo, void *pvt)
 {
     int ret, err;
     struct sss_child_ctx_old *child_ctx;

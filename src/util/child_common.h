@@ -68,13 +68,6 @@ errno_t sss_child_register(TALLOC_CTX *mem_ctx,
                            void *pvt,
                            struct sss_child_ctx **child_ctx);
 
-void sss_child_handler(struct tevent_context *ev,
-                       struct tevent_signal *se,
-                       int signum,
-                       int count,
-                       void *siginfo,
-                       void *private_data);
-
 /* Callback to be invoked when a sigchld handler is called.
  * The tevent_signal * associated with the handler will be
  * freed automatically when this function returns.
@@ -106,10 +99,6 @@ int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 
 /* The pipes to communicate with the child must be nonblocking */
 void fd_nonblocking(int fd);
-
-void child_sig_handler(struct tevent_context *ev,
-                       struct tevent_signal *sige, int signum,
-                       int count, void *__siginfo, void *pvt);
 
 /* Never returns EOK, ether returns an error, or doesn't return on success */
 errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
