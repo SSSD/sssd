@@ -27,8 +27,6 @@
 #include <sys/stat.h>
 #include <popt.h>
 
-#include <security/pam_modules.h>
-
 #include "util/util.h"
 #include "util/sss_krb5.h"
 #include "util/child_common.h"
