@@ -89,7 +89,49 @@ void test_exec_child(void **state)
         ret = exec_child(child_tctx,
                          child_tctx->pipefd_to_child,
                          child_tctx->pipefd_from_child,
-                         CHILD_DIR"/"TEST_BIN, 2);
+                         CHILD_DIR"/"TEST_BIN, 2, NULL);
+        assert_int_equal(ret, EOK);
+    } else {
+            do {
+                errno = 0;
+                ret = waitpid(child_pid, &status, 0);
+            } while (ret == -1 && errno == EINTR);
+
+            if (ret > 0) {
+                ret = EIO;
+                if (WIFEXITED(status)) {
+                    ret = WEXITSTATUS(status);
+                    assert_int_equal(ret, 0);
+                }
+            } else {
+                DEBUG(SSSDBG_FUNC_DATA,
+                    "Failed to wait for children %d\n", child_pid);
+                ret = EIO;
+            }
+    }
+}
+
+/* Just make sure the exec works. The child does nothing but exits */
+void test_exec_child_extra_args(void **state)
+{
+    errno_t ret;
+    pid_t child_pid;
+    int status;
+    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+                                                        struct child_test_ctx);
+    const char *extra_args[] = { "--guitar=george",
+                                 "--drums=ringo",
+                                 NULL };
+
+    setenv("TEST_CHILD_ACTION", "check_extra_args", 1);
+
+    child_pid = fork();
+    assert_int_not_equal(child_pid, -1);
+    if (child_pid == 0) {
+        ret = exec_child(child_tctx,
+                         child_tctx->pipefd_to_child,
+                         child_tctx->pipefd_from_child,
+                         CHILD_DIR"/"TEST_BIN, 2, extra_args);
         assert_int_equal(ret, EOK);
     } else {
             do {
@@ -124,6 +166,9 @@ int main(int argc, const char *argv[])
 
     const UnitTest tests[] = {
         unit_test_setup_teardown(test_exec_child,
+                                 child_test_setup,
+                                 child_test_teardown),
+        unit_test_setup_teardown(test_exec_child_extra_args,
                                  child_test_setup,
                                  child_test_teardown),
     };

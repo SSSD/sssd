@@ -35,13 +35,9 @@ int main(int argc, const char *argv[])
     int opt;
     int debug_fd = -1;
     poptContext pc;
-    const char *action;
-    ssize_t len = 0;
-    ssize_t written;
-    errno_t ret;
-    uint8_t *buf[IN_BUF_SIZE];
-    uid_t uid;
-    gid_t gid;
+    const char *action = NULL;
+    const char *guitar;
+    const char *drums;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -54,8 +50,9 @@ int main(int argc, const char *argv[])
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          _("An open file descriptor for the debug logs"), NULL},
         {"debug-to-stderr", 0, POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN, &debug_to_stderr, 0, \
-         _("Send the debug output to stderr directly."), NULL }, \
-        SSSD_SERVER_OPTS(uid, gid)
+         _("Send the debug output to stderr directly."), NULL },
+        {"guitar", 0, POPT_ARG_STRING, &guitar, 0, _("Who plays guitar"), NULL },
+        {"drums", 0, POPT_ARG_STRING, &drums, 0, _("Who plays drums"), NULL },
         POPT_TABLEEND
     };
 
@@ -73,11 +70,17 @@ int main(int argc, const char *argv[])
         }
     }
 
+    action = getenv("TEST_CHILD_ACTION");
+    if (action) {
+        if (strcasecmp(action, "check_extra_args") == 0) {
+            if (!(strcmp(guitar, "george") == 0 \
+                        && strcmp(drums, "ringo") == 0)) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "This band sounds weird\n");
+                _exit(1);
+            }
+        }
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "test_child completed successfully\n");
     _exit(0);
-
-fail:
-    DEBUG(SSSDBG_TRACE_FUNC, "test_child completed successfully\n");
-    close(STDOUT_FILENO);
-    _exit(-1);
 }

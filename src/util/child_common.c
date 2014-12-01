@@ -623,6 +623,7 @@ static void child_invoke_callback(struct tevent_context *ev,
 static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
                                   int child_debug_fd,
                                   const char *binary,
+                                  const char *extra_argv[],
                                   char ***_argv)
 {
     /*
@@ -632,6 +633,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     uint_t argc = 5;
     char ** argv;
     errno_t ret = EINVAL;
+    size_t i;
 
     /* Save the current state in case an interrupt changes it */
     bool child_debug_to_file = debug_to_file;
@@ -641,6 +643,10 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
 
     if (child_debug_to_file) argc++;
     if (child_debug_stderr) argc++;
+
+    if (extra_argv) {
+        for (i = 0; extra_argv[i]; i++) argc++;
+    }
 
     /*
      * program name, debug_level, debug_to_file, debug_timestamps,
@@ -653,6 +659,17 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     }
 
     argv[--argc] = NULL;
+
+    /* Add extra_attrs first */
+    if (extra_argv) {
+        for (i = 0; extra_argv[i]; i++) {
+            argv[--argc] = talloc_strdup(argv, extra_argv[i]);
+            if (argv[argc] == NULL) {
+                ret = ENOMEM;
+                goto fail;
+            }
+        }
+    }
 
     argv[--argc] = talloc_asprintf(argv, "--debug-level=%#.4x",
                               debug_level);
@@ -714,7 +731,8 @@ fail:
 
 errno_t exec_child(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, int debug_fd)
+                   const char *binary, int debug_fd,
+                   const char *extra_argv[])
 {
     int ret;
     errno_t err;
@@ -739,7 +757,8 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
     }
 
     ret = prepare_child_argv(mem_ctx, debug_fd,
-                             binary, &argv);
+                             binary, extra_argv,
+                             &argv);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "prepare_child_argv.\n");
         return ret;
