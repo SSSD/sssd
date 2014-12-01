@@ -2581,6 +2581,7 @@ krb5_child_LDADD = \
 
 ldap_child_SOURCES = \
     src/providers/ldap/ldap_child.c \
+    src/providers/krb5/krb5_keytab.c \
     src/util/sss_krb5.c \
     src/util/atomic_io.c \
     src/util/authtok.c \

@@ -33,6 +33,7 @@
 #include "util/sss_krb5.h"
 #include "util/child_common.h"
 #include "providers/dp_backend.h"
+#include "providers/krb5/krb5_common.h"
 
 static krb5_context krb5_error_ctx;
 #define LDAP_CHILD_DEBUG(level, error) KRB5_DEBUG(level, krb5_error_ctx, error)
@@ -47,8 +48,9 @@ static const char *__ldap_child_krb5_error_msg;
 struct input_buffer {
     const char *realm_str;
     const char *princ_str;
-    const char *keytab_name;
+    char *keytab_name;
     krb5_deltat lifetime;
+    krb5_context context;
     uid_t uid;
     gid_t gid;
 };
@@ -246,12 +248,11 @@ static int lc_verify_keytab_ex(const char *principal,
 }
 
 static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
+                                               krb5_context context,
                                                const char *realm_str,
                                                const char *princ_str,
                                                const char *keytab_name,
                                                const krb5_deltat lifetime,
-                                               uid_t uid,
-                                               gid_t gid,
                                                const char **ccname_out,
                                                time_t *expire_time_out)
 {
@@ -262,7 +263,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     char *full_princ = NULL;
     char *default_realm = NULL;
     char *tmp_str = NULL;
-    krb5_context context = NULL;
     krb5_keytab keytab = NULL;
     krb5_ccache ccache = NULL;
     krb5_principal kprinc;
@@ -277,13 +277,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     char *ccname_file_dummy;
     char *ccname_file;
     mode_t old_umask;
-
-    krberr = krb5_init_context(&context);
-    if (krberr) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to init kerberos context\n");
-        return krberr;
-    }
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
 
     tmp_ctx = talloc_new(memctx);
     if (tmp_ctx == NULL) {
@@ -440,12 +433,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "credentials initialized\n");
 
-    krberr = become_user(uid, gid);
-    if (krberr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
-        goto done;
-    }
-
     ccname_dummy = talloc_asprintf(tmp_ctx, "FILE:%s", ccname_file_dummy);
     ccname = talloc_asprintf(tmp_ctx, "FILE:%s", ccname_file);
     if (ccname_dummy == NULL || ccname == NULL) {
@@ -558,6 +545,30 @@ static int prepare_response(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static krb5_error_code privileged_krb5_setup(struct input_buffer *ibuf)
+{
+    krb5_error_code kerr;
+    char *keytab_name;
+
+    kerr = krb5_init_context(&ibuf->context);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to init kerberos context\n");
+        return kerr;
+    }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
+
+    kerr = copy_keytab_into_memory(ibuf, ibuf->context, ibuf->keytab_name,
+                                   &keytab_name, NULL);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "copy_keytab_into_memory failed.\n");
+        return kerr;
+    }
+    talloc_free(ibuf->keytab_name);
+    ibuf->keytab_name = keytab_name;
+
+    return 0;
+}
+
 int main(int argc, const char *argv[])
 {
     int ret;
@@ -662,11 +673,26 @@ int main(int argc, const char *argv[])
         goto fail;
     }
 
+    kerr = privileged_krb5_setup(ibuf);
+    if (kerr != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Privileged Krb5 setup failed.\n");
+        goto fail;
+    }
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Kerberos context initialized\n");
+
+    kerr = become_user(ibuf->uid, ibuf->gid);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
+        goto fail;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+
     DEBUG(SSSDBG_TRACE_INTERNAL, "getting TGT sync\n");
-    kerr = ldap_child_get_tgt_sync(main_ctx,
+    kerr = ldap_child_get_tgt_sync(main_ctx, ibuf->context,
                                    ibuf->realm_str, ibuf->princ_str,
                                    ibuf->keytab_name, ibuf->lifetime,
-                                   ibuf->uid, ibuf->gid,
                                    &ccname, &expire_time);
     if (kerr != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_child_get_tgt_sync failed.\n");
