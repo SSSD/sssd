@@ -370,6 +370,7 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
     int i, num;
     const char *name;
     const char **groupnames;
+    const char *tmpstr;
 
     /* one less, the first one is the user entry */
     num = res->count - 1;
@@ -388,15 +389,24 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
         }
 
         if (ireq->ifp_ctx->rctx->override_space != '\0') {
-            groupnames[i] = sss_replace_space(groupnames, name,
-                                          ireq->ifp_ctx->rctx->override_space);
-            if (groupnames[i] == NULL) {
+            tmpstr = sss_replace_space(ireq, name,
+                                       ireq->ifp_ctx->rctx->override_space);
+            if (tmpstr == NULL) {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Cannot normalize %s\n", name);
                 continue;
             }
         } else {
-            groupnames[i] = name;
+            tmpstr = name;
         }
+
+        groupnames[i] = sss_get_cased_name(groupnames, tmpstr,
+                                           domain->case_preserve);
+        if (groupnames[i] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sss_get_cased_name failed, skipping\n");
+            continue;
+        }
+
         DEBUG(SSSDBG_TRACE_FUNC, "Adding group %s\n", groupnames[i]);
     }
 
