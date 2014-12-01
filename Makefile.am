@@ -2548,6 +2548,7 @@ libsss_ad_la_LDFLAGS = \
 krb5_child_SOURCES = \
     src/providers/krb5/krb5_child.c \
     src/providers/krb5/krb5_ccache.c \
+    src/providers/krb5/krb5_keytab.c \
     src/providers/dp_pam_data_util.c \
     src/util/user_info_msg.c \
     src/util/sss_krb5.c \

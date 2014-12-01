@@ -42,6 +42,12 @@
 
 #define SSSD_KRB5_CHANGEPW_PRINCIPAL "kadmin/changepw"
 
+enum k5c_fast_opt {
+    K5C_FAST_NEVER,
+    K5C_FAST_TRY,
+    K5C_FAST_DEMAND,
+};
+
 struct krb5_req {
     krb5_context ctx;
     krb5_principal princ;
@@ -67,6 +73,7 @@ struct krb5_req {
     char *old_ccname;
     bool old_cc_valid;
     bool old_cc_active;
+    enum k5c_fast_opt fast_val;
 };
 
 static krb5_context krb5_error_ctx;
@@ -1847,6 +1854,7 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
     char *fast_principal;
     krb5_error_code kerr;
     char *tmp_str;
+    char *new_ccname;
 
     tmp_str = getenv(SSSD_KRB5_FAST_PRINCIPAL);
     if (tmp_str) {
@@ -1889,6 +1897,15 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
         return kerr;
     }
 
+    kerr = copy_ccache_into_memory(kr, kr->ctx, kr->fast_ccname, &new_ccname);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "copy_ccache_into_memory failed.\n");
+        return kerr;
+    }
+
+    talloc_free(kr->fast_ccname);
+    kr->fast_ccname = new_ccname;
+
     kerr = sss_krb5_get_init_creds_opt_set_fast_ccache_name(kr->ctx,
                                                             kr->options,
                                                             kr->fast_ccname);
@@ -1915,12 +1932,6 @@ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
 
     return EOK;
 }
-
-enum k5c_fast_opt {
-    K5C_FAST_NEVER,
-    K5C_FAST_TRY,
-    K5C_FAST_DEMAND,
-};
 
 static errno_t check_use_fast(enum k5c_fast_opt *_fast_val)
 {
@@ -2072,19 +2083,8 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 {
     krb5_error_code kerr;
     int parse_flags;
-    enum k5c_fast_opt fast_val;
 
-    kerr = check_use_fast(&fast_val);
-    if (kerr != EOK) {
-        return kerr;
-    }
-
-    kerr = k5c_ccache_setup(kr, offline);
-    if (kerr != EOK) {
-        return kerr;
-    }
-
-    if (offline || (fast_val == K5C_FAST_NEVER && kr->validate == false)) {
+    if (offline || (kr->fast_val == K5C_FAST_NEVER && kr->validate == false)) {
         /* If krb5_child was started as setuid, but we don't need to
          * perform either validation or FAST, just drop privileges to
          * the user who is logging in. The same applies to the offline case
@@ -2103,12 +2103,6 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     if (kr->realm == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot read [%s] from environment.\n", SSSD_KRB5_REALM);
-    }
-
-    kerr = krb5_init_context(&kr->ctx);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        return kerr;
     }
 
     /* Set the global error context */
@@ -2153,12 +2147,6 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
         return ENOMEM;
     }
 
-    kerr = sss_krb5_get_init_creds_opt_alloc(kr->ctx, &kr->options);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        return kerr;
-    }
-
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_RESPONDER
     kerr = krb5_get_init_creds_opt_set_responder(kr->ctx, kr->options,
                                                  sss_krb5_responder, kr);
@@ -2183,14 +2171,6 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
 
     if (!offline) {
         set_canonicalize_option(kr->options);
-
-        if (fast_val != K5C_FAST_NEVER) {
-            kerr = k5c_setup_fast(kr, fast_val == K5C_FAST_DEMAND);
-            if (kerr != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "Cannot set up FAST\n");
-                return kerr;
-            }
-        }
     }
 
 /* TODO: set options, e.g.
@@ -2207,6 +2187,63 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
     return kerr;
 }
 
+static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
+                                             uint32_t offline)
+{
+    krb5_error_code kerr;
+    int ret;
+    char *mem_keytab;
+
+    kerr = krb5_init_context(&kr->ctx);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        return kerr;
+    }
+
+    kerr = sss_krb5_get_init_creds_opt_alloc(kr->ctx, &kr->options);
+    if (kerr != 0) {
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+        return kerr;
+    }
+
+    ret = check_use_fast(&kr->fast_val);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "check_use_fast failed.\n");
+        return ret;;
+    }
+
+    /* For ccache types FILE: and DIR: we might need to create some directory
+     * components as root */
+    ret = k5c_ccache_setup(kr, offline);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_ccache_setup failed.\n");
+        return ret;
+    }
+
+    if (!(offline ||
+            (kr->fast_val == K5C_FAST_NEVER && kr->validate == false))) {
+        kerr = copy_keytab_into_memory(kr, kr->ctx, kr->keytab, &mem_keytab,
+                                       NULL);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "copy_keytab_into_memory failed.\n");
+            return kerr;
+        }
+
+        talloc_free(kr->keytab);
+        kr->keytab = mem_keytab;
+
+        if (kr->fast_val != K5C_FAST_NEVER) {
+            kerr = k5c_setup_fast(kr, kr->fast_val == K5C_FAST_DEMAND);
+            if (kerr != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Cannot set up FAST\n");
+                return kerr;
+            }
+        }
+    }
+
+    return 0;
+}
+
 int main(int argc, const char *argv[])
 {
     struct krb5_req *kr = NULL;
@@ -2215,6 +2252,7 @@ int main(int argc, const char *argv[])
     poptContext pc;
     int debug_fd = -1;
     errno_t ret;
+    krb5_error_code kerr;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -2281,6 +2319,23 @@ int main(int argc, const char *argv[])
     }
 
     close(STDIN_FILENO);
+
+    kerr = privileged_krb5_setup(kr, offline);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "privileged_krb5_setup failed.\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    kerr = become_user(kr->uid, kr->gid);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
 
     ret = k5c_setup(kr, offline);
     if (ret != EOK) {
