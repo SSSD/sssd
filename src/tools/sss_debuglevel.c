@@ -242,7 +242,8 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
         CONFDB_PAC_CONF_ENTRY,
         CONFDB_SSH_CONF_ENTRY,
         CONFDB_SUDO_CONF_ENTRY,
-        CONFDB_AUTOFS_CONF_ENTRY
+        CONFDB_AUTOFS_CONF_ENTRY,
+        CONFDB_IFP_CONF_ENTRY,
     };
     static const int known_services_count = sizeof(known_services)
                                             / sizeof(*known_services);
