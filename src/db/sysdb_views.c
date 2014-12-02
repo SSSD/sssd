@@ -525,8 +525,14 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
             goto done;
         }
 
-        /* TODO: add nameAlias for case-insentitive searches */
         for (c = 0; c < attrs->num; c++) {
+            /* Set num_values to 1 because by default user and group overrides
+             * use the same attribute name for the GID and this cause SSSD
+             * machinery to add the same value twice */
+            if (attrs->a[c].num_values > 1
+                    && strcmp(attrs->a[c].name, SYSDB_GIDNUM) == 0) {
+                attrs->a[c].num_values = 1;
+            }
             msg->elements[c] = attrs->a[c];
             msg->elements[c].flags = LDB_FLAG_MOD_ADD;
         }
