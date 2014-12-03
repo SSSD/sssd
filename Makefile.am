@@ -293,39 +293,7 @@ endif
 
 noinst_LTLIBRARIES =
 
-pkglib_LTLIBRARIES = \
-    libsss_crypt.la
-
-if HAVE_NSS
-    SSS_CRYPT_SOURCES = src/util/crypto/nss/nss_base64.c \
-                        src/util/crypto/nss/nss_hmac_sha1.c \
-                        src/util/crypto/nss/nss_sha512crypt.c \
-                        src/util/crypto/nss/nss_obfuscate.c \
-                        src/util/crypto/nss/nss_util.c
-    SSS_CRYPT_CFLAGS = $(NSS_CFLAGS)
-    SSS_CRYPT_LIBS = $(NSS_LIBS)
-else
-    SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
-                        src/util/crypto/libcrypto/crypto_hmac_sha1.c \
-                        src/util/crypto/libcrypto/crypto_sha512crypt.c \
-                        src/util/crypto/libcrypto/crypto_obfuscate.c
-    SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
-    SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
-endif
-
-libsss_crypt_la_SOURCES = \
-    $(SSS_CRYPT_SOURCES)
-libsss_crypt_la_CFLAGS = \
-    $(SSS_CRYPT_CFLAGS) \
-    $(DHASH_CFLAGS)
-libsss_crypt_la_LIBADD = \
-    $(SSS_CRYPT_LIBS) \
-    $(DHASH_LIBS) \
-    $(TALLOC_LIBS) \
-    libsss_debug.la \
-    $(NULL)
-libsss_crypt_la_LDFLAGS = \
-    -avoid-version
+pkglib_LTLIBRARIES =
 
 if BUILD_PYTHON_BINDINGS
 pyexec_LTLIBRARIES = \
@@ -681,6 +649,39 @@ libsss_child_la_LIBADD = \
     libsss_debug.la \
     $(NULL)
 libsss_child_la_LDFLAGS = -avoid-version
+
+pkglib_LTLIBRARIES += libsss_crypt.la
+
+if HAVE_NSS
+    SSS_CRYPT_SOURCES = src/util/crypto/nss/nss_base64.c \
+                        src/util/crypto/nss/nss_hmac_sha1.c \
+                        src/util/crypto/nss/nss_sha512crypt.c \
+                        src/util/crypto/nss/nss_obfuscate.c \
+                        src/util/crypto/nss/nss_util.c
+    SSS_CRYPT_CFLAGS = $(NSS_CFLAGS)
+    SSS_CRYPT_LIBS = $(NSS_LIBS)
+else
+    SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
+                        src/util/crypto/libcrypto/crypto_hmac_sha1.c \
+                        src/util/crypto/libcrypto/crypto_sha512crypt.c \
+                        src/util/crypto/libcrypto/crypto_obfuscate.c
+    SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
+    SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
+endif
+
+libsss_crypt_la_SOURCES = \
+    $(SSS_CRYPT_SOURCES)
+libsss_crypt_la_CFLAGS = \
+    $(SSS_CRYPT_CFLAGS) \
+    $(DHASH_CFLAGS)
+libsss_crypt_la_LIBADD = \
+    $(SSS_CRYPT_LIBS) \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_debug.la \
+    $(NULL)
+libsss_crypt_la_LDFLAGS = \
+    -avoid-version
 
 pkglib_LTLIBRARIES += libsss_util.la
 libsss_util_la_SOURCES = \
