@@ -235,9 +235,12 @@ endif   # HAVE_CMOCKA
 check_PROGRAMS = \
     stress-tests \
     krb5-child-test \
-    test-child \
     $(non_interactive_cmocka_based_tests) \
     $(non_interactive_check_based_tests)
+
+if HAVE_CMOCKA
+check_PROGRAMS += test-child
+endif # HAVE_CMOCKA
 
 PYTHON_TESTS =
 
