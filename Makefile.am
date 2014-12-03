@@ -239,7 +239,7 @@ check_PROGRAMS = \
     $(non_interactive_check_based_tests)
 
 if HAVE_CMOCKA
-check_PROGRAMS += test-child
+check_PROGRAMS += dummy-child
 endif # HAVE_CMOCKA
 
 PYTHON_TESTS =
@@ -2137,10 +2137,10 @@ test_copy_keytab_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
-test_child_SOURCES = \
-    src/tests/cmocka/test_child.c \
+dummy_child_SOURCES = \
+    src/tests/cmocka/dummy_child.c \
     $(NULL)
-test_child_LDADD = \
+dummy_child_LDADD = \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)

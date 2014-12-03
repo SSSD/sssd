@@ -28,7 +28,7 @@
 #include "util/child_common.h"
 #include "tests/cmocka/common_mock.h"
 
-#define TEST_BIN    "test-child"
+#define TEST_BIN    "dummy-child"
 #define ECHO_STR    "Hello child"
 
 struct child_test_ctx {
