@@ -2147,6 +2147,11 @@ dummy_child_LDADD = \
 
 test_child_common_SOURCES = \
     src/tests/cmocka/test_child_common.c \
+    src/util/child_common.c \
+    src/util/signal.c \
+    src/util/atomic_io.c \
+    src/util/util_errors.c \
+    src/util/util.c \
     $(NULL)
 test_child_common_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2156,7 +2161,8 @@ test_child_common_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
+    $(DHASH_LIBS) \
+    libsss_debug.la \
     libsss_test_common.la \
     $(NULL)
 
