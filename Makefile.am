@@ -319,7 +319,11 @@ libsss_crypt_la_CFLAGS = \
     $(SSS_CRYPT_CFLAGS) \
     $(DHASH_CFLAGS)
 libsss_crypt_la_LIBADD = \
-    $(SSS_CRYPT_LIBS)
+    $(SSS_CRYPT_LIBS) \
+    $(DHASH_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_debug.la \
+    $(NULL)
 libsss_crypt_la_LDFLAGS = \
     -avoid-version
 
@@ -670,6 +674,12 @@ libsss_debug_la_LDFLAGS = \
 
 pkglib_LTLIBRARIES += libsss_child.la
 libsss_child_la_SOURCES = src/util/child_common.c
+libsss_child_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(DHASH_LIBS) \
+    libsss_debug.la \
+    $(NULL)
 libsss_child_la_LDFLAGS = -avoid-version
 
 pkglib_LTLIBRARIES += libsss_util.la
@@ -735,6 +745,9 @@ libsss_util_la_LIBADD = \
     $(SSSD_LIBS) \
     $(SYSTEMD_LOGIN_LIBS) \
     $(UNICODE_LIBS) \
+    libsss_debug.la \
+    libsss_child.la \
+    libsss_crypt.la \
     $(NULL)
 if BUILD_SUDO
     libsss_util_la_SOURCES += src/db/sysdb_sudo.c
