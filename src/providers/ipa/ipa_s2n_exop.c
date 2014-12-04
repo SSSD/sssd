@@ -888,11 +888,13 @@ struct ipa_s2n_get_groups_state {
     int exop_timeout;
     struct resp_attrs *attrs;
     struct sss_domain_info *obj_domain;
+    struct sysdb_attrs *override_attrs;
 };
 
 static errno_t ipa_s2n_get_groups_step(struct tevent_req *req);
 static void ipa_s2n_get_groups_get_override_done(struct tevent_req *subreq);
 static void ipa_s2n_get_groups_next(struct tevent_req *subreq);
+static errno_t ipa_s2n_get_groups_save_step(struct tevent_req *req);
 
 static struct tevent_req *ipa_s2n_get_groups_send(TALLOC_CTX *mem_ctx,
                                                   struct tevent_context *ev,
@@ -921,6 +923,7 @@ static struct tevent_req *ipa_s2n_get_groups_send(TALLOC_CTX *mem_ctx,
     state->req_input.inp.name = NULL;
     state->exop_timeout = exop_timeout;
     state->attrs = NULL;
+    state->override_attrs = NULL;
 
     ret = ipa_s2n_get_groups_step(req);
     if (ret != EOK) {
@@ -1018,6 +1021,18 @@ static void ipa_s2n_get_groups_next(struct tevent_req *subreq)
         goto fail;
     }
 
+    if (strcmp(state->ipa_ctx->view_name, SYSDB_DEFAULT_VIEW_NAME) == 0) {
+        ret = ipa_s2n_get_groups_save_step(req);
+        if (ret == EOK) {
+            tevent_req_done(req);
+        } else if (ret != EAGAIN) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_groups_save_step failed.\n");
+            goto fail;
+        }
+
+        return;
+    }
+
     ret = sysdb_attrs_get_string(state->attrs->sysdb_attrs, SYSDB_SID_STR,
                                  &sid_str);
     if (ret != EOK) {
@@ -1059,31 +1074,19 @@ static void ipa_s2n_get_groups_get_override_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct ipa_s2n_get_groups_state *state = tevent_req_data(req,
                                                struct ipa_s2n_get_groups_state);
-    struct sysdb_attrs *override_attrs = NULL;
 
-    ret = ipa_get_ad_override_recv(subreq, NULL, state, &override_attrs);
+    ret = ipa_get_ad_override_recv(subreq, NULL, state, &state->override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
         goto fail;
     }
 
-    ret = ipa_s2n_save_objects(state->dom, &state->req_input, state->attrs,
-                               NULL, state->ipa_ctx->view_name, override_attrs);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
-        goto fail;
-    }
-
-    state->group_idx++;
-    if (state->group_list[state->group_idx] == NULL) {
+    ret = ipa_s2n_get_groups_save_step(req);
+    if (ret == EOK) {
         tevent_req_done(req);
-        return;
-    }
-
-    ret = ipa_s2n_get_groups_step(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_groups_step failed.\n");
+    } else if (ret != EAGAIN) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_groups_save_step failed.\n");
         goto fail;
     }
 
@@ -1092,6 +1095,34 @@ static void ipa_s2n_get_groups_get_override_done(struct tevent_req *subreq)
 fail:
     tevent_req_error(req,ret);
     return;
+}
+
+static errno_t ipa_s2n_get_groups_save_step(struct tevent_req *req)
+{
+    int ret;
+    struct ipa_s2n_get_groups_state *state = tevent_req_data(req,
+                                               struct ipa_s2n_get_groups_state);
+
+    ret = ipa_s2n_save_objects(state->dom, &state->req_input, state->attrs,
+                               NULL, state->ipa_ctx->view_name,
+                               state->override_attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
+        return ret;
+    }
+
+    state->group_idx++;
+    if (state->group_list[state->group_idx] == NULL) {
+        return EOK;
+    }
+
+    ret = ipa_s2n_get_groups_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_groups_step failed.\n");
+        return ret;
+    }
+
+    return EAGAIN;
 }
 
 static int ipa_s2n_get_groups_recv(struct tevent_req *req)
@@ -1484,7 +1515,9 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         ret = ENOENT;
     }
 
-    if (ret == ENOENT) {
+    if (ret == ENOENT
+            || strcmp(state->ipa_ctx->view_name,
+                      SYSDB_DEFAULT_VIEW_NAME) == 0) {
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
                                    state->simple_attrs, NULL, NULL);
         if (ret != EOK) {
@@ -2046,7 +2079,9 @@ static void ipa_s2n_get_groups_done(struct tevent_req  *subreq)
         goto fail;
     }
 
-    if (state->override_attrs == NULL) {
+    if (state->override_attrs == NULL
+            && strcmp(state->ipa_ctx->view_name,
+                      SYSDB_DEFAULT_VIEW_NAME) != 0) {
         subreq = ipa_get_ad_override_send(state, state->ev,
                            state->ipa_ctx->sdap_id_ctx,
                            state->ipa_ctx->ipa_options,
