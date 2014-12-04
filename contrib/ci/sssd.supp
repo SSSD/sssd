@@ -122,3 +122,32 @@
    fun:exit
    fun:(below main)
 }
+
+# long-standing memory leak in popt
+{
+   popt-memleak-from-poptGetNextOpt-malloc
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:poptGetNextOpt
+   fun:main
+}
+
+# long-standing memory leak in popt
+{
+   popt-memleak-from-poptGetNextOpt-realloc
+   Memcheck:Leak
+   fun:realloc
+   ...
+   fun:poptGetNextOpt
+   fun:main
+}
+
+# popt was not good with read access either. Applies for popt <= 1.13
+{
+    popt-suppress-invalid-read
+    Memcheck:Addr4
+    ...
+    fun:poptGetNextOpt
+    fun:main
+}
