@@ -66,9 +66,11 @@ int main(int argc, const char *argv[])
         fprintf(stderr, "\nInvalid option %s: %s\n\n",
                   poptBadOption(pc, 0), poptStrerror(opt));
             poptPrintUsage(pc, stderr, 0);
+            poptFreeContext(pc);
             _exit(1);
         }
     }
+    poptFreeContext(pc);
 
     action = getenv("TEST_CHILD_ACTION");
     if (action) {
