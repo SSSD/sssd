@@ -1618,6 +1618,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     char *realm;
     char *upn = NULL;
     gid_t gid;
+    gid_t orig_gid = 0;
     TALLOC_CTX *tmp_ctx;
     const char *sid_str;
     const char *tmp_str;
@@ -1796,6 +1797,31 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             gid = 0;
             if (dom->mpg == false) {
                 gid = attrs->a.user.pw_gid;
+            } else {
+                /* The extdom plugin always returns the objects with the
+                 * default view applied. Since the GID is handled specially
+                 * for MPG domains we have add any overridden GID separately.
+                 */
+                ret = sysdb_attrs_get_uint32_t(attrs->sysdb_attrs,
+                                               ORIGINALAD_PREFIX SYSDB_GIDNUM,
+                                               &orig_gid);
+                if (ret == EOK || ret == ENOENT) {
+                    if ((orig_gid != 0 && orig_gid != attrs->a.user.pw_gid)
+                            || attrs->a.user.pw_uid != attrs->a.user.pw_gid) {
+                        ret = sysdb_attrs_add_uint32(attrs->sysdb_attrs,
+                                                     SYSDB_GIDNUM,
+                                                     attrs->a.user.pw_gid);
+                        if (ret != EOK) {
+                            DEBUG(SSSDBG_OP_FAILURE,
+                                  "sysdb_attrs_add_uint32 failed.\n");
+                            goto done;
+                        }
+                    }
+                } else {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_attrs_get_uint32_t failed.\n");
+                    goto done;
+                }
             }
 
             ret = sysdb_transaction_start(dom->sysdb);
