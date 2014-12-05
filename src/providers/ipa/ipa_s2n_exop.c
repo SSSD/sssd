@@ -886,6 +886,8 @@ struct ipa_s2n_get_fqlist_state {
     char **fqname_list;
     size_t fqname_idx;
     int exop_timeout;
+    int entry_type;
+    enum request_types request_type;
     struct resp_attrs *attrs;
     struct sss_domain_info *obj_domain;
     struct sysdb_attrs *override_attrs;
@@ -897,12 +899,14 @@ static void ipa_s2n_get_fqlist_next(struct tevent_req *subreq);
 static errno_t ipa_s2n_get_fqlist_save_step(struct tevent_req *req);
 
 static struct tevent_req *ipa_s2n_get_fqlist_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct ipa_id_ctx *ipa_ctx,
-                                                  struct sss_domain_info *dom,
-                                                  struct sdap_handle *sh,
-                                                  int exop_timeout,
-                                                  char **fqname_list)
+                                                struct tevent_context *ev,
+                                                struct ipa_id_ctx *ipa_ctx,
+                                                struct sss_domain_info *dom,
+                                                struct sdap_handle *sh,
+                                                int exop_timeout,
+                                                int entry_type,
+                                                enum request_types request_type,
+                                                char **fqname_list)
 {
     int ret;
     struct ipa_s2n_get_fqlist_state *state;
@@ -922,6 +926,8 @@ static struct tevent_req *ipa_s2n_get_fqlist_send(TALLOC_CTX *mem_ctx,
     state->req_input.type = REQ_INP_NAME;
     state->req_input.inp.name = NULL;
     state->exop_timeout = exop_timeout;
+    state->entry_type = entry_type;
+    state->request_type = request_type;
     state->attrs = NULL;
     state->override_attrs = NULL;
 
@@ -976,8 +982,8 @@ static errno_t ipa_s2n_get_fqlist_step(struct tevent_req *req)
 
     state->req_input.inp.name = short_name;
 
-    ret = s2n_encode_request(state, state->obj_domain->name, BE_REQ_GROUP,
-                             REQ_FULL_WITH_MEMBERS,
+    ret = s2n_encode_request(state, state->obj_domain->name, state->entry_type,
+                             state->request_type,
                              &state->req_input, &bv_req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n_encode_request failed.\n");
@@ -1439,7 +1445,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
     struct berval *retdata = NULL;
     struct resp_attrs *attrs = NULL;
     struct berval *bv_req = NULL;
-    char **missing_groups = NULL;
+    char **missing_list = NULL;
     struct ldb_dn **group_dn_list = NULL;
     const char *sid_str;
     struct be_acct_req *ar;
@@ -1478,17 +1484,46 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         if (attrs->response_type == RESP_USER_GROUPLIST) {
             ret = get_group_dn_list(state, state->dom,
                                     attrs->ngroups, attrs->groups,
-                                    &group_dn_list, &missing_groups);
+                                    &group_dn_list, &missing_list);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "get_group_dn_list failed.\n");
                 goto done;
             }
 
-            if (missing_groups != NULL) {
+            if (missing_list != NULL) {
                 subreq = ipa_s2n_get_fqlist_send(state, state->ev,
                                                  state->ipa_ctx, state->dom,
                                                  state->sh, state->exop_timeout,
-                                                 missing_groups);
+                                                 BE_REQ_GROUP,
+                                                 REQ_FULL_WITH_MEMBERS,
+                                                 missing_list);
+                if (subreq == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "ipa_s2n_get_fqlist_send failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+                tevent_req_set_callback(subreq, ipa_s2n_get_fqlist_done,
+                                        req);
+
+                return;
+            }
+            break;
+        } else if (attrs->response_type == RESP_GROUP_MEMBERS) {
+            ret = process_members(state->dom, NULL, attrs->a.group.gr_mem,
+                                  state, &missing_list);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "process_members failed.\n");
+                goto done;
+            }
+
+            if (missing_list != NULL) {
+                subreq = ipa_s2n_get_fqlist_send(state, state->ev,
+                                                 state->ipa_ctx, state->dom,
+                                                 state->sh, state->exop_timeout,
+                                                 BE_REQ_USER,
+                                                 REQ_FULL_WITH_MEMBERS,
+                                                 missing_list);
                 if (subreq == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "ipa_s2n_get_fqlist_send failed.\n");
@@ -1503,8 +1538,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             break;
         }
 
-        if (state->req_input->type == REQ_INP_SECID
-                || attrs->response_type == RESP_GROUP_MEMBERS) {
+        if (state->req_input->type == REQ_INP_SECID) {
             /* We already know the SID, we do not have to read it. */
             break;
         }
