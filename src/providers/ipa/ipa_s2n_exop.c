@@ -759,7 +759,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
             attrs->a.user.pw_uid = uid;
             attrs->a.user.pw_gid = gid;
 
-            if (is_v1) {
+            if (is_v1 && type == RESP_USER_GROUPLIST) {
                 ret = add_v1_user_data(ber, attrs);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_v1_user_data failed.\n");
@@ -798,7 +798,7 @@ static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
 
             attrs->a.group.gr_gid = gid;
 
-            if (is_v1) {
+            if (is_v1 && type == RESP_GROUP_MEMBERS) {
                 ret = add_v1_group_data(ber, attrs);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "add_v1_group_data failed.\n");
