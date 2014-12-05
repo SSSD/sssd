@@ -1451,6 +1451,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
 
                 return;
             }
+            break;
         }
 
         if (state->req_input->type == REQ_INP_SECID
