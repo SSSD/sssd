@@ -64,6 +64,7 @@ AC_CHECK_FUNCS([krb5_get_init_creds_opt_alloc krb5_get_error_message \
                 krb5_timestamp_to_sfstring \
                 krb5_set_trace_callback \
                 krb5_find_authdata \
+                krb5_kt_have_content \
                 krb5_cc_get_full_name])
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS

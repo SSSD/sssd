@@ -1029,3 +1029,43 @@ done:
     return NULL;
 #endif /* HAVE_KRB5_CC_COLLECTION */
 }
+
+krb5_error_code sss_krb5_kt_have_content(krb5_context context,
+                                         krb5_keytab keytab)
+{
+#ifdef HAVE_KRB5_KT_HAVE_CONTENT
+    return krb5_kt_have_content(context, keytab);
+#else
+    krb5_keytab_entry entry;
+    krb5_kt_cursor cursor;
+    krb5_error_code kerr;
+    krb5_error_code kerr_end;
+
+    kerr = krb5_kt_start_seq_get(context, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "krb5_kt_start_seq_get failed, assuming no entries.\n");
+        return KRB5_KT_NOTFOUND;
+    }
+
+    kerr = krb5_kt_next_entry(context, keytab, &entry, &cursor);
+    kerr_end = krb5_kt_end_seq_get(context, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "krb5_kt_next_entry failed, assuming no entries.\n");
+        return KRB5_KT_NOTFOUND;
+    }
+    kerr = krb5_free_keytab_entry_contents(context, &entry);
+
+    if (kerr_end != 0) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "krb5_kt_end_seq_get failed, ignored.\n");
+    }
+    if (kerr != 0) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "krb5_free_keytab_entry_contents failed, ignored.\n");
+    }
+
+    return 0;
+#endif
+}

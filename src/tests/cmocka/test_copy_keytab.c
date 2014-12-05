@@ -29,6 +29,7 @@
 
 #define KEYTAB_TEST_PRINC "test/keytab@TEST.KEYTAB"
 #define KEYTAB_PATH TEST_DIR "/keytab_test.keytab"
+#define EMPTY_KEYTAB_PATH TEST_DIR "/empty_keytab_test.keytab"
 
 struct keytab_test_ctx {
     krb5_context kctx;
@@ -170,6 +171,36 @@ void test_copy_keytab(void **state)
     assert_int_equal(kerr, 0);
 }
 
+void test_sss_krb5_kt_have_content(void **state)
+{
+    krb5_error_code kerr;
+    krb5_keytab keytab;
+    struct keytab_test_ctx *test_ctx = talloc_get_type(*state,
+                                                        struct keytab_test_ctx);
+    assert_non_null(test_ctx);
+
+    kerr = krb5_kt_resolve(test_ctx->kctx, test_ctx->keytab_file_name, &keytab);
+    assert_int_equal(kerr, 0);
+
+    kerr = sss_krb5_kt_have_content(test_ctx->kctx, keytab);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_kt_close(test_ctx->kctx, keytab);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_kt_resolve(test_ctx->kctx, "FILE:" EMPTY_KEYTAB_PATH, &keytab);
+    assert_int_equal(kerr, 0);
+
+    kerr = sss_krb5_kt_have_content(test_ctx->kctx, keytab);
+    assert_int_equal(kerr, KRB5_KT_NOTFOUND);
+
+    kerr = krb5_kt_close(test_ctx->kctx, keytab);
+    assert_int_equal(kerr, 0);
+
+    /* no need to remove EMPTY_KEYTAB_PATH because krb5_kt_close() does not
+     * create empty keytab files */
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -183,6 +214,8 @@ int main(int argc, const char *argv[])
 
     const UnitTest tests[] = {
         unit_test_setup_teardown(test_copy_keytab,
+                                 setup_keytab, teardown_keytab),
+        unit_test_setup_teardown(test_sss_krb5_kt_have_content,
                                  setup_keytab, teardown_keytab),
     };
 

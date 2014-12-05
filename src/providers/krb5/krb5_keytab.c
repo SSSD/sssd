@@ -61,7 +61,7 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
         return kerr;
     }
 
-    kerr = krb5_kt_have_content(kctx, keytab);
+    kerr = sss_krb5_kt_have_content(kctx, keytab);
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "keytab [%s] has not entries.\n",
                                     keytab_file);
