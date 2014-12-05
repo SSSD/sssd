@@ -1222,7 +1222,8 @@ fail:
 
 static errno_t process_members(struct sss_domain_info *domain,
                                struct sysdb_attrs *group_attrs,
-                               char **members)
+                               char **members,
+                               TALLOC_CTX *mem_ctx, char ***_missing_members)
 {
     int ret;
     size_t c;
@@ -1231,9 +1232,12 @@ static errno_t process_members(struct sss_domain_info *domain,
     const char *dn_str;
     struct sss_domain_info *obj_domain;
     struct sss_domain_info *parent_domain;
+    char **missing_members = NULL;
+    size_t miss_count = 0;
 
     if (members == NULL) {
         DEBUG(SSSDBG_TRACE_INTERNAL, "No members\n");
+        *_missing_members = NULL;
         return EOK;
     }
 
@@ -1241,6 +1245,17 @@ static errno_t process_members(struct sss_domain_info *domain,
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
         return ENOMEM;
+    }
+
+    if (_missing_members != NULL && mem_ctx != NULL) {
+        /* count members */
+        for (c = 0; members[c] != NULL; c++);
+        missing_members = talloc_zero_array(tmp_ctx, char *, c + 1);
+        if (missing_members == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_array_zero failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     parent_domain = get_domains_head(domain);
@@ -1256,31 +1271,65 @@ static errno_t process_members(struct sss_domain_info *domain,
         ret = sysdb_search_user_by_name(tmp_ctx, obj_domain, members[c], NULL,
                                         &msg);
         if (ret == EOK) {
-            dn_str = ldb_dn_get_linearized(msg->dn);
-            if (dn_str == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_get_linearized failed.\n");
-                goto done;
-            }
+            if (group_attrs != NULL) {
+                dn_str = ldb_dn_get_linearized(msg->dn);
+                if (dn_str == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_get_linearized failed.\n");
+                    goto done;
+                }
 
-            DEBUG(SSSDBG_TRACE_ALL, "Adding member [%s][%s]\n",
-                                    members[c], dn_str);
+                DEBUG(SSSDBG_TRACE_ALL, "Adding member [%s][%s]\n",
+                                        members[c], dn_str);
 
-            ret = sysdb_attrs_add_string(group_attrs, SYSDB_MEMBER, dn_str);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
-                goto done;
+                ret = sysdb_attrs_add_string(group_attrs, SYSDB_MEMBER, dn_str);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_attrs_add_string failed.\n");
+                    goto done;
+                }
             }
         } else if (ret == ENOENT) {
-            DEBUG(SSSDBG_TRACE_ALL, "Adding ghost member [%s]\n", members[c]);
+            if (group_attrs != NULL) {
+                DEBUG(SSSDBG_TRACE_ALL, "Adding ghost member [%s]\n",
+                                        members[c]);
 
-            ret = sysdb_attrs_add_string(group_attrs, SYSDB_GHOST, members[c]);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
-                goto done;
+                ret = sysdb_attrs_add_string(group_attrs, SYSDB_GHOST,
+                                             members[c]);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_attrs_add_string failed.\n");
+                    goto done;
+                }
+            }
+
+            if (missing_members != NULL) {
+                missing_members[miss_count] = talloc_strdup(missing_members,
+                                                            members[c]);
+                if (missing_members[miss_count] == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                    ret = ENOMEM;
+                    goto done;
+                }
+                miss_count++;
             }
         } else {
             DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_name failed.\n");
             goto done;
+        }
+    }
+
+    if (_missing_members != NULL)  {
+        if (miss_count == 0) {
+            *_missing_members = NULL;
+        } else {
+            if (mem_ctx != NULL) {
+                *_missing_members = talloc_steal(mem_ctx, missing_members);
+            } else {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Missing memory context for missing members list.\n");
+                ret = EINVAL;
+                goto done;
+            }
         }
     }
 
@@ -1986,7 +2035,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             }
 
             ret = process_members(dom, attrs->sysdb_attrs,
-                                  attrs->a.group.gr_mem);
+                                  attrs->a.group.gr_mem, NULL, NULL);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "process_members failed.\n");
                 goto done;
