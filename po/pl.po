@@ -3,16 +3,16 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Piotr Drąg <piotrdrag@gmail.com>, 2011-2013
+# Piotr Drąg <piotrdrag@gmail.com>, 2011-2014
 # sgallagh <sgallagh@redhat.com>, 2011
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-07-24 17:40+0000\n"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-06-05 15:51+0000\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
-"Language-Team: Polish (http://www.transifex.com/projects/p/fedora/language/"
+"Language-Team: Polish (http://www.transifex.com/projects/p/sssd/language/"
 "pl/)\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
@@ -1097,22 +1097,22 @@ msgstr "Podaje niedomyślny plik konfiguracji"
 msgid "Print version number and exit"
 msgstr "Wyświetla numer wersji i kończy działanie"
 
-#: src/providers/krb5/krb5_child.c:2010 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:2132 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:95
 msgid "Debug level"
 msgstr "Poziom debugowania"
 
-#: src/providers/krb5/krb5_child.c:2012 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:2134 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:99
 msgid "Add debug timestamps"
 msgstr "Dodaje czasy debugowania"
 
-#: src/providers/krb5/krb5_child.c:2014 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:2136 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:101
 msgid "Show timestamps with microseconds"
 msgstr "Wyświetlanie dat z mikrosekundami"
 
-#: src/providers/krb5/krb5_child.c:2016 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:2138 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
@@ -1771,6 +1771,14 @@ msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
 
+#~ msgid "List of UIDs or user names allowed to access the InfoPipe responder"
+#~ msgstr ""
+#~ "Lista UID lub nazw użytkowników mających dostęp do programu "
+#~ "odpowiadającego InfoPipe"
+
+#~ msgid "List of user attributes the InfoPipe is allowed to publish"
+#~ msgstr "Lista atrybutów użytkownika, które InfoPipe może publikować"
+
 #~ msgid "Whether to automatically update the client's DNS entry"
 #~ msgstr "Czy automatycznie aktualizować wpis DNS klienta"
 
@@ -1791,6 +1799,12 @@ msgstr ""
 #~ "Jakiego rodzaju uwierzytelnianie powinno być używane do wykonywania "
 #~ "aktualizacji DNS"
 
+#~ msgid "Control enumeration of trusted domains"
+#~ msgstr "Kontrola wyliczania zaufanych domen"
+
+#~ msgid "How often should subdomains list be refreshed"
+#~ msgstr "Jak często odświeżać listę poddomen"
+
 #~ msgid ""
 #~ "The amount of time in seconds between lookups of the SELinux maps against "
 #~ "the IPA server"
@@ -1799,11 +1813,26 @@ msgstr ""
 #~ msgid "Enable DNS sites - location based service discovery"
 #~ msgstr "Włącza witryny DNS - wykrywanie usług w oparciu o położenie"
 
+#~ msgid "Whether to use the Global Catalog for lookups"
+#~ msgstr "Czy używać Global Catalog do wyszukiwań"
+
+#~ msgid "Operation mode for GPO-based access control"
+#~ msgstr "Tryb działania dla kontroli dostępu opartej na GPO"
+
 #~ msgid "Whether to create kdcinfo files"
 #~ msgstr "Określa, czy tworzyć pliki kdcinfo"
 
 #~ msgid "Enables enterprise principals"
 #~ msgstr "Włącza naczelników enterprise"
+
+#~ msgid "A list of extra attributes to download along with the user entry"
+#~ msgstr "Lista dodatkowych atrybutów do pobrania razem z wpisem użytkownika"
+
+#~ msgid "Type of the group and other flags"
+#~ msgstr "Typ grupy i inne flagi"
+
+#~ msgid "Whether to use Token-Groups"
+#~ msgstr "Czy używać Token-Groups"
 
 #~ msgid "Set lower boundary for allowed IDs from the LDAP server"
 #~ msgstr ""
@@ -1813,7 +1842,31 @@ msgstr ""
 #~ msgstr ""
 #~ "Ustawia górną granicę dla dozwolonych identyfikatorów z serwera LDAP"
 
-#~ msgid "Invalidate all cached entries except for sudo rulese"
+#~ msgid ""
+#~ "After changing the OTP password, you need to log out and back in order to "
+#~ "acquire a ticket"
+#~ msgstr ""
+#~ "Po zmianie hasła OTP należy się wylogować i zalogować ponownie, aby "
+#~ "uzyskać zgłoszenie"
+
+#~ msgid "Add an attribute/value pair. The format is attrname=value."
+#~ msgstr "Dodaje parę atrybut/wartość. Format to nazwaatrybutu=wartość."
+
+#~ msgid "Delete an attribute/value pair. The format is attrname=value."
+#~ msgstr "Usuwa parę atrybut/wartość. Format to nazwaatrybutu=wartość."
+
+#~ msgid ""
+#~ "Set an attribute to a name/value pair. The format is attrname=value. For "
+#~ "multi-valued attributes, the command replaces the values already present"
+#~ msgstr ""
+#~ "Ustawia atrybut pary nazwa/wartość. Format to nazwaatrybutu=wartość. W "
+#~ "przypadku atrybutów o wielu wartościach polecenie zastępuje obecne już "
+#~ "wartości"
+
+#~ msgid "Specify the attribute name/value pair(s)\n"
+#~ msgstr "Podaje atrybuty parom nazwa/atrybut\n"
+
+#~ msgid "Invalidate all cached entries except for sudo rules"
 #~ msgstr "Unieważnia wszystkie wpisy w pamięci podręcznej oprócz reguł sudo"
 
 #~ msgid ""

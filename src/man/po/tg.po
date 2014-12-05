@@ -7,10 +7,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-07-24 12:28+0000\n"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
-"Language-Team: Tajik (http://www.transifex.com/projects/p/fedora/language/"
+"Language-Team: Tajik (http://www.transifex.com/projects/p/sssd/language/"
 "tg/)\n"
 "Language: tg\n"
 "MIME-Version: 1.0\n"
@@ -5568,8 +5568,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:384 sssd-ipa.5.xml:479
+#, fuzzy
+#| msgid "Default: true"
 msgid "Default: memberUser"
-msgstr ""
+msgstr "Пешфарз: true"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:389
@@ -5585,8 +5587,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:396 sssd-ipa.5.xml:491
+#, fuzzy
+#| msgid "Default: root"
 msgid "Default: memberHost"
-msgstr ""
+msgstr "Пешфарз: root"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:401
@@ -5602,8 +5606,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:408
+#, fuzzy
+#| msgid "Default: root"
 msgid "Default: externalHost"
-msgstr ""
+msgstr "Пешфарз: root"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:413
@@ -5617,8 +5623,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:420
+#, fuzzy
+#| msgid "Default: 0 (unlimited)"
 msgid "Default: nisDomainName"
-msgstr ""
+msgstr "Пешфарз: 0 (номаҳдуд)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:426
@@ -5632,8 +5640,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:432 sssd-ipa.5.xml:455
+#, fuzzy
+#| msgid "Default: root"
 msgid "Default: ipaHost"
-msgstr ""
+msgstr "Пешфарз: root"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:437
@@ -5647,8 +5657,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:443
+#, fuzzy
+#| msgid "Default: 3"
 msgid "Default: fqdn"
-msgstr ""
+msgstr "Пешфарз: 3"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:449
@@ -5702,8 +5714,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:504
+#, fuzzy
+#| msgid "Default: false"
 msgid "Default: seeAlso"
-msgstr ""
+msgstr "Пешфарз: false"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:509
@@ -5717,8 +5731,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:516
+#, fuzzy
+#| msgid "Default: password"
 msgid "Default: ipaSELinuxUser"
-msgstr ""
+msgstr "Пешфарз: парол"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:521
@@ -5734,8 +5750,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:528
+#, fuzzy
+#| msgid "Default: false"
 msgid "Default: ipaEnabledFlag"
-msgstr ""
+msgstr "Пешфарз: false"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:533
@@ -5749,8 +5767,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:540
+#, fuzzy
+#| msgid "Default: true"
 msgid "Default: userCategory"
-msgstr ""
+msgstr "Пешфарз: true"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:545
@@ -5764,8 +5784,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:552
+#, fuzzy
+#| msgid "Default: true"
 msgid "Default: hostCategory"
-msgstr ""
+msgstr "Пешфарз: true"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:557
@@ -5779,8 +5801,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:564
+#, fuzzy
+#| msgid "Default: true"
 msgid "Default: ipaUniqueID"
-msgstr ""
+msgstr "Пешфарз: true"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:569
@@ -5794,8 +5818,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:576
+#, fuzzy
+#| msgid "Default: false"
 msgid "Default: ipaSshPubKey"
-msgstr ""
+msgstr "Пешфарз: false"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ipa.5.xml:585

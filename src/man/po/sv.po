@@ -3,17 +3,17 @@
 # This file is distributed under the same license as the sssd-docs package.
 #
 # Translators:
-# Miguel Sousa <migueljorgesousa@sapo.pt>, 2011
+# Göran Uddeborg <goeran@uddeborg.se>, 2014
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2014-12-05 13:09+0100\n"
-"PO-Revision-Date: 2014-06-04 18:04+0000\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
-"Language-Team: Portuguese (http://www.transifex.com/projects/p/sssd/language/"
-"pt/)\n"
-"Language: pt\n"
+"PO-Revision-Date: 2014-06-07 21:50+0000\n"
+"Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
+"Language-Team: Swedish (http://www.transifex.com/projects/p/sssd/language/"
+"sv/)\n"
+"Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -29,7 +29,7 @@ msgstr ""
 #: sss_seed.8.xml:5 sss_ssh_authorizedkeys.1.xml:5
 #: sss_ssh_knownhostsproxy.1.xml:5
 msgid "SSSD Manual pages"
-msgstr "Páginas de Manual de SSSD"
+msgstr "SSSD-manualsidor"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_groupmod.8.xml:10 sss_groupmod.8.xml:15
@@ -48,7 +48,7 @@ msgstr "8"
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupmod.8.xml:16
 msgid "modify a group"
-msgstr "modificar um grupo"
+msgstr "ändra en grupp"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupmod.8.xml:21
@@ -57,8 +57,8 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_groupmod</command> <arg choice='opt'> <replaceable>Opções</"
-"replaceable></arg> <arg choice='plain'> <replaceable>grupo</replaceable></"
+"<command>sss_groupmod</command> <arg choice='opt'> <replaceable>flaggor</"
+"replaceable></arg> <arg choice='plain'> <replaceable>GRUPP</replaceable></"
 "arg>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
@@ -71,7 +71,7 @@ msgstr ""
 #: sss_seed.8.xml:31 sss_ssh_authorizedkeys.1.xml:30
 #: sss_ssh_knownhostsproxy.1.xml:31
 msgid "DESCRIPTION"
-msgstr "DESCRIÇÃO"
+msgstr "BESKRIVNING"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupmod.8.xml:32
@@ -79,8 +79,8 @@ msgid ""
 "<command>sss_groupmod</command> modifies the group to reflect the changes "
 "that are specified on the command line."
 msgstr ""
-"<command>sss_groupmod</command> modifica o grupo para refletir as alterações "
-"que são especificadas na linha de comando."
+"<command>sss_groupmod</command> ändrar gruppen till att avspegla de "
+"ändringar som anges på kommandoraden."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_groupmod.8.xml:39 pam_sss.8.xml:51 sssd.8.xml:42 sss_obfuscate.8.xml:58
@@ -89,7 +89,7 @@ msgstr ""
 #: sss_cache.8.xml:38 sss_debuglevel.8.xml:38 sss_seed.8.xml:42
 #: sss_ssh_authorizedkeys.1.xml:75 sss_ssh_knownhostsproxy.1.xml:62
 msgid "OPTIONS"
-msgstr "Opções"
+msgstr "FLAGGOR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_groupmod.8.xml:43 sss_usermod.8.xml:77
@@ -97,7 +97,7 @@ msgid ""
 "<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
 "replaceable>"
 msgstr ""
-"<option>-a</option>,<option>--append-group</option> <replaceable>GROUPS</"
+"<option>-a</option>,<option>--append-group</option> <replaceable>GRUPPER</"
 "replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -107,9 +107,9 @@ msgid ""
 "replaceable> parameter.  The <replaceable>GROUPS</replaceable> parameter is "
 "a comma separated list of group names."
 msgstr ""
-"Acrescente este grupo para grupos especificados pelo parâmetro de "
-"<replaceable>GROUPS</replaceable>.  O parâmetro de <replaceable>GROUPS</"
-"replaceable> é uma lista separada por vírgulas de nomes de grupo."
+"Lägg till denna grupp till grupper som anges av parametern "
+"<replaceable>GRUPPER</replaceable>.  Parametern <replaceable>GRUPPER</"
+"replaceable> är en kommaseparerad lista av gruppnamn."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_groupmod.8.xml:57 sss_usermod.8.xml:91
@@ -117,7 +117,7 @@ msgid ""
 "<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
 "replaceable>"
 msgstr ""
-"<option>-r</option>,<option>--remove-group</option> <replaceable>GROUPS</"
+"<option>-r</option>,<option>--remove-group</option> <replaceable>GRUPPER</"
 "replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
@@ -126,8 +126,8 @@ msgid ""
 "Remove this group from groups specified by the <replaceable>GROUPS</"
 "replaceable> parameter."
 msgstr ""
-"Remova este grupo de grupos especificados pelo parâmetro de "
-"<replaceable>GROUPS</replaceable>."
+"Ta bort denna grupp från grupper som anges av parametern "
+"<replaceable>GRUPPER</replaceable>."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.conf.5.xml:10 sssd.conf.5.xml:16
@@ -144,18 +144,18 @@ msgstr "5"
 #: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12
 #: sssd-ipa.5.xml:12 sssd-ad.5.xml:12 sssd-sudo.5.xml:12 sssd-krb5.5.xml:12
 msgid "File Formats and Conventions"
-msgstr "Formatos de ficheiros e convenções"
+msgstr "Filformat och konventioner"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd.conf.5.xml:17 sssd-ldap.5.xml:17 sssd_krb5_locator_plugin.8.xml:16
 #: sssd-ipa.5.xml:17 sssd-ad.5.xml:17 sssd-krb5.5.xml:17
 msgid "the configuration file for SSSD"
-msgstr "o ficheiro de configuração para SSSD"
+msgstr "konfigurationsfilen för SSSD"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:21
 msgid "FILE FORMAT"
-msgstr "FORMATAR FICHEIRO"
+msgstr "FILFORMAT"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:29
@@ -166,9 +166,8 @@ msgid ""
 "                <replaceable>key2</replaceable> = <replaceable>value2,value3</replaceable>\n"
 "            "
 msgstr ""
-"                <replaceable>[section]</replaceable>\n"
-"                <replaceable>key</replaceable> = <replaceable>value</replaceable>\n"
-"                <replaceable>key2</replaceable> = <replaceable>value2,value3</replaceable>\n"
+"<replaceable>[avsnitt]</replaceable>\n"
+"<replaceable>nyckel</replaceable> = <replaceable>värde</replaceable> <replaceable>nyckel2</replaceable> = <replaceable>värde2 värde3</replaceable>\n"
 "            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -186,8 +185,8 @@ msgid ""
 "The data types used are string (no quotes needed), integer and bool (with "
 "values of <quote>TRUE/FALSE</quote>)."
 msgstr ""
-"Os tipos de dados usados são cadeia de caracteres (sem aspas necessárias), "
-"inteiro e bool (com valores de <quote>TRUE/FALSE</quote>)."
+"De datatyper som används är sträng (citationstecken behövs inte), heltal och "
+"bool (med värdena <quote>TRUE/FALSE</quote>)."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:41
@@ -202,8 +201,8 @@ msgid ""
 "All sections can have an optional <replaceable>description</replaceable> "
 "parameter. Its function is only as a label for the section."
 msgstr ""
-"Todas as seções podem ter um parâmetro opcional <replaceable>description</"
-"replaceable>. Sua função é apenas como um rótulo para a secção."
+"Alla avsnitt kan ha en frivillig parameter <replaceable>beskrivning</"
+"replaceable>. Dess funktion är endast som en etikett för avsnittet."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:53
@@ -211,28 +210,28 @@ msgid ""
 "<filename>sssd.conf</filename> must be a regular file, owned by root and "
 "only root may read from or write to the file."
 msgstr ""
-"<filename>sssd.conf</filename> deve ser um ficheiro regular, pertencente a "
-"raiz e somente raiz pode ler ou gravar o arquivo."
+"<filename>sssd.conf</filename> måste vara en vanlig fil, ägd av root och "
+"endast root får kunna läsa från eller skriva till filen."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:59
 msgid "SPECIAL SECTIONS"
-msgstr "SECÇÕES ESPECIAIS"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:62
 msgid "The [sssd] section"
-msgstr "A seção [SSSD]"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><title>
 #: sssd.conf.5.xml:71 sssd.conf.5.xml:1771
 msgid "Section parameters"
-msgstr "Parâmetros de secção"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:73
 msgid "config_file_version (integer)"
-msgstr "config_file_version (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:76
@@ -240,21 +239,17 @@ msgid ""
 "Indicates what is the syntax of the config file. SSSD 0.6.0 and later use "
 "version 2."
 msgstr ""
-"Indica qual é a sintaxe do arquivo config. SSSD 0.6.0 e posterior utilização "
-"versão 2."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:82
 msgid "services"
-msgstr "serviços"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:85
 msgid ""
 "Comma separated list of services that are started when sssd itself starts."
 msgstr ""
-"Lista de serviços que são iniciados quando SSSD propriamente dito começa "
-"separados por vírgulas."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:89
@@ -268,7 +263,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:98 sssd.conf.5.xml:290
 msgid "reconnection_retries (integer)"
-msgstr "reconnection_retries (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:101 sssd.conf.5.xml:293
@@ -276,18 +271,16 @@ msgid ""
 "Number of times services should attempt to reconnect in the event of a Data "
 "Provider crash or restart before they give up"
 msgstr ""
-"Número de vezes que os serviços devem tentar reconectar-se no caso de uma "
-"falha do provedor de dados ou reiniciar antes de eles desistirem"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:106 sssd.conf.5.xml:298
 msgid "Default: 3"
-msgstr "Padrão: 3"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:111
 msgid "domains"
-msgstr "domínios"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:114
@@ -301,7 +294,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:124 sssd.conf.5.xml:1551
 msgid "re_expression (string)"
-msgstr "re_expression (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:127
@@ -321,7 +314,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:141 sssd.conf.5.xml:1598
 msgid "full_name_format (string)"
-msgstr "full_name_format (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:144
@@ -341,7 +334,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:158
 msgid "try_inotify (boolean)"
-msgstr "try_inotify (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:161
@@ -377,7 +370,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:186
 msgid "krb5_rcache_dir (string)"
-msgstr "krb5_rcache_dir (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:189
@@ -385,6 +378,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Katalog på filsystemet där SSSD skall lagra sparade återspolningsfiler från "
+"Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:193
@@ -491,7 +486,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:266
 msgid "debug_microseconds (bool)"
-msgstr "debug_microseconds (bool)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:269
@@ -505,12 +500,12 @@ msgstr ""
 #: sssd-ipa.5.xml:345 sssd-krb5.5.xml:244 sssd-krb5.5.xml:278
 #: sssd-krb5.5.xml:427
 msgid "Default: false"
-msgstr "Padrão: false"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:277
 msgid "timeout (integer)"
-msgstr "timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:280
@@ -522,7 +517,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:285 sssd-ldap.5.xml:1269
 msgid "Default: 10"
-msgstr "Padrão: 10"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:303
@@ -561,7 +556,7 @@ msgstr ""
 #: sssd.conf.5.xml:330 sssd.conf.5.xml:346 sssd.conf.5.xml:613
 #: sssd.conf.5.xml:773 sssd.conf.5.xml:1009 sssd-ldap.5.xml:1099
 msgid "Default: 60"
-msgstr "Padrão: 60"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:335 sssd.conf.5.xml:998
@@ -641,7 +636,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:400
 msgid "Default: 50"
-msgstr "Padrão: 50"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:405
@@ -694,47 +689,47 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:446 sssd-ad.5.xml:132
 msgid "override_homedir (string)"
-msgstr "override_homedir (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:455 sssd-ad.5.xml:141 sssd-krb5.5.xml:169
 msgid "%u"
-msgstr "%u"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:456 sssd-ad.5.xml:142 sssd-krb5.5.xml:170
 msgid "login name"
-msgstr "nome de login"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:459 sssd-ad.5.xml:145 sssd-krb5.5.xml:173
 msgid "%U"
-msgstr "%U"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:460 sssd-ad.5.xml:146
 msgid "UID number"
-msgstr "Número UID"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:463 sssd-ad.5.xml:149 sssd-krb5.5.xml:191
 msgid "%d"
-msgstr "%d"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:464 sssd-ad.5.xml:150
 msgid "domain name"
-msgstr "nome de domínio"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:467 sssd-ad.5.xml:153
 msgid "%f"
-msgstr "%f"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:468 sssd-ad.5.xml:154
 msgid "fully qualified user name (user@domain)"
-msgstr "nome totalmente qualificado do utilizador (utilizador@domínio)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:471
@@ -749,12 +744,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:478 sssd-ad.5.xml:157 sssd-krb5.5.xml:203
 msgid "%%"
-msgstr "%%"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:479 sssd-ad.5.xml:158 sssd-krb5.5.xml:204
 msgid "a literal '%'"
-msgstr "um literal '%'"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:449 sssd-ad.5.xml:135
@@ -830,7 +825,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:538
 msgid "allowed_shells (string)"
-msgstr "allowed_shells (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:541
@@ -877,7 +872,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:570
 msgid "vetoed_shells (string)"
-msgstr "vetoed_shells (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:573
@@ -887,7 +882,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:578
 msgid "shell_fallback (string)"
-msgstr "shell_fallback (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:581
@@ -898,7 +893,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:585
 msgid "Default: /bin/sh"
-msgstr "Padrão: /bin/sh"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:590 sssd-ad.5.xml:203
@@ -947,7 +942,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:625 sssd-ldap.5.xml:654
 msgid "Default: 300"
-msgstr "Padrão: 300"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:632
@@ -1055,12 +1050,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:711 sssd.8.xml:63
 msgid "Default: 1"
-msgstr "Padrão: 1"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:716
 msgid "pam_id_timeout (integer)"
-msgstr "pam_id_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:719
@@ -1082,7 +1077,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:739
 msgid "pam_pwd_expiration_warning (integer)"
-msgstr "pam_pwd_expiration_warning (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:742 sssd.conf.5.xml:1159
@@ -1270,12 +1265,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:917
 msgid "DOMAIN SECTIONS"
-msgstr "SECÇÕES DE DOMÍNIO"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:924
 msgid "min_id,max_id (integer)"
-msgstr "min_id,max_id (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:927
@@ -1303,12 +1298,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:943
 msgid "Default: 1 for min_id, 0 (no limit) for max_id"
-msgstr "Padrão: 1 para min_id, 0 (sem limite) para max_id"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:949
 msgid "enumerate (bool)"
-msgstr "enumerate (bool)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:952
@@ -1331,7 +1326,7 @@ msgstr ""
 #: sssd.conf.5.xml:962 sssd.conf.5.xml:1136 sssd.conf.5.xml:1238
 #: sssd.conf.5.xml:1255
 msgid "Default: FALSE"
-msgstr "Padrão: FALSE"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:965
@@ -1371,7 +1366,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1015
 msgid "entry_cache_timeout (integer)"
-msgstr "entry_cache_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1018
@@ -1383,7 +1378,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1022
 msgid "Default: 5400"
-msgstr "Padrão: 5400"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1028
@@ -1488,7 +1483,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1125
 msgid "cache_credentials (bool)"
-msgstr "cache_credentials (bool)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1128
@@ -1503,7 +1498,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1141
 msgid "account_cache_expiration (integer)"
-msgstr "account_cache_expiration (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1144
@@ -1517,7 +1512,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1151
 msgid "Default: 0 (unlimited)"
-msgstr "Padrão: 0 (ilimitado)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1156
@@ -1541,7 +1536,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1180
 msgid "id_provider (string)"
-msgstr "id_provider (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1183
@@ -1589,7 +1584,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1222
 msgid "use_fully_qualified_names (bool)"
-msgstr "use_fully_qualified_names (bool)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1225
@@ -1628,7 +1623,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1260
 msgid "auth_provider (string)"
-msgstr "auth_provider (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1263
@@ -1674,7 +1669,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1310
 msgid "access_provider (string)"
-msgstr "access_provider (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1313
@@ -1972,7 +1967,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1609
 msgid "Default: <quote>%1$s@%2$s</quote>."
-msgstr "Default: <quote>%1$s@%2$s</quote>."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1615
@@ -2014,12 +2009,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1637
 msgid "Default: ipv4_first"
-msgstr "Default: ipv4_first"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1643
 msgid "dns_resolver_timeout (integer)"
-msgstr "dns_resolver_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1646
@@ -2033,12 +2028,12 @@ msgstr ""
 #: sssd.conf.5.xml:1652 sssd-ldap.5.xml:1083 sssd-ldap.5.xml:1125
 #: sssd-ldap.5.xml:1140
 msgid "Default: 6"
-msgstr "Padrão: 6"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1658
 msgid "dns_discovery_domain (string)"
-msgstr "dns_discovery_domain (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1661
@@ -2055,7 +2050,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1671
 msgid "override_gid (integer)"
-msgstr "override_gid (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1674
@@ -2065,7 +2060,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1680
 msgid "case_sensitive (boolean)"
-msgstr "case_sensitive (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1683
@@ -2077,7 +2072,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1688
 msgid "Default: True"
-msgstr "Padrão: TRUE"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1694
@@ -2127,7 +2122,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1735
 msgid "proxy_pam_target (string)"
-msgstr "proxy_pam_target (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1738
@@ -2144,7 +2139,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1749
 msgid "proxy_lib_name (string)"
-msgstr "proxy_lib_name (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1752
@@ -2164,7 +2159,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:1764
 msgid "The local domain section"
-msgstr "A secção de domínio local"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:1766
@@ -2177,7 +2172,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1773
 msgid "default_shell (string)"
-msgstr "default_shell (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1776
@@ -2187,12 +2182,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1780
 msgid "Default: <filename>/bin/bash</filename>"
-msgstr "Padrão: <filename>bash/bin/bash</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1785
 msgid "base_directory (string)"
-msgstr "base_directory (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1788
@@ -2204,12 +2199,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1793
 msgid "Default: <filename>/home</filename>"
-msgstr "Padrão: <filename>/ home</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1798
 msgid "create_homedir (bool)"
-msgstr "create_homedir (bool)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1801
@@ -2221,12 +2216,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1805 sssd.conf.5.xml:1817
 msgid "Default: TRUE"
-msgstr "Padrão: TRUE"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1810
 msgid "remove_homedir (bool)"
-msgstr "remove_homedir (bool)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1813
@@ -2238,7 +2233,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1822
 msgid "homedir_umask (integer)"
-msgstr "homedir_umask (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1825
@@ -2251,12 +2246,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1833
 msgid "Default: 077"
-msgstr "Padrão: 077"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1838
 msgid "skel_dir (string)"
-msgstr "skel_dir (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1841
@@ -2270,12 +2265,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1851
 msgid "Default: <filename>/etc/skel</filename>"
-msgstr "Padrão: <filename>skel/etc/skel</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1856
 msgid "mail_dir (string)"
-msgstr "mail_dir (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1859
@@ -2288,12 +2283,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1866
 msgid "Default: <filename>/var/mail</filename>"
-msgstr "Padrão: <filename>mail/var/mail</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1871
 msgid "userdel_cmd (string)"
-msgstr "userdel_cmd (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1874
@@ -2306,13 +2301,13 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1880
 msgid "Default: None, no command is run"
-msgstr "Padrão: None, nenhum comando é executado"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:1890 sssd-ldap.5.xml:2329 sssd-simple.5.xml:131
 #: sssd-ipa.5.xml:612 sssd-ad.5.xml:229 sssd-krb5.5.xml:441
 msgid "EXAMPLE"
-msgstr "EXEMPLO"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:1896
@@ -2343,30 +2338,6 @@ msgid ""
 "max_id = 20000\n"
 "enumerate = False\n"
 msgstr ""
-"[sssd]\n"
-"domains = LDAP\n"
-"services = nss, pam\n"
-"config_file_version = 2\n"
-"\n"
-"[nss]\n"
-"filter_groups = root\n"
-"filter_users = root\n"
-"\n"
-"[pam]\n"
-"\n"
-"[domain/LDAP]\n"
-"id_provider = ldap\n"
-"ldap_uri = ldap://ldap.example.com\n"
-"ldap_search_base = dc=example,dc=com\n"
-"\n"
-"auth_provider = krb5\n"
-"krb5_server = kerberos.example.com\n"
-"krb5_realm = EXAMPLE.COM\n"
-"cache_credentials = true\n"
-"\n"
-"min_id = 10000\n"
-"max_id = 20000\n"
-"enumerate = False\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:1892
@@ -2380,7 +2351,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ldap.5.xml:10 sssd-ldap.5.xml:16
 msgid "sssd-ldap"
-msgstr "sssd-ldap"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:23
@@ -2413,7 +2384,7 @@ msgstr ""
 #: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:70 sssd-ad.5.xml:75
 #: sssd-krb5.5.xml:63
 msgid "CONFIGURATION OPTIONS"
-msgstr "OPÇÕES DE CONFIGURAÇÃO"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:60
@@ -2438,7 +2409,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:73
 msgid "ldap[s]://&lt;host&gt;[:port]"
-msgstr "ldap[s]://&lt;host&gt;[:port]"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:76
@@ -2473,12 +2444,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:99
 msgid "Default: empty, i.e. ldap_uri is used."
-msgstr "Padrão: empty, ou seja, ldap_uri é usado."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:105
 msgid "ldap_search_base (string)"
-msgstr "ldap_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:108
@@ -2495,7 +2466,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:116
 msgid "search_base[?scope?[filter][?search_base?scope?[filter]]*]"
-msgstr "search_base[?scope?[filter][?search_base?scope?[filter]]*]"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:119
@@ -2512,7 +2483,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:126
 msgid "Examples:"
-msgstr "Exemplos:"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:129
@@ -2520,8 +2491,6 @@ msgid ""
 "ldap_search_base = dc=example,dc=com (which is equivalent to)  "
 "ldap_search_base = dc=example,dc=com?subtree?"
 msgstr ""
-"ldap_search_base = dc=example,dc=com (which is equivalent to)  "
-"ldap_search_base = dc=example,dc=com?subtree?"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:134
@@ -2529,8 +2498,6 @@ msgid ""
 "ldap_search_base = cn=host_specific,dc=example,dc=com?subtree?"
 "(host=thishost)?dc=example.com?subtree?"
 msgstr ""
-"ldap_search_base = cn=host_specific,dc=example,dc=com?subtree?"
-"(host=thishost)?dc=example.com?subtree?"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:137
@@ -2746,12 +2713,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:322
 msgid "Default: homeDirectory"
-msgstr "Padrão: homeDirectory"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:328
 msgid "ldap_user_shell (string)"
-msgstr "ldap_user_shell (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:331
@@ -2761,12 +2728,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:335
 msgid "Default: loginShell"
-msgstr "Padrão: diret"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:341
 msgid "ldap_user_uuid (string)"
-msgstr "ldap_user_uuid (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:344
@@ -2776,7 +2743,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:348 sssd-ldap.5.xml:804 sssd-ldap.5.xml:990
 msgid "Default: nsUniqueId"
-msgstr "Padrão: nsUniqueId"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:354
@@ -2798,7 +2765,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:369
 msgid "ldap_user_modify_timestamp (string)"
-msgstr "ldap_user_modify_timestamp (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:372 sssd-ldap.5.xml:828 sssd-ldap.5.xml:999
@@ -2810,12 +2777,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:376 sssd-ldap.5.xml:832 sssd-ldap.5.xml:1006
 msgid "Default: modifyTimestamp"
-msgstr "Padrão: modifyTimestamp"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:382
 msgid "ldap_user_shadow_last_change (string)"
-msgstr "ldap_user_shadow_last_change (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:385
@@ -2829,12 +2796,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:395
 msgid "Default: shadowLastChange"
-msgstr "Padrão: shadowLastChange"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:401
 msgid "ldap_user_shadow_min (string)"
-msgstr "ldap_user_shadow_min (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:404
@@ -2848,12 +2815,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:413
 msgid "Default: shadowMin"
-msgstr "Padrão: shadowMin"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:419
 msgid "ldap_user_shadow_max (string)"
-msgstr "ldap_user_shadow_max (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:422
@@ -2867,12 +2834,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:431
 msgid "Default: shadowMax"
-msgstr "Padrão: shadowMax"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:437
 msgid "ldap_user_shadow_warning (string)"
-msgstr "ldap_user_shadow_warning (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:440
@@ -2886,12 +2853,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:450
 msgid "Default: shadowWarning"
-msgstr "Padrão: shadowWarning"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:456
 msgid "ldap_user_shadow_inactive (string)"
-msgstr "ldap_user_shadow_inactive (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:459
@@ -2905,12 +2872,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:469
 msgid "Default: shadowInactive"
-msgstr "Padrão: shadowInactive"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:475
 msgid "ldap_user_shadow_expire (string)"
-msgstr "ldap_user_shadow_expire (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:478
@@ -2924,12 +2891,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:488
 msgid "Default: shadowExpire"
-msgstr "Padrão: shadowExpire"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:494
 msgid "ldap_user_krb_last_pwd_change (string)"
-msgstr "ldap_user_krb_last_pwd_change (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:497
@@ -2942,12 +2909,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:503
 msgid "Default: krbLastPwdChange"
-msgstr "Padrão: krbLastPwdChange"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:509
 msgid "ldap_user_krb_password_expiration (string)"
-msgstr "ldap_user_krb_password_expiration (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:512
@@ -2959,7 +2926,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:518
 msgid "Default: krbPasswordExpiration"
-msgstr "Padrão: krbPasswordExpiration"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:524
@@ -3061,7 +3028,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:607
 msgid "ldap_user_principal (string)"
-msgstr "ldap_user_principal (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:610
@@ -3073,7 +3040,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:614
 msgid "Default: krbPrincipalName"
-msgstr "Padrão: krbPrincipalName"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:620
@@ -3088,7 +3055,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:630
 msgid "ldap_force_upper_case_realm (boolean)"
-msgstr "ldap_force_upper_case_realm (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:633
@@ -3102,7 +3069,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:646
 msgid "ldap_enumeration_refresh_timeout (integer)"
-msgstr "ldap_enumeration_refresh_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:649
@@ -3132,12 +3099,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:673
 msgid "Default: 10800 (12 hours)"
-msgstr "Padrão: 10800 (12 horas)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:679
 msgid "ldap_user_fullname (string)"
-msgstr "ldap_user_fullname (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:682
@@ -3149,7 +3116,7 @@ msgstr ""
 #: sssd-ldap.5.xml:1031 sssd-ldap.5.xml:1893 sssd-ldap.5.xml:2219
 #: sssd-ipa.5.xml:467
 msgid "Default: cn"
-msgstr "Padrão: NC"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:692
@@ -3194,7 +3161,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:726
 msgid "ldap_user_authorized_host (string)"
-msgstr "ldap_user_authorized_host (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:729
@@ -3214,7 +3181,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:740
 msgid "Default: host"
-msgstr "Padrão: host"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:746
@@ -3441,12 +3408,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:973
 msgid "Default: nisNetgroupTriple"
-msgstr "Padrão: nisNetgroupTriple"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:979
 msgid "ldap_netgroup_uuid (string)"
-msgstr "ldap_netgroup_uuid (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:982
@@ -3462,7 +3429,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:996
 msgid "ldap_netgroup_modify_timestamp (string)"
-msgstr "ldap_netgroup_modify_timestamp (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1012
@@ -3530,7 +3497,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1068
 msgid "ldap_search_timeout (integer)"
-msgstr "ldap_search_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1071
@@ -3564,7 +3531,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1105
 msgid "ldap_network_timeout (integer)"
-msgstr "ldap_network_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1108
@@ -3580,7 +3547,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1131
 msgid "ldap_opt_timeout (integer)"
-msgstr "ldap_opt_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1134
@@ -3612,7 +3579,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1163
 msgid "ldap_page_size (integer)"
-msgstr "ldap_page_size (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1166
@@ -3624,7 +3591,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1171
 msgid "Default: 1000"
-msgstr "Padrão: 1000"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1177
@@ -3731,7 +3698,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1275
 msgid "ldap_tls_reqcert (string)"
-msgstr "ldap_tls_reqcert (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1278
@@ -3746,8 +3713,6 @@ msgid ""
 "<emphasis>never</emphasis> = The client will not request or check any server "
 "certificate."
 msgstr ""
-"<emphasis>never</emphasis> = O cliente não irá solicitar ou verificar "
-"qualquer certificado de servidor."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1288
@@ -3781,12 +3746,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1311
 msgid "Default: hard"
-msgstr "Padrão: hard"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1317
 msgid "ldap_tls_cacert (string)"
-msgstr "ldap_tls_cacert (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1320
@@ -3805,7 +3770,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1332
 msgid "ldap_tls_cacertdir (string)"
-msgstr "ldap_tls_cacertdir (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1335
@@ -3852,7 +3817,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1391
 msgid "ldap_id_use_start_tls (boolean)"
-msgstr "ldap_id_use_start_tls (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1394
@@ -3882,7 +3847,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1423
 msgid "ldap_sasl_mech (string)"
-msgstr "ldap_sasl_mech (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1426
@@ -3894,7 +3859,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1436
 msgid "ldap_sasl_authid (string)"
-msgstr "ldap_sasl_authid (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1439
@@ -3931,7 +3896,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1468
 msgid "ldap_sasl_canonicalize (boolean)"
-msgstr "ldap_sasl_canonicalize (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1471
@@ -3943,12 +3908,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1476
 msgid "Default: false;"
-msgstr "Padrão: false;"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1482
 msgid "ldap_krb5_keytab (string)"
-msgstr "ldap_krb5_keytab (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1485
@@ -3959,12 +3924,11 @@ msgstr ""
 #: sssd-ldap.5.xml:1488
 msgid "Default: System keytab, normally <filename>/etc/krb5.keytab</filename>"
 msgstr ""
-"Padrão: Sistema keytab, normalmente <filename>/etc/krb5.keytab</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1494
 msgid "ldap_krb5_init_creds (boolean)"
-msgstr "ldap_krb5_init_creds (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1497
@@ -3977,7 +3941,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1509
 msgid "ldap_krb5_ticket_lifetime (integer)"
-msgstr "ldap_krb5_ticket_lifetime (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1512
@@ -3987,7 +3951,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1516
 msgid "Default: 86400 (24 hours)"
-msgstr "Padrão: 86400 (24 horas)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1522 sssd-krb5.5.xml:74
@@ -4025,7 +3989,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1551 sssd-ipa.5.xml:260 sssd-krb5.5.xml:103
 msgid "krb5_realm (string)"
-msgstr "krb5_realm (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1554
@@ -4040,7 +4004,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1563 sssd-ipa.5.xml:275 sssd-krb5.5.xml:418
 msgid "krb5_canonicalize (boolean)"
-msgstr "krb5_canonicalize (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1566
@@ -4052,7 +4016,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1578
 msgid "ldap_pwd_policy (string)"
-msgstr "ldap_pwd_policy (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1581
@@ -4087,7 +4051,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1603
 msgid "Default: none"
-msgstr "Padrão: none"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1609
@@ -4303,7 +4267,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1791
 msgid "Default: filter"
-msgstr "Padrão: filter"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1794
@@ -4315,7 +4279,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1801
 msgid "ldap_deref (string)"
-msgstr "ldap_deref (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1804
@@ -4801,29 +4765,27 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:2243
 msgid "ADVANCED OPTIONS"
-msgstr "OPÇÕES AVANÇADAS"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2250
 msgid "ldap_netgroup_search_base (string)"
-msgstr "ldap_netgroup_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2255
 msgid "ldap_user_search_base (string)"
-msgstr "ldap_user_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2260
 msgid "ldap_group_search_base (string)"
-msgstr "ldap_group_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2265
-#, fuzzy
-#| msgid "ldap_user_search_base (string)"
 msgid "ldap_user_search_filter (string)"
-msgstr "ldap_user_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2268
@@ -4856,10 +4818,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2292
-#, fuzzy
-#| msgid "ldap_group_search_base (string)"
 msgid "ldap_group_search_filter (string)"
-msgstr "ldap_group_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2295
@@ -4919,13 +4879,13 @@ msgstr ""
 #: sssd-ad.5.xml:237 sssd-sudo.5.xml:56 sssd-sudo.5.xml:78 sssd-krb5.5.xml:450
 #: include/ldap_id_mapping.xml:63
 msgid "<placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr "<placeholder type=\"programlisting\" id=\"0\"/>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:2349 sssd_krb5_locator_plugin.8.xml:61 sssd-ad.5.xml:252
 #: sssd.8.xml:191 sss_seed.8.xml:163
 msgid "NOTES"
-msgstr "NOTAS"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:2351
@@ -4946,12 +4906,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: pam_sss.8.xml:13 pam_sss.8.xml:18
 msgid "pam_sss"
-msgstr "pam_sss"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: pam_sss.8.xml:19
 msgid "PAM module for SSSD"
-msgstr "Módulo PAM para SSSD"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss.8.xml:24
@@ -4975,7 +4935,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:55
 msgid "<option>quiet</option>"
-msgstr "<option>quiet</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:58
@@ -4985,7 +4945,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:63
 msgid "<option>forward_pass</option>"
-msgstr "<option>forward_pass</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:66
@@ -4997,7 +4957,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:73
 msgid "<option>use_first_pass</option>"
-msgstr "<option>use_first_pass</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:76
@@ -5010,7 +4970,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:84
 msgid "<option>use_authtok</option>"
-msgstr "<option>use_authtok</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:87
@@ -5022,7 +4982,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:94
 msgid "<option>retry=N</option>"
-msgstr "<option>retry=N</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:97
@@ -5042,7 +5002,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:110
 msgid "MODULE TYPES PROVIDED"
-msgstr "MÓDULOS TIPO FORNECIDOS"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:111
@@ -5054,7 +5014,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:117
 msgid "FILES"
-msgstr "FICHEIROS"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:118
@@ -5087,7 +5047,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd_krb5_locator_plugin.8.xml:10 sssd_krb5_locator_plugin.8.xml:15
 msgid "sssd_krb5_locator_plugin"
-msgstr "sssd_krb5_locator_plugin"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:22
@@ -5134,7 +5094,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-simple.5.xml:10 sssd-simple.5.xml:16
 msgid "sssd-simple"
-msgstr "sssd-simple"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-simple.5.xml:17
@@ -5326,7 +5286,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:78
 msgid "ipa_domain (string)"
-msgstr "ipa_domain (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:81
@@ -5353,7 +5313,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:105
 msgid "ipa_hostname (string)"
-msgstr "ipa_hostname (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:108
@@ -5364,10 +5324,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:116
-#, fuzzy
-#| msgid "case_sensitive (boolean)"
 msgid "ipa_dyndns_update (boolean)"
-msgstr "case_sensitive (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:119
@@ -5385,10 +5343,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:135
-#, fuzzy
-#| msgid "ipa_hostname (string)"
 msgid "ipa_dyndns_iface (string)"
-msgstr "ipa_hostname (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:138
@@ -5405,7 +5361,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:149
 msgid "ipa_hbac_search_base (string)"
-msgstr "ipa_hbac_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:152
@@ -5415,7 +5371,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:156
 msgid "Default: Use base DN"
-msgstr "Default: Use base DN"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:162
@@ -5491,7 +5447,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:243 sssd-krb5.5.xml:232
 msgid "krb5_validate (boolean)"
-msgstr "krb5_validate (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:246
@@ -5578,7 +5534,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:328
 msgid "Default: DENY_ALL"
-msgstr "Padrão: DENY_ALL"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:333
@@ -5616,10 +5572,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:364
-#, fuzzy
-#| msgid "ldap_netgroup_search_base (string)"
 msgid "ipa_netgroup_member_of (string)"
-msgstr "ldap_netgroup_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:367
@@ -5628,10 +5582,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:376
-#, fuzzy
-#| msgid "ldap_netgroup_search_base (string)"
 msgid "ipa_netgroup_member_user (string)"
-msgstr "ldap_netgroup_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:379
@@ -5642,17 +5594,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:384 sssd-ipa.5.xml:479
-#, fuzzy
-#| msgid "Default: True"
 msgid "Default: memberUser"
-msgstr "Padrão: TRUE"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:389
-#, fuzzy
-#| msgid "ldap_netgroup_search_base (string)"
 msgid "ipa_netgroup_member_host (string)"
-msgstr "ldap_netgroup_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:392
@@ -5663,17 +5611,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:396 sssd-ipa.5.xml:491
-#, fuzzy
-#| msgid "Default: host"
 msgid "Default: memberHost"
-msgstr "Padrão: host"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:401
-#, fuzzy
-#| msgid "ldap_netgroup_search_base (string)"
 msgid "ipa_netgroup_member_ext_host (string)"
-msgstr "ldap_netgroup_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:404
@@ -5684,17 +5628,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:408
-#, fuzzy
-#| msgid "Default: host"
 msgid "Default: externalHost"
-msgstr "Padrão: host"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:413
-#, fuzzy
-#| msgid "ipa_domain (string)"
 msgid "ipa_netgroup_domain (string)"
-msgstr "ipa_domain (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:416
@@ -5703,17 +5643,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:420
-#, fuzzy
-#| msgid "Default: none"
 msgid "Default: nisDomainName"
-msgstr "Padrão: none"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:426
-#, fuzzy
-#| msgid "ipa_hostname (string)"
 msgid "ipa_host_object_class (string)"
-msgstr "ipa_hostname (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:429 sssd-ipa.5.xml:452
@@ -5722,17 +5658,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:432 sssd-ipa.5.xml:455
-#, fuzzy
-#| msgid "Default: host"
 msgid "Default: ipaHost"
-msgstr "Padrão: host"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:437
-#, fuzzy
-#| msgid "ipa_hostname (string)"
 msgid "ipa_host_fqdn (string)"
-msgstr "ipa_hostname (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:440
@@ -5741,24 +5673,18 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:443
-#, fuzzy
-#| msgid "Default: cn"
 msgid "Default: fqdn"
-msgstr "Padrão: NC"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:449
-#, fuzzy
-#| msgid "ipa_hbac_search_base (string)"
 msgid "ipa_selinux_usermap_object_class (string)"
-msgstr "ipa_hbac_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:460
-#, fuzzy
-#| msgid "ldap_user_fullname (string)"
 msgid "ipa_selinux_usermap_name (string)"
-msgstr "ldap_user_fullname (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:463
@@ -5767,10 +5693,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:472
-#, fuzzy
-#| msgid "ipa_hbac_search_base (string)"
 msgid "ipa_selinux_usermap_member_user (string)"
-msgstr "ipa_hbac_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:475
@@ -5792,10 +5716,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:496
-#, fuzzy
-#| msgid "ldap_user_search_base (string)"
 msgid "ipa_selinux_usermap_see_also (string)"
-msgstr "ldap_user_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:499
@@ -5806,10 +5728,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:504
-#, fuzzy
-#| msgid "Default: false"
 msgid "Default: seeAlso"
-msgstr "Padrão: false"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:509
@@ -5823,17 +5743,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:516
-#, fuzzy
-#| msgid "Default: false"
 msgid "Default: ipaSELinuxUser"
-msgstr "Padrão: false"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:521
-#, fuzzy
-#| msgid "ipa_hbac_search_base (string)"
 msgid "ipa_selinux_usermap_enabled (string)"
-msgstr "ipa_hbac_search_base (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:524
@@ -5844,17 +5760,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:528
-#, fuzzy
-#| msgid "Default: false"
 msgid "Default: ipaEnabledFlag"
-msgstr "Padrão: false"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:533
-#, fuzzy
-#| msgid "base_directory (string)"
 msgid "ipa_selinux_usermap_user_category (string)"
-msgstr "base_directory (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:536
@@ -5863,17 +5775,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:540
-#, fuzzy
-#| msgid "Default: homeDirectory"
 msgid "Default: userCategory"
-msgstr "Padrão: homeDirectory"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:545
-#, fuzzy
-#| msgid "ldap_user_shadow_last_change (string)"
 msgid "ipa_selinux_usermap_host_category (string)"
-msgstr "ldap_user_shadow_last_change (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:548
@@ -5882,17 +5790,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:552
-#, fuzzy
-#| msgid "Default: host"
 msgid "Default: hostCategory"
-msgstr "Padrão: host"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:557
-#, fuzzy
-#| msgid "ldap_user_uuid (string)"
 msgid "ipa_selinux_usermap_uuid (string)"
-msgstr "ldap_user_uuid (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:560
@@ -5901,17 +5805,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:564
-#, fuzzy
-#| msgid "Default: nsUniqueId"
 msgid "Default: ipaUniqueID"
-msgstr "Padrão: nsUniqueId"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:569
-#, fuzzy
-#| msgid "ipa_hostname (string)"
 msgid "ipa_host_ssh_public_key (string)"
-msgstr "ipa_hostname (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:572
@@ -5920,10 +5820,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:576
-#, fuzzy
-#| msgid "Default: false"
 msgid "Default: ipaSshPubKey"
-msgstr "Padrão: false"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ipa.5.xml:585
@@ -5974,10 +5872,6 @@ msgid ""
 "    ipa_server = ipaserver.example.com\n"
 "    ipa_hostname = myhost.example.com\n"
 msgstr ""
-"    [domain/example.com]\n"
-"    id_provider = ipa\n"
-"    ipa_server = ipaserver.example.com\n"
-"    ipa_hostname = myhost.example.com\n"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ad.5.xml:10 sssd-ad.5.xml:16
@@ -6340,12 +6234,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.8.xml:10 sssd.8.xml:15
 msgid "sssd"
-msgstr "sssd"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd.8.xml:16
 msgid "System Security Services Daemon"
-msgstr "Daemon de serviços de segurança do sistema"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sssd.8.xml:21
@@ -6353,8 +6247,6 @@ msgid ""
 "<command>sssd</command> <arg choice='opt'> <replaceable>options</"
 "replaceable> </arg>"
 msgstr ""
-"<command>sssd</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:31
@@ -6374,13 +6266,11 @@ msgid ""
 "<option>-d</option>,<option>--debug-level</option> <replaceable>LEVEL</"
 "replaceable>"
 msgstr ""
-"<option>-d</option>,<option>--debug-level</option> <replaceable>LEVEL</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:53
 msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
-msgstr "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:57
@@ -6411,7 +6301,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:85
 msgid "<option>-f</option>,<option>--debug-to-files</option>"
-msgstr "<option>-f</option>,<option>--debug-to-files</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:89
@@ -6424,27 +6314,27 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:97
 msgid "<option>-D</option>,<option>--daemon</option>"
-msgstr "<option>-D</option>,<option>--daemon</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:101
 msgid "Become a daemon after starting up."
-msgstr "Tornar-se um daemon após a instalação."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:107 sss_seed.8.xml:136
 msgid "<option>-i</option>,<option>--interactive</option>"
-msgstr "<option>-i</option>,<option>--interactive</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:111
 msgid "Run in the foreground, don't become a daemon."
-msgstr "Executar em primeiro plano, não se torne um daemon."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:117 sss_debuglevel.8.xml:42
 msgid "<option>-c</option>,<option>--config</option>"
-msgstr "<option>-c</option>,<option>--config</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:121 sss_debuglevel.8.xml:46
@@ -6458,22 +6348,22 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:135
 msgid "<option>--version</option>"
-msgstr "<option>--version</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:139
 msgid "Print version number and exit."
-msgstr "Imprimir o número da versão e sair."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.8.xml:147
 msgid "Signals"
-msgstr "Sinais"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:150
 msgid "SIGTERM/SIGINT"
-msgstr "SIGTERM/SIGINT"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:153
@@ -6485,7 +6375,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:159
 msgid "SIGHUP"
-msgstr "SIGHUP"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:162
@@ -6498,7 +6388,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:170
 msgid "SIGUSR1"
-msgstr "SIGUSR1"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:173
@@ -6510,7 +6400,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:179
 msgid "SIGUSR2"
-msgstr "SIGUSR2"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.8.xml:182
@@ -6529,12 +6419,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_obfuscate.8.xml:10 sss_obfuscate.8.xml:15
 msgid "sss_obfuscate"
-msgstr "sss_obfuscate"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_obfuscate.8.xml:16
 msgid "obfuscate a clear text password"
-msgstr "ofuscar uma senha de texto não criptografado"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_obfuscate.8.xml:21
@@ -6543,9 +6433,6 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>[PASSWORD]</"
 "replaceable></arg>"
 msgstr ""
-"<command>sss_obfuscate</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>[PASSWORD]</"
-"replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:32
@@ -6580,7 +6467,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_obfuscate.8.xml:63
 msgid "<option>-s</option>,<option>--stdin</option>"
-msgstr "<option>-s</option>,<option>--stdin</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_obfuscate.8.xml:67
@@ -6594,8 +6481,6 @@ msgid ""
 "<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
 "replaceable>"
 msgstr ""
-"<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
-"replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_obfuscate.8.xml:79
@@ -6609,7 +6494,6 @@ msgstr ""
 msgid ""
 "<option>-f</option>,<option>--file</option> <replaceable>FILE</replaceable>"
 msgstr ""
-"<option>-f</option>,<option>--file</option> <replaceable>FILE</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_obfuscate.8.xml:91
@@ -6869,12 +6753,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:129
 msgid "Default: Use the KDC"
-msgstr "Padrão: Usar o KDC"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:135
 msgid "krb5_ccachedir (string)"
-msgstr "krb5_ccachedir (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:138
@@ -6891,12 +6775,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:152
 msgid "Default: /tmp"
-msgstr "Padrão: /tmp."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:158
 msgid "krb5_ccname_template (string)"
-msgstr "krb5_ccname_template (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:174
@@ -6906,27 +6790,27 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:177
 msgid "%p"
-msgstr "%p"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:178
 msgid "principal name"
-msgstr "nome principal"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:182
 msgid "%r"
-msgstr "%r"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:183
 msgid "realm name"
-msgstr "nome de território"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:186
 msgid "%h"
-msgstr "%h"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:187
@@ -6941,7 +6825,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:197
 msgid "%P"
-msgstr "%P"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:198
@@ -6968,7 +6852,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:218
 msgid "krb5_auth_timeout (integer)"
-msgstr "krb5_auth_timeout (integer)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:221
@@ -6992,7 +6876,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:250
 msgid "krb5_keytab (string)"
-msgstr "krb5_keytab (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:253
@@ -7004,12 +6888,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:257
 msgid "Default: /etc/krb5.keytab"
-msgstr "Padrão: /etc/krb5.keytab"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:263
 msgid "krb5_store_password_if_offline (boolean)"
-msgstr "krb5_store_password_if_offline (boolean)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:266
@@ -7029,7 +6913,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:284
 msgid "krb5_renewable_lifetime (string)"
-msgstr "krb5_renewable_lifetime (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:287
@@ -7073,12 +6957,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:313
 msgid "Default: not set, i.e. the TGT is not renewable"
-msgstr "Padrão: não definido, ou seja, o TGT não é renovável"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:319
 msgid "krb5_lifetime (string)"
-msgstr "krb5_lifetime (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:322
@@ -7107,10 +6991,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:354
-#, fuzzy
-#| msgid "krb5_renewable_lifetime (string)"
 msgid "krb5_renew_interval (integer)"
-msgstr "krb5_renewable_lifetime (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:357
@@ -7178,7 +7060,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:409
 msgid "krb5_fast_principal (string)"
-msgstr "krb5_fast_principal (string)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:412
@@ -7334,12 +7216,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_groupdel.8.xml:10 sss_groupdel.8.xml:15
 msgid "sss_groupdel"
-msgstr "sss_groupdel"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupdel.8.xml:16
 msgid "delete a group"
-msgstr "excluir um grupo"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupdel.8.xml:21
@@ -7348,9 +7230,6 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_groupdel</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupdel.8.xml:32
@@ -7362,7 +7241,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_groupshow.8.xml:10 sss_groupshow.8.xml:15
 msgid "sss_groupshow"
-msgstr "sss_groupshow"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupshow.8.xml:16
@@ -7376,9 +7255,6 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_groupshow</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>GROUP</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupshow.8.xml:32
@@ -7391,7 +7267,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_groupshow.8.xml:43
 msgid "<option>-R</option>,<option>--recursive</option>"
-msgstr "<option>-R</option>,<option>--recursive</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_groupshow.8.xml:47
@@ -7404,12 +7280,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_usermod.8.xml:10 sss_usermod.8.xml:15
 msgid "sss_usermod"
-msgstr "sss_usermod"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_usermod.8.xml:16
 msgid "modify a user account"
-msgstr "modificar uma conta de utilizador"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_usermod.8.xml:21
@@ -7418,9 +7294,6 @@ msgid ""
 "replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
 "arg>"
 msgstr ""
-"<command>sss_usermod</command> <arg choice='opt'> <replaceable>options</"
-"replaceable> </arg> <arg choice='plain'><replaceable>LOGIN</replaceable></"
-"arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_usermod.8.xml:32
@@ -7458,23 +7331,22 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:103
 msgid "<option>-l</option>,<option>--lock</option>"
-msgstr "<option>-l</option>,<option>--lock</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:107
 msgid "Lock the user account. The user won't be able to log in."
 msgstr ""
-"Bloquear a conta do utilizador. O utilizador não será capaz de efetuar login."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_usermod.8.xml:114
 msgid "<option>-u</option>,<option>--unlock</option>"
-msgstr "<option>-u</option>,<option>--unlock</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:118
 msgid "Unlock the user account."
-msgstr "Desbloquear a conta de utilizador."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_usermod.8.xml:129
@@ -7935,7 +7807,7 @@ msgstr ""
 #. type: Content of: <refsect1><title>
 #: include/service_discovery.xml:2
 msgid "SERVICE DISCOVERY"
-msgstr "DESCOBERTA DE SERVIÇOS"
+msgstr ""
 
 #. type: Content of: <refsect1><para>
 #: include/service_discovery.xml:4
@@ -7948,7 +7820,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><title>
 #: include/service_discovery.xml:9 include/ldap_id_mapping.xml:57
 msgid "Configuration"
-msgstr "Configuração"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/service_discovery.xml:11
@@ -7965,7 +7837,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><title>
 #: include/service_discovery.xml:23
 msgid "The domain name"
-msgstr "O nome de domínio"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/service_discovery.xml:25
@@ -7978,7 +7850,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><title>
 #: include/service_discovery.xml:35
 msgid "The protocol"
-msgstr "O protocolo"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/service_discovery.xml:37
@@ -7990,7 +7862,7 @@ msgstr ""
 #. type: Content of: <refsect1><refsect2><title>
 #: include/service_discovery.xml:42
 msgid "See Also"
-msgstr "Ver também"
+msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/service_discovery.xml:44
@@ -8001,7 +7873,7 @@ msgstr ""
 #. type: Content of: outside any tag (error?)
 #: include/upstream.xml:1
 msgid "<placeholder type=\"refentryinfo\" id=\"0\"/>"
-msgstr "<placeholder type=\"refentryinfo\" id=\"0\"/>"
+msgstr ""
 
 #. type: Content of: <refsect1><title>
 #: include/failover.xml:2
@@ -8302,12 +8174,12 @@ msgstr ""
 #. type: Content of: <varlistentry><listitem><para>
 #: include/param_help.xml:7 include/param_help_py.xml:7
 msgid "Display help message and exit."
-msgstr "Exibe a mensagem de ajuda e sai."
+msgstr ""
 
 #. type: Content of: <varlistentry><term>
 #: include/param_help_py.xml:3
 msgid "<option>-h</option>,<option>--help</option>"
-msgstr "<option>-h</option>,<option>--help</option>"
+msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:3
@@ -8446,7 +8318,7 @@ msgstr ""
 #. type: Content of: <refsect1><title>
 #: include/seealso.xml:2
 msgid "SEE ALSO"
-msgstr "VER TAMBÉM"
+msgstr "SE ÄVEN"
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
@@ -8543,3 +8415,16 @@ msgid ""
 "any autofs-related changes are made to the sssd.conf, you typically also "
 "need to restart the automounter daemon after restarting the SSSD."
 msgstr ""
+
+#~ msgid "Add an attribute/value pair. The format is attrname=value."
+#~ msgstr "Lägg till ett attribut/värde-par.  Formatet är attrnamn=värde."
+
+#~ msgid ""
+#~ "Set an attribute to a name/value pair. The format is attrname=value. For "
+#~ "multi-valued attributes, the command replaces the values already present"
+#~ msgstr ""
+#~ "Sätt ett attribut till ett namn/värde-par.  Formatet är attrnamn=värde.  "
+#~ "För flervärda attribut ersätter kommandot de värden som redan finns."
+
+#~ msgid "Delete an attribute/value pair. The format is attrname=value."
+#~ msgstr "Ta bort ett attribut/värde-par.  Formatet är attrnamn=värde."

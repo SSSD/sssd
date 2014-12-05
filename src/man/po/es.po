@@ -3,9 +3,9 @@
 # This file is distributed under the same license as the sssd-docs package.
 #
 # Translators:
-# Adolfo Jayme Barrientos <fitoschido@ubuntu.com>, 2012
-# Gumbo72 <carlosantolin@hotmail.es>, 2012
-# Domingo Becker <domingobecker@gmail.com>, 2013
+# Adolfo Jayme Barrientos <fito@libreoffice.org>, 2012
+# Carlos Antolín Lucas <carlosantolin@hotmail.es>, 2012
+# beckerde <domingobecker@gmail.com>, 2013
 # Eduardo Villagrán M <gotencool@gmail.com>, 2011
 # Eduardo Villagrán M <gotencool@gmail.com>, 2011
 # vareli <ehespinosa@ya.com>, 2013
@@ -15,10 +15,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-07-24 12:28+0000\n"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
-"Language-Team: Spanish (http://www.transifex.com/projects/p/fedora/language/"
+"Language-Team: Spanish (http://www.transifex.com/projects/p/sssd/language/"
 "es/)\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -280,10 +280,6 @@ msgid ""
 "\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder\">, pac</"
 "phrase>"
 msgstr ""
-"Servicios soportados: nss, pam <phrase condition=\"with_sudo\">, sudo</"
-"phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
-"condition=\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder"
-"\">, pac</phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:98 sssd.conf.5.xml:290
@@ -889,12 +885,15 @@ msgstr "Esta opción puede ser también fijada por dominio."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:490 sssd.conf.5.xml:514 sssd-ad.5.xml:169
-#, no-wrap
+#, fuzzy, no-wrap
+#| msgid ""
+#| "fallback_homedir = /home/%u\n"
+#| "                            "
 msgid ""
 "override_homedir = /home/%u\n"
 "                            "
 msgstr ""
-"override_homedir = /home/%u\n"
+"fallback_homedir = /home/%u\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -946,8 +945,6 @@ msgid ""
 "Override the login shell for all users. This option can be specified "
 "globally in the [nss] section or per-domain."
 msgstr ""
-"Anula la shell de acceso de todos los usuarios. Esta opción puede ser "
-"especificada globalmente en la sección [nss] o por dominio."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:532
@@ -1050,9 +1047,6 @@ msgid ""
 "This option supersedes any other shell options if it takes effect and can be "
 "set either in the [nss] section or per-domain."
 msgstr ""
-"La shell por defecto a usar si el proveedor no devuelve una durante la "
-"búsqueda. Esta opción reemplaza cualquier otra opción de shell si toman "
-"efecto y puede fijada en la sección [nss] o por dominio."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:599 sssd-ad.5.xml:212
@@ -1304,8 +1298,10 @@ msgstr "SUDO opciones de configuración"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:783
+#, fuzzy
+#| msgid "These options can be used to configure the autofs service."
 msgid "These options can be used to configure the sudo service."
-msgstr "Estas opciones pueden ser usadas para configurar el servicio sudo."
+msgstr "Estas opciones pueden ser usadas para configurar el servicio autofs."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:787
@@ -1715,10 +1711,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1110
+#, fuzzy
+#| msgid ""
+#| "Specifies how many seconds SSSD has to wait before refreshing its cache "
+#| "of enumerated records."
 msgid ""
 "Specifies how many seconds SSSD has to wait before refreshing expired "
 "records. Currently only refreshing expired netgroups is supported."
 msgstr ""
+"Especifica cuantos segundos SSSD tiene que esperar antes de refrescar su "
+"escondrijo de los registros enumerados."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1115
@@ -4922,13 +4924,6 @@ msgid ""
 "set, it will result in all users being denied access.  Use access_provider = "
 "permit to change this default behavior."
 msgstr ""
-"Si se usa access_provider = ldap and ldap_access_order = filter (por "
-"defecto), esta opción es obligatoria. Especifica un criterio de filtro de "
-"búsqueda LDAP que debe ser encontrado para que el usuario obtenga acceso en "
-"este host. Si access_provider = ldap, ldap_access_order = filter y esta "
-"opción no está fijada, resultará que se denegará el acceso a todos los "
-"usuarios. Use  access_provider = permit para cambiar este comportamiento por "
-"defecto."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1692 sssd-ldap.5.xml:2279
@@ -4943,9 +4938,6 @@ msgid ""
 "ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com\n"
 "                        "
 msgstr ""
-"access_provider = ldap\n"
-"ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com\n"
-"                        "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1699
@@ -4953,8 +4945,6 @@ msgid ""
 "This example means that access to this host is restricted to members of the "
 "\"allowedusers\" group in ldap."
 msgstr ""
-"Este ejemplo significa que el acceso a este host está restringido a miembros "
-"del grupo “allowedusers” en ldap."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1704
@@ -5661,10 +5651,6 @@ msgid ""
 "<placeholder type=\"variablelist\" id=\"3\"/> <placeholder type="
 "\"variablelist\" id=\"4\"/>"
 msgstr ""
-"<placeholder type=\"variablelist\" id=\"0\"/> <placeholder type="
-"\"variablelist\" id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/> "
-"<placeholder type=\"variablelist\" id=\"3\"/> <placeholder type="
-"\"variablelist\" id=\"4\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:2243
@@ -5688,8 +5674,10 @@ msgstr "ldap_group_search_base (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2265
+#, fuzzy
+#| msgid "ldap_user_search_base (string)"
 msgid "ldap_user_search_filter (string)"
-msgstr "ldap_user_search_filter (cadena)"
+msgstr "ldap_user_search_base (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2268
@@ -5697,8 +5685,6 @@ msgid ""
 "This option specifies an additional LDAP search filter criteria that "
 "restrict user searches."
 msgstr ""
-"Esta opción especifica un criterio de filtro de búsqueda LDAP adicional que "
-"restringe las búsquedas del usuario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2272
@@ -5706,8 +5692,6 @@ msgid ""
 "This option is <emphasis>deprecated</emphasis> in favor of the syntax used "
 "by ldap_user_search_base."
 msgstr ""
-"Esta opción está <emphasis>obsoleta</emphasis> en favor de la sintaxis "
-"utilizada por ldap_user_search_base."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-ldap.5.xml:2282
@@ -5716,8 +5700,6 @@ msgid ""
 "                            ldap_user_search_filter = (loginShell=/bin/tcsh)\n"
 "                        "
 msgstr ""
-"                            ldap_user_search_filter = (loginShell=/bin/tcsh)\n"
-"                        "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2285
@@ -5725,13 +5707,13 @@ msgid ""
 "This filter would restrict user searches to users that have their shell set "
 "to /bin/tcsh."
 msgstr ""
-"Este filtro restringiría las búsquedas del usuario a los usuario que tengan "
-"su shell fijado en /bin/tcsh."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2292
+#, fuzzy
+#| msgid "ldap_group_search_base (string)"
 msgid "ldap_group_search_filter (string)"
-msgstr "ldap_group_search_filter (cadena)"
+msgstr "ldap_group_search_base (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2295
@@ -5739,8 +5721,6 @@ msgid ""
 "This option specifies an additional LDAP search filter criteria that "
 "restrict group searches."
 msgstr ""
-"Esta opción especifica un criterio de filtro de búsqueda LDAP adicional que "
-"restringe las búsquedas de grupo."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2299
@@ -5748,8 +5728,6 @@ msgid ""
 "This option is <emphasis>deprecated</emphasis> in favor of the syntax used "
 "by ldap_group_search_base."
 msgstr ""
-"Esta opción está <emphasis>obsoleta</emphasis> en favor de la sintaxis "
-"utilizada por ldap_user_search_base."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2309
@@ -5851,6 +5829,12 @@ msgstr "Módulo PAM para SSSD"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss.8.xml:24
+#, fuzzy
+#| msgid ""
+#| "<command>sss_seed</command> <arg choice='opt'> <replaceable>options</"
+#| "replaceable> </arg> <arg choice='plain'>-D <replaceable>DOMAIN</"
+#| "replaceable></arg> <arg choice='plain'>-n <replaceable>USER</"
+#| "replaceable></arg>"
 msgid ""
 "<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
@@ -5859,11 +5843,9 @@ msgid ""
 "replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> </"
 "arg>"
 msgstr ""
-"<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
-"replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
-"replaceable> </arg> <arg choice='opt'> <replaceable>use_first_pass</"
-"replaceable> </arg> <arg choice='opt'> <replaceable>use_authtok</"
-"replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> </"
+"<command>sss_seed</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'>-D <replaceable>DOMAIN</"
+"replaceable></arg> <arg choice='plain'>-n <replaceable>USER</replaceable></"
 "arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -6038,17 +6020,6 @@ msgid ""
 "<refentrytitle>sssd-krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry>"
 msgstr ""
-"El plugin localizador Kerberos <command>sssd_krb5_locator_plugin</command> "
-"se usa por el proveedor Kerberos de <citerefentry> <refentrytitle>sssd</"
-"refentrytitle> <manvolnum>8</manvolnum> </citerefentry> para decir a las "
-"librerías Kerberos que Reino y que KDC usar. Normalmente esto se hace en "
-"<citerefentry> <refentrytitle>krb5.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> que es siempre leído por las librerías Kerberos. "
-"Para simplificar la configuración del Reino y el KDC puede ser definido en "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> como se describe en <citerefentry> "
-"<refentrytitle>sssd-krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:48
@@ -6482,9 +6453,6 @@ msgid ""
 "<emphasis>ipa_hbac_support_srchost</emphasis> is set to False, the filter "
 "will be ignored."
 msgstr ""
-"Si se dan filtros en alguna base de búsqueda y "
-"<emphasis>ipa_hbac_support_srchost</emphasis> está fijado a False, el filtro "
-"será ingnorado."
 
 #. type: Content of: <listitem><para>
 #: sssd-ipa.5.xml:179 sssd-ipa.5.xml:198 include/ldap_search_bases.xml:23
@@ -6653,15 +6621,17 @@ msgstr "Predeterminado: DENY_ALL"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:333
+#, fuzzy
+#| msgid "ldap_sudo_use_host_filter (boolean)"
 msgid "ipa_hbac_support_srchost (boolean)"
-msgstr "ipa_hbac_support_srchost (boolean)"
+msgstr "ldap_sudo_use_host_filter (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:336
 msgid ""
 "If this is set to false, then srchost as given to SSSD by PAM will be "
 "ignored."
-msgstr "Si se fija a false, el host fuente dado a SSSD por PAM será ignorado."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:340
@@ -6669,9 +6639,6 @@ msgid ""
 "Note that if set to <emphasis>False</emphasis>, this option casuses filters "
 "given in <emphasis>ipa_host_search_base</emphasis> to be ignored;"
 msgstr ""
-"Advierta que si la fija a <emphasis>False</emphasis>, esta opción causa que "
-"los filtros dados en <emphasis>ipa_host_search_base</emphasis> sean "
-"ignorados;"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:351
@@ -6690,271 +6657,372 @@ msgstr "Por defecto: La localización llamada “default”"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:364
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_of (string)"
-msgstr "ipa_netgroup_member_of (cadena)"
+msgstr "ldap_netgroup_member (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:367
+#, fuzzy
+#| msgid "The LDAP attribute that lists the user's group memberships."
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr "El atributo LDAP que lista los afiliados del grupo de red."
+msgstr "El atributo LDAP que lista los afiliación a grupo de usario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:376
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_user (string)"
-msgstr "ipa_netgroup_member_user (cadena)"
+msgstr "ldap_netgroup_member (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:379
+#, fuzzy
+#| msgid "The LDAP attribute that lists the user's group memberships."
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
-msgstr ""
-"El atributo LDAP que lista los usuarios del sistema y grupos que son "
-"miembros directos del grupo de red."
+msgstr "El atributo LDAP que lista los afiliación a grupo de usario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:384 sssd-ipa.5.xml:479
+#, fuzzy
+#| msgid "Default: memberOf"
 msgid "Default: memberUser"
-msgstr "Predeterminado: memberUser"
+msgstr "Predeterminado: memberOf"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:389
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_host (string)"
-msgstr "ipa_netgroup_member_host (cadena)"
+msgstr "ldap_netgroup_member (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:392
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr ""
-"El atributo LDAP que lista los host y grupos de host que son miembros "
-"directos del grupo de red."
+"El atributo LDAP que contiene los nombres de los miembros de grupo de red."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:396 sssd-ipa.5.xml:491
+#, fuzzy
+#| msgid "Default: memberOf"
 msgid "Default: memberHost"
-msgstr "Predeterminado: memberHost"
+msgstr "Predeterminado: memberOf"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:401
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_ext_host (string)"
-msgstr "ipa_netgroup_member_ext_host (cadena)"
+msgstr "ldap_netgroup_member (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:404
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr ""
-"El atributo LDAP que lista los FQDNs de host y grupos de host que son "
-"miembros del grupo de red."
+"El atributo LDAP que contiene los nombres de los miembros de grupo de red."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:408
+#, fuzzy
+#| msgid "Default: root"
 msgid "Default: externalHost"
-msgstr "Predeterminado: externalHost"
+msgstr "Predeterminado: root"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:413
+#, fuzzy
+#| msgid "ipa_domain (string)"
 msgid "ipa_netgroup_domain (string)"
-msgstr "ipa_netgroup_domain (cadena)"
+msgstr "ipa_domain (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:416
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr ""
-"El atributo LDAP que contiene el nombre de dominio NIS del grupo de red."
+"El atributo LDAP que contiene los nombres de los miembros de grupo de red."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:420
+#, fuzzy
+#| msgid "Default: none"
 msgid "Default: nisDomainName"
-msgstr "Predeterminado: nisDomainName"
+msgstr "Predeterminado: none"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:426
+#, fuzzy
+#| msgid "ldap_user_object_class (string)"
 msgid "ipa_host_object_class (string)"
-msgstr "ipa_host_object_class (cadena)"
+msgstr "ldap_user_object_class (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:429 sssd-ipa.5.xml:452
+#, fuzzy
+#| msgid "The object class of a user entry in LDAP."
 msgid "The object class of a host entry in LDAP."
-msgstr "El objeto clase de una entrada host en LDAP."
+msgstr "La clase de objeto de una entrada de usuario en LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:432 sssd-ipa.5.xml:455
+#, fuzzy
+#| msgid "Default: host"
 msgid "Default: ipaHost"
-msgstr "Predeterminado: ipaHost"
+msgstr "Default: host"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:437
+#, fuzzy
+#| msgid "ipa_hostname (string)"
 msgid "ipa_host_fqdn (string)"
-msgstr "ipa_host_fqdn (cadena)"
+msgstr "ipa_hostname (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:440
+#, fuzzy
+#| msgid "The LDAP attribute that contains the names of the group's members."
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr "El atributo LDAP que contiene el FQDN del host."
+msgstr "El atributo LDAP que contiene los nombres de los miembros del grupo."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:443
+#, fuzzy
+#| msgid "Default: cn"
 msgid "Default: fqdn"
-msgstr "Por defecto: fqdn"
+msgstr "Predeterminado: cn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:449
+#, fuzzy
+#| msgid "ldap_user_object_class (string)"
 msgid "ipa_selinux_usermap_object_class (string)"
-msgstr "ipa_selinux_usermap_object_class (cadena)"
+msgstr "ldap_user_object_class (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:460
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_name (string)"
-msgstr "ipa_selinux_usermap_name (cadena)"
+msgstr "ipa_selinux_search_base (cadena)Opcional. "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:463
+#, fuzzy
+#| msgid "The LDAP attribute that contains the names of the group's members."
 msgid "The LDAP attribute that contains the name of SELinux usermap."
-msgstr "El atributo LDAP que contiene el nombre del mapa de usuario SELinux."
+msgstr "El atributo LDAP que contiene los nombres de los miembros del grupo."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:472
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_member_user (string)"
-msgstr "ipa_selinux_usermap_member_user (cadena)"
+msgstr "ipa_selinux_search_base (cadena)Opcional. "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:475
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
-msgstr ""
-"El atributo LDAP que contiene todos los usuarios / grupos contra los que "
-"esta regla coincide."
+msgstr "El atributo LDAP que contiene las claves públicas SSH del usuario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:484
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_member_host (string)"
-msgstr "ipa_selinux_usermap_member_host (cadena)"
+msgstr "ipa_selinux_search_base (cadena)Opcional. "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:487
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the (host, user, domain) netgroup "
+#| "triples."
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr ""
-"El atributo LDAP que contiene todos los hosts /grupos de hosts contra los "
-"que esta regla coincide."
+"El atributo LDAP que contiene los (host, usuario, dominio) triples de grupo "
+"de red."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:496
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_see_also (string)"
-msgstr "ipa_selinux_usermap_see_also (cadena)"
+msgstr "ipa_selinux_search_base (cadena)Opcional. "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:499
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost"
 msgstr ""
-"El atributo LDAP que contiene la regla DN de HBAC que puede ser usada en "
-"lugar de memberUser o memberHost"
+"El atributo LDAP que contiene los nombres de los miembros de grupo de red."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:504
+#, fuzzy
+#| msgid "Default: ou"
 msgid "Default: seeAlso"
-msgstr "Por defecto: seeAlso"
+msgstr "Por defecto: ou"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:509
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_selinux_user (string)"
-msgstr "ipa_selinux_usermap_selinux_user (cadena)"
+msgstr "ipa_selinux_search_base (cadena)Opcional. "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:512
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr "El atributo LDAP que contiene la cadena de usuario SELinux mismo."
+msgstr "El atributo LDAP que contiene las claves públicas SSH del usuario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:516
+#, fuzzy
+#| msgid "Default: sudoUser"
 msgid "Default: ipaSELinuxUser"
-msgstr "Por defecto: ipaSELinuxUser"
+msgstr "Por defecto: sudoUser"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:521
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_enabled (string)"
-msgstr "ipa_selinux_usermap_enabled (cadena)"
+msgstr "ipa_selinux_search_base (cadena)Opcional. "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:524
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr ""
-"El atributo LDAP que contiene si el mapa de usuario está o no habilitado "
-"para utilización."
+"El atributo LDAP que contiene la ruta de acceso a la shell predeterminada "
+"del usuario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:528
+#, fuzzy
+#| msgid "Default: loginDisabled"
 msgid "Default: ipaEnabledFlag"
-msgstr "Por defecto: ipaEnabledFlag"
+msgstr "Predeterminado: loginDisabled"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:533
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_user_category (string)"
-msgstr "ipa_selinux_usermap_user_category (cadena)"
+msgstr "ipa_selinux_search_base (cadena)Opcional. "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:536
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid "The LDAP attribute that contains user category such as 'all'."
-msgstr "El atributo LDAP que contiene la categoría del usuario como ‘all’."
+msgstr "El atributo LDAP que contiene las claves públicas SSH del usuario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:540
+#, fuzzy
+#| msgid "Default: homeDirectory"
 msgid "Default: userCategory"
-msgstr "Por defecto: userCategory"
+msgstr "Predeterminado: homeDirectory"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:545
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_host_category (string)"
-msgstr "ipa_selinux_usermap_host_category (cadena)"
+msgstr "ipa_selinux_search_base (cadena)Opcional. "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:548
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid "The LDAP attribute that contains host category such as 'all'."
-msgstr "El atributo LDAP que contiene la categoría del host como ‘all’."
+msgstr ""
+"El atributo LDAP que contiene la ruta de acceso a la shell predeterminada "
+"del usuario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:552
+#, fuzzy
+#| msgid "Default: host"
 msgid "Default: hostCategory"
-msgstr "Por defecto: hostCategory"
+msgstr "Default: host"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:557
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_uuid (string)"
-msgstr "ipa_selinux_usermap_uuid (cadena)"
+msgstr "ipa_selinux_search_base (cadena)Opcional. "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:560
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the name of the user's home directory."
 msgid "The LDAP attribute that contains unique ID of the user map."
-msgstr "El atributo LDAP que contiene la ID única del mapa de usuario."
+msgstr ""
+"El atributo LDAP que contiene el nombre del directorio principal del usuario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:564
+#, fuzzy
+#| msgid "Default: nsUniqueId"
 msgid "Default: ipaUniqueID"
-msgstr "Por defecto: ipaUniqueID"
+msgstr "Predeterminado: nsUniqueId"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:569
+#, fuzzy
+#| msgid "ldap_user_ssh_public_key (string)"
 msgid "ipa_host_ssh_public_key (string)"
-msgstr "ipa_host_ssh_public_key (cadena)"
+msgstr "ldap_user_ssh_public_key (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:572
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr "El atributo LDAP que contiene las claves públicas SSH del host."
+msgstr "El atributo LDAP que contiene las claves públicas SSH del usuario."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:576
+#, fuzzy
+#| msgid "Default: false"
 msgid "Default: ipaSshPubKey"
-msgstr "Por defecto: ipaSshPubKey"
+msgstr "Predeterminado: false"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ipa.5.xml:585
@@ -7078,14 +7146,23 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:57
+#, fuzzy
+#| msgid ""
+#| "However, it is neither necessary nor recommended to set these options.  "
+#| "IPA provider can also be used as an access and chpass provider. As an "
+#| "access provider it uses HBAC (host-based access control) rules. Please "
+#| "refer to freeipa.org for more information about HBAC. No configuration of "
+#| "access provider is required on the client side."
 msgid ""
 "However, it is neither necessary nor recommended to set these options. The "
 "AD provider can also be used as an access and chpass provider. No "
 "configuration of the access provider is required on the client side."
 msgstr ""
-"Sin embargo, no es necesario ni recomendable establecer estas opciones. El "
-"proveedor AD puede ser también usado como un proveedor de acceso y cambio de "
-"contraseña. No se requiere configuración del proveedor de acceso en el lado "
+"Sin embargo, ni es necesario ni está recomendado fijar estas opciones. El "
+"proveedor IPA también puede ser usado como proveedor de acceso y cambio de "
+"contraseña. Como proveedor de acceso usa reglas HBAC (control de acceso "
+"basado en el host). Por favor vea freeipa.org para más información sobre "
+"HBAC. No se requiere configuración del proveedor de acceso en el lado "
 "cliente."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
@@ -7187,15 +7264,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd-ad.5.xml:193
-#, fuzzy, no-wrap
-#| msgid ""
-#| "override_homedir = /home/%u\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "fallback_homedir = /home/%u\n"
 "                            "
 msgstr ""
-"override_homedir = /home/%u\n"
+"fallback_homedir = /home/%u\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -7724,16 +7798,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:193
-#, fuzzy
-#| msgid ""
-#| "If the environment variable SSSD_KRB5_LOCATOR_DEBUG is set to any value "
-#| "debug messages will be sent to stderr."
 msgid ""
 "If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", client "
 "applications will not use the fast in memory cache."
 msgstr ""
-"Si la variable de entorno SSSD_KRB5_LOCATOR_DEBUR está fijada a cualquier "
-"valor los mensajes de depuración se enviarán a stderr."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_obfuscate.8.xml:10 sss_obfuscate.8.xml:15
@@ -8174,6 +8242,11 @@ msgid ""
 "servers to try, the backend is not switched to operate offline if "
 "authentication against the KDC is still possible."
 msgstr ""
+"Para más información sobre recuperación de fallos y redundancia de servidor, "
+"consulte la sección de <quote>conmutación por error</quote>.  Nota: incluso "
+"si no hay más servidores kpasswd para  intentar, y el punto final no está "
+"conmutado para trabajar fuera de línea la autenticación contra el KDC es "
+"todavía posible."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:129
@@ -8245,7 +8318,7 @@ msgstr "directorio home"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:192
 msgid "value of krb5ccache_dir"
-msgstr "valor de krb5ccache_dir"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:197
@@ -8272,7 +8345,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:212
 msgid "Default: FILE:%d/krb5cc_%U_XXXXXX"
-msgstr "Predeterminado: FILE:%d/krb5cc_%U_XXXXXX"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:218
@@ -9910,9 +9983,6 @@ msgid ""
 "default value as well as the lowest allowed value, 0xFFF0 is the most "
 "verbose mode. This setting overrides the settings from config file."
 msgstr ""
-"Bit de máscara que indica que niveles de depuración serán visibles. 0x0010 "
-"es el valor por defecto así como el valor más bajo permitido, 0xFFF0 es el "
-"modo más verboso. Este ajuste anula los ajustes del fichero de configuración."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:8
@@ -9925,8 +9995,6 @@ msgid ""
 "<emphasis>0x0010</emphasis>: Fatal failures. Anything that would prevent "
 "SSSD from starting up or causes it to cease running."
 msgstr ""
-"<emphasis>0x0010</emphasis>: Fallos fatales. Cualquier cosa que evitaría que "
-"SSSD arrancara u origine el cese de la ejecución."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:15
@@ -9935,9 +10003,6 @@ msgid ""
 "the SSSD, but one that indicates that at least one major feature is not "
 "going to work properly."
 msgstr ""
-"<emphasis>0x0020</emphasis>: Fallos críticos. Un error que no matará SSSD, "
-"pero que indica que al menos una de las funciones principales no está "
-"trabajando apropiadamente."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:20
@@ -9945,8 +10010,6 @@ msgid ""
 "<emphasis>0x0040</emphasis>: Serious failures. An error announcing that a "
 "particular request or operation has failed."
 msgstr ""
-"<emphasis>0x0040</emphasis>: Fallos serios. Un error anunciando que una "
-"petición u operación concreta ha fallado."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:24
@@ -9954,32 +10017,43 @@ msgid ""
 "<emphasis>0x0080</emphasis>: Minor failures. These are the errors that would "
 "percolate down to cause the operation failure of 2."
 msgstr ""
-"<emphasis>0x0080</emphasis>: Fallos menores. Estos son errores que podrían "
-"filtrarse hacia abajo para causar fallos en la operación de 2."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:28
+#, fuzzy
+#| msgid "<emphasis>2</emphasis>: show informational messages"
 msgid "<emphasis>0x0100</emphasis>: Configuration settings."
-msgstr "<emphasis>0x0100</emphasis>: Ajustes de configuración."
+msgstr "<emphasis>2</emphasis>: mostrar mensajes informativos"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:31
+#, fuzzy
+#| msgid "<emphasis>0</emphasis>: do not show any message"
 msgid "<emphasis>0x0200</emphasis>: Function data."
-msgstr "<emphasis>0x0200</emphasis>: Datos de función."
+msgstr "<emphasis>0</emphasis>: no mostrar ningún mensaje"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:34
+#, fuzzy
+#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid "<emphasis>0x0400</emphasis>: Trace messages for operation functions."
 msgstr ""
-"<emphasis>0x0400</emphasis>: Traza de mensajes para funciones de operación."
+"<emphasis>3</emphasis>: mostrar todos los mensajes e información de "
+"depuración"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:37
+#, fuzzy
+#| msgid ""
+#| "<emphasis>Example</emphasis>: To log fatal failures, configuration "
+#| "settings, function data, trace messages for internal control functions "
+#| "use 0x1310."
 msgid ""
 "<emphasis>0x1000</emphasis>: Trace messages for internal control functions."
 msgstr ""
-"<emphasis>0x1000</emphasis>: Traza de mensajes para funciones de control "
-"interno."
+"<emphasis>Example</emphasis>: Para registrar fallos fatales, ajustes de "
+"configuración, datos de función, mensajes de traza para funciones de control "
+"interno use 0x1310."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:40
@@ -9987,15 +10061,15 @@ msgid ""
 "<emphasis>0x2000</emphasis>: Contents of function-internal variables that "
 "may be interesting."
 msgstr ""
-"<emphasis>0x2000</emphasis>: Contenidos de variables de función interna que "
-"pueden ser interesantes."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:43
+#, fuzzy
+#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid "<emphasis>0x4000</emphasis>: Extremely low-level tracing information."
 msgstr ""
-"<emphasis>0x4000</emphasis>: Información de trazado de nivel extremadamente "
-"bajo."
+"<emphasis>3</emphasis>: mostrar todos los mensajes e información de "
+"depuración"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:46
@@ -10003,8 +10077,6 @@ msgid ""
 "To log required debug levels, simply add their numbers together as shown in "
 "following examples:"
 msgstr ""
-"Para registrar los niveles de depuración requeridos, simplemente añada sus "
-"números juntos como se muestra en los siguientes ejemplos:"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:49
@@ -10031,9 +10103,6 @@ msgid ""
 "<emphasis>Note</emphasis>: This is new format of debug levels introduced in "
 "1.7.0.  Older format (numbers from 0-10) is compatible but deprecated."
 msgstr ""
-"<emphasis>Nota</emphasis>: Este es un nuevo formato de niveles de depuración "
-"introducido en 1.7.0. El formato más antiguo (números de 0-10) es compatible "
-"pero obsoleto."
 
 #. type: Content of: outside any tag (error?)
 #: include/experimental.xml:1
@@ -10152,14 +10221,17 @@ msgstr "sintaxis: <placeholder type=\"programlisting\" id=\"0\"/>"
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:13
 #: include/ldap_search_bases_experimental.xml:13
+#, fuzzy
+#| msgid ""
+#| "The filter must be a valid LDAP search filter as specified by http://www."
+#| "ietf.org/rfc/rfc2254.txt"
 msgid ""
 "The scope can be one of \"base\", \"onelevel\" or \"subtree\". The filter "
 "must be a valid LDAP search filter as specified by http://www.ietf.org/rfc/"
 "rfc2254.txt"
 msgstr ""
-"El alcance puede ser uno de \"base\", \"onelevel\" o \"subtree\". El filtro "
-"debe ser un filtro de búsqueda válido LDAP como se especifica en http://www."
-"ietf.org/rfc/rfc2254.txt"
+"El filtro debe ser un filtro de búsqueda LDAP válido como se especifica en "
+"http://www.ietf.org/rfc/rfc2254.txt"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:19

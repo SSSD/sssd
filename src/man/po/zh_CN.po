@@ -8,10 +8,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-07-24 12:28+0000\n"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
-"Language-Team: Chinese (China) (http://www.transifex.com/projects/p/fedora/"
+"Language-Team: Chinese (China) (http://www.transifex.com/projects/p/sssd/"
 "language/zh_CN/)\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
@@ -1099,8 +1099,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:783
+#, fuzzy
+#| msgid "These options can be used to configure any service."
 msgid "These options can be used to configure the sudo service."
-msgstr ""
+msgstr "这些选项可被用于配置任何服务。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:787
@@ -5575,8 +5577,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:384 sssd-ipa.5.xml:479
+#, fuzzy
+#| msgid "Default: 3"
 msgid "Default: memberUser"
-msgstr ""
+msgstr "默认： 3"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:389
@@ -5592,8 +5596,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:396 sssd-ipa.5.xml:491
+#, fuzzy
+#| msgid "Default: 3"
 msgid "Default: memberHost"
-msgstr ""
+msgstr "默认： 3"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:401
@@ -5639,8 +5645,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:432 sssd-ipa.5.xml:455
+#, fuzzy
+#| msgid "Default: 3"
 msgid "Default: ipaHost"
-msgstr ""
+msgstr "默认： 3"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:437
@@ -5654,8 +5662,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:443
+#, fuzzy
+#| msgid "Default: 3"
 msgid "Default: fqdn"
-msgstr ""
+msgstr "默认： 3"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:449
@@ -5709,8 +5719,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:504
+#, fuzzy
+#| msgid "Default: 3"
 msgid "Default: seeAlso"
-msgstr ""
+msgstr "默认： 3"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:509
@@ -5786,8 +5798,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:564
+#, fuzzy
+#| msgid "Default: 3"
 msgid "Default: ipaUniqueID"
-msgstr ""
+msgstr "默认： 3"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:569

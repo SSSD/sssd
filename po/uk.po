@@ -4,17 +4,17 @@
 #
 # Translators:
 # sgallagh <sgallagh@redhat.com>, 2011
-# Yuri Chornoivan <yurchor@ukr.net>, 2011-2013
+# Yuri Chornoivan <yurchor@ukr.net>, 2011-2014
 # Yuri Chornoivan <yurchor@ukr.net>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-07-24 12:40+0000\n"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-06-04 18:22+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
-"Language-Team: Ukrainian (http://www.transifex.com/projects/p/fedora/"
-"language/uk/)\n"
+"Language-Team: Ukrainian (http://www.transifex.com/projects/p/sssd/language/"
+"uk/)\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1119,22 +1119,22 @@ msgstr "Вказати нетиповий файл налаштувань"
 msgid "Print version number and exit"
 msgstr "Вивести номер версії і завершити роботу"
 
-#: src/providers/krb5/krb5_child.c:2010 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:2132 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:95
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
-#: src/providers/krb5/krb5_child.c:2012 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:2134 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:99
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
-#: src/providers/krb5/krb5_child.c:2014 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:2136 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:101
 msgid "Show timestamps with microseconds"
 msgstr "Показувати мікросекунди у часових позначках"
 
-#: src/providers/krb5/krb5_child.c:2016 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:2138 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
@@ -1797,6 +1797,15 @@ msgstr "%1$s слід запускати від імені користувач�
 msgid "Send the debug output to files instead of stderr"
 msgstr "Надіслати діагностичні дані до файлів, а не до stderr"
 
+#~ msgid "List of UIDs or user names allowed to access the InfoPipe responder"
+#~ msgstr ""
+#~ "Список унікальних ідентифікаторів (UID) або імен користувачів, яким "
+#~ "надано доступ до відповідача InfoPipe"
+
+#~ msgid "List of user attributes the InfoPipe is allowed to publish"
+#~ msgstr ""
+#~ "Список атрибутів запису користувача, які може оприлюднювати InfoPipe"
+
 #~ msgid "Whether to automatically update the client's DNS entry"
 #~ msgstr "Визначає, чи слід автоматично оновлювати запис DNS клієнта"
 
@@ -1820,6 +1829,12 @@ msgstr "Надіслати діагностичні дані до файлів, 
 #~ "Визначає тип розпізнавання, який слід використовувати для виконання "
 #~ "оновлення DNS"
 
+#~ msgid "Control enumeration of trusted domains"
+#~ msgstr "Керувати нумерацією надійних доменів"
+
+#~ msgid "How often should subdomains list be refreshed"
+#~ msgstr "Частота оновлення списку піддоменів"
+
 #~ msgid ""
 #~ "The amount of time in seconds between lookups of the SELinux maps against "
 #~ "the IPA server"
@@ -1828,11 +1843,28 @@ msgstr "Надіслати діагностичні дані до файлів, 
 #~ msgid "Enable DNS sites - location based service discovery"
 #~ msgstr "Увімкнути сайти DNS — визначення служб на основі адрес"
 
+#~ msgid "Whether to use the Global Catalog for lookups"
+#~ msgstr "Чи слід використовувати загальний каталог для пошуку"
+
+#~ msgid "Operation mode for GPO-based access control"
+#~ msgstr "Режим роботи для керування доступом на основі GPO"
+
 #~ msgid "Whether to create kdcinfo files"
 #~ msgstr "Визначає, чи слід створювати файли kdcinfo"
 
 #~ msgid "Enables enterprise principals"
 #~ msgstr "Увімкнути промислові реєстраційні дані"
+
+#~ msgid "A list of extra attributes to download along with the user entry"
+#~ msgstr ""
+#~ "Список додаткових атрибутів, які слід отримувати разом із записом "
+#~ "користувача"
+
+#~ msgid "Type of the group and other flags"
+#~ msgstr "Тип групи та інші прапорці"
+
+#~ msgid "Whether to use Token-Groups"
+#~ msgstr "Визначає, чи слід використовувати крупи реєстраційних записів"
 
 #~ msgid "Set lower boundary for allowed IDs from the LDAP server"
 #~ msgstr ""
@@ -1842,7 +1874,31 @@ msgstr "Надіслати діагностичні дані до файлів, 
 #~ msgstr ""
 #~ "Встановити верхню межу для дозволених ідентифікаторів із сервера LDAP"
 
-#~ msgid "Invalidate all cached entries except for sudo rulese"
+#~ msgid ""
+#~ "After changing the OTP password, you need to log out and back in order to "
+#~ "acquire a ticket"
+#~ msgstr ""
+#~ "Після зміни пароля OTP вам слід вийти із системи і увійти до неї знову, "
+#~ "щоб отримати про квиток"
+
+#~ msgid "Add an attribute/value pair. The format is attrname=value."
+#~ msgstr "Додати пару атрибут-значення. Форматування: атрибут=значення."
+
+#~ msgid "Delete an attribute/value pair. The format is attrname=value."
+#~ msgstr "Вилучити пару атрибут-значення. Форматування: атрибут=значення."
+
+#~ msgid ""
+#~ "Set an attribute to a name/value pair. The format is attrname=value. For "
+#~ "multi-valued attributes, the command replaces the values already present"
+#~ msgstr ""
+#~ "Встановити для вказаного за назвою атрибута значення. Форматування: "
+#~ "атрибут=значення. Для атрибутів з декількома значеннями команда призведе "
+#~ "до заміни поточних значень."
+
+#~ msgid "Specify the attribute name/value pair(s)\n"
+#~ msgstr "Вказати пари атрибут-значення\n"
+
+#~ msgid "Invalidate all cached entries except for sudo rules"
 #~ msgstr "Скасувати чинність усіх кешованих записів, окрім правил sudo"
 
 #~ msgid ""

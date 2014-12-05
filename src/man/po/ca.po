@@ -3,17 +3,20 @@
 # This file is distributed under the same license as the sssd-docs package.
 #
 # Translators:
-# jordimash <jmas@softcatala.org>, 2012
-# muzzol mussol <muzzol@gmail.com>, 2012
+# Jordi Mas <jmas@softcatala.org>, 2012
+# Jordi Mas <jmas@softcatala.org>, 2012
+# Jordi Mas <jmas@softcatala.org>, 2014
+# muzzol <muzzol@gmail.com>, 2012
+# muzzol <muzzol@gmail.com>, 2012
 # Robert Antoni Buj i Gelonch <robert.buj@gmail.com>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-07-24 12:28+0000\n"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
-"Language-Team: Catalan (http://www.transifex.com/projects/p/fedora/language/"
+"Language-Team: Catalan (http://www.transifex.com/projects/p/sssd/language/"
 "ca/)\n"
 "Language: ca\n"
 "MIME-Version: 1.0\n"
@@ -1205,8 +1208,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:783
+#, fuzzy
+#| msgid "These options can be used to configure any service."
 msgid "These options can be used to configure the sudo service."
-msgstr ""
+msgstr "Aquestes opcions es poden utilitzar per a configurar qualsevol servei."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:787
@@ -4518,9 +4523,6 @@ msgid ""
 "ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com\n"
 "                        "
 msgstr ""
-"access_provider = ldap\n"
-"ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com\n"
-"                        "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1699
@@ -4528,8 +4530,6 @@ msgid ""
 "This example means that access to this host is restricted to members of the "
 "\"allowedusers\" group in ldap."
 msgstr ""
-"Aquest exemple significa que l'accés a aquesta màquina està restringit als "
-"membres del grup d'ldap \"allowedusers\"."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1704
@@ -5191,8 +5191,10 @@ msgstr "ldap_group_search_base (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2265
+#, fuzzy
+#| msgid "ldap_user_search_base (string)"
 msgid "ldap_user_search_filter (string)"
-msgstr ""
+msgstr "ldap_user_search_base (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2268
@@ -5225,8 +5227,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2292
+#, fuzzy
+#| msgid "ldap_group_search_base (string)"
 msgid "ldap_group_search_filter (string)"
-msgstr ""
+msgstr "ldap_group_search_base (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2295
@@ -5451,7 +5455,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: pam_sss.8.xml:117
 msgid "FILES"
-msgstr "ARXIUS"
+msgstr "FITXERS"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:118
@@ -6079,256 +6083,375 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:364
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_of (string)"
-msgstr ""
+msgstr "ldap_netgroup_member (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:367
+#, fuzzy
+#| msgid "The LDAP attribute that lists the user's group memberships."
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr ""
+msgstr "L'atribut LDAP que llista la pertanença a grups de l'usuari."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:376
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_user (string)"
-msgstr ""
+msgstr "ldap_netgroup_member (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:379
+#, fuzzy
+#| msgid "The LDAP attribute that lists the user's group memberships."
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
-msgstr ""
+msgstr "L'atribut LDAP que llista la pertanença a grups de l'usuari."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:384 sssd-ipa.5.xml:479
+#, fuzzy
+#| msgid "Default: memberOf"
 msgid "Default: memberUser"
-msgstr ""
+msgstr "Per defecte: memberOf"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:389
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_host (string)"
-msgstr ""
+msgstr "ldap_netgroup_member (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:392
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
-msgstr ""
+msgstr "L'atribut LDAP que conté els noms dels membres del netgroup."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:396 sssd-ipa.5.xml:491
+#, fuzzy
+#| msgid "Default: memberOf"
 msgid "Default: memberHost"
-msgstr ""
+msgstr "Per defecte: memberOf"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:401
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_ext_host (string)"
-msgstr ""
+msgstr "ldap_netgroup_member (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:404
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
-msgstr ""
+msgstr "L'atribut LDAP que conté els noms dels membres del netgroup."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:408
+#, fuzzy
+#| msgid "Default: root"
 msgid "Default: externalHost"
-msgstr ""
+msgstr "Per defecte: root"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:413
+#, fuzzy
+#| msgid "ipa_domain (string)"
 msgid "ipa_netgroup_domain (string)"
-msgstr ""
+msgstr "ipa_domain (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:416
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
-msgstr ""
+msgstr "L'atribut LDAP que conté els noms dels membres del netgroup."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:420
+#, fuzzy
+#| msgid "Default: none"
 msgid "Default: nisDomainName"
-msgstr ""
+msgstr "Per defecte: none"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:426
+#, fuzzy
+#| msgid "ldap_user_object_class (string)"
 msgid "ipa_host_object_class (string)"
-msgstr ""
+msgstr "ldap_user_object_class (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:429 sssd-ipa.5.xml:452
+#, fuzzy
+#| msgid "The object class of a user entry in LDAP."
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "La classe d'objecte d'una entrada d'usuari a LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:432 sssd-ipa.5.xml:455
+#, fuzzy
+#| msgid "Default: root"
 msgid "Default: ipaHost"
-msgstr ""
+msgstr "Per defecte: root"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:437
+#, fuzzy
+#| msgid "ipa_hostname (string)"
 msgid "ipa_host_fqdn (string)"
-msgstr ""
+msgstr "ipa_hostname (cadeba)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:440
+#, fuzzy
+#| msgid "The LDAP attribute that contains the names of the group's members."
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr ""
+msgstr "L'atribut LDAP que conté els noms dels membres del grup."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:443
+#, fuzzy
+#| msgid "Default: cn"
 msgid "Default: fqdn"
-msgstr ""
+msgstr "Per defecte: cn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:449
+#, fuzzy
+#| msgid "ldap_user_object_class (string)"
 msgid "ipa_selinux_usermap_object_class (string)"
-msgstr ""
+msgstr "ldap_user_object_class (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:460
+#, fuzzy
+#| msgid "ldap_user_name (string)"
 msgid "ipa_selinux_usermap_name (string)"
-msgstr ""
+msgstr "ldap_user_name (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:463
+#, fuzzy
+#| msgid "The LDAP attribute that contains the names of the group's members."
 msgid "The LDAP attribute that contains the name of SELinux usermap."
-msgstr ""
+msgstr "L'atribut LDAP que conté els noms dels membres del grup."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:472
+#, fuzzy
+#| msgid "ldap_user_member_of (string)"
 msgid "ipa_selinux_usermap_member_user (string)"
-msgstr ""
+msgstr "ldap_user_member_of (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:475
+#, fuzzy
+#| msgid "The LDAP attribute that contains the names of the group's members."
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
-msgstr ""
+msgstr "L'atribut LDAP que conté els noms dels membres del grup."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:484
+#, fuzzy
+#| msgid "ldap_user_member_of (string)"
 msgid "ipa_selinux_usermap_member_host (string)"
-msgstr ""
+msgstr "ldap_user_member_of (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:487
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the (host, user, domain) netgroup "
+#| "triples."
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr ""
+"L'atribut LDAP que conté les tripletes netgroup (maquina, usuari, domini)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:496
+#, fuzzy
+#| msgid "simple_deny_users (string)"
 msgid "ipa_selinux_usermap_see_also (string)"
-msgstr ""
+msgstr "simple_deny_users (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:499
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost"
-msgstr ""
+msgstr "L'atribut LDAP que conté els noms dels membres del netgroup."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:504
+#, fuzzy
+#| msgid "Default: false"
 msgid "Default: seeAlso"
-msgstr ""
+msgstr "Per defecte: false"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:509
+#, fuzzy
+#| msgid "simple_deny_users (string)"
 msgid "ipa_selinux_usermap_selinux_user (string)"
-msgstr ""
+msgstr "simple_deny_users (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:512
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid "The LDAP attribute that contains SELinux user string itself."
 msgstr ""
+"L'atribut LDAP que conté la ruta a l'intèrpret d'ordres per defecte de "
+"l'usuari."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:516
+#, fuzzy
+#| msgid "Default: false"
 msgid "Default: ipaSELinuxUser"
-msgstr ""
+msgstr "Per defecte: false"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:521
+#, fuzzy
+#| msgid "ldap_user_name (string)"
 msgid "ipa_selinux_usermap_enabled (string)"
-msgstr ""
+msgstr "ldap_user_name (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:524
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr ""
+"L'atribut LDAP que conté la ruta a l'intèrpret d'ordres per defecte de "
+"l'usuari."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:528
+#, fuzzy
+#| msgid "Default: ldap"
 msgid "Default: ipaEnabledFlag"
-msgstr ""
+msgstr "Per defecte: ldap"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:533
+#, fuzzy
+#| msgid "ldap_user_name (string)"
 msgid "ipa_selinux_usermap_user_category (string)"
-msgstr ""
+msgstr "ldap_user_name (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:536
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid "The LDAP attribute that contains user category such as 'all'."
 msgstr ""
+"L'atribut LDAP que conté la ruta a l'intèrpret d'ordres per defecte de "
+"l'usuari."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:540
+#, fuzzy
+#| msgid "Default: homeDirectory"
 msgid "Default: userCategory"
-msgstr ""
+msgstr "Per defecte: homeDirectory"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:545
+#, fuzzy
+#| msgid "ldap_user_home_directory (string)"
 msgid "ipa_selinux_usermap_host_category (string)"
-msgstr ""
+msgstr "ldap_user_home_directory (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:548
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid "The LDAP attribute that contains host category such as 'all'."
 msgstr ""
+"L'atribut LDAP que conté la ruta a l'intèrpret d'ordres per defecte de "
+"l'usuari."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:552
+#, fuzzy
+#| msgid "Default: hard"
 msgid "Default: hostCategory"
-msgstr ""
+msgstr "Per defecte: hard"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:557
+#, fuzzy
+#| msgid "ldap_user_uuid (string)"
 msgid "ipa_selinux_usermap_uuid (string)"
-msgstr ""
+msgstr "ldap_user_uuid (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:560
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the name of the user's home directory."
 msgid "The LDAP attribute that contains unique ID of the user map."
-msgstr ""
+msgstr "L'atribut LDAP que conté el nom del directori personal de l'usuari."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:564
+#, fuzzy
+#| msgid "Default: nsUniqueId"
 msgid "Default: ipaUniqueID"
-msgstr ""
+msgstr "Per defecte: nsUniqueId"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:569
+#, fuzzy
+#| msgid "ipa_hostname (string)"
 msgid "ipa_host_ssh_public_key (string)"
-msgstr ""
+msgstr "ipa_hostname (cadeba)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:572
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid "The LDAP attribute that contains the host's SSH public keys."
 msgstr ""
+"L'atribut LDAP que conté la ruta a l'intèrpret d'ordres per defecte de "
+"l'usuari."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:576
+#, fuzzy
+#| msgid "Default: false"
 msgid "Default: ipaSshPubKey"
-msgstr ""
+msgstr "Per defecte: false"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ipa.5.xml:585
@@ -8821,24 +8944,34 @@ msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:28
+#, fuzzy
+#| msgid "<emphasis>2</emphasis>: show informational messages"
 msgid "<emphasis>0x0100</emphasis>: Configuration settings."
-msgstr ""
+msgstr "<emphasis>2</emphasis>: Mostra missatges informatius"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:31
+#, fuzzy
+#| msgid "<emphasis>0</emphasis>: do not show any message"
 msgid "<emphasis>0x0200</emphasis>: Function data."
-msgstr ""
+msgstr "<emphasis>0</emphasis>: no mostris cap missatge"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:34
+#, fuzzy
+#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid "<emphasis>0x0400</emphasis>: Trace messages for operation functions."
 msgstr ""
+"<emphasis>3</emphasis>: Mostra tots els missatges i informació de depuració"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:37
+#, fuzzy
+#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid ""
 "<emphasis>0x1000</emphasis>: Trace messages for internal control functions."
 msgstr ""
+"<emphasis>3</emphasis>: Mostra tots els missatges i informació de depuració"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:40
@@ -8849,8 +8982,11 @@ msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:43
+#, fuzzy
+#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid "<emphasis>0x4000</emphasis>: Extremely low-level tracing information."
 msgstr ""
+"<emphasis>3</emphasis>: Mostra tots els missatges i informació de depuració"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:46

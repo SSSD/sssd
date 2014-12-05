@@ -3,17 +3,18 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# MarbolanGos Fabien <marbolangos@gmail.com>, 2012
-# Jérôme Fenal <jfenal@gmail.com>, 2012-2013
+# Fabien Archambault <marbolangos@gmail.com>, 2012
+# Jérôme Fenal <jfenal@gmail.com>, 2012-2014
+# Fabien Archambault <marbolangos@gmail.com>, 2012
 # Mariko Vincent <dweu60@gmail.com>, 2012
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-07-29 13:00+0000\n"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-07-08 11:31+0000\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
-"Language-Team: French (http://www.transifex.com/projects/p/fedora/language/"
+"Language-Team: French (http://www.transifex.com/projects/p/sssd/language/"
 "fr/)\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -1113,22 +1114,22 @@ msgstr "Définir un fichier de configuration différent de celui par défaut"
 msgid "Print version number and exit"
 msgstr "Afficher le numéro de version et quitte"
 
-#: src/providers/krb5/krb5_child.c:2010 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:2132 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:95
 msgid "Debug level"
 msgstr "Niveau de débogage"
 
-#: src/providers/krb5/krb5_child.c:2012 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:2134 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:99
 msgid "Add debug timestamps"
 msgstr "Ajouter l'horodatage au débogage"
 
-#: src/providers/krb5/krb5_child.c:2014 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:2136 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:101
 msgid "Show timestamps with microseconds"
 msgstr "Afficher l'horodatage en microsecondes"
 
-#: src/providers/krb5/krb5_child.c:2016 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:2138 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Un descripteur de fichier ouvert pour les journaux de débogage"
 
@@ -1803,6 +1804,15 @@ msgstr ""
 "Envoyer la sortie de débogage vers un fichier plutôt que vers la sortie "
 "standard"
 
+#~ msgid "List of UIDs or user names allowed to access the InfoPipe responder"
+#~ msgstr ""
+#~ "Listes des UID ou nom d'utilisateurs autorisés à accéder le répondeur "
+#~ "InfoPipe"
+
+#~ msgid "List of user attributes the InfoPipe is allowed to publish"
+#~ msgstr ""
+#~ "Liste des attributs utilisateur que l'InfoPipe est autorisé à publier"
+
 #~ msgid "Whether to automatically update the client's DNS entry"
 #~ msgstr "Choisir de mettre à jour automatiquement l'entrée DNS du client"
 
@@ -1825,6 +1835,12 @@ msgstr ""
 #~ "Quel type d'authentification doit être utilisée pour effectuer la mise à "
 #~ "jour DNS"
 
+#~ msgid "Control enumeration of trusted domains"
+#~ msgstr "Contrôle l'énumération des domaines approuvés"
+
+#~ msgid "How often should subdomains list be refreshed"
+#~ msgstr "Fréquence de rafraîchissement des sous-domaines"
+
 #~ msgid ""
 #~ "The amount of time in seconds between lookups of the SELinux maps against "
 #~ "the IPA server"
@@ -1834,11 +1850,28 @@ msgstr ""
 #~ msgstr ""
 #~ "Activer les sites DNS - découverte de service basée sur l'emplacement"
 
+#~ msgid "Whether to use the Global Catalog for lookups"
+#~ msgstr "Choisir d'utiliser ou non le catalogue global pour les recherches"
+
+#~ msgid "Operation mode for GPO-based access control"
+#~ msgstr "Mode opératoire pour les contrôles d'accès basé sur les GPO"
+
 #~ msgid "Whether to create kdcinfo files"
 #~ msgstr "Choisir de créer ou non les fichiers kdcinfo"
 
 #~ msgid "Enables enterprise principals"
 #~ msgstr "Active les principals d'entreprise"
+
+#~ msgid "A list of extra attributes to download along with the user entry"
+#~ msgstr ""
+#~ "Une liste des attributs supplémentaires à télécharger avec l'entrée de "
+#~ "l'utilisateur"
+
+#~ msgid "Type of the group and other flags"
+#~ msgstr "Type de groupe et autres indicateurs"
+
+#~ msgid "Whether to use Token-Groups"
+#~ msgstr "Choisir d'utiliser ou non les groupes de jetons"
 
 #~ msgid "Set lower boundary for allowed IDs from the LDAP server"
 #~ msgstr ""
@@ -1848,8 +1881,34 @@ msgstr ""
 #~ msgstr ""
 #~ "Définir la limite supérieure d'identifiants autorisés pour l'annuaire LDAP"
 
-#~ msgid "Invalidate all cached entries except for sudo rulese"
-#~ msgstr "Invalider toutes les entrées en cache hors règles sudo"
+#~ msgid ""
+#~ "After changing the OTP password, you need to log out and back in order to "
+#~ "acquire a ticket"
+#~ msgstr ""
+#~ "Après avoir modifié le mot de passe OTP, vous devez vous déconnecter et "
+#~ "vous reconnecter afin d'acquérir un ticket"
+
+#~ msgid "Add an attribute/value pair. The format is attrname=value."
+#~ msgstr ""
+#~ "Ajouter une paire attribut/valeur. Le format est nom_attribut=valeur."
+
+#~ msgid "Delete an attribute/value pair. The format is attrname=value."
+#~ msgstr ""
+#~ "Supprimer une paire attribut/valeur. Le format est nom_attribut=valeur."
+
+#~ msgid ""
+#~ "Set an attribute to a name/value pair. The format is attrname=value. For "
+#~ "multi-valued attributes, the command replaces the values already present"
+#~ msgstr ""
+#~ "Définir une paire attribut/valeur. Le format est nom_attribut=valeur. "
+#~ "Pour les attributs multi-valués, la commande remplace les valeurs déjà "
+#~ "présentes."
+
+#~ msgid "Specify the attribute name/value pair(s)\n"
+#~ msgstr "Indiquer les paires nom d'attributs et valeurs.\n"
+
+#~ msgid "Invalidate all cached entries except for sudo rules"
+#~ msgstr "Invalider toutes les entrées en cache hormis les règles sudo"
 
 #~ msgid ""
 #~ "Could not open domain %1$s. If the domain is a subdomain (trusted "

@@ -4,17 +4,17 @@
 #
 # Translators:
 # sgallagh <sgallagh@redhat.com>, 2011
-# Yuri Chornoivan <yurchor@ukr.net>, 2011-2013
+# Yuri Chornoivan <yurchor@ukr.net>, 2011-2014
 # Yuri Chornoivan <yurchor@ukr.net>, 2013
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-07-24 13:30+0000\n"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-06-23 16:22+0000\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
-"Language-Team: Ukrainian (http://www.transifex.com/projects/p/fedora/"
-"language/uk/)\n"
+"Language-Team: Ukrainian (http://www.transifex.com/projects/p/sssd/language/"
+"uk/)\n"
 "Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -269,6 +269,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:89
+#, fuzzy
+#| msgid ""
+#| "Supported services: nss, pam <phrase condition=\"with_sudo\">, sudo</"
+#| "phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
+#| "condition=\"with_ssh\">, ssh</phrase> <phrase condition="
+#| "\"with_pac_responder\">, pac</phrase> <phrase condition=\"with_ifp\">, "
+#| "ifp</phrase>"
 msgid ""
 "Supported services: nss, pam <phrase condition=\"with_sudo\">, sudo</phrase> "
 "<phrase condition=\"with_autofs\">, autofs</phrase> <phrase condition="
@@ -278,7 +285,7 @@ msgstr ""
 "Підтримувані служби: nss, pam <phrase condition=\"with_sudo\">, sudo</"
 "phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
 "condition=\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder"
-"\">, pac</phrase>"
+"\">, pac</phrase> <phrase condition=\"with_ifp\">, ifp</phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:98 sssd.conf.5.xml:290
@@ -903,12 +910,15 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:490 sssd.conf.5.xml:514 sssd-ad.5.xml:169
-#, no-wrap
+#, fuzzy, no-wrap
+#| msgid ""
+#| "fallback_homedir = /home/%u\n"
+#| "                            "
 msgid ""
 "override_homedir = /home/%u\n"
 "                            "
 msgstr ""
-"override_homedir = /home/%u\n"
+"fallback_homedir = /home/%u\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -959,12 +969,19 @@ msgstr "override_shell (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:527
+#, fuzzy
+#| msgid ""
+#| "Override the login shell for all users. This option supersedes any other "
+#| "shell options if it takes effect and can be set either in the [nss] "
+#| "section or per-domain."
 msgid ""
 "Override the login shell for all users. This option can be specified "
 "globally in the [nss] section or per-domain."
 msgstr ""
-"Перевизначити оболонку реєстрації для всіх користувачів. Цей параметр можна "
-"вказати на загальному рівні у розділі [nss] або для кожного з доменів окремо."
+"Перевизначити командну оболонку входу до системи для усіх користувачів. Цей "
+"параметр має пріоритет над будь-якими іншими параметрами визначення "
+"командної оболонки, якщо він діє. Його можна встановити або у розділі [nss] "
+"або для кожного з доменів окремо."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:532
@@ -1067,16 +1084,20 @@ msgstr "default_shell"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:593 sssd-ad.5.xml:206
+#, fuzzy
+#| msgid ""
+#| "Override the login shell for all users. This option supersedes any other "
+#| "shell options if it takes effect and can be set either in the [nss] "
+#| "section or per-domain."
 msgid ""
 "The default shell to use if the provider does not return one during lookup. "
 "This option supersedes any other shell options if it takes effect and can be "
 "set either in the [nss] section or per-domain."
 msgstr ""
-"Типова командна оболонка, яку слід використовувати, якщо засобом надання "
-"даних не повернуто даних оболонки під час пошуку. Якщо буде використано цей "
-"параметр, він матиме пріоритет над будь-якими іншими параметрами визначення "
-"командної оболонки. Його можна визначити або у розділі [nss] або для "
-"окремого домену."
+"Перевизначити командну оболонку входу до системи для усіх користувачів. Цей "
+"параметр має пріоритет над будь-якими іншими параметрами визначення "
+"командної оболонки, якщо він діє. Його можна встановити або у розділі [nss] "
+"або для кожного з доменів окремо."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:599 sssd-ad.5.xml:212
@@ -1329,8 +1350,10 @@ msgstr "Параметри налаштування SUDO"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:783
+#, fuzzy
+#| msgid "These options can be used to configure the autofs service."
 msgid "These options can be used to configure the sudo service."
-msgstr "Цими параметрами можна скористатися для налаштування служби sudo."
+msgstr "Цими параметрами можна скористатися для налаштування служби autofs."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:787
@@ -1764,13 +1787,16 @@ msgstr "refresh_expired_interval (ціле число)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1110
+#, fuzzy
+#| msgid ""
+#| "Specifies how many seconds SSSD has to wait before refreshing its cache "
+#| "of enumerated records."
 msgid ""
 "Specifies how many seconds SSSD has to wait before refreshing expired "
 "records. Currently only refreshing expired netgroups is supported."
 msgstr ""
 "Визначає кількість секунд, протягом яких SSSD має очікувати до оновлення "
-"застаріших записів. У поточній версії передбачено підтримку оновлення лише "
-"застарілих записів мережевих груп."
+"свого кешу нумерованих записів."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1115
@@ -2565,20 +2591,20 @@ msgstr "subdomain_homedir (рядок)"
 #: sssd.conf.5.xml:1714
 #, fuzzy
 #| msgid ""
-#| "Use this homedir as default value for all subdomains within this domain. "
-#| "See <emphasis>override_homedir</emphasis> for info about possible values. "
-#| "In addition to those, the expansion below can only be used with "
-#| "<emphasis>subdomain_homedir</emphasis>.  <placeholder type=\"variablelist"
-#| "\" id=\"0\"/>"
+#| "Use this homedir as default value for all subdomains within this domain "
+#| "in IPA AD trust.  See <emphasis>override_homedir</emphasis> for info "
+#| "about possible values. In addition to those, the expansion below can only "
+#| "be used with <emphasis>subdomain_homedir</emphasis>.  <placeholder type="
+#| "\"variablelist\" id=\"0\"/>"
 msgid ""
 "Use this homedir as default value for all subdomains within this domain. See "
 "<emphasis>override_homedir</emphasis> for info about possible values."
 msgstr ""
 "Використовувати вказаний домашній каталог як типовий для всіх піддоменів у "
-"цьому домені. Дані щодо можливих значень наведено у описі параметра "
-"<emphasis>override_homedir</emphasis>. Крім того, розгортання можна "
-"використовувати лише з <emphasis>subdomain_homedir</emphasis>.  <placeholder "
-"type=\"variablelist\" id=\"0\"/>"
+"цьому домені у межах довіри AD IPA. Дані щодо можливих значень наведено у "
+"описі параметра <emphasis>override_homedir</emphasis>. Крім того, "
+"розгортання можна використовувати лише з <emphasis>subdomain_homedir</"
+"emphasis>.  <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1719
@@ -4994,6 +5020,19 @@ msgstr "ldap_access_filter (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1680
+#, fuzzy
+#| msgid ""
+#| "If using access_provider = ldap and ldap_access_order = filter (default), "
+#| "this option is mandatory. It specifies an LDAP search filter criteria "
+#| "that must be met for the user to be granted access on this host. If "
+#| "access_provider = ldap, ldap_access_order = filter and this option is not "
+#| "set, it will result in all users being denied access.  Use "
+#| "access_provider = permit to change this default behavior. Please note "
+#| "that this filter is applied on the LDAP user entry only and thus "
+#| "filtering based on nested groups may not work (e.g. memberOf attribute on "
+#| "AD entries points only to direct parents). If filtering based on nested "
+#| "groups is required, please see <citerefentry> <refentrytitle>sssd-simple</"
+#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
 msgid ""
 "If using access_provider = ldap and ldap_access_order = filter (default), "
 "this option is mandatory. It specifies an LDAP search filter criteria that "
@@ -5008,7 +5047,13 @@ msgstr ""
 "доступу до цього вузла. Якщо визначено access_provider = ldap та "
 "ldap_access_order = filter, а цей параметр не встановлено, доступ буде "
 "заборонено всім користувачам. Щоб змінити таку типову поведінку системи, "
-"скористайтеся параметром access_provider = permit"
+"скористайтеся параметром access_provider = permit. Будь ласка, зауважте, що "
+"цей фільтр застосовуватиметься лише до запису користувача LDAP, отже "
+"фільтрування, засноване на вкладених групах може не працювати (наприклад, "
+"атрибут memberOf для записів AD вказує лише на безпосередні батьківські "
+"записи). Якщо вам потрібне фільтрування, засноване на вкладених групах, будь "
+"ласка, скористайтеся параметром <citerefentry> <refentrytitle>sssd-simple</"
+"refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1692 sssd-ldap.5.xml:2279
@@ -5017,23 +5062,32 @@ msgstr "Приклад:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-ldap.5.xml:1695
-#, no-wrap
+#, fuzzy, no-wrap
+#| msgid ""
+#| "access_provider = ldap\n"
+#| "ldap_access_filter = (employeeType=admin)\n"
+#| "                        "
 msgid ""
 "access_provider = ldap\n"
 "ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com\n"
 "                        "
 msgstr ""
 "access_provider = ldap\n"
-"ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com\n"
+"ldap_access_filter = (employeeType=admin)\n"
 "                        "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1699
+#, fuzzy
+#| msgid ""
+#| "This example means that access to this host is restricted to users whose "
+#| "employeeType attribute is set to \"admin\"."
 msgid ""
 "This example means that access to this host is restricted to members of the "
 "\"allowedusers\" group in ldap."
 msgstr ""
-"У прикладі доступ до вузла обмежено учасниками групи «allowedusers» у LDAP."
+"У прикладі доступ до цього вузла обмежено користувачами, чий атрибут "
+"employeeType встановлено у значення «admin»."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1704
@@ -5736,6 +5790,12 @@ msgstr "Типове значення: automountInformation"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:2170
+#, fuzzy
+#| msgid ""
+#| "<placeholder type=\"variablelist\" id=\"0\"/> <placeholder type="
+#| "\"variablelist\" id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/> "
+#| "<placeholder type=\"variablelist\" id=\"3\"/> <placeholder type="
+#| "\"variablelist\" id=\"4\"/> <placeholder type=\"variablelist\" id=\"5\"/>"
 msgid ""
 "<placeholder type=\"variablelist\" id=\"0\"/> <placeholder type="
 "\"variablelist\" id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/> "
@@ -5745,7 +5805,7 @@ msgstr ""
 "<placeholder type=\"variablelist\" id=\"0\"/> <placeholder type="
 "\"variablelist\" id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/> "
 "<placeholder type=\"variablelist\" id=\"3\"/> <placeholder type="
-"\"variablelist\" id=\"4\"/>"
+"\"variablelist\" id=\"4\"/> <placeholder type=\"variablelist\" id=\"5\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:2243
@@ -5769,8 +5829,10 @@ msgstr "ldap_group_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2265
+#, fuzzy
+#| msgid "ldap_user_search_base (string)"
 msgid "ldap_user_search_filter (string)"
-msgstr "ldap_user_search_filter (рядок)"
+msgstr "ldap_user_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2268
@@ -5778,8 +5840,6 @@ msgid ""
 "This option specifies an additional LDAP search filter criteria that "
 "restrict user searches."
 msgstr ""
-"За допомогою цього параметра можна визначити додатковий критерій "
-"фільтрування LDAP, яким буде обмежено пошук користувачів."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2272
@@ -5787,8 +5847,6 @@ msgid ""
 "This option is <emphasis>deprecated</emphasis> in favor of the syntax used "
 "by ldap_user_search_base."
 msgstr ""
-"Цей параметр вважається <emphasis>застарілим</emphasis>. Варто "
-"використовувати синтаксичні конструкції з ldap_user_search_base."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-ldap.5.xml:2282
@@ -5797,8 +5855,6 @@ msgid ""
 "                            ldap_user_search_filter = (loginShell=/bin/tcsh)\n"
 "                        "
 msgstr ""
-"                            ldap_user_search_filter = (loginShell=/bin/tcsh)\n"
-"                        "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2285
@@ -5806,13 +5862,13 @@ msgid ""
 "This filter would restrict user searches to users that have their shell set "
 "to /bin/tcsh."
 msgstr ""
-"За допомогою цього фільтра можна обмежити пошук користувачів, лише тими, для "
-"яких встановлено командну оболонку /bin/tcsh."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2292
+#, fuzzy
+#| msgid "ldap_group_search_base (string)"
 msgid "ldap_group_search_filter (string)"
-msgstr "ldap_group_search_filter (рядок)"
+msgstr "ldap_group_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2295
@@ -5820,8 +5876,6 @@ msgid ""
 "This option specifies an additional LDAP search filter criteria that "
 "restrict group searches."
 msgstr ""
-"За допомогою цього параметра можна визначити додатковий критерій "
-"фільтрування LDAP, яким буде обмежено пошук груп."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2299
@@ -5829,8 +5883,6 @@ msgid ""
 "This option is <emphasis>deprecated</emphasis> in favor of the syntax used "
 "by ldap_group_search_base."
 msgstr ""
-"Цей параметр вважається <emphasis>застарілим</emphasis>. Варто "
-"використовувати синтаксичні конструкції з ldap_group_search_base."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2309
@@ -5931,6 +5983,16 @@ msgstr "модуль PAM для SSSD"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss.8.xml:24
+#, fuzzy
+#| msgid ""
+#| "<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
+#| "replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
+#| "replaceable> </arg> <arg choice='opt'> <replaceable>use_first_pass</"
+#| "replaceable> </arg> <arg choice='opt'> <replaceable>use_authtok</"
+#| "replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> "
+#| "</arg> <arg choice='opt'> <replaceable>ignore_unknown_user</replaceable> "
+#| "</arg> <arg choice='opt'> <replaceable>ignore_authinfo_unavail</"
+#| "replaceable> </arg>"
 msgid ""
 "<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
@@ -5939,11 +6001,13 @@ msgid ""
 "replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> </"
 "arg>"
 msgstr ""
-"<command>pam_sss.so</command> <arg choice='opt'> <arg choice='opt'> "
-"<replaceable>quiet</replaceable> </arg> <replaceable>forward_pass</"
+"<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
+"replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>use_first_pass</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>use_authtok</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> </"
+"arg> <arg choice='opt'> <replaceable>ignore_unknown_user</replaceable> </"
+"arg> <arg choice='opt'> <replaceable>ignore_authinfo_unavail</replaceable> </"
 "arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -6108,6 +6172,19 @@ msgstr "sssd_krb5_locator_plugin"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:22
+#, fuzzy
+#| msgid ""
+#| "The Kerberos locator plugin <command>sssd_krb5_locator_plugin</command> "
+#| "is used by the Kerberos provider of <citerefentry> <refentrytitle>sssd</"
+#| "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> to tell the "
+#| "Kerberos libraries what Realm and which KDC to use.  Typically this is "
+#| "done in <citerefentry> <refentrytitle>krb5.conf</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry> which is always read by the "
+#| "Kerberos libraries. To simplify the configuration the Realm and the KDC "
+#| "can be defined in <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+#| "<manvolnum>5</manvolnum> </citerefentry> as described in <citerefentry> "
+#| "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
+#| "citerefentry>"
 msgid ""
 "The Kerberos locator plugin <command>sssd_krb5_locator_plugin</command> is "
 "used by the Kerberos provider of <citerefentry> <refentrytitle>sssd</"
@@ -6131,7 +6208,7 @@ msgstr ""
 "Kerberos. Щоб спростити налаштування, область та KDC можна визначити у "
 "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> у спосіб, описаний на сторінці довідки "
-"<citerefentry> <refentrytitle>sssd-krb5.conf</refentrytitle> <manvolnum>5</"
+"<citerefentry> <refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -6576,9 +6653,6 @@ msgid ""
 "<emphasis>ipa_hbac_support_srchost</emphasis> is set to False, the filter "
 "will be ignored."
 msgstr ""
-"Якщо вказано фільтрування за довільною базою пошуку і встановлено значення "
-"False для <emphasis>ipa_hbac_support_srchost</emphasis>, фільтр буде "
-"проігноровано."
 
 #. type: Content of: <listitem><para>
 #: sssd-ipa.5.xml:179 sssd-ipa.5.xml:198 include/ldap_search_bases.xml:23
@@ -6749,8 +6823,10 @@ msgstr "Типове значення: DENY_ALL"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:333
+#, fuzzy
+#| msgid "ipa_enable_dns_sites (boolean)"
 msgid "ipa_hbac_support_srchost (boolean)"
-msgstr "ipa_hbac_support_srchost (булеве значення)"
+msgstr "ipa_enable_dns_sites (булеве значення)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:336
@@ -6758,8 +6834,6 @@ msgid ""
 "If this is set to false, then srchost as given to SSSD by PAM will be "
 "ignored."
 msgstr ""
-"Якщо встановлено значення «false», значення srchost, вказане SSSD на основі "
-"даних PAM, буде проігноровано."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:340
@@ -6767,9 +6841,6 @@ msgid ""
 "Note that if set to <emphasis>False</emphasis>, this option casuses filters "
 "given in <emphasis>ipa_host_search_base</emphasis> to be ignored;"
 msgstr ""
-"Зауважте, що якщо встановлено значення <emphasis>False</emphasis>, фільтри, "
-"вказані за допомогою параметра <emphasis>ipa_host_search_base</emphasis>, "
-"буде проігноровано;"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:351
@@ -6789,271 +6860,368 @@ msgstr "Типове значення: адреса з назвою \"default\""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:364
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_of (string)"
-msgstr "ipa_netgroup_member_of (рядок)"
+msgstr "ldap_netgroup_member (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:367
+#, fuzzy
+#| msgid "The LDAP attribute that lists the user's group memberships."
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr "Атрибут LDAP зі списком учасників мережевої групи."
+msgstr "Атрибут LDAP зі списком груп, у яких бере участь користувач."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:376
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_user (string)"
-msgstr "ipa_netgroup_member_user (рядок)"
+msgstr "ldap_netgroup_member (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:379
+#, fuzzy
+#| msgid "The LDAP attribute that lists the user's group memberships."
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
-msgstr ""
-"Атрибут LDAP зі списком користувачів та груп системи, які є безпосередніми "
-"учасниками мережевої групи."
+msgstr "Атрибут LDAP зі списком груп, у яких бере участь користувач."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:384 sssd-ipa.5.xml:479
+#, fuzzy
+#| msgid "Default: memberOf"
 msgid "Default: memberUser"
-msgstr "Типове значення: memberUser"
+msgstr "Типове значення: memberOf"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:389
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_host (string)"
-msgstr "ipa_netgroup_member_host (рядок)"
+msgstr "ldap_netgroup_member (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:392
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr ""
-"Атрибут LDAP зі списком вузлів та груп вузлів, які є безпосередніми "
-"учасниками мережевої групи."
+"Атрибут LDAP, у якому містяться імена учасників мережевої групи (netgroup)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:396 sssd-ipa.5.xml:491
+#, fuzzy
+#| msgid "Default: memberOf"
 msgid "Default: memberHost"
-msgstr "Типове значення: memberHost"
+msgstr "Типове значення: memberOf"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:401
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_ext_host (string)"
-msgstr "ipa_netgroup_member_ext_host (рядок)"
+msgstr "ldap_netgroup_member (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:404
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr ""
-"Атрибут LDAP зі списком FQDN вузлів та груп вузлів, які є учасниками "
-"мережевої групи."
+"Атрибут LDAP, у якому містяться імена учасників мережевої групи (netgroup)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:408
+#, fuzzy
+#| msgid "Default: root"
 msgid "Default: externalHost"
-msgstr "Типове значення: externalHost"
+msgstr "Типове значення: root"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:413
+#, fuzzy
+#| msgid "ipa_domain (string)"
 msgid "ipa_netgroup_domain (string)"
-msgstr "ipa_netgroup_domain (рядок)"
+msgstr "ipa_domain (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:416
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
 msgstr ""
-"Атрибут LDAP, у якому міститься доменна назва NIS мережевої групи (netgroup)."
+"Атрибут LDAP, у якому містяться імена учасників мережевої групи (netgroup)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:420
+#, fuzzy
+#| msgid "Default: none"
 msgid "Default: nisDomainName"
-msgstr "Типове значення: nisDomainName"
+msgstr "Типове значення: none"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:426
+#, fuzzy
+#| msgid "ldap_user_object_class (string)"
 msgid "ipa_host_object_class (string)"
-msgstr "ipa_host_object_class (рядок)"
+msgstr "ldap_user_object_class (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:429 sssd-ipa.5.xml:452
+#, fuzzy
+#| msgid "The object class of a user entry in LDAP."
 msgid "The object class of a host entry in LDAP."
-msgstr "Клас об’єктів запису вузла у LDAP."
+msgstr "Клас об’єктів запису користувача у LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:432 sssd-ipa.5.xml:455
+#, fuzzy
+#| msgid "Default: host"
 msgid "Default: ipaHost"
-msgstr "Типове значення: ipaHost"
+msgstr "Типове значення: host"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:437
+#, fuzzy
+#| msgid "ipa_hostname (string)"
 msgid "ipa_host_fqdn (string)"
-msgstr "ipa_host_fqdn (рядок)"
+msgstr "ipa_hostname (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:440
+#, fuzzy
+#| msgid "The LDAP attribute that contains the names of the group's members."
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr "Атрибут LDAP, що містить FQDN вузла."
+msgstr "Атрибут LDAP, у якому містяться імена учасників групи."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:443
+#, fuzzy
+#| msgid "Default: cn"
 msgid "Default: fqdn"
-msgstr "Типове значення: fqdn"
+msgstr "Типове значення: cn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:449
+#, fuzzy
+#| msgid "ldap_user_object_class (string)"
 msgid "ipa_selinux_usermap_object_class (string)"
-msgstr "ipa_selinux_usermap_object_class (рядок)"
+msgstr "ldap_user_object_class (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:460
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_name (string)"
-msgstr "ipa_selinux_usermap_name (рядок)"
+msgstr "ipa_selinux_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:463
+#, fuzzy
+#| msgid "The LDAP attribute that contains the names of the group's members."
 msgid "The LDAP attribute that contains the name of SELinux usermap."
-msgstr "Атрибут LDAP, що містить назву карти користувачів SELinux."
+msgstr "Атрибут LDAP, у якому містяться імена учасників групи."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:472
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_member_user (string)"
-msgstr "ipa_selinux_usermap_member_user (рядок)"
+msgstr "ipa_selinux_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:475
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
-msgstr ""
-"Атрибут LDAP, що містить список всіх користувачів і груп, яких стосується це "
-"правило."
+msgstr "Атрибут LDAP, який містить відкриті ключі SSH користувача."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:484
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_member_host (string)"
-msgstr "ipa_selinux_usermap_member_host (рядок)"
+msgstr "ipa_selinux_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:487
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the (host, user, domain) netgroup "
+#| "triples."
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr ""
-"Атрибут LDAP, що містить список всіх вузлів і груп вузлів, яких стосується "
-"це правило."
+"Атрибут LDAP, що містить трійки мережевої групи (вузол, користувач, домен)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:496
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_see_also (string)"
-msgstr "ipa_selinux_usermap_see_also (рядок)"
+msgstr "ipa_selinux_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:499
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost"
 msgstr ""
-"Атрибут LDAP, що містить назву домену правила HBAC, яким можна користуватися "
-"для встановлення відповідності замість memberUser і memberHost."
+"Атрибут LDAP, у якому містяться імена учасників мережевої групи (netgroup)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:504
+#, fuzzy
+#| msgid "Default: ou"
 msgid "Default: seeAlso"
-msgstr "Типове значення: seeAlso"
+msgstr "Типове значення: ou"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:509
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_selinux_user (string)"
-msgstr "ipa_selinux_usermap_selinux_user (рядок)"
+msgstr "ipa_selinux_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:512
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr "Атрибут LDAP, який містить сам рядок користувача SELinux."
+msgstr "Атрибут LDAP, який містить відкриті ключі SSH користувача."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:516
+#, fuzzy
+#| msgid "Default: sudoUser"
 msgid "Default: ipaSELinuxUser"
-msgstr "Типове значення: ipaSELinuxUser"
+msgstr "Типове значення: sudoUser"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:521
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_enabled (string)"
-msgstr "ipa_selinux_usermap_enabled (рядок)"
+msgstr "ipa_selinux_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:524
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr ""
-"Атрибут LDAP, що містить дані щодо того, чи можна користуватися картою "
-"користувачів."
+"Атрибут LDAP, що містить шлях до типової командної оболонки користувача."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:528
+#, fuzzy
+#| msgid "Default: loginDisabled"
 msgid "Default: ipaEnabledFlag"
-msgstr "Типове значення: ipaEnabledFlag"
+msgstr "Типове значення: loginDisabled"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:533
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_user_category (string)"
-msgstr "ipa_selinux_usermap_user_category (рядок)"
+msgstr "ipa_selinux_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:536
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid "The LDAP attribute that contains user category such as 'all'."
-msgstr "Атрибут LDAP, що містить категорію користувачів, зокрема 'all'."
+msgstr "Атрибут LDAP, який містить відкриті ключі SSH користувача."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:540
+#, fuzzy
+#| msgid "Default: try"
 msgid "Default: userCategory"
-msgstr "Типове значення: userCategory"
+msgstr "Типове значення: try"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:545
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_host_category (string)"
-msgstr "ipa_selinux_usermap_host_category (рядок)"
+msgstr "ipa_selinux_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:548
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid "The LDAP attribute that contains host category such as 'all'."
-msgstr "Атрибут LDAP, що містить категорію вузлів, зокрема 'all'."
+msgstr ""
+"Атрибут LDAP, що містить шлях до типової командної оболонки користувача."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:552
+#, fuzzy
+#| msgid "Default: host"
 msgid "Default: hostCategory"
-msgstr "Типове значення: hostCategory"
+msgstr "Типове значення: host"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:557
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_uuid (string)"
-msgstr "ipa_selinux_usermap_uuid (рядок)"
+msgstr "ipa_selinux_search_base (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:560
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the name of the user's home directory."
 msgid "The LDAP attribute that contains unique ID of the user map."
-msgstr "Атрибут LDAP, що містить унікальний ідентифікатор карти користувачів."
+msgstr "Атрибут LDAP, що містить назву домашнього каталогу користувача."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:564
+#, fuzzy
+#| msgid "Default: nsUniqueId"
 msgid "Default: ipaUniqueID"
-msgstr "Типове значення: ipaUniqueID"
+msgstr "Типове значення: nsUniqueId"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:569
+#, fuzzy
+#| msgid "ldap_user_ssh_public_key (string)"
 msgid "ipa_host_ssh_public_key (string)"
-msgstr "ipa_host_ssh_public_key (рядок)"
+msgstr "ldap_user_ssh_public_key (рядок)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:572
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr "Атрибут LDAP, який містить відкриті ключі SSH вузла."
+msgstr "Атрибут LDAP, який містить відкриті ключі SSH користувача."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:576
+#, fuzzy
+#| msgid "Default: false"
 msgid "Default: ipaSshPubKey"
-msgstr "Типове значення: ipaSshPubKey"
+msgstr "Типове значення: false"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ipa.5.xml:585
@@ -7196,15 +7364,20 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:57
+#, fuzzy
+#| msgid ""
+#| "However, it is neither necessary nor recommended to set these options. "
+#| "The AD provider can also be used as an access, chpass and sudo provider. "
+#| "No configuration of the access provider is required on the client side."
 msgid ""
 "However, it is neither necessary nor recommended to set these options. The "
 "AD provider can also be used as an access and chpass provider. No "
 "configuration of the access provider is required on the client side."
 msgstr ""
-"Потреби у встановленні або використанні цих параметрів виникнути не повинно "
+"Потреби у встановленні або використанні цих параметрів виникнути не повинно. "
 "Інструментом надання даних AD також можна скористатися для перевірки прав "
-"доступу та зміни паролів. У налаштовуванні керування доступом на боці "
-"клієнта немає потреби."
+"доступу, зміни паролів та доступу до sudo. У налаштовуванні керування "
+"доступом на боці клієнта немає потреби."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-ad.5.xml:69
@@ -7224,10 +7397,10 @@ msgstr ""
 #| "objectSID parameter in Active Directory. For details on this, see the "
 #| "<quote>ID MAPPING</quote> section below. If you want to disable ID "
 #| "mapping and instead rely on POSIX attributes defined in Active Directory, "
-#| "you should set <placeholder type=\"programlisting\" id=\"0\"/> Users, "
-#| "groups and other entities served by SSSD are always treated as case-"
-#| "insensitive in the AD provider for compatibility with Active Directory's "
-#| "LDAP implementation."
+#| "you should set <placeholder type=\"programlisting\" id=\"0\"/> In order "
+#| "to retrieve users and groups using POSIX attributes from trusted domains, "
+#| "the AD administrator must make sure that the POSIX attributes are "
+#| "replicated to the Global Catalog."
 msgid ""
 "By default, the AD provider will map UID and GID values from the objectSID "
 "parameter in Active Directory. For details on this, see the <quote>ID "
@@ -7235,15 +7408,15 @@ msgid ""
 "rely on POSIX attributes defined in Active Directory, you should set "
 "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"Типово засіб надання даних AD виконує прив’язку значень UID і GID з "
-"параметра objectSID у Active Directory. Докладніше про це можна дізнатися з "
-"розділу «ВСТАНОВЛЕННЯ ВІДПОВІДНОСТІ ІДЕНТИФІКАТОРІВ», наведеного нижче. Якщо "
-"ви хочете вимкнути прив’язку ідентифікаторів і замість цього використати "
+"Типово, модуль надання даних AD виконуватиме прив’язку до значень UID та GID "
+"з параметра objectSID у Active Directory. Докладніший опис наведено у "
+"розділі «ВСТАНОВЛЕННЯ ВІДПОВІДНОСТІ ІДЕНТИФІКАТОРІВ». Якщо вам потрібно "
+"вимкнути встановлення відповідності ідентифікаторів і покладатися на "
 "атрибути POSIX, визначені у Active Directory, вам слід встановити "
-"<placeholder type=\"programlisting\" id=\"0\"/> Записи користувачів, груп та "
-"інші записи, що обслуговуються SSSD, завжди оброблятимуться у засобі надання "
-"даних AD з врахуванням регістру для сумісності з реалізацією Active "
-"Directory у LDAP."
+"<placeholder type=\"programlisting\" id=\"0\"/> Щоб отримати дані щодо "
+"користувачів і груп за допомогою атрибутів POSIX з надійних доменів, "
+"адміністратор AD має переконатися, що атрибути POSIX відтворюються у "
+"загальному каталозі (Global Catalog)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:83
@@ -7325,15 +7498,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd-ad.5.xml:193
-#, fuzzy, no-wrap
-#| msgid ""
-#| "override_homedir = /home/%u\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "fallback_homedir = /home/%u\n"
 "                            "
 msgstr ""
-"override_homedir = /home/%u\n"
+"fallback_homedir = /home/%u\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -7515,14 +7685,19 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:92
+#, fuzzy
+#| msgid ""
+#| "When the SSSD is configured to use IPA as the ID provider, the sudo "
+#| "provider is automatically enabled. The sudo search base is configured to "
+#| "use the compat tree (ou=sudoers,$DC)."
 msgid ""
 "When the SSSD is configured to use the IPA provider, the sudo provider is "
 "automatically enabled. The sudo search base is configured to use the compat "
 "tree (ou=sudoers,$DC)."
 msgstr ""
-"Якщо SSSD налаштовано на використання надавача даних IPA, автоматично "
-"вмикається модуль надавача даних sudo. Базу пошуку sudo налаштовано на "
-"використання ієрархії даних compat (ou=sudoers,$DC)."
+"Якщо SSSD налаштовано на використання надавача даних IPA для ідентифікатора, "
+"автоматично вмикається модуль надавача даних sudo. Базу пошуку sudo "
+"налаштовано на використання ієрархії даних compat (ou=sudoers,$DC)."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-sudo.5.xml:99
@@ -7873,16 +8048,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:193
-#, fuzzy
-#| msgid ""
-#| "If the environment variable SSSD_KRB5_LOCATOR_DEBUG is set to any value "
-#| "debug messages will be sent to stderr."
 msgid ""
 "If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", client "
 "applications will not use the fast in memory cache."
 msgstr ""
-"Якщо встановлено будь-яке значення змінної середовища "
-"SSSD_KRB5_LOCATOR_DEBUG, діагностичні повідомлення надсилатимуться до stderr."
+"Якщо для змінної середовища SSS_NSS_USE_MEMCACHE встановлено значення «NO», "
+"клієнтські програми не використовуватимуть fast у кеші у пам’яті."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_obfuscate.8.xml:10 sss_obfuscate.8.xml:15
@@ -8351,14 +8522,6 @@ msgid ""
 "<citerefentry> <refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> "
 "</citerefentry> for details) is created."
 msgstr ""
-"Каталог для зберігання кешу реєстраційних даних. Тут можна використовувати "
-"всі послідовності-замінники krb5_ccname_template, окрім %d і %P. Якщо "
-"каталогу не існує, його буде створено. Якщо використано %u, %U, %p або %h, "
-"буде створено особистий каталог, власником якого буде користувач. Якщо цих "
-"замінників не буде використано, буде створено відкритий каталог з обмеженням "
-"на вилучення (або липким бітом, докладніші відомості викладено у довіднику "
-"(man) з <citerefentry> <refentrytitle>chmod</refentrytitle> <manvolnum>1</"
-"manvolnum> </citerefentry>)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:152
@@ -8407,8 +8570,10 @@ msgstr "домашній каталог"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:192
+#, fuzzy
+#| msgid "value of krb5_ccachedir"
 msgid "value of krb5ccache_dir"
-msgstr "значення krb5ccache_dir"
+msgstr "значення krb5_ccachedir"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:197
@@ -8422,6 +8587,16 @@ msgstr "ідентифікатор процесу клієнтської час�
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:161
+#, fuzzy
+#| msgid ""
+#| "Location of the user's credential cache. Three credential cache types are "
+#| "currently supported: <quote>FILE</quote>, <quote>DIR</quote> and "
+#| "<quote>KEYRING:persistent</quote>. The cache can be specified either as "
+#| "<replaceable>TYPE:RESIDUAL</replaceable>, or as an absolute path, which "
+#| "implies the <quote>FILE</quote> type. In the template, the following "
+#| "sequences are substituted: <placeholder type=\"variablelist\" id=\"0\"/> "
+#| "If the template ends with 'XXXXXX' mkstemp(3) is used to create a unique "
+#| "filename in a safe way."
 msgid ""
 "Location of the user's credential cache. Two credential cache types are "
 "currently supported: <quote>FILE</quote> and <quote>DIR</quote>. The cache "
@@ -8431,19 +8606,20 @@ msgid ""
 "\"variablelist\" id=\"0\"/> If the template ends with 'XXXXXX' mkstemp(3) is "
 "used to create a unique filename in a safe way."
 msgstr ""
-"Розташування кешу з реєстраційними даними користувача. У поточній версії "
-"передбачено підтримку двох типів кешу реєстраційних даних: <quote>FILE</"
-"quote> та <quote>DIR</quote>. Теш може бути вказано або у форматі "
-"<replaceable>ТИП:РЕШТА</replaceable>, або у форматі абсолютного шляху (тоді "
-"вважається, що типом кешу є <quote>FILE</quote>). У шаблоні передбачено "
-"можливість використання таких послідовностей-замінників: <placeholder type="
-"\"variablelist\" id=\"0\"/> Якщо шаблон завершується послідовністю «XXXXXX», "
-"для безпечного створення назви файла використовується mkstemp(3)."
+"Розташування кешу з реєстраційними даними користувача У поточній версії "
+"передбачено підтримку трьох типів кешу реєстраційних даних: <quote>FILE</"
+"quote>, <quote>DIR</quote> та <quote>KEYRING:persistent</quote>. Кеш може "
+"бути вказано або у форматі <replaceable>ТИП:РЕШТА</replaceable>, або у "
+"форматі абсолютного шляху (тоді вважається, що типом кешу є <quote>FILE</"
+"quote>). У шаблоні передбачено можливість використання таких послідовностей-"
+"замінників: <placeholder type=\"variablelist\" id=\"0\"/> Якщо шаблон "
+"завершується послідовністю «XXXXXX», для безпечного створення назви файла "
+"використовується mkstemp(3)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:212
 msgid "Default: FILE:%d/krb5cc_%U_XXXXXX"
-msgstr "Типове значення: FILE:%d/krb5cc_%U_XXXXXX"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:218
@@ -10167,9 +10343,6 @@ msgid ""
 "default value as well as the lowest allowed value, 0xFFF0 is the most "
 "verbose mode. This setting overrides the settings from config file."
 msgstr ""
-"Бітова маска, яка визначає рівні діагностики, дані яких буде показано. "
-"0x0010 — типове і найменше можливе значення. 0xFFF0 — найдокладніший режим. "
-"Визначення цього параметра має пріоритет над визначенням у файлі налаштувань."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:8
@@ -10178,88 +10351,140 @@ msgstr "Рівні діагностики, передбачені у поточ�
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:11
+#, fuzzy
+#| msgid ""
+#| "<emphasis>0</emphasis>, <emphasis>0x0010</emphasis>: Fatal failures. "
+#| "Anything that would prevent SSSD from starting up or causes it to cease "
+#| "running."
 msgid ""
 "<emphasis>0x0010</emphasis>: Fatal failures. Anything that would prevent "
 "SSSD from starting up or causes it to cease running."
 msgstr ""
-"<emphasis>0x0010</emphasis>: критичні помилки з аварійним завершенням "
-"роботи. Всі помилки, які не дають SSSD змоги розпочати або продовжувати "
-"роботу."
+"<emphasis>0</emphasis>, <emphasis>0x0010</emphasis>: критичні помилки з "
+"аварійним завершенням роботи. Всі помилки, які не дають SSSD змоги розпочати "
+"або продовжувати роботу."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:15
+#, fuzzy
+#| msgid ""
+#| "<emphasis>1</emphasis>, <emphasis>0x0020</emphasis>: Critical failures. "
+#| "An error that doesn't kill the SSSD, but one that indicates that at least "
+#| "one major feature is not going to work properly."
 msgid ""
 "<emphasis>0x0020</emphasis>: Critical failures. An error that doesn't kill "
 "the SSSD, but one that indicates that at least one major feature is not "
 "going to work properly."
 msgstr ""
-"<emphasis>0x0020</emphasis>: критичні помилки. Помилки, які не призводять до "
-"аварійного завершення роботи SSSD, але означають, що одна з основних "
-"можливостей не працює належним чином."
+"<emphasis>1</emphasis>, <emphasis>0x0020</emphasis>: критичні помилки. "
+"Помилки, які не призводять до аварійного завершення роботи SSSD, але "
+"означають, що одна з основних можливостей не працює належним чином."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:20
+#, fuzzy
+#| msgid ""
+#| "<emphasis>2</emphasis>, <emphasis>0x0040</emphasis>: Serious failures. An "
+#| "error announcing that a particular request or operation has failed."
 msgid ""
 "<emphasis>0x0040</emphasis>: Serious failures. An error announcing that a "
 "particular request or operation has failed."
 msgstr ""
-"<emphasis>0x0040</emphasis>: серйозні помилки. Повідомлення про такі помилки "
-"означають, що не вдалося виконати певний запит або дію."
+"<emphasis>2</emphasis>, <emphasis>0x0040</emphasis>: серйозні помилки. "
+"Повідомлення про такі помилки означають, що не вдалося виконати певний запит "
+"або дію."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:24
+#, fuzzy
+#| msgid ""
+#| "<emphasis>3</emphasis>, <emphasis>0x0080</emphasis>: Minor failures. "
+#| "These are the errors that would percolate down to cause the operation "
+#| "failure of 2."
 msgid ""
 "<emphasis>0x0080</emphasis>: Minor failures. These are the errors that would "
 "percolate down to cause the operation failure of 2."
 msgstr ""
-"<emphasis>0x0080</emphasis>: незначні помилки. Це помилки які можуть "
-"призвести до помилок під час виконання дій."
+"<emphasis>3</emphasis>, <emphasis>0x0080</emphasis>: незначні помилки. Це "
+"помилки які можуть призвести до помилок під час виконання дій."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:28
+#, fuzzy
+#| msgid ""
+#| "<emphasis>4</emphasis>, <emphasis>0x0100</emphasis>: Configuration "
+#| "settings."
 msgid "<emphasis>0x0100</emphasis>: Configuration settings."
-msgstr "<emphasis>0x0100</emphasis>: параметри налаштування."
+msgstr ""
+"<emphasis>4</emphasis>, <emphasis>0x0100</emphasis>: параметри налаштування."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:31
+#, fuzzy
+#| msgid "<emphasis>5</emphasis>, <emphasis>0x0200</emphasis>: Function data."
 msgid "<emphasis>0x0200</emphasis>: Function data."
-msgstr "<emphasis>0x0200</emphasis>: дані функцій."
+msgstr "<emphasis>5</emphasis>, <emphasis>0x0200</emphasis>: дані функцій."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:34
+#, fuzzy
+#| msgid ""
+#| "<emphasis>6</emphasis>, <emphasis>0x0400</emphasis>: Trace messages for "
+#| "operation functions."
 msgid "<emphasis>0x0400</emphasis>: Trace messages for operation functions."
-msgstr "<emphasis>0x0400</emphasis>: повідомлення трасування для функцій дій."
+msgstr ""
+"<emphasis>6</emphasis>, <emphasis>0x0400</emphasis>: повідомлення трасування "
+"для функцій дій."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:37
+#, fuzzy
+#| msgid ""
+#| "<emphasis>7</emphasis>, <emphasis>0x1000</emphasis>: Trace messages for "
+#| "internal control functions."
 msgid ""
 "<emphasis>0x1000</emphasis>: Trace messages for internal control functions."
 msgstr ""
-"<emphasis>0x1000</emphasis>: повідомлення трасування для функцій "
-"внутрішнього трасування."
+"<emphasis>7</emphasis>, <emphasis>0x1000</emphasis>: повідомлення трасування "
+"для функцій внутрішнього трасування."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:40
+#, fuzzy
+#| msgid ""
+#| "<emphasis>8</emphasis>, <emphasis>0x2000</emphasis>: Contents of function-"
+#| "internal variables that may be interesting."
 msgid ""
 "<emphasis>0x2000</emphasis>: Contents of function-internal variables that "
 "may be interesting."
 msgstr ""
-"<emphasis>0x2000</emphasis>: вміст внутрішніх змінних функцій, який може "
-"бути цікавим."
+"<emphasis>8</emphasis>, <emphasis>0x2000</emphasis>: вміст внутрішніх "
+"змінних функцій, який може бути цікавим."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:43
+#, fuzzy
+#| msgid ""
+#| "<emphasis>9</emphasis>, <emphasis>0x4000</emphasis>: Extremely low-level "
+#| "tracing information."
 msgid "<emphasis>0x4000</emphasis>: Extremely low-level tracing information."
-msgstr "<emphasis>0x4000</emphasis>: дані трасування найнижчого рівня."
+msgstr ""
+"<emphasis>9</emphasis>, <emphasis>0x4000</emphasis>: дані трасування "
+"найнижчого рівня."
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:46
+#, fuzzy
+#| msgid ""
+#| "To log required bitmask debug levels, simply add their numbers together "
+#| "as shown in following examples:"
 msgid ""
 "To log required debug levels, simply add their numbers together as shown in "
 "following examples:"
 msgstr ""
-"Щоб до журналу було записано дані потрібних рівнів діагностики, просто "
-"додайте відповідні числа, як це показано у наведених нижче прикладах:"
+"Щоб до журналу було записано дані потрібних бітових масок рівнів "
+"діагностики, просто додайте відповідні числа, як це показано у наведених "
+"нижче прикладах:"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:49
@@ -10284,14 +10509,16 @@ msgstr ""
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:57
+#, fuzzy
+#| msgid ""
+#| "<emphasis>Note</emphasis>: The bitmask format of debug levels was "
+#| "introduced in 1.7.0."
 msgid ""
 "<emphasis>Note</emphasis>: This is new format of debug levels introduced in "
 "1.7.0.  Older format (numbers from 0-10) is compatible but deprecated."
 msgstr ""
-"<emphasis>Зауваження</emphasis>: цей новий формат визначення рівнів "
-"діагностики впроваджено у версії 1.7.0.  Визначення у форматах попередніх "
-"версій (числа від 0 до 10) сумісні сз поточною версією, але вважаються "
-"застарілими."
+"<emphasis>Зауваження</emphasis>: формат бітових масок для рівнів діагностики "
+"впроваджено у версії 1.7.0."
 
 #. type: Content of: outside any tag (error?)
 #: include/experimental.xml:1
@@ -10381,6 +10608,8 @@ msgstr "ТАКОЖ ПЕРЕГЛЯНЬТЕ"
 #| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
 #| "<manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
 #| "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
+#| "manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
+#| "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
 #| "manvolnum> </citerefentry>, </phrase> <citerefentry> "
 #| "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
 #| "citerefentry>."
@@ -10456,6 +10685,8 @@ msgstr ""
 "<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>8</"
 "manvolnum> </citerefentry>, <citerefentry> "
 "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry>, </phrase> <phrase condition=\"with_ifp\"> "
+"<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
 "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 
@@ -10485,12 +10716,15 @@ msgstr "синтаксис: <placeholder type=\"programlisting\" id=\"0\"/>"
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:13
 #: include/ldap_search_bases_experimental.xml:13
+#, fuzzy
+#| msgid ""
+#| "The filter must be a valid LDAP search filter as specified by http://www."
+#| "ietf.org/rfc/rfc2254.txt"
 msgid ""
 "The scope can be one of \"base\", \"onelevel\" or \"subtree\". The filter "
 "must be a valid LDAP search filter as specified by http://www.ietf.org/rfc/"
 "rfc2254.txt"
 msgstr ""
-"Областю може бути одне зі значень: «base», «onelevel» або «subtree». "
 "Фільтром має бути коректний запис фільтрування LDAP, відповідно до "
 "специфікації http://www.ietf.org/rfc/rfc2254.txt"
 
@@ -10529,6 +10763,21 @@ msgstr ""
 "autofs зміни, типово слід перезапустити фонову службу автоматичного "
 "монтування після перезапуску SSSD."
 
+#~ msgid "GENERAL OPTIONS"
+#~ msgstr "ЗАГАЛЬНІ ПАРАМЕТРИ"
+
+#~ msgid ""
+#~ "Following options are usable in more than one configuration sections."
+#~ msgstr ""
+#~ "Нижче наведено параметри, які можна використовувати у декількох розділах "
+#~ "налаштувань."
+
+#~ msgid "Options usable in all sections"
+#~ msgstr "Параметри, які можна використовувати у всіх розділах"
+
+#~ msgid "Options usable in SERVICE and DOMAIN sections"
+#~ msgstr "Параметри які можна використовувати у розділах SERVICE та DOMAIN"
+
 #~ msgid "%1$s"
 #~ msgstr "%1$s"
 
@@ -10558,6 +10807,143 @@ msgstr ""
 #~ "Передбачено використання таких замінників: <placeholder type="
 #~ "\"variablelist\" id=\"0\"/>"
 
+#~ msgid "offline_timeout (integer)"
+#~ msgstr "offline_timeout (ціле число)"
+
+#~ msgid ""
+#~ "If SSSD is in offline mode, and last attempt to go online was less than "
+#~ "number of seconds specified in this option ago, new requests for data "
+#~ "will not result in attempt to go online."
+#~ msgstr ""
+#~ "Якщо SSSD працює у автономному режимі і остання спроба встановити зв’язок "
+#~ "з мережею виконувалася менше ніж за вказану кількість секунд тому, нові "
+#~ "запити щодо отримання даних не призводитимуть до спроб встановити "
+#~ "з’єднання з мережею."
+
+#~ msgid ""
+#~ "The default shell to use if the provider does not return one during "
+#~ "lookup. This option can be specified globally in the [nss] section or per-"
+#~ "domain."
+#~ msgstr ""
+#~ "Типова командна оболонка, яку буде використано, якщо засобом надання "
+#~ "даних не було повернуто назви оболонки під час пошуку. Цей параметр можна "
+#~ "вказати або на загальному рівні у розділі [nss], або окремо для кожного з "
+#~ "доменів."
+
+#~ msgid ""
+#~ "These options can be used to configure the sudo service.  The detailed "
+#~ "instructions for configuration of <citerefentry> <refentrytitle>sudo</"
+#~ "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> to work with "
+#~ "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
+#~ "manvolnum> </citerefentry> are in the manual page <citerefentry> "
+#~ "<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
+#~ "citerefentry>."
+#~ msgstr ""
+#~ "Цими параметрами можна скористатися для налаштовування служби sudo. "
+#~ "Докладні настанови щодо налаштовування <citerefentry> "
+#~ "<refentrytitle>sudo</refentrytitle> <manvolnum>8</manvolnum> </"
+#~ "citerefentry> на роботу з <citerefentry> <refentrytitle>sssd</"
+#~ "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> можна знайти на "
+#~ "сторінці довідника <citerefentry> <refentrytitle>sssd-sudo</"
+#~ "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
+
+#~ msgid "subdomain_enumerate (string)"
+#~ msgstr "subdomain_enumerate (рядок)"
+
+#~ msgid "all"
+#~ msgstr "all"
+
+#~ msgid "All discovered trusted domains will be enumerated"
+#~ msgstr "Усі виявлені надійні домени буде пронумеровано"
+
+#~ msgid "none"
+#~ msgstr "none"
+
+#~ msgid "No discovered trusted domains will be enumerated"
+#~ msgstr "Нумерація виявлених надійних доменів не виконуватиметься"
+
+#~ msgid ""
+#~ "Whether any of autodetected trusted domains should be enumerated. The "
+#~ "supported values are: <placeholder type=\"variablelist\" id=\"0\"/> "
+#~ "Optionally, a list of one or more domain names can enable enumeration "
+#~ "just for these trusted domains."
+#~ msgstr ""
+#~ "Визначає, чи слід нумерувати усі автоматично виявлені надійні (довірені) "
+#~ "домени. Підтримувані значення: <placeholder type=\"variablelist\" id="
+#~ "\"0\"/> Якщо потрібно, можна вказати список з однієї або декількох назв "
+#~ "надійних доменів, для яких буде увімкнено нумерацію."
+
+#~ msgid ""
+#~ "The cache expiration timestamps are stored as attributes of individual "
+#~ "objects in the cache. Therefore, changing the cache timeout only has "
+#~ "effect for newly added or expired entries.  You should run the "
+#~ "<citerefentry> <refentrytitle>sss_cache</refentrytitle> <manvolnum>8</"
+#~ "manvolnum> </citerefentry> tool in order to force refresh of entries that "
+#~ "have already been cached."
+#~ msgstr ""
+#~ "Дані щодо часових позначок завершення строку дії записів кешу "
+#~ "зберігаються як атрибути окремих об’єктів у кеші. Тому зміна часу "
+#~ "очікування на дані у кеші впливає лише на нові записи та записи, строк "
+#~ "дії яких вичерпано. Для примусового оновлення записів, які вже було "
+#~ "кешовано, вам слід запустити програму <citerefentry> "
+#~ "<refentrytitle>sss_cache</refentrytitle> <manvolnum>8</manvolnum> </"
+#~ "citerefentry>."
+
+#~ msgid ""
+#~ "Specifies how many seconds SSSD has to wait before triggering a "
+#~ "background refresh task which will refresh all expired or nearly expired "
+#~ "records."
+#~ msgstr ""
+#~ "Визначає кількість секунд, протягом яких SSSD має очікувати до запуску "
+#~ "завдання з оновлення у фоновому режимі записів кешу, строк дії яких "
+#~ "вичерпано або майже вичерпано."
+
+#~ msgid "Currently only refreshing expired netgroups is supported."
+#~ msgstr ""
+#~ "У поточній версії передбачено оновлення лише застарілих записів мережевих "
+#~ "груп."
+
+#~ msgid ""
+#~ "NOTE: This option has no effect on netgroup lookups due to their tendency "
+#~ "to include nested netgroups without qualified names. For netgroups, all "
+#~ "domains will be searched when an unqualified name is requested."
+#~ msgstr ""
+#~ "ЗАУВАЖЕННЯ: цей параметр не впливатиме на пошук у мережевих групах через "
+#~ "тенденцію до включення до таких груп вкладених мережевих груп. Для "
+#~ "мережевих груп, якщо задано неповну назву, буде виконано пошук у всіх "
+#~ "доменах."
+
+#~ msgid ""
+#~ "<quote>ipa</quote> the same as <quote>ldap</quote> but with IPA default "
+#~ "settings."
+#~ msgstr ""
+#~ "<quote>ipa</quote> — те саме, що і <quote>ldap</quote>, але з типовими "
+#~ "параметрами IPA."
+
+#~ msgid ""
+#~ "<quote>ad</quote> the same as <quote>ldap</quote> but with AD default "
+#~ "settings."
+#~ msgstr ""
+#~ "<quote>ad</quote> — те саме, що і <quote>ldap</quote>, але з типовими "
+#~ "параметрами AD."
+
+#~ msgid ""
+#~ "The detailed instructions for configuration of sudo_provider are in the "
+#~ "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
+#~ "<manvolnum>5</manvolnum> </citerefentry>.  There are many configuration "
+#~ "options that can be used to adjust the behavior. Please refer to "
+#~ "\"ldap_sudo_*\" in <citerefentry> <refentrytitle>sssd-ldap</"
+#~ "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
+#~ msgstr ""
+#~ "З докладними настановами щодо налаштовування sudo_provider можна "
+#~ "ознайомитися за допомогою сторінки підручника (man) <citerefentry> "
+#~ "<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
+#~ "citerefentry>. Передбачено доволі багато параметрів налаштовування, якими "
+#~ "можна скористатися для коригування поведінки програми. Докладніший опис "
+#~ "можна знайти у розділах щодо «ldap_sudo_*»\" у підручнику з "
+#~ "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
+#~ "manvolnum> </citerefentry>."
+
 #~ msgid ""
 #~ "Regular expression for this domain that describes how to parse the string "
 #~ "containing user name and domain into these components.  The \"domain\" "
@@ -10585,6 +10971,59 @@ msgstr ""
 #~ "Різноманітні теґи, що зберігаються службою налаштовування realmd для "
 #~ "цього домену."
 
+#~ msgid "SSSD LDAP provider"
+#~ msgstr "Модуль надання даних LDAP SSSD"
+
+#~ msgid "ldap_user_extra_attrs (string)"
+#~ msgstr "ldap_user_extra_attrs (рядок)"
+
+#~ msgid ""
+#~ "Comma-separated list of LDAP attributes that SSSD would fetch along with "
+#~ "the usual set of user attributes."
+#~ msgstr ""
+#~ "Відокремлений комами список атрибутів LDAP, які SSSD має отримувати разом "
+#~ "зі звичайним набором атрибутів запису користувача."
+
+#~ msgid ""
+#~ "The list can either contain LDAP attribute names only, or colon-separated "
+#~ "tuples of SSSD cache attribute name and LDAP attribute name. In case only "
+#~ "LDAP attribute name is specified, the attribute is saved to the cache "
+#~ "verbatim.  Using a custom SSSD attribute name might be required by "
+#~ "environments that configure several SSSD domains with different LDAP "
+#~ "schemas."
+#~ msgstr ""
+#~ "Список може або містити лише назви атрибутів LDAP, або відокремлені "
+#~ "двокрапками кортежі з назви атрибута кешу SSSD та назви атрибута LDAP. "
+#~ "Якщо вказано лише назву атрибута LDAP, атрибут зберігається до кешу "
+#~ "буквально. Використання нетипової назви атрибута SSSD може бути потрібним "
+#~ "середовищам, де налаштовано декілька доменів SSSD з різними схемами LDAP."
+
+#~ msgid ""
+#~ "Please note that several attribute names are reserved by SSSD, notably "
+#~ "the <quote>name</quote> attribute. SSSD would report an error if any of "
+#~ "the reserved attribute names is used as an extra attribute name."
+#~ msgstr ""
+#~ "Будь ласка, зауважте, що декілька назв атрибутів зарезервовано SSSD, "
+#~ "зокрема атрибут «name». SSSD повідомить про помилку, якщо будь-які із "
+#~ "зарезервованих назв атрибутів використано як назву додаткового атрибута."
+
+#~ msgid "ldap_user_extra_attrs = telephoneNumber"
+#~ msgstr "ldap_user_extra_attrs = telephoneNumber"
+
+#~ msgid ""
+#~ "Save the <quote>telephoneNumber</quote> attribute from LDAP as "
+#~ "<quote>telephoneNumber</quote> to the cache."
+#~ msgstr ""
+#~ "Зберегти атрибут «telephoneNumber» з LDAP як «telephoneNumber» до кешу."
+
+#~ msgid "ldap_user_extra_attrs = phone:telephoneNumber"
+#~ msgstr "ldap_user_extra_attrs = phone:telephoneNumber"
+
+#~ msgid ""
+#~ "Save the <quote>telephoneNumber</quote> attribute from LDAP as "
+#~ "<quote>phone</quote> to the cache."
+#~ msgstr "Зберегти атрибут «telephoneNumber» з LDAP як «phone» до кешу."
+
 #~ msgid ""
 #~ "Please note that the ldap_access_order configuration option "
 #~ "<emphasis>must</emphasis> include <quote>authorized_service</quote> in "
@@ -10602,6 +11041,69 @@ msgstr ""
 #~ "Будь ласка, зауважте, що параметр налаштування ldap_access_order "
 #~ "<emphasis>має</emphasis> включати <quote>host</quote>, щоб можна було "
 #~ "скористатися параметром ldap_user_authorized_host."
+
+#~ msgid "ldap_group_type (integer)"
+#~ msgstr "ldap_group_type (ціле число)"
+
+#~ msgid ""
+#~ "The LDAP attribute that contains an integer value indicating the type of "
+#~ "the group and maybe other flags."
+#~ msgstr ""
+#~ "Атрибут LDAP, що містить ціле значення і позначає тип групи, а також, "
+#~ "можливо, інші прапорці."
+
+#~ msgid ""
+#~ "This attribute is currently only used by the AD provider to determine if "
+#~ "a group is a domain local groups and has to be filtered out for trusted "
+#~ "domains."
+#~ msgstr ""
+#~ "Цей атрибут у поточній версії використовується лише засобом надання даних "
+#~ "AD для визначення, чи є група локальною групою домену і чи має бути її "
+#~ "відфільтровано у списку надійних (довірених) доменів."
+
+#~ msgid "Default: groupType in the AD provider, othewise not set"
+#~ msgstr ""
+#~ "Типове значення: groupType у засобі надання даних AD, у інших засобах не "
+#~ "встановлено"
+
+#~ msgid ""
+#~ "Note: This option specifies the guaranteed level of nested groups to be "
+#~ "processed for any lookup. However, nested groups beyond this limit "
+#~ "<emphasis>may be</emphasis> returned if previous lookups already resolved "
+#~ "the deeper nesting levels.  Also, subsequent lookups for other groups may "
+#~ "enlarge the result set for original lookup if re-queried."
+#~ msgstr ""
+#~ "Зауваження: за допомогою цього параметра визначається гарантований рівень "
+#~ "вкладеності груп для обробки під час будь-якого пошуку. Втім, "
+#~ "<emphasis>може бути</emphasis> повернуто і групи із більшим рівнем "
+#~ "вкладеності, якщо під час попередніх пошуків відбувалася обробка вищих "
+#~ "рівнів вкладеності. Крім того, послідовні пошуки інших груп можуть "
+#~ "розширити набір результатів початкового пошуку, якщо запити щодо пошуку "
+#~ "надходять повторно."
+
+#~ msgid ""
+#~ "If ldap_group_nesting_level is set to 0 then no nested groups are "
+#~ "processed at all. However, when connected to Active-Directory Server 2008 "
+#~ "and later it is furthermore required to disable usage of Token-Groups by "
+#~ "setting ldap_use_tokengroups to false."
+#~ msgstr ""
+#~ "Якщо значенням ldap_group_nesting_level є 0, вкладені групи взагалі не "
+#~ "оброблятимуться. Втім, якщо з’єднання встановлено з Active-Directory "
+#~ "Server 2008 та новішими версіями, слід також вимкнути використання груп "
+#~ "реєстраційних записів (Token-Groups) встановленням для параметра "
+#~ "ldap_use_tokengroups значення false."
+
+#~ msgid "ldap_use_tokengroups"
+#~ msgstr "ldap_use_tokengroups"
+
+#~ msgid ""
+#~ "This options enables or disables use of Token-Groups attribute when "
+#~ "performing initgroup for users from Active Directory Server 2008 and "
+#~ "later."
+#~ msgstr ""
+#~ "За допомогою цього параметра можна увімкнути або вимкнути використання "
+#~ "атрибута Token-Groups під час виконання initgroup для користувачів Active "
+#~ "Directory Server 2008 та новіших версій."
 
 #~ msgid "ldap_min_id, ldap_max_id (interger)"
 #~ msgstr "ldap_min_id, ldap_max_id (ціле число)"
@@ -10656,6 +11158,14 @@ msgstr ""
 #~ "manvolnum> </citerefentry>, щоб дізнатися більше про додаток пошуку."
 
 #~ msgid ""
+#~ "<emphasis>Note</emphasis>: if a password policy is configured on server "
+#~ "side, it always takes precedence over policy set with this option."
+#~ msgstr ""
+#~ "<emphasis>Зауваження</emphasis>: якщо правила поводження з паролями "
+#~ "налаштовано на боці сервера, ці правила мають пріоритет над правилами, "
+#~ "встановленими за допомогою цього параметра."
+
+#~ msgid ""
 #~ "Please note that the ldap_access_order configuration option "
 #~ "<emphasis>must</emphasis> include <quote>expire</quote> in order for the "
 #~ "ldap_account_expire_policy option to work."
@@ -10663,6 +11173,69 @@ msgstr ""
 #~ "Будь ласка, зауважте, що параметр налаштування ldap_access_order "
 #~ "<emphasis>має</emphasis> включати <quote>expire</quote>, щоб можна було "
 #~ "користуватися параметром ldap_account_expire_policy."
+
+#~ msgid ""
+#~ "The detailed instructions for configuration of sudo_provider are in the "
+#~ "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
+#~ "<manvolnum>5</manvolnum> </citerefentry>."
+#~ msgstr ""
+#~ "Докладні настанов щодо налаштовування sudo_provider можна знайти на "
+#~ "сторінці довідника (man) <citerefentry> <refentrytitle>sssd-sudo</"
+#~ "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
+
+#~ msgid "ldap_autofs_map_master_name (string)"
+#~ msgstr "ldap_autofs_map_master_name (рядок)"
+
+#~ msgid "The name of the automount master map in LDAP."
+#~ msgstr "Назва основної карти автоматичного монтування у LDAP."
+
+#~ msgid "Default: auto.master"
+#~ msgstr "Типове значення: auto.master"
+
+#~ msgid "<option>ignore_unknown_user</option>"
+#~ msgstr "<option>ignore_unknown_user</option>"
+
+#~ msgid ""
+#~ "If this option is specified and the user does not exist, the PAM module "
+#~ "will return PAM_IGNORE. This causes the PAM framework to ignore this "
+#~ "module."
+#~ msgstr ""
+#~ "Якщо вказано цей параметр і облікового запису не існує, модуль PAM "
+#~ "поверне PAM_IGNORE. Це призводить до ігнорування цього модуля оболонкою "
+#~ "PAM."
+
+#~ msgid "<option>ignore_authinfo_unavail</option>"
+#~ msgstr "<option>ignore_authinfo_unavail</option>"
+
+#~ msgid ""
+#~ "Specifies that the PAM module should return PAM_IGNORE if it cannot "
+#~ "contact the SSSD daemon. This causes the PAM framework to ignore this "
+#~ "module."
+#~ msgstr ""
+#~ "Визначає, що модуль PAM має повертати PAM_IGNORE, якщо не вдається "
+#~ "встановити зв’язок із фоновою службою SSSD. У результаті набір "
+#~ "інструментів PAM ігнорує цей модуль."
+
+#~ msgid "Kerberos locator plugin"
+#~ msgstr "Додаток локатора Kerberos"
+
+#~ msgid ""
+#~ "The complete group membership hierarchy is resolved before the access "
+#~ "check, thus even nested groups can be included in the access lists.  "
+#~ "Please be aware that the <quote>ldap_group_nesting_level</quote> option "
+#~ "may impact the results and should be set to a sufficient value.  "
+#~ "(<citerefentry> <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</"
+#~ "manvolnum> </citerefentry>) option."
+#~ msgstr ""
+#~ "Повна обробка ієрархії участі у групах виконується до перевірки прав "
+#~ "доступу, отже, до списку груп доступу може бути включено навіть вкладені "
+#~ "групи. Будь ласка, зауважте, що на результати може вплинути значення "
+#~ "параметра «ldap_group_nesting_level». Вам слід встановити для нього "
+#~ "достатнє значення. Див. <citerefentry> <refentrytitle>sssd-ldap</"
+#~ "refentrytitle><manvolnum>5</manvolnum> </citerefentry>."
+
+#~ msgid "SSSD IPA provider"
+#~ msgstr "Модуль надання даних IPA SSSD"
 
 #~ msgid ""
 #~ "Optional. This option tells SSSD to automatically update the DNS server "
@@ -10719,9 +11292,6 @@ msgstr ""
 #~ "ЗАУВАЖЕННЯ: хоча можна використовувати і попередню назву параметра, "
 #~ "<emphasis>ipa_dyndns_iface</emphasis>, користувачам слід переходити на "
 #~ "нову назву, <emphasis>dyndns_iface</emphasis>, у файлі налаштувань."
-
-#~ msgid "ipa_enable_dns_sites (boolean)"
-#~ msgstr "ipa_enable_dns_sites (булеве значення)"
 
 #~ msgid "Enables DNS sites - location based service discovery."
 #~ msgstr "Вмикає сайти DNS — визначення служб на основі адрес."
@@ -10794,6 +11364,18 @@ msgstr ""
 #~ msgid "Default: False (let nsupdate choose the protocol)"
 #~ msgstr "Типове значення: False (надати змогу nsupdate вибирати протокол)"
 
+#~ msgid "<emphasis>never</emphasis> use FAST."
+#~ msgstr "<emphasis>never</emphasis> — (ніколи) не використовувати FAST."
+
+#~ msgid ""
+#~ "<emphasis>try</emphasis> to use FAST. If the server does not support "
+#~ "FAST, continue the authentication without it. This is equivalent to not "
+#~ "setting this option at all."
+#~ msgstr ""
+#~ "<emphasis>try</emphasis> — (спробувати) використати FAST. Якщо на сервері "
+#~ "не передбачено підтримки FAST, продовжити спробу розпізнавання без FAST. "
+#~ "Це еквівалентно невстановленню значення цього параметра взагалі."
+
 #~ msgid "ipa_hbac_selinux (integer)"
 #~ msgstr "ipa_hbac_selinux (ціле число)"
 
@@ -10810,7 +11392,7 @@ msgstr ""
 #~ msgid "ipa_server_mode (boolean)"
 #~ msgstr "ipa_server_mode (булеве значення)"
 
-#~ msgid "This options should only be set by the IPA installer."
+#~ msgid "This option should only be set by the IPA installer."
 #~ msgstr "Цей параметр має встановлюватися лише засобом встановлення IPA."
 
 #~ msgid ""
@@ -10820,6 +11402,28 @@ msgstr ""
 #~ "За допомогою цього параметра можна визначити, чи працює SSSD на сервері "
 #~ "IPA і має виконувати пошуки користувачів і груп з довірених доменів "
 #~ "окремо."
+
+#~ msgid "SSSD Active Directory provider"
+#~ msgstr "Модуль надання даних Active Directory SSSD"
+
+#~ msgid ""
+#~ "The AD provider is able to provide identity information and "
+#~ "authentication for entities from trusted domains as well. Currently only "
+#~ "trusted domains in the same forest are recognized."
+#~ msgstr ""
+#~ "Модуль надання даних AD може надавати дані щодо ідентифікації та "
+#~ "розпізнавання і для записів з надійних доменів. У поточній версії "
+#~ "розпізнаються лише надійні домени з одного лісу."
+
+#~ msgid ""
+#~ "Users, groups and other entities served by SSSD are always treated as "
+#~ "case-insensitive in the AD provider for compatibility with Active "
+#~ "Directory's LDAP implementation."
+#~ msgstr ""
+#~ "Дані щодо користувачів, груп та інших записів, які обслуговуються SSSD, у "
+#~ "модулі надання даних AD завжди обробляються із врахуванням регістру "
+#~ "символів для забезпечення сумісності з реалізацією Active Directory у "
+#~ "LDAP."
 
 #~ msgid ""
 #~ "The short domain name (also known as the NetBIOS or the flat name) is "
@@ -10860,6 +11464,191 @@ msgstr ""
 #~ "визначення за записами SRV DNS, якщо сайт AD не буде знайдено. "
 #~ "Налаштування SRV DNS, зокрема домен пошуку, використовуються також під "
 #~ "час визначення сайтів."
+
+#~ msgid "ad_access_filter (string)"
+#~ msgstr "ad_access_filter (рядок)"
+
+#~ msgid ""
+#~ "This option specifies LDAP access control filter that the user must match "
+#~ "in order to be allowed access. Please note that the "
+#~ "<quote>access_provider</quote> option must be explicitly set to "
+#~ "<quote>ad</quote> in order for this option to have an effect."
+#~ msgstr ""
+#~ "Цей параметр визначає фільтр керування доступом LDAP, якому має "
+#~ "відповідати запис користувача для того, щоб йому було надано доступ. Будь "
+#~ "ласка, зауважте, що слід явним чином встановити для параметра "
+#~ "«access_provider» значення «ad», щоб цей параметр почав діяти."
+
+#~ msgid ""
+#~ "The option also supports specifying different filters per domain or "
+#~ "forest. This extended filter would consist of: <quote>KEYWORD:NAME:"
+#~ "FILTER</quote>.  The keyword can be either <quote>DOM</quote>, "
+#~ "<quote>FOREST</quote> or missing."
+#~ msgstr ""
+#~ "У параметрі також передбачено підтримку визначення різних фільтрів для "
+#~ "окремих доменів або дерев. Цей розширений фільтр повинен мати такий "
+#~ "формат: «КЛЮЧОВЕ СЛОВО:НАЗВА:ФІЛЬТР». Набір підтримуваних ключових слів: "
+#~ "«DOM», «FOREST» або ключове слово слід пропустити."
+
+#~ msgid ""
+#~ "If the keyword equals to <quote>DOM</quote> or is missing, then "
+#~ "<quote>NAME</quote> specifies the domain or subdomain the filter applies "
+#~ "to.  If the keyword equals to <quote>FOREST</quote>, then the filter "
+#~ "equals to all domains from the forest specified by <quote>NAME</quote>."
+#~ msgstr ""
+#~ "Якщо вказано ключове слово «DOM» або ключового слова не вказано, «НАЗВА» "
+#~ "визначає домен або піддомен, до якого застосовується фільтрування. Якщо "
+#~ "ключовим словом є «FOREST», фільтр застосовується до усіх доменів з лісу, "
+#~ "вказаного значенням «НАЗВА»."
+
+#~ msgid ""
+#~ "Multiple filters can be separated with the <quote>?</quote> character, "
+#~ "similarly to how search bases work."
+#~ msgstr ""
+#~ "Декілька фільтрів можна відокремити символом «?», подібно до способу "
+#~ "визначення фільтрів у базах для пошуку."
+
+#~ msgid ""
+#~ "The most specific match is always used. For example, if the option "
+#~ "specified filter for a domain the user is a member of and a global "
+#~ "filter, the per-domain filter would be applied.  If there are more "
+#~ "matches with the same specification, the first one is used."
+#~ msgstr ""
+#~ "Завжди використовується відповідник з найвищим рівнем відповідності. "
+#~ "Наприклад, якщо визначено фільтрування для домену, учасником якого є "
+#~ "користувач, і загальне фільтрування, буде використано фільтрування для "
+#~ "окремого домену. Якщо буде виявлено декілька відповідників з однаковою "
+#~ "специфікацією, використовуватиметься лише перший з них."
+
+#~ msgid ""
+#~ "# apply filter on domain called dom1 only:\n"
+#~ "dom1:(memberOf=cn=admins,ou=groups,dc=dom1,dc=com)\n"
+#~ "\n"
+#~ "# apply filter on domain called dom2 only:\n"
+#~ "DOM:dom2:(memberOf=cn=admins,ou=groups,dc=dom2,dc=com)\n"
+#~ "\n"
+#~ "# apply filter on forest called EXAMPLE.COM only:\n"
+#~ "FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)\n"
+#~ "                        "
+#~ msgstr ""
+#~ "# застосувати фільтрування лише для домену з назвою dom1:\n"
+#~ "dom1:(memberOf=cn=admins,ou=groups,dc=dom1,dc=com)\n"
+#~ "\n"
+#~ "# застосувати фільтрування лише для домену з назвою dom2:\n"
+#~ "DOM:dom2:(memberOf=cn=admins,ou=groups,dc=dom2,dc=com)\n"
+#~ "\n"
+#~ "# застосувати фільтрування лише для лісу з назвою EXAMPLE.COM:\n"
+#~ "FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)\n"
+#~ "                        "
+
+#~ msgid "Default: Not set"
+#~ msgstr "Типове значення: не встановлено"
+
+#~ msgid "ad_enable_gc (boolean)"
+#~ msgstr "ad_enable_gc (булеве значення)"
+
+#~ msgid ""
+#~ "By default, the SSSD connects to the Global Catalog first to retrieve "
+#~ "users from trusted domains and uses the LDAP port to retrieve group "
+#~ "memberships or as a fallback. Disabling this option makes the SSSD only "
+#~ "connect to the LDAP port of the current AD server."
+#~ msgstr ""
+#~ "Типово, SSSD для отримання даних користувачів з надійних (довірених) "
+#~ "доменів спочатку встановлює з’єднання із загальним каталогом (Global "
+#~ "Catalog). Якщо ж отримати дані не вдасться, система використовує порт "
+#~ "LDAP для отримання даних щодо участі у групах. Вимикання цього параметра "
+#~ "призведе до того, що SSSD встановлюватиме зв’язок лише з портом LDAP "
+#~ "поточного сервера AD."
+
+#~ msgid ""
+#~ "Please note that disabling Global Catalog support does not disable "
+#~ "retrieving users from trusted domains. The SSSD would connect to the LDAP "
+#~ "port of trusted domains instead. However, Global Catalog must be used in "
+#~ "order to resolve cross-domain group memberships."
+#~ msgstr ""
+#~ "Будь ласка, зауважте, що вимикання підтримки загального каталогу (Global "
+#~ "Catalog) не призведе до вимикання спроб отримати дані користувачів з "
+#~ "надійних (довірених) доменів. Просто SSSD намагатиметься отримати ці ж "
+#~ "дані за допомогою порту LDAP надійних доменів. Втім, загальним каталогом "
+#~ "(Global Catalog) доведеться скористатися для визначення зв’язків даних "
+#~ "щодо участі у групах для різних доменів."
+
+#~ msgid "ad_gpo_access_control (string)"
+#~ msgstr "ad_gpo_access_control (рядок)"
+
+#~ msgid ""
+#~ "This option specifies the operation mode for GPO-based access control "
+#~ "functionality: whether it operates in disabled mode, enforcing mode, or "
+#~ "permissive mode. Please note that the <quote>access_provider</quote> "
+#~ "option must be explicitly set to <quote>ad</quote> in order for this "
+#~ "option to have an effect."
+#~ msgstr ""
+#~ "Цей параметр визначає режим роботи для функціональних можливостей "
+#~ "керування доступом на основі GPO: працюватиме система у вимкненому "
+#~ "режимі, режимі примушення чи дозвільному режимі. Будь ласка, зауважте, що "
+#~ "для того, щоб цей параметр запрацював, слід явним чином встановити для "
+#~ "параметра «access_provider» значення «ad»."
+
+#~ msgid ""
+#~ "GPO-based access control functionality uses GPO policy settings to "
+#~ "determine whether or not a particular user is allowed to logon to a "
+#~ "particular host."
+#~ msgstr ""
+#~ "Функціональні можливості з керування доступом на основі GPO "
+#~ "використовують параметри правил GPO для визначення того, може чи не може "
+#~ "той чи інший користувач увійти до системи певного вузла мережі."
+
+#~ msgid ""
+#~ "NOTE: If the operation mode is set to enforcing, it is possible that "
+#~ "users that were previously allowed logon access will now be denied logon "
+#~ "access (as dictated by the GPO policy settings). In order to facilitate a "
+#~ "smooth transition for administrators, a permissive mode is available that "
+#~ "will not enforce the access control rules, but will evaluate them and "
+#~ "will output a syslog message if access would have been denied. By "
+#~ "examining the logs, administrators can then make the necessary changes "
+#~ "before setting the mode to enforcing."
+#~ msgstr ""
+#~ "ЗАУВАЖЕННЯ: якщо встановлено режим роботи «примусовий» (enforcing), "
+#~ "можлива ситуація, коли користувачі, які раніше мали доступ до входу, "
+#~ "позбудуться такого доступу (через використання параметрів правил GPO). З "
+#~ "метою полегшити перехід на нову систему для адміністраторів передбачено "
+#~ "дозвільний режим доступу (permissive), за якого правила керування "
+#~ "доступом не встановлюватимуться у примусовому порядку. Програма лише "
+#~ "перевірятиме відповідність цим правилам і виводитиме до системного "
+#~ "журналу повідомлення, якщо доступ було надано усупереч цим правилам. "
+#~ "Вивчення журналу надасть змогу адміністраторам внести відповідні зміни до "
+#~ "встановлення примусового режиму (enforcing)."
+
+#~ msgid "There are three supported values for this option:"
+#~ msgstr "У цього параметра є три підтримуваних значення:"
+
+#~ msgid ""
+#~ "disabled: GPO-based access control rules are neither evaluated nor "
+#~ "enforced."
+#~ msgstr ""
+#~ "disabled: правила керування доступом, засновані на GPO, не обробляються і "
+#~ "не використовуються примусово."
+
+#~ msgid ""
+#~ "enforcing: GPO-based access control rules are evaluated and enforced."
+#~ msgstr ""
+#~ "enforcing: правила керування доступом, засновані на GPO, обробляються і "
+#~ "використовуються примусово."
+
+#~ msgid ""
+#~ "permissive: GPO-based access control rules are evaluated, but not "
+#~ "enforced.  Instead, a syslog message will be emitted indicating that the "
+#~ "user would have been denied access if this option's value were set to "
+#~ "enforcing."
+#~ msgstr ""
+#~ "permissive: виконати перевірку відповідності правилам керування доступом "
+#~ "на основі GPO, але не наполягати на їхньому виконанні. Якщо правила не "
+#~ "виконуються, вивести до системного журналу повідомлення про те, що "
+#~ "користувачеві було б заборонено доступ, якби використовувався режим "
+#~ "enforcing."
+
+#~ msgid "Default: permissive"
+#~ msgstr "Типове значення: permissive"
 
 #~ msgid ""
 #~ "Optional. This option tells SSSD to automatically update the Active "
@@ -10904,20 +11693,265 @@ msgstr ""
 #~ "явно, типовим інструментом надання доступу є «permit»."
 
 #~ msgid ""
+#~ "<emphasis>Note</emphasis>: in order to use netgroups or IPA hostgroups in "
+#~ "sudo rules, you also need to correctly set <citerefentry> "
+#~ "<refentrytitle>nisdomainname</refentrytitle> <manvolnum>1</manvolnum> </"
+#~ "citerefentry> to your NIS domain name (which equals to IPA domain name "
+#~ "when using hostgroups)."
+#~ msgstr ""
+#~ "<emphasis>Зауваження</emphasis>: щоб у правилах sudo можна було "
+#~ "використовувати мережеві групи або групи вузлів IPA, вам слід належним "
+#~ "чином налаштувати <citerefentry> <refentrytitle>nisdomainname</"
+#~ "refentrytitle> <manvolnum>1</manvolnum> </citerefentry> на назву домену "
+#~ "NIS (назва цього домену збігається з назвою домену IPA, якщо "
+#~ "використовуються групи вузлів IPA)."
+
+#~ msgid ""
+#~ "All configuration that is needed on SSSD side is to extend the list of "
+#~ "<emphasis>services</emphasis> with \"sudo\" in [sssd] section of "
+#~ "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
+#~ "manvolnum> </citerefentry>. To speed up the LDAP lookups, you can also "
+#~ "set search base for sudo rules using <emphasis>ldap_sudo_search_base</"
+#~ "emphasis> option."
+#~ msgstr ""
+#~ "На боці SSSD достатньо розширити список <emphasis>служб</emphasis> "
+#~ "дописуванням «sudo» до розділу [sssd] <citerefentry> <refentrytitle>sssd."
+#~ "conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>. Щоб "
+#~ "пришвидшити пошуку у LDAP, ви також можете налаштувати базу пошуку для "
+#~ "правил sudo за допомогою параметра <emphasis>ldap_sudo_search_base</"
+#~ "emphasis>."
+
+#~ msgid ""
 #~ "Special files (block devices, character devices, named pipes and unix "
 #~ "sockets) will not be copied."
 #~ msgstr ""
 #~ "Спеціальні файли (блокові пристрої, символьні пристрої, іменовані канали "
 #~ "та сокети UNIX) скопійовано не буде."
 
-#~ msgid "Default: false (AD provide: true)"
+#~ msgid "SSSD Kerberos provider"
+#~ msgstr "Модуль надання даних Kerberos SSSD"
+
+#~ msgid ""
+#~ "Directory to store credential caches. All the substitution sequences of "
+#~ "krb5_ccname_template can be used here, too, except %d and %P.  The "
+#~ "directory is created as private and owned by the user, with permissions "
+#~ "set to 0700."
+#~ msgstr ""
+#~ "Каталог для зберігання кешу реєстраційних даних. Тут також можна "
+#~ "використовувати усі замінники з krb5_ccname_template, окрім %d та %P. "
+#~ "Каталог створюється як конфіденційний, власником є користувач, права "
+#~ "доступу — 0700."
+
+#~ msgid ""
+#~ "When using KEYRING types, the only supported mechanism is <quote>KEYRING:"
+#~ "persistent:%U</quote>, which uses the Linux kernel keyring to store "
+#~ "credentials on a per-UID basis. This is also the recommended choice, as "
+#~ "it is the most secure and predictable method."
+#~ msgstr ""
+#~ "Якщо використовуються типи KEYRING, єдиним підтримуваним механізмом є "
+#~ "«KEYRING:persistent:%U», тобто використання сховища ключів ядра Linux для "
+#~ "зберігання реєстраційних даних на основі поділу за UID. Цей варіант є "
+#~ "рекомендованим, оскільки це найбезпечніший та найпередбачуваніший спосіб."
+
+#~ msgid ""
+#~ "The default value for the credential cache name is sourced from the "
+#~ "profile stored in the system wide krb5.conf configuration file in the "
+#~ "[libdefaults] section. The option name is default_ccache_name.  See krb5."
+#~ "conf(5)'s PARAMETER EXPANSION paragraph for additional information on the "
+#~ "expansion format defined by krb5.conf."
+#~ msgstr ""
+#~ "Типове значення назви кешу реєстраційних даних буде запозичено з "
+#~ "загальносистемного профілю, що зберігається у файлі налаштувань krb5."
+#~ "conf, розділ [libdefaults]. Назва параметра — default_ccache_name. Див. "
+#~ "розділ щодо розгортання параметрів (PARAMETER EXPANSION) у довідці щодо "
+#~ "krb5.conf(5), щоб отримати додаткові дані щодо формату розгортання, "
+#~ "використаного у krb5.conf."
+
+#~ msgid "Default: (from libkrb5)"
+#~ msgstr "Типове значення: (з libkrb5)"
+
+#~ msgid "Default: false (AD provider: true)"
 #~ msgstr "Типове значення: false (надається AD: true)"
+
+#~ msgid "<option>--addattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
+#~ msgstr ""
+#~ "<option>--addattr</option> <replaceable>ПАРА_АТРИБУТ-ЗНАЧЕННЯ</"
+#~ "replaceable>"
+
+#~ msgid "Add an attribute/value pair. The format is attrname=value."
+#~ msgstr "Додати пару атрибут-значення. Форматування: атрибут=значення."
+
+#~ msgid "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
+#~ msgstr ""
+#~ "<option>--setattr</option> <replaceable>ПАРА_АТРИБУТ-ЗНАЧЕННЯ</"
+#~ "replaceable>"
+
+#~ msgid ""
+#~ "Set an attribute to a name/value pair. The format is attrname=value. For "
+#~ "multi-valued attributes, the command replaces the values already present"
+#~ msgstr ""
+#~ "Встановити для вказаного за назвою атрибута значення. Форматування: "
+#~ "атрибут=значення. Для атрибутів з декількома значеннями команда призведе "
+#~ "до заміни поточних значень."
+
+#~ msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
+#~ msgstr ""
+#~ "<option>--delattr</option> <replaceable>ПАРА_АТРИБУТ-ЗНАЧЕННЯ</"
+#~ "replaceable>"
+
+#~ msgid "Delete an attribute/value pair. The format is attrname=value."
+#~ msgstr "Вилучити пару атрибут-значення. Форматування: атрибут=значення."
 
 #~ msgid "<option>-E</option>,<option>--everything</option>"
 #~ msgstr "<option>-E</option>,<option>--everything</option>"
 
 #~ msgid "Invalidate all cached entries except for sudo rules."
 #~ msgstr "Скасувати чинність усіх кешованих записів, окрім правил sudo."
+
+#~ msgid "sssd-ifp"
+#~ msgstr "sssd-ifp"
+
+#~ msgid "SSSD InfoPipe responder"
+#~ msgstr "Відповідач InfoPipe SSSD"
+
+#~ msgid ""
+#~ "This manual page describes the configuration of the InfoPipe responder "
+#~ "for <citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
+#~ "manvolnum> </citerefentry>.  For a detailed syntax reference, refer to "
+#~ "the <quote>FILE FORMAT</quote> section of the <citerefentry> "
+#~ "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
+#~ "citerefentry> manual page."
+#~ msgstr ""
+#~ "На цій сторінці довідника описано налаштування засобу надання відповідей "
+#~ "InfoPipe для <citerefentry> <refentrytitle>sssd</refentrytitle> "
+#~ "<manvolnum>8</manvolnum> </citerefentry>. Щоб дізнатися більше про "
+#~ "синтаксис налаштування, зверніться до розділу «ФОРМАТ ФАЙЛІВ» сторінки "
+#~ "довідника <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+#~ "<manvolnum>5</manvolnum> </citerefentry>."
+
+#~ msgid ""
+#~ "The InfoPipe responder provides a public D-Bus interface accessible over "
+#~ "the system bus. The interface allows the user to query information about "
+#~ "remote users and groups over the system bus."
+#~ msgstr ""
+#~ "Відповідач InfoPipe забезпечує роботу відкритого інтерфейсу D-Bus над "
+#~ "системним каналом повідомлень. За допомогою цього інтерфейсу користувачі "
+#~ "можуть надсилати загальносистемним каналом повідомлень запити щодо "
+#~ "інформації про віддалених користувачів і групи."
+
+#~ msgid "These options can be used to configure the InfoPipe responder."
+#~ msgstr ""
+#~ "Цими параметрами можна скористатися для налаштовування відповідача "
+#~ "InfoPipe."
+
+#~ msgid ""
+#~ "Specifies the comma-separated list of UID values or user names that are "
+#~ "allowed to access the InfoPipe responder. User names are resolved to UIDs "
+#~ "at startup."
+#~ msgstr ""
+#~ "Визначає список значень UID або імен користувачів, відокремлених комами. "
+#~ "Користувачам з цього списку буде дозволено доступ до відповідача "
+#~ "InfoPipe. UID за іменами користувачів визначатимуться під час запуску."
+
+#~ msgid ""
+#~ "Default: 0 (only the root user is allowed to access the InfoPipe "
+#~ "responder)"
+#~ msgstr ""
+#~ "Типове значення: 0 (доступ до відповідача InfoPipe має лише "
+#~ "адміністративний користувач (root))"
+
+#~ msgid ""
+#~ "Please note that although the UID 0 is used as the default it will be "
+#~ "overwritten with this option. If you still want to allow the root user to "
+#~ "access the InfoPipe responder, which would be the typical case, you have "
+#~ "to add 0 to the list of allowed UIDs as well."
+#~ msgstr ""
+#~ "Будь ласка, зауважте, що хоча типово використовується UID 0, значення UID "
+#~ "буде перевизначено на основі цього параметра. Якщо ви хочете надати "
+#~ "адміністративному користувачеві (root) доступ до відповідача InfoPipe, що "
+#~ "може бути типовим варіантом, вам слід додати до списку UID з правами "
+#~ "доступу запис 0."
+
+#~ msgid "user_attributes (string)"
+#~ msgstr "user_attributes (рядок)"
+
+#~ msgid ""
+#~ "Specifies the comma-separated list of white or blacklisted attributes."
+#~ msgstr ""
+#~ "Визначає список атрибутів з «білого» або «чорного» списків, відокремлених "
+#~ "комами."
+
+#~ msgid "name"
+#~ msgstr "name"
+
+#~ msgid "user's login name"
+#~ msgstr "реєстраційне ім’я користувача"
+
+#~ msgid "uidNumber"
+#~ msgstr "uidNumber"
+
+#~ msgid "user ID"
+#~ msgstr "ідентифікатор користувача"
+
+#~ msgid "gidNumber"
+#~ msgstr "gidNumber"
+
+#~ msgid "primary group ID"
+#~ msgstr "ідентифікатор основної групи"
+
+#~ msgid "gecos"
+#~ msgstr "gecos"
+
+#~ msgid "user information, typically full name"
+#~ msgstr "дані щодо користувача, типово ім’я повністю"
+
+#~ msgid "homeDirectory"
+#~ msgstr "homeDirectory"
+
+#~ msgid "loginShell"
+#~ msgstr "loginShell"
+
+#~ msgid "user shell"
+#~ msgstr "командна оболонка користувача"
+
+#~ msgid ""
+#~ "By default, the InfoPipe responder only allows the default set of POSIX "
+#~ "attributes to be requested. This set is the same as returned by "
+#~ "<citerefentry> <refentrytitle>getpwnam</refentrytitle> <manvolnum>3</"
+#~ "manvolnum> </citerefentry> and includes: <placeholder type=\"variablelist"
+#~ "\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Типово, відповідач InfoPipe надає дані лише щодо типового набору "
+#~ "атрибутів POSIX. Цей набір є тим самим, який повертає програма "
+#~ "<citerefentry> <refentrytitle>getpwnam</refentrytitle> <manvolnum>3</"
+#~ "manvolnum> </citerefentry>, його елементи: <placeholder type="
+#~ "\"variablelist\" id=\"0\"/>"
+
+#~ msgid ""
+#~ "user_attributes = +telephoneNumber, -loginShell\n"
+#~ "                        "
+#~ msgstr ""
+#~ "user_attributes = +telephoneNumber, -loginShell\n"
+#~ "                        "
+
+#~ msgid ""
+#~ "It is possible to add another attribute to this set by using <quote>"
+#~ "+attr_name</quote> or explicitly remove an attribute using <quote>-"
+#~ "attr_name</quote>. For example, to allow <quote>telephoneNumber</quote> "
+#~ "but deny <quote>loginShell</quote>, you would use the following "
+#~ "configuration: <placeholder type=\"programlisting\" id=\"0\"/>"
+#~ msgstr ""
+#~ "Ви можете додати інший атрибут до цього набору за допомогою параметра "
+#~ "«+назва_атрибута» або явним чином виключити атрибут за допомогою "
+#~ "параметра «-назва_атрибута». Наприклад, щоб дозволити «telephoneNumber», "
+#~ "але заборонити «loginShell», вам слід скористатися такими налаштуваннями: "
+#~ "<placeholder type=\"programlisting\" id=\"0\"/>"
+
+#~ msgid ""
+#~ "Default: not set. Only the default set of POSIX attributes is allowed."
+#~ msgstr ""
+#~ "Типове значення: не встановлено. Дозволено лише типовий набір атрибутів "
+#~ "POSIX."
 
 #~ msgid "EXIT STATUS"
 #~ msgstr "СТАН ВИХОДУ"
@@ -10930,8 +11964,209 @@ msgstr ""
 #~ "програма повертає 1."
 
 #~ msgid ""
+#~ "Please note that changing the ID mapping related configuration options "
+#~ "will cause user and group IDs to change. At the moment, SSSD does not "
+#~ "support changing IDs, so the SSSD database must be removed. Because "
+#~ "cached passwords are also stored in the database, removing the database "
+#~ "should only be performed while the authentication servers are reachable, "
+#~ "otherwise users might get locked out. In order to cache the password, an "
+#~ "authentication must be performed. It is not sufficient to use "
+#~ "<citerefentry> <refentrytitle>sss_cache</refentrytitle> <manvolnum>8</"
+#~ "manvolnum> </citerefentry> to remove the database, rather the process "
+#~ "consists of:"
+#~ msgstr ""
+#~ "Будь ласка, зауважте, що зміна параметрів налаштувань, пов’язаних із "
+#~ "встановленням відповідності ідентифікаторів, призведе до зміни "
+#~ "ідентифікаторів користувачів і груп. У поточній версії SSSD зміни "
+#~ "ідентифікаторів не передбачено, отже, вам доведеться вилучити базу даних "
+#~ "SSSD. Оскільки кешовані паролі також зберігаються у базі даних, вилучення "
+#~ "бази даних слід виконувати, лише якщо сервери розпізнавання є доступними, "
+#~ "інакше користувачі не зможуть отримати потрібного їм доступу. З метою "
+#~ "кешування паролів слід виконати сеанс розпізнавання. Для вилучення бази "
+#~ "даних недостатньо використання команди <citerefentry> "
+#~ "<refentrytitle>sss_cache</refentrytitle> <manvolnum>8</manvolnum> </"
+#~ "citerefentry>, процедура має складатися з декількох кроків:"
+
+#~ msgid "Making sure the remote servers are reachable"
+#~ msgstr "Переконуємося, що віддалені сервери є доступними."
+
+#~ msgid "Stopping the SSSD service"
+#~ msgstr "Зупиняємо роботу служби SSSD"
+
+#~ msgid "Removing the database"
+#~ msgstr "Вилучаємо базу даних"
+
+#~ msgid "Starting the SSSD service"
+#~ msgstr "Запускаємо службу SSSD"
+
+#~ msgid ""
+#~ "Moreover, as the change of IDs might necessitate the adjustment of other "
+#~ "system properties such as file and directory ownership, it's advisable to "
+#~ "plan ahead and test the ID mapping configuration thoroughly."
+#~ msgstr ""
+#~ "Крім того, оскільки зміна ідентифікаторів може потребувати коригування "
+#~ "інших властивостей системи, зокрема прав власності на файли і каталоги, "
+#~ "варто спланувати усе наперед і ретельно перевірити налаштування "
+#~ "встановлення відповідності ідентифікаторів."
+
+#~ msgid ""
+#~ "NOTE: The value of this option must be at least as large as the highest "
+#~ "user RID planned for use on the Active Directory server. User lookups and "
+#~ "login will fail for any user whose RID is greater than this value."
+#~ msgstr ""
+#~ "ЗАУВАЖЕННЯ: значення цього параметра має бути не меншим за значення "
+#~ "максимального запланованого до використання RID на сервері Active "
+#~ "Directory. Пошук даних та вхід для будь-яких користувачів з RID, що "
+#~ "перевищує це значення, буде неможливим."
+
+#~ msgid ""
+#~ "For example, if your most recently-added Active Directory user has "
+#~ "objectSid=S-1-5-21-2153326666-2176343378-3404031434-1107, "
+#~ "<quote>ldap_idmap_range_size</quote> must be at least 1107."
+#~ msgstr ""
+#~ "Приклад: якщо найсвіжішим доданим користувачем Active Directory є "
+#~ "користувач з objectSid=S-1-5-21-2153326666-2176343378-3404031434-1107, "
+#~ "«ldap_idmap_range_size» повинне мати значення, яке є не меншим за 1107."
+
+#~ msgid ""
+#~ "It is important to plan ahead for future expansion, as changing this "
+#~ "value will result in changing all of the ID mappings on the system, "
+#~ "leading to users with different local IDs than they previously had."
+#~ msgstr ""
+#~ "Для майбутнього можливого розширення важливо все спланувати наперед, "
+#~ "оскільки зміна цього значення призведе до зміни усіх прив’язок "
+#~ "ідентифікаторів у системі, отже зміни попередніх локальних "
+#~ "ідентифікаторів користувачів."
+
+#~ msgid "Well-Known SIDs"
+#~ msgstr "Добре відомі SID"
+
+#~ msgid ""
+#~ "SSSD supports to look up the names of Well-Known SIDs, i.e. SIDs with a "
+#~ "special hardcoded meaning. Since the generic users and groups related to "
+#~ "those Well-Known SIDs have no equivalent in a Linux/UNIX environment no "
+#~ "POSIX IDs are available for those objects."
+#~ msgstr ""
+#~ "У SSSD передбачено підтримку пошуку назв за добре відомими (Well-Known) "
+#~ "SID, тобто SID із особливим запрограмованим призначенням. Оскільки типові "
+#~ "користувачі і групи, пов’язані із цими добре відомими SID не мають "
+#~ "еквівалентів у середовищі Linux/UNIX, ідентифікаторів POSIX для цих "
+#~ "об’єктів немає."
+
+#~ msgid ""
+#~ "The SID name space is organized in authorities which can be seen as "
+#~ "different domains. The authorities for the Well-Known SIDs are"
+#~ msgstr ""
+#~ "Простір назв SID упорядковано службами сертифікації, які виглядають як "
+#~ "інші домени. Службами сертифікації для добре відомих (Well-Known) SID є"
+
+#~ msgid "Null Authority"
+#~ msgstr "Фіктивна служба сертифікації (Null Authority)"
+
+#~ msgid "World Authority"
+#~ msgstr "Загальна служба сертифікації (World Authority)"
+
+#~ msgid "Local Authority"
+#~ msgstr "Локальна служба сертифікації (Local Authority)"
+
+#~ msgid "Creator Authority"
+#~ msgstr "Авторська служба сертифікації (Creator Authority)"
+
+#~ msgid "NT Authority"
+#~ msgstr "Служба сертифікації NT (NT Authority)"
+
+#~ msgid "Built-in"
+#~ msgstr "Вбудована (Built-in)"
+
+#~ msgid ""
+#~ "The capitalized version of these names are used as domain names when "
+#~ "returning the fully qualified name of a Well-Known SID."
+#~ msgstr ""
+#~ "Написані літерами верхнього регістру ці назви буде використано як назви "
+#~ "доменів для повернення повних назв добре відомих (Well-Known) SID."
+
+#~ msgid ""
+#~ "Since some utilities allow to modify SID based access control information "
+#~ "with the help of a name instead of using the SID directly SSSD supports "
+#~ "to look up the SID by the name as well. To avoid collisions only the "
+#~ "fully qualified names can be used to look up Well-Known SIDs. As a result "
+#~ "the domain names <quote>NULL AUTHORITY</quote>, <quote>WORLD AUTHORITY</"
+#~ "quote>, <quote> LOCAL AUTHORITY</quote>, <quote>CREATOR AUTHORITY</"
+#~ "quote>, <quote>NT AUTHORITY</quote> and <quote>BUILTIN</quote> should not "
+#~ "be used as domain names in <filename>sssd.conf</filename>."
+#~ msgstr ""
+#~ "Оскільки деякі з програм надають змогу змінювати дані щодо керування "
+#~ "доступом на основі SID за допомогою назви, а не безпосереднього "
+#~ "використання, у SSSD передбачено підтримку пошуку SID за назвою. Щоб "
+#~ "уникнути конфліктів, для пошуку добре відомих (Well-Known) SID "
+#~ "приймаються лише повні назви. Отже, не можна використовувати як назви "
+#~ "доменів у <filename>sssd.conf</filename> такі назви: «NULL AUTHORITY», "
+#~ "«WORLD AUTHORITY», «LOCAL AUTHORITY», «CREATOR AUTHORITY», «NT AUTHORITY» "
+#~ "та «BUILTIN»."
+
+#~ msgid ""
+#~ "SSSD supports two representations for specifying the debug level. The "
+#~ "simplest is to specify a decimal value from 0-9, which represents "
+#~ "enabling that level and all lower-level debug messages. The more "
+#~ "comprehensive option is to specify a hexadecimal bitmask to enable or "
+#~ "disable specific levels (such as if you wish to suppress a level)."
+#~ msgstr ""
+#~ "У SSSD передбачено два представлення для визначення рівня діагностики. "
+#~ "Найпростішим є визначення десяткового значення у діапазоні 0-9. Кожному "
+#~ "значенню відповідає вмикання відповідного рівня діагностики і усіх нижчих "
+#~ "рівнів. Точніше визначення вмикання або вимикання (якщо це потрібно) "
+#~ "специфічних рівнів можна встановити за допомогою шістнадцяткової бітової "
+#~ "маски."
+
+#~ msgid "<emphasis>Default</emphasis>: 0"
+#~ msgstr "<emphasis>Типове значення</emphasis>: 0"
+
+#~ msgid ""
+#~ "The scope can be one of \"base\", \"onelevel\" or \"subtree\". The scope "
+#~ "functions as specified in section 4.5.1.2 of http://tools.ietf.org/html/"
+#~ "rfc4511"
+#~ msgstr ""
+#~ "Діапазоном може бути одне зі значень, «base» (основа), "
+#~ "«onelevel» (окремий рівень) або «subtree» (піддерево). Докладніший опис "
+#~ "діапазонів наведено у розділі 4.5.1.2 документа http://tools.ietf.org/"
+#~ "html/rfc4511"
+
+#~ msgid "%H"
+#~ msgstr "%H"
+
+#~ msgid ""
+#~ "The value of configure option <emphasis>homedir_substring</emphasis>."
+#~ msgstr ""
+#~ "Значення параметра налаштовування <emphasis>homedir_substring</emphasis>."
+
+#~ msgid ""
 #~ "override_homedir = /home/%u\n"
 #~ "        "
 #~ msgstr ""
 #~ "override_homedir = /home/%u\n"
 #~ "        "
+
+#~ msgid "homedir_substring (string)"
+#~ msgstr "homedir_substring (рядок)"
+
+#~ msgid ""
+#~ "The value of this option will be used in the expansion of the "
+#~ "<emphasis>override_homedir</emphasis> option if the template contains the "
+#~ "format string <emphasis>%H</emphasis>. An LDAP directory entry can "
+#~ "directly contain this template so that this option can be used to expand "
+#~ "the home directory path for each client machine (or operating system). It "
+#~ "can be set per-domain or globally in the [nss] section. A value specified "
+#~ "in a domain section will override one set in the [nss] section."
+#~ msgstr ""
+#~ "Значення цього параметра буде використано під час розгортання параметра "
+#~ "<emphasis>override_homedir</emphasis>, якщо у шаблоні міститься рядок "
+#~ "форматування <emphasis>%H</emphasis>. Запис каталогу LDAP може "
+#~ "безпосередньо містити цей шаблон для розгортання шляху до домашнього "
+#~ "каталогу на кожному з клієнтських комп’ютерів (або у кожній з операційних "
+#~ "систем). Значення параметра можна вказати окремо для кожного з доменів "
+#~ "або на загальному рівні у розділі [nss]. Значення, вказане у розділі "
+#~ "домену, має вищий пріоритет за значення, встановлене за допомогою розділу "
+#~ "[nss]."
+
+#~ msgid "Default: /home"
+#~ msgstr "Типове значення: /home"

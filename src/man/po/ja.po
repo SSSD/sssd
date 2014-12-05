@@ -3,17 +3,17 @@
 # This file is distributed under the same license as the sssd-docs package.
 #
 # Translators:
-# Tadashi "ELF" Jokagi <elf@poyo.jp>, 2012
+# Tadashi Jokagi <elf@poyo.jp>, 2012
 # Tomoyuki KATO <tomo@dream.daynight.jp>, 2012-2013
-# 高一人参 @欠陥遺伝子 <www.carrotsoft@gmail.com>, 2012
+# carrotsoft <www.carrotsoft@gmail.com>, 2012
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-09-10 08:30+0000\n"
-"Last-Translator: Tomoyuki KATO <tomo@dream.daynight.jp>\n"
-"Language-Team: Japanese (http://www.transifex.com/projects/p/fedora/language/"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-06-04 18:04+0000\n"
+"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
+"Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
 "ja/)\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
@@ -268,10 +268,6 @@ msgid ""
 "\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder\">, pac</"
 "phrase>"
 msgstr ""
-"サポートされるサービス: nss, pam <phrase condition=\"with_sudo\">, sudo</"
-"phrase> <phrase condition=\"with_autofs\">, autofs</phrase> <phrase "
-"condition=\"with_ssh\">, ssh</phrase> <phrase condition=\"with_pac_responder"
-"\">, pac</phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:98 sssd.conf.5.xml:290
@@ -854,12 +850,15 @@ msgstr "このオプションはドメインごとに設定できます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:490 sssd.conf.5.xml:514 sssd-ad.5.xml:169
-#, no-wrap
+#, fuzzy, no-wrap
+#| msgid ""
+#| "fallback_homedir = /home/%u\n"
+#| "                            "
 msgid ""
 "override_homedir = /home/%u\n"
 "                            "
 msgstr ""
-"override_homedir = /home/%u\n"
+"fallback_homedir = /home/%u\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -910,8 +909,6 @@ msgid ""
 "Override the login shell for all users. This option can be specified "
 "globally in the [nss] section or per-domain."
 msgstr ""
-"すべてのユーザーに対するログインシェルを上書きします。このオプションは [nss] "
-"において全体的またはドメインごとに指定できます。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:532
@@ -1246,8 +1243,10 @@ msgstr "SUDO 設定オプション"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:783
+#, fuzzy
+#| msgid "These options can be used to configure the autofs service."
 msgid "These options can be used to configure the sudo service."
-msgstr "これらのオプションは sudo サービスを設定するために使用されます。"
+msgstr "これらのオプションが autofs サービスを設定するために使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:787
@@ -1621,10 +1620,15 @@ msgstr "refresh_expired_interval (整数)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1110
+#, fuzzy
+#| msgid ""
+#| "Specifies how many seconds SSSD has to wait before refreshing its cache "
+#| "of enumerated records."
 msgid ""
 "Specifies how many seconds SSSD has to wait before refreshing expired "
 "records. Currently only refreshing expired netgroups is supported."
 msgstr ""
+"SSSD が列挙レコードのキャッシュを更新する前に待つ必要がある秒数を指定します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1115
@@ -4646,9 +4650,6 @@ msgid ""
 "ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com\n"
 "                        "
 msgstr ""
-"access_provider = ldap\n"
-"ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com\n"
-"                        "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1699
@@ -4656,8 +4657,6 @@ msgid ""
 "This example means that access to this host is restricted to members of the "
 "\"allowedusers\" group in ldap."
 msgstr ""
-"この例は、このホストへのアクセスが LDAP にある \"allowedusers\" グループのメ"
-"ンバーに制限されることを意味します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1704
@@ -5318,10 +5317,6 @@ msgid ""
 "<placeholder type=\"variablelist\" id=\"3\"/> <placeholder type="
 "\"variablelist\" id=\"4\"/>"
 msgstr ""
-"<placeholder type=\"variablelist\" id=\"0\"/> <placeholder type="
-"\"variablelist\" id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/> "
-"<placeholder type=\"variablelist\" id=\"3\"/> <placeholder type="
-"\"variablelist\" id=\"4\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:2243
@@ -5345,8 +5340,10 @@ msgstr "ldap_group_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2265
+#, fuzzy
+#| msgid "ldap_user_search_base (string)"
 msgid "ldap_user_search_filter (string)"
-msgstr "ldap_user_search_filter (文字列)"
+msgstr "ldap_user_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2268
@@ -5354,8 +5351,6 @@ msgid ""
 "This option specifies an additional LDAP search filter criteria that "
 "restrict user searches."
 msgstr ""
-"このオプションは、ユーザー検索を制限する、追加の LDAP 検索フィルター基準を指"
-"定します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2272
@@ -5363,8 +5358,6 @@ msgid ""
 "This option is <emphasis>deprecated</emphasis> in favor of the syntax used "
 "by ldap_user_search_base."
 msgstr ""
-"このオプションは ldap_user_search_base により使用される構文のほうを選んで"
-"<emphasis>廃止されます</emphasis>。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-ldap.5.xml:2282
@@ -5373,8 +5366,6 @@ msgid ""
 "                            ldap_user_search_filter = (loginShell=/bin/tcsh)\n"
 "                        "
 msgstr ""
-"                            ldap_user_search_filter = (loginShell=/bin/tcsh)\n"
-"                        "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2285
@@ -5382,13 +5373,13 @@ msgid ""
 "This filter would restrict user searches to users that have their shell set "
 "to /bin/tcsh."
 msgstr ""
-"このフィルターは、ユーザー検索をシェルが /bin/tcsh に設定されているユーザーに"
-"制限されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2292
+#, fuzzy
+#| msgid "ldap_group_search_base (string)"
 msgid "ldap_group_search_filter (string)"
-msgstr "ldap_group_search_filter (文字列)"
+msgstr "ldap_group_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2295
@@ -5396,8 +5387,6 @@ msgid ""
 "This option specifies an additional LDAP search filter criteria that "
 "restrict group searches."
 msgstr ""
-"このオプションは、グループ検索を制限する、追加の LDAP 検索フィルター基準を指"
-"定します。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2299
@@ -5405,8 +5394,6 @@ msgid ""
 "This option is <emphasis>deprecated</emphasis> in favor of the syntax used "
 "by ldap_group_search_base."
 msgstr ""
-"このオプションは ldap_group_search_base により使用される構文のほうを選んで"
-"<emphasis>廃止されます</emphasis>。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2309
@@ -5507,6 +5494,12 @@ msgstr "SSSD の PAM モジュール"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: pam_sss.8.xml:24
+#, fuzzy
+#| msgid ""
+#| "<command>sss_seed</command> <arg choice='opt'> <replaceable>options</"
+#| "replaceable> </arg> <arg choice='plain'>-D <replaceable>DOMAIN</"
+#| "replaceable></arg> <arg choice='plain'>-n <replaceable>USER</"
+#| "replaceable></arg>"
 msgid ""
 "<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
 "replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
@@ -5515,11 +5508,9 @@ msgid ""
 "replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> </"
 "arg>"
 msgstr ""
-"<command>pam_sss.so</command> <arg choice='opt'> <replaceable>quiet</"
-"replaceable> </arg> <arg choice='opt'> <replaceable>forward_pass</"
-"replaceable> </arg> <arg choice='opt'> <replaceable>use_first_pass</"
-"replaceable> </arg> <arg choice='opt'> <replaceable>use_authtok</"
-"replaceable> </arg> <arg choice='opt'> <replaceable>retry=N</replaceable> </"
+"<command>sss_seed</command> <arg choice='opt'> <replaceable>options</"
+"replaceable> </arg> <arg choice='plain'>-D <replaceable>DOMAIN</"
+"replaceable></arg> <arg choice='plain'>-n <replaceable>USER</replaceable></"
 "arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -6098,9 +6089,6 @@ msgid ""
 "<emphasis>ipa_hbac_support_srchost</emphasis> is set to False, the filter "
 "will be ignored."
 msgstr ""
-"フィルターがすべての検索ベースに与えられ、かつ "
-"<emphasis>ipa_hbac_support_srchost</emphasis> が偽（False）に設定されている"
-"と、フィルターは無視されます。"
 
 #. type: Content of: <listitem><para>
 #: sssd-ipa.5.xml:179 sssd-ipa.5.xml:198 include/ldap_search_bases.xml:23
@@ -6265,8 +6253,10 @@ msgstr "初期値: DENY_ALL"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:333
+#, fuzzy
+#| msgid "ipa_enable_dns_sites (boolean)"
 msgid "ipa_hbac_support_srchost (boolean)"
-msgstr "ipa_hbac_support_srchost (論理値)"
+msgstr "ipa_enable_dns_sites (論理値)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:336
@@ -6274,8 +6264,6 @@ msgid ""
 "If this is set to false, then srchost as given to SSSD by PAM will be "
 "ignored."
 msgstr ""
-"これが偽に設定されていると、PAM により SSSD に与えられる srchost が無視されま"
-"す。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:340
@@ -6283,9 +6271,6 @@ msgid ""
 "Note that if set to <emphasis>False</emphasis>, this option casuses filters "
 "given in <emphasis>ipa_host_search_base</emphasis> to be ignored;"
 msgstr ""
-"<emphasis>False</emphasis> に設定されていると、このオプションは "
-"<emphasis>ipa_host_search_base</emphasis> に与えられたフィルターが無視される"
-"ようになることに注意してください。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:351
@@ -6304,265 +6289,363 @@ msgstr "初期値: \"default\" という名前の場所"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:364
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_of (string)"
-msgstr "ipa_netgroup_member_of (文字列)"
+msgstr "ldap_netgroup_member (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:367
+#, fuzzy
+#| msgid "The LDAP attribute that lists the user's group memberships."
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr "ネットワークグループのメンバーを一覧にする LDAP 属性です。"
+msgstr "ユーザーのグループメンバーを一覧にする LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:376
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_user (string)"
-msgstr "ipa_netgroup_member_user (文字列)"
+msgstr "ldap_netgroup_member (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:379
+#, fuzzy
+#| msgid "The LDAP attribute that lists the user's group memberships."
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
-msgstr ""
-"ネットワークグループの直接メンバーであるシステムユーザーとグループを一覧化す"
-"る LDAP 属性です。"
+msgstr "ユーザーのグループメンバーを一覧にする LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:384 sssd-ipa.5.xml:479
+#, fuzzy
+#| msgid "Default: memberOf"
 msgid "Default: memberUser"
-msgstr "初期値: memberUser"
+msgstr "初期値: memberOf"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:389
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_host (string)"
-msgstr "ipa_netgroup_member_host (文字列)"
+msgstr "ldap_netgroup_member (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:392
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
-msgstr ""
-"ネットワークグループの直接メンバーであるホストとホストグループを一覧化する "
-"LDAP 属性です。"
+msgstr "ネットワークグループのメンバーの名前を含む LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:396 sssd-ipa.5.xml:491
+#, fuzzy
+#| msgid "Default: memberOf"
 msgid "Default: memberHost"
-msgstr "初期値: memberHost"
+msgstr "初期値: memberOf"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:401
+#, fuzzy
+#| msgid "ldap_netgroup_member (string)"
 msgid "ipa_netgroup_member_ext_host (string)"
-msgstr "ipa_netgroup_member_ext_host (文字列)"
+msgstr "ldap_netgroup_member (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:404
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
-msgstr ""
-"ネットワークグループのメンバーであるホストとホストグループの FQDN を一覧化す"
-"る LDAP 属性です。"
+msgstr "ネットワークグループのメンバーの名前を含む LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:408
+#, fuzzy
+#| msgid "Default: root"
 msgid "Default: externalHost"
-msgstr "初期値: externalHost"
+msgstr "初期値: root"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:413
+#, fuzzy
+#| msgid "ipa_domain (string)"
 msgid "ipa_netgroup_domain (string)"
-msgstr "ipa_netgroup_domain (文字列)"
+msgstr "ipa_domain (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:416
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
-msgstr "ネットワークグループの NIS ドメイン名を含む LDAP 属性です。"
+msgstr "ネットワークグループのメンバーの名前を含む LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:420
+#, fuzzy
+#| msgid "Default: none"
 msgid "Default: nisDomainName"
-msgstr "初期値: nisDomainName"
+msgstr "初期値: none"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:426
+#, fuzzy
+#| msgid "ldap_user_object_class (string)"
 msgid "ipa_host_object_class (string)"
-msgstr "ipa_host_object_class (文字列)"
+msgstr "ldap_user_object_class (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:429 sssd-ipa.5.xml:452
+#, fuzzy
+#| msgid "The object class of a user entry in LDAP."
 msgid "The object class of a host entry in LDAP."
-msgstr "LDAP にあるホストエントリーのオブジェクトクラスです。"
+msgstr "LDAP にあるユーザーエントリーのオブジェクトクラスです。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:432 sssd-ipa.5.xml:455
+#, fuzzy
+#| msgid "Default: host"
 msgid "Default: ipaHost"
-msgstr "初期値: ipaHost"
+msgstr "初期値: host"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:437
+#, fuzzy
+#| msgid "ipa_hostname (string)"
 msgid "ipa_host_fqdn (string)"
-msgstr "ipa_host_fqdn (文字列)"
+msgstr "ipa_hostname (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:440
+#, fuzzy
+#| msgid "The LDAP attribute that contains the names of the group's members."
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr "ホストの FQDN を含む LDAP 属性です。"
+msgstr "グループのメンバーの名前を含む LDAP の属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:443
+#, fuzzy
+#| msgid "Default: cn"
 msgid "Default: fqdn"
-msgstr "初期値: fqdn"
+msgstr "初期値: cn"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:449
+#, fuzzy
+#| msgid "ldap_user_object_class (string)"
 msgid "ipa_selinux_usermap_object_class (string)"
-msgstr "ipa_selinux_usermap_object_class (文字列)"
+msgstr "ldap_user_object_class (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:460
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_name (string)"
-msgstr "ipa_selinux_usermap_name (文字列)"
+msgstr "ipa_selinux_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:463
+#, fuzzy
+#| msgid "The LDAP attribute that contains the names of the group's members."
 msgid "The LDAP attribute that contains the name of SELinux usermap."
-msgstr "SELinux ユーザーマップの名前を含む LDAP 属性です。"
+msgstr "グループのメンバーの名前を含む LDAP の属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:472
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_member_user (string)"
-msgstr "ipa_selinux_usermap_member_user (文字列)"
+msgstr "ipa_selinux_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:475
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
-msgstr "このルールが一致するすべてのユーザー・グループを含む LDAP 属性です。"
+msgstr "ユーザーの SSH 公開鍵を含む LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:484
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_member_host (string)"
-msgstr "ipa_selinux_usermap_member_host (文字列)"
+msgstr "ipa_selinux_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:487
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the (host, user, domain) netgroup "
+#| "triples."
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
-msgstr "このルールが一致するホスト・ホストグループを含む LDAP 属性です。"
+msgstr ""
+"ネットワークグループの三つ組（ホスト、ユーザー、ドメイン）を含む LDAP 属性で"
+"す。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:496
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_see_also (string)"
-msgstr "ipa_selinux_usermap_see_also (文字列)"
+msgstr "ipa_selinux_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:499
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the names of the netgroup's members."
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost"
-msgstr ""
-"memberUser と memberHost の代わりにマッチに使用される HBAC ルールの DN を含"
-"む LDAP 属性です。"
+msgstr "ネットワークグループのメンバーの名前を含む LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:504
+#, fuzzy
+#| msgid "Default: ou"
 msgid "Default: seeAlso"
-msgstr "初期値: seeAlso"
+msgstr "初期値: ou"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:509
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_selinux_user (string)"
-msgstr "ipa_selinux_usermap_selinux_user (文字列)"
+msgstr "ipa_selinux_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:512
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr "SELinux ユーザー文字列自身を含む LDAP 属性です。"
+msgstr "ユーザーの SSH 公開鍵を含む LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:516
+#, fuzzy
+#| msgid "Default: sudoUser"
 msgid "Default: ipaSELinuxUser"
-msgstr "初期値: ipaSELinuxUser"
+msgstr "初期値: sudoUser"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:521
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_enabled (string)"
-msgstr "ipa_selinux_usermap_enabled (文字列)"
+msgstr "ipa_selinux_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:524
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
-msgstr ""
-"ユーザーマップが使用するために有効化されているかどうかを含む LDAP 属性です。"
+msgstr "ユーザーの初期シェルのパスを含む LDAP の属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:528
+#, fuzzy
+#| msgid "Default: loginDisabled"
 msgid "Default: ipaEnabledFlag"
-msgstr "初期値: ipaEnabledFlag"
+msgstr "初期値: loginDisabled"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:533
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_user_category (string)"
-msgstr "ipa_selinux_usermap_user_category (文字列)"
+msgstr "ipa_selinux_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:536
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid "The LDAP attribute that contains user category such as 'all'."
-msgstr "'all' のようなユーザーカテゴリーを含む LDAP 属性です。"
+msgstr "ユーザーの SSH 公開鍵を含む LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:540
+#, fuzzy
+#| msgid "Default: homeDirectory"
 msgid "Default: userCategory"
-msgstr "初期値: userCategory"
+msgstr "初期値: homeDirectory"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:545
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_host_category (string)"
-msgstr "ipa_selinux_usermap_host_category (文字列)"
+msgstr "ipa_selinux_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:548
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the path to the user's default shell."
 msgid "The LDAP attribute that contains host category such as 'all'."
-msgstr "'all' のようなホストカテゴリーを含む LDAP 属性です。"
+msgstr "ユーザーの初期シェルのパスを含む LDAP の属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:552
+#, fuzzy
+#| msgid "Default: host"
 msgid "Default: hostCategory"
-msgstr "初期値: hostCategory"
+msgstr "初期値: host"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:557
+#, fuzzy
+#| msgid "ipa_selinux_search_base (string)"
 msgid "ipa_selinux_usermap_uuid (string)"
-msgstr "ipa_selinux_usermap_uuid (文字列)"
+msgstr "ipa_selinux_search_base (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:560
+#, fuzzy
+#| msgid ""
+#| "The LDAP attribute that contains the name of the user's home directory."
 msgid "The LDAP attribute that contains unique ID of the user map."
-msgstr "ユーザーマップの一意な ID を含む LDAP 属性です。"
+msgstr "ユーザーのホームディレクトリーの名前を含む LDAP の属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:564
+#, fuzzy
+#| msgid "Default: nsUniqueId"
 msgid "Default: ipaUniqueID"
-msgstr "初期値: ipaUniqueID"
+msgstr "初期値: nsUniqueId"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:569
+#, fuzzy
+#| msgid "ldap_user_ssh_public_key (string)"
 msgid "ipa_host_ssh_public_key (string)"
-msgstr "ipa_host_ssh_public_key (文字列)"
+msgstr "ldap_user_ssh_public_key (文字列)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:572
+#, fuzzy
+#| msgid "The LDAP attribute that contains the user's SSH public keys."
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr "ホストの SSH 公開鍵を含む LDAP 属性です。"
+msgstr "ユーザーの SSH 公開鍵を含む LDAP 属性です。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:576
+#, fuzzy
+#| msgid "Default: false"
 msgid "Default: ipaSshPubKey"
-msgstr "初期値: ipaSshPubKey"
+msgstr "初期値: false"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ipa.5.xml:585
@@ -6666,11 +6749,24 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:57
+#, fuzzy
+#| msgid ""
+#| "However, it is neither necessary nor recommended to set these options.  "
+#| "IPA provider can also be used as an access and chpass provider. As an "
+#| "access provider it uses HBAC (host-based access control) rules. Please "
+#| "refer to freeipa.org for more information about HBAC. No configuration of "
+#| "access provider is required on the client side."
 msgid ""
 "However, it is neither necessary nor recommended to set these options. The "
 "AD provider can also be used as an access and chpass provider. No "
 "configuration of the access provider is required on the client side."
 msgstr ""
+"しかし、これらのオプションを設定することは必要ありません、また推奨もされませ"
+"ん。IPA プロバイダーはアクセスプロバイダーおよびパスワード変更プロバイダーと"
+"しても使用できます。アクセスプロバイダーとしては、HBAC (ホストベースアクセス"
+"制御) ルールを使用します。HBAC の詳細は freeipa.org を参照してください。アク"
+"セスプロバイダーが設定されていなければ、クライアント側において必要になりま"
+"す。"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-ad.5.xml:69
@@ -6768,15 +6864,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd-ad.5.xml:193
-#, fuzzy, no-wrap
-#| msgid ""
-#| "override_homedir = /home/%u\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "fallback_homedir = /home/%u\n"
 "                            "
 msgstr ""
-"override_homedir = /home/%u\n"
+"fallback_homedir = /home/%u\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -7242,16 +7335,10 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.8.xml:193
-#, fuzzy
-#| msgid ""
-#| "If the environment variable SSSD_KRB5_LOCATOR_DEBUG is set to any value "
-#| "debug messages will be sent to stderr."
 msgid ""
 "If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", client "
 "applications will not use the fast in memory cache."
 msgstr ""
-"環境変数 SSSD_KRB5_LOCATOR_DEBUG に何らかの値が設定されていると、デバッグメッ"
-"セージが標準エラーに送られます。"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_obfuscate.8.xml:10 sss_obfuscate.8.xml:15
@@ -7704,14 +7791,6 @@ msgid ""
 "<citerefentry> <refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> "
 "</citerefentry> for details) is created."
 msgstr ""
-"クレディンシャルキャッシュを保存するディレクトリーです。すべての "
-"krb5_ccname_template の置換シーケンスが、%d と %P を除き、ここで使用できま"
-"す。ディレクトリーが存在しなければ、作成されます。%u, %U, %p または %h が使用"
-"されていると、ユーザーが所属するプライベートディレクトリーが作成されます。そ"
-"うでなければ、削除制限フラグ（つまり、詳細が <citerefentry> "
-"<refentrytitle>chmod</refentrytitle> <manvolnum>1</manvolnum> </"
-"citerefentry> に記載されているとおり、スティッキービットです）を持つ公開ディ"
-"レクトリーが作成されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:152
@@ -7761,7 +7840,7 @@ msgstr "ホームディレクトリー"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:192
 msgid "value of krb5ccache_dir"
-msgstr "krb5ccache_dir の値"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:197
@@ -7784,18 +7863,11 @@ msgid ""
 "\"variablelist\" id=\"0\"/> If the template ends with 'XXXXXX' mkstemp(3) is "
 "used to create a unique filename in a safe way."
 msgstr ""
-"ユーザーのクレディンシャルキャッシュの場所です。二つのクレディンシャルキャッ"
-"シュ形式が現在サポートされます。<quote>FILE</quote> および <quote>DIR</"
-"quote>。キャッシュは <replaceable>TYPE:RESIDUAL</replaceable> または絶対パス"
-"（<quote>FILE</quote> 形式を意味します）のどちらかとして指定できます。テンプ"
-"レートにおいて以下の部分が置換されます: <placeholder type=\"variablelist\" "
-"id=\"0\"/> テンプレートが 'XXXXXX' で終わると、mkstemp(3) が安全な方法で一意"
-"なファイル名を作成するために使用されます。"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:212
 msgid "Default: FILE:%d/krb5cc_%U_XXXXXX"
-msgstr "初期値: FILE:%d/krb5cc_%U_XXXXXX"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:218
@@ -9347,9 +9419,6 @@ msgid ""
 "default value as well as the lowest allowed value, 0xFFF0 is the most "
 "verbose mode. This setting overrides the settings from config file."
 msgstr ""
-"デバッグレベルを指示するビットマスクは見ることができます。 0x0010 は初期値で"
-"あり、利用できる最小値です。 0xFFF0 は最も冗長なモードです。この設定は設定"
-"ファイルの設定により上書きされます。"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:8
@@ -9362,8 +9431,6 @@ msgid ""
 "<emphasis>0x0010</emphasis>: Fatal failures. Anything that would prevent "
 "SSSD from starting up or causes it to cease running."
 msgstr ""
-"<emphasis>0x0010</emphasis>: 致命的なエラー。 SSSD が開始するのを妨げる、また"
-"は実行を中断させることすべてです。"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:15
@@ -9372,8 +9439,6 @@ msgid ""
 "the SSSD, but one that indicates that at least one major feature is not "
 "going to work properly."
 msgstr ""
-"<emphasis>0x0020</emphasis>: 重大なエラー。 SSSD が強制停止しないが、複数の機"
-"能が正しく動作しないエラーです。"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:20
@@ -9381,8 +9446,6 @@ msgid ""
 "<emphasis>0x0040</emphasis>: Serious failures. An error announcing that a "
 "particular request or operation has failed."
 msgstr ""
-"<emphasis>0x0040</emphasis>: 深刻なエラー。特定の要求や操作が失敗したことを通"
-"知するエラーです。"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:24
@@ -9390,29 +9453,40 @@ msgid ""
 "<emphasis>0x0080</emphasis>: Minor failures. These are the errors that would "
 "percolate down to cause the operation failure of 2."
 msgstr ""
-"<emphasis>0x0080</emphasis>: 軽微なエラー。これらは 2 の操作失敗を引き起こす"
-"よう下にしみだすエラーです。"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:28
+#, fuzzy
+#| msgid "<emphasis>2</emphasis>: show informational messages"
 msgid "<emphasis>0x0100</emphasis>: Configuration settings."
-msgstr "<emphasis>0x0100</emphasis>: 設定値の設定です。"
+msgstr "<emphasis>2</emphasis>: 情報レベルのメッセージを表示する"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:31
+#, fuzzy
+#| msgid "<emphasis>d</emphasis> for days."
 msgid "<emphasis>0x0200</emphasis>: Function data."
-msgstr "<emphasis>0x0200</emphasis>: 関数のデータです。"
+msgstr "日は <emphasis>d</emphasis>"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:34
+#, fuzzy
+#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid "<emphasis>0x0400</emphasis>: Trace messages for operation functions."
-msgstr "<emphasis>0x0400</emphasis>: 操作関数のトレースメッセージです。"
+msgstr "<emphasis>3</emphasis>: すべてのメッセージとデバッグ情報を表示する"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:37
+#, fuzzy
+#| msgid ""
+#| "<emphasis>Example</emphasis>: To log fatal failures, configuration "
+#| "settings, function data, trace messages for internal control functions "
+#| "use 0x1310."
 msgid ""
 "<emphasis>0x1000</emphasis>: Trace messages for internal control functions."
-msgstr "<emphasis>0x1000</emphasis>: 内部制御関数のトレースメッセージです。"
+msgstr ""
+"<emphasis>例</emphasis>: 致命的なエラー、設定値の設定、関数データ、内部制御関"
+"数のトレースメッセージをログに取得するには 0x1310 を使用します。"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:40
@@ -9420,12 +9494,13 @@ msgid ""
 "<emphasis>0x2000</emphasis>: Contents of function-internal variables that "
 "may be interesting."
 msgstr ""
-"<emphasis>0x2000</emphasis>: 興味があるかもしれない関数の内部変数の内容です。"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:43
+#, fuzzy
+#| msgid "<emphasis>3</emphasis>: show all messages and debug information"
 msgid "<emphasis>0x4000</emphasis>: Extremely low-level tracing information."
-msgstr "<emphasis>0x4000</emphasis>: 極めて低レベルのトレース情報です。"
+msgstr "<emphasis>3</emphasis>: すべてのメッセージとデバッグ情報を表示する"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:46
@@ -9433,8 +9508,6 @@ msgid ""
 "To log required debug levels, simply add their numbers together as shown in "
 "following examples:"
 msgstr ""
-"必要となるデバッグレベルをログに取得するには、以下の例に示されるようにこれら"
-"の数字を単に追加します:"
 
 #. type: Content of: <listitem><para>
 #: include/debug_levels.xml:49
@@ -9460,8 +9533,6 @@ msgid ""
 "<emphasis>Note</emphasis>: This is new format of debug levels introduced in "
 "1.7.0.  Older format (numbers from 0-10) is compatible but deprecated."
 msgstr ""
-"<emphasis>注</emphasis>: これは 1.7.0 において導入されたデバッグレベルの新し"
-"い形式です。古い形式（0-10 の数字）は互換性がありますが、推奨されません。"
 
 #. type: Content of: outside any tag (error?)
 #: include/experimental.xml:1
@@ -9503,45 +9574,6 @@ msgstr "関連項目"
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <phrase condition=\"with_sudo\"> <citerefentry> "
-#| "<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry>, </phrase> <citerefentry> <refentrytitle>sss_cache</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> "
-#| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
-#| "<manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry>, </phrase> <citerefentry> "
-#| "<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>."
 msgid ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
@@ -9580,42 +9612,6 @@ msgid ""
 "manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
 "refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 msgstr ""
-"<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-simple</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-ipa</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ad</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <phrase condition=\"with_sudo\"> <citerefentry> "
-"<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>, </phrase> <citerefentry> <refentrytitle>sss_cache</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_groupadd</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_groupshow</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_useradd</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_usermod</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-"manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> <citerefentry> "
-"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_ssh_knownhostsproxy</refentrytitle> <manvolnum>8</"
-"manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>pam_sss</"
-"refentrytitle><manvolnum>8</manvolnum> </citerefentry>."
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:3
@@ -9643,11 +9639,17 @@ msgstr "構文: <placeholder type=\"programlisting\" id=\"0\"/>"
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:13
 #: include/ldap_search_bases_experimental.xml:13
+#, fuzzy
+#| msgid ""
+#| "The filter must be a valid LDAP search filter as specified by http://www."
+#| "ietf.org/rfc/rfc2254.txt"
 msgid ""
 "The scope can be one of \"base\", \"onelevel\" or \"subtree\". The filter "
 "must be a valid LDAP search filter as specified by http://www.ietf.org/rfc/"
 "rfc2254.txt"
 msgstr ""
+"フィルターは http://www.ietf.org/rfc/rfc2254.txt により指定されたような有効"
+"な LDAP 検索フィルターである必要があります。"
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:19
@@ -9726,9 +9728,6 @@ msgstr ""
 #~ msgid "Default: 1200 (seconds)"
 #~ msgstr "初期値: 1200 (秒)"
 
-#~ msgid "ipa_enable_dns_sites (boolean)"
-#~ msgstr "ipa_enable_dns_sites (論理値)"
-
 #~ msgid "Enables DNS sites - location based service discovery."
 #~ msgstr "DNS サイトの有効化 - 位置情報に基づいたサービス探索。"
 
@@ -9756,9 +9755,6 @@ msgstr ""
 
 #~ msgid "ipa_server_mode (boolean)"
 #~ msgstr "ipa_server_mode (論理値)"
-
-#~ msgid "This options should only be set by the IPA installer."
-#~ msgstr "このオプションは IPA インストーラーによってのみ設定されるべきです。"
 
 #~ msgid "ad_enable_dns_sites (boolean)"
 #~ msgstr "ad_enable_dns_sites (論理値)"

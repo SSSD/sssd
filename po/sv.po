@@ -3,15 +3,15 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# Göran Uddeborg <goeran@uddeborg.se>, 2013
+# Göran Uddeborg <goeran@uddeborg.se>, 2013-2014
 msgid ""
 msgstr ""
 "Project-Id-Version: SSSD\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2013-11-06 19:26+0100\n"
-"PO-Revision-Date: 2013-09-03 18:00+0000\n"
+"POT-Creation-Date: 2014-12-05 13:09+0100\n"
+"PO-Revision-Date: 2014-06-07 21:40+0000\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
-"Language-Team: Swedish (http://www.transifex.com/projects/p/fedora/language/"
+"Language-Team: Swedish (http://www.transifex.com/projects/p/sssd/language/"
 "sv/)\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
@@ -1070,22 +1070,22 @@ msgstr "Ange en konfigurationsfil annan än standard"
 msgid "Print version number and exit"
 msgstr "Skriv ut versionsnumret och avsluta"
 
-#: src/providers/krb5/krb5_child.c:2010 src/providers/ldap/ldap_child.c:435
+#: src/providers/krb5/krb5_child.c:2132 src/providers/ldap/ldap_child.c:435
 #: src/util/util.h:95
 msgid "Debug level"
 msgstr "Felsökningsnivå"
 
-#: src/providers/krb5/krb5_child.c:2012 src/providers/ldap/ldap_child.c:437
+#: src/providers/krb5/krb5_child.c:2134 src/providers/ldap/ldap_child.c:437
 #: src/util/util.h:99
 msgid "Add debug timestamps"
 msgstr "Lägg till felsökningstidstämplar"
 
-#: src/providers/krb5/krb5_child.c:2014 src/providers/ldap/ldap_child.c:439
+#: src/providers/krb5/krb5_child.c:2136 src/providers/ldap/ldap_child.c:439
 #: src/util/util.h:101
 msgid "Show timestamps with microseconds"
 msgstr "Visa tidsstämplar med mikrosekunder"
 
-#: src/providers/krb5/krb5_child.c:2016 src/providers/ldap/ldap_child.c:441
+#: src/providers/krb5/krb5_child.c:2138 src/providers/ldap/ldap_child.c:441
 msgid "An open file descriptor for the debug logs"
 msgstr "Ett öppet filhandtag för felsökningsloggarna"
 
@@ -1737,6 +1737,14 @@ msgstr "%1$s måste köras som root\n"
 msgid "Send the debug output to files instead of stderr"
 msgstr "Skicka felutskrifter till filer istället för standard fel"
 
+#~ msgid "List of UIDs or user names allowed to access the InfoPipe responder"
+#~ msgstr ""
+#~ "Lista över UID:er eller användarnamn som tillåts komma åt InfoPipe-"
+#~ "svararen"
+
+#~ msgid "List of user attributes the InfoPipe is allowed to publish"
+#~ msgstr "Lista över aänvändarattribut InfoPipe får publicera"
+
 #~ msgid "Whether to automatically update the client's DNS entry"
 #~ msgstr "Huruvida klienternas DNS-poster uppdateras automatiskt"
 
@@ -1758,6 +1766,12 @@ msgstr "Skicka felutskrifter till filer istället för standard fel"
 #~ "Vilken sorts autenticering som skall användas för att utföra DNS-"
 #~ "uppdateringen"
 
+#~ msgid "Control enumeration of trusted domains"
+#~ msgstr "Styr uppräkning av betrodda domäner"
+
+#~ msgid "How often should subdomains list be refreshed"
+#~ msgstr "Hur ofta skall listan över underdomäner uppdateras"
+
 #~ msgid ""
 #~ "The amount of time in seconds between lookups of the SELinux maps against "
 #~ "the IPA server"
@@ -1768,11 +1782,27 @@ msgstr "Skicka felutskrifter till filer istället för standard fel"
 #~ msgid "Enable DNS sites - location based service discovery"
 #~ msgstr "Aktivera DNS-sajter - platsbaserad detektering av tjänster"
 
+#~ msgid "Whether to use the Global Catalog for lookups"
+#~ msgstr "Huruvida den globala katalogen skall användas för uppslagningar"
+
+#~ msgid "Operation mode for GPO-based access control"
+#~ msgstr "Arbetsläge för GPO-baserad åtkomstkontrol"
+
 #~ msgid "Whether to create kdcinfo files"
 #~ msgstr "Huruvida kdcinfo-filer skall skapas"
 
 #~ msgid "Enables enterprise principals"
 #~ msgstr "Aktiverar företagshuvudmän"
+
+#~ msgid "A list of extra attributes to download along with the user entry"
+#~ msgstr ""
+#~ "En lista över extra attribut att hämta tillsammans med användarposten"
+
+#~ msgid "Type of the group and other flags"
+#~ msgstr "Typen av grupp och andra flaggor"
+
+#~ msgid "Whether to use Token-Groups"
+#~ msgstr "Huruvida Token-Groups skall användas"
 
 #~ msgid "Set lower boundary for allowed IDs from the LDAP server"
 #~ msgstr "Sätt undre gräns för tillåtna ID:n från LDAP-servern"
@@ -1780,7 +1810,30 @@ msgstr "Skicka felutskrifter till filer istället för standard fel"
 #~ msgid "Set upper boundary for allowed IDs from the LDAP server"
 #~ msgstr "Sätt övre gräns för tillåtna ID:n från LDAP-servern"
 
-#~ msgid "Invalidate all cached entries except for sudo rulese"
+#~ msgid ""
+#~ "After changing the OTP password, you need to log out and back in order to "
+#~ "acquire a ticket"
+#~ msgstr ""
+#~ "Efter att ha ändrat OTP-lösenordet behöver du logga ut och tillbaka in "
+#~ "för att få en biljett"
+
+#~ msgid "Add an attribute/value pair. The format is attrname=value."
+#~ msgstr "Lägg till ett attribut/värde-par.  Formatet är attrnamn=värde."
+
+#~ msgid "Delete an attribute/value pair. The format is attrname=value."
+#~ msgstr "Ta bort ett attribut/värde-par.  Formatet är attrnamn=värde."
+
+#~ msgid ""
+#~ "Set an attribute to a name/value pair. The format is attrname=value. For "
+#~ "multi-valued attributes, the command replaces the values already present"
+#~ msgstr ""
+#~ "Sätt ett attribut till ett namn/värde-par.  Formatet är attrnamn=värde.  "
+#~ "För flervärda attribut ersätter kommandot de värden som redan finns."
+
+#~ msgid "Specify the attribute name/value pair(s)\n"
+#~ msgstr "Ange attributets namn/värde-par\n"
+
+#~ msgid "Invalidate all cached entries except for sudo rules"
 #~ msgstr "Invalidera alla cachade poster utom sudo-regler"
 
 #~ msgid ""
