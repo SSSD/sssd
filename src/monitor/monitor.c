@@ -1648,9 +1648,17 @@ static int monitor_ctx_destructor(void *mem)
     return 0;
 }
 
-static errno_t load_configuration(TALLOC_CTX *mem_ctx,
-                                  const char *config_file,
-                                  struct mt_ctx **monitor)
+/*
+ * This function should not be static otherwise gcc does some special kind of
+ * optimisations which should not happen according to code: chown (unlink)
+ * failed (return -1) but errno was zero.
+ * As a result of this  * warning is printed ‘monitor’ may be used
+ * uninitialized in this function. Instead of checking errno for 0
+ * it's better to disable optimisation(in-lining) of this function.
+ */
+errno_t load_configuration(TALLOC_CTX *mem_ctx,
+                           const char *config_file,
+                           struct mt_ctx **monitor)
 {
     errno_t ret;
     struct mt_ctx *ctx;
@@ -1730,9 +1738,7 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
      * when SSSD runs as nonroot */
     ret = chown(cdb_file, ctx->uid, ctx->gid);
     if (ret != 0) {
-        /* Init ret to suppress gcc warning with high -O level */
-        ret = EINVAL;
-        if (errno) ret = errno;
+        ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
               "chown failed for [%s]: [%d][%s].\n",
               cdb_file, ret, sss_strerror(ret));
