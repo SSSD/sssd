@@ -47,8 +47,7 @@
 struct sdap_child {
     /* child info */
     pid_t pid;
-    int read_from_child_fd;
-    int write_to_child_fd;
+    struct child_io_fds *io;
 };
 
 static void sdap_close_fd(int *fd)
@@ -68,15 +67,6 @@ static void sdap_close_fd(int *fd)
     }
 
     *fd = -1;
-}
-
-static int sdap_child_destructor(void *ptr)
-{
-    struct sdap_child *child = talloc_get_type(ptr, struct sdap_child);
-
-    child_cleanup(child->read_from_child_fd, child->write_to_child_fd);
-
-    return 0;
 }
 
 static errno_t sdap_fork_child(struct tevent_context *ev,
@@ -114,12 +104,12 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
         return err;
     } else if (pid > 0) { /* parent */
         child->pid = pid;
-        child->read_from_child_fd = pipefd_from_child[0];
+        child->io->read_from_child_fd = pipefd_from_child[0];
         close(pipefd_from_child[1]);
-        child->write_to_child_fd = pipefd_to_child[1];
+        child->io->write_to_child_fd = pipefd_to_child[1];
         close(pipefd_to_child[0]);
-        fd_nonblocking(child->read_from_child_fd);
-        fd_nonblocking(child->write_to_child_fd);
+        fd_nonblocking(child->io->read_from_child_fd);
+        fd_nonblocking(child->io->write_to_child_fd);
 
         ret = child_handler_setup(ev, pid, NULL, NULL, NULL);
         if (ret != EOK) {
@@ -296,9 +286,14 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    state->child->read_from_child_fd = -1;
-    state->child->write_to_child_fd = -1;
-    talloc_set_destructor((TALLOC_CTX *)state->child, sdap_child_destructor);
+    state->child->io = talloc(state, struct child_io_fds);
+    if (state->child->io == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    state->child->io->read_from_child_fd = -1;
+    state->child->io->write_to_child_fd = -1;
+    talloc_set_destructor((TALLOC_CTX *) state->child->io, child_io_destructor);
 
     /* prepare the data to pass to child */
     ret = create_tgt_req_send_buffer(state,
@@ -322,7 +317,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = write_pipe_send(state, ev, buf->data, buf->size,
-                             state->child->write_to_child_fd);
+                             state->child->io->write_to_child_fd);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -352,10 +347,10 @@ static void sdap_get_tgt_step(struct tevent_req *subreq)
         return;
     }
 
-    sdap_close_fd(&state->child->write_to_child_fd);
+    sdap_close_fd(&state->child->io->write_to_child_fd);
 
     subreq = read_pipe_send(state, state->ev,
-                            state->child->read_from_child_fd);
+                            state->child->io->read_from_child_fd);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -378,7 +373,7 @@ static void sdap_get_tgt_done(struct tevent_req *subreq)
         return;
     }
 
-    sdap_close_fd(&state->child->read_from_child_fd);
+    sdap_close_fd(&state->child->io->read_from_child_fd);
 
     tevent_req_done(req);
 }
