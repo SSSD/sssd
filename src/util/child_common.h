@@ -114,8 +114,6 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
                    const char *binary, int debug_fd);
 
-void child_cleanup(int readfd, int writefd);
-
 int child_io_destructor(void *ptr);
 
 errno_t child_debug_init(const char *logfile, int *debug_fd);

@@ -791,28 +791,6 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
                          STDIN_FILENO, STDOUT_FILENO);
 }
 
-void child_cleanup(int readfd, int writefd)
-{
-    int ret;
-
-    if (readfd != -1) {
-        ret = close(readfd);
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "close failed [%d][%s].\n", ret, strerror(ret));
-        }
-    }
-    if (writefd != -1) {
-        ret = close(writefd);
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "close failed [%d][%s].\n", ret, strerror(ret));
-        }
-    }
-}
-
 int child_io_destructor(void *ptr)
 {
     int ret;
