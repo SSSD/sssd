@@ -1670,6 +1670,7 @@ static krb5_error_code get_tgt_times(krb5_context ctx, const char *ccname,
     krberr = krb5_cc_resolve(ctx, ccname, &ccache);
     if (krberr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_cc_resolve failed.\n");
+        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, krberr);
         goto done;
     }
 
@@ -1822,7 +1823,6 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
             } while (kerr == -1 && errno == EINTR);
 
             if (kerr > 0) {
-                kerr = EIO;
                 if (WIFEXITED(status)) {
                     kerr = WEXITSTATUS(status);
                     /* Don't blindly fail if the child fails, but check
@@ -1838,26 +1838,28 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
                           fchild_pid);
                 }
             } else {
-                DEBUG(SSSDBG_FUNC_DATA,
-                    "Failed to wait for children %d\n", fchild_pid);
-                kerr = EIO;
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to wait for child %d\n", fchild_pid);
+                /* Let the code re-check the TGT times and fail if we
+                 * can't find the updated principal */
             }
     }
 
     /* Check the ccache times again. Should be updated ... */
     memset(&tgtt, 0, sizeof(tgtt));
     kerr = get_tgt_times(ctx, ccname, server_princ, client_princ, &tgtt);
-    if (kerr == 0) {
-        if (tgtt.endtime > time(NULL)) {
-            DEBUG(SSSDBG_FUNC_DATA, "FAST TGT was successfully recreated!\n");
-            goto done;
-        } else {
-            kerr = ERR_CREDS_EXPIRED;
-            goto done;
-        }
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_tgt_times() failed\n");
+        goto done;
     }
 
-    kerr = 0;
+    if (tgtt.endtime < time(NULL)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Valid FAST TGT not found after attempting to renew it\n");
+        kerr = ERR_CREDS_EXPIRED;
+        goto done;
+    }
+    DEBUG(SSSDBG_FUNC_DATA, "FAST TGT was successfully recreated!\n");
 
 done:
     if (client_princ != NULL) {
