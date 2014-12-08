@@ -132,7 +132,7 @@ static void be_ptask_execute(struct tevent_context *ev,
     DEBUG(SSSDBG_TRACE_FUNC, "Task [%s]: executing task, timeout %lu "
                               "seconds\n", task->name, task->timeout);
 
-    task->last_execution = time(NULL);
+    task->last_execution = tv.tv_sec;
 
     task->req = task->send_fn(task, task->ev, task->be_ctx, task, task->pvt);
     if (task->req == NULL) {

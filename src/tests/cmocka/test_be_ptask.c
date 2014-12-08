@@ -52,7 +52,7 @@ struct test_ctx {
 } while (0)
 
 #define mark_offline(test_ctx) do { \
-    test_ctx->be_ctx->offstat.went_offline = time(NULL); \
+    test_ctx->be_ctx->offstat.went_offline = get_current_time(); \
     test_ctx->be_ctx->offstat.offline = true; \
 } while (0)
 
@@ -63,6 +63,16 @@ struct test_ctx {
  * the ptask is executed and a new one is scheduled. */
 #define is_sync_ptask_finished(test_ctx, ptask) \
     (test_ctx->done && ptask->req == NULL)
+
+static time_t get_current_time(void)
+{
+    struct timeval tv;
+    int ret;
+
+    ret = gettimeofday(&tv, NULL);
+    assert_int_equal(0, ret);
+    return tv.tv_sec;
+}
 
 /* Mock few backend functions so we don't have to bring the whole
  * data provider into this test. */
@@ -122,7 +132,7 @@ struct tevent_req * test_be_ptask_send(TALLOC_CTX *mem_ctx,
     test_ctx = talloc_get_type(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
-    test_ctx->when = time(NULL);
+    test_ctx->when = get_current_time();
 
     req = tevent_req_create(mem_ctx, &state, struct test_be_ptask_state);
     assert_non_null(req);
@@ -149,7 +159,7 @@ struct tevent_req * test_be_ptask_null_send(TALLOC_CTX *mem_ctx,
     test_ctx = talloc_get_type(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
-    test_ctx->when = time(NULL);
+    test_ctx->when = get_current_time();
     test_ctx->done = true;
 
     return NULL;
@@ -173,7 +183,7 @@ struct tevent_req * test_be_ptask_timeout_send(TALLOC_CTX *mem_ctx,
     test_ctx = talloc_get_type(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
-    test_ctx->when = time(NULL);
+    test_ctx->when = get_current_time();
 
     req = tevent_req_create(mem_ctx, &state, struct test_be_ptask_state);
     assert_non_null(req);
@@ -227,7 +237,7 @@ errno_t test_be_ptask_sync(TALLOC_CTX *mem_ctx,
     test_ctx = talloc_get_type(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
-    test_ctx->when = time(NULL);
+    test_ctx->when = get_current_time();
     test_ctx->done = true;
 
     return ERR_OK;
@@ -249,7 +259,7 @@ errno_t test_be_ptask_sync_error(TALLOC_CTX *mem_ctx,
     test_ctx = talloc_get_type(pvt, struct test_ctx);
     assert_non_null(test_ctx);
 
-    test_ctx->when = time(NULL);
+    test_ctx->when = get_current_time();
     test_ctx->done = true;
 
     return ERR_INTERNAL;
@@ -352,7 +362,7 @@ void test_be_ptask_create_no_delay(void **state)
     time_t now;
     errno_t ret;
 
-    now = time(NULL);
+    now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
                           BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_send,
                           test_be_ptask_recv, test_ctx, "Test ptask", &ptask);
@@ -379,7 +389,7 @@ void test_be_ptask_create_first_delay(void **state)
     time_t now;
     errno_t ret;
 
-    now = time(NULL);
+    now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, DELAY, 0, 0, 0,
                           BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_send,
                           test_be_ptask_recv, test_ctx, "Test ptask", &ptask);
@@ -428,7 +438,7 @@ void test_be_ptask_enable(void **state)
     time_t now;
     errno_t ret;
 
-    now = time(NULL);
+    now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
                           BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_send,
                           test_be_ptask_recv, test_ctx, "Test ptask", &ptask);
@@ -438,7 +448,7 @@ void test_be_ptask_enable(void **state)
 
     be_ptask_disable(ptask);
 
-    now = time(NULL);
+    now = get_current_time();
     be_ptask_enable(ptask);
     assert_non_null(ptask->timer);
 
@@ -474,7 +484,7 @@ void test_be_ptask_enable_delay(void **state)
 
     be_ptask_disable(ptask);
     test_ctx->done = false;
-    now = time(NULL);
+    now = get_current_time();
     be_ptask_enable(ptask);
 
     while (!test_ctx->done) {
@@ -499,7 +509,7 @@ void test_be_ptask_offline_skip(void **state)
 
     mark_offline(test_ctx);
 
-    now = time(NULL);
+    now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
                           BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_send,
                           test_be_ptask_recv, test_ctx, "Test ptask", &ptask);
@@ -589,7 +599,7 @@ void test_be_ptask_reschedule_ok(void **state)
     time_t now;
     errno_t ret;
 
-    now = time(NULL);
+    now = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
                           BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_send,
                           test_be_ptask_recv, test_ctx, "Test ptask", &ptask);
@@ -630,7 +640,7 @@ void test_be_ptask_reschedule_null(void **state)
     assert_non_null(ptask->timer);
 
     while (!test_ctx->done) {
-        now = time(NULL);
+        now = get_current_time();
         tevent_loop_once(test_ctx->be_ctx->ev);
     }
 
@@ -657,7 +667,7 @@ void test_be_ptask_reschedule_error(void **state)
     assert_non_null(ptask->timer);
 
     while (!test_ctx->done) {
-        now = time(NULL);
+        now = get_current_time();
         tevent_loop_once(test_ctx->be_ctx->ev);
     }
 
@@ -690,7 +700,7 @@ void test_be_ptask_reschedule_timeout(void **state)
 
     /* then iterate until the request is destroyed */
     while (!test_ctx->done && ptask->req != NULL) {
-        now = time(NULL);
+        now = get_current_time();
         tevent_loop_once(test_ctx->be_ctx->ev);
     }
 
@@ -707,10 +717,11 @@ void test_be_ptask_reschedule_backoff(void **state)
     struct test_ctx *test_ctx = (struct test_ctx *)(*state);
     struct be_ptask *ptask = NULL;
     time_t next_execution;
-    time_t now;
+    time_t now_first;
+    time_t now_backoff = 0;
     errno_t ret;
 
-    now = time(NULL);
+    now_first = get_current_time();
     ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
                           BE_PTASK_OFFLINE_SKIP, PERIOD*2, test_be_ptask_send,
                           test_be_ptask_recv, test_ctx, "Test ptask", &ptask);
@@ -722,11 +733,15 @@ void test_be_ptask_reschedule_backoff(void **state)
     next_execution = ptask->next_execution;
 
     while (!test_ctx->done) {
+        /* We need to acquire timestamp for the second test here, since this
+         * is the closest value to the timestamp when the next event is
+         * scheduled. */
+        now_backoff = get_current_time();
         tevent_loop_once(test_ctx->be_ctx->ev);
     }
 
-    assert_true(now <= ptask->last_execution);
-    assert_true(now <= test_ctx->when);
+    assert_true(now_first <= ptask->last_execution);
+    assert_true(now_first <= test_ctx->when);
     assert_true(ptask->last_execution <= test_ctx->when);
 
     assert_true(next_execution + PERIOD <= ptask->next_execution);
@@ -736,15 +751,14 @@ void test_be_ptask_reschedule_backoff(void **state)
     test_ctx->done = false;
 
     /* second run */
-    now = time(NULL);
     next_execution = ptask->next_execution;
 
     while (!test_ctx->done) {
         tevent_loop_once(test_ctx->be_ctx->ev);
     }
 
-    assert_true(now + PERIOD <= ptask->last_execution);
-    assert_true(now + PERIOD <= test_ctx->when);
+    assert_true(now_backoff + PERIOD <= ptask->last_execution);
+    assert_true(now_backoff + PERIOD <= test_ctx->when);
     assert_true(ptask->last_execution <= test_ctx->when);
 
     assert_true(next_execution + PERIOD*2 <= ptask->next_execution);
@@ -782,7 +796,7 @@ void test_be_ptask_create_sync(void **state)
     time_t now;
     errno_t ret;
 
-    now = time(NULL);
+    now = get_current_time();
     ret = be_ptask_create_sync(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
                                BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_sync,
                                test_ctx, "Test ptask", &ptask);
@@ -810,7 +824,7 @@ void test_be_ptask_sync_reschedule_ok(void **state)
     time_t now;
     errno_t ret;
 
-    now = time(NULL);
+    now = get_current_time();
     ret = be_ptask_create_sync(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
                                BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_sync,
                                test_ctx, "Test ptask", &ptask);
@@ -851,7 +865,7 @@ void test_be_ptask_sync_reschedule_error(void **state)
     assert_non_null(ptask->timer);
 
     while (!is_sync_ptask_finished(test_ctx, ptask)) {
-        now = time(NULL);
+        now = get_current_time();
         tevent_loop_once(test_ctx->be_ctx->ev);
     }
 
@@ -867,10 +881,11 @@ void test_be_ptask_sync_reschedule_backoff(void **state)
     struct test_ctx *test_ctx = (struct test_ctx *)(*state);
     struct be_ptask *ptask = NULL;
     time_t next_execution;
-    time_t now;
+    time_t now_first;
+    time_t now_backoff = 0;
     errno_t ret;
 
-    now = time(NULL);
+    now_first = get_current_time();
     ret = be_ptask_create_sync(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, 0,
                                BE_PTASK_OFFLINE_SKIP, PERIOD*2,
                                test_be_ptask_sync_error,
@@ -883,11 +898,15 @@ void test_be_ptask_sync_reschedule_backoff(void **state)
     next_execution = ptask->next_execution;
 
     while (!is_sync_ptask_finished(test_ctx, ptask)) {
+        /* We need to acquire timestamp for the second test here, since this
+         * is the closest value to the timestamp when the next event is
+         * scheduled. */
+        now_backoff = get_current_time();
         tevent_loop_once(test_ctx->be_ctx->ev);
     }
 
-    assert_true(now <= ptask->last_execution);
-    assert_true(now <= test_ctx->when);
+    assert_true(now_first <= ptask->last_execution);
+    assert_true(now_first <= test_ctx->when);
     assert_true(ptask->last_execution <= test_ctx->when);
 
     assert_true(next_execution + PERIOD <= ptask->next_execution);
@@ -897,15 +916,14 @@ void test_be_ptask_sync_reschedule_backoff(void **state)
     test_ctx->done = false;
 
     /* second run */
-    now = time(NULL);
     next_execution = ptask->next_execution;
 
     while (!is_sync_ptask_finished(test_ctx, ptask)) {
         tevent_loop_once(test_ctx->be_ctx->ev);
     }
 
-    assert_true(now + PERIOD <= ptask->last_execution);
-    assert_true(now + PERIOD <= test_ctx->when);
+    assert_true(now_backoff + PERIOD <= ptask->last_execution);
+    assert_true(now_backoff + PERIOD <= test_ctx->when);
     assert_true(ptask->last_execution <= test_ctx->when);
 
     assert_true(next_execution + PERIOD*2 <= ptask->next_execution);
