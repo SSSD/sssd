@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>
@@ -443,6 +444,17 @@ errno_t sss_hash_create_ex(TALLOC_CTX *mem_ctx,
  */
 errno_t add_strings_lists(TALLOC_CTX *mem_ctx, const char **l1, const char **l2,
                           bool copy_strings, char ***_new_list);
+
+/**
+ * @brief set file descriptor as nonblocking
+ *
+ * Set the O_NONBLOCK flag for the input fd
+ *
+ * @param[in] fd            The file descriptor to set as nonblocking
+ *
+ * @return                  EOK on success, errno code otherwise
+ */
+errno_t sss_fd_nonblocking(int fd);
 
 /* Copy a NULL-terminated string list
  * Returns NULL on out of memory error or invalid input

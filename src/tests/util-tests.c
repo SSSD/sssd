@@ -407,6 +407,26 @@ START_TEST(test_sss_filter_sanitize)
 }
 END_TEST
 
+START_TEST(test_fd_nonblocking)
+{
+    int fd;
+    int flags;
+    errno_t ret;
+
+    fd = open("/dev/null", O_RDONLY);
+    fail_unless(fd > 0);
+
+    flags = fcntl(fd, F_GETFL, 0);
+    fail_if(flags & O_NONBLOCK);
+
+    ret = sss_fd_nonblocking(fd);
+    fail_unless(ret == EOK);
+    flags = fcntl(fd, F_GETFL, 0);
+    fail_unless(flags & O_NONBLOCK);
+    close(fd);
+}
+END_TEST
+
 START_TEST(test_size_t_overflow)
 {
     fail_unless(!SIZE_T_OVERFLOW(1, 1), "unexpected overflow");
@@ -1020,6 +1040,7 @@ Suite *util_suite(void)
     tcase_add_test (tc_util, test_check_ipv6_addr);
     tcase_add_test (tc_util, test_is_host_in_domain);
     tcase_add_test (tc_util, test_known_service);
+    tcase_add_test (tc_util, test_fd_nonblocking);
     tcase_set_timeout(tc_util, 60);
 
     TCase *tc_utf8 = tcase_create("utf8");

@@ -1058,8 +1058,8 @@ static errno_t selinux_fork_child(struct selinux_child_state *state)
         close(pipefd_from_child[1]);
         state->io->write_to_child_fd = pipefd_to_child[1];
         close(pipefd_to_child[0]);
-        fd_nonblocking(state->io->read_from_child_fd);
-        fd_nonblocking(state->io->write_to_child_fd);
+        sss_fd_nonblocking(state->io->read_from_child_fd);
+        sss_fd_nonblocking(state->io->write_to_child_fd);
 
         ret = child_handler_setup(state->ev, pid, NULL, NULL, NULL);
         if (ret != EOK) {

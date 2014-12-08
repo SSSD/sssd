@@ -293,8 +293,8 @@ void test_exec_child_echo(void **state)
     io_fds->write_to_child_fd = child_tctx->pipefd_to_child[1];
     close(child_tctx->pipefd_to_child[0]);
 
-    fd_nonblocking(io_fds->write_to_child_fd);
-    fd_nonblocking(io_fds->read_from_child_fd);
+    sss_fd_nonblocking(io_fds->write_to_child_fd);
+    sss_fd_nonblocking(io_fds->read_from_child_fd);
 
     ret = child_handler_setup(child_tctx->test_ctx->ev, child_pid,
                               NULL, NULL, NULL);

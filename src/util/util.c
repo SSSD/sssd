@@ -880,3 +880,27 @@ done:
 
     return ret;
 }
+
+/* Set the nonblocking flag to the fd */
+errno_t sss_fd_nonblocking(int fd)
+{
+    int flags;
+    int ret;
+
+    flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "F_GETFL failed [%d][%s].\n", ret, strerror(ret));
+        return ret;
+    }
+
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "F_SETFL failed [%d][%s].\n", ret, strerror(ret));
+        return ret;
+    }
+
+    return EOK;
+}

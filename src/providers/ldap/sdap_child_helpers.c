@@ -108,8 +108,8 @@ static errno_t sdap_fork_child(struct tevent_context *ev,
         close(pipefd_from_child[1]);
         child->io->write_to_child_fd = pipefd_to_child[1];
         close(pipefd_to_child[0]);
-        fd_nonblocking(child->io->read_from_child_fd);
-        fd_nonblocking(child->io->write_to_child_fd);
+        sss_fd_nonblocking(child->io->read_from_child_fd);
+        sss_fd_nonblocking(child->io->write_to_child_fd);
 
         ret = child_handler_setup(ev, pid, NULL, NULL, NULL);
         if (ret != EOK) {

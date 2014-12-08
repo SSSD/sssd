@@ -518,29 +518,6 @@ int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-/* The pipes to communicate with the child must be nonblocking */
-void fd_nonblocking(int fd)
-{
-    int flags;
-    int ret;
-
-    flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "F_GETFL failed [%d][%s].\n", ret, strerror(ret));
-        return;
-    }
-
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-        ret = errno;
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "F_SETFL failed [%d][%s].\n", ret, strerror(ret));
-    }
-
-    return;
-}
-
 static void child_invoke_callback(struct tevent_context *ev,
                                   struct tevent_immediate *imm,
                                   void *pvt);

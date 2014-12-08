@@ -22,8 +22,6 @@
 #include "config.h"
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -44,27 +42,6 @@
 #include "providers/data_provider.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
-
-static errno_t set_nonblocking(int fd)
-{
-    int v;
-    int ferr;
-    errno_t error;
-
-    /* Get the current flags for this file descriptor */
-    v = fcntl(fd, F_GETFL, 0);
-
-    errno = 0;
-    /* Set the non-blocking flag on this fd */
-    ferr = fcntl(fd, F_SETFL, v | O_NONBLOCK);
-    if (ferr < 0) {
-        error = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to set fd non-blocking: [%d][%s]\n",
-                  error, strerror(error));
-        return error;
-    }
-    return EOK;
-}
 
 static errno_t set_close_on_exec(int fd)
 {
@@ -601,7 +578,7 @@ int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval)
 
     orig_umaskval = umask(umaskval);
 
-    ret = set_nonblocking(fd);
+    ret = sss_fd_nonblocking(fd);
     if (ret != EOK) {
         goto done;
     }
