@@ -5127,7 +5127,28 @@ START_TEST(test_sysdb_search_object_by_uuid)
                       "UUIDuser") == 0, "Unexpected object found, " \
                       "expected [%s], got [%s].", "UUIDuser",
                       ldb_msg_find_attr_as_string(res->msgs[0],SYSDB_NAME, ""));
+    talloc_free(test_ctx);
+}
+END_TEST
 
+START_TEST(test_sysdb_delete_by_sid)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    check_leaks_push(test_ctx);
+
+    /* Delete the group by SID */
+    ret = sysdb_delete_by_sid(test_ctx->sysdb, test_ctx->domain,
+                              "S-1-2-3-4-NON_EXISTING_SID");
+    fail_unless(ret == EOK, "sysdb_delete_by_sid failed with [%d][%s].",
+                ret, strerror(ret));
+
+    fail_unless(check_leaks_pop(test_ctx) == true, "Memory leak");
     talloc_free(test_ctx);
 }
 END_TEST
@@ -6175,6 +6196,7 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_search_custom_update);
     tcase_add_test(tc_sysdb, test_sysdb_search_custom);
     tcase_add_test(tc_sysdb, test_sysdb_delete_custom);
+    tcase_add_test(tc_sysdb, test_sysdb_delete_by_sid);
 
     /* test recursive delete */
     tcase_add_test(tc_sysdb, test_sysdb_delete_recursive);
