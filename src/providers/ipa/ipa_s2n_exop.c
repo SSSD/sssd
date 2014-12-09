@@ -1911,6 +1911,20 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 }
             }
 
+            if (attrs->response_type == RESP_USER_GROUPLIST) {
+                /* Since RESP_USER_GROUPLIST contains all group memberships it
+                 * is effectively an initgroups request hence
+                 * SYSDB_INITGR_EXPIRE will be set.*/
+                ret = sysdb_attrs_add_time_t(attrs->sysdb_attrs,
+                                             SYSDB_INITGR_EXPIRE,
+                                             time(NULL) + timeout);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_attrs_add_time_t failed.\n");
+                    goto done;
+                }
+            }
+
             gid = 0;
             if (dom->mpg == false) {
                 gid = attrs->a.user.pw_gid;
