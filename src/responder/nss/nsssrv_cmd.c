@@ -4491,20 +4491,10 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
 
     ret = sysdb_search_object_by_sid(cmdctx, dom, cmdctx->secid, NULL,
                                      &dctx->res);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to make request to our cache!\n");
-        return EIO;
-    }
-
-    if (dctx->res->count > 1) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "getbysid call returned more than one " \
-                                     "result !?!\n");
-        return ENOENT;
-    }
-
-    if (dctx->res->count == 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "No results for getbysid call.\n");
+    if (ret == ENOENT) {
         if (!dctx->check_provider) {
+            DEBUG(SSSDBG_OP_FAILURE, "No results for getbysid call.\n");
+
             /* set negative cache only if not result of cache check */
             ret = sss_ncache_set_sid(nctx->ncache, false, cmdctx->secid);
             if (ret != EOK) {
@@ -4512,6 +4502,15 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
                       "Cannot set negative cache for %s\n", cmdctx->secid);
             }
         }
+        return ENOENT;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to make request to our cache!\n");
+        return EIO;
+    }
+
+    if (dctx->res->count > 1) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "getbysid call returned more than one " \
+                                     "result !?!\n");
         return ENOENT;
     }
 

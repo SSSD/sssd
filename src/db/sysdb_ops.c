@@ -2994,7 +2994,14 @@ int sysdb_delete_by_sid(struct sysdb_ctx *sysdb,
     }
 
     ret = sysdb_search_object_by_sid(tmp_ctx, domain, sid_str, NULL, &res);
-    if (ret != EOK) {
+
+    if (ret == ENOENT) {
+        /* No existing entry. Just quit. */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "search by sid did not return any results.\n");
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "search by sid failed: %d (%s)\n",
               ret, strerror(ret));
         goto done;
@@ -3004,12 +3011,6 @@ int sysdb_delete_by_sid(struct sysdb_ctx *sysdb,
         DEBUG(SSSDBG_FATAL_FAILURE, "getbysid call returned more than one " \
                                      "result !?!\n");
         ret = EIO;
-        goto done;
-    }
-
-    if (res->count == 0) {
-        /* No existing entry. Just quit. */
-        ret = EOK;
         goto done;
     }
 
@@ -3564,61 +3565,10 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info *domain,
                                    const char *sid_str,
                                    const char **attrs,
-                                   struct ldb_result **msg)
+                                   struct ldb_result **res)
 {
-/* TODO: use
     return sysdb_search_object_by_str_attr(mem_ctx, domain, SYSDB_SID_FILTER,
                                            sid_str, attrs, res);
-
-    when verified that all callers can handle ENOENT correctly. */
-
-    TALLOC_CTX *tmp_ctx;
-    const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_GIDNUM,
-                                ORIGINALAD_PREFIX SYSDB_NAME,
-                                SYSDB_OBJECTCLASS, NULL };
-    struct ldb_dn *basedn;
-    int ret;
-    struct ldb_result *res = NULL;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_DOM_BASE, domain->name);
-    if (basedn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new_fmt failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
-                     basedn, LDB_SCOPE_SUBTREE, attrs?attrs:def_attrs,
-                     SYSDB_SID_FILTER, sid_str);
-    if (ret != EOK) {
-        ret = sysdb_error_to_errno(ret);
-        DEBUG(SSSDBG_OP_FAILURE, "ldb_search failed.\n");
-        goto done;
-    }
-
-    if (res->count > 1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Search for SID [%s] returned more than " \
-                                    "one object.\n", sid_str);
-        ret = EINVAL;
-        goto done;
-    }
-
-    *msg = talloc_steal(mem_ctx, res);
-
-done:
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_FUNC, "No such entry.\n");
-    } else if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
-    }
-
-    talloc_zfree(tmp_ctx);
-    return ret;
 }
 
 errno_t sysdb_search_object_by_uuid(TALLOC_CTX *mem_ctx,

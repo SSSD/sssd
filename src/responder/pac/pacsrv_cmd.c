@@ -297,17 +297,17 @@ static void pac_lookup_sids_done(struct tevent_req *req)
             msg = NULL;
             ret = sysdb_search_object_by_sid(pr_ctx, dom, entries[c].key.str,
                                              NULL, &msg);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_object_by_sid " \
-                                          "failed.\n");
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE, "No entry found for SID [%s].\n",
+                      entries[c].key.str);
+                continue;
+            } else if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_search_object_by_sid failed.\n");
                 continue;
             }
 
-            if (msg->count == 0) {
-                DEBUG(SSSDBG_OP_FAILURE, "No entry found for SID [%s].\n",
-                                          entries[c].key.str);
-                continue;
-            } else if (msg->count > 1) {
+            if (msg->count > 1) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "More then one result returned " \
                                             "for SID [%s].\n",
                                             entries[c].key.str);
@@ -911,10 +911,13 @@ pac_store_membership(struct pac_req_ctx *pr_ctx,
 
     ret = sysdb_search_object_by_sid(tmp_ctx, grp_dom, grp_sid_str,
                                      group_attrs, &group);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "sysdb_search_object_by_sid " \
-                                      "for SID [%s] failed [%d][%s].\n",
-                                      grp_sid_str, ret, strerror(ret));
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected number of groups returned.\n");
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "sysdb_search_object_by_sid for SID [%s] failed [%d][%s].\n",
+              grp_sid_str, ret, strerror(ret));
         goto done;
     }
 

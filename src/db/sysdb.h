@@ -1035,7 +1035,7 @@ errno_t sysdb_search_object_by_sid(TALLOC_CTX *mem_ctx,
                                    struct sss_domain_info *domain,
                                    const char *sid_str,
                                    const char **attrs,
-                                   struct ldb_result **msg);
+                                   struct ldb_result **res);
 
 errno_t sysdb_search_object_by_uuid(TALLOC_CTX *mem_ctx,
                                     struct sss_domain_info *domain,

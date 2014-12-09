@@ -4861,13 +4861,10 @@ START_TEST (test_sysdb_search_return_ENOENT)
     talloc_zfree(res);
 
     /* Search object */
-    /* TODO: Should return ENOENT */
     ret = sysdb_search_object_by_sid(test_ctx, test_ctx->domain,
                                      "S-5-4-3-2-1", NULL, &res);
-    fail_unless(ret == EOK, "sysdb_search_object_by_sid_str failed with "
+    fail_unless(ret == ENOENT, "sysdb_search_object_by_sid_str failed with "
                              "[%d][%s].", ret, strerror(ret));
-    fail_unless(res->count == 0, "sysdb_search_object_by_sid_str should not "
-                                 "return anything.");
     talloc_zfree(res);
 
     /* Search can return more results */
