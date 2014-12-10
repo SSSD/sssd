@@ -862,6 +862,7 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
                             SYSDB_SID_STR,
                             SYSDB_OBJECTCLASS,
                             SYSDB_UUID,
+                            SYSDB_GHOST,
                             NULL };
     char *name;
 
