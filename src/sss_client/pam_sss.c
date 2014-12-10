@@ -1487,6 +1487,12 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
     eval_argv(pamh, argc, argv, &flags, &retries, &quiet_mode, &domains);
 
+    /* Fail all authentication on misconfigured domains= parameter. The admin
+     * probably wanted to restrict authentication, so it's safer to fail */
+    if (domains && strcmp(domains, "") == 0) {
+        return PAM_SYSTEM_ERR;
+    }
+
     pi.requested_domains = domains;
 
     ret = get_pam_items(pamh, &pi);
