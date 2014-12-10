@@ -119,6 +119,8 @@ struct mt_svc {
     int ping_time;
     int kill_time;
 
+    struct tevent_timer *kill_timer;
+
     bool svc_started;
 
     int restarts;
@@ -579,6 +581,7 @@ static void set_tasks_checker(struct mt_svc *svc)
     svc->ping_ev = te;
 }
 
+static void monitor_restart_service(struct mt_svc *svc);
 static void mt_svc_sigkill(struct tevent_context *ev,
                            struct tevent_timer *te,
                            struct timeval t, void *ptr);
@@ -586,7 +589,6 @@ static int monitor_kill_service (struct mt_svc *svc)
 {
     int ret;
     struct timeval tv;
-    struct tevent_timer *te;
 
     ret = kill(svc->pid, SIGTERM);
     if (ret == -1) {
@@ -595,29 +597,30 @@ static int monitor_kill_service (struct mt_svc *svc)
               "Sending signal to child (%s:%d) failed: [%d]: %s! "
               "Ignore and pretend child is dead.\n",
               svc->name, svc->pid, ret, strerror(ret));
-        goto done;
+        /* The only thing we can try here is to launch a new process
+         * and hope that it works.
+         */
+        monitor_restart_service(svc);
+        return EOK;
     }
 
     /* Set up a timer to send SIGKILL if this process
      * doesn't exit within sixty seconds
      */
     tv = tevent_timeval_current_ofs(svc->kill_time, 0);
-    te = tevent_add_timer(svc->mt_ctx->ev, svc, tv, mt_svc_sigkill, svc);
-    if (te == NULL) {
+    svc->kill_timer = tevent_add_timer(svc->mt_ctx->ev,
+                                       svc,
+                                       tv,
+                                       mt_svc_sigkill,
+                                       svc);
+    if (svc->kill_timer == NULL) {
         /* Nothing much we can do */
-        ret = ENOMEM;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to allocate timed event: mt_svc_sigkill.\n");
-        goto done;
+        /* We'll just have to hope that the SIGTERM succeeds */
     }
 
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(svc);
-    }
-    return ret;
+    return EOK;
 }
 
 static void mt_svc_sigkill(struct tevent_context *ev,
@@ -633,12 +636,35 @@ static void mt_svc_sigkill(struct tevent_context *ev,
 
     ret = kill(svc->pid, SIGKILL);
     if (ret != EOK) {
+        ret = errno;
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Sending signal to child (%s:%d) failed! "
               "Ignore and pretend child is dead.\n",
               svc->name, svc->pid);
-        talloc_free(svc);
+
+        if (ret == ESRCH) {
+            /* The process doesn't exist
+             * This most likely means we hit a race where
+             * the SIGTERM concluded just after the timer
+             * fired but before we called kill() here.
+             * We'll just do nothing, since the
+             * mt_svc_exit_handler() should be doing the
+             * necessary work.
+             */
+            return;
+        }
+
+        /* Something went really wrong.
+         * The only thing we can try here is to launch a new process
+         * and hope that it works.
+         */
+        monitor_restart_service(svc);
     }
+
+    /* The process should terminate immediately and then be
+     * restarted by the mt_svc_exit_handler()
+     */
+    return;
 }
 
 static void reload_reply(DBusPendingCall *pending, void *data)
@@ -2592,11 +2618,7 @@ static void mt_svc_restart(struct tevent_context *ev,
 static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
 {
     struct mt_svc *svc = talloc_get_type(pvt, struct mt_svc);
-    struct mt_ctx *mt_ctx = svc->mt_ctx;
-    time_t now = time(NULL);
-    struct tevent_timer *te;
-    struct timeval tv;
-    int restart_delay;
+
 
     if (WIFEXITED(wait_status)) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -2618,6 +2640,28 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
         return;
     }
 
+    /* Clear the kill_timer so we don't try to SIGKILL it after it's
+     * already gone.
+     */
+    talloc_zfree(svc->kill_timer);
+
+    /* Check the number of restart tries and relaunch the service */
+    monitor_restart_service(svc);
+
+    return;
+}
+
+static void monitor_restart_service(struct mt_svc *svc)
+{
+    struct mt_ctx *mt_ctx = svc->mt_ctx;
+    int restart_delay;
+    time_t now = time(NULL);
+    struct tevent_timer *te;
+    struct timeval tv;
+
+    /* Handle the actual checks for how many times to restart this
+     * service before giving up.
+     */
     if ((now - svc->last_restart) > MONITOR_RESTART_CNT_INTERVAL_RESET) {
         svc->restarts = 0;
     }
@@ -2626,9 +2670,19 @@ static void mt_svc_exit_handler(int pid, int wait_status, void *pvt)
     if (svc->restarts > MONITOR_MAX_SVC_RESTARTS) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Process [%s], definitely stopped!\n", svc->name);
+
+        sss_log(SSS_LOG_ERR,
+                "Exiting the SSSD. Could not restart critical service [%s].",
+                svc->name);
+
         talloc_free(svc);
 
-        /* exit with error */
+        /* exit the SSSD with an error, shutting down all
+         * services and domains.
+         * We do this because if one of the responders is down
+         * and can't come back up, this is the only way to
+         * guarantee admin intervention.
+         */
         monitor_quit(mt_ctx, 1);
         return;
     }
