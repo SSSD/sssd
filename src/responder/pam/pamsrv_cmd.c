@@ -56,7 +56,7 @@ static bool is_domain_requested(struct pam_data *pd, const char *domain_name)
     }
 
     for (i = 0; pd->requested_domains[i]; i++) {
-        if (strcmp(domain_name, pd->requested_domains[i])) {
+        if (strcasecmp(domain_name, pd->requested_domains[i])) {
             continue;
         }
 
@@ -831,7 +831,7 @@ static bool is_domain_public(char *name,
     size_t i;
 
     for(i=0; i < public_dom_names_count; i++) {
-        if (strcmp(name, public_dom_names[i]) == 0) {
+        if (strcasecmp(name, public_dom_names[i]) == 0) {
             return true;
         }
     }
