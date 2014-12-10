@@ -35,8 +35,15 @@ enum dbus_conn_type {
     SBUS_CONNECTION
 };
 
-struct sbus_interface_p;
 struct sbus_watch_ctx;
+
+struct sbus_interface_p {
+    struct sbus_interface_p *prev, *next;
+    struct sbus_connection *conn;
+    struct sbus_interface *intf;
+
+    const char *reg_path;
+};
 
 struct sbus_connection {
     struct tevent_context *ev;
@@ -67,6 +74,8 @@ struct sbus_connection {
     /* watches list */
     struct sbus_watch_ctx *watch_list;
 };
+
+extern DBusObjectPathVTable dbus_object_path_vtable;
 
 /* =Watches=============================================================== */
 
@@ -102,6 +111,12 @@ void sbus_remove_timeout(DBusTimeout *dbus_timeout, void *data);
 struct sbus_request *
 sbus_new_request(struct sbus_connection *conn, struct sbus_interface *intf,
                  DBusMessage *message);
+
+/* =Interface=and=object=paths============================================ */
+
+void sbus_unreg_object_paths(struct sbus_connection *conn);
+bool sbus_iface_handles_path(struct sbus_interface_p *intf_p,
+                             const char *path);
 
 /* =Interface=introspection=============================================== */
 extern const struct sbus_method_meta introspect_method;

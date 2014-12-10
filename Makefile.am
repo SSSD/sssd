@@ -709,6 +709,7 @@ libsss_util_la_SOURCES = \
     src/sbus/sssd_dbus_common.c \
     src/sbus/sssd_dbus_connection.c \
     src/sbus/sssd_dbus_meta.c \
+    src/sbus/sssd_dbus_interface.c \
     src/sbus/sssd_dbus_introspect.c \
     src/sbus/sssd_dbus_properties.c \
     src/sbus/sssd_dbus_request.c \
