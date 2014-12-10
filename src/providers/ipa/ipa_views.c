@@ -177,6 +177,10 @@ static errno_t get_be_acct_req_for_xyz(TALLOC_CTX *mem_ctx, const char *val,
         ar->entry_type = BE_REQ_BY_UUID;
         ar->filter_type = BE_FILTER_UUID;
         break;
+    case BE_REQ_USER:
+        ar->entry_type = BE_REQ_USER;
+        ar->filter_type = BE_FILTER_NAME;
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported request type [%d].\n", type);
         talloc_free(ar);
@@ -210,6 +214,15 @@ errno_t get_be_acct_req_for_uuid(TALLOC_CTX *mem_ctx, const char *uuid,
                                  struct be_acct_req **_ar)
 {
     return get_be_acct_req_for_xyz(mem_ctx, uuid, domain_name, BE_REQ_BY_UUID,
+                                   _ar);
+}
+
+errno_t get_be_acct_req_for_user_name(TALLOC_CTX *mem_ctx,
+                                      const char *user_name,
+                                      const char *domain_name,
+                                      struct be_acct_req **_ar)
+{
+    return get_be_acct_req_for_xyz(mem_ctx, user_name, domain_name, BE_REQ_USER,
                                    _ar);
 }
 
