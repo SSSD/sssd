@@ -172,7 +172,6 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     char *sbus_address;
-    struct sbus_interface *intf;
     struct sbus_connection *conn;
 
     /* Set up SBUS connection to the monitor */
@@ -190,12 +189,7 @@ errno_t sss_monitor_init(TALLOC_CTX *mem_ctx,
     }
     talloc_free(sbus_address);
 
-    intf = sbus_new_interface(mem_ctx, MONITOR_PATH, &mon_iface->vtable, pvt);
-    if (!intf) {
-        ret = ENOMEM;
-    } else {
-        ret = sbus_conn_add_interface(conn, intf);
-    }
+    ret = sbus_conn_register_iface(conn, &mon_iface->vtable, MONITOR_PATH, pvt);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to export monitor client.\n");
         return ret;

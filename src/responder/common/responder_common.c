@@ -514,7 +514,6 @@ static int sss_dp_init(struct resp_ctx *rctx,
                        const char *cli_name,
                        struct sss_domain_info *domain)
 {
-    struct sbus_interface *intf;
     struct be_conn *be_conn;
     int ret;
 
@@ -539,12 +538,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
         return ret;
     }
 
-    intf = sbus_new_interface(rctx, DP_PATH, dp_intf, rctx);
-    if (!intf) {
-        ret = ENOMEM;
-    } else {
-        ret = sbus_conn_add_interface(be_conn->conn, intf);
-    }
+    ret = sbus_conn_register_iface(be_conn->conn, dp_intf, DP_PATH, rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to export data provider.\n");
         return ret;

@@ -178,7 +178,6 @@ sysbus_init(TALLOC_CTX *mem_ctx,
     DBusError dbus_error;
     DBusConnection *conn = NULL;
     struct sysbus_ctx *system_bus = NULL;
-    struct sbus_interface *sif;
     int i;
     errno_t ret;
 
@@ -226,17 +225,9 @@ sysbus_init(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; sysbus_ifaces[i].path != NULL; i++) {
-        sif = sbus_new_interface(system_bus->conn,
-                                 sysbus_ifaces[i].path,
-                                 sysbus_ifaces[i].iface_vtable,
-                                 pvt);
-        if (sif == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Could not add the sbus interface\n");
-            goto fail;
-        }
-
-        ret = sbus_conn_add_interface(system_bus->conn, sif);
+        ret = sbus_conn_register_iface(system_bus->conn,
+                                       sysbus_ifaces[i].iface_vtable,
+                                       sysbus_ifaces[i].path, pvt);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Could not add the interface\n");

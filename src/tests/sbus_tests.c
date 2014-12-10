@@ -178,17 +178,13 @@ static int pilot_test_server_init(struct sbus_connection *server, void *unused)
 {
     int ret;
 
-    ret = sbus_conn_add_interface(server,
-                                  sbus_new_interface(server, "/test/leela",
-                                                     &pilot_impl.vtable,
-                                                     "Crash into the billboard"));
+    ret = sbus_conn_register_iface(server, &pilot_impl.vtable, "/test/leela",
+                                   "Crash into the billboard");
     ck_assert_int_eq(ret, EOK);
 
 
-    ret = sbus_conn_add_interface(server,
-                                  sbus_new_interface(server, "/test/fry",
-                                                     &pilot_impl.vtable,
-                                                     "Don't crash"));
+    ret = sbus_conn_register_iface(server, &pilot_impl.vtable, "/test/fry",
+                                   "Don't crash");
     ck_assert_int_eq(ret, EOK);
 
     return EOK;

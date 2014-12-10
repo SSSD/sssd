@@ -574,10 +574,8 @@ static int pilot_test_server_init(struct sbus_connection *server, void *unused)
 {
     int ret;
 
-    ret = sbus_conn_add_interface(server,
-                                  sbus_new_interface(server, "/test/leela",
-                                                     &pilot_iface.vtable,
-                                                     "Crash into the billboard"));
+    ret = sbus_conn_register_iface(server, &pilot_iface.vtable, "/test/leela",
+                                   "Crash into the billboard");
     ck_assert_int_eq(ret, EOK);
 
     return EOK;

@@ -2443,7 +2443,6 @@ static void init_timeout(struct tevent_context *ev,
  */
 static int monitor_service_init(struct sbus_connection *conn, void *data)
 {
-    struct sbus_interface *intf;
     struct mt_ctx *ctx;
     struct mon_init_conn *mini;
     struct timeval tv;
@@ -2474,12 +2473,8 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
         return ENOMEM;
     }
 
-    intf = sbus_new_interface(conn, MON_SRV_PATH, &monitor_methods.vtable, mini);
-    if (!intf) {
-        return ENOMEM;
-    }
-
-    return sbus_conn_add_interface(conn, intf);
+    return sbus_conn_register_iface(conn, &monitor_methods.vtable,
+                                    MON_SRV_PATH, mini);
 }
 
 /* service_send_ping

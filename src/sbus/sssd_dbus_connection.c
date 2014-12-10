@@ -565,7 +565,7 @@ fail:
     sbus_request_finish(dbus_req, reply);
 }
 
-struct sbus_interface *
+static struct sbus_interface *
 sbus_new_interface(TALLOC_CTX *mem_ctx,
                    const char *object_path,
                    struct sbus_vtable *iface_vtable,
@@ -606,18 +606,23 @@ static char *sbus_iface_get_reg_path(TALLOC_CTX *mem_ctx,
     return reg_path;
 }
 
-/* Adds a new D-BUS path message handler to the connection
- * Note: this must be a unique path.
- */
-int sbus_conn_add_interface(struct sbus_connection *conn,
-                            struct sbus_interface *intf)
+int sbus_conn_register_iface(struct sbus_connection *conn,
+                             struct sbus_vtable *iface_vtable,
+                             const char *object_path,
+                             void *pvt)
 {
     struct sbus_interface_p *intf_p;
+    struct sbus_interface *intf;
     dbus_bool_t dbret;
     const char *path;
     bool fallback;
 
-    if (!conn || !intf || !intf->vtable || !intf->vtable->meta) {
+    intf = sbus_new_interface(conn, object_path, iface_vtable, pvt);
+    if (intf == NULL) {
+        return ENOMEM;
+    }
+
+    if (!conn || !intf->vtable || !intf->vtable->meta) {
         return EINVAL;
     }
 

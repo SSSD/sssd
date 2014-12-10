@@ -331,7 +331,6 @@ static int proxy_client_init(struct sbus_connection *conn, void *data)
 {
     struct proxy_auth_ctx *proxy_auth_ctx;
     struct proxy_client *proxy_cli;
-    struct sbus_interface *intf;
     struct timeval tv;
 
     proxy_auth_ctx = talloc_get_type(data, struct proxy_auth_ctx);
@@ -362,14 +361,8 @@ static int proxy_client_init(struct sbus_connection *conn, void *data)
     DEBUG(SSSDBG_CONF_SETTINGS,
           "Set-up proxy client ID timeout [%p]\n", proxy_cli->timeout);
 
-    /* Attach the client context to the connection context, so that it is
-     * always available when we need to manage the connection. */
-    intf = sbus_new_interface(conn, DP_PATH, &proxy_methods.vtable, proxy_cli);
-    if (!intf) {
-        return ENOMEM;
-    }
-
-    return sbus_conn_add_interface(conn, intf);
+    return sbus_conn_register_iface(conn, &proxy_methods.vtable,
+                                    DP_PATH, proxy_cli);
 }
 
 static void init_timeout(struct tevent_context *ev,

@@ -2216,7 +2216,6 @@ static void init_timeout(struct tevent_context *ev,
 
 static int be_client_init(struct sbus_connection *conn, void *data)
 {
-    struct sbus_interface *intf;
     struct be_ctx *bectx;
     struct be_client *becli;
     struct timeval tv;
@@ -2252,14 +2251,7 @@ static int be_client_init(struct sbus_connection *conn, void *data)
     DEBUG(SSSDBG_CONF_SETTINGS,
           "Set-up Backend ID timeout [%p]\n", becli->timeout);
 
-    /* Attach the client context to the connection context, so that it is
-     * always available when we need to manage the connection. */
-    intf = sbus_new_interface(conn, DP_PATH, &be_methods.vtable, becli);
-    if (!intf) {
-        return ENOMEM;
-    }
-
-    return sbus_conn_add_interface(conn, intf);
+    return sbus_conn_register_iface(conn, &be_methods.vtable, DP_PATH, becli);
 }
 
 /* be_srv_init

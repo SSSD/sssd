@@ -381,7 +381,6 @@ int proxy_child_send_id(struct sbus_connection *conn,
                         uint32_t id);
 static int proxy_cli_init(struct pc_ctx *ctx)
 {
-    struct sbus_interface *intf;
     char *sbus_address;
     int ret;
 
@@ -399,12 +398,7 @@ static int proxy_cli_init(struct pc_ctx *ctx)
         return ret;
     }
 
-    intf = sbus_new_interface(ctx, DP_PATH, &pc_methods.vtable, ctx);
-    if (!intf) {
-        ret = ENOMEM;
-    } else {
-        ret = sbus_conn_add_interface(ctx->conn, intf);
-    }
+    ret = sbus_conn_register_iface(ctx->conn, &pc_methods.vtable, DP_PATH, ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to export proxy.\n");
         return ret;

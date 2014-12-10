@@ -113,21 +113,6 @@ struct sbus_interface {
     void *instance_data;
 };
 
-/*
- * Creates a new struct sbus_interface instance to be exported by a DBus
- * service.
- *
- * Pass the result to sbus_conn_add_interface(). The interface
- * will be exported at @object_path. The method handlers are represented by
- * @iface_vtable. @instance_data contains additional caller specific data
- * which is made available to handlers.
- */
-struct sbus_interface *
-sbus_new_interface(TALLOC_CTX *mem_ctx,
-                   const char *object_path,
-                   struct sbus_vtable *iface_vtable,
-                   void *instance_data);
-
 /* Server Functions */
 int sbus_new_server(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
@@ -170,9 +155,21 @@ int sbus_init_connection(TALLOC_CTX *ctx,
                          struct sbus_connection **_conn);
 
 DBusConnection *sbus_get_connection(struct sbus_connection *conn);
+
 void sbus_disconnect(struct sbus_connection *conn);
-int sbus_conn_add_interface(struct sbus_connection *conn,
-                            struct sbus_interface *intf);
+
+/*
+ * Register a new interface to be available at given object path.
+ *
+ * The interface will be exported at @object_path. The method handlers are
+ * represented by @iface_vtable. @pvt contains additional caller specific data
+ * which is made available to handlers.
+ */
+int sbus_conn_register_iface(struct sbus_connection *conn,
+                             struct sbus_vtable *iface_vtable,
+                             const char *object_path,
+                             void *pvt);
+
 bool sbus_conn_disconnecting(struct sbus_connection *conn);
 
 /* max_retries < 0: retry forever
