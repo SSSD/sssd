@@ -87,6 +87,11 @@ errno_t get_be_acct_req_for_uuid(TALLOC_CTX *mem_ctx, const char *uuid,
                                  const char *domain_name,
                                  struct be_acct_req **_ar);
 
+errno_t get_be_acct_req_for_user_name(TALLOC_CTX *mem_ctx,
+                                      const char *user_name,
+                                      const char *domain_name,
+                                      struct be_acct_req **_ar);
+
 struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
                                             struct sdap_id_ctx *sdap_id_ctx,
