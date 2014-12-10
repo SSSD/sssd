@@ -144,6 +144,150 @@ static void ipa_account_info_done(struct tevent_req *req)
     sdap_handler_done(breq, dp_error, ret, error_text);
 }
 
+struct ipa_resolve_user_list_state {
+    struct tevent_context *ev;
+    struct sdap_id_ctx *sdap_id_ctx;
+    struct be_req *be_req;
+    struct ldb_message_element *users;
+    const char *domain_name;
+    size_t user_idx;
+
+    int dp_error;
+};
+
+static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req);
+static void ipa_resolve_user_list_get_user_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_resolve_user_list_send(TALLOC_CTX *memctx, struct tevent_context *ev,
+                           struct be_req *be_req,
+                           struct sdap_id_ctx *sdap_id_ctx,
+                           const char *domain_name,
+                           struct ldb_message_element *users)
+{
+    int ret;
+    struct tevent_req *req;
+    struct ipa_resolve_user_list_state *state;
+
+    req = tevent_req_create(memctx, &state,
+                            struct ipa_resolve_user_list_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->sdap_id_ctx = sdap_id_ctx;
+    state->be_req = be_req;
+    state->domain_name = domain_name;
+    state->users = users;
+    state->user_idx = 0;
+    state->dp_error = DP_ERR_FATAL;
+
+    ret = ipa_resolve_user_list_get_user_step(req);
+    if (ret == EAGAIN) {
+        return req;
+    } else if (ret == EOK) {
+        state->dp_error = DP_ERR_OK;
+        tevent_req_done(req);
+    } else {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ipa_resolve_user_list_get_user_step failed.\n");
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req)
+{
+    int ret;
+    struct tevent_req *subreq;
+    struct be_acct_req *ar;
+    struct ipa_resolve_user_list_state *state = tevent_req_data(req,
+                                            struct ipa_resolve_user_list_state);
+
+    if (state->user_idx >= state->users->num_values) {
+        return EOK;
+    }
+
+    ret = get_be_acct_req_for_user_name(state,
+                            (char *) state->users->values[state->user_idx].data,
+                            state->domain_name, &ar);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_user_name failed.\n");
+        return ret;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Trying to resolve user [%s].\n", ar->filter_value);
+
+    subreq = sdap_handle_acct_req_send(state, state->be_req, ar,
+                                       state->sdap_id_ctx,
+                                       state->sdap_id_ctx->opts->sdom,
+                                       state->sdap_id_ctx->conn, true);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct_req_send failed.\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, ipa_resolve_user_list_get_user_done, req);
+
+    return EAGAIN;
+}
+
+static void ipa_resolve_user_list_get_user_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_resolve_user_list_state *state = tevent_req_data(req,
+                                            struct ipa_resolve_user_list_state);
+    int ret;
+
+    ret = sdap_handle_acct_req_recv(subreq, &state->dp_error, NULL, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct request failed: %d\n", ret);
+        goto done;
+    }
+
+    state->user_idx++;
+
+    ret = ipa_resolve_user_list_get_user_step(req);
+    if (ret == EAGAIN) {
+        return;
+    }
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ipa_resolve_user_list_get_user_step failed.\n");
+    }
+
+done:
+    if (ret == EOK) {
+        state->dp_error = DP_ERR_OK;
+        tevent_req_done(req);
+    } else {
+        if (state->dp_error == DP_ERR_OK) {
+            state->dp_error = DP_ERR_FATAL;
+        }
+        tevent_req_error(req, ret);
+    }
+    return;
+}
+
+static int ipa_resolve_user_list_recv(struct tevent_req *req, int *dp_error)
+{
+    struct ipa_resolve_user_list_state *state = tevent_req_data(req,
+                                            struct ipa_resolve_user_list_state);
+
+    if (dp_error) {
+        *dp_error = state->dp_error;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 struct ipa_id_get_account_info_state {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
@@ -157,6 +301,7 @@ struct ipa_id_get_account_info_state {
 
     struct sysdb_attrs *override_attrs;
     struct ldb_message *obj_msg;
+    struct ldb_message_element *ghosts;
     int dp_error;
 };
 
@@ -166,6 +311,7 @@ static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
                                                         struct be_acct_req *ar);
 static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq);
 static void ipa_id_get_account_info_done(struct tevent_req *subreq);
+static void ipa_id_get_user_list_done(struct tevent_req *subreq);
 
 static struct tevent_req *
 ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
@@ -405,6 +551,16 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         goto fail;
     }
 
+    if ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_GROUP
+            && state->ipa_ctx->view_name != NULL
+            && strcmp(state->ipa_ctx->view_name,
+                      SYSDB_DEFAULT_VIEW_NAME) != 0) {
+        /* check for ghost members because ghost members are not allowed if a
+         * view other than the default view is applied.*/
+
+        state->ghosts = ldb_msg_find_element(state->obj_msg, SYSDB_GHOST);
+    }
+
     if (state->override_attrs == NULL) {
         uuid = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_UUID, NULL);
         if (uuid == NULL) {
@@ -457,6 +613,21 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         }
     }
 
+    if (state->ghosts != NULL) {
+        /* Resolve ghost members */
+        subreq = ipa_resolve_user_list_send(state, state->ev, state->be_req,
+                                            state->ipa_ctx->sdap_id_ctx,
+                                            state->domain->name,
+                                            state->ghosts);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_resolve_user_list_send failed.\n");
+            ret = ENOMEM;
+            goto fail;
+        }
+        tevent_req_set_callback(subreq, ipa_id_get_user_list_done, req);
+        return;
+    }
+
     state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
@@ -505,6 +676,47 @@ static void ipa_id_get_account_info_done(struct tevent_req *subreq)
                                state->override_attrs, state->obj_msg->dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_override failed.\n");
+        goto fail;
+    }
+
+    if (state->ghosts != NULL) {
+        /* Resolve ghost members */
+        subreq = ipa_resolve_user_list_send(state, state->ev, state->be_req,
+                                            state->ipa_ctx->sdap_id_ctx,
+                                            state->domain->name,
+                                            state->ghosts);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_resolve_user_list_send failed.\n");
+            ret = ENOMEM;
+            goto fail;
+        }
+        tevent_req_set_callback(subreq, ipa_id_get_user_list_done, req);
+        return;
+    }
+
+    state->dp_error = DP_ERR_OK;
+    tevent_req_done(req);
+    return;
+
+fail:
+    state->dp_error = dp_error;
+    tevent_req_error(req, ret);
+    return;
+}
+
+static void ipa_id_get_user_list_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_id_get_account_info_state *state = tevent_req_data(req,
+                                          struct ipa_id_get_account_info_state);
+    int dp_error = DP_ERR_FATAL;
+    int ret;
+
+    ret = ipa_resolve_user_list_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "IPA resolve user list %d\n", ret);
         goto fail;
     }
 
