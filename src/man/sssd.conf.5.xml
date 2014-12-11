@@ -907,11 +907,6 @@ fallback_homedir = /home/%u
                             the PAM responder even in case it is not in the
                             pam_trusted_users list.
                         </para>
-                        <para>
-                            Also please note that if there is a user name in
-                            pam_trusted_users list which fails to be resolved
-                            it will cause that SSSD will not be started.
-                        </para>
                     </listitem>
                 </varlistentry>
                 <varlistentry>
