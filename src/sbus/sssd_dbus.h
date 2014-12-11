@@ -170,6 +170,9 @@ int sbus_conn_register_iface(struct sbus_connection *conn,
                              const char *object_path,
                              void *pvt);
 
+errno_t
+sbus_conn_reregister_paths(struct sbus_connection *conn);
+
 bool sbus_conn_disconnecting(struct sbus_connection *conn);
 
 /* max_retries < 0: retry forever
@@ -180,12 +183,6 @@ void sbus_reconnect_init(struct sbus_connection *conn,
                          int max_retries,
                          sbus_conn_reconn_callback_fn callback,
                          void *pvt);
-
-/* Default message handler
- * Should be usable for most cases */
-DBusHandlerResult sbus_message_handler(DBusConnection *conn,
-                                  DBusMessage *message,
-                                  void *user_data);
 
 /*
  * Send a message across the SBUS

@@ -20,43 +20,31 @@
 
 #include <talloc.h>
 #include <dbus/dbus.h>
+#include <dhash.h>
 
 #include "util/util.h"
 #include "sbus/sssd_dbus.h"
+#include "sbus/sssd_dbus_meta.h"
 #include "sbus/sssd_dbus_private.h"
 
-DBusObjectPathVTable dbus_object_path_vtable =
-    { NULL, sbus_message_handler, NULL, NULL, NULL, NULL };
+struct sbus_interface_list {
+    struct sbus_interface_list *prev, *next;
+    struct sbus_interface *interface;
+};
 
-static bool path_in_interface_list(struct sbus_interface_p *list,
-                                   const char *path)
+static struct sbus_interface *
+sbus_iface_list_lookup(struct sbus_interface_list *list,
+                       const char *iface)
 {
-    struct sbus_interface_p *iter;
+    struct sbus_interface_list *item;
 
-    if (!list || !path) {
-        return false;
-    }
-
-    iter = list;
-    while (iter != NULL) {
-        if (strcmp(iter->intf->path, path) == 0) {
-            return true;
+    DLIST_FOR_EACH(item, list) {
+        if (strcmp(item->interface->vtable->meta->name, iface) == 0) {
+            return item->interface;
         }
-        iter = iter->next;
     }
 
-    return false;
-}
-
-void sbus_unreg_object_paths(struct sbus_connection *conn)
-{
-    struct sbus_interface_p *iter = conn->intf_list;
-
-    while (iter != NULL) {
-        dbus_connection_unregister_object_path(conn->dbus.conn,
-                                               iter->intf->path);
-        iter = iter->next;
-    }
+    return NULL;
 }
 
 /**
@@ -74,24 +62,6 @@ static bool sbus_opath_is_subtree(const char *path)
     }
 
     return path[len - 2] == '/' && path[len - 1] == '*';
-}
-
-static bool sbus_opath_match_tree(const char *object_path,
-                                  const char *tree_path)
-{
-    if (object_path == NULL || tree_path == NULL || tree_path[0] == '\0') {
-        return false;
-    };
-
-    /* first check if tree is a base path or a subtree path */
-    if (!sbus_opath_is_subtree(tree_path)) {
-        return strcmp(object_path, tree_path) == 0;
-    }
-
-    /* Compare without the asterisk, which is the last character.
-     * Slash, that has to be present before the asterisk, will ensure that only
-     * subtree object path matches. */
-    return strncmp(object_path, tree_path, strlen(tree_path) - 1) == 0;
 }
 
 /**
@@ -121,14 +91,226 @@ static char *sbus_opath_get_base_path(TALLOC_CTX *mem_ctx,
     return tree_path;
 }
 
-bool sbus_iface_handles_path(struct sbus_interface_p *intf_p,
-                             const char *path)
+static char *sbus_opath_parent_subtree(TALLOC_CTX *mem_ctx,
+                                       const char *path)
 {
-    if (sbus_opath_is_subtree(intf_p->intf->path)) {
-        return sbus_opath_match_tree(path, intf_p->intf->path);
+    char *subtree;
+    char *slash;
+
+    /* first remove /~* from the end, stop when we have reached the root i.e.
+     * subtree == "/" */
+    subtree = sbus_opath_get_base_path(mem_ctx, path);
+    if (subtree == NULL || subtree[1] == '\0') {
+        return NULL;
     }
 
-    return strcmp(path, intf_p->intf->path) == 0;
+    /* Find the first separator and replace the part with asterisk. */
+    slash = strrchr(subtree, '/');
+    if (slash == NULL) {
+        /* we cannot continue up */
+        talloc_free(subtree);
+        return NULL;
+    }
+
+    if (*(slash + 1) == '\0') {
+        /* this object path is invalid since it cannot end with slash */
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid object path '%s'?\n", path);
+        talloc_free(subtree);
+        return NULL;
+    }
+
+    /* because object path cannot end with / there is enough space for
+     * asterisk and terminating zero */
+    *(slash + 1) = '*';
+    *(slash + 2) = '\0';
+
+    return subtree;
+}
+
+static void
+sbus_opath_hash_delete_cb(hash_entry_t *item,
+                          hash_destroy_enum deltype,
+                          void *pvt)
+{
+    struct sbus_connection *conn;
+    char *path;
+
+    conn = talloc_get_type(pvt, struct sbus_connection);
+    path = sbus_opath_get_base_path(NULL, item->key.str);
+
+    dbus_connection_unregister_object_path(conn->dbus.conn, path);
+}
+
+errno_t
+sbus_opath_hash_init(TALLOC_CTX *mem_ctx,
+                     struct sbus_connection *conn,
+                     hash_table_t **_table)
+{
+    return sss_hash_create_ex(mem_ctx, 10, _table, 0, 0, 0, 0,
+                              sbus_opath_hash_delete_cb, conn);
+}
+
+static errno_t
+sbus_opath_hash_add_iface(hash_table_t *table,
+                          const char *object_path,
+                          struct sbus_interface *iface,
+                          bool *_path_known)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sbus_interface_list *list = NULL;
+    struct sbus_interface_list *item = NULL;
+    const char *iface_name = iface->vtable->meta->name;
+    hash_key_t key;
+    hash_value_t value;
+    bool path_known;
+    errno_t ret;
+    int hret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Registering interface %s with path %s\n",
+          iface_name, object_path);
+
+    /* create new list item */
+
+    item = talloc_zero(tmp_ctx, struct sbus_interface_list);
+    if (item == NULL) {
+        return ENOMEM;
+    }
+
+    item->interface = iface;
+
+    /* first lookup existing list in hash table */
+
+    key.type = HASH_KEY_STRING;
+    key.str = talloc_strdup(tmp_ctx, object_path);
+    if (key.str == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    hret = hash_lookup(table, &key, &value);
+    if (hret == HASH_SUCCESS) {
+        /* This object path has already some interface registered. We will
+         * check for existence of the interface currently being added and
+         * add it if missing. */
+
+        path_known = true;
+
+        list = talloc_get_type(value.ptr, struct sbus_interface_list);
+        if (sbus_iface_list_lookup(list, iface_name) != NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Trying to register the same interface"
+                  " twice: iface=%s, opath=%s\n", iface_name, object_path);
+            ret = EEXIST;
+            goto done;
+        }
+
+        DLIST_ADD_END(list, item, struct sbus_interface_list *);
+        ret = EOK;
+        goto done;
+    } else if (hret != HASH_ERROR_KEY_NOT_FOUND) {
+        ret = EIO;
+        goto done;
+    }
+
+    /* otherwise create new hash entry and new list */
+
+    path_known = false;
+    list = item;
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = list;
+
+    hret = hash_enter(table, &key, &value);
+    if (hret != HASH_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    talloc_steal(table, key.str);
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        talloc_steal(item, iface);
+        talloc_steal(table, item);
+        *_path_known = path_known;
+    } else {
+        talloc_free(item);
+    }
+
+    return ret;
+}
+
+static bool
+sbus_opath_hash_has_path(hash_table_t *table,
+                         const char *object_path)
+{
+    hash_key_t key;
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(object_path);
+
+    return hash_has_key(table, &key);
+}
+
+/**
+ * First @object_path is looked up in @table, if it is not found it steps up
+ * in the path hierarchy and try to lookup the parent node. This continues
+ * until the root is reached.
+ */
+static struct sbus_interface *
+sbus_opath_hash_lookup_iface(hash_table_t *table,
+                             const char *object_path,
+                             const char *iface_name)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sbus_interface_list *list = NULL;
+    struct sbus_interface *iface = NULL;
+    char *lookup_path = NULL;
+    hash_key_t key;
+    hash_value_t value;
+    int hret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return NULL;
+    }
+
+    lookup_path = talloc_strdup(tmp_ctx, object_path);
+    if (lookup_path == NULL) {
+        goto done;
+    }
+
+    while (lookup_path != NULL) {
+        key.type = HASH_KEY_STRING;
+        key.str = lookup_path;
+
+        hret = hash_lookup(table, &key, &value);
+        if (hret == HASH_SUCCESS) {
+            list = talloc_get_type(value.ptr, struct sbus_interface_list);
+            iface = sbus_iface_list_lookup(list, iface_name);
+            if (iface != NULL) {
+                goto done;
+            }
+        } else if (hret != HASH_ERROR_KEY_NOT_FOUND) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unable to search hash table: hret=%d\n", hret);
+            iface = NULL;
+            goto done;
+        }
+
+        /* we will not free lookup path since it is freed with tmp_ctx
+         * and the object paths are supposed to be small */
+        lookup_path = sbus_opath_parent_subtree(tmp_ctx, lookup_path);
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return iface;
 }
 
 static struct sbus_interface *
@@ -157,67 +339,227 @@ sbus_new_interface(TALLOC_CTX *mem_ctx,
     return intf;
 }
 
-int sbus_conn_register_iface(struct sbus_connection *conn,
-                             struct sbus_vtable *iface_vtable,
-                             const char *object_path,
-                             void *pvt)
+static DBusHandlerResult
+sbus_message_handler(DBusConnection *dbus_conn,
+                     DBusMessage *message,
+                     void *user_data);
+
+static errno_t
+sbus_conn_register_path(struct sbus_connection *conn,
+                        const char *path)
 {
-    struct sbus_interface_p *intf_p;
-    struct sbus_interface *intf;
+    static DBusObjectPathVTable vtable = {NULL, sbus_message_handler,
+                                          NULL, NULL, NULL, NULL};
+    DBusError error;
+    char *reg_path = NULL;
     dbus_bool_t dbret;
-    const char *path;
-    bool fallback;
 
-    intf = sbus_new_interface(conn, object_path, iface_vtable, pvt);
-    if (intf == NULL) {
-        return ENOMEM;
-    }
+    DEBUG(SSSDBG_TRACE_FUNC, "Registering object path %s with D-Bus "
+          "connection\n", path);
 
-    if (!conn || !intf->vtable || !intf->vtable->meta) {
-        return EINVAL;
-    }
+    if (sbus_opath_is_subtree(path)) {
+        reg_path = sbus_opath_get_base_path(conn, path);
+        if (reg_path == NULL) {
+            return ENOMEM;
+        }
 
-    path = intf->path;
-    fallback = sbus_opath_is_subtree(path);
+        /* D-Bus does not allow to have both object path and fallback
+         * registered. Since we handle the real message handlers ourselves
+         * we will register fallback only in this case. */
+        if (sbus_opath_hash_has_path(conn->managed_paths, reg_path)) {
+            dbus_connection_unregister_object_path(conn->dbus.conn, reg_path);
+        }
 
-    if (path_in_interface_list(conn->intf_list, path)) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Cannot add method context with identical path.\n");
-        return EINVAL;
-    }
-
-    intf_p = talloc_zero(conn, struct sbus_interface_p);
-    if (!intf_p) {
-        return ENOMEM;
-    }
-    intf_p->conn = conn;
-    intf_p->intf = intf;
-    intf_p->reg_path = sbus_opath_get_base_path(intf_p, path);
-    if (intf_p->reg_path == NULL) {
-        return ENOMEM;
-    }
-
-    DLIST_ADD(conn->intf_list, intf_p);
-
-    DEBUG(SSSDBG_TRACE_LIBS, "Will register path %s with%s fallback\n",
-                             intf_p->reg_path, fallback ? "" : "out");
-
-    if (fallback) {
-        dbret = dbus_connection_register_fallback(conn->dbus.conn,
-                                                  intf_p->reg_path,
-                                                  &dbus_object_path_vtable,
-                                                  intf_p);
+        dbret = dbus_connection_register_fallback(conn->dbus.conn, reg_path,
+                                                  &vtable, conn);
+        talloc_free(reg_path);
     } else {
-        dbret = dbus_connection_register_object_path(conn->dbus.conn,
-                                                     intf_p->reg_path,
-                                                     &dbus_object_path_vtable,
-                                                     intf_p);
+        dbus_error_init(&error);
+
+        dbret = dbus_connection_try_register_object_path(conn->dbus.conn, path,
+                                                         &vtable, conn, &error);
+
+        if (dbus_error_is_set(&error) &&
+                strcmp(error.name, DBUS_ERROR_OBJECT_PATH_IN_USE) == 0) {
+            /* A fallback is probably already registered. Just return. */
+            dbus_error_free(&error);
+            return EOK;
+        }
     }
+
     if (!dbret) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not register object path to the connection.\n");
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to register object path "
+              "%s with D-Bus connection.\n", path);
         return ENOMEM;
     }
 
     return EOK;
+}
+
+errno_t
+sbus_conn_register_iface(struct sbus_connection *conn,
+                         struct sbus_vtable *iface_vtable,
+                         const char *object_path,
+                         void *pvt)
+{
+    struct sbus_interface *iface = NULL;
+    bool path_known;
+    errno_t ret;
+
+    if (conn == NULL || iface_vtable == NULL || object_path == NULL) {
+        return EINVAL;
+    }
+
+    iface = sbus_new_interface(conn, object_path, iface_vtable, pvt);
+    if (iface == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sbus_opath_hash_add_iface(conn->managed_paths, object_path, iface,
+                                    &path_known);
+    if (ret != EOK) {
+        talloc_free(iface);
+        return ret;
+    }
+
+    if (path_known) {
+        /* this object path is already registered */
+        return EOK;
+    }
+
+    ret = sbus_conn_register_path(conn, object_path);
+
+    /* if ret != EOK we will still leave iface in the table, since
+     * we probably don't have enough memory to remove it correctly anyway */
+    return ret;
+}
+
+errno_t
+sbus_conn_reregister_paths(struct sbus_connection *conn)
+{
+    hash_key_t *keys = NULL;
+    unsigned long count;
+    unsigned long i;
+    errno_t ret;
+    int hret;
+
+    hret = hash_keys(conn->managed_paths, &count, &keys);
+    if (hret != HASH_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < count; i++) {
+        ret = sbus_conn_register_path(conn, keys[i].str);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(keys);
+    return ret;
+}
+
+static void
+sbus_message_handler_got_caller_id(struct tevent_req *req);
+
+static DBusHandlerResult
+sbus_message_handler(DBusConnection *dbus_conn,
+                     DBusMessage *message,
+                     void *user_data)
+{
+    struct tevent_req *req;
+    struct sbus_connection *conn;
+    struct sbus_interface *iface;
+    struct sbus_request *sbus_req;
+    const struct sbus_method_meta *method;
+    const char *iface_name;
+    const char *method_name;
+    const char *path;
+    const char *sender;
+
+    conn = talloc_get_type(user_data, struct sbus_connection);
+
+    /* header information */
+    iface_name = dbus_message_get_interface(message);
+    method_name = dbus_message_get_member(message);
+    path = dbus_message_get_path(message);
+    sender = dbus_message_get_sender(message);
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Received SBUS method %s.%s on path %s\n",
+          iface_name, method_name, path);
+
+    /* try to find the interface */
+    iface = sbus_opath_hash_lookup_iface(conn->managed_paths,
+                                         path, iface_name);
+    if (iface == NULL) {
+        goto fail;
+    }
+
+    method = sbus_meta_find_method(iface->vtable->meta, method_name);
+    if (method == NULL || method->vtable_offset == 0) {
+        goto fail;
+    }
+
+    /* we have a valid handler, create D-Bus request */
+    sbus_req = sbus_new_request(conn, iface, message);
+    if (sbus_req == NULL) {
+        return DBUS_HANDLER_RESULT_NEED_MEMORY;
+    }
+
+    sbus_req->method = method;
+
+    /* now get the sender ID */
+    req = sbus_get_sender_id_send(sbus_req, conn->ev, conn, sender);
+    if (req == NULL) {
+        talloc_free(sbus_req);
+        return DBUS_HANDLER_RESULT_NEED_MEMORY;
+    }
+    tevent_req_set_callback(req, sbus_message_handler_got_caller_id, sbus_req);
+
+    return DBUS_HANDLER_RESULT_HANDLED;
+
+fail: ;
+    DBusMessage *reply;
+
+    DEBUG(SSSDBG_CRIT_FAILURE, "No matching handler found for method %s.%s "
+          "on path %s\n", iface_name, method_name, path);
+
+    reply = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
+    sbus_conn_send_reply(conn, reply);
+
+    return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+static void
+sbus_message_handler_got_caller_id(struct tevent_req *req)
+{
+    struct sbus_request *sbus_req;
+    const struct sbus_method_meta *method;
+    sbus_msg_handler_fn handler;
+    sbus_method_invoker_fn invoker;
+    void *pvt;
+    DBusError *error;
+    errno_t ret;
+
+    sbus_req = tevent_req_callback_data(req, struct sbus_request);
+    method = sbus_req->method;
+
+    ret = sbus_get_sender_id_recv(req, &sbus_req->client);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to "
+                               "resolve caller's ID: %s\n", sss_strerror(ret));
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    handler = VTABLE_FUNC(sbus_req->intf->vtable, method->vtable_offset);
+    invoker = method->invoker;
+    pvt = sbus_req->intf->instance_data;
+
+    sbus_request_invoke_or_finish(sbus_req, handler, pvt, invoker);
+    return;
 }

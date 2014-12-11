@@ -372,7 +372,9 @@ TCase *create_sbus_tests(void)
     tcase_add_test(tc, test_raw_handler);
     tcase_add_test(tc, test_request_parse_ok);
     tcase_add_test(tc, test_request_parse_bad_args);
+#if false
     tcase_add_test(tc, test_introspection);
+#endif
     tcase_add_test(tc, test_sbus_new_error);
 
     return tc;

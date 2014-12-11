@@ -37,14 +37,6 @@ enum dbus_conn_type {
 
 struct sbus_watch_ctx;
 
-struct sbus_interface_p {
-    struct sbus_interface_p *prev, *next;
-    struct sbus_connection *conn;
-    struct sbus_interface *intf;
-
-    const char *reg_path;
-};
-
 struct sbus_connection {
     struct tevent_context *ev;
 
@@ -55,8 +47,7 @@ struct sbus_connection {
     int connection_type;
     int disconnect;
 
-    /* dbus tables and handlers */
-    struct sbus_interface_p *intf_list;
+    hash_table_t *managed_paths;
 
     /* reconnect settings */
     int retries;
@@ -74,8 +65,6 @@ struct sbus_connection {
     /* watches list */
     struct sbus_watch_ctx *watch_list;
 };
-
-extern DBusObjectPathVTable dbus_object_path_vtable;
 
 /* =Watches=============================================================== */
 
@@ -114,9 +103,10 @@ sbus_new_request(struct sbus_connection *conn, struct sbus_interface *intf,
 
 /* =Interface=and=object=paths============================================ */
 
-void sbus_unreg_object_paths(struct sbus_connection *conn);
-bool sbus_iface_handles_path(struct sbus_interface_p *intf_p,
-                             const char *path);
+errno_t
+sbus_opath_hash_init(TALLOC_CTX *mem_ctx,
+                     struct sbus_connection *conn,
+                     hash_table_t **_table);
 
 /* =Interface=introspection=============================================== */
 extern const struct sbus_method_meta introspect_method;
