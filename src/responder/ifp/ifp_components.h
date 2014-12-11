@@ -25,7 +25,7 @@
 #include "responder/ifp/ifp_private.h"
 
 #define INFOPIPE_COMPONENT_PATH_PFX "/org/freedesktop/sssd/infopipe/Components"
-#define INFOPIPE_COMPONENT_PATH INFOPIPE_COMPONENT_PATH_PFX "*"
+#define INFOPIPE_COMPONENT_PATH INFOPIPE_COMPONENT_PATH_PFX "/*"
 
 #define INFOPIPE_BACKEND_PATH INFOPIPE_COMPONENT_PATH_PFX "/Backends*"
 

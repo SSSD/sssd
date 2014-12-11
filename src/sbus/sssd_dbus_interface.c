@@ -28,21 +28,6 @@
 DBusObjectPathVTable dbus_object_path_vtable =
     { NULL, sbus_message_handler, NULL, NULL, NULL, NULL };
 
-static char *sbus_iface_get_reg_path(TALLOC_CTX *mem_ctx,
-                                     const char *path,
-                                     bool fallback)
-{
-    char *reg_path;
-
-    reg_path = talloc_strdup(mem_ctx, path);
-    if (reg_path == NULL) return NULL;
-
-    if (fallback) {
-        reg_path[strlen(path)-1] = '\0';
-    }
-    return reg_path;
-}
-
 static bool path_in_interface_list(struct sbus_interface_p *list,
                                    const char *path)
 {
@@ -74,38 +59,73 @@ void sbus_unreg_object_paths(struct sbus_connection *conn)
     }
 }
 
-static bool sbus_fb_path_has_prefix(const char *path, const char *prefix)
+/**
+ * Object paths that represent all objects under the path:
+ * /org/object/path/~* (without tilda)
+ */
+static bool sbus_opath_is_subtree(const char *path)
 {
-    /* strlen-1 because we don't want to match the trailing '*' */
-    if (strncmp(path, prefix, strlen(prefix)-1) == 0) {
-        return true;
+    size_t len;
+
+    len = strlen(path);
+
+    if (len < 2) {
+        return false;
     }
 
-    return false;
+    return path[len - 2] == '/' && path[len - 1] == '*';
 }
 
-static bool sbus_path_has_fallback(const char *path)
+static bool sbus_opath_match_tree(const char *object_path,
+                                  const char *tree_path)
 {
-    char *wildcard;
+    if (object_path == NULL || tree_path == NULL || tree_path[0] == '\0') {
+        return false;
+    };
 
-    wildcard = strrchr(path, '*');
-    if (wildcard != NULL) {
-        /* This path was registered as fallback */
-        if (*(wildcard + 1) != '\0') {
-            /* Wildcard is only allowed as the last character in the path */
-            return false;
-        }
-        return true;
+    /* first check if tree is a base path or a subtree path */
+    if (!sbus_opath_is_subtree(tree_path)) {
+        return strcmp(object_path, tree_path) == 0;
     }
 
-    return false;
+    /* Compare without the asterisk, which is the last character.
+     * Slash, that has to be present before the asterisk, will ensure that only
+     * subtree object path matches. */
+    return strncmp(object_path, tree_path, strlen(tree_path) - 1) == 0;
+}
+
+/**
+ * If the path represents a subtree object path, this function will
+ * remove /~* from the end.
+ */
+static char *sbus_opath_get_base_path(TALLOC_CTX *mem_ctx,
+                                      const char *object_path)
+{
+    char *tree_path;
+    size_t len;
+
+    tree_path = talloc_strdup(mem_ctx, object_path);
+    if (tree_path == NULL) {
+        return NULL;
+    }
+
+    if (!sbus_opath_is_subtree(tree_path)) {
+        return tree_path;
+    }
+
+    /* replace / only if it is not a root path (only slash) */
+    len = strlen(tree_path);
+    tree_path[len - 1] = '\0';
+    tree_path[len - 2] = (len - 2 != 0) ? '\0' : '/';
+
+    return tree_path;
 }
 
 bool sbus_iface_handles_path(struct sbus_interface_p *intf_p,
                              const char *path)
 {
-    if (sbus_path_has_fallback(intf_p->intf->path)) {
-        return sbus_fb_path_has_prefix(path, intf_p->intf->path);
+    if (sbus_opath_is_subtree(intf_p->intf->path)) {
+        return sbus_opath_match_tree(path, intf_p->intf->path);
     }
 
     return strcmp(path, intf_p->intf->path) == 0;
@@ -158,7 +178,7 @@ int sbus_conn_register_iface(struct sbus_connection *conn,
     }
 
     path = intf->path;
-    fallback = sbus_path_has_fallback(path);
+    fallback = sbus_opath_is_subtree(path);
 
     if (path_in_interface_list(conn->intf_list, path)) {
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -172,7 +192,7 @@ int sbus_conn_register_iface(struct sbus_connection *conn,
     }
     intf_p->conn = conn;
     intf_p->intf = intf;
-    intf_p->reg_path = sbus_iface_get_reg_path(intf_p, path, fallback);
+    intf_p->reg_path = sbus_opath_get_base_path(intf_p, path);
     if (intf_p->reg_path == NULL) {
         return ENOMEM;
     }
