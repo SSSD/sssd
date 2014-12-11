@@ -215,6 +215,9 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
                 DEBUG(SSSDBG_OP_FAILURE, "List item [%s] is neither a valid "
                                          "UID nor a user name which could be "
                                          "resolved by getpwnam().\n", list[c]);
+                sss_log(SSS_LOG_WARNING, "List item [%s] is neither a valid "
+                                         "UID nor a user name which could be "
+                                         "resolved by getpwnam().\n", list[c]);
                 goto done;
             }
         }
