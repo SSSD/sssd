@@ -173,6 +173,7 @@ m4_include([src/external/sasl.m4])
 m4_include([src/external/configlib.m4])
 m4_include([src/external/libnfsidmap.m4])
 m4_include([src/external/cwrap.m4])
+m4_include([src/external/libresolv.m4])
 
 if test x$build_config_lib = xyes; then
     m4_include([src/external/libaugeas.m4])

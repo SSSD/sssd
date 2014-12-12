@@ -144,7 +144,8 @@ int resolv_getsrv_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        int *status,
                        int *timeouts,
-                       struct ares_srv_reply **reply_list);
+                       struct ares_srv_reply **reply_list,
+                       uint32_t *ttl);
 
 /* This is an implementation of section "Usage rules" of RFC 2782 */
 int
@@ -187,6 +188,7 @@ resolv_discover_srv_send(TALLOC_CTX *mem_ctx,
 errno_t resolv_discover_srv_recv(TALLOC_CTX *mem_ctx,
                                  struct tevent_req *req,
                                  struct ares_srv_reply **_reply_list,
+                                 uint32_t *_ttl,
                                  char **_dns_domain);
 
 #endif /* __ASYNC_RESOLV_H__ */

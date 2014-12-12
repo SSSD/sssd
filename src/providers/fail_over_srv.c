@@ -83,7 +83,7 @@ static void fo_discover_srv_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct fo_discover_srv_state);
 
     ret = resolv_discover_srv_recv(state, subreq,
-                                   &reply_list, &state->dns_domain);
+                                   &reply_list, NULL, &state->dns_domain);
     talloc_zfree(subreq);
     if (ret == ENOENT) {
         ret = ERR_SRV_NOT_FOUND;

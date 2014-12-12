@@ -220,6 +220,10 @@ if HAVE_CMOCKA
         test_child_common \
         $(NULL)
 
+if HAVE_LIBRESOLV
+non_interactive_cmocka_based_tests += test_resolv_fake
+endif   # HAVE_LIBRESOLV
+
 if BUILD_IFP
 non_interactive_cmocka_based_tests += ifp_tests
 endif   # BUILD_IFP
@@ -2179,6 +2183,29 @@ test_child_common_LDADD = \
     libsss_debug.la \
     libsss_test_common.la \
     $(NULL)
+
+if HAVE_LIBRESOLV
+test_resolv_fake_SOURCES = \
+    src/tests/cmocka/test_resolv_fake.c \
+    src/resolv/async_resolv.c \
+    $(NULL)
+test_resolv_fake_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_resolv_fake_LDFLAGS = \
+    -Wl,-wrap,ares_query \
+    $(NULL)
+test_resolv_fake_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(CARES_LIBS) \
+    $(DHASH_LIBS) \
+    $(RESOLV_LIBS) \
+    libsss_debug.la \
+    libsss_test_common.la \
+    $(NULL)
+endif # HAVE_LIBRESOLV
 
 endif # HAVE_CMOCKA
 
