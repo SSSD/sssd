@@ -1487,7 +1487,25 @@ fallback_homedir = /home/%u
                             If set to TRUE, the group membership attribute
                             is not requested from the ldap server, and
                             group members are not returned when processing
-                            group lookup calls.
+                            group lookup calls, such as
+                            <citerefentry>
+                                <refentrytitle>getgrnam</refentrytitle>
+                                <manvolnum>3</manvolnum>
+                            </citerefentry>
+                            or
+                            <citerefentry>
+                                <refentrytitle>getgrgid</refentrytitle>
+                                <manvolnum>3</manvolnum>
+                            </citerefentry>.
+                            As an effect, <quote>getent group
+                            $groupname</quote> would return the requested
+                            group as if it was empty.
+                        </para>
+                        <para>
+                            Enabling this option can also make access
+                            provider checks for group membership
+                            significantly faster, especially for groups
+                            containing many members.
                         </para>
                         <para>
                             Default: FALSE
