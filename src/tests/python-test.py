@@ -24,7 +24,7 @@ import os
 import tempfile
 import shutil
 import unittest
-import commands
+import subprocess
 import errno
 
 # module under test
@@ -37,14 +37,17 @@ class LocalTest(unittest.TestCase):
         self.local = pysss.local()
 
     def _run_and_check(self, runme):
-        (status, output) = commands.getstatusoutput(runme)
+        (status, output) = subprocess.call(runme, shell=True)
         self.failUnlessEqual(status, 0, output)
 
     def _get_object_info(self, name, subtree, domain):
         search_dn = "dn=name=%s,cn=%s,cn=%s,cn=sysdb" % (name, subtree, domain)
-        (status, output) = commands.getstatusoutput("ldbsearch -H %s %s" % (self.local_path,search_dn))
-
-        if status: return {}
+        try:
+            output = subprocess.check_call("ldbsearch -H %s %s" % (self.local_path,search_dn),
+                                           shell=True)
+            output = output.decode('utf-8')
+        except subprocess.CalledProcessError:
+            return {}
 
         kw = {}
         for key, value in [ l.split(':') for l in output.split('\n') if ":" in l ]:
@@ -82,9 +85,11 @@ class LocalTest(unittest.TestCase):
 
     def _get_object_membership(self, name, subtree, domain):
         search_dn = "dn=name=%s,cn=%s,cn=%s,cn=sysdb" % (name, subtree, domain)
-        (status, output) = commands.getstatusoutput("ldbsearch -H %s %s" % (self.local_path,search_dn))
-
-        if status:
+        try:
+            output = subprocess.check_call("ldbsearch -H %s %s" % (self.local_path,search_dn),
+                                           shell=True)
+            output = output.decode('utf-8')
+        except subprocess.CalledProcessError:
             return []
 
         members = [ value.strip() for key, value in [ l.split(':') for l in output.split('\n') if ":" in l ] if key == "memberof" ]
@@ -227,7 +232,7 @@ class UseraddTestNegative(LocalTest):
         self.local.useradd(self.username)
         try:
             self.local.useradd(self.username)
-        except IOError, e:
+        except IOError as e:
             self.assertEquals(e.errno, errno.EEXIST)
         else:
             self.fail("Was expecting exception")
@@ -240,7 +245,7 @@ class UseraddTestNegative(LocalTest):
         self.local.useradd(self.username, uid=1025)
         try:
             self.local.useradd("testUseraddUIDAlreadyExists2", uid=1025)
-        except IOError, e:
+        except IOError as e:
             self.assertEquals(e.errno, errno.EEXIST)
         else:
             self.fail("Was expecting exception")
@@ -270,7 +275,7 @@ class UserdelTest(LocalTest):
         self.validate_no_user("testUserdelNegative")
         try:
             self.local.userdel("testUserdelNegative")
-        except IOError, e:
+        except IOError as e:
             self.assertEquals(e.errno, errno.ENOENT)
         else:
             fail("Was expecting exception")
@@ -365,7 +370,7 @@ class GroupaddTestNegative(LocalTest):
         self.local.groupadd(self.groupname)
         try:
             self.local.groupadd(self.groupname)
-        except IOError, e:
+        except IOError as e:
             self.assertEquals(e.errno, errno.EEXIST)
         else:
             self.fail("Was expecting exception")
@@ -378,7 +383,7 @@ class GroupaddTestNegative(LocalTest):
         self.local.groupadd(self.groupname, gid=1025)
         try:
             self.local.groupadd("testGroupaddGIDAlreadyExists2", gid=1025)
-        except IOError, e:
+        except IOError as e:
             self.assertEquals(e.errno, errno.EEXIST)
         else:
             self.fail("Was expecting exception")
@@ -396,7 +401,7 @@ class GroupdelTest(LocalTest):
         self.validate_no_group("testGroupdelNegative")
         try:
             self.local.groupdel("testGroupdelNegative")
-        except IOError, e:
+        except IOError as e:
             self.assertEquals(e.errno, errno.ENOENT)
         else:
             fail("Was expecting exception")

@@ -34,7 +34,8 @@ def openLocked(filename, perms, create = True):
     try:
         fd = os.open(filename, flags, perms)
         fcntl.lockf(fd, fcntl.LOCK_EX)
-    except OSError, (errno, strerr):
+    except OSError as err:
+        errno, strerr = err.args
         if fd != -1:
             try:
                 os.close(fd)
@@ -73,7 +74,7 @@ class IPAChangeConf:
         elif type(indent) is str:
             self.indent = (indent, )
         else:
-           raise ValueError, 'Indent must be a list of strings'
+           raise ValueError('Indent must be a list of strings')
 
     def setOptionAssignment(self, assign):
         if type(assign) is tuple:
@@ -174,7 +175,7 @@ class IPAChangeConf:
             if o['type'] == "empty":
                 output += self.deol
                 continue
-            raise SyntaxError, 'Unknown type: ['+o['type']+']'
+            raise SyntaxError('Unknown type: ['+o['type']+']')
 
         return output
 
@@ -189,7 +190,7 @@ class IPAChangeConf:
 
         parts = line.split(self.dassign, 1)
         if len(parts) < 2:
-            raise SyntaxError, 'Syntax Error: Unknown line format'
+            raise SyntaxError('Syntax Error: Unknown line format')
 
         return {'name':parts[0].strip(), 'type':'option', 'value':parts[1].rstrip()}
 
@@ -238,7 +239,7 @@ class IPAChangeConf:
             if o['type'] == 'empty':
                 opts.append({'name':'comment', 'type':'comment', 'value':''})
                 continue
-            raise SyntaxError, 'Unknown type: ['+o['type']+']'
+            raise SyntaxError('Unknown type: ['+o['type']+']')
 
         return opts
 
@@ -263,7 +264,7 @@ class IPAChangeConf:
                     continue
                 if no['action'] == "remove":
                     continue
-                raise SyntaxError, 'Unknown action: ['+no['action']+']'
+                raise SyntaxError('Unknown action: ['+no['action']+']')
 
             if o['type'] == "comment" or o['type'] == "empty":
                  opts.append(o)
@@ -285,9 +286,9 @@ class IPAChangeConf:
                 if no['action'] == 'set':
                     opts.append(no)
                     continue
-                raise SyntaxError, 'Unknown action: ['+o['action']+']'
+                raise SyntaxError('Unknown action: ['+o['action']+']')
 
-            raise SyntaxError, 'Unknown type: ['+o['type']+']'
+            raise SyntaxError('Unknown type: ['+o['type']+']')
 
         return opts
 
@@ -323,7 +324,7 @@ class IPAChangeConf:
                 cline += 1
                 continue
 
-            raise SyntaxError, 'Unknown type: ['+no['type']+']'
+            raise SyntaxError('Unknown type: ['+no['type']+']')
 
 
     def merge(self, oldopts, newopts):
@@ -368,7 +369,7 @@ class IPAChangeConf:
             value = self.matchSubSection(line)
             if value:
                 if subsection is not None:
-                    raise SyntaxError, 'nested subsections are not supported yet'
+                    raise SyntaxError('nested subsections are not supported yet')
                 subsectopts = []
                 curopts = subsectopts
                 subsection = value
@@ -377,7 +378,7 @@ class IPAChangeConf:
             value = self.matchSubSectionEnd(line)
             if value:
                 if subsection is None:
-                    raise SyntaxError, 'Unmatched end subsection terminator found'
+                    raise SyntaxError('Unmatched end subsection terminator found')
                 fatheropts.append({'name':subsection, 'type':'subsection', 'value':subsectopts})
                 subsection = None
                 curopts = fatheropts
@@ -407,7 +408,7 @@ class IPAChangeConf:
             #Do not catch an unexisting file error, we want to fail in that case
             shutil.copy2(file, file+self.backup_suffix)
 
-            f = openLocked(file, 0644)
+            f = openLocked(file, 0o644)
 
             oldopts = self.parse(f)
 
@@ -441,12 +442,12 @@ class IPAChangeConf:
         try:
             try:
                 shutil.copy2(file, file+self.backup_suffix)
-            except IOError, err:
+            except IOError as err:
                 if err.errno == 2:
                     # The orign file did not exist
                     pass
 
-            f = openLocked(file, 0644)
+            f = openLocked(file, 0o644)
 
             # Trunkate
             f.seek(0)
@@ -494,12 +495,12 @@ class SSSDChangeConf(IPAChangeConf):
 
         mo = self.OPTCRE.match(line)
         if not mo:
-            raise SyntaxError, 'Syntax Error: Unknown line format'
+            raise SyntaxError('Syntax Error: Unknown line format')
 
         try:
             name, value = mo.group('option', 'value')
         except IndexError:
-            raise SyntaxError, 'Syntax Error: Unknown line format'
+            raise SyntaxError('Syntax Error: Unknown line format')
 
         return {'name':name.strip(), 'type':'option', 'value':value.strip()}
 

@@ -1,14 +1,19 @@
 #!/usr/bin/python2
+from __future__ import print_function
 
 import unittest
 import sys
 import os
 import copy
+import sys
 
 srcdir = os.getenv('builddir')
 if not srcdir:
     srcdir = "."
 MODPATH = srcdir + "/.libs" #FIXME - is there a way to get this from libtool?
+
+if sys.version_info[0] > 2:
+    unicode = str
 
 def compat_assertItemsEqual(this, expected_seq, actual_seq, msg=None):
     return this.assertEqual(sorted(expected_seq), sorted(actual_seq))
@@ -37,8 +42,8 @@ class PyHbacImport(unittest.TestCase):
         " Import the module and assert it comes from tree "
         try:
             import pyhbac
-        except ImportError, e:
-            print >>sys.stderr, "Could not load the pyhbac module. Please check if it is compiled"
+        except ImportError as e:
+            print("Could not load the pyhbac module. Please check if it is compiled", file=sys.stderr)
             raise e
         self.assertEqual(pyhbac.__file__, MODPATH + "/pyhbac.so")
 

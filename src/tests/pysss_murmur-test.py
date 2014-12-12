@@ -17,6 +17,7 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import print_function
 
 import unittest
 import sys
@@ -46,6 +47,8 @@ class PySssMurmurImport(unittest.TestCase):
         " Make sure we load the in-tree module "
         self.system_path = sys.path[:]
         sys.path = [ MODPATH ]
+        print (os.getcwd())
+        print(MODPATH)
 
     def tearDown(self):
         " Restore the system path "
@@ -55,8 +58,8 @@ class PySssMurmurImport(unittest.TestCase):
         " Import the module and assert it comes from tree "
         try:
             import pysss_murmur
-        except ImportError, e:
-            print >>sys.stderr, "Could not load the pysss_murmur module. Please check if it is compiled"
+        except ImportError as e:
+            print("Could not load the pysss_murmur module. Please check if it is compiled", file=sys.stderr)
             raise e
         self.assertEqual(pysss_murmur.__file__, MODPATH + "/pysss_murmur.so")
 

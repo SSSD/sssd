@@ -43,13 +43,24 @@ static char **PyList_AsStringList(TALLOC_CTX *mem_ctx, PyObject *list,
 
     ret = talloc_array(mem_ctx, char *, PyList_Size(list)+1);
     for (i = 0; i < PyList_Size(list); i++) {
+        char *itemstr;
+        Py_ssize_t itemlen;
         PyObject *item = PyList_GetItem(list, i);
+#ifdef IS_PY3K
+        if (!PyUnicode_Check(item)) {
+#else
         if (!PyString_Check(item)) {
+#endif
             PyErr_Format(PyExc_TypeError, "%s should be strings", paramname);
             return NULL;
         }
-        ret[i] = talloc_strndup(ret, PyString_AsString(item),
-                                PyString_Size(item));
+#ifdef IS_PY3K
+        itemstr = PyUnicode_AsUTF8AndSize(item, &itemlen);
+#else
+        itemstr = PyString_AsString(item);
+        itemlen = strlen(itemstr);
+#endif
+        ret[i] = talloc_strndup(ret, itemstr, itemlen);
     }
 
     ret[i] = NULL;
@@ -791,7 +802,13 @@ static PyObject *py_sss_getgrouplist(PyObject *self, PyObject *args)
     for (i = 0; i < ngroups; i++) {
         gr = getgrgid(groups[i]);
         if (gr) {
-            PyTuple_SetItem(groups_tuple, idx, PyString_FromString(gr->gr_name));
+            PyTuple_SetItem(groups_tuple, idx,
+#ifdef IS_PY3K
+                    PyUnicode_FromString(gr->gr_name)
+#else
+                    PyString_FromString(gr->gr_name)
+#endif
+                    );
             idx++;
         }
     }
@@ -817,7 +834,7 @@ fail:
 static void PySssLocalObject_dealloc(PySssLocalObject *self)
 {
     talloc_free(self->mem_ctx);
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 /*
@@ -906,9 +923,9 @@ static PyMethodDef sss_local_methods[] = {
 
 static PyMemberDef sss_local_members[] = {
     { discard_const_p(char, "lock"), T_INT,
-      offsetof(PySssLocalObject, lock), RO, NULL},
+      offsetof(PySssLocalObject, lock), READONLY, NULL},
     { discard_const_p(char, "unlock"), T_INT,
-      offsetof(PySssLocalObject, unlock), RO, NULL},
+      offsetof(PySssLocalObject, unlock), READONLY, NULL},
     {NULL, 0, 0, 0, NULL} /* Sentinel */
 };
 
@@ -916,7 +933,7 @@ static PyMemberDef sss_local_members[] = {
  * sss.local object properties
  */
 static PyTypeObject pysss_local_type = {
-    PyObject_HEAD_INIT(NULL)
+    PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = sss_py_const_p(char, "sss.local"),
     .tp_basicsize = sizeof(PySssLocalObject),
     .tp_new = PySssLocalObject_new,
@@ -1033,7 +1050,7 @@ fail:
  */
 static void PySssPasswordObject_dealloc(PySssPasswordObject *self)
 {
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
 /*
@@ -1076,7 +1093,7 @@ static PyMethodDef sss_password_methods[] = {
  */
 static PyMemberDef sss_password_members[] = {
     { discard_const_p(char, "AES_256"), T_INT,
-      offsetof(PySssPasswordObject, aes_256), RO, NULL},
+      offsetof(PySssPasswordObject, aes_256), READONLY, NULL},
     {NULL, 0, 0, 0, NULL} /* Sentinel */
 };
 
@@ -1084,7 +1101,7 @@ static PyMemberDef sss_password_members[] = {
  * sss.password object properties
  */
 static PyTypeObject pysss_password_type = {
-    PyObject_HEAD_INIT(NULL)
+    PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = sss_py_const_p(char, "sss.password"),
     .tp_basicsize = sizeof(PySssPasswordObject),
     .tp_new = PySssPasswordObject_new,
@@ -1108,23 +1125,48 @@ static PyMethodDef module_methods[] = {
 /*
  * Module initialization
  */
+#ifdef IS_PY3K
+static struct PyModuleDef pysssdef = {
+    PyModuleDef_HEAD_INIT,
+    "pysss",
+    NULL,
+    -1,
+    module_methods,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+PyMODINIT_FUNC
+PyInit_pysss(void)
+#else
 PyMODINIT_FUNC
 initpysss(void)
+#endif
 {
     PyObject *m;
 
     if (PyType_Ready(&pysss_local_type) < 0)
-        return;
+        MODINITERROR;
     if (PyType_Ready(&pysss_password_type) < 0)
-        return;
+        MODINITERROR;
 
+#ifdef IS_PY3K
+    m = PyModule_Create(&pysssdef);
+#else
     m = Py_InitModule(discard_const_p(char, "pysss"), module_methods);
+#endif
     if (m == NULL)
-        return;
+        MODINITERROR;
 
     Py_INCREF(&pysss_local_type);
     PyModule_AddObject(m, discard_const_p(char, "local"), (PyObject *)&pysss_local_type);
     Py_INCREF(&pysss_password_type);
     PyModule_AddObject(m, discard_const_p(char, "password"), (PyObject *)&pysss_password_type);
+
+#ifdef IS_PY3K
+    return m;
+#endif
 }
 

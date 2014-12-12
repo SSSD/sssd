@@ -11,6 +11,20 @@
 #define sss_py_const_p(type, value) (value)
 #endif
 
+#if PY_MAJOR_VERSION >= 3
+#define IS_PY3K
+#define MODINITERROR return NULL
+#define PYNUMBER_CHECK(what) PyLong_Check(what)
+#define PYNUMBER_FROMLONG(what) PyLong_FromLong(what)
+#define PYNUMBER_ASLONG(what) PyLong_AsLong(what)
+#else
+#include <bytesobject.h>
+#define MODINITERROR return
+#define PYNUMBER_CHECK(what) PyInt_Check(what)
+#define PYNUMBER_FROMLONG(what) PyInt_FromLong(what)
+#define PYNUMBER_ASLONG(what) PyInt_AsLong(what)
+#endif
+
 /* Py_ssize_t compatibility for python < 2.5 as per
  * http://www.python.org/dev/peps/pep-0353/ */
 #ifndef HAVE_PY_SSIZE_T
@@ -45,7 +59,7 @@ sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict);
 /* Convenience macros */
 #define TYPE_READY(module, type, name) do {         \
     if (PyType_Ready(&type) < 0)                    \
-        return;                                     \
+	MODINITERROR;                               \
     Py_INCREF(&type);                               \
     PyModule_AddObject(module,                      \
                        discard_const_p(char, name), \

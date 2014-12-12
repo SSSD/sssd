@@ -13,14 +13,14 @@ dnl versions of python
     AC_MSG_CHECKING([for working python])
     if test -x "$PYTHON"; then
         PYTHON_CFLAGS="`$PYTHON -c \"from distutils import sysconfig; \
-            print '-I' + sysconfig.get_python_inc() + \
+            print('-I' + sysconfig.get_python_inc() + \
             ' -I' + sysconfig.get_python_inc(plat_specific=True) + ' ' + \
-            sysconfig.get_config_var('BASECFLAGS')\"`"
+            sysconfig.get_config_var('BASECFLAGS'))\"`"
         PYTHON_LIBS="`$PYTHON -c \"from distutils import sysconfig; \
-            print \\\" \\\".join(sysconfig.get_config_var('LIBS').split() + \
+            print(' '.join(sysconfig.get_config_var('LIBS').split() + \
             sysconfig.get_config_var('SYSLIBS').split()) + \
-            ' -lpython' + sysconfig.get_config_var('VERSION') + \
-            ' -L' + sysconfig.get_config_var('LIBDIR')\"`"
+            ' ' + sysconfig.get_config_var('BLDLIBRARY') + ' ' + \
+            ' -L' + sysconfig.get_config_var('LIBDIR'))\"`"
             AC_MSG_RESULT([yes])
     else
         AC_MSG_RESULT([no])
@@ -37,12 +37,9 @@ AC_DEFUN([AM_CHECK_PYTHON_HEADERS],
     AC_MSG_CHECKING(for headers required to compile python extensions)
 
     dnl deduce PYTHON_INCLUDES
-    py_prefix=`$PYTHON -c "import sys; print sys.prefix"`
-    py_exec_prefix=`$PYTHON -c "import sys; print sys.exec_prefix"`
-    PYTHON_INCLUDES="-I${py_prefix}/include/python${PYTHON_VERSION}"
-    if test "$py_prefix" != "$py_exec_prefix"; then
-        PYTHON_INCLUDES="$PYTHON_INCLUDES -I${py_exec_prefix}/include/python${PYTHON_VERSION}"
-    fi
+    py_prefix=`$PYTHON -c "import sys; print(sys.prefix)"`
+    py_exec_prefix=`$PYTHON -c "import sys; print(sys.exec_prefix)"`
+    PYTHON_INCLUDES=-I`$PYTHON -c "from distutils import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))"`
 
     AC_SUBST(PYTHON_INCLUDES)
 
