@@ -69,6 +69,7 @@ fail:
 
 struct ipa_srv_plugin_state {
     char *dns_domain;
+    uint32_t ttl;
     struct fo_server_info *primary_servers;
     size_t num_primary_servers;
     struct fo_server_info *backup_servers;
@@ -164,6 +165,7 @@ static void ipa_srv_plugin_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct ipa_srv_plugin_state);
 
     ret = fo_discover_servers_recv(state, subreq, &state->dns_domain,
+                                   &state->ttl,
                                    &state->primary_servers,
                                    &state->num_primary_servers,
                                    &state->backup_servers,
@@ -183,6 +185,7 @@ static void ipa_srv_plugin_done(struct tevent_req *subreq)
 errno_t ipa_srv_plugin_recv(TALLOC_CTX *mem_ctx,
                             struct tevent_req *req,
                             char **_dns_domain,
+                            uint32_t *_ttl,
                             struct fo_server_info **_primary_servers,
                             size_t *_num_primary_servers,
                             struct fo_server_info **_backup_servers,
@@ -213,6 +216,9 @@ errno_t ipa_srv_plugin_recv(TALLOC_CTX *mem_ctx,
         *_dns_domain = talloc_steal(mem_ctx, state->dns_domain);
     }
 
+    if (_ttl) {
+        *_ttl = state->ttl;
+    }
 
     return EOK;
 }

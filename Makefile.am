@@ -218,6 +218,7 @@ if HAVE_CMOCKA
         test_copy_ccache \
         test_copy_keytab \
         test_child_common \
+        test_fo_srv \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -2208,6 +2209,24 @@ test_resolv_fake_LDADD = \
     libsss_test_common.la \
     $(NULL)
 endif # HAVE_LIBRESOLV
+
+test_fo_srv_SOURCES = \
+    src/tests/cmocka/test_fo_srv.c \
+    src/providers/fail_over.c \
+    src/providers/fail_over_srv.c \
+    $(NULL)
+test_fo_srv_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_fo_srv_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(CARES_LIBS) \
+    $(DHASH_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
 
 endif # HAVE_CMOCKA
 

@@ -117,6 +117,7 @@ struct srv_data {
     struct fo_server *meta;
 
     int srv_lookup_status;
+    int ttl;
     struct timeval last_status_change;
 };
 
@@ -149,7 +150,6 @@ fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
         return NULL;
     }
 
-    ctx->opts->srv_retry_timeout = opts->srv_retry_timeout;
     ctx->opts->srv_retry_neg_timeout = opts->srv_retry_neg_timeout;
     ctx->opts->retry_timeout = opts->retry_timeout;
     ctx->opts->family_order  = opts->family_order;
@@ -272,7 +272,7 @@ get_srv_data_status(struct srv_data *data)
     if (data->srv_lookup_status == SRV_RESOLVE_ERROR) {
         timeout = data->meta->service->ctx->opts->srv_retry_neg_timeout;
     } else {
-        timeout = data->meta->service->ctx->opts->srv_retry_timeout;
+        timeout = data->ttl;
     }
 
     if (timeout && STATUS_DIFF(data, tv) > timeout) {
@@ -1285,8 +1285,9 @@ resolve_srv_done(struct tevent_req *subreq)
     size_t num_backup_servers = 0;
     char *dns_domain = NULL;
     int ret;
+    uint32_t ttl;
 
-    ret = state->fo_ctx->srv_recv_fn(state, subreq, &dns_domain,
+    ret = state->fo_ctx->srv_recv_fn(state, subreq, &dns_domain, &ttl,
                                      &primary_servers, &num_primary_servers,
                                      &backup_servers, &num_backup_servers);
     talloc_free(subreq);
@@ -1300,6 +1301,7 @@ resolve_srv_done(struct tevent_req *subreq)
             goto done;
         }
 
+        state->meta->srv_data->ttl = ttl;
         talloc_zfree(state->meta->srv_data->dns_domain);
         state->meta->srv_data->dns_domain = talloc_steal(state->meta->srv_data,
                                                          dns_domain);

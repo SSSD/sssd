@@ -78,7 +78,6 @@ struct fo_server;
  * try when looking up the service.
  */
 struct fo_options {
-    time_t srv_retry_timeout;
     time_t srv_retry_neg_timeout;
     time_t retry_timeout;
     int service_resolv_timeout;
