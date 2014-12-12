@@ -1867,10 +1867,24 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
         case RESP_GROUP_MEMBERS:
             type = SYSDB_MEMBER_GROUP;
 
+            if (0 != strcmp(dom->name, attrs->domain_name)) {
+                dom = find_domain_by_name(get_domains_head(dom),
+                                          attrs->domain_name, true);
+                if (dom == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Cannot find domain: [%s]\n", attrs->domain_name);
+                    ret = EINVAL;
+                    goto done;
+                }
+            }
+
             if (name == NULL) {
+                name = attrs->a.group.gr_name;
+            }
+
+            if (IS_SUBDOMAIN(dom)) {
                 /* we always use the fully qualified name for subdomain users */
-                name = sss_tc_fqname(tmp_ctx, dom->names, dom,
-                                     attrs->a.group.gr_name);
+                name = sss_tc_fqname(tmp_ctx, dom->names, dom, name);
                 if (!name) {
                     DEBUG(SSSDBG_OP_FAILURE, "failed to format user name,\n");
                     ret = ENOMEM;
