@@ -501,7 +501,7 @@ static void test_internet(struct tevent_req *req)
         break;
     case TESTING_SRV:
         recv_status = resolv_getsrv_recv(tmp_ctx, req, &status, NULL,
-                                         &srv_replies);
+                                         &srv_replies, NULL);
         test_ctx->error = (srv_replies == NULL) ? ENOENT : EOK;
         for (srvptr = srv_replies; srvptr != NULL; srvptr = srvptr->next) {
             DEBUG(SSSDBG_OP_FAILURE,

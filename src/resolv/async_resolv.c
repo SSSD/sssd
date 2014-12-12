@@ -62,7 +62,21 @@
 #endif
 
 #define DNS__16BIT(p)                   (((p)[0] << 8) | (p)[1])
+
+/*
+ * Macro DNS__32BIT reads a network long (32 bit) given in network
+ * byte order, and returns its value as an unsigned int. Copied
+ * from c-ares source code.
+ */
+#define DNS__32BIT(p)  ((unsigned int) \
+                         (((unsigned int)((unsigned char)(p)[0]) << 24U) | \
+                          ((unsigned int)((unsigned char)(p)[1]) << 16U) | \
+                          ((unsigned int)((unsigned char)(p)[2]) <<  8U) | \
+                          ((unsigned int)((unsigned char)(p)[3]))))
+
 #define DNS_HEADER_ANCOUNT(h)           DNS__16BIT((h) + 6)
+#define DNS_RR_LEN(r)                   DNS__16BIT((r) + 8)
+#define DNS_RR_TTL(r)                   DNS__32BIT((r) + 4)
 
 #define RESOLV_TIMEOUTMS  2000
 
@@ -1572,6 +1586,7 @@ struct getsrv_state {
 
     /* parsed data returned by ares */
     struct ares_srv_reply *reply_list;
+    uint32_t ttl;
     int status;
     int timeouts;
     int retrying;
@@ -1607,6 +1622,7 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->resolv_ctx = ctx;
     state->query = query;
     state->reply_list = NULL;
+    state->ttl = 0;
     state->status = 0;
     state->timeouts = 0;
     state->retrying = 0;
@@ -1624,6 +1640,92 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     return req;
 }
 
+/*
+ * Implemented based on http://tools.ietf.org/html/rfc2181#section-5
+ *
+ * Especially:
+ * 5.2. TTLs of RRs in an RRSet
+ *  Consequently the use of differing TTLs in an RRSet is hereby
+ *  deprecated, the TTLs of all RRs in an RRSet must be the same.
+ *  ...
+ *  Should an authoritative source send such a malformed RRSet, the
+ *  client should treat the RRs for all purposes as if all TTLs in the
+ *  RRSet had been set to the value of the lowest TTL in the RRSet.
+ *
+ *  On success, returns true and sets the TTL in the _ttl parameter. On
+ *  failure, returns false and _ttl is undefined.
+ */
+static bool
+resolv_get_ttl(const unsigned char *abuf, const int alen, uint32_t *_ttl)
+{
+    const unsigned char *aptr;
+    int ret;
+    char *name = NULL;
+    long len;
+    uint32_t ttl = 0;
+    uint32_t rr_ttl;
+    unsigned int rr_len;
+    unsigned int ancount;
+    unsigned int i;
+
+    /* Read the number of RRs and then skip past the header */
+    if (alen < NS_HFIXEDSZ) {
+        return false;
+    }
+
+    ancount = DNS_HEADER_ANCOUNT(abuf);
+    if (ancount == 0) {
+        return false;
+    }
+
+    aptr = abuf + NS_HFIXEDSZ;
+
+    /* We only care about len from the question data,
+     * so that we can move past hostname */
+    ret = ares_expand_name(aptr, abuf, alen, &name, &len);
+    ares_free_string(name);
+    if (ret != ARES_SUCCESS) {
+        return false;
+    }
+
+    /* Skip past the question */
+    aptr += len + NS_QFIXEDSZ;
+    if (aptr > abuf + alen) {
+        return false;
+    }
+
+    /* Examine each RR in turn and read the lowest TTL */
+    for (i = 0; i < ancount; i++) {
+        /* Decode the RR up to the data field. */
+        ret = ares_expand_name(aptr, abuf, alen, &name, &len);
+        ares_free_string(name);
+        if (ret != ARES_SUCCESS) {
+            return false;
+        }
+
+        aptr += len;
+        if (aptr + NS_RRFIXEDSZ > abuf + alen) {
+            return false;
+        }
+
+        rr_len = DNS_RR_LEN(aptr);
+        rr_ttl = DNS_RR_TTL(aptr);
+        if (aptr + rr_len > abuf + alen) {
+            return false;
+        }
+        aptr += NS_RRFIXEDSZ + rr_len;
+
+        if (ttl > 0) {
+            ttl = MIN(ttl, rr_ttl);
+        } else {
+            ttl = rr_ttl; /* special-case for first TTL */
+        }
+    }
+
+    *_ttl = ttl;
+    return true;
+}
+
 static void
 resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int alen)
 {
@@ -1631,6 +1733,7 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     struct tevent_req *req;
     struct getsrv_state *state;
     int ret;
+    bool ok;
     struct ares_srv_reply *reply_list;
 
     if (rreq->rwatch == NULL) {
@@ -1671,6 +1774,10 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
         goto fail;
     }
     state->reply_list = reply_list;
+    ok = resolv_get_ttl(abuf, alen, &state->ttl);
+    if (ok == false) {
+        state->ttl = RESOLV_DEFAULT_TTL;
+    }
 
     tevent_req_done(req);
     return;
@@ -1682,7 +1789,8 @@ fail:
 
 int
 resolv_getsrv_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
-                   int *timeouts, struct ares_srv_reply **reply_list)
+                   int *timeouts, struct ares_srv_reply **reply_list,
+                   uint32_t *ttl)
 {
     struct getsrv_state *state = tevent_req_data(req, struct getsrv_state);
 
@@ -1692,6 +1800,9 @@ resolv_getsrv_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
         *timeouts = state->timeouts;
     if (reply_list)
         *reply_list = talloc_steal(mem_ctx, state->reply_list);
+    if (ttl) {
+        *ttl = state->ttl;
+    }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

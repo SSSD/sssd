@@ -162,6 +162,7 @@ struct resolv_discover_srv_state {
     int domain_index;
 
     struct ares_srv_reply *reply_list;
+    uint32_t ttl;
 };
 
 static errno_t resolv_discover_srv_next_domain(struct tevent_req *req);
@@ -272,7 +273,8 @@ static void resolv_discover_srv_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct resolv_discover_srv_state);
 
-    ret = resolv_getsrv_recv(state, subreq, &status, NULL, &state->reply_list);
+    ret = resolv_getsrv_recv(state, subreq, &status, NULL,
+                             &state->reply_list, &state->ttl);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "SRV query failed [%d]: %s\n",
@@ -307,6 +309,7 @@ done:
 errno_t resolv_discover_srv_recv(TALLOC_CTX *mem_ctx,
                                  struct tevent_req *req,
                                  struct ares_srv_reply **_reply_list,
+                                 uint32_t *_ttl,
                                  char **_dns_domain)
 {
     struct resolv_discover_srv_state *state = NULL;
@@ -329,6 +332,10 @@ errno_t resolv_discover_srv_recv(TALLOC_CTX *mem_ctx,
 
     if (_reply_list != NULL) {
         *_reply_list = talloc_steal(mem_ctx, state->reply_list);
+    }
+
+    if (*_ttl) {
+        *_ttl = state->ttl;
     }
 
     return EOK;
