@@ -108,7 +108,6 @@ const struct sbus_interface_meta pilot_meta = {
 static int blink_handler(struct sbus_request *req, void *data)
 {
     DBusError error = DBUS_ERROR_INIT;
-    const char *path;
     dbus_int32_t duration = 0;
     dbus_bool_t crashed;
 
@@ -116,12 +115,11 @@ static int blink_handler(struct sbus_request *req, void *data)
     ck_assert(data != NULL);
     ck_assert(data == req->intf->instance_data);
 
-    path = dbus_message_get_path(req->message);
-    ck_assert_str_eq(req->intf->path, path);
+    ck_assert_str_eq(req->intf->path, req->path);
 
-    if (strcmp(path, "/test/fry") == 0) {
+    if (strcmp(req->path, "/test/fry") == 0) {
         ck_assert_str_eq(data, "Don't crash");
-    } else if (strcmp(path, "/test/leela") == 0) {
+    } else if (strcmp(req->path, "/test/leela") == 0) {
         ck_assert_str_eq(data, "Crash into the billboard");
     } else {
         ck_abort();

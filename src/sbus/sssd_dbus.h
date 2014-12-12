@@ -219,6 +219,7 @@ struct sbus_request {
     DBusMessage *message;
     struct sbus_interface *intf;
     const struct sbus_method_meta *method;
+    const char *path;
 };
 
 /*

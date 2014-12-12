@@ -49,6 +49,7 @@ sbus_new_request(struct sbus_connection *conn,
     dbus_req->intf = intf;
     dbus_req->conn = conn;
     dbus_req->message = dbus_message_ref(message);
+    dbus_req->path = dbus_message_get_path(message);
     talloc_set_destructor(dbus_req, sbus_request_destructor);
 
     return dbus_req;

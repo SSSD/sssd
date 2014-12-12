@@ -691,7 +691,6 @@ int ifp_component_change_debug_level_tmp(struct sbus_request *dbus_req,
 {
     struct ifp_ctx *ctx = NULL;
     DBusError *error = NULL;
-    const char *path = dbus_message_get_path(dbus_req->message);
     char *name = NULL;
     enum component_type type;
     errno_t ret;
@@ -704,7 +703,7 @@ int ifp_component_change_debug_level_tmp(struct sbus_request *dbus_req,
     }
 
     ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            path, &type, &name);
+                                            dbus_req->path, &type, &name);
     if (ret != EOK) {
         goto done;
     }
@@ -736,7 +735,6 @@ void ifp_component_get_name(struct sbus_request *dbus_req,
                             const char **_out)
 {
     struct ifp_ctx *ctx = NULL;
-    const char *path = dbus_message_get_path(dbus_req->message);
     char *name = NULL;
     errno_t ret;
 
@@ -749,7 +747,7 @@ void ifp_component_get_name(struct sbus_request *dbus_req,
     }
 
     ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            path, NULL, &name);
+                                            dbus_req->path, NULL, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
                                  ret, strerror(ret));
@@ -764,7 +762,6 @@ void ifp_component_get_debug_level(struct sbus_request *dbus_req,
                                    uint32_t *_out)
 {
     struct ifp_ctx *ctx = NULL;
-    const char *path = dbus_message_get_path(dbus_req->message);
     const char *confdb_path = NULL;
     char *name = NULL;
     enum component_type type;
@@ -780,7 +777,7 @@ void ifp_component_get_debug_level(struct sbus_request *dbus_req,
     }
 
     ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            path, &type, &name);
+                                            dbus_req->path, &type, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
                                  ret, strerror(ret));
@@ -820,7 +817,6 @@ void ifp_component_get_enabled(struct sbus_request *dbus_req,
                                bool *_out)
 {
     struct ifp_ctx *ctx = NULL;
-    const char *path = dbus_message_get_path(dbus_req->message);
     const char *param = NULL;
     char **values = NULL;
     char *name = NULL;
@@ -837,7 +833,7 @@ void ifp_component_get_enabled(struct sbus_request *dbus_req,
     }
 
     ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            path, &type, &name);
+                                            dbus_req->path, &type, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
                                  ret, strerror(ret));
@@ -877,7 +873,6 @@ void ifp_component_get_type(struct sbus_request *dbus_req,
                             const char **_out)
 {
     struct ifp_ctx *ctx = NULL;
-    const char *path = dbus_message_get_path(dbus_req->message);
     enum component_type type;
     errno_t ret;
 
@@ -890,7 +885,7 @@ void ifp_component_get_type(struct sbus_request *dbus_req,
     }
 
     ret = check_and_get_component_from_path(dbus_req, ctx->rctx->cdb,
-                                            path, &type, NULL);
+                                            dbus_req->path, &type, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
                                  ret, strerror(ret));
@@ -917,7 +912,6 @@ void ifp_backend_get_providers(struct sbus_request *dbus_req,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct ifp_ctx *ctx = NULL;
-    const char *path = dbus_message_get_path(dbus_req->message);
     const char *confdb_path = NULL;
     char *name = NULL;
     enum component_type type;
@@ -952,7 +946,7 @@ void ifp_backend_get_providers(struct sbus_request *dbus_req,
     }
 
     ret = check_and_get_component_from_path(tmp_ctx, ctx->rctx->cdb,
-                                            path, &type, &name);
+                                            dbus_req->path, &type, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d]: %s\n",
                                  ret, strerror(ret));
