@@ -30,6 +30,7 @@ struct fo_discover_srv_state {
     char *dns_domain;
     struct fo_server_info *servers;
     size_t num_servers;
+    uint32_t ttl;
 };
 
 static void fo_discover_srv_done(struct tevent_req *subreq);
@@ -83,7 +84,7 @@ static void fo_discover_srv_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct fo_discover_srv_state);
 
     ret = resolv_discover_srv_recv(state, subreq,
-                                   &reply_list, NULL, &state->dns_domain);
+                                   &reply_list, &state->ttl, &state->dns_domain);
     talloc_zfree(subreq);
     if (ret == ENOENT) {
         ret = ERR_SRV_NOT_FOUND;
@@ -143,6 +144,7 @@ done:
 errno_t fo_discover_srv_recv(TALLOC_CTX *mem_ctx,
                              struct tevent_req *req,
                              char **_dns_domain,
+                             uint32_t *_ttl,
                              struct fo_server_info **_servers,
                              size_t *_num_servers)
 {
@@ -157,6 +159,10 @@ errno_t fo_discover_srv_recv(TALLOC_CTX *mem_ctx,
 
     if (_servers != NULL) {
         *_servers = talloc_steal(mem_ctx, state->servers);
+    }
+
+    if (_ttl != NULL) {
+        *_ttl = state->ttl;
     }
 
     if (_num_servers != NULL) {
@@ -175,6 +181,7 @@ struct fo_discover_servers_state {
     const char *backup_domain;
 
     char *dns_domain;
+    uint32_t ttl;
     struct fo_server_info *primary_servers;
     size_t num_primary_servers;
     struct fo_server_info *backup_servers;
@@ -212,6 +219,7 @@ struct tevent_req *fo_discover_servers_send(TALLOC_CTX *mem_ctx,
             state->backup_servers = NULL;
             state->num_backup_servers = 0;
             state->dns_domain = NULL;
+            state->ttl = 0;
 
             ret = EOK;
             goto immediately;
@@ -289,6 +297,7 @@ static void fo_discover_servers_primary_done(struct tevent_req *subreq)
 
     ret = fo_discover_srv_recv(state, subreq,
                                &state->dns_domain,
+                               &state->ttl,
                                &state->primary_servers,
                                &state->num_primary_servers);
     talloc_zfree(subreq);
@@ -361,7 +370,7 @@ static void fo_discover_servers_backup_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct fo_discover_servers_state);
 
     ret = fo_discover_srv_recv(state, subreq, NULL,
-                               &state->backup_servers,
+                               NULL, &state->backup_servers,
                                &state->num_backup_servers);
     talloc_zfree(subreq);
     if (ret != EOK) {
@@ -385,6 +394,7 @@ static void fo_discover_servers_backup_done(struct tevent_req *subreq)
 errno_t fo_discover_servers_recv(TALLOC_CTX *mem_ctx,
                                  struct tevent_req *req,
                                  char **_dns_domain,
+                                 uint32_t *_ttl,
                                  struct fo_server_info **_primary_servers,
                                  size_t *_num_primary_servers,
                                  struct fo_server_info **_backup_servers,
@@ -415,6 +425,10 @@ errno_t fo_discover_servers_recv(TALLOC_CTX *mem_ctx,
         *_dns_domain = talloc_steal(mem_ctx, state->dns_domain);
     }
 
+    if (_ttl) {
+        *_ttl = state->ttl;
+    }
+
 
     return EOK;
 }
@@ -436,6 +450,7 @@ struct fo_resolve_srv_dns_state {
     const char *discovery_domain;
 
     char *dns_domain;
+    uint32_t ttl;
     struct fo_server_info *servers;
     size_t num_servers;
 };
@@ -644,7 +659,8 @@ static void fo_resolve_srv_dns_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct fo_resolve_srv_dns_state);
 
-    ret = fo_discover_srv_recv(state, subreq, &state->dns_domain,
+    ret = fo_discover_srv_recv(state, subreq,
+                               &state->dns_domain, &state->ttl,
                                &state->servers, &state->num_servers);
     talloc_zfree(subreq);
     if (ret != EOK) {
@@ -663,6 +679,7 @@ done:
 errno_t fo_resolve_srv_dns_recv(TALLOC_CTX *mem_ctx,
                                 struct tevent_req *req,
                                 char **_dns_domain,
+                                uint32_t *_ttl,
                                 struct fo_server_info **_primary_servers,
                                 size_t *_num_primary_servers,
                                 struct fo_server_info **_backup_servers,
@@ -692,6 +709,10 @@ errno_t fo_resolve_srv_dns_recv(TALLOC_CTX *mem_ctx,
 
     if (_dns_domain) {
         *_dns_domain = talloc_steal(mem_ctx, state->dns_domain);
+    }
+
+    if (_ttl) {
+        *_ttl = state->ttl;
     }
 
     return EOK;
