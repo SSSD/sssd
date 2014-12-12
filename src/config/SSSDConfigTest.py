@@ -148,7 +148,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         #Output files should not be readable or writable by
         #non-owners, and should not be executable by anyone
-        self.assertFalse(S_IMODE(mode) & 0177)
+        self.assertFalse(S_IMODE(mode) & 0o177)
 
         #Remove the output file
         os.unlink(of)
@@ -182,7 +182,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         #Output files should not be readable or writable by
         #non-owners, and should not be executable by anyone
-        self.assertFalse(S_IMODE(mode) & 0177)
+        self.assertFalse(S_IMODE(mode) & 0o177)
 
         #Remove the output file
         os.unlink(of)
@@ -216,7 +216,7 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         #Output files should not be readable or writable by
         #non-owners, and should not be executable by anyone
-        self.assertFalse(S_IMODE(mode) & 0177)
+        self.assertFalse(S_IMODE(mode) & 0o177)
 
         #Remove the output file
         os.unlink(of)
@@ -1767,7 +1767,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         #Output files should not be readable or writable by
         #non-owners, and should not be executable by anyone
-        self.assertFalse(S_IMODE(mode) & 0177)
+        self.assertFalse(S_IMODE(mode) & 0o177)
 
         #Remove the output file
         os.unlink(of)

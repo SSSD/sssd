@@ -60,10 +60,36 @@ static PyMethodDef methods[] = {
     { NULL,NULL, 0, NULL }
 };
 
+#ifdef IS_PY3K
+static struct PyModuleDef pysss_murmurdef = {
+    PyModuleDef_HEAD_INIT,
+    "pysss_murmur",
+    NULL,
+    -1,
+    methods,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
 
 PyMODINIT_FUNC
+PyInit_pysss_murmur(void)
+#else
+PyMODINIT_FUNC
 initpysss_murmur(void)
+#endif
 {
-    Py_InitModule3(sss_py_const_p(char, "pysss_murmur"),
+    PyObject *m;
+#ifdef IS_PY3K
+    m = PyModule_Create(&pysss_murmurdef);
+#else
+    m = Py_InitModule3(sss_py_const_p(char, "pysss_murmur"),
                    methods, sss_py_const_p(char, "murmur hash functions"));
+#endif
+    if (m == NULL)
+        MODINITERROR;
+#ifdef IS_PY3K
+    return m;
+#endif
 }

@@ -18,6 +18,7 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import print_function
 
 import os
 import sys
@@ -25,15 +26,15 @@ import shutil
 import traceback
 from optparse import OptionParser
 
-from ipachangeconf import openLocked
-from ipachangeconf import SSSDChangeConf
+from .ipachangeconf import openLocked
+from .ipachangeconf import SSSDChangeConf
 
 class SSSDConfigFile(SSSDChangeConf):
     def __init__(self, filename):
         SSSDChangeConf.__init__(self)
         self.filename = filename
 
-        f = openLocked(self.filename, 0600, False)
+        f = openLocked(self.filename, 0o600, False)
         self.opts = self.parse(f)
         f.close()
 
@@ -41,7 +42,7 @@ class SSSDConfigFile(SSSDChangeConf):
         " Copy the file we operate on to a backup location "
         shutil.copy(file_name, file_name + self.backup_suffix)
         # make sure we don't leak data, force permissions on the backup
-        os.chmod(file_name + self.backup_suffix, 0600)
+        os.chmod(file_name + self.backup_suffix, 0o600)
 
     def get_version(self):
         ver = self.get_option_index('sssd', 'config_file_version')[1]
@@ -50,7 +51,7 @@ class SSSDConfigFile(SSSDChangeConf):
         try:
             return int(ver['value'])
         except ValueError:
-            raise SyntaxError, 'config_file_version not an integer'
+            raise SyntaxError('config_file_version not an integer')
 
     def rename_opts(self, parent_name, rename_kw, type='option'):
         for new_name, old_name in rename_kw.items():
@@ -332,7 +333,7 @@ class SSSDConfigFile(SSSDChangeConf):
         of.write(output)
         of.close()
         # make sure it has the right permissions too
-        os.chmod(out_file_name, 0600)
+        os.chmod(out_file_name, 0o600)
 
     def upgrade_v2(self, out_file_name, backup=True):
         # read in the old file, make backup if needed
@@ -352,7 +353,7 @@ class SSSDConfigFile(SSSDChangeConf):
         of.write(output)
         of.close()
         # make sure it has the right permissions too
-        os.chmod(out_file_name, 0600)
+        os.chmod(out_file_name, 0o600)
 
 def parse_options():
     parser = OptionParser()
@@ -383,7 +384,7 @@ by default""")
 
 def verbose(msg, verbose):
     if verbose:
-        print msg
+        print(msg)
 
 def main():
     options = parse_options()
@@ -397,33 +398,33 @@ def main():
         verbose(traceback.format_exc(), options.verbose)
         print >>sys.stderr, "Cannot parse config file %s" % options.filename
         return 1
-    except Exception, e:
-        print "ERROR: %s" % e
+    except Exception as e:
+        print("ERROR: %s" % e)
         verbose(traceback.format_exc(), options.verbose)
         return 1
 
     # make sure we keep strict settings when creating new files
-    os.umask(0077)
+    os.umask(0o077)
 
     version = config.get_version()
     if version == 2:
         verbose("Looks like v2, only checking changes", options.verbose)
         try:
             config.v2_changes(options.outfile, options.backup)
-        except Exception, e:
-            print "ERROR: %s" % e
+        except Exception as e:
+            print("ERROR: %s" % e)
             verbose(traceback.format_exc(), options.verbose)
             return 1
     elif version == 1:
         verbose("Looks like v1, performing full upgrade", options.verbose)
         try:
             config.upgrade_v2(options.outfile, options.backup)
-        except Exception, e:
-            print "ERROR: %s" % e
+        except Exception as e:
+            print("ERROR: %s" % e)
             verbose(traceback.format_exc(), options.verbose)
             return 1
     else:
-        print >>sys.stderr, "Can only upgrade from v1 to v2, file %s looks like version %d" % (options.filename, config.get_version())
+        print("Can only upgrade from v1 to v2, file %s looks like version %d" % (options.filename, config.get_version()), file=sys.stderr)
         return 1
 
     return 0

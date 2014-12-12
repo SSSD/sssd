@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import sys
 import shutil
@@ -27,19 +29,19 @@ by default""")
                       help="Be verbose")
     (options, args) = parser.parse_args()
     if len(args) > 0:
-        print >>sys.stderr, "Stray arguments: %s" % ' '.join([a for a in args])
+        print("Stray arguments: %s" % ' '.join([a for a in args]), file=sys.stderr)
         return None
 
     return options
 
 def verbose(msg, verbosity):
     if verbosity:
-        print msg
+        print(msg)
 
 def main():
     options = parse_options()
     if not options:
-        print >> sys.stderr, "Cannot parse options"
+        print("Cannot parse options", file=sys.stderr)
         return 1
 
     # Import the current config file
@@ -47,8 +49,8 @@ def main():
         sssdconfig = SSSDConfig.SSSDConfig()
         sssdconfig.import_config()
 
-    except Exception, e:
-        print "Error: %s" % e
+    except Exception as e:
+        print("Error: %s" % e)
         verbose(traceback.format_exc(), options.verbose)
         return 2
 

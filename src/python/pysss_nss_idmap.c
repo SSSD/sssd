@@ -53,7 +53,7 @@ static int add_dict(PyObject *py_result, PyObject *key, PyObject *res_type,
         return ret;
     }
 
-    ret = PyDict_SetItem(py_dict, PyString_FromString(SSS_TYPE_KEY), id_type);
+    ret = PyDict_SetItem(py_dict, PyBytes_FromString(SSS_TYPE_KEY), id_type);
     if (ret != 0) {
         Py_XDECREF(py_dict);
         return ret;
@@ -70,14 +70,14 @@ static char *py_string_or_unicode_as_string(PyObject *inp)
 
     if (PyUnicode_Check(inp)) {
         py_str = PyUnicode_AsUTF8String(inp);
-    } else if (PyString_Check(inp)) {
+    } else if (PyBytes_Check(inp)) {
         py_str = inp;
     } else {
         PyErr_Format(PyExc_TypeError, "input must be unicode or a string");
         return NULL;
     }
 
-    return PyString_AS_STRING(py_str);
+    return PyBytes_AS_STRING(py_str);
 }
 
 static int do_getsidbyname(PyObject *py_result, PyObject *py_name)
@@ -94,8 +94,8 @@ static int do_getsidbyname(PyObject *py_result, PyObject *py_name)
 
     ret = sss_nss_getsidbyname(name, &sid, &id_type);
     if (ret == 0) {
-        ret = add_dict(py_result, py_name, PyString_FromString(SSS_SID_KEY),
-                       PyUnicode_FromString(sid), PyInt_FromLong(id_type));
+        ret = add_dict(py_result, py_name, PyBytes_FromString(SSS_SID_KEY),
+                       PyUnicode_FromString(sid), PYNUMBER_FROMLONG(id_type));
     }
     free(sid);
 
@@ -116,8 +116,8 @@ static int do_getnamebysid(PyObject *py_result, PyObject *py_sid)
 
     ret = sss_nss_getnamebysid(sid, &name, &id_type);
     if (ret == 0) {
-        ret = add_dict(py_result, py_sid, PyString_FromString(SSS_NAME_KEY),
-                       PyUnicode_FromString(name), PyInt_FromLong(id_type));
+        ret = add_dict(py_result, py_sid, PyBytes_FromString(SSS_NAME_KEY),
+                       PyUnicode_FromString(name), PYNUMBER_FROMLONG(id_type));
     }
     free(name);
 
@@ -133,9 +133,12 @@ static int do_getsidbyid(PyObject *py_result, PyObject *py_id)
     int ret;
     enum sss_id_type id_type;
 
+#ifndef IS_PY3K
     if (PyInt_Check(py_id)) {
         id = PyInt_AS_LONG(py_id);
-    } else if (PyLong_Check(py_id)) {
+    } else
+#endif
+    if (PyLong_Check(py_id)) {
         id = PyLong_AsLong(py_id);
     } else {
         id_str = py_string_or_unicode_as_string(py_id);
@@ -155,8 +158,8 @@ static int do_getsidbyid(PyObject *py_result, PyObject *py_id)
 
     ret = sss_nss_getsidbyid((uint32_t) id, &sid, &id_type);
     if (ret == 0) {
-        ret = add_dict(py_result, py_id, PyString_FromString(SSS_SID_KEY),
-                       PyUnicode_FromString(sid), PyInt_FromLong(id_type));
+        ret = add_dict(py_result, py_id, PyBytes_FromString(SSS_SID_KEY),
+                       PyUnicode_FromString(sid), PYNUMBER_FROMLONG(id_type));
     }
     free(sid);
 
@@ -177,8 +180,8 @@ static int do_getidbysid(PyObject *py_result, PyObject *py_sid)
 
     ret = sss_nss_getidbysid(sid, &id, &id_type);
     if (ret == 0) {
-        ret = add_dict(py_result, py_sid, PyString_FromString(SSS_ID_KEY),
-                       PyInt_FromLong(id), PyInt_FromLong(id_type));
+        ret = add_dict(py_result, py_sid, PyBytes_FromString(SSS_ID_KEY),
+                       PYNUMBER_FROMLONG(id), PYNUMBER_FROMLONG(id_type));
     }
 
     return ret;
@@ -220,8 +223,8 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
     }
 
     if (!(PyList_Check(obj) || PyTuple_Check(obj) ||
-          PyString_Check(obj) || PyUnicode_Check(obj) ||
-          (type == SIDBYID && (PyInt_Check(obj) || PyLong_Check(obj))))) {
+          PyBytes_Check(obj) || PyUnicode_Check(obj) ||
+          (type == SIDBYID && (PYNUMBER_CHECK(obj))))) {
         PyErr_Format(PyExc_ValueError,
                      "Only string, long or list or tuples of them " \
                      "are accepted\n");
@@ -241,9 +244,8 @@ static PyObject *check_args(enum lookup_type type, PyObject *args)
         for(i=0; i < len; i++) {
             py_value = PySequence_GetItem(obj, i);
             if ((py_value != NULL) &&
-                (PyString_Check(py_value) || PyUnicode_Check(py_value) ||
-                 (type == SIDBYID &&
-                  (PyInt_Check(py_value) || PyLong_Check(py_value))))) {
+                (PyBytes_Check(py_value) || PyUnicode_Check(py_value) ||
+                 (type == SIDBYID && PYNUMBER_CHECK(py_value)))) {
                 ret = do_lookup(type, py_result, py_value);
                 if (ret != 0) {
                     /* Skip this name */
@@ -349,15 +351,37 @@ static PyMethodDef methods[] = {
     { NULL,NULL, 0, NULL }
 };
 
+#ifdef IS_PY3K
+static struct PyModuleDef pysss_nss_idmap_def = {
+    PyModuleDef_HEAD_INIT,
+    "pysss_nss_idmap",
+    NULL,
+    -1,
+    methods,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
 
 PyMODINIT_FUNC
+PyInit_pysss_nss_idmap(void)
+#else
+PyMODINIT_FUNC
 initpysss_nss_idmap(void)
+#endif
 {
     PyObject *module;
 
+#ifdef IS_PY3K
+    module = PyModule_Create(&pysss_nss_idmap_def);
+#else
     module = Py_InitModule3(sss_py_const_p(char, "pysss_nss_idmap"),
                             methods,
                             sss_py_const_p(char, "SSSD ID-mapping functions"));
+#endif
+    if (module == NULL)
+        MODINITERROR;
 
     PyModule_AddIntConstant(module, "ID_NOT_SPECIFIED",
                             SSS_ID_TYPE_NOT_SPECIFIED);
@@ -369,4 +393,8 @@ initpysss_nss_idmap(void)
     PyModule_AddStringConstant(module, "NAME_KEY", SSS_NAME_KEY);
     PyModule_AddStringConstant(module, "ID_KEY", SSS_ID_KEY);
     PyModule_AddStringConstant(module, "TYPE_KEY", SSS_TYPE_KEY);
+
+#ifdef IS_PY3K
+    return module;
+#endif
 }

@@ -78,7 +78,7 @@ get_utf8_string(PyObject *obj, const char *attrname)
     const char *a = attrname ? attrname : "attribute";
     PyObject *obj_utf8 = NULL;
 
-    if (PyString_Check(obj)) {
+    if (PyBytes_Check(obj)) {
         obj_utf8 = obj;
         Py_INCREF(obj_utf8); /* Make sure we can DECREF later */
     } else if (PyUnicode_Check(obj)) {
@@ -143,7 +143,7 @@ sequence_as_string_list(PyObject *seq, const char *paramname)
             return NULL;
         }
 
-        ret[i] = py_strdup(PyString_AsString(utf_item));
+        ret[i] = py_strdup(PyBytes_AsString(utf_item));
         Py_DECREF(utf_item);
         if (!ret[i]) {
             Py_DECREF(item);
@@ -172,9 +172,9 @@ verify_sequence(PyObject *seq, const char *attrname)
 static int
 pyobject_to_category(PyObject *o)
 {
-    int c;
+    long c;
 
-    c = PyInt_AsLong(o);
+    c = PYNUMBER_ASLONG(o);
     if (c == -1 && PyErr_Occurred()) {
         PyErr_Format(PyExc_TypeError,
                      "Invalid type for category element - must be an int\n");
@@ -187,7 +187,7 @@ pyobject_to_category(PyObject *o)
             return c;
     }
 
-    PyErr_Format(PyExc_ValueError, "Invalid value %d for category\n", c);
+    PyErr_Format(PyExc_ValueError, "Invalid value %ld for category\n", c);
     return -1;
 }
 
@@ -244,8 +244,11 @@ str_concat_sequence(PyObject *seq, const char *delim)
         item = PySequence_GetItem(seq, i);
         if (item == NULL) goto fail;
 
+#ifdef IS_PY3K
+        part = PyUnicode_AsUTF8(item);
+#else
         part = PyString_AsString(item);
-        if (part == NULL) goto fail;
+#endif
 
         if (s) {
             s = py_strcat_realloc(s, delim);
@@ -325,7 +328,7 @@ static void
 HbacRuleElement_dealloc(HbacRuleElement *self)
 {
     HbacRuleElement_clear(self);
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
 static int
@@ -380,7 +383,7 @@ HbacRuleElement_init(HbacRuleElement *self, PyObject *args, PyObject *kwargs)
             return -1;
         }
     } else {
-        tmp = PyInt_FromLong(HBAC_CATEGORY_NULL);
+        tmp = PYNUMBER_FROMLONG(HBAC_CATEGORY_NULL);
         if (!tmp) {
             return -1;
         }
@@ -561,7 +564,7 @@ PyDoc_STRVAR(HbacRuleElement__doc__,
 "names and/or groups and/or category\n");
 
 static PyTypeObject pyhbac_hbacrule_element_type = {
-    PyObject_HEAD_INIT(NULL)
+    PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = sss_py_const_p(char, "pyhbac.HbacRuleElement"),
     .tp_basicsize = sizeof(HbacRuleElement),
     .tp_new = HbacRuleElement_new,
@@ -699,7 +702,7 @@ static void
 HbacRule_dealloc(HbacRuleObject *self)
 {
     HbacRule_clear(self);
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
 static int
@@ -765,13 +768,13 @@ hbac_rule_set_enabled(HbacRuleObject *self, PyObject *enabled, void *closure)
 {
     CHECK_ATTRIBUTE_DELETE(enabled, "enabled");
 
-    if (PyString_Check(enabled) || PyUnicode_Check(enabled)) {
+    if (PyBytes_Check(enabled) || PyUnicode_Check(enabled)) {
         PyObject *utf8_str;
         char *str;
 
         utf8_str = get_utf8_string(enabled, "enabled");
         if (!utf8_str) return -1;
-        str = PyString_AsString(utf8_str);
+        str = PyBytes_AsString(utf8_str);
         if (!str) {
             Py_DECREF(utf8_str);
             return -1;
@@ -794,8 +797,8 @@ hbac_rule_set_enabled(HbacRuleObject *self, PyObject *enabled, void *closure)
     } else if (PyBool_Check(enabled)) {
         self->enabled = (enabled == Py_True);
         return 0;
-    } else if (PyInt_Check(enabled)) {
-        switch(PyInt_AsLong(enabled)) {
+    } else if (PYNUMBER_CHECK(enabled)) {
+        switch(PYNUMBER_ASLONG(enabled)) {
             case 0:
                 self->enabled = false;
                 break;
@@ -832,7 +835,7 @@ hbac_rule_set_name(HbacRuleObject *self, PyObject *name, void *closure)
 {
     CHECK_ATTRIBUTE_DELETE(name, "name");
 
-    if (!PyString_Check(name) && !PyUnicode_Check(name)) {
+    if (!PyBytes_Check(name) && !PyUnicode_Check(name)) {
         PyErr_Format(PyExc_TypeError, "name must be a string or Unicode");
         return -1;
     }
@@ -847,7 +850,7 @@ hbac_rule_get_name(HbacRuleObject *self, void *closure)
     if (PyUnicode_Check(self->name)) {
         Py_INCREF(self->name);
         return self->name;
-    } else if (PyString_Check(self->name)) {
+    } else if (PyBytes_Check(self->name)) {
         return PyUnicode_FromEncodedObject(self->name,
                                            PYHBAC_ENCODING, PYHBAC_ENCODING_ERRORS);
     }
@@ -953,7 +956,7 @@ py_hbac_rule_validate(HbacRuleObject *self, PyObject *args)
          attr <<= 1) {
         if (!(missing & attr)) continue;
 
-        py_attr = PyInt_FromLong(attr);
+        py_attr = PYNUMBER_FROMLONG(attr);
         if (!py_attr) {
             PyErr_NoMemory();
             goto fail;
@@ -1050,7 +1053,7 @@ PyDoc_STRVAR(HbacRuleObject__doc__,
 "and srchosts attributes.\n");
 
 static PyTypeObject pyhbac_hbacrule_type = {
-    PyObject_HEAD_INIT(NULL)
+    PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = sss_py_const_p(char, "pyhbac.HbacRule"),
     .tp_basicsize = sizeof(HbacRuleObject),
     .tp_new = HbacRule_new,
@@ -1104,7 +1107,7 @@ HbacRule_to_native(HbacRuleObject *pyrule)
         return NULL;
     }
 
-    rule->name = py_strdup(PyString_AsString(utf_name));
+    rule->name = py_strdup(PyBytes_AsString(utf_name));
     Py_DECREF(utf_name);
     if (rule->name == NULL) {
         goto fail;
@@ -1176,7 +1179,7 @@ static void
 HbacRequestElement_dealloc(HbacRequestElement *self)
 {
     HbacRequestElement_clear(self);
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
 static int
@@ -1235,7 +1238,7 @@ hbac_request_element_set_name(HbacRequestElement *self,
 {
     CHECK_ATTRIBUTE_DELETE(name, "name");
 
-    if (!PyString_Check(name) && !PyUnicode_Check(name)) {
+    if (!PyBytes_Check(name) && !PyUnicode_Check(name)) {
         PyErr_Format(PyExc_TypeError, "name must be a string or Unicode");
         return -1;
     }
@@ -1250,7 +1253,7 @@ hbac_request_element_get_name(HbacRequestElement *self, void *closure)
     if (PyUnicode_Check(self->name)) {
         Py_INCREF(self->name);
         return self->name;
-    } else if (PyString_Check(self->name)) {
+    } else if (PyBytes_Check(self->name)) {
         return PyUnicode_FromEncodedObject(self->name,
                                            PYHBAC_ENCODING, PYHBAC_ENCODING_ERRORS);
     }
@@ -1341,7 +1344,7 @@ PyDoc_STRVAR(HbacRequestElement__doc__,
 "groups\n");
 
 static PyTypeObject pyhbac_hbacrequest_element_type = {
-    PyObject_HEAD_INIT(NULL)
+    PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = sss_py_const_p(char, "pyhbac.HbacRequestElement"),
     .tp_basicsize = sizeof(HbacRequestElement),
     .tp_new = HbacRequestElement_new,
@@ -1389,7 +1392,7 @@ HbacRequestElement_to_native(HbacRequestElement *pyel)
         return NULL;
     }
 
-    el->name = py_strdup(PyString_AsString(utf_name));
+    el->name = py_strdup(PyBytes_AsString(utf_name));
     Py_DECREF(utf_name);
     if (!el->name) {
         goto fail;
@@ -1471,7 +1474,7 @@ static void
 HbacRequest_dealloc(HbacRequest *self)
 {
     HbacRequest_clear(self);
-    self->ob_type->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
 static int
@@ -1613,7 +1616,7 @@ py_hbac_evaluate(HbacRequest *self, PyObject *args)
         }
         /* FALLTHROUGH */
     case HBAC_EVAL_DENY:
-        ret = PyInt_FromLong(eres);
+        ret = PYNUMBER_FROMLONG(eres);
         break;
     case HBAC_EVAL_ERROR:
         set_hbac_exception(PyExc_HbacError, info);
@@ -1766,7 +1769,7 @@ PyDoc_STRVAR(HbacRequest__doc__,
 "HbacRequest() -> new empty HBAC request");
 
 static PyTypeObject pyhbac_hbacrequest_type = {
-    PyObject_HEAD_INIT(NULL)
+    PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = sss_py_const_p(char, "pyhbac.HbacRequest"),
     .tp_basicsize = sizeof(HbacRequest),
     .tp_new = HbacRequest_new,
@@ -1901,14 +1904,36 @@ PyDoc_STRVAR(HbacError__doc__,
 "the name of the rule that was being processed. Use hbac_error_string()\n"
 "to get the text representation of the HBAC error");
 
+#ifdef IS_PY3K
+static struct PyModuleDef pyhbacdef = {
+    PyModuleDef_HEAD_INIT,
+    PYTHON_MODULE_NAME,
+    NULL,
+    -1,
+    pyhbac_module_methods,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+PyMODINIT_FUNC
+PyInit_pyhbac(void)
+#else
 PyMODINIT_FUNC
 initpyhbac(void)
+#endif
 {
     PyObject *m;
     int ret;
 
-    m = Py_InitModule(sss_py_const_p(char, PYTHON_MODULE_NAME), pyhbac_module_methods);
-    if (m == NULL) return;
+#ifdef IS_PY3K
+    m = PyModule_Create(&pyhbacdef);
+#else
+    m = Py_InitModule(sss_py_const_p(char, PYTHON_MODULE_NAME),
+                      pyhbac_module_methods);
+#endif
+    if (m == NULL) MODINITERROR;
 
     /* The HBAC module exception */
     PyExc_HbacError = sss_exception_with_doc(
@@ -1917,46 +1942,50 @@ initpyhbac(void)
                         PyExc_EnvironmentError, NULL);
     Py_INCREF(PyExc_HbacError);
     ret = PyModule_AddObject(m, sss_py_const_p(char, "HbacError"), PyExc_HbacError);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
 
     /* HBAC rule categories */
     ret = PyModule_AddIntMacro(m, HBAC_CATEGORY_NULL);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_CATEGORY_ALL);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
 
     /* HBAC rule elements */
     ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_USERS);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_SERVICES);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_TARGETHOSTS);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_RULE_ELEMENT_SOURCEHOSTS);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
 
     /* enum hbac_eval_result */
     ret = PyModule_AddIntMacro(m, HBAC_EVAL_ALLOW);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_EVAL_DENY);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_EVAL_ERROR);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
 
     /* enum hbac_error_code */
     ret = PyModule_AddIntMacro(m, HBAC_ERROR_UNKNOWN);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_SUCCESS);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_ERROR_NOT_IMPLEMENTED);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_ERROR_OUT_OF_MEMORY);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
     ret = PyModule_AddIntMacro(m, HBAC_ERROR_UNPARSEABLE_RULE);
-    if (ret == -1) return;
+    if (ret == -1) MODINITERROR;
 
     TYPE_READY(m, pyhbac_hbacrule_type, "HbacRule");
     TYPE_READY(m, pyhbac_hbacrule_element_type, "HbacRuleElement");
     TYPE_READY(m, pyhbac_hbacrequest_element_type, "HbacRequestElement");
     TYPE_READY(m, pyhbac_hbacrequest_type, "HbacRequest");
+
+#ifdef IS_PY3K
+    return m;
+#endif
 }
