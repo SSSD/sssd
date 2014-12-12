@@ -103,10 +103,21 @@ sbus_new_request(struct sbus_connection *conn, struct sbus_interface *intf,
 
 /* =Interface=and=object=paths============================================ */
 
+struct sbus_interface_list {
+    struct sbus_interface_list *prev, *next;
+    struct sbus_interface *interface;
+};
+
 errno_t
 sbus_opath_hash_init(TALLOC_CTX *mem_ctx,
                      struct sbus_connection *conn,
                      hash_table_t **_table);
+
+errno_t
+sbus_opath_hash_lookup_supported(TALLOC_CTX *mem_ctx,
+                                 hash_table_t *table,
+                                 const char *object_path,
+                                 struct sbus_interface_list **_list);
 
 /* =Interface=introspection=============================================== */
 extern const struct sbus_method_meta introspect_method;
