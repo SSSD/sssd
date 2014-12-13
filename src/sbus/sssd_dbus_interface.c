@@ -540,10 +540,18 @@ sbus_conn_register_iface(struct sbus_connection *conn,
         return EOK;
     }
 
-    ret = sbus_conn_register_path(conn, object_path);
-
     /* if ret != EOK we will still leave iface in the table, since
      * we probably don't have enough memory to remove it correctly anyway */
+
+    ret = sbus_conn_register_path(conn, object_path);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* register standard interfaces with this object path as well */
+    ret = sbus_conn_register_iface(conn, sbus_introspect_vtable(),
+                                   object_path, conn);
+
     return ret;
 }
 

@@ -66,6 +66,10 @@ struct sbus_connection {
     struct sbus_watch_ctx *watch_list;
 };
 
+/* =Standard=interfaces=================================================== */
+
+struct sbus_vtable *sbus_introspect_vtable(void);
+
 /* =Watches=============================================================== */
 
 struct sbus_watch_ctx {
@@ -118,15 +122,6 @@ sbus_opath_hash_lookup_supported(TALLOC_CTX *mem_ctx,
                                  hash_table_t *table,
                                  const char *object_path,
                                  struct sbus_interface_list **_list);
-
-/* =Interface=introspection=============================================== */
-extern const struct sbus_method_meta introspect_method;
-
-struct sbus_introspect_ctx {
-    const struct sbus_interface_meta *iface;
-};
-
-int sbus_introspect(struct sbus_request *dbus_req, void *pvt);
 
 void
 sbus_request_invoke_or_finish(struct sbus_request *dbus_req,

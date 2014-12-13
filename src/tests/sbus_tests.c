@@ -46,30 +46,17 @@
 
 #define PILOT_IFACE_INTROSPECT \
         "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n" \
-        "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"                \
-        "<node>\n"                                                                           \
-        "  <interface name=\"test.Pilot\">\n"                                                \
-        "    <method name=\"Blink\">\n"                                                      \
-        "    </method>\n"                                                                    \
-        "    <method name=\"Eat\">\n"                                                        \
-        "    </method>\n"                                                                    \
-        "  </interface>\n"                                                                   \
-        " <interface name=\"org.freedesktop.DBus.Introspectable\">\n"                        \
-        "   <method name=\"Introspect\">\n"                                                  \
-        "     <arg name=\"data\" type=\"s\" direction=\"out\"/>\n"                           \
-        "   </method>\n"                                                                     \
-        " </interface>\n"                                                                    \
-        " <interface name=\"org.freedesktop.DBus.Properties\">\n"                            \
-        "   <method name=\"Get\">\n"                                                         \
-        "     <arg name=\"interface\" direction=\"in\" type=\"s\"/>\n"                       \
-        "     <arg name=\"property\" direction=\"in\" type=\"s\"/>\n"                        \
-        "     <arg name=\"value\" direction=\"out\" type=\"v\"/>\n"                          \
-        "   </method>\n"                                                                     \
-        "   <method name=\"GetAll\">\n"                                                      \
-        "     <arg name=\"interface\" direction=\"in\" type=\"s\"/>\n"                       \
-        "     <arg name=\"properties\" direction=\"out\" type=\"a{sv}\"/>\n"                 \
-        "   </method>\n"                                                                     \
-        " </interface>\n"                                                                    \
+        " \"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n" \
+        "<node>\n" \
+        "  <interface name=\"org.freedesktop.DBus.Introspectable\">\n" \
+        "    <method name=\"Introspect\">\n" \
+        "      <arg type=\"s\" name=\"data\" direction=\"out\" />\n" \
+        "    </method>\n" \
+        "  </interface>\n" \
+        "  <interface name=\"test.Pilot\">\n" \
+        "    <method name=\"Blink\" />\n" \
+        "    <method name=\"Eat\" />\n" \
+        "  </interface>\n" \
         "</node>\n"
 
 /* our vtable */
@@ -370,9 +357,7 @@ TCase *create_sbus_tests(void)
     tcase_add_test(tc, test_raw_handler);
     tcase_add_test(tc, test_request_parse_ok);
     tcase_add_test(tc, test_request_parse_bad_args);
-#if false
     tcase_add_test(tc, test_introspection);
-#endif
     tcase_add_test(tc, test_sbus_new_error);
 
     return tc;

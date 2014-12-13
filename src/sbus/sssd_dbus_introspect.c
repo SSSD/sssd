@@ -1,6 +1,7 @@
 /*
     Authors:
         Jakub Hrozek <jhrozek@redhat.com>
+        Pavel Březina <pbrezina@redhat.com>
 
     Copyright (C) 2014 Red Hat
 
@@ -23,338 +24,350 @@
 #include "config.h"
 
 #include <stdio.h>
-#include <sys/time.h>
-#include <dbus/dbus.h>
 
 #include "util/util.h"
 #include "sbus/sssd_dbus.h"
-#include "sbus/sssd_dbus_private.h"
 #include "sbus/sssd_dbus_meta.h"
+#include "sbus/sssd_dbus_private.h"
 
-static const struct sbus_arg_meta introspect_method_arg_out[] = {
-    { "data", "s" },
-    { NULL, }
-};
-
-const struct sbus_method_meta introspect_method =
-    { DBUS_INTROSPECT_METHOD, NULL, introspect_method_arg_out, 0, NULL };
-
-#define SSS_INTROSPECT_DOCTYPE  \
+#define FMT_DOCTYPE \
     "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n" \
-    "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"
+    " \"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"
 
-#define SSS_INTROSPECT_INTERFACE_INTROSPECTABLE                      \
-     " <interface name=\"org.freedesktop.DBus.Introspectable\">\n"   \
-     "   <method name=\"Introspect\">\n"                             \
-     "     <arg name=\"data\" type=\"s\" direction=\"out\"/>\n"      \
-     "   </method>\n"                                                \
-     " </interface>\n"
+#define FMT_NODE         "<node>\n"
+#define FMT_IFACE        "  <interface name=\"%s\">\n"
+#define FMT_METHOD       "    <method name=\"%s\">\n"
+#define FMT_METHOD_NOARG "    <method name=\"%s\" />\n"
+#define FMT_METHOD_ARG   "      <arg type=\"%s\" name=\"%s\" direction=\"%s\" />\n"
+#define FMT_METHOD_CLOSE "    </method>\n"
+#define FMT_SIGNAL       "    <signal name=\"%s\">\n"
+#define FMT_SIGNAL_NOARG "    <signal name=\"%s\" />\n"
+#define FMT_SIGNAL_ARG   "      <arg type=\"%s\" name=\"%s\" />\n"
+#define FMT_SIGNAL_CLOSE "    </signal>\n"
+#define FMT_PROPERTY     "    <property name=\"%s\" type=\"%s\" access=\"%s\" />\n"
+#define FMT_IFACE_CLOSE  "  </interface>\n"
+#define FMT_NODE_CLOSE   "</node>\n"
 
-#define SSS_INTROSPECT_INTERFACE_PROPERTIES                                 \
-     " <interface name=\"org.freedesktop.DBus.Properties\">\n"              \
-     "   <method name=\"Get\">\n"                                           \
-     "     <arg name=\"interface\" direction=\"in\" type=\"s\"/>\n"         \
-     "     <arg name=\"property\" direction=\"in\" type=\"s\"/>\n"          \
-     "     <arg name=\"value\" direction=\"out\" type=\"v\"/>\n"            \
-     "   </method>\n"                                                       \
-     "   <method name=\"GetAll\">\n"                                        \
-     "     <arg name=\"interface\" direction=\"in\" type=\"s\"/>\n"         \
-     "     <arg name=\"properties\" direction=\"out\" type=\"a{sv}\"/>\n"   \
-     "   </method>\n"                                                       \
-     " </interface>\n"
+#define WRITE_OR_FAIL(file, ret, label, fmt, ...) do { \
+    ret = fprintf(file, fmt, ##__VA_ARGS__); \
+    if (ret < 0) { \
+        ret = EIO; \
+        goto label; \
+    } \
+} while (0)
 
-struct introspect_ctx {
-    FILE *f;
-    char *buf;
-    size_t size;
+#define METHOD_HAS_ARGS(m) ((m)->in_args != NULL || (m)->out_args != NULL)
+#define SIGNAL_HAS_ARGS(s) ((s)->args != NULL)
 
-    const struct sbus_interface_meta *iface;
+enum sbus_arg_type {
+    SBUS_ARG_IN,
+    SBUS_ARG_OUT,
+    SBUS_ARG_SIGNAL
 };
 
-static int introspect_ctx_destructor(struct introspect_ctx *ictx)
+static int
+iface_Introspect_finish(struct sbus_request *req, const char *arg_data)
 {
-    if (ictx->f) {
-        fclose(ictx->f);
-    }
-
-    free(ictx->buf);
-    ictx->buf = NULL;
-    return 0;
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_STRING, &arg_data,
+                                         DBUS_TYPE_INVALID);
 }
 
-static errno_t introspect_begin(struct introspect_ctx *ictx)
+struct iface_introspectable {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*Introspect)(struct sbus_request *req, void *data);
+};
+
+static int sbus_introspect(struct sbus_request *sbus_req, void *pvt);
+
+struct sbus_vtable *
+sbus_introspect_vtable(void)
 {
-    errno_t ret;
+    static const struct sbus_arg_meta iface_out[] = {
+        {"data", "s"},
+        {NULL, NULL}
+    };
 
-    ictx->f = open_memstream(&ictx->buf, &ictx->size);
-    if (ictx->f == NULL) {
-        return ENOMEM;
-    }
+    static const struct sbus_method_meta iface_methods[] = {
+        {"Introspect", NULL, iface_out,
+         offsetof(struct iface_introspectable, Introspect), NULL},
+        {NULL, }
+    };
 
-    ret = fputs(SSS_INTROSPECT_DOCTYPE, ictx->f);
-    if (ret < 0) return EIO;
-    ret = fputs("<node>\n", ictx->f);
-    if (ret < 0) return EIO;
+    static const struct sbus_interface_meta iface_meta = {
+        "org.freedesktop.DBus.Introspectable", /* name */
+        iface_methods,
+        NULL, /* no signals */
+        NULL, /* no properties */
+        NULL, /* no GetAll invoker */
+    };
 
-    ret = fprintf(ictx->f, "  <interface name=\"%s\">\n", ictx->iface->name);
-    if (ret <= 0) return EIO;
+    static struct iface_introspectable iface = {
+        { &iface_meta, 0 },
+        .Introspect = sbus_introspect
+    };
 
-    return EOK;
+    return &iface.vtable;
 }
 
-static errno_t introspect_add_arg(struct introspect_ctx *ictx,
-                                  const struct sbus_arg_meta *a,
-                                  const char *direction)
+static int
+sbus_introspect_generate_args(FILE *file,
+                              const struct sbus_arg_meta *args,
+                              enum sbus_arg_type type)
 {
-    errno_t ret;
-
-    ret = fprintf(ictx->f,
-                  "      <arg type=\"%s\" name=\"%s\"",
-                  a->type, a->name);
-    if (ret <= 0) return EIO;
-
-    if (direction) {
-        ret = fprintf(ictx->f, " direction=\"%s\"", direction);
-        if (ret <= 0) return EIO;
-    }
-
-    ret = fprintf(ictx->f, "/>\n");
-    if (ret <= 0) return EIO;
-
-    return EOK;
-}
-
-#define introspect_add_in_arg(i, a) introspect_add_arg(i, a, "in");
-#define introspect_add_out_arg(i, a) introspect_add_arg(i, a, "out");
-#define introspect_add_sig_arg(i, a) introspect_add_arg(i, a, NULL);
-
-static errno_t introspect_add_meth(struct introspect_ctx *ictx,
-                                   const struct sbus_method_meta *m)
-{
-    errno_t ret;
+    const struct sbus_arg_meta *arg;
+    int ret;
     int i;
 
-    ret = fprintf(ictx->f, "    <method name=\"%s\">\n", m->name);
-    if (ret <= 0) return EIO;
-
-    if (m->in_args != NULL) {
-        for (i = 0; m->in_args[i].name != NULL; i++) {
-            ret = introspect_add_in_arg(ictx, &m->in_args[i]);
-            if (ret != EOK) {
-                continue;
-            }
-        }
-    }
-
-    if (m->out_args != NULL) {
-        for (i = 0; m->out_args[i].name != NULL; i++) {
-            ret = introspect_add_out_arg(ictx, &m->out_args[i]);
-            if (ret != EOK) {
-                continue;
-            }
-        }
-    }
-
-    ret = fputs("    </method>\n", ictx->f);
-    if (ret < 0) return EIO;
-
-    return EOK;
-}
-
-static errno_t introspect_add_methods(struct introspect_ctx *ictx)
-{
-    errno_t ret;
-    int i;
-
-    if (ictx->iface->methods == NULL) {
-        /* An interface with no methods */
+    if (args == NULL) {
         return EOK;
     }
 
-    for (i = 0; ictx->iface->methods[i].name != NULL; i++) {
-        ret = introspect_add_meth(ictx, &ictx->iface->methods[i]);
-        if (ret != EOK) {
-            continue;
+    for (i = 0; args[i].name != NULL; i++) {
+        arg = &args[i];
+
+        switch (type) {
+        case SBUS_ARG_SIGNAL:
+            WRITE_OR_FAIL(file, ret, done, FMT_SIGNAL_ARG,
+                          arg->type, arg->name);
+            break;
+        case SBUS_ARG_IN:
+            WRITE_OR_FAIL(file, ret, done, FMT_METHOD_ARG,
+                          arg->type, arg->name, "in");
+            break;
+        case SBUS_ARG_OUT:
+            WRITE_OR_FAIL(file, ret, done, FMT_METHOD_ARG,
+                          arg->type, arg->name, "out");
+            break;
         }
     }
 
-    return EOK;
-}
+    ret = EOK;
 
-static errno_t introspect_add_sig(struct introspect_ctx *ictx,
-                                  const struct sbus_signal_meta *s)
-{
-    errno_t ret;
-    int i;
-
-    ret = fprintf(ictx->f, "    <signal name=\"%s\">\n", s->name);
-    if (ret <= 0) return EIO;
-
-    if (s->args != NULL) {
-        for (i = 0; s->args[i].name != NULL; i++) {
-            ret = introspect_add_sig_arg(ictx, &s->args[i]);
-            if (ret != EOK) {
-                continue;
-            }
-        }
-    }
-
-    ret = fputs("    </signal>\n", ictx->f);
-    if (ret < 0) return EIO;
-
-    return EOK;
-}
-
-static errno_t introspect_add_signals(struct introspect_ctx *ictx)
-{
-    errno_t ret;
-    int i;
-
-    if (ictx->iface->signals == NULL) {
-        /* An interface with no signals */
-        return EOK;
-    }
-
-    for (i = 0; ictx->iface->signals[i].name != NULL; i++) {
-        ret = introspect_add_sig(ictx, &ictx->iface->signals[i]);
-        if (ret != EOK) {
-            continue;
-        }
-    }
-
-    return EOK;
-}
-
-static errno_t introspect_add_prop(struct introspect_ctx *ictx,
-                                   const struct sbus_property_meta *p)
-{
-    errno_t ret;
-
-    ret = fprintf(ictx->f, "    <property name=\"%s\" type=\"%s\" access=\"%s\"/>\n",
-                           p->name, p->type,
-                           p->flags & SBUS_PROPERTY_WRITABLE ? "readwrite" : "read");
-    if (ret <= 0) return EIO;
-
-    return EOK;
-}
-
-static errno_t introspect_add_properties(struct introspect_ctx *ictx)
-{
-    errno_t ret;
-    int i;
-
-    if (ictx->iface->properties == NULL) {
-        /* An interface with no properties */
-        return EOK;
-    }
-
-    for (i = 0; ictx->iface->properties[i].name != NULL; i++) {
-        ret = introspect_add_prop(ictx, &ictx->iface->properties[i]);
-        if (ret != EOK) {
-            continue;
-        }
-    }
-
-    return EOK;
-}
-
-static errno_t introspect_finish(struct introspect_ctx *ictx)
-{
-    errno_t ret;
-
-    ret = fputs("  </interface>\n", ictx->f);
-    if (ret < 0) return EIO;
-
-    ret = fputs(SSS_INTROSPECT_INTERFACE_INTROSPECTABLE, ictx->f);
-    if (ret < 0) return EIO;
-
-    ret = fputs(SSS_INTROSPECT_INTERFACE_PROPERTIES, ictx->f);
-    if (ret < 0) return EIO;
-
-    ret = fputs("</node>\n", ictx->f);
-    if (ret < 0) return EIO;
-
-    fflush(ictx->f);
-    return EOK;
-}
-
-static char *sbus_introspect_xml(TALLOC_CTX *mem_ctx,
-                                 const struct sbus_interface_meta *iface)
-{
-    struct introspect_ctx *ictx;
-    char *buf_out = NULL;
-    errno_t ret;
-
-    ictx = talloc_zero(mem_ctx, struct introspect_ctx);
-    if (ictx == NULL) {
-        return NULL;
-    }
-    ictx->iface = iface;
-    talloc_set_destructor(ictx, introspect_ctx_destructor);
-
-    ret = introspect_begin(ictx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "introspect_begin failed: %d\n", ret);
-        goto done;
-    }
-
-    ret = introspect_add_methods(ictx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "introspect_add_methods failed: %d\n", ret);
-        goto done;
-    }
-
-    ret = introspect_add_signals(ictx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "introspect_add_signals failed: %d\n", ret);
-        goto done;
-    }
-
-    ret = introspect_add_properties(ictx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "introspect_add_properties failed: %d\n", ret);
-        goto done;
-    }
-
-    ret = introspect_finish(ictx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "introspect_finish failed: %d\n", ret);
-        goto done;
-    }
-
-    buf_out = talloc_memdup(mem_ctx, ictx->buf, ictx->size + 1);
-    DEBUG(SSSDBG_TRACE_LIBS, "Introspection: \n%s\n", buf_out);
 done:
-    talloc_free(ictx);
-    return buf_out;
+    return ret;
 }
 
-int sbus_introspect(struct sbus_request *dbus_req, void *pvt)
+#define sbus_introspect_generate_in_args(file, args) \
+    sbus_introspect_generate_args(file, args, SBUS_ARG_IN)
+
+#define sbus_introspect_generate_out_args(file, args) \
+    sbus_introspect_generate_args(file, args, SBUS_ARG_OUT)
+
+#define sbus_introspect_generate_signal_args(file, args) \
+    sbus_introspect_generate_args(file, args, SBUS_ARG_SIGNAL)
+
+static int
+sbus_introspect_generate_methods(FILE *file,
+                                 const struct sbus_method_meta *methods)
 {
-    char *xml;
-    DBusError dberr;
-    const struct sbus_interface_meta *iface;
-    struct sbus_introspect_ctx *ictx;
+    const struct sbus_method_meta *method;
+    int ret;
+    int i;
 
-    ictx = talloc_get_type(pvt, struct sbus_introspect_ctx);
-    if (ictx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
-        return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
-    }
-    iface = ictx->iface;
-
-    xml = sbus_introspect_xml(dbus_req, iface);
-    if (xml == NULL) {
-        dbus_error_init(&dberr);
-        dbus_set_error_const(&dberr,
-                             DBUS_ERROR_NO_MEMORY,
-                             "Failed to generate introspection data\n");
-        return sbus_request_fail_and_finish(dbus_req, &dberr);
+    if (methods == NULL) {
+        return EOK;
     }
 
-    return sbus_request_return_and_finish(dbus_req,
-                                          DBUS_TYPE_STRING, &xml,
-                                          DBUS_TYPE_INVALID);
+    for (i = 0; methods[i].name != NULL; i++) {
+        method = &methods[i];
 
+        if (!METHOD_HAS_ARGS(method)) {
+            WRITE_OR_FAIL(file, ret, done, FMT_METHOD_NOARG, method->name);
+            continue;
+        }
+
+        WRITE_OR_FAIL(file, ret, done, FMT_METHOD, method->name);
+
+        ret = sbus_introspect_generate_in_args(file, method->in_args);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        ret = sbus_introspect_generate_out_args(file, method->out_args);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        WRITE_OR_FAIL(file, ret, done, FMT_METHOD_CLOSE);
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static int
+sbus_introspect_generate_signals(FILE *file,
+                                 const struct sbus_signal_meta *signals)
+{
+    const struct sbus_signal_meta *signal;
+    int ret;
+    int i;
+
+    if (signals == NULL) {
+        return EOK;
+    }
+
+    for (i = 0; signals[i].name != NULL; i++) {
+        signal = &signals[i];
+
+        if (!SIGNAL_HAS_ARGS(signal)) {
+            WRITE_OR_FAIL(file, ret, done, FMT_SIGNAL_NOARG, signal->name);
+            continue;
+        }
+
+        WRITE_OR_FAIL(file, ret, done, FMT_SIGNAL, signal->name);
+
+        ret = sbus_introspect_generate_signal_args(file, signal->args);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        WRITE_OR_FAIL(file, ret, done, FMT_SIGNAL_CLOSE);
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static int
+sbus_introspect_generate_properties(FILE *file,
+                                    const struct sbus_property_meta *props)
+{
+    const struct sbus_property_meta *prop;
+    const char *access;
+    int ret;
+    int i;
+
+    if (props == NULL) {
+        return EOK;
+    }
+
+    for (i = 0; props[i].name != NULL; i++) {
+        prop = &props[i];
+
+        access = prop->flags & SBUS_PROPERTY_WRITABLE ? "readwrite" : "read";
+        WRITE_OR_FAIL(file, ret, done, FMT_PROPERTY,
+                   prop->name, prop->type, access);
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static int
+sbus_introspect_generate_iface(FILE *file, struct sbus_interface *iface)
+{
+    const struct sbus_interface_meta *meta;
+    int ret;
+
+    meta = iface->vtable->meta;
+
+    WRITE_OR_FAIL(file, ret, done, FMT_IFACE, meta->name);
+
+    ret = sbus_introspect_generate_methods(file, meta->methods);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sbus_introspect_generate_signals(file, meta->signals);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sbus_introspect_generate_properties(file, meta->properties);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    WRITE_OR_FAIL(file, ret, done, FMT_IFACE_CLOSE);
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+static char *
+sbus_introspect_generate(TALLOC_CTX *mem_ctx, struct sbus_interface_list *list)
+{
+    struct sbus_interface_list *item;
+    char *introspect = NULL;
+    FILE *memstream;
+    char *buffer;
+    size_t size;
+    int ret;
+
+    memstream = open_memstream(&buffer, &size);
+    if (memstream == NULL) {
+        goto done;
+    }
+
+    WRITE_OR_FAIL(memstream, ret, done, FMT_DOCTYPE);
+    WRITE_OR_FAIL(memstream, ret, done, FMT_NODE);
+
+    DLIST_FOR_EACH(item, list) {
+        ret = sbus_introspect_generate_iface(memstream, item->interface);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    WRITE_OR_FAIL(memstream, ret, done, FMT_NODE_CLOSE);
+
+    fflush(memstream);
+    introspect = talloc_memdup(mem_ctx, buffer, size + 1);
+
+    DEBUG(SSSDBG_TRACE_ALL, "Introspection: \n%s\n", introspect);
+
+done:
+    if (memstream != NULL) {
+        fclose(memstream);
+        free(buffer);
+    }
+
+    return introspect;
+}
+
+static int
+sbus_introspect(struct sbus_request *sbus_req, void *pvt)
+{
+    DBusError *error;
+    struct sbus_interface_list *list;
+    struct sbus_connection *conn;
+    char *introspect;
+    errno_t ret;
+
+    conn = talloc_get_type(pvt, struct sbus_connection);
+
+    ret = sbus_opath_hash_lookup_supported(sbus_req, conn->managed_paths,
+                                           sbus_req->path, &list);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
+                               "%s", sss_strerror(ret));
+        return sbus_request_fail_and_finish(sbus_req, error);
+    }
+
+    introspect = sbus_introspect_generate(sbus_req, list);
+    if (introspect == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
+                               "%s", sss_strerror(ret));
+        return sbus_request_fail_and_finish(sbus_req, error);
+    }
+
+    return iface_Introspect_finish(sbus_req, introspect);
 }
