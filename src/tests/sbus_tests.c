@@ -53,6 +53,22 @@
         "      <arg type=\"s\" name=\"data\" direction=\"out\" />\n" \
         "    </method>\n" \
         "  </interface>\n" \
+        "  <interface name=\"org.freedesktop.DBus.Properties\">\n" \
+        "    <method name=\"Get\">\n" \
+        "      <arg type=\"s\" name=\"interface_name\" direction=\"in\" />\n" \
+        "      <arg type=\"s\" name=\"property_name\" direction=\"in\" />\n" \
+        "      <arg type=\"v\" name=\"value\" direction=\"out\" />\n" \
+        "    </method>\n" \
+        "    <method name=\"Set\">\n" \
+        "      <arg type=\"s\" name=\"interface_name\" direction=\"in\" />\n" \
+        "      <arg type=\"s\" name=\"property_name\" direction=\"in\" />\n" \
+        "      <arg type=\"v\" name=\"value\" direction=\"in\" />\n" \
+        "    </method>\n" \
+        "    <method name=\"GetAll\">\n" \
+        "      <arg type=\"s\" name=\"interface_name\" direction=\"in\" />\n" \
+        "      <arg type=\"a{sv}\" name=\"props\" direction=\"out\" />\n" \
+        "    </method>\n" \
+        "  </interface>\n" \
         "  <interface name=\"test.Pilot\">\n" \
         "    <method name=\"Blink\" />\n" \
         "    <method name=\"Eat\" />\n" \

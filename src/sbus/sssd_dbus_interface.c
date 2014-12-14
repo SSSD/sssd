@@ -306,7 +306,7 @@ sbus_opath_hash_has_path(hash_table_t *table,
  * in the path hierarchy and try to lookup the parent node. This continues
  * until the root is reached.
  */
-static struct sbus_interface *
+struct sbus_interface *
 sbus_opath_hash_lookup_iface(hash_table_t *table,
                              const char *object_path,
                              const char *iface_name)
@@ -549,8 +549,17 @@ sbus_conn_register_iface(struct sbus_connection *conn,
     }
 
     /* register standard interfaces with this object path as well */
+    ret = sbus_conn_register_iface(conn, sbus_properties_vtable(),
+                                   object_path, conn);
+    if (ret != EOK) {
+        return ret;
+    }
+
     ret = sbus_conn_register_iface(conn, sbus_introspect_vtable(),
                                    object_path, conn);
+    if (ret != EOK) {
+        return ret;
+    }
 
     return ret;
 }

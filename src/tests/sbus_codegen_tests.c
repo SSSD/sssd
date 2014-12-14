@@ -1353,11 +1353,9 @@ TCase *create_handler_tests(void)
     TCase *tc = tcase_create("handler");
 
     tcase_add_test(tc, test_marshal_basic_types);
-#if false
     tcase_add_test(tc, test_get_basic_types);
     tcase_add_test(tc, test_getall_basic_types);
     tcase_add_test(tc, test_get_basic_array_types);
-#endif
 
     return tc;
 }

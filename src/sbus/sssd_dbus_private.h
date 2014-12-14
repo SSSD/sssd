@@ -69,6 +69,7 @@ struct sbus_connection {
 /* =Standard=interfaces=================================================== */
 
 struct sbus_vtable *sbus_introspect_vtable(void);
+struct sbus_vtable *sbus_properties_vtable(void);
 
 /* =Watches=============================================================== */
 
@@ -116,6 +117,11 @@ errno_t
 sbus_opath_hash_init(TALLOC_CTX *mem_ctx,
                      struct sbus_connection *conn,
                      hash_table_t **_table);
+
+struct sbus_interface *
+sbus_opath_hash_lookup_iface(hash_table_t *table,
+                             const char *object_path,
+                             const char *iface_name);
 
 errno_t
 sbus_opath_hash_lookup_supported(TALLOC_CTX *mem_ctx,
