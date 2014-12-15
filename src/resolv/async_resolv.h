@@ -32,12 +32,6 @@
 #include "config.h"
 #include "confdb/confdb.h"
 
-#ifndef HAVE_ARES_DATA
-#include "resolv/ares/ares_parse_srv_reply.h"
-#include "resolv/ares/ares_parse_txt_reply.h"
-#include "resolv/ares/ares_data.h"
-#endif /* HAVE_ARES_DATA */
-
 #ifndef RESOLV_DEFAULT_TTL
 #define RESOLV_DEFAULT_TTL 7200
 #endif  /* RESOLV_DEFAULT_TTL */

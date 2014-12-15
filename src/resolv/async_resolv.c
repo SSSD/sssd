@@ -42,25 +42,6 @@
 #include "util/dlinklist.h"
 #include "util/util.h"
 
-#ifndef HAVE_ARES_DATA
-#define ares_parse_srv_reply(abuf, alen, srv_out) \
-    _ares_parse_srv_reply(abuf, alen, srv_out)
-#define ares_parse_txt_reply(abuf, alen, txt_out) \
-    _ares_parse_txt_reply(abuf, alen, txt_out)
-#define ares_free_data(dataptr) \
-    _ares_free_data(dataptr)
-#define ares_malloc_data(data) \
-    _ares_malloc_data(data)
-#endif /* HAVE_ARES_DATA */
-
-#ifndef HAVE_STRUCT_ARES_ADDRTTL
-#define ares_addrttl addrttl
-#endif
-
-#ifndef HAVE_STRUCT_ARES_ADDR6TTL
-#define ares_addr6ttl addr6ttl
-#endif
-
 #define DNS__16BIT(p)                   (((p)[0] << 8) | (p)[1])
 
 /*

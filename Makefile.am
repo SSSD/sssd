@@ -419,11 +419,6 @@ SSSD_LCL_TOOLS_OBJ = \
 SSSD_RESOLV_OBJ = \
     src/resolv/async_resolv.c \
     src/resolv/async_resolv_utils.c
-if BUILD_ARES_DATA
-    SSSD_RESOLV_OBJ += \
-    src/resolv/ares/ares_parse_srv_reply.c \
-    src/resolv/ares/ares_data.c
-endif
 
 SSSD_FAILOVER_OBJ = \
     src/providers/fail_over.c \
@@ -588,9 +583,6 @@ dist_noinst_HEADERS = \
     src/tools/tools_util.h \
     src/tools/sss_sync_ops.h \
     src/resolv/async_resolv.h \
-    src/resolv/ares/ares_parse_srv_reply.h \
-    src/resolv/ares/ares_parse_txt_reply.h \
-    src/resolv/ares/ares_data.h \
     src/tests/common.h \
     src/tests/common_check.h \
     src/tests/cmocka/common_mock.h \
@@ -1414,10 +1406,6 @@ files_tests_LDADD = \
 
 SSSD_RESOLV_TESTS_OBJ = \
     $(SSSD_RESOLV_OBJ)
-if BUILD_ARES_DATA
-    SSSD_RESOLV_TESTS_OBJ += \
-    src/resolv/ares/ares_parse_txt_reply.c
-endif
 
 resolv_tests_SOURCES = \
     src/tests/resolv-tests.c \
