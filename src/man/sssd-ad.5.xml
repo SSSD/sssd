@@ -342,6 +342,11 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             DenyInteractiveLogonRight policy settings.
                         </para>
                         <para>
+                            Note: Using the Group Policy Management Editor this
+                            value InteractiveLogonRight  is called "Allow log on
+                            locally" and "Deny log on locally".
+                        </para>
+                        <para>
                             It is possible to add another PAM service name
                             to the default set by using <quote>+service_name</quote>
                             or to explicitly remove a PAM service name from
@@ -405,6 +410,12 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             which GPO-based access control is evaluated based on
                             the RemoteInteractiveLogonRight and
                             DenyRemoteInteractiveLogonRight policy settings.
+                        </para>
+                        <para>
+                            Note: Using the Group Policy Management Editor this
+                            value is called "Allow log on through Remote Desktop
+                            Services" and "Deny log on through Remote Desktop
+                            Services".
                         </para>
                         <para>
                             It is possible to add another PAM service name
