@@ -125,7 +125,7 @@ static void ifp_list_domains_process(struct tevent_req *req)
     for (dom = ireq->ifp_ctx->rctx->domains;
             dom != NULL;
             dom = get_next_domain(dom, true)) {
-        p = ifp_reply_objpath(ireq, INFOPIPE_DOMAIN_PATH_PFX, dom->name);
+        p = sbus_opath_compose(ireq, INFOPIPE_DOMAIN_PATH_PFX, dom->name);
         if (p == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Could not create path for dom %s, skipping\n", dom->name);
@@ -234,7 +234,7 @@ static void ifp_find_domain_by_name_process(struct tevent_req *req)
         return;
     }
 
-    path = ifp_reply_objpath(ireq, INFOPIPE_DOMAIN_PATH_PFX, iter->name);
+    path = sbus_opath_compose(ireq, INFOPIPE_DOMAIN_PATH_PFX, iter->name);
     if (path == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE,
                 "Could not create path for domain %s, skipping\n", iter->name);
@@ -263,13 +263,13 @@ get_domain_info_from_req(struct sbus_request *dbus_req, void *data)
         return NULL;
     }
 
-    raw_name = ifp_path_strip_prefix(dbus_req->path,
-                                     INFOPIPE_DOMAIN_PATH_PFX "/");
+    raw_name = sbus_opath_strip_prefix(dbus_req->path,
+                                       INFOPIPE_DOMAIN_PATH_PFX "/");
     if (raw_name == NULL) {
         return NULL;
     }
 
-    name = ifp_bus_path_unescape(dbus_req, raw_name);
+    name = sbus_opath_unescape_part(dbus_req, raw_name);
     if (name == NULL) {
         return NULL;
     }
@@ -536,6 +536,6 @@ void ifp_dom_get_parent_domain(struct sbus_request *dbus_req,
         return;
     }
 
-    *_out = ifp_reply_objpath(dbus_req, INFOPIPE_DOMAIN_PATH_PFX,
-                              dom->parent->name);
+    *_out = sbus_opath_compose(dbus_req, INFOPIPE_DOMAIN_PATH_PFX,
+                               dom->parent->name);
 }

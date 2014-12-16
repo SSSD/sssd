@@ -171,6 +171,200 @@ static char *sbus_opath_parent_subtree(TALLOC_CTX *mem_ctx,
     return subtree;
 }
 
+/**
+ * The following path related functions are based on similar code in
+ * storaged, just tailored to use talloc instead of glib
+ */
+char *
+sbus_opath_escape_part(TALLOC_CTX *mem_ctx,
+                       const char *object_path_part)
+{
+    size_t n;
+    char *safe_path = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    /* The path must be valid */
+    if (object_path_part == NULL) {
+        return NULL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return NULL;
+    }
+
+    safe_path = talloc_strdup(tmp_ctx, "");
+    if (safe_path == NULL) {
+        goto done;
+    }
+
+    /* Special case for an empty string */
+    if (strcmp(object_path_part, "") == 0) {
+        /* the for loop would just fall through */
+        safe_path = talloc_asprintf_append_buffer(safe_path, "_");
+        if (safe_path == NULL) {
+            goto done;
+        }
+    }
+
+    for (n = 0; object_path_part[n]; n++) {
+        int c = object_path_part[n];
+        /* D-Bus spec says:
+         * *
+         * * Each element must only contain the ASCII characters
+         * "[A-Z][a-z][0-9]_"
+         * */
+        if ((c >= 'A' && c <= 'Z')
+                || (c >= 'a' && c <= 'z')
+                || (c >= '0' && c <= '9')) {
+            safe_path = talloc_asprintf_append_buffer(safe_path, "%c", c);
+            if (safe_path == NULL) {
+                goto done;
+            }
+        } else {
+            safe_path = talloc_asprintf_append_buffer(safe_path, "_%02x", c);
+            if (safe_path == NULL) {
+                goto done;
+            }
+        }
+    }
+
+    safe_path = talloc_steal(mem_ctx, safe_path);
+
+done:
+    talloc_free(tmp_ctx);
+    return safe_path;
+}
+
+static inline int unhexchar(char c)
+{
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    }
+
+    if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    }
+
+    if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    }
+
+    return -1;
+}
+
+char *
+sbus_opath_unescape_part(TALLOC_CTX *mem_ctx,
+                         const char *object_path_part)
+{
+    char *safe_path;
+    const char *p;
+    int a, b, c;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return NULL;
+    }
+
+    safe_path = talloc_strdup(tmp_ctx, "");
+    if (safe_path == NULL) {
+        goto done;
+    }
+
+    /* Special case for the empty string */
+    if (strcmp(object_path_part, "_") == 0) {
+        safe_path = talloc_steal(mem_ctx, safe_path);
+        goto done;
+    }
+
+    for (p = object_path_part; *p; p++) {
+        if (*p == '_') {
+            /* There must be at least two more chars after underscore */
+            if (p[1] == '\0' || p[2] == '\0') {
+                safe_path = NULL;
+                goto done;
+            }
+
+            if ((a = unhexchar(p[1])) < 0
+                    || (b = unhexchar(p[2])) < 0) {
+                /* Invalid escape code, let's take it literal then */
+                c = '_';
+            } else {
+                c = ((a << 4) | b);
+                p += 2;
+            }
+        } else  {
+            c = *p;
+        }
+
+        safe_path = talloc_asprintf_append_buffer(safe_path, "%c", c);
+        if (safe_path == NULL) {
+            goto done;
+        }
+    }
+
+    safe_path = talloc_steal(mem_ctx, safe_path);
+
+done:
+    talloc_free(tmp_ctx);
+    return safe_path;
+}
+
+char *
+_sbus_opath_compose(TALLOC_CTX *mem_ctx,
+                    const char *base,
+                    const char *part, ...)
+{
+    char *safe_part;
+    char *path = NULL;
+    va_list va;
+
+    if (base == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Wrong object path base!\n");
+        return NULL;
+    }
+
+    path = talloc_strdup(mem_ctx, base);
+    if (path == NULL) return NULL;
+
+    va_start(va, part);
+    while (part != NULL) {
+        safe_part = sbus_opath_escape_part(mem_ctx, part);
+        if (safe_part == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not add [%s] to objpath\n", part);
+            goto fail;
+        }
+
+        path = talloc_asprintf_append(path, "/%s", safe_part);
+        talloc_free(safe_part);
+        if (path == NULL) {
+            goto fail;
+        }
+
+        part = va_arg(va, const char *);
+    }
+    va_end(va);
+
+    return path;
+
+fail:
+    va_end(va);
+    talloc_free(path);
+    return NULL;
+}
+
+const char *
+sbus_opath_strip_prefix(const char *object_path,
+                        const char *prefix)
+{
+    if (strncmp(object_path, prefix, strlen(prefix)) == 0) {
+        return object_path + strlen(prefix);
+    }
+
+    return NULL;
+}
+
 static void
 sbus_opath_hash_delete_cb(hash_entry_t *item,
                           hash_destroy_enum deltype,

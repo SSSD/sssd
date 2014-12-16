@@ -68,17 +68,6 @@ errno_t ifp_req_create(struct sbus_request *dbus_req,
 /* Returns an appropriate DBus error for specific ifp_req_create failures */
 int ifp_req_create_handle_failure(struct sbus_request *dbus_req, errno_t err);
 
-const char *ifp_path_strip_prefix(const char *path, const char *prefix);
-
-char *ifp_bus_path_unescape(TALLOC_CTX *mem_ctx, const char *path);
-char *ifp_bus_path_escape(TALLOC_CTX *mem_ctx, const char *path);
-
-char *_ifp_reply_objpath(TALLOC_CTX *mem_ctx, const char *base,
-                         const char *part, ...);
-
-#define ifp_reply_objpath(mem_ctx, base, ...) \
-    _ifp_reply_objpath(mem_ctx, base, ##__VA_ARGS__, NULL)
-
 errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,
                                struct ldb_message_element *el);
 const char **ifp_parse_attr_list(TALLOC_CTX *mem_ctx, const char *conf_str);

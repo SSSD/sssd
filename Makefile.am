@@ -219,6 +219,7 @@ if HAVE_CMOCKA
         test_copy_keytab \
         test_child_common \
         responder_cache_req-tests \
+        test_sbus_opath \
         $(NULL)
 
 if BUILD_IFP
@@ -2207,6 +2208,18 @@ responder_cache_req_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     $(NULL)
+
+test_sbus_opath_SOURCES = \
+    src/tests/cmocka/test_sbus_opath.c \
+    $(NULL)
+test_sbus_opath_CFLAGS = \
+    $(AM_CFLAGS)
+test_sbus_opath_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_debug.la \
+    libsss_test_common.la
 
 endif # HAVE_CMOCKA
 

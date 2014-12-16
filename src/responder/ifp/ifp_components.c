@@ -97,11 +97,11 @@ static errno_t check_and_get_component_from_path(TALLOC_CTX *mem_ctx,
         type = COMPONENT_MONITOR;
         name = "monitor";
     } else {
-        name = ifp_path_strip_prefix(path, PATH_RESPONDERS "/");
+        name = sbus_opath_strip_prefix(path, PATH_RESPONDERS "/");
         if (name != NULL) {
             type = COMPONENT_RESPONDER;
         } else {
-            name = ifp_path_strip_prefix(path, PATH_BACKENDS "/");
+            name = sbus_opath_strip_prefix(path, PATH_BACKENDS "/");
             if (name != NULL) {
                 type = COMPONENT_BACKEND;
             } else {
@@ -116,7 +116,7 @@ static errno_t check_and_get_component_from_path(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    safe_name = ifp_bus_path_unescape(mem_ctx, name);
+    safe_name = sbus_opath_unescape_part(mem_ctx, name);
     if (safe_name == NULL) {
         ret = ENOMEM;
         goto done;
@@ -236,7 +236,7 @@ static errno_t list_responders(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; i < num; i++) {
-        list[i] = ifp_reply_objpath(list, PATH_RESPONDERS, svc[i]);
+        list[i] = sbus_opath_compose(list, PATH_RESPONDERS, svc[i]);
         if (list[i] == NULL) {
             ret = ENOMEM;
             goto done;
@@ -286,7 +286,7 @@ static errno_t list_backends(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; i < num; i++) {
-        list[i] = ifp_reply_objpath(list, PATH_BACKENDS, names[i]);
+        list[i] = sbus_opath_compose(list, PATH_BACKENDS, names[i]);
         if (list[i] == NULL) {
             ret = ENOMEM;
             goto done;
@@ -418,7 +418,7 @@ int ifp_find_responder_by_name(struct sbus_request *dbus_req,
     const char *result = NULL;
 
     if (responder_exists(arg_name)) {
-        result = ifp_reply_objpath(dbus_req, PATH_RESPONDERS, arg_name);
+        result = sbus_opath_compose(dbus_req, PATH_RESPONDERS, arg_name);
         if (result == NULL) {
             return sbus_request_fail_and_finish(dbus_req, NULL);
         }
@@ -448,7 +448,7 @@ int ifp_find_backend_by_name(struct sbus_request *dbus_req,
     }
 
     if (backend_exists(ctx->rctx->cdb, arg_name)) {
-        result = ifp_reply_objpath(dbus_req, PATH_BACKENDS, arg_name);
+        result = sbus_opath_compose(dbus_req, PATH_BACKENDS, arg_name);
         if (result == NULL) {
             return sbus_request_fail_and_finish(dbus_req, NULL);
         }

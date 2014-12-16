@@ -134,14 +134,6 @@ void ifp_test_req_wrong_uid(void **state)
     assert_true(leak_check_teardown());
 }
 
-void test_path_prefix(void **state)
-{
-    const char *prefix = "foo";
-
-    assert_non_null(ifp_path_strip_prefix("foobar", prefix));
-    assert_null(ifp_path_strip_prefix("notfoo", prefix));
-}
-
 void test_el_to_dict(void **state)
 {
     static struct sbus_request *sr;
@@ -362,64 +354,6 @@ void test_attr_allowed(void **state)
     assert_false(ifp_attr_allowed(NULL, "name"));
 }
 
-void test_path_escape_unescape(void **state)
-{
-    char *escaped;
-    char *raw;
-    TALLOC_CTX *mem_ctx;
-
-    assert_true(leak_check_setup());
-    mem_ctx = talloc_new(global_talloc_context);
-
-    escaped = ifp_bus_path_escape(mem_ctx, "noescape");
-    assert_non_null(escaped);
-    assert_string_equal(escaped, "noescape");
-    raw = ifp_bus_path_unescape(mem_ctx, escaped);
-    talloc_free(escaped);
-    assert_non_null(raw);
-    assert_string_equal(raw, "noescape");
-    talloc_free(raw);
-
-    escaped = ifp_bus_path_escape(mem_ctx, "redhat.com");
-    assert_non_null(escaped);
-    assert_string_equal(escaped, "redhat_2ecom"); /* dot is 0x2E in ASCII */
-    raw = ifp_bus_path_unescape(mem_ctx, escaped);
-    talloc_free(escaped);
-    assert_non_null(raw);
-    assert_string_equal(raw, "redhat.com");
-    talloc_free(raw);
-
-    escaped = ifp_bus_path_escape(mem_ctx, "path_with_underscore");
-    assert_non_null(escaped);
-    /* underscore is 0x5F in ascii */
-    assert_string_equal(escaped, "path_5fwith_5funderscore");
-    raw = ifp_bus_path_unescape(mem_ctx, escaped);
-    talloc_free(escaped);
-    assert_non_null(raw);
-    assert_string_equal(raw, "path_with_underscore");
-    talloc_free(raw);
-
-    /* empty string */
-    escaped = ifp_bus_path_escape(mem_ctx, "");
-    assert_non_null(escaped);
-    assert_string_equal(escaped, "_");
-    raw = ifp_bus_path_unescape(mem_ctx, escaped);
-    talloc_free(escaped);
-    assert_non_null(raw);
-    assert_string_equal(raw, "");
-    talloc_free(raw);
-
-    /* negative tests */
-    escaped = ifp_bus_path_escape(mem_ctx, NULL);
-    assert_null(escaped);
-    raw = ifp_bus_path_unescape(mem_ctx, "wrongpath_");
-    assert_null(raw);
-
-    assert_true(leak_check_teardown());
-}
-
-#define PATH_BASE "/some/path"
-
 struct ifp_test_req_ctx {
     struct ifp_req *ireq;
     struct sbus_request *sr;
@@ -462,32 +396,6 @@ void ifp_test_req_teardown(void **state)
     assert_true(leak_check_teardown());
 }
 
-void test_reply_path(void **state)
-{
-    struct ifp_test_req_ctx *test_ctx = talloc_get_type_abort(*state,
-                                                struct ifp_test_req_ctx);
-    char *path;
-
-    /* Doesn't need escaping */
-    path = ifp_reply_objpath(test_ctx->ireq, PATH_BASE, "domname", NULL);
-    assert_non_null(path);
-    assert_string_equal(path, PATH_BASE"/domname");
-    talloc_free(path);
-}
-
-void test_reply_path_escape(void **state)
-{
-    struct ifp_test_req_ctx *test_ctx = talloc_get_type_abort(*state,
-                                                struct ifp_test_req_ctx);
-    char *path;
-
-    /* A dot needs escaping */
-    path = ifp_reply_objpath(test_ctx->ireq, PATH_BASE, "redhat.com", NULL);
-    assert_non_null(path);
-    assert_string_equal(path, PATH_BASE"/redhat_2ecom");
-    talloc_free(path);
-}
-
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -501,17 +409,11 @@ int main(int argc, const char *argv[])
     const UnitTest tests[] = {
         unit_test(ifp_test_req_create),
         unit_test(ifp_test_req_wrong_uid),
-        unit_test(test_path_prefix),
         unit_test_setup_teardown(test_el_to_dict,
                                  ifp_test_req_setup, ifp_test_req_teardown),
         unit_test(test_attr_acl),
         unit_test(test_attr_acl_ex),
         unit_test(test_attr_allowed),
-        unit_test(test_path_escape_unescape),
-        unit_test_setup_teardown(test_reply_path,
-                                 ifp_test_req_setup, ifp_test_req_teardown),
-        unit_test_setup_teardown(test_reply_path_escape,
-                                 ifp_test_req_setup, ifp_test_req_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

@@ -173,6 +173,26 @@ int sbus_conn_register_iface(struct sbus_connection *conn,
 errno_t
 sbus_conn_reregister_paths(struct sbus_connection *conn);
 
+char *
+sbus_opath_escape_part(TALLOC_CTX *mem_ctx,
+                       const char *object_path_part);
+
+char *
+sbus_opath_unescape_part(TALLOC_CTX *mem_ctx,
+                         const char *object_path_part);
+
+char *
+_sbus_opath_compose(TALLOC_CTX *mem_ctx,
+                    const char *base,
+                    const char *part, ...);
+
+#define sbus_opath_compose(mem_ctx, base, ...) \
+    _sbus_opath_compose(mem_ctx, base, ##__VA_ARGS__, NULL)
+
+const char *
+sbus_opath_strip_prefix(const char *object_path,
+                        const char *prefix);
+
 bool sbus_conn_disconnecting(struct sbus_connection *conn);
 
 /* max_retries < 0: retry forever
