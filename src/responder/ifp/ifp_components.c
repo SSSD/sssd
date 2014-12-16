@@ -148,6 +148,10 @@ static errno_t check_and_get_component_from_path(TALLOC_CTX *mem_ctx,
     ret = EOK;
 
 done:
+    if (ret != EOK) {
+        talloc_free(name);
+    }
+
     return ret;
 }
 
