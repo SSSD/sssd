@@ -365,6 +365,26 @@ sbus_opath_strip_prefix(const char *object_path,
     return NULL;
 }
 
+char *
+sbus_opath_get_object_name(TALLOC_CTX *mem_ctx,
+                           const char *object_path,
+                           const char *base_path)
+{
+    const char *name;
+
+    name = sbus_opath_strip_prefix(object_path, base_path);
+    if (name == NULL || name[0] == '\0') {
+        return NULL;
+    }
+
+    /* if base_path did not end with / */
+    if (name[0] == '/') {
+        name = name + 1;
+    }
+
+    return sbus_opath_unescape_part(mem_ctx, name);
+}
+
 static void
 sbus_opath_hash_delete_cb(hash_entry_t *item,
                           hash_destroy_enum deltype,

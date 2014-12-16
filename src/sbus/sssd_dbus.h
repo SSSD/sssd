@@ -193,6 +193,11 @@ const char *
 sbus_opath_strip_prefix(const char *object_path,
                         const char *prefix);
 
+char *
+sbus_opath_get_object_name(TALLOC_CTX *mem_ctx,
+                           const char *object_path,
+                           const char *base_path);
+
 bool sbus_conn_disconnecting(struct sbus_connection *conn);
 
 /* max_retries < 0: retry forever

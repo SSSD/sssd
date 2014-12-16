@@ -85,8 +85,7 @@ static errno_t check_and_get_component_from_path(TALLOC_CTX *mem_ctx,
                                                  char **_name)
 {
     enum component_type type;
-    const char *name = NULL;
-    char *safe_name = NULL;
+    char *name = NULL;
     errno_t ret;
 
     if (confdb == NULL || path == NULL) {
@@ -95,13 +94,17 @@ static errno_t check_and_get_component_from_path(TALLOC_CTX *mem_ctx,
 
     if (strcmp(path, PATH_MONITOR) == 0) {
         type = COMPONENT_MONITOR;
-        name = "monitor";
+        name = talloc_strdup(mem_ctx, "monitor");
+        if (name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     } else {
-        name = sbus_opath_strip_prefix(path, PATH_RESPONDERS "/");
+        name = sbus_opath_get_object_name(mem_ctx, path, PATH_RESPONDERS);
         if (name != NULL) {
             type = COMPONENT_RESPONDER;
         } else {
-            name = sbus_opath_strip_prefix(path, PATH_BACKENDS "/");
+            name = sbus_opath_get_object_name(mem_ctx, path, PATH_BACKENDS);
             if (name != NULL) {
                 type = COMPONENT_BACKEND;
             } else {
@@ -116,24 +119,18 @@ static errno_t check_and_get_component_from_path(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    safe_name = sbus_opath_unescape_part(mem_ctx, name);
-    if (safe_name == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     switch (type) {
     case COMPONENT_MONITOR:
         /* noop */
         break;
     case COMPONENT_RESPONDER:
-        if (!responder_exists(safe_name)) {
+        if (!responder_exists(name)) {
             ret = ENOENT;
             goto done;
         }
         break;
     case COMPONENT_BACKEND:
-        if (!backend_exists(confdb, safe_name)) {
+        if (!backend_exists(confdb, name)) {
             ret = ENOENT;
             goto done;
         }
@@ -145,7 +142,7 @@ static errno_t check_and_get_component_from_path(TALLOC_CTX *mem_ctx,
     }
 
     if (_name != NULL) {
-        *_name = safe_name;
+        *_name = name;
     }
 
     ret = EOK;

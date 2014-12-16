@@ -254,7 +254,6 @@ get_domain_info_from_req(struct sbus_request *dbus_req, void *data)
     struct ifp_ctx *ctx = NULL;
     struct sss_domain_info *domains = NULL;
     struct sss_domain_info *iter = NULL;
-    const char *raw_name = NULL;
     char *name = NULL;
 
     ctx = talloc_get_type(data, struct ifp_ctx);
@@ -263,13 +262,8 @@ get_domain_info_from_req(struct sbus_request *dbus_req, void *data)
         return NULL;
     }
 
-    raw_name = sbus_opath_strip_prefix(dbus_req->path,
-                                       INFOPIPE_DOMAIN_PATH_PFX "/");
-    if (raw_name == NULL) {
-        return NULL;
-    }
-
-    name = sbus_opath_unescape_part(dbus_req, raw_name);
+    name = sbus_opath_get_object_name(dbus_req, dbus_req->path,
+                                      INFOPIPE_DOMAIN_PATH_PFX);
     if (name == NULL) {
         return NULL;
     }

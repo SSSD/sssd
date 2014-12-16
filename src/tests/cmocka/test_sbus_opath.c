@@ -27,6 +27,8 @@
 #include "tests/cmocka/common_mock.h"
 #include "tests/common.h"
 
+#define BASE_PATH "/some/path"
+
 void test_sbus_opath_strip_prefix(void **state)
 {
     const char *prefix = "/org/freedesktop/sssd/";
@@ -102,9 +104,9 @@ void test_sbus_opath_compose(void **state)
     char *path;
 
     /* Doesn't need escaping */
-    path = sbus_opath_compose(NULL, "/base/path", "domname");
+    path = sbus_opath_compose(NULL, BASE_PATH, "domname");
     assert_non_null(path);
-    assert_string_equal(path, "/base/path/domname");
+    assert_string_equal(path, BASE_PATH "/domname");
     talloc_free(path);
 }
 
@@ -113,10 +115,32 @@ void test_sbus_opath_compose_escape(void **state)
     char *path;
 
     /* A dot needs escaping */
-    path = sbus_opath_compose(NULL, "/base/path", "redhat.com", NULL);
+    path = sbus_opath_compose(NULL, BASE_PATH, "redhat.com", NULL);
     assert_non_null(path);
-    assert_string_equal(path, "/base/path/redhat_2ecom");
+    assert_string_equal(path, BASE_PATH "/redhat_2ecom");
     talloc_free(path);
+}
+
+void test_sbus_opath_get_object_name(void **state)
+{
+    const char *path = BASE_PATH "/redhat_2ecom";
+    char *name;
+
+    name = sbus_opath_get_object_name(NULL, path, BASE_PATH);
+    assert_non_null(name);
+    assert_string_equal(name, "redhat.com");
+    talloc_free(name);
+
+    name = sbus_opath_get_object_name(NULL, path, BASE_PATH "/");
+    assert_non_null(name);
+    assert_string_equal(name, "redhat.com");
+    talloc_free(name);
+
+    name = sbus_opath_get_object_name(NULL, BASE_PATH, BASE_PATH);
+    assert_null(name);
+
+    name = sbus_opath_get_object_name(NULL, "invalid", BASE_PATH);
+    assert_null(name);
 }
 
 int main(int argc, const char *argv[])
@@ -134,6 +158,7 @@ int main(int argc, const char *argv[])
         unit_test(test_sbus_opath_escape_unescape),
         unit_test(test_sbus_opath_compose),
         unit_test(test_sbus_opath_compose_escape),
+        unit_test(test_sbus_opath_get_object_name)
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
