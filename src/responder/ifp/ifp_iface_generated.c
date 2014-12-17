@@ -3,6 +3,7 @@
 #include "util/util.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sssd_dbus_meta.h"
+#include "sbus/sssd_dbus_invokers.h"
 #include "ifp_iface_generated.h"
 
 /* invokes a handler with a 's' DBus signature */
@@ -10,11 +11,6 @@ static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr);
 
 /* invokes a handler with a 'u' DBus signature */
 static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr);
-static int invoke_get_s(struct sbus_request *dbus_req, void *function_ptr);
-static int invoke_get_u(struct sbus_request *dbus_req, void *function_ptr);
-static int invoke_get_b(struct sbus_request *dbus_req, void *function_ptr);
-static int invoke_get_as(struct sbus_request *dbus_req, void *function_ptr);
-static int invoke_get_o(struct sbus_request *dbus_req, void *function_ptr);
 
 /* arguments for org.freedesktop.sssd.infopipe.ListComponents */
 const struct sbus_arg_meta infopipe_iface_ListComponents__out[] = {
@@ -252,39 +248,13 @@ const struct sbus_method_meta infopipe_iface__methods[] = {
     { NULL, }
 };
 
-/* invokes GetAll for the 'org.freedesktop.sssd.infopipe' interface */
-static int invoke_infopipe_iface_get_all(struct sbus_request *dbus_req, void *function_ptr)
-{
-    DBusMessage *reply;
-    dbus_bool_t dbret;
-    DBusMessageIter iter;
-    DBusMessageIter iter_dict;
-
-    reply = dbus_message_new_method_return(dbus_req->message);
-    if (!reply) return ENOMEM;
-    dbus_message_iter_init_append(reply, &iter);
-    dbret = dbus_message_iter_open_container(
-                                     &iter, DBUS_TYPE_ARRAY,
-                                     DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
-                                     DBUS_TYPE_STRING_AS_STRING
-                                     DBUS_TYPE_VARIANT_AS_STRING
-                                     DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
-                                     &iter_dict);
-    if (!dbret) return ENOMEM;
-
-    dbret = dbus_message_iter_close_container(&iter, &iter_dict);
-    if (!dbret) return ENOMEM;
-
-    return sbus_request_finish(dbus_req, reply);
-}
-
 /* interface info for org.freedesktop.sssd.infopipe */
 const struct sbus_interface_meta infopipe_iface_meta = {
     "org.freedesktop.sssd.infopipe", /* name */
     infopipe_iface__methods,
     NULL, /* no signals */
     NULL, /* no properties */
-    invoke_infopipe_iface_get_all, /* GetAll invoker */
+    sbus_invoke_get_all, /* GetAll invoker */
 };
 
 int infopipe_component_Enable_finish(struct sbus_request *req)
@@ -363,7 +333,7 @@ const struct sbus_property_meta infopipe_component__properties[] = {
         "s", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_component, infopipe_component_get_name),
-        invoke_get_s,
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -372,7 +342,7 @@ const struct sbus_property_meta infopipe_component__properties[] = {
         "u", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_component, infopipe_component_get_debug_level),
-        invoke_get_u,
+        sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -381,7 +351,7 @@ const struct sbus_property_meta infopipe_component__properties[] = {
         "b", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_component, infopipe_component_get_enabled),
-        invoke_get_b,
+        sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -390,7 +360,7 @@ const struct sbus_property_meta infopipe_component__properties[] = {
         "s", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_component, infopipe_component_get_type),
-        invoke_get_s,
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -399,109 +369,12 @@ const struct sbus_property_meta infopipe_component__properties[] = {
         "as", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_component, infopipe_component_get_providers),
-        invoke_get_as,
+        sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
     },
     { NULL, }
 };
-
-/* invokes GetAll for the 'org.freedesktop.sssd.infopipe.Components' interface */
-static int invoke_infopipe_component_get_all(struct sbus_request *dbus_req, void *function_ptr)
-{
-    DBusMessage *reply;
-    dbus_bool_t dbret;
-    DBusMessageIter iter;
-    DBusMessageIter iter_dict;
-    int ret;
-    struct sbus_interface *intf = dbus_req->intf;
-    const struct sbus_property_meta *property;
-    const char * s_prop_val;
-    const char * s_out_val;
-    void (*s_handler)(struct sbus_request *, void *data, const char * *);
-    bool b_prop_val;
-    dbus_bool_t b_out_val;
-    void (*b_handler)(struct sbus_request *, void *data, bool *);
-    uint32_t u_prop_val;
-    uint32_t u_out_val;
-    void (*u_handler)(struct sbus_request *, void *data, uint32_t *);
-    const char * *as_prop_val;
-    int as_prop_len;
-    const char * *as_out_val;
-    void (*as_handler)(struct sbus_request *, void *data, const char * * *, int *);
-
-    reply = dbus_message_new_method_return(dbus_req->message);
-    if (!reply) return ENOMEM;
-    dbus_message_iter_init_append(reply, &iter);
-    dbret = dbus_message_iter_open_container(
-                                     &iter, DBUS_TYPE_ARRAY,
-                                     DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
-                                     DBUS_TYPE_STRING_AS_STRING
-                                     DBUS_TYPE_VARIANT_AS_STRING
-                                     DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
-                                     &iter_dict);
-    if (!dbret) return ENOMEM;
-
-    property = sbus_meta_find_property(intf->vtable->meta, "name");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
-            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "name", DBUS_TYPE_STRING, &s_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "debug_level");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        u_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (u_handler) {
-            (u_handler)(dbus_req, dbus_req->intf->handler_data, &u_prop_val);
-            u_out_val = u_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "debug_level", DBUS_TYPE_UINT32, &u_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "enabled");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        b_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (b_handler) {
-            (b_handler)(dbus_req, dbus_req->intf->handler_data, &b_prop_val);
-            b_out_val = b_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "enabled", DBUS_TYPE_BOOLEAN, &b_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "type");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
-            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "type", DBUS_TYPE_STRING, &s_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "providers");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        as_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (as_handler) {
-            (as_handler)(dbus_req, dbus_req->intf->handler_data, &as_prop_val, &as_prop_len);
-            as_out_val = as_prop_val;
-            ret = sbus_add_array_as_variant_to_dict(&iter_dict, "providers", DBUS_TYPE_STRING, (uint8_t*)as_out_val, as_prop_len, sizeof(const char *));
-            if (ret != EOK) return ret;
-        }
-    }
-
-    dbret = dbus_message_iter_close_container(&iter, &iter_dict);
-    if (!dbret) return ENOMEM;
-
-    return sbus_request_finish(dbus_req, reply);
-}
 
 /* interface info for org.freedesktop.sssd.infopipe.Components */
 const struct sbus_interface_meta infopipe_component_meta = {
@@ -509,7 +382,7 @@ const struct sbus_interface_meta infopipe_component_meta = {
     infopipe_component__methods,
     NULL, /* no signals */
     infopipe_component__properties,
-    invoke_infopipe_component_get_all, /* GetAll invoker */
+    sbus_invoke_get_all, /* GetAll invoker */
 };
 
 /* property info for org.freedesktop.sssd.infopipe.Domains */
@@ -519,7 +392,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "s", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_name),
-        invoke_get_s,
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -528,7 +401,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "s", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_provider),
-        invoke_get_s,
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -537,7 +410,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "as", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_primary_servers),
-        invoke_get_as,
+        sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -546,7 +419,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "as", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_backup_servers),
-        invoke_get_as,
+        sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -555,7 +428,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "u", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_min_id),
-        invoke_get_u,
+        sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -564,7 +437,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "u", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_max_id),
-        invoke_get_u,
+        sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -573,7 +446,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "s", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_realm),
-        invoke_get_s,
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -582,7 +455,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "s", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_forest),
-        invoke_get_s,
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -591,7 +464,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "s", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_login_format),
-        invoke_get_s,
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -600,7 +473,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "s", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_fully_qualified_name_format),
-        invoke_get_s,
+        sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -609,7 +482,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "b", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_enumerable),
-        invoke_get_b,
+        sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -618,7 +491,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "b", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_use_fully_qualified_names),
-        invoke_get_b,
+        sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -627,7 +500,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "b", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_subdomain),
-        invoke_get_b,
+        sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
     },
@@ -636,211 +509,12 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "o", /* type */
         SBUS_PROPERTY_READABLE,
         offsetof(struct infopipe_domain, infopipe_domain_get_parent_domain),
-        invoke_get_o,
+        sbus_invoke_get_o,
         0, /* not writable */
         NULL, /* no invoker */
     },
     { NULL, }
 };
-
-/* invokes GetAll for the 'org.freedesktop.sssd.infopipe.Domains' interface */
-static int invoke_infopipe_domain_get_all(struct sbus_request *dbus_req, void *function_ptr)
-{
-    DBusMessage *reply;
-    dbus_bool_t dbret;
-    DBusMessageIter iter;
-    DBusMessageIter iter_dict;
-    int ret;
-    struct sbus_interface *intf = dbus_req->intf;
-    const struct sbus_property_meta *property;
-    const char * s_prop_val;
-    const char * s_out_val;
-    void (*s_handler)(struct sbus_request *, void *data, const char * *);
-    bool b_prop_val;
-    dbus_bool_t b_out_val;
-    void (*b_handler)(struct sbus_request *, void *data, bool *);
-    uint32_t u_prop_val;
-    uint32_t u_out_val;
-    void (*u_handler)(struct sbus_request *, void *data, uint32_t *);
-    const char * *as_prop_val;
-    int as_prop_len;
-    const char * *as_out_val;
-    void (*as_handler)(struct sbus_request *, void *data, const char * * *, int *);
-    const char * o_prop_val;
-    const char * o_out_val;
-    void (*o_handler)(struct sbus_request *, void *data, const char * *);
-
-    reply = dbus_message_new_method_return(dbus_req->message);
-    if (!reply) return ENOMEM;
-    dbus_message_iter_init_append(reply, &iter);
-    dbret = dbus_message_iter_open_container(
-                                     &iter, DBUS_TYPE_ARRAY,
-                                     DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
-                                     DBUS_TYPE_STRING_AS_STRING
-                                     DBUS_TYPE_VARIANT_AS_STRING
-                                     DBUS_DICT_ENTRY_END_CHAR_AS_STRING,
-                                     &iter_dict);
-    if (!dbret) return ENOMEM;
-
-    property = sbus_meta_find_property(intf->vtable->meta, "name");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
-            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "name", DBUS_TYPE_STRING, &s_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "provider");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
-            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "provider", DBUS_TYPE_STRING, &s_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "primary_servers");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        as_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (as_handler) {
-            (as_handler)(dbus_req, dbus_req->intf->handler_data, &as_prop_val, &as_prop_len);
-            as_out_val = as_prop_val;
-            ret = sbus_add_array_as_variant_to_dict(&iter_dict, "primary_servers", DBUS_TYPE_STRING, (uint8_t*)as_out_val, as_prop_len, sizeof(const char *));
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "backup_servers");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        as_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (as_handler) {
-            (as_handler)(dbus_req, dbus_req->intf->handler_data, &as_prop_val, &as_prop_len);
-            as_out_val = as_prop_val;
-            ret = sbus_add_array_as_variant_to_dict(&iter_dict, "backup_servers", DBUS_TYPE_STRING, (uint8_t*)as_out_val, as_prop_len, sizeof(const char *));
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "min_id");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        u_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (u_handler) {
-            (u_handler)(dbus_req, dbus_req->intf->handler_data, &u_prop_val);
-            u_out_val = u_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "min_id", DBUS_TYPE_UINT32, &u_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "max_id");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        u_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (u_handler) {
-            (u_handler)(dbus_req, dbus_req->intf->handler_data, &u_prop_val);
-            u_out_val = u_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "max_id", DBUS_TYPE_UINT32, &u_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "realm");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
-            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "realm", DBUS_TYPE_STRING, &s_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "forest");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
-            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "forest", DBUS_TYPE_STRING, &s_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "login_format");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
-            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "login_format", DBUS_TYPE_STRING, &s_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "fully_qualified_name_format");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
-            s_out_val = s_prop_val == NULL ? "" : s_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "fully_qualified_name_format", DBUS_TYPE_STRING, &s_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "enumerable");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        b_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (b_handler) {
-            (b_handler)(dbus_req, dbus_req->intf->handler_data, &b_prop_val);
-            b_out_val = b_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "enumerable", DBUS_TYPE_BOOLEAN, &b_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "use_fully_qualified_names");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        b_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (b_handler) {
-            (b_handler)(dbus_req, dbus_req->intf->handler_data, &b_prop_val);
-            b_out_val = b_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "use_fully_qualified_names", DBUS_TYPE_BOOLEAN, &b_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "subdomain");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        b_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (b_handler) {
-            (b_handler)(dbus_req, dbus_req->intf->handler_data, &b_prop_val);
-            b_out_val = b_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "subdomain", DBUS_TYPE_BOOLEAN, &b_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    property = sbus_meta_find_property(intf->vtable->meta, "parent_domain");
-    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
-        o_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
-        if (o_handler) {
-            (o_handler)(dbus_req, dbus_req->intf->handler_data, &o_prop_val);
-            o_out_val = o_prop_val == NULL ? "/" : o_prop_val;
-            ret = sbus_add_variant_to_dict(&iter_dict, "parent_domain", DBUS_TYPE_OBJECT_PATH, &o_out_val);
-            if (ret != EOK) return ret;
-        }
-    }
-
-    dbret = dbus_message_iter_close_container(&iter, &iter_dict);
-    if (!dbret) return ENOMEM;
-
-    return sbus_request_finish(dbus_req, reply);
-}
 
 /* interface info for org.freedesktop.sssd.infopipe.Domains */
 const struct sbus_interface_meta infopipe_domain_meta = {
@@ -848,7 +522,7 @@ const struct sbus_interface_meta infopipe_domain_meta = {
     NULL, /* no methods */
     NULL, /* no signals */
     infopipe_domain__properties,
-    invoke_infopipe_domain_get_all, /* GetAll invoker */
+    sbus_invoke_get_all, /* GetAll invoker */
 };
 
 /* invokes a handler with a 's' DBus signature */
@@ -881,75 +555,4 @@ static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr)
 
     return (handler)(dbus_req, dbus_req->intf->handler_data,
                      arg_0);
-}
-
-/* invokes a getter with a 'const char *' DBus type */
-static int invoke_get_s(struct sbus_request *dbus_req, void *function_ptr)
-{
-    const char * prop_val;
-    const char * out_val;
-
-    void (*handler)(struct sbus_request *, void *data, const char * *) = function_ptr;
-
-    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
-
-    out_val = prop_val == NULL ? "" : prop_val;
-    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_STRING, &out_val);
-}
-
-/* invokes a getter with a 'dbus_bool_t' DBus type */
-static int invoke_get_b(struct sbus_request *dbus_req, void *function_ptr)
-{
-    bool prop_val;
-    dbus_bool_t out_val;
-
-    void (*handler)(struct sbus_request *, void *data, bool *) = function_ptr;
-
-    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
-
-    out_val = prop_val;
-    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_BOOLEAN, &out_val);
-}
-
-/* invokes a getter with a 'uint32_t' DBus type */
-static int invoke_get_u(struct sbus_request *dbus_req, void *function_ptr)
-{
-    uint32_t prop_val;
-    uint32_t out_val;
-
-    void (*handler)(struct sbus_request *, void *data, uint32_t *) = function_ptr;
-
-    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
-
-    out_val = prop_val;
-    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_UINT32, &out_val);
-}
-
-/* invokes a getter with an array of 'const char *' DBus type */
-static int invoke_get_as(struct sbus_request *dbus_req, void *function_ptr)
-{
-    const char * *prop_val;
-    int prop_len;
-    const char * *out_val;
-
-    void (*handler)(struct sbus_request *, void *data, const char * * *, int *) = function_ptr;
-
-    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
-
-    out_val = prop_val;
-    return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_STRING, (uint8_t*)out_val, prop_len, sizeof(const char *));
-}
-
-/* invokes a getter with a 'const char *' DBus type */
-static int invoke_get_o(struct sbus_request *dbus_req, void *function_ptr)
-{
-    const char * prop_val;
-    const char * out_val;
-
-    void (*handler)(struct sbus_request *, void *data, const char * *) = function_ptr;
-
-    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
-
-    out_val = prop_val == NULL ? "/" : prop_val;
-    return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_OBJECT_PATH, &out_val);
 }

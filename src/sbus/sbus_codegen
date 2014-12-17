@@ -190,7 +190,7 @@ class Property(Typed):
     def getter_name(self):
         return "%s_get_%s" % (self.iface.c_name(), self.c_name())
     def getter_invoker_name(self):
-        return "invoke_get_%s" % self.type
+        return "sbus_invoke_get_%s" % self.type
     def getter_signature(self, name):
         sig = "void (*%s)(struct sbus_request *, void *data, %s *" % (name, self.sssd_type)
         if self.is_array:
@@ -306,108 +306,6 @@ def source_prop_handler(prop, type_prefix=False):
     out("    %s", prop.getter_signature("%shandler" % prefix), new_line=False)
     out(";")
 
-def source_getter_invoker(prop):
-    out("")
-    if prop.is_array:
-        out("/* invokes a getter with an array of '%s' DBus type */", prop.dbus_type)
-    else:
-        out("/* invokes a getter with a '%s' DBus type */", prop.dbus_type)
-    out("static int %s(struct sbus_request *dbus_req, void *function_ptr)",
-        prop.getter_invoker_name())
-    out("{")
-
-    source_prop_types(prop)
-
-    out("")
-    out("    %s", prop.getter_signature("handler"), new_line=False)
-    out(" = function_ptr;")
-    out("")
-
-    out("    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val", new_line=False)
-    if prop.is_array:
-        out(", &prop_len", new_line=False)
-    out(");")
-
-    out("")
-    if prop.type == "s":
-        out("    out_val = prop_val == NULL ? \"\" : prop_val;")
-    elif prop.type == "o":
-        out("    out_val = prop_val == NULL ? \"/\" : prop_val;")
-    else:
-        out("    out_val = prop_val;")
-    if prop.is_array:
-        out("    return sbus_request_return_array_as_variant(dbus_req, %s, (uint8_t*)out_val, prop_len, sizeof(%s));", prop.dbus_constant, prop.sssd_type)
-    else:
-        out("    return sbus_request_return_as_variant(dbus_req, %s, &out_val);", prop.dbus_constant)
-    out("}")
-
-def source_getall_invoker(iface, prop_invokers):
-    out("")
-    out("/* invokes GetAll for the '%s' interface */", iface.name)
-    out("static int invoke_%s_get_all(struct sbus_request *dbus_req, void *function_ptr)",
-        iface.c_name())
-    out("{")
-    out("    DBusMessage *reply;")
-    out("    dbus_bool_t dbret;")
-    out("    DBusMessageIter iter;")
-    out("    DBusMessageIter iter_dict;")
-    if iface.properties:
-        out("    int ret;")
-        out("    struct sbus_interface *intf = dbus_req->intf;")
-        out("    const struct sbus_property_meta *property;")
-
-    iface_types = [ p.type for p in iface.properties ]
-    for prop in [ p for p in prop_invokers.values() if p.type in iface_types ]:
-        source_prop_types(prop, type_prefix=True)
-        source_prop_handler(prop, type_prefix=True)
-    out("")
-
-    out("    reply = dbus_message_new_method_return(dbus_req->message);")
-    out("    if (!reply) return ENOMEM;")
-    out("    dbus_message_iter_init_append(reply, &iter);")
-    out("    dbret = dbus_message_iter_open_container(")
-    out("                                     &iter, DBUS_TYPE_ARRAY,")
-    out("                                     DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING")
-    out("                                     DBUS_TYPE_STRING_AS_STRING")
-    out("                                     DBUS_TYPE_VARIANT_AS_STRING")
-    out("                                     DBUS_DICT_ENTRY_END_CHAR_AS_STRING,")
-    out("                                     &iter_dict);")
-    out("    if (!dbret) return ENOMEM;")
-    out("")
-
-    for prop in iface.properties:
-        out("    property = sbus_meta_find_property(intf->vtable->meta, \"%s\");", prop.c_name())
-        out("    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {")
-        out("        %s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);", prop.type)
-        out("        if (%s_handler) {", prop.type)
-        out("            (%s_handler)(dbus_req, dbus_req->intf->handler_data, &%s_prop_val", prop.type, prop.type, new_line=False)
-        if prop.is_array:
-            out(", &%s_prop_len", prop.type, new_line=False)
-        out(");")
-        if prop.type == "s":
-            out("            %s_out_val = %s_prop_val == NULL ? \"\" : %s_prop_val;",
-                prop.type, prop.type, prop.type)
-        elif prop.type == "o":
-            out("            %s_out_val = %s_prop_val == NULL ? \"/\" : %s_prop_val;",
-                prop.type, prop.type, prop.type)
-        else:
-            out("            %s_out_val = %s_prop_val;", prop.type, prop.type)
-        if prop.is_array:
-            out("            ret = sbus_add_array_as_variant_to_dict(&iter_dict, \"%s\", %s, (uint8_t*)%s_out_val, %s_prop_len, sizeof(%s));", prop.c_name(), prop.dbus_constant, prop.type, prop.type, prop.sssd_type)
-        else:
-            out("            ret = sbus_add_variant_to_dict(&iter_dict, \"%s\", %s, &%s_out_val);", prop.c_name(), prop.dbus_constant, prop.type)
-        out("            if (ret != EOK) return ret;")
-        out("        }")
-        out("    }")
-        out("")
-
-    out("    dbret = dbus_message_iter_close_container(&iter, &iter_dict);")
-    out("    if (!dbret) return ENOMEM;")
-    out("")
-
-    out("    return sbus_request_finish(dbus_req, reply);")
-    out("}")
-
 def forward_method_invokers(ifaces):
     invokers = { }
     for iface in ifaces:
@@ -424,27 +322,6 @@ def forward_method_invokers(ifaces):
 def source_method_invokers(invokers):
     for (signature, meth) in invokers.items():
         source_method_invoker(signature, meth.in_args)
-
-def forward_prop_invoker(prop):
-    out("static int %s(struct sbus_request *dbus_req, void *function_ptr);",
-        prop.getter_invoker_name())
-
-def forward_prop_invokers(ifaces):
-    invokers = { }
-    for iface in ifaces:
-        for prop in iface.properties:
-            if not prop.is_basic:
-                continue
-            if prop.type in invokers:
-                continue
-            forward_prop_invoker(prop)
-            invokers[prop.type] = prop
-    return invokers
-
-def source_prop_invokers(invokers):
-    for (type, prop) in invokers.items():
-        if prop.readable:
-            source_getter_invoker(prop)
 
 def source_finisher(meth):
     out("")
@@ -590,7 +467,7 @@ def source_interface(iface):
         out("    %s__properties,", iface.c_name())
     else:
         out("    NULL, /* no properties */")
-    out("    invoke_%s_get_all, /* GetAll invoker */", iface.c_name())
+    out("    sbus_invoke_get_all, /* GetAll invoker */")
     out("};")
 
 def generate_source(ifaces, filename, include_header=None):
@@ -602,11 +479,11 @@ def generate_source(ifaces, filename, include_header=None):
     out("#include \"util/util.h\"")
     out("#include \"sbus/sssd_dbus.h\"")
     out("#include \"sbus/sssd_dbus_meta.h\"")
+    out("#include \"sbus/sssd_dbus_invokers.h\"")
     if include_header:
         out("#include \"%s\"", os.path.basename(include_header))
 
     meth_invokers = forward_method_invokers(ifaces)
-    prop_invokers = forward_prop_invokers(ifaces)
 
     for iface in ifaces:
 
@@ -622,14 +499,10 @@ def generate_source(ifaces, filename, include_header=None):
         if iface.properties:
             source_properties(iface, iface.properties)
 
-        # always generate getall, for interfaces without properties
-        # let's return an empty array
-        source_getall_invoker(iface, prop_invokers)
         # The sbus_interface structure
         source_interface(iface)
 
     source_method_invokers(meth_invokers)
-    source_prop_invokers(prop_invokers)
 
 def header_finisher(iface, meth):
     if meth.use_raw_handler():

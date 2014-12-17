@@ -21,6 +21,8 @@
 #ifndef _SSSD_DBUS_META_H_
 #define _SSSD_DBUS_META_H_
 
+#include <dbus/dbus.h>
+
 /*
  * Interface metadata
  *
@@ -45,7 +47,14 @@ struct sbus_arg_meta {
 struct sbus_request;
 struct sbus_interface;
 
-typedef int (* sbus_method_invoker_fn)(struct sbus_request *dbus_req, void *handler_fn);
+typedef int (* sbus_get_invoker_fn)(DBusMessageIter *iter,
+                                    struct sbus_request *sbus_req,
+                                    void *handler_fn);
+
+typedef void (* sbus_get_all_invoker_fn)(struct sbus_request *sbus_req);
+
+typedef int (* sbus_method_invoker_fn)(struct sbus_request *sbus_req,
+                                       void *handler_fn);
 
 struct sbus_method_meta {
     const char *name;
@@ -65,7 +74,7 @@ struct sbus_property_meta {
     const char *type;
     int flags;
     size_t vtable_offset_get;
-    sbus_method_invoker_fn invoker_get;
+    sbus_get_invoker_fn invoker_get;
     size_t vtable_offset_set;
     sbus_method_invoker_fn invoker_set;
 };
@@ -80,7 +89,7 @@ struct sbus_interface_meta {
     const struct sbus_method_meta *methods;
     const struct sbus_signal_meta *signals;
     const struct sbus_property_meta *properties;
-    sbus_method_invoker_fn invoker_get_all;
+    sbus_get_all_invoker_fn invoker_get_all;
 };
 
 const struct sbus_method_meta *

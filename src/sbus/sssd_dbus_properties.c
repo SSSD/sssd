@@ -25,6 +25,7 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus/sssd_dbus_meta.h"
 #include "sbus/sssd_dbus_private.h"
+#include "sbus/sssd_dbus_invokers.h"
 
 #define CHECK_SIGNATURE_OR_FAIL(req, error, label, exp) do { \
     const char *__sig; \
@@ -124,11 +125,9 @@ sbus_properties_vtable(void)
     return &iface.vtable;
 }
 
-static int sbus_properties_invoke(struct sbus_request *sbus_req,
-                                  struct sbus_interface *iface,
-                                  sbus_msg_handler_fn handler_fn,
-                                  void *handler_data,
-                                  sbus_method_invoker_fn invoker_fn)
+static struct sbus_request *
+sbus_properties_subreq(struct sbus_request *sbus_req,
+                       struct sbus_interface *iface)
 {
     struct sbus_request *sbus_subreq;
 
@@ -137,20 +136,18 @@ static int sbus_properties_invoke(struct sbus_request *sbus_req,
      * so it is freed together. */
     sbus_subreq = sbus_new_request(sbus_req->conn, iface, sbus_req->message);
     if (sbus_subreq == NULL) {
-        return ENOMEM;
+        return NULL;
     }
 
     talloc_steal(sbus_subreq, sbus_req);
 
-    sbus_request_invoke_or_finish(sbus_subreq, handler_fn, handler_data,
-                                  invoker_fn);
-
-    return EOK;
+    return sbus_subreq;
 }
 
 static int sbus_properties_get(struct sbus_request *sbus_req, void *pvt)
 {
     DBusError *error;
+    struct sbus_request *sbus_subreq;
     struct sbus_connection *conn;
     struct sbus_interface *iface;
     const struct sbus_property_meta *prop;
@@ -202,8 +199,15 @@ static int sbus_properties_get(struct sbus_request *sbus_req, void *pvt)
         goto fail;
     }
 
-    return sbus_properties_invoke(sbus_req, iface, handler_fn,
-                                  iface->handler_data, prop->invoker_get);
+    sbus_subreq = sbus_properties_subreq(sbus_req, iface);
+    if (sbus_subreq == NULL) {
+        error = NULL;
+        goto fail;
+    }
+
+    sbus_invoke_get(sbus_subreq, prop->type,
+                    prop->invoker_get, handler_fn);
+    return EOK;
 
 fail:
     return sbus_request_fail_and_finish(sbus_req, error);
@@ -218,6 +222,7 @@ static int sbus_properties_set(struct sbus_request *sbus_req, void *pvt)
     DBusError *error;
     DBusMessageIter iter;
     DBusMessageIter iter_variant;
+    struct sbus_request *sbus_subreq;
     struct sbus_connection *conn;
     struct sbus_interface *iface;
     const struct sbus_property_meta *prop;
@@ -276,8 +281,16 @@ static int sbus_properties_set(struct sbus_request *sbus_req, void *pvt)
         goto fail;
     }
 
-    return sbus_properties_invoke(sbus_req, iface, handler_fn,
+    sbus_subreq = sbus_properties_subreq(sbus_req, iface);
+    if (sbus_subreq == NULL) {
+        error = NULL;
+        goto fail;
+    }
+
+    sbus_request_invoke_or_finish(sbus_subreq, handler_fn,
                                   iface->handler_data, prop->invoker_set);
+
+    return EOK;
 
 fail:
     return sbus_request_fail_and_finish(sbus_req, error);
@@ -286,6 +299,7 @@ fail:
 static int sbus_properties_get_all(struct sbus_request *sbus_req, void *pvt)
 {
     DBusError *error;
+    struct sbus_request *sbus_subreq;
     struct sbus_connection *conn;
     struct sbus_interface *iface;
     const char *interface_name;
@@ -312,8 +326,15 @@ static int sbus_properties_get_all(struct sbus_request *sbus_req, void *pvt)
         goto fail;
     }
 
-    return sbus_properties_invoke(sbus_req, iface, NULL, NULL,
-                                  iface->vtable->meta->invoker_get_all);
+    sbus_subreq = sbus_properties_subreq(sbus_req, iface);
+    if (sbus_subreq == NULL) {
+        error = NULL;
+        goto fail;
+    }
+
+    iface->vtable->meta->invoker_get_all(sbus_subreq);
+
+    return EOK;
 
 fail:
     return sbus_request_fail_and_finish(sbus_req, error);
