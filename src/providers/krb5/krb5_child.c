@@ -1076,7 +1076,6 @@ static errno_t map_krb5_error(krb5_error_code kerr)
     case KRB5_LIBOS_CANTREADPWD:
         return ERR_NO_CREDS;
 
-    case KRB5KRB_ERR_GENERIC:
     case KRB5KRB_AP_ERR_SKEW:
     case KRB5_KDC_UNREACH:
     case KRB5_REALM_CANT_RESOLVE:
@@ -1099,6 +1098,18 @@ static errno_t map_krb5_error(krb5_error_code kerr)
     case KRB5KDC_ERR_PREAUTH_FAILED:
         return ERR_CREDS_INVALID;
 
+    /* Please do not remove KRB5KRB_ERR_GENERIC here, it is a _generic_ error
+     * code and we cannot make any assumptions about the reason for the error.
+     * As a consequence we cannot return a different error code than a generic
+     * one which unfortunately might result in a unspecific system error
+     * message to the user.
+     *
+     * If there are cases where libkrb5 calls return KRB5KRB_ERR_GENERIC where
+     * SSSD should behave differently this has to be detected by different
+     * means, e.g. by evaluation error messages, and then the error code
+     * should be changed to a more suitable KRB5* error code or immediately to
+     * a SSSD ERR_* error code to avoid the default handling here. */
+    case KRB5KRB_ERR_GENERIC:
     default:
         return ERR_INTERNAL;
     }
