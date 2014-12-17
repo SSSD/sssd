@@ -4502,16 +4502,16 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
         return ENOENT;
     }
 
-    if (dctx->res->count == 0 && !dctx->check_provider) {
+    if (dctx->res->count == 0) {
         DEBUG(SSSDBG_OP_FAILURE, "No results for getbysid call.\n");
-
-        /* set negative cache only if not result of cache check */
-        ret = sss_ncache_set_sid(nctx->ncache, false, cmdctx->secid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Cannot set negative cache for %s\n", cmdctx->secid);
+        if (!dctx->check_provider) {
+            /* set negative cache only if not result of cache check */
+            ret = sss_ncache_set_sid(nctx->ncache, false, cmdctx->secid);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Cannot set negative cache for %s\n", cmdctx->secid);
+            }
         }
-
         return ENOENT;
     }
 
