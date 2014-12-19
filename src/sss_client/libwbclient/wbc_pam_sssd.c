@@ -45,6 +45,10 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
                  struct wbcAuthUserInfo **info,
                  struct wbcAuthErrorInfo **error)
 {
+    if (error != NULL) {
+        *error = NULL;
+    }
+
     WBC_SSSD_NOT_IMPLEMENTED;
 }
 
@@ -52,6 +56,10 @@ wbcErr wbcAuthenticateUserEx(const struct wbcAuthUserParams *params,
 wbcErr wbcCheckTrustCredentials(const char *domain,
                 struct wbcAuthErrorInfo **error)
 {
+    if (error != NULL) {
+        *error = NULL;
+    }
+
     WBC_SSSD_NOT_IMPLEMENTED;
 }
 
@@ -59,6 +67,10 @@ wbcErr wbcCheckTrustCredentials(const char *domain,
 wbcErr wbcChangeTrustCredentials(const char *domain,
                  struct wbcAuthErrorInfo **error)
 {
+    if (error != NULL) {
+        *error = NULL;
+    }
+
     WBC_SSSD_NOT_IMPLEMENTED;
 }
 
@@ -102,6 +114,14 @@ wbcErr wbcChangeUserPasswordEx(const struct wbcChangePasswordParams *params,
                    enum wbcPasswordChangeRejectReason *reject_reason,
                    struct wbcUserPasswordPolicyInfo **policy)
 {
+    if (error != NULL) {
+        *error = NULL;
+    }
+
+    if (policy != NULL) {
+        *policy = NULL;
+    }
+
     WBC_SSSD_NOT_IMPLEMENTED;
 }
 
@@ -129,6 +149,18 @@ wbcErr wbcLogonUser(const struct wbcLogonUserParams *params,
             struct wbcAuthErrorInfo **error,
             struct wbcUserPasswordPolicyInfo **policy)
 {
+    if (info != NULL) {
+        *info = NULL;
+    }
+
+    if (error != NULL) {
+        *error = NULL;
+    }
+
+    if (policy != NULL) {
+        *policy = NULL;
+    }
+
     WBC_SSSD_NOT_IMPLEMENTED;
 }
 
@@ -137,6 +169,10 @@ wbcErr wbcCredentialCache(struct wbcCredentialCacheParams *params,
                           struct wbcCredentialCacheInfo **info,
                           struct wbcAuthErrorInfo **error)
 {
+    if (error != NULL) {
+        *error = NULL;
+    }
+
     WBC_SSSD_NOT_IMPLEMENTED;
 }
 
