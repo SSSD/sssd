@@ -1061,7 +1061,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     /* detect and fix misconfiguration */
     if (domain->refresh_expired_interval > entry_cache_timeout) {
         DEBUG(SSSDBG_CONF_SETTINGS,
-              "refresh_expired_interval (%d) cannot be greater then "
+              "refresh_expired_interval (%d) cannot be greater than "
               "entry_cache_timeout (%u)\n",
               domain->refresh_expired_interval, entry_cache_timeout);
 
