@@ -100,7 +100,7 @@ int sdap_get_generic_recv(struct tevent_req *req,
     *reply_count = sss_mock_type(size_t);
     *reply = sss_mock_ptr_type(struct sysdb_attrs **);
 
-    return EOK;
+    return sss_mock_type(int);
 }
 
 struct tevent_req * sdap_deref_search_send(TALLOC_CTX *mem_ctx,

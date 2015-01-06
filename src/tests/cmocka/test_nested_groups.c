@@ -177,11 +177,13 @@ static void nested_groups_test_one_group_unique_members(void **state)
     assert_non_null(user1_reply[0]);
     will_return(sdap_get_generic_recv, 1);
     will_return(sdap_get_generic_recv, user1_reply);
+    will_return(sdap_get_generic_recv, ERR_OK);
 
     user2_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2002, "user2");
     assert_non_null(user2_reply[0]);
     will_return(sdap_get_generic_recv, 1);
     will_return(sdap_get_generic_recv, user2_reply);
+    will_return(sdap_get_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
 
@@ -235,11 +237,13 @@ static void nested_groups_test_one_group_dup_users(void **state)
     assert_non_null(user1_reply[0]);
     will_return(sdap_get_generic_recv, 1);
     will_return(sdap_get_generic_recv, user1_reply);
+    will_return(sdap_get_generic_recv, ERR_OK);
 
     user2_reply[0] = mock_sysdb_user(test_ctx, USER_BASE_DN, 2001, "user1");
     assert_non_null(user2_reply[0]);
     will_return(sdap_get_generic_recv, 1);
     will_return(sdap_get_generic_recv, user2_reply);
+    will_return(sdap_get_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
 
@@ -297,12 +301,14 @@ static void nested_groups_test_one_group_unique_group_members(void **state)
     assert_non_null(group1_reply[0]);
     will_return(sdap_get_generic_recv, 1);
     will_return(sdap_get_generic_recv, group1_reply);
+    will_return(sdap_get_generic_recv, ERR_OK);
 
     group2_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
                                                   1002, "emptygroup2", NULL);
     assert_non_null(group2_reply[0]);
     will_return(sdap_get_generic_recv, 1);
     will_return(sdap_get_generic_recv, group2_reply);
+    will_return(sdap_get_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
 
@@ -358,12 +364,14 @@ static void nested_groups_test_one_group_dup_group_members(void **state)
     assert_non_null(group1_reply[0]);
     will_return(sdap_get_generic_recv, 1);
     will_return(sdap_get_generic_recv, group1_reply);
+    will_return(sdap_get_generic_recv, ERR_OK);
 
     group2_reply[0] = mock_sysdb_group_rfc2307bis(test_ctx, GROUP_BASE_DN,
                                                   1001, "emptygroup1", NULL);
     assert_non_null(group2_reply[0]);
     will_return(sdap_get_generic_recv, 1);
     will_return(sdap_get_generic_recv, group2_reply);
+    will_return(sdap_get_generic_recv, ERR_OK);
 
     sss_will_return_always(sdap_has_deref_support, false);
 
