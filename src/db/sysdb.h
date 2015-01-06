@@ -1090,10 +1090,6 @@ errno_t sysdb_gpo_get_gpos(TALLOC_CTX *mem_ctx,
 #define SYSDB_TMPL_GPO_RESULT_BASE SYSDB_GPO_CONTAINER","SYSDB_DOM_BASE
 #define SYSDB_TMPL_GPO_RESULT "cn=%s,"SYSDB_TMPL_GPO_RESULT_BASE
 
-errno_t sysdb_gpo_get_gpo_result_object(TALLOC_CTX *mem_ctx,
-                                        struct sss_domain_info *domain,
-                                        struct ldb_result **_result);
-
 errno_t sysdb_gpo_delete_gpo_result_object(TALLOC_CTX *mem_ctx,
                                            struct sss_domain_info *domain);
 

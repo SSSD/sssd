@@ -528,20 +528,17 @@ done:
     return ret;
 }
 
-errno_t
-sysdb_gpo_get_gpo_result_setting(TALLOC_CTX *mem_ctx,
-                                 struct sss_domain_info *domain,
-                                 const char *ini_key,
-                                 const char **_ini_value)
+static errno_t
+sysdb_gpo_get_gpo_result_object(TALLOC_CTX *mem_ctx,
+                                struct sss_domain_info *domain,
+                                const char **attrs,
+                                struct ldb_result **_result)
 {
     errno_t ret;
     int lret;
     struct ldb_dn *base_dn;
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
-    const char *ini_value;
-
-    const char *attrs[] = {ini_key, NULL};
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
@@ -560,7 +557,7 @@ sysdb_gpo_get_gpo_result_setting(TALLOC_CTX *mem_ctx,
                       LDB_SCOPE_SUBTREE, attrs, SYSDB_GPO_RESULT_FILTER);
     if (lret) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not locate GPO Result: [%s]\n",
+              "Could not locate GPO Result object: [%s]\n",
               ldb_strerror(lret));
         ret = sysdb_error_to_errno(lret);
         goto done;
@@ -568,6 +565,43 @@ sysdb_gpo_get_gpo_result_setting(TALLOC_CTX *mem_ctx,
 
     if (res->count == 0) {
         ret = ENOENT;
+        goto done;
+    }
+
+    *_result = talloc_steal(mem_ctx, res);
+    ret = EOK;
+
+done:
+
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_ALL, "No GPO Result object.\n");
+    } else if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+
+errno_t
+sysdb_gpo_get_gpo_result_setting(TALLOC_CTX *mem_ctx,
+                                 struct sss_domain_info *domain,
+                                 const char *ini_key,
+                                 const char **_ini_value)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    const char *ini_value;
+
+    const char *attrs[] = {ini_key, NULL};
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    ret = sysdb_gpo_get_gpo_result_object(tmp_ctx, domain, attrs, &res);
+    if (ret != EOK) {
         goto done;
     }
 
@@ -598,61 +632,6 @@ done:
 }
 
 
-errno_t
-sysdb_gpo_get_gpo_result_object(TALLOC_CTX *mem_ctx,
-                                struct sss_domain_info *domain,
-                                struct ldb_result **_result)
-{
-    errno_t ret;
-    int lret;
-    struct ldb_dn *base_dn;
-    TALLOC_CTX *tmp_ctx;
-    struct ldb_result *res;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
-
-    DEBUG(SSSDBG_TRACE_ALL, SYSDB_TMPL_GPO_RESULT_BASE"\n", domain->name);
-
-    base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                             SYSDB_TMPL_GPO_RESULT_BASE,
-                             domain->name);
-    if (!base_dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    lret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_SUBTREE, NULL, SYSDB_GPO_RESULT_FILTER);
-    if (lret) {
-        DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not locate GPO Result object: [%s]\n",
-              ldb_strerror(lret));
-        ret = sysdb_error_to_errno(lret);
-        goto done;
-    }
-
-    if (res->count == 0) {
-        ret = ENOENT;
-        goto done;
-    }
-
-    *_result = talloc_steal(mem_ctx, res);
-    ret = EOK;
-
-done:
-
-    if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_ALL, "No GPO Result object.\n");
-    } else if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "Error: %d (%s)\n", ret, strerror(ret));
-    }
-
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-
 errno_t sysdb_gpo_delete_gpo_result_object(TALLOC_CTX *mem_ctx,
                                            struct sss_domain_info *domain)
 {
@@ -668,7 +647,7 @@ errno_t sysdb_gpo_delete_gpo_result_object(TALLOC_CTX *mem_ctx,
 
     in_transaction = true;
 
-    ret = sysdb_gpo_get_gpo_result_object(mem_ctx, domain, &res);
+    ret = sysdb_gpo_get_gpo_result_object(mem_ctx, domain, NULL, &res);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not delete GPO result object: %d\n", ret);
