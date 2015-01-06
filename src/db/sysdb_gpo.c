@@ -670,6 +670,8 @@ errno_t sysdb_gpo_delete_gpo_result_object(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_gpo_get_gpo_result_object(mem_ctx, domain, &res);
     if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not delete GPO result object: %d\n", ret);
         goto done;
     } else if (ret != ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC, "Deleting GPO Result object\n");

@@ -6015,6 +6015,83 @@ START_TEST(test_gpo_replace)
 }
 END_TEST
 
+START_TEST(test_gpo_result)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *allow_key = "SeRemoteInteractiveLogonRight";
+    const char *deny_key = "SeDenyRemoteInteractiveLogonRight";
+    const char *value = NULL;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not setup the test");
+
+    /* No result in cache */
+    ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
+                                           allow_key, &value);
+    ck_assert_int_eq(ret, ENOENT);
+
+    ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
+                                           deny_key, &value);
+    ck_assert_int_eq(ret, ENOENT);
+
+    /* Delete with no result object is a noop */
+    ret = sysdb_gpo_delete_gpo_result_object(test_ctx, test_ctx->domain);
+    ck_assert_int_eq(ret, EOK);
+
+    /* Store an allow value, triggering a new result object */
+    ret = sysdb_gpo_store_gpo_result_setting(test_ctx->domain,
+                                             allow_key, "allow_val1");
+    ck_assert_int_eq(ret, EOK);
+
+    /* Now both searches should succeed, but only allow_key should return
+     * a valid value
+     */
+    ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
+                                           allow_key, &value);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert_str_eq(value, "allow_val1");
+
+    ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
+                                           deny_key, &value);
+    ck_assert_int_eq(ret, EOK);
+    fail_unless(value == NULL);
+
+    /* Updating replaces the original value */
+    ret = sysdb_gpo_store_gpo_result_setting(test_ctx->domain,
+                                             allow_key, "allow_val2");
+    ck_assert_int_eq(ret, EOK);
+
+    ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
+                                           allow_key, &value);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert_str_eq(value, "allow_val2");
+
+    /* NULL removes the value completely */
+    ret = sysdb_gpo_store_gpo_result_setting(test_ctx->domain,
+                                             allow_key, NULL);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
+                                           allow_key, &value);
+    ck_assert_int_eq(ret, EOK);
+    fail_unless(value == NULL);
+
+    /* Delete the result */
+    ret = sysdb_gpo_delete_gpo_result_object(test_ctx, test_ctx->domain);
+    ck_assert_int_eq(ret, EOK);
+
+    /* No result in cache */
+    ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
+                                           allow_key, &value);
+    ck_assert_int_eq(ret, ENOENT);
+
+    ret = sysdb_gpo_get_gpo_result_setting(test_ctx, test_ctx->domain,
+                                           deny_key, &value);
+    ck_assert_int_eq(ret, ENOENT);
+}
+END_TEST
+
 START_TEST(test_confdb_list_all_domain_names_multi_dom)
 {
     int ret;
@@ -6446,6 +6523,7 @@ Suite *create_sysdb_suite(void)
     TCase *tc_gpo = tcase_create("SYSDB GPO tests");
     tcase_add_test(tc_gpo, test_gpo_store_retrieve);
     tcase_add_test(tc_gpo, test_gpo_replace);
+    tcase_add_test(tc_gpo, test_gpo_result);
     suite_add_tcase(s, tc_gpo);
 
     /* ConfDB tests -- modify confdb, must always be last!! */
