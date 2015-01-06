@@ -1489,8 +1489,6 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct ad_gpo_access_state *state;
-    char *server_uri;
-    LDAPURLDesc *lud;
     errno_t ret;
     int hret;
     hash_key_t key;
@@ -1580,33 +1578,6 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    /* extract server_hostname from server_uri */
-    server_uri = state->conn->service->uri;
-    ret = ldap_url_parse(server_uri, &lud);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to parse ldap URI (%s)!\n", server_uri);
-        ret = EINVAL;
-        goto immediately;
-    }
-
-    if (lud->lud_host == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "The LDAP URI (%s) did not contain a host name\n", server_uri);
-        ldap_free_urldesc(lud);
-        ret = EINVAL;
-        goto immediately;
-    }
-
-    state->server_hostname = talloc_strdup(state, lud->lud_host);
-    ldap_free_urldesc(lud);
-    if (!state->server_hostname) {
-        ret = ENOMEM;
-        goto immediately;
-    }
-    DEBUG(SSSDBG_TRACE_ALL, "server_hostname from uri: %s\n",
-          state->server_hostname);
-
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1666,6 +1637,8 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     char *domain_dn;
     int dp_error;
     errno_t ret;
+    char *server_uri;
+    LDAPURLDesc *lud;
 
     const char *attrs[] = {AD_AT_DN, AD_AT_UAC, NULL};
 
@@ -1701,6 +1674,33 @@ ad_gpo_connect_done(struct tevent_req *subreq)
             }
         }
     }
+
+    /* extract server_hostname from server_uri */
+    server_uri = state->conn->service->uri;
+    ret = ldap_url_parse(server_uri, &lud);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to parse ldap URI (%s)!\n", server_uri);
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (lud->lud_host == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "The LDAP URI (%s) did not contain a host name\n", server_uri);
+        ldap_free_urldesc(lud);
+        ret = EINVAL;
+        goto done;
+    }
+
+    state->server_hostname = talloc_strdup(state, lud->lud_host);
+    ldap_free_urldesc(lud);
+    if (!state->server_hostname) {
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_ALL, "server_hostname from uri: %s\n",
+          state->server_hostname);
 
     sam_account_name = sss_krb5_get_primary(state, "%S$", state->ad_hostname);
     if (sam_account_name == NULL) {
