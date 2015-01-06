@@ -1339,7 +1339,10 @@ parse_policy_setting_value(TALLOC_CTX *mem_ctx,
     char **sids_list = NULL;
 
     ret = sysdb_gpo_get_gpo_result_setting(mem_ctx, domain, key, &value);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No previous GPO result\n");
+        value = NULL;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot retrieve settings from sysdb for key: '%s' [%d][%s].\n",
               key, ret, sss_strerror(ret));
