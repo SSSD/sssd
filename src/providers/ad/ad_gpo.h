@@ -23,6 +23,10 @@
 #ifndef AD_GPO_H_
 #define AD_GPO_H_
 
+#include "providers/ad/ad_access.h"
+
+#define AD_GPO_CHILD_OUT_FILENO 3
+
 /*
  * This pair of functions provides client-side GPO processing.
  *

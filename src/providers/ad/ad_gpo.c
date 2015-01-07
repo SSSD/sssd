@@ -3961,9 +3961,10 @@ gpo_fork_child(struct tevent_req *req)
     pid = fork();
 
     if (pid == 0) { /* child */
-        err = exec_child(state,
-                         pipefd_to_child, pipefd_from_child,
-                         GPO_CHILD, gpo_child_debug_fd);
+        err = exec_child_ex(state,
+                            pipefd_to_child, pipefd_from_child,
+                            GPO_CHILD, gpo_child_debug_fd, NULL,
+                            STDIN_FILENO, AD_GPO_CHILD_OUT_FILENO);
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec gpo_child: [%d][%s].\n",
               err, strerror(err));
         return err;
