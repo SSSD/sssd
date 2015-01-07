@@ -729,17 +729,18 @@ fail:
     return ret;
 }
 
-errno_t exec_child(TALLOC_CTX *mem_ctx,
-                   int *pipefd_to_child, int *pipefd_from_child,
-                   const char *binary, int debug_fd,
-                   const char *extra_argv[])
+errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
+                      int *pipefd_to_child, int *pipefd_from_child,
+                      const char *binary, int debug_fd,
+                      const char *extra_argv[],
+                      int child_in_fd, int child_out_fd)
 {
     int ret;
     errno_t err;
     char **argv;
 
     close(pipefd_to_child[1]);
-    ret = dup2(pipefd_to_child[0], STDIN_FILENO);
+    ret = dup2(pipefd_to_child[0], child_in_fd);
     if (ret == -1) {
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -748,7 +749,7 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
     }
 
     close(pipefd_from_child[0]);
-    ret = dup2(pipefd_from_child[1], STDOUT_FILENO);
+    ret = dup2(pipefd_from_child[1], child_out_fd);
     if (ret == -1) {
         err = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -768,6 +769,15 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
     err = errno;
     DEBUG(SSSDBG_OP_FAILURE, "execv failed [%d][%s].\n", err, strerror(err));
     return err;
+}
+
+errno_t exec_child(TALLOC_CTX *mem_ctx,
+                   int *pipefd_to_child, int *pipefd_from_child,
+                   const char *binary, int debug_fd)
+{
+    return exec_child_ex(mem_ctx, pipefd_to_child, pipefd_from_child,
+                         binary, debug_fd, NULL,
+                         STDIN_FILENO, STDOUT_FILENO);
 }
 
 void child_cleanup(int readfd, int writefd)

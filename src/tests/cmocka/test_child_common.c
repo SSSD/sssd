@@ -89,7 +89,7 @@ void test_exec_child(void **state)
         ret = exec_child(child_tctx,
                          child_tctx->pipefd_to_child,
                          child_tctx->pipefd_from_child,
-                         CHILD_DIR"/"TEST_BIN, 2, NULL);
+                         CHILD_DIR"/"TEST_BIN, 2);
         assert_int_equal(ret, EOK);
     } else {
             do {
@@ -128,10 +128,11 @@ void test_exec_child_extra_args(void **state)
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
     if (child_pid == 0) {
-        ret = exec_child(child_tctx,
-                         child_tctx->pipefd_to_child,
-                         child_tctx->pipefd_from_child,
-                         CHILD_DIR"/"TEST_BIN, 2, extra_args);
+        ret = exec_child_ex(child_tctx,
+                            child_tctx->pipefd_to_child,
+                            child_tctx->pipefd_from_child,
+                            CHILD_DIR"/"TEST_BIN, 2, extra_args,
+                            STDIN_FILENO, STDOUT_FILENO);
         assert_int_equal(ret, EOK);
     } else {
             do {
