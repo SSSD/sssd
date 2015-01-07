@@ -33,6 +33,7 @@
 #include "util/util.h"
 #include "util/child_common.h"
 #include "providers/dp_backend.h"
+#include "providers/ad/ad_gpo.h"
 #include "sss_cli.h"
 
 #define SMB_BUFFER_SIZE 65536
@@ -778,7 +779,7 @@ main(int argc, const char *argv[])
 
     errno = 0;
 
-    written = sss_atomic_write_s(STDOUT_FILENO, resp->buf, resp->size);
+    written = sss_atomic_write_s(AD_GPO_CHILD_OUT_FILENO, resp->buf, resp->size);
     if (written == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE, "write failed [%d][%s].\n", ret,
@@ -793,13 +794,13 @@ main(int argc, const char *argv[])
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "gpo_child completed successfully\n");
-    close(STDOUT_FILENO);
+    close(AD_GPO_CHILD_OUT_FILENO);
     talloc_free(main_ctx);
     return EXIT_SUCCESS;
 
 fail:
     DEBUG(SSSDBG_CRIT_FAILURE, "gpo_child failed!\n");
-    close(STDOUT_FILENO);
+    close(AD_GPO_CHILD_OUT_FILENO);
     talloc_free(main_ctx);
     return EXIT_FAILURE;
 }
