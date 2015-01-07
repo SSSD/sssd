@@ -41,6 +41,7 @@
 
 #include "sss_cli.h"
 #include "util/atomic_io.h"
+#include "util/authtok-utils.h"
 
 #include <libintl.h>
 #define _(STRING) dgettext (PACKAGE, STRING)

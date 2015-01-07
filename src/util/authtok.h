@@ -21,6 +21,7 @@
 #define __AUTHTOK_H__
 
 #include "util/util.h"
+#include "util/authtok-utils.h"
 #include "sss_client/sss_cli.h"
 
 /* Use sss_authtok_* accesor functions instead of struct sss_auth_token
@@ -179,4 +180,47 @@ void sss_authtok_wipe_password(struct sss_auth_token *tok);
  */
 struct sss_auth_token *sss_authtok_new(TALLOC_CTX *mem_ctx);
 
+/**
+ * @brief Set authtoken with 2FA data
+ *
+ * @param tok            A pointer to a sss_auth_token structure to change, also
+ *                       used as a memory context to allocate the internal data.
+ * @param[in]  fa1       First authentication factor, null terminated
+ * @param[in]  fa1_len   Length of the first authentication factor, if 0
+ *                       strlen() will be called internally
+ * @param[in]  fa2       Second authentication factor, null terminated
+ * @param[in]  fa2_len   Length of the second authentication factor, if 0
+ *                       strlen() will be called internally
+ *
+ * @return     EOK    on success
+ *             ENOMEM if memory allocation failed
+ *             EINVAL if input data is not consistent
+ */
+errno_t sss_authtok_set_2fa(struct sss_auth_token *tok,
+                            const char *fa1, size_t fa1_len,
+                            const char *fa2, size_t fa2_len);
+
+/**
+ * @brief Get 2FA factors from authtoken
+ *
+ * @param tok            A pointer to a sss_auth_token structure to change, also
+ *                       used as a memory context to allocate the internal data.
+ * @param[out] fa1       A pointer to a const char *, that will point to a
+ *                       null terminated string holding the first
+ *                       authentication factor, may not be modified or freed
+ * @param[out] fa1_len   Length of the first authentication factor
+ * @param[out] fa2       A pointer to a const char *, that will point to a
+ *                       null terminated string holding the second
+ *                       authentication factor, may not be modified or freed
+ * @param[out] fa2_len   Length of the second authentication factor
+ *
+ * @return     EOK     on success
+ *             ENOMEM  if memory allocation failed
+ *             EINVAL  if input data is not consistent
+ *             ENOENT  if the token is empty
+ *             EACCESS if the token is not a 2FA token
+ */
+errno_t sss_authtok_get_2fa(struct sss_auth_token *tok,
+                            const char **fa1, size_t *fa1_len,
+                            const char **fa2, size_t *fa2_len);
 #endif /*  __AUTHTOK_H__ */

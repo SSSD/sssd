@@ -301,6 +301,9 @@ enum sss_authtok_type {
                                           * a Kerberos credential cache file,
                                           * it may or may no contain
                                           * a trailing \\0 */
+    SSS_AUTHTOK_TYPE_2FA =       0x0003, /**< Authentication token has two
+                                          * factors, they may or may no contain
+                                          * a trailing \\0 */
 };
 
 /**

@@ -38,6 +38,7 @@ size_t sss_authtok_get_size(struct sss_auth_token *tok)
     switch (tok->type) {
     case SSS_AUTHTOK_TYPE_PASSWORD:
     case SSS_AUTHTOK_TYPE_CCFILE:
+    case SSS_AUTHTOK_TYPE_2FA:
         return tok->length;
     case SSS_AUTHTOK_TYPE_EMPTY:
         return 0;
@@ -70,6 +71,7 @@ errno_t sss_authtok_get_password(struct sss_auth_token *tok,
         }
         return EOK;
     case SSS_AUTHTOK_TYPE_CCFILE:
+    case SSS_AUTHTOK_TYPE_2FA:
         return EACCES;
     }
 
@@ -92,6 +94,7 @@ errno_t sss_authtok_get_ccfile(struct sss_auth_token *tok,
         }
         return EOK;
     case SSS_AUTHTOK_TYPE_PASSWORD:
+    case SSS_AUTHTOK_TYPE_2FA:
         return EACCES;
     }
 
@@ -140,6 +143,7 @@ void sss_authtok_set_empty(struct sss_auth_token *tok)
     case SSS_AUTHTOK_TYPE_EMPTY:
         return;
     case SSS_AUTHTOK_TYPE_PASSWORD:
+    case SSS_AUTHTOK_TYPE_2FA:
         safezero(tok->data, tok->length);
         break;
     case SSS_AUTHTOK_TYPE_CCFILE:
@@ -169,6 +173,9 @@ errno_t sss_authtok_set_ccfile(struct sss_auth_token *tok,
                                   "ccfile", ccfile, len);
 }
 
+static errno_t sss_authtok_set_2fa_from_blob(struct sss_auth_token *tok,
+                                             const uint8_t *data, size_t len);
+
 errno_t sss_authtok_set(struct sss_auth_token *tok,
                         enum sss_authtok_type type,
                         const uint8_t *data, size_t len)
@@ -178,6 +185,8 @@ errno_t sss_authtok_set(struct sss_auth_token *tok,
         return sss_authtok_set_password(tok, (const char *)data, len);
     case SSS_AUTHTOK_TYPE_CCFILE:
         return sss_authtok_set_ccfile(tok, (const char *)data, len);
+    case SSS_AUTHTOK_TYPE_2FA:
+        return sss_authtok_set_2fa_from_blob(tok, data, len);
     case SSS_AUTHTOK_TYPE_EMPTY:
         sss_authtok_set_empty(tok);
         return EOK;
@@ -230,3 +239,175 @@ void sss_authtok_wipe_password(struct sss_auth_token *tok)
     safezero(tok->data, tok->length);
 }
 
+errno_t sss_auth_unpack_2fa_blob(TALLOC_CTX *mem_ctx,
+                                 const uint8_t *blob, size_t blob_len,
+                                 char **fa1, size_t *_fa1_len,
+                                 char **fa2, size_t *_fa2_len)
+{
+    size_t c;
+    uint32_t fa1_len;
+    uint32_t fa2_len;
+
+    if (blob_len < 2 * sizeof(uint32_t)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Blob too small.\n");
+        return EINVAL;
+    }
+
+    c = 0;
+    SAFEALIGN_COPY_UINT32(&fa1_len, blob, &c);
+    SAFEALIGN_COPY_UINT32(&fa2_len, blob + c, &c);
+
+    if (blob_len != 2 * sizeof(uint32_t) + fa1_len + fa2_len) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Blob size mismatch.\n");
+        return EINVAL;
+    }
+
+    if (fa1_len != 0) {
+        *fa1 = talloc_strndup(mem_ctx, (const char *) blob + c, fa1_len);
+        if (*fa1 == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            return ENOMEM;
+        }
+    } else {
+        *fa1 = NULL;
+    }
+
+    if (fa2_len != 0) {
+        *fa2 = talloc_strndup(mem_ctx, (const char *) blob + c + fa1_len,
+                              fa2_len);
+        if (*fa2 == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            talloc_free(*fa1);
+            return ENOMEM;
+        }
+    } else {
+        *fa2 = NULL;
+    }
+
+    /* Re-calculate length for the case where \0 was missing in the blob */
+    *_fa1_len = (*fa1 == NULL) ? 0 : strlen(*fa1);
+    *_fa2_len = (*fa2 == NULL) ? 0 : strlen(*fa2);
+
+    return EOK;
+}
+
+static errno_t sss_authtok_set_2fa_from_blob(struct sss_auth_token *tok,
+                                             const uint8_t *data, size_t len)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    char *fa1;
+    size_t fa1_len;
+    char *fa2;
+    size_t fa2_len;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_auth_unpack_2fa_blob(tmp_ctx, data, len, &fa1, &fa1_len,
+                                   &fa2, &fa2_len);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_auth_unpack_2fa_blob failed.\n");
+        goto done;
+    }
+
+    ret = sss_authtok_set_2fa(tok, fa1, fa1_len, fa2, fa2_len);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_set_2fa failed.\n");
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
+        sss_authtok_set_empty(tok);
+    }
+
+    return ret;
+}
+
+errno_t sss_authtok_get_2fa(struct sss_auth_token *tok,
+                            const char **fa1, size_t *fa1_len,
+                            const char **fa2, size_t *fa2_len)
+{
+    size_t c;
+    uint32_t tmp_uint32_t;
+
+    if (tok->type != SSS_AUTHTOK_TYPE_2FA) {
+        return (tok->type == SSS_AUTHTOK_TYPE_EMPTY) ? ENOENT : EACCES;
+    }
+
+    if (tok->length < 2 * sizeof(uint32_t)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Blob too small.\n");
+        return EINVAL;
+    }
+
+    c = 0;
+    SAFEALIGN_COPY_UINT32(&tmp_uint32_t, tok->data, &c);
+    *fa1_len = tmp_uint32_t - 1;
+    SAFEALIGN_COPY_UINT32(&tmp_uint32_t, tok->data + c, &c);
+    *fa2_len = tmp_uint32_t - 1;
+
+    if (*fa1_len == 0 || *fa2_len == 0
+            || tok->length != 2 * sizeof(uint32_t) + *fa1_len + *fa2_len + 2) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Blob size mismatch.\n");
+        return EINVAL;
+    }
+
+    if (tok->data[c + *fa1_len] != '\0'
+            || tok->data[c + *fa1_len + 1 + *fa2_len] != '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing terminating null character.\n");
+        return EINVAL;
+    }
+
+    *fa1 = (const char *) tok->data + c;
+    *fa2 = (const char *) tok->data + c + *fa1_len + 1;
+
+    return EOK;
+}
+
+errno_t sss_authtok_set_2fa(struct sss_auth_token *tok,
+                            const char *fa1, size_t fa1_len,
+                            const char *fa2, size_t fa2_len)
+{
+    int ret;
+    size_t needed_size;
+
+    if (tok == NULL) {
+        return EINVAL;
+    }
+
+    sss_authtok_set_empty(tok);
+
+    ret = sss_auth_pack_2fa_blob(fa1, fa1_len, fa2, fa2_len, NULL, 0,
+                                 &needed_size);
+    if (ret != EAGAIN) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sss_auth_pack_2fa_blob unexpectedly returned [%d].\n", ret);
+        return EINVAL;
+    }
+
+    tok->data = talloc_size(tok, needed_size);
+    if (tok->data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        return ENOMEM;
+    }
+
+    ret = sss_auth_pack_2fa_blob(fa1, fa1_len, fa2, fa2_len, tok->data,
+                                 needed_size, &needed_size);
+    if (ret != EOK) {
+        talloc_free(tok->data);
+        DEBUG(SSSDBG_OP_FAILURE, "sss_auth_pack_2fa_blob failed.\n");
+        return ret;
+    }
+    tok->length = needed_size;
+    tok->type = SSS_AUTHTOK_TYPE_2FA;
+
+    return EOK;
+}

@@ -57,7 +57,7 @@ static int teardown(void **state)
 
     assert_non_null(ts);
 
-    assert_true(check_leaks_pop(ts) == true);
+    assert_true(check_leaks_pop(ts));
     talloc_free(ts);
     assert_true(leak_check_teardown());
     return 0;
@@ -118,8 +118,8 @@ static void test_sss_authtok_password(void **state)
     assert_int_equal(len - 1, ret_len);
 
     ret = sss_authtok_set_password(ts->authtoken, data, len);
-
     assert_int_equal(ret, EOK);
+
     ret = sss_authtok_get_password(ts->authtoken, &pwd, &ret_len);
     assert_int_equal(ret, EOK);
     assert_string_equal(data, pwd);
@@ -311,6 +311,183 @@ static void test_sss_authtok_copy(void **state)
     talloc_free(data);
 }
 
+void test_sss_authtok_2fa(void **state)
+{
+    int ret;
+    const char *fa1;
+    size_t fa1_size;
+    const char *fa2;
+    size_t fa2_size;
+    struct test_state *ts;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    ret = sss_authtok_set_2fa(NULL, "a", 0, "b", 0);
+    assert_int_equal(ret, EINVAL);
+
+    /* Test missing first factor */
+    ret = sss_authtok_set_2fa(ts->authtoken, NULL, 1, "b", 1);
+    assert_int_equal(ret, EINVAL);
+    /* Test missing second factor */
+    ret = sss_authtok_set_2fa(ts->authtoken, "a", 1, NULL, 1);
+    assert_int_equal(ret, EINVAL);
+    /* Test wrong first factor length */
+    ret = sss_authtok_set_2fa(ts->authtoken, "ab", 1, "b", 1);
+    assert_int_equal(ret, EINVAL);
+    /* Test wrong second factor length */
+    ret = sss_authtok_set_2fa(ts->authtoken, "a", 1, "bc", 1);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_authtok_set_2fa(ts->authtoken, "a", 1, "bc", 2);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(sss_authtok_get_size(ts->authtoken),
+                     2 * sizeof(uint32_t) + 5);
+    assert_int_equal(sss_authtok_get_type(ts->authtoken), SSS_AUTHTOK_TYPE_2FA);
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken),
+                        "\2\0\0\0\3\0\0\0a\0bc\0",
+                        2 * sizeof(uint32_t) + 5);
+#else
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken),
+                        "\0\0\0\2\0\0\0\3a\0bc\0",
+                        2 * sizeof(uint32_t) + 5);
+#endif
+
+    ret = sss_authtok_get_2fa(ts->authtoken, &fa1, &fa1_size, &fa2, &fa2_size);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(fa1_size, 1);
+    assert_string_equal(fa1, "a");
+    assert_int_equal(fa2_size, 2);
+    assert_string_equal(fa2, "bc");
+
+    sss_authtok_set_empty(ts->authtoken);
+
+    /* check return code of empty token */
+    ret = sss_authtok_get_2fa(ts->authtoken, &fa1, &fa1_size, &fa2, &fa2_size);
+    assert_int_equal(ret, ENOENT);
+
+    /* check return code for other token type */
+    ret = sss_authtok_set_password(ts->authtoken, "abc", 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_authtok_get_2fa(ts->authtoken, &fa1, &fa1_size, &fa2, &fa2_size);
+    assert_int_equal(ret, EACCES);
+
+    sss_authtok_set_empty(ts->authtoken);
+
+    /* check return code for garbage */
+    ret = sss_authtok_set(ts->authtoken, SSS_AUTHTOK_TYPE_2FA,
+                          (const uint8_t *) "1111222233334444", 16);
+    assert_int_equal(ret, EINVAL);
+
+    sss_authtok_set_empty(ts->authtoken);
+}
+
+void test_sss_authtok_2fa_blobs(void **state)
+{
+    int ret;
+    struct test_state *ts;
+    size_t needed_size;
+    uint8_t *buf;
+    char *fa1;
+    size_t fa1_len;
+    char *fa2;
+    size_t fa2_len;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    ret = sss_auth_pack_2fa_blob(NULL, 0, "defg", 0, NULL, 0, &needed_size);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_auth_pack_2fa_blob("abc", 0, NULL, 0, NULL, 0, &needed_size);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_auth_pack_2fa_blob("", 0, "defg", 0, NULL, 0, &needed_size);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_auth_pack_2fa_blob("abc", 0, "", 0, NULL, 0, &needed_size);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_auth_pack_2fa_blob("abc", 0, "defg", 0, NULL, 0, &needed_size);
+    assert_int_equal(ret, EAGAIN);
+
+    buf = talloc_size(ts, needed_size);
+    assert_non_null(buf);
+
+    ret = sss_auth_pack_2fa_blob("abc", 0, "defg", 0, buf, needed_size,
+                                 &needed_size);
+    assert_int_equal(ret, EOK);
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    assert_memory_equal(buf, "\4\0\0\0\5\0\0\0abc\0defg\0", needed_size);
+#else
+    assert_memory_equal(buf, "\0\0\0\4\0\0\0\5abc\0defg\0", needed_size);
+#endif
+
+    ret = sss_auth_unpack_2fa_blob(ts, buf, needed_size, &fa1, &fa1_len, &fa2,
+                                   &fa2_len);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(fa1_len, 3);
+    assert_string_equal(fa1, "abc");
+    assert_int_equal(fa2_len, 4);
+    assert_string_equal(fa2, "defg");
+
+    talloc_free(buf);
+    talloc_free(fa1);
+    talloc_free(fa2);
+}
+
+#define MISSING_NULL_CHECK do { \
+    assert_int_equal(ret, EOK); \
+    assert_int_equal(fa1_len, 3); \
+    assert_string_equal(fa1, "abc"); \
+    assert_int_equal(fa2_len, 4); \
+    assert_string_equal(fa2, "defg"); \
+ \
+    talloc_free(fa1); \
+    talloc_free(fa2); \
+} while (0)
+
+void test_sss_authtok_2fa_blobs_missing_null(void **state)
+{
+    int ret;
+    struct test_state *ts;
+    char *fa1;
+    size_t fa1_len;
+    char *fa2;
+    size_t fa2_len;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    uint8_t b0[] = {0x04, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 'a', 'b', 'c', 0x00, 'd', 'e', 'f', 'g', 0x00};
+    uint8_t b1[] = {0x03, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 0x00};
+    uint8_t b2[] = {0x04, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 'a', 'b', 'c', 0x00, 'd', 'e', 'f', 'g'};
+    uint8_t b3[] = {0x03, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 'a', 'b', 'c', 'd', 'e', 'f', 'g'};
+#else
+    uint8_t b0[] = {0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x05, 'a', 'b', 'c', 0x00, 'd', 'e', 'f', 'g', 0x00};
+    uint8_t b1[] = {0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x05, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 0x00};
+    uint8_t b2[] = {0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 'a', 'b', 'c', 0x00, 'd', 'e', 'f', 'g'};
+    uint8_t b3[] = {0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 'a', 'b', 'c', 'd', 'e', 'f', 'g'};
+#endif
+
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    ret = sss_auth_unpack_2fa_blob(ts, b0, sizeof(b0), &fa1, &fa1_len, &fa2,
+                                   &fa2_len);
+    MISSING_NULL_CHECK;
+
+    ret = sss_auth_unpack_2fa_blob(ts, b1, sizeof(b1), &fa1, &fa1_len, &fa2,
+                                   &fa2_len);
+    MISSING_NULL_CHECK;
+
+    ret = sss_auth_unpack_2fa_blob(ts, b2, sizeof(b2), &fa1, &fa1_len, &fa2,
+                                   &fa2_len);
+    MISSING_NULL_CHECK;
+
+    ret = sss_auth_unpack_2fa_blob(ts, b3, sizeof(b3), &fa1, &fa1_len, &fa2,
+                                   &fa2_len);
+    MISSING_NULL_CHECK;
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -333,7 +510,13 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_authtok_wipe_password,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_authtok_copy,
-                                        setup, teardown)
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_2fa,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_2fa_blobs,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_2fa_blobs_missing_null,
+                                        setup, teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

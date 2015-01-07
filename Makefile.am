@@ -519,6 +519,7 @@ dist_noinst_HEADERS = \
     src/util/atomic_io.h \
     src/util/auth_utils.h \
     src/util/authtok.h \
+    src/util/authtok-utils.h \
     src/util/util_safealign.h \
     src/util/util_sss_idmap.h \
     src/monitor/monitor.h \
@@ -754,6 +755,7 @@ libsss_util_la_SOURCES = \
     src/util/murmurhash3.c \
     src/util/atomic_io.c \
     src/util/authtok.c \
+    src/util/authtok-utils.c \
     src/util/sss_selinux.c \
     src/util/domain_info_utils.c \
     src/util/util_lock.c \
@@ -1855,6 +1857,7 @@ test_negcache_LDADD = \
 test_authtok_SOURCES = \
     src/tests/cmocka/test_authtok.c \
     src/util/authtok.c \
+    src/util/authtok-utils.c \
     src/util/util.c
 test_authtok_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2781,6 +2784,7 @@ krb5_child_SOURCES = \
     src/util/find_uid.c \
     src/util/atomic_io.c \
     src/util/authtok.c \
+    src/util/authtok-utils.c \
     src/util/util.c \
     src/util/signal.c \
     src/util/strtonum.c \
@@ -2812,6 +2816,7 @@ ldap_child_SOURCES = \
     src/util/sss_krb5.c \
     src/util/atomic_io.c \
     src/util/authtok.c \
+    src/util/authtok-utils.c \
     src/util/util.c \
     src/util/signal.c \
     src/util/become_user.c \
