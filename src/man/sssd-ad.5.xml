@@ -228,6 +228,20 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_site (string)</term>
+                    <listitem>
+                        <para>
+                          Specify AD site to which client should try to connect.
+                          If this option is not provided, the AD site will be
+                          auto-discovered.
+                        </para>
+                        <para>
+                            Default: Not set
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ad_enable_gc (boolean)</term>
                     <listitem>
                         <para>
