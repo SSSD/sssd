@@ -102,6 +102,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     const char *gc_service_name;
     struct ad_srv_plugin_ctx *srv_ctx;
     char *ad_domain;
+    char *ad_site_override;
     struct sdap_domain *sdom;
     errno_t ret;
     const char *realm;
@@ -122,6 +123,7 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
     }
 
     ad_domain = subdom->name;
+    ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
 
     ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, ad_domain);
     if (ret != EOK) {
@@ -158,7 +160,8 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
                                      default_host_dbs,
                                      ad_id_ctx->ad_options->id,
                                      hostname,
-                                     ad_domain);
+                                     ad_domain,
+                                     ad_site_override);
     if (srv_ctx == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
         return ENOMEM;

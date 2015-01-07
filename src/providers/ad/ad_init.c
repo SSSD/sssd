@@ -159,6 +159,7 @@ sssm_ad_id_init(struct be_ctx *bectx,
     struct ad_id_ctx *ad_ctx;
     const char *hostname;
     const char *ad_domain;
+    const char *ad_site_override;
     struct ad_srv_plugin_ctx *srv_ctx;
 
     if (!ad_options) {
@@ -234,9 +235,12 @@ sssm_ad_id_init(struct be_ctx *bectx,
     if (dp_opt_get_bool(ad_options->basic, AD_ENABLE_DNS_SITES)) {
         /* use AD plugin */
         ad_domain = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
+        ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
+
         srv_ctx = ad_srv_plugin_ctx_init(bectx, bectx->be_res,
                                          default_host_dbs, ad_options->id,
-                                         hostname, ad_domain);
+                                         hostname, ad_domain,
+                                         ad_site_override);
         if (srv_ctx == NULL) {
             DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory?\n");
             ret = ENOMEM;

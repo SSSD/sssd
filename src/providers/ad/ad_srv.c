@@ -540,7 +540,7 @@ done:
 
 int ad_get_client_site_recv(TALLOC_CTX *mem_ctx,
                             struct tevent_req *req,
-                            char **_site,
+                            const char **_site,
                             char **_forest)
 {
     struct ad_get_client_site_state *state = NULL;
@@ -560,6 +560,7 @@ struct ad_srv_plugin_ctx {
     struct sdap_options *opts;
     const char *hostname;
     const char *ad_domain;
+    const char *ad_site_override;
 };
 
 struct ad_srv_plugin_ctx *
@@ -568,7 +569,8 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
                        enum host_database *host_dbs,
                        struct sdap_options *opts,
                        const char *hostname,
-                       const char *ad_domain)
+                       const char *ad_domain,
+                       const char *ad_site_override)
 {
     struct ad_srv_plugin_ctx *ctx = NULL;
 
@@ -591,6 +593,13 @@ ad_srv_plugin_ctx_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    if (ad_site_override != NULL) {
+        ctx->ad_site_override = talloc_strdup(ctx, ad_site_override);
+        if (ctx->ad_site_override == NULL) {
+            goto fail;
+        }
+    }
+
     return ctx;
 
 fail:
@@ -605,7 +614,7 @@ struct ad_srv_plugin_state {
     const char *protocol;
     const char *discovery_domain;
 
-    char *site;
+    const char *site;
     char *dns_domain;
     char *forest;
     struct fo_server_info *primary_servers;
@@ -756,6 +765,15 @@ static void ad_srv_plugin_site_done(struct tevent_req *subreq)
 
     ret = ad_get_client_site_recv(state, subreq, &state->site, &state->forest);
     talloc_zfree(subreq);
+    /* Ignore AD site found by dns discovery if specific site is set in
+     * configuration file. */
+    if (state->ctx->ad_site_override != NULL) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Ignoring AD site found by DNS discovery: '%s', "
+              "using configured value: '%s' instead.\n",
+              state->site, state->ctx->ad_site_override);
+        state->site = state->ctx->ad_site_override;
+    }
     if (ret == EOK) {
         if (strcmp(state->service, "gc") == 0) {
             primary_domain = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
