@@ -48,6 +48,7 @@ struct dp_option ad_basic_opts[] = {
     { "ad_gpo_map_permit", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ad_gpo_map_deny", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ad_gpo_default_right", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ad_site", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_confd_path", DP_OPT_STRING, { KRB5_MAPPING_DIR }, NULL_STRING },
     DP_OPTION_TERMINATOR
 };
