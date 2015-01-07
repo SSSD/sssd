@@ -4863,8 +4863,8 @@ START_TEST (test_sysdb_search_return_ENOENT)
     /* Search object */
     ret = sysdb_search_object_by_sid(test_ctx, test_ctx->domain,
                                      "S-5-4-3-2-1", NULL, &res);
-    fail_unless(ret == ENOENT, "sysdb_search_object_by_sid_str failed with "
-                             "[%d][%s].", ret, strerror(ret));
+    fail_unless(ret == ENOENT, "sysdb_search_object_by_sid failed with "
+                               "[%d][%s].", ret, strerror(ret));
     talloc_zfree(res);
 
     /* Search can return more results */
