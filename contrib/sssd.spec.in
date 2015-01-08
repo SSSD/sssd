@@ -394,6 +394,7 @@ Summary: The SSSD D-Bus responder helper library
 Group: Development/Libraries
 License: GPLv3+
 Requires: dbus-libs
+Requires: sssd-dbus = %{version}-%{release}
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 
