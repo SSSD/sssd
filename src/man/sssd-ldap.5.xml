@@ -1477,7 +1477,7 @@
                     <listitem>
                         <para>
                             Specifies acceptable cipher suites.  Typically this
-                            is a colon sperated list.  See
+                            is a colon separated list.  See
                             <citerefentry><refentrytitle>ldap.conf</refentrytitle>
                             <manvolnum>5</manvolnum></citerefentry> for format.
                         </para>
