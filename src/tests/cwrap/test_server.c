@@ -26,6 +26,7 @@
 
 #include <popt.h>
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "tests/cmocka/common_mock.h"
 
 static void wait_for_fg_server(pid_t pid)
@@ -44,7 +45,7 @@ static void wait_for_fg_server(pid_t pid)
 static void wait_for_bg_server(const char *pidfile)
 {
     int fd;
-    long tmp;
+    uint32_t tmp;
     char buf[16];
     pid_t pid;
     int ret;
@@ -74,10 +75,12 @@ static void wait_for_bg_server(const char *pidfile)
 
     buf[sizeof(buf) - 1] = '\0';
 
-    tmp = strtol(buf, NULL, 10);
-    assert_false(tmp == 0 || tmp > 0xFFFF || errno == ERANGE);
+    errno = 0;
+    tmp = strtouint32(buf, NULL, 10);
+    assert_int_not_equal(tmp, 0);
+    assert_int_equal(errno, 0);
 
-    pid = (pid_t) (tmp & 0xFFFF);
+    pid = (pid_t) (tmp);
 
     /* Make sure the daemon goes away! */
     ret = kill(pid, SIGTERM);
