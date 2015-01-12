@@ -1268,6 +1268,10 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
     const char *override_dn_str;
     struct ldb_dn *override_dn;
     const char *memberuid;
+    const char *orig_name;
+    char *orig_domain;
+    char *val;
+    struct sss_domain_info *orig_dom;
 
     members = ldb_msg_find_element(obj, SYSDB_MEMBER);
     if (members == NULL || members->num_values == 0) {
@@ -1306,6 +1310,12 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             goto done;
         }
 
+        if (ldb_msg_find_attr_as_uint64(member_obj->msgs[0],
+                                        SYSDB_UIDNUM, 0) == 0) {
+            /* Skip non-POSIX-user members i.e. groups and non-POSIX users */
+            continue;
+        }
+
         override_dn_str = ldb_msg_find_attr_as_string(member_obj->msgs[0],
                                                       SYSDB_OVERRIDE_DN, NULL);
         if (override_dn_str == NULL) {
@@ -1321,6 +1331,16 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
         if (override_dn == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
             ret = ENOMEM;
+            goto done;
+        }
+
+        orig_name = ldb_msg_find_attr_as_string(member_obj->msgs[0],
+                                                SYSDB_NAME,
+                                                NULL);
+        if (orig_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Object [%s] has no name.\n",
+                  ldb_dn_get_linearized(member_obj->msgs[0]->dn));
+            ret = EINVAL;
             goto done;
         }
 
@@ -1347,29 +1367,60 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             memberuid = ldb_msg_find_attr_as_string(override_obj->msgs[0],
                                                     SYSDB_NAME,
                                                     NULL);
+
+            if (memberuid != NULL) {
+                ret = sss_parse_name(tmp_ctx, domain->names, orig_name,
+                                     &orig_domain, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                         "sss_parse_name failed to split original name [%s].\n",
+                         orig_name);
+                    goto done;
+                }
+
+                if (orig_domain != NULL) {
+                    orig_dom = find_domain_by_name(get_domains_head(domain),
+                                                   orig_domain, true);
+                    if (orig_dom == NULL) {
+                        DEBUG(SSSDBG_CRIT_FAILURE,
+                              "Cannot find domain with name [%s].\n",
+                              orig_domain);
+                        ret = EINVAL;
+                        goto done;
+                    }
+                    memberuid = sss_get_domain_name(tmp_ctx, memberuid,
+                                                    orig_dom);
+                    if (memberuid == NULL) {
+                        DEBUG(SSSDBG_OP_FAILURE,
+                              "sss_get_domain_name failed.\n");
+                        ret = ENOMEM;
+                        goto done;
+                    }
+                }
+            }
         }
 
         if (memberuid == NULL) {
             DEBUG(SSSDBG_TRACE_ALL, "No override name available.\n");
 
-            memberuid = ldb_msg_find_attr_as_string(member_obj->msgs[0],
-                                                    SYSDB_NAME,
-                                                    NULL);
-            if (memberuid == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Object [%s] has no name.\n",
-                      ldb_dn_get_linearized(member_obj->msgs[0]->dn));
-                ret = EINVAL;
-                goto done;
-            }
+            memberuid = orig_name;
         }
 
-        ret = ldb_msg_add_string(obj, OVERRIDE_PREFIX SYSDB_MEMBERUID,
-                                 memberuid);
+        val = talloc_strdup(obj, memberuid);
+        if (val == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_msg_add_string(obj, OVERRIDE_PREFIX SYSDB_MEMBERUID, val);
         if (ret != LDB_SUCCESS) {
             DEBUG(SSSDBG_OP_FAILURE, "ldb_msg_add_string failed.\n");
             ret = sysdb_error_to_errno(ret);
             goto done;
         }
+        DEBUG(SSSDBG_TRACE_ALL, "Added [%s] to [%s].\n", memberuid,
+                                OVERRIDE_PREFIX SYSDB_MEMBERUID);
 
         /* Free all temporary data of the current member to avoid memory usage
          * spikes. All temporary data should be allocated below member_dn. */

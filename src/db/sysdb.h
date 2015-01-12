@@ -210,6 +210,7 @@
 
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
                            SYSDB_MEMBERUID, \
+                           SYSDB_MEMBER, \
                            SYSDB_GHOST, \
                            SYSDB_DEFAULT_ATTRS, \
                            SYSDB_SID_STR, \
