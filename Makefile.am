@@ -2175,6 +2175,9 @@ test_child_common_CFLAGS = \
     $(AM_CFLAGS) \
     -DCHILD_DIR=\"$(builddir)\" \
     $(NULL)
+test_child_common_LDFLAGS = \
+    -Wl,-wrap,child_io_destructor \
+    $(NULL)
 test_child_common_LDADD = \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \

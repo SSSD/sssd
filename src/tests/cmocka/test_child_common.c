@@ -31,6 +31,8 @@
 #define TEST_BIN    "dummy-child"
 #define ECHO_STR    "Hello child"
 
+static int destructor_called;
+
 struct child_test_ctx {
     int pipefd_to_child[2];
     int pipefd_from_child[2];
@@ -111,7 +113,7 @@ void test_exec_child(void **state)
     }
 }
 
-/* Just make sure the exec works. The child does nothing but exits */
+/* Make sure extra arguments are passed correctly */
 void test_exec_child_extra_args(void **state)
 {
     errno_t ret;
@@ -154,6 +156,292 @@ void test_exec_child_extra_args(void **state)
     }
 }
 
+struct tevent_req *echo_child_write_send(TALLOC_CTX *mem_ctx,
+                                         struct child_test_ctx *child_tctx,
+                                         struct child_io_fds *io_fds,
+                                         const char *input);
+static void echo_child_write_done(struct tevent_req *subreq);
+static void echo_child_read_done(struct tevent_req *subreq);
+
+int __real_child_io_destructor(void *ptr);
+
+int __wrap_child_io_destructor(void *ptr)
+{
+    destructor_called = 1;
+    return __real_child_io_destructor(ptr);
+}
+
+/* Test that writing to the pipes works as expected */
+void test_exec_child_io_destruct(void **state)
+{
+    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+                                                        struct child_test_ctx);
+    struct child_io_fds *io_fds;
+
+    io_fds = talloc(child_tctx, struct child_io_fds);
+    io_fds->read_from_child_fd = -1;
+    io_fds->write_to_child_fd = -1;
+    assert_non_null(io_fds);
+    talloc_set_destructor((void *) io_fds, child_io_destructor);
+
+    io_fds->read_from_child_fd = child_tctx->pipefd_from_child[0];
+    io_fds->write_to_child_fd = child_tctx->pipefd_to_child[1];
+
+    destructor_called = 0;
+    talloc_free(io_fds);
+    assert_int_equal(destructor_called, 1);
+
+    errno = 0;
+    close(child_tctx->pipefd_from_child[0]);
+    assert_int_equal(errno, EBADF);
+
+    errno = 0;
+    close(child_tctx->pipefd_from_child[1]);
+    assert_int_equal(errno, 0);
+
+    errno = 0;
+    close(child_tctx->pipefd_to_child[0]);
+    assert_int_equal(errno, 0);
+
+    errno = 0;
+    close(child_tctx->pipefd_to_child[1]);
+    assert_int_equal(errno, EBADF);
+}
+
+void test_child_cb(int child_status,
+                   struct tevent_signal *sige,
+                   void *pvt);
+
+/* Test that writing to the pipes works as expected */
+void test_exec_child_handler(void **state)
+{
+    errno_t ret;
+    pid_t child_pid;
+    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+                                                        struct child_test_ctx);
+    struct sss_child_ctx_old *child_old_ctx;
+
+    ret = unsetenv("TEST_CHILD_ACTION");
+    assert_int_equal(ret, 0);
+
+    child_pid = fork();
+    assert_int_not_equal(child_pid, -1);
+    if (child_pid == 0) {
+        ret = exec_child(child_tctx,
+                         child_tctx->pipefd_to_child,
+                         child_tctx->pipefd_from_child,
+                         CHILD_DIR"/"TEST_BIN, 2);
+        assert_int_equal(ret, EOK);
+    }
+
+    ret = child_handler_setup(child_tctx->test_ctx->ev, child_pid,
+                              test_child_cb, child_tctx, &child_old_ctx);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(child_tctx->test_ctx);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(child_tctx->test_ctx->error, 0);
+}
+
+void test_child_cb(int child_status,
+                   struct tevent_signal *sige,
+                   void *pvt)
+{
+    struct child_test_ctx *child_ctx = talloc_get_type(pvt, struct child_test_ctx);
+
+    child_ctx->test_ctx->error = EIO;
+    if (WIFEXITED(child_status) && WEXITSTATUS(child_status) == 0) {
+        child_ctx->test_ctx->error = 0;
+    }
+
+    child_ctx->test_ctx->done = true;
+}
+
+/* Test that writing to the pipes works as expected */
+void test_exec_child_echo(void **state)
+{
+    errno_t ret;
+    pid_t child_pid;
+    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+                                                        struct child_test_ctx);
+    struct tevent_req *req;
+    struct child_io_fds *io_fds;
+
+    setenv("TEST_CHILD_ACTION", "echo", 1);
+
+    io_fds = talloc(child_tctx, struct child_io_fds);
+    assert_non_null(io_fds);
+    io_fds->read_from_child_fd = -1;
+    io_fds->write_to_child_fd = -1;
+    talloc_set_destructor((void *) io_fds, child_io_destructor);
+
+    child_pid = fork();
+    assert_int_not_equal(child_pid, -1);
+    if (child_pid == 0) {
+        ret = exec_child_ex(child_tctx,
+                            child_tctx->pipefd_to_child,
+                            child_tctx->pipefd_from_child,
+                            CHILD_DIR"/"TEST_BIN, 2, NULL,
+                            STDIN_FILENO, 3);
+        assert_int_equal(ret, EOK);
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "Forked into %d\n", child_pid);
+
+    io_fds->read_from_child_fd = child_tctx->pipefd_from_child[0];
+    close(child_tctx->pipefd_from_child[1]);
+    io_fds->write_to_child_fd = child_tctx->pipefd_to_child[1];
+    close(child_tctx->pipefd_to_child[0]);
+
+    fd_nonblocking(io_fds->write_to_child_fd);
+    fd_nonblocking(io_fds->read_from_child_fd);
+
+    ret = child_handler_setup(child_tctx->test_ctx->ev, child_pid,
+                              NULL, NULL, NULL);
+    assert_int_equal(ret, EOK);
+
+    req = echo_child_write_send(child_tctx, child_tctx, io_fds, ECHO_STR);
+    assert_non_null(req);
+
+    ret = test_ev_loop(child_tctx->test_ctx);
+    talloc_free(io_fds);
+    assert_int_equal(ret, EOK);
+}
+
+struct test_exec_echo_state {
+    struct child_io_fds *io_fds;
+    struct io_buffer buf;
+    struct child_test_ctx *child_test_ctx;
+};
+
+struct tevent_req *echo_child_write_send(TALLOC_CTX *mem_ctx,
+                                         struct child_test_ctx *child_tctx,
+                                         struct child_io_fds *io_fds,
+                                         const char *input)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct test_exec_echo_state *echo_state;
+
+    req = tevent_req_create(mem_ctx, &echo_state, struct test_exec_echo_state);
+    assert_non_null(req);
+
+    echo_state->child_test_ctx = child_tctx;
+
+    echo_state->buf.data = (unsigned char *) talloc_strdup(echo_state, input);
+    assert_non_null(echo_state->buf.data);
+    echo_state->buf.size = strlen(input) + 1;
+    echo_state->io_fds = io_fds;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Writing..\n");
+    subreq = write_pipe_send(child_tctx, child_tctx->test_ctx->ev,
+                             echo_state->buf.data, echo_state->buf.size,
+                             echo_state->io_fds->write_to_child_fd);
+    assert_non_null(subreq);
+    tevent_req_set_callback(subreq, echo_child_write_done, req);
+
+    return req;
+}
+
+static void echo_child_write_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct test_exec_echo_state *echo_state;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    echo_state = tevent_req_data(req, struct test_exec_echo_state);
+
+    ret = write_pipe_recv(subreq);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Writing OK\n");
+    talloc_zfree(subreq);
+    assert_int_equal(ret, EOK);
+
+    close(echo_state->io_fds->write_to_child_fd);
+    echo_state->io_fds->write_to_child_fd = -1;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Reading..\n");
+    subreq = read_pipe_send(echo_state,
+                            echo_state->child_test_ctx->test_ctx->ev,
+                            echo_state->io_fds->read_from_child_fd);
+    assert_non_null(subreq);
+    tevent_req_set_callback(subreq, echo_child_read_done, req);
+}
+
+static void echo_child_read_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct test_exec_echo_state *echo_state;
+    errno_t ret;
+    ssize_t len;
+    uint8_t *buf;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    echo_state = tevent_req_data(req, struct test_exec_echo_state);
+
+    ret = read_pipe_recv(subreq, echo_state, &buf, &len);
+    talloc_zfree(subreq);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Reading OK\n");
+    assert_int_equal(ret, EOK);
+
+    close(echo_state->io_fds->read_from_child_fd);
+    echo_state->io_fds->read_from_child_fd = -1;
+
+    assert_string_equal(buf, echo_state->buf.data);
+    echo_state->child_test_ctx->test_ctx->done = true;
+}
+
+void sss_child_cb(int pid, int wait_status, void *pvt);
+
+/* Just make sure the exec works. The child does nothing but exits */
+void test_sss_child(void **state)
+{
+    errno_t ret;
+    pid_t child_pid;
+    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+                                                        struct child_test_ctx);
+    struct sss_sigchild_ctx *sc_ctx;
+    struct sss_child_ctx *sss_child;
+
+    ret = unsetenv("TEST_CHILD_ACTION");
+    assert_int_equal(ret, 0);
+
+    ret = sss_sigchld_init(child_tctx, child_tctx->test_ctx->ev, &sc_ctx);
+    assert_int_equal(ret, EOK);
+
+    child_pid = fork();
+    assert_int_not_equal(child_pid, -1);
+    if (child_pid == 0) {
+        ret = exec_child(child_tctx,
+                         child_tctx->pipefd_to_child,
+                         child_tctx->pipefd_from_child,
+                         CHILD_DIR"/"TEST_BIN, 2);
+        assert_int_equal(ret, EOK);
+    }
+
+    ret = sss_child_register(child_tctx, sc_ctx,
+                             child_pid,
+                             sss_child_cb,
+                             child_tctx, &sss_child);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(child_tctx->test_ctx);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(child_tctx->test_ctx->error, 0);
+}
+
+void sss_child_cb(int pid, int wait_status, void *pvt)
+{
+    struct child_test_ctx *child_ctx = talloc_get_type(pvt, struct child_test_ctx);
+
+    child_ctx->test_ctx->error = EIO;
+    if (WIFEXITED(wait_status) && WEXITSTATUS(wait_status) == 0) {
+        child_ctx->test_ctx->error = 0;
+    }
+
+    child_ctx->test_ctx->done = true;
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -170,6 +458,18 @@ int main(int argc, const char *argv[])
                                  child_test_setup,
                                  child_test_teardown),
         unit_test_setup_teardown(test_exec_child_extra_args,
+                                 child_test_setup,
+                                 child_test_teardown),
+        unit_test_setup_teardown(test_exec_child_io_destruct,
+                                 child_test_setup,
+                                 child_test_teardown),
+        unit_test_setup_teardown(test_exec_child_handler,
+                                 child_test_setup,
+                                 child_test_teardown),
+        unit_test_setup_teardown(test_exec_child_echo,
+                                 child_test_setup,
+                                 child_test_teardown),
+        unit_test_setup_teardown(test_sss_child,
                                  child_test_setup,
                                  child_test_teardown),
     };

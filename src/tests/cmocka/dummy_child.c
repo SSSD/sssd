@@ -35,6 +35,10 @@ int main(int argc, const char *argv[])
     int opt;
     int debug_fd = -1;
     poptContext pc;
+    ssize_t len;
+    ssize_t written;
+    errno_t ret;
+    uint8_t buf[IN_BUF_SIZE];
     const char *action = NULL;
     const char *guitar;
     const char *drums;
@@ -78,6 +82,31 @@ int main(int argc, const char *argv[])
             if (!(strcmp(guitar, "george") == 0 \
                         && strcmp(drums, "ringo") == 0)) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "This band sounds weird\n");
+                _exit(1);
+            }
+        } else if (strcasecmp(action, "echo") == 0) {
+            errno = 0;
+            len = sss_atomic_read_s(STDIN_FILENO, buf, IN_BUF_SIZE);
+            if (len == -1) {
+                ret = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE, "read failed [%d][%s].\n", ret, strerror(ret));
+                _exit(1);
+            }
+            close(STDIN_FILENO);
+
+            errno = 0;
+            written = sss_atomic_write_s(3, buf, len);
+            if (written == -1) {
+                ret = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE, "write failed [%d][%s].\n", ret,
+                            strerror(ret));
+                _exit(1);
+            }
+            close(STDOUT_FILENO);
+
+            if (written != len) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Expected to write %zu bytes, wrote %zu\n",
+                      len, written);
                 _exit(1);
             }
         }
