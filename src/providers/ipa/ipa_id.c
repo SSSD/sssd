@@ -146,7 +146,7 @@ static void ipa_account_info_done(struct tevent_req *req)
 
 struct ipa_resolve_user_list_state {
     struct tevent_context *ev;
-    struct sdap_id_ctx *sdap_id_ctx;
+    struct ipa_id_ctx *ipa_ctx;
     struct be_req *be_req;
     struct ldb_message_element *users;
     const char *domain_name;
@@ -161,7 +161,7 @@ static void ipa_resolve_user_list_get_user_done(struct tevent_req *subreq);
 static struct tevent_req *
 ipa_resolve_user_list_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                            struct be_req *be_req,
-                           struct sdap_id_ctx *sdap_id_ctx,
+                           struct ipa_id_ctx *ipa_ctx,
                            const char *domain_name,
                            struct ldb_message_element *users)
 {
@@ -177,7 +177,7 @@ ipa_resolve_user_list_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     }
 
     state->ev = ev;
-    state->sdap_id_ctx = sdap_id_ctx;
+    state->ipa_ctx = ipa_ctx;
     state->be_req = be_req;
     state->domain_name = domain_name;
     state->users = users;
@@ -221,10 +221,8 @@ static errno_t ipa_resolve_user_list_get_user_step(struct tevent_req *req)
 
     DEBUG(SSSDBG_TRACE_ALL, "Trying to resolve user [%s].\n", ar->filter_value);
 
-    subreq = sdap_handle_acct_req_send(state, state->be_req, ar,
-                                       state->sdap_id_ctx,
-                                       state->sdap_id_ctx->opts->sdom,
-                                       state->sdap_id_ctx->conn, true);
+    subreq = ipa_id_get_account_info_send(state, state->ev, state->ipa_ctx,
+                                          state->be_req, ar);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct_req_send failed.\n");
         return ENOMEM;
@@ -243,7 +241,7 @@ static void ipa_resolve_user_list_get_user_done(struct tevent_req *subreq)
                                             struct ipa_resolve_user_list_state);
     int ret;
 
-    ret = sdap_handle_acct_req_recv(subreq, &state->dp_error, NULL, NULL);
+    ret = ipa_id_get_account_info_recv(subreq, &state->dp_error);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct request failed: %d\n", ret);
@@ -616,7 +614,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
     if (state->ghosts != NULL) {
         /* Resolve ghost members */
         subreq = ipa_resolve_user_list_send(state, state->ev, state->be_req,
-                                            state->ipa_ctx->sdap_id_ctx,
+                                            state->ipa_ctx,
                                             state->domain->name,
                                             state->ghosts);
         if (subreq == NULL) {
@@ -682,7 +680,7 @@ static void ipa_id_get_account_info_done(struct tevent_req *subreq)
     if (state->ghosts != NULL) {
         /* Resolve ghost members */
         subreq = ipa_resolve_user_list_send(state, state->ev, state->be_req,
-                                            state->ipa_ctx->sdap_id_ctx,
+                                            state->ipa_ctx,
                                             state->domain->name,
                                             state->ghosts);
         if (subreq == NULL) {
