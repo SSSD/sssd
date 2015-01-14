@@ -185,7 +185,7 @@
                                 This parameter described the list of domains
                                 in the order you want them to be queried.
                                 A domain name should only consist of alphanumeric
-                                ASCII characters, dashes and underscores.
+                                ASCII characters, dashes, dots and underscores.
                             </para>
                         </listitem>
                     </varlistentry>
