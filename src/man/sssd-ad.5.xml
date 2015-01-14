@@ -725,6 +725,9 @@ ad_gpo_map_deny = +my_pam_service
                             should be used for dynamic DNS updates.
                         </para>
                         <para>
+                            NOTE: This option currently supports only one interface.
+                        </para>
+                        <para>
                             Default: Use the IP address of the AD LDAP connection
                         </para>
                     </listitem>
