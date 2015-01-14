@@ -222,6 +222,15 @@
                             defined by krb5.conf.
                         </para>
                         <para>
+                          NOTE: Please be aware that libkrb5 ccache expansion
+                          template from
+                          <citerefentry>
+                                <refentrytitle>krb5.conf</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                          </citerefentry>
+                          uses different expansion sequences than SSSD.
+                        </para>
+                        <para>
                             Default: (from libkrb5)
                         </para>
                     </listitem>
