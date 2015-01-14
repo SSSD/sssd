@@ -721,10 +721,10 @@
         </para>
         <para>
 <programlisting>
-    [domain/example.com]
-    id_provider = ipa
-    ipa_server = ipaserver.example.com
-    ipa_hostname = myhost.example.com
+[domain/example.com]
+id_provider = ipa
+ipa_server = ipaserver.example.com
+ipa_hostname = myhost.example.com
 </programlisting>
         </para>
     </refsect1>

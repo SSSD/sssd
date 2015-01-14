@@ -26,9 +26,9 @@
             square brackets and continues until the next section begins. An
             example of section with single and multi-valued parameters:
             <programlisting>
-                <replaceable>[section]</replaceable>
-                <replaceable>key</replaceable> = <replaceable>value</replaceable>
-                <replaceable>key2</replaceable> = <replaceable>value2,value3</replaceable>
+<replaceable>[section]</replaceable>
+<replaceable>key</replaceable> = <replaceable>value</replaceable>
+<replaceable>key2</replaceable> = <replaceable>value2,value3</replaceable>
             </programlisting>
         </para>
 

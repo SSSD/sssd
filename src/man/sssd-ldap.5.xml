@@ -2523,13 +2523,13 @@ ldap_access_filter = (employeeType=admin)
         </para>
         <para>
 <programlisting>
-    [domain/LDAP]
-    id_provider = ldap
-    auth_provider = ldap
-    ldap_uri = ldap://ldap.mydomain.org
-    ldap_search_base = dc=mydomain,dc=org
-    ldap_tls_reqcert = demand
-    cache_credentials = true
+[domain/LDAP]
+id_provider = ldap
+auth_provider = ldap
+ldap_uri = ldap://ldap.mydomain.org
+ldap_search_base = dc=mydomain,dc=org
+ldap_tls_reqcert = demand
+cache_credentials = true
 </programlisting>
         </para>
     </refsect1>
@@ -2541,16 +2541,16 @@ ldap_access_filter = (employeeType=admin)
         </para>
         <para>
 <programlisting>
-    [domain/LDAP]
-    id_provider = ldap
-    auth_provider = ldap
-    access_provider = ldap
-    ldap_access_order = lockout
-    ldap_pwdlockout_dn = cn=ppolicy,ou=policies,dc=mydomain,dc=org
-    ldap_uri = ldap://ldap.mydomain.org
-    ldap_search_base = dc=mydomain,dc=org
-    ldap_tls_reqcert = demand
-    cache_credentials = true
+[domain/LDAP]
+id_provider = ldap
+auth_provider = ldap
+access_provider = ldap
+ldap_access_order = lockout
+ldap_pwdlockout_dn = cn=ppolicy,ou=policies,dc=mydomain,dc=org
+ldap_uri = ldap://ldap.mydomain.org
+ldap_search_base = dc=mydomain,dc=org
+ldap_tls_reqcert = demand
+cache_credentials = true
 </programlisting>
         </para>
     </refsect1>

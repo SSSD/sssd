@@ -137,9 +137,9 @@
         </para>
         <para>
 <programlisting>
-    [domain/example.com]
-    access_provider = simple
-    simple_allow_users = user1, user2
+[domain/example.com]
+access_provider = simple
+simple_allow_users = user1, user2
 </programlisting>
         </para>
     </refsect1>

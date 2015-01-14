@@ -356,7 +356,7 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             with a custom pam service name (e.g. <quote>my_pam_service</quote>),
                             you would use the following configuration:
                             <programlisting>
-                              ad_gpo_map_interactive = +my_pam_service, -login
+ad_gpo_map_interactive = +my_pam_service, -login
                             </programlisting>
                         </para>
                         <para>
@@ -427,7 +427,7 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             with a custom pam service name (e.g. <quote>my_pam_service</quote>),
                             you would use the following configuration:
                             <programlisting>
-                              ad_gpo_map_remote_interactive = +my_pam_service, -sshd
+ad_gpo_map_remote_interactive = +my_pam_service, -sshd
                             </programlisting>
                         </para>
                         <para>
@@ -462,7 +462,7 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             with a custom pam service name (e.g. <quote>my_pam_service</quote>),
                             you would use the following configuration:
                             <programlisting>
-                              ad_gpo_map_network = +my_pam_service, -ftp
+ad_gpo_map_network = +my_pam_service, -ftp
                             </programlisting>
                         </para>
                         <para>
@@ -502,7 +502,7 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             with a custom pam service name (e.g. <quote>my_pam_service</quote>),
                             you would use the following configuration:
                             <programlisting>
-                              ad_gpo_map_batch = +my_pam_service, -crond
+ad_gpo_map_batch = +my_pam_service, -crond
                             </programlisting>
                         </para>
                         <para>
@@ -536,7 +536,7 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             name (e.g. <quote>my_pam_service</quote>), you
                             would use the following configuration:
                             <programlisting>
-                              ad_gpo_map_service = +my_pam_service
+ad_gpo_map_service = +my_pam_service
                             </programlisting>
                         </para>
                         <para>
@@ -563,7 +563,7 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             with a custom pam service name (e.g. <quote>my_pam_service</quote>),
                             you would use the following configuration:
                             <programlisting>
-                              ad_gpo_map_permit = +my_pam_service, -sudo
+ad_gpo_map_permit = +my_pam_service, -sudo
                             </programlisting>
                         </para>
                         <para>
@@ -601,7 +601,7 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             name (e.g. <quote>my_pam_service</quote>), you
                             would use the following configuration:
                             <programlisting>
-                              ad_gpo_map_deny = +my_pam_service
+ad_gpo_map_deny = +my_pam_service
                             </programlisting>
                         </para>
                         <para>

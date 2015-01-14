@@ -526,10 +526,10 @@
         </para>
         <para>
 <programlisting>
-    [domain/FOO]
-    auth_provider = krb5
-    krb5_server = 192.168.1.1
-    krb5_realm = EXAMPLE.COM
+[domain/FOO]
+auth_provider = krb5
+krb5_server = 192.168.1.1
+krb5_realm = EXAMPLE.COM
 </programlisting>
         </para>
     </refsect1>
