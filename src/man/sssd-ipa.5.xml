@@ -170,6 +170,9 @@
                             should be used for dynamic DNS updates.
                         </para>
                         <para>
+                            NOTE: This option currently supports only one interface.
+                        </para>
+                        <para>
                             NOTE: While it is still possible to use the old
                             <emphasis>ipa_dyndns_iface</emphasis> option, users
                             should migrate to using <emphasis>dyndns_iface</emphasis>
