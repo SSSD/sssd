@@ -201,6 +201,86 @@ void test_sss_krb5_kt_have_content(void **state)
      * create empty keytab files */
 }
 
+static bool keytab_entries_equal(krb5_keytab_entry kent1,
+                                 krb5_keytab_entry kent2)
+{
+    if (kent1.vno != kent2.vno
+            || kent1.key.enctype != kent2.key.enctype
+            || kent1.key.length != kent2.key.length
+            || memcmp(kent1.key.contents, kent2.key.contents,
+                      kent1.key.length) != 0 ) {
+        return false;
+    }
+
+    return true;
+}
+
+void test_copy_keytab_order(void **state)
+{
+    krb5_error_code kerr;
+    krb5_error_code kerr_mem;
+    char *mem_keytab_name;
+    krb5_keytab mem_keytab;
+    krb5_kt_cursor mem_cursor;
+    krb5_keytab_entry mem_kent;
+    krb5_keytab keytab;
+    krb5_kt_cursor cursor;
+    krb5_keytab_entry kent;
+    struct keytab_test_ctx *test_ctx = talloc_get_type(*state,
+                                                        struct keytab_test_ctx);
+    assert_non_null(test_ctx);
+
+    kerr = copy_keytab_into_memory(test_ctx, test_ctx->kctx,
+                                   test_ctx->keytab_file_name,
+                                   &mem_keytab_name, &mem_keytab);
+    assert_int_equal(kerr, 0);
+    assert_non_null(mem_keytab_name);
+
+    kerr = krb5_kt_resolve(test_ctx->kctx, mem_keytab_name, &mem_keytab);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_kt_resolve(test_ctx->kctx, test_ctx->keytab_file_name, &keytab);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_kt_start_seq_get(test_ctx->kctx, mem_keytab, &mem_cursor);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_kt_start_seq_get(test_ctx->kctx, keytab, &cursor);
+    assert_int_equal(kerr, 0);
+
+    while ((kerr = krb5_kt_next_entry(test_ctx->kctx, keytab, &kent,
+                                      &cursor)) == 0) {
+        kerr_mem = krb5_kt_next_entry(test_ctx->kctx, mem_keytab, &mem_kent,
+                                      &mem_cursor);
+        assert_int_equal(kerr_mem, 0);
+
+        assert_true(keytab_entries_equal(kent, mem_kent));
+
+        krb5_free_keytab_entry_contents(test_ctx->kctx, &kent);
+        krb5_free_keytab_entry_contents(test_ctx->kctx, &mem_kent);
+    }
+
+    assert_int_equal(kerr, KRB5_KT_END);
+
+    kerr_mem = krb5_kt_next_entry(test_ctx->kctx, mem_keytab, &mem_kent,
+                                  &mem_cursor);
+    assert_int_equal(kerr_mem, KRB5_KT_END);
+
+    kerr = krb5_kt_end_seq_get(test_ctx->kctx, mem_keytab, &mem_cursor);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_kt_end_seq_get(test_ctx->kctx, keytab, &cursor);
+    assert_int_equal(kerr, 0);
+
+    talloc_free(mem_keytab_name);
+
+    kerr = krb5_kt_close(test_ctx->kctx, keytab);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_kt_close(test_ctx->kctx, mem_keytab);
+    assert_int_equal(kerr, 0);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -216,6 +296,8 @@ int main(int argc, const char *argv[])
         unit_test_setup_teardown(test_copy_keytab,
                                  setup_keytab, teardown_keytab),
         unit_test_setup_teardown(test_sss_krb5_kt_have_content,
+                                 setup_keytab, teardown_keytab),
+        unit_test_setup_teardown(test_copy_keytab_order,
                                  setup_keytab, teardown_keytab),
     };
 
