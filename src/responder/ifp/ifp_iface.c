@@ -49,31 +49,31 @@ struct iface_ifp_components iface_ifp_components = {
     .Disable = ifp_component_disable,
     .ChangeDebugLevel = ifp_component_change_debug_level,
     .ChangeDebugLevelTemporarily = ifp_component_change_debug_level_tmp,
-    .iface_ifp_components_get_name = ifp_component_get_name,
-    .iface_ifp_components_get_debug_level = ifp_component_get_debug_level,
-    .iface_ifp_components_get_enabled = ifp_component_get_enabled,
-    .iface_ifp_components_get_type = ifp_component_get_type,
+    .get_name = ifp_component_get_name,
+    .get_debug_level = ifp_component_get_debug_level,
+    .get_enabled = ifp_component_get_enabled,
+    .get_type = ifp_component_get_type,
     /* FIXME: This should be part of Components.Backends interface, onece
      * SSSD supports multiple interfaces per object path. */
-    .iface_ifp_components_get_providers = ifp_backend_get_providers
+    .get_providers = ifp_backend_get_providers
 };
 
 struct iface_ifp_domains iface_ifp_domains = {
     { &iface_ifp_domains_meta, 0 },
-    .iface_ifp_domains_get_name = ifp_dom_get_name,
-    .iface_ifp_domains_get_provider = ifp_dom_get_provider,
-    .iface_ifp_domains_get_primary_servers = ifp_dom_get_primary_servers,
-    .iface_ifp_domains_get_backup_servers = ifp_dom_get_backup_servers,
-    .iface_ifp_domains_get_min_id = ifp_dom_get_min_id,
-    .iface_ifp_domains_get_max_id = ifp_dom_get_max_id,
-    .iface_ifp_domains_get_realm = ifp_dom_get_realm,
-    .iface_ifp_domains_get_forest = ifp_dom_get_forest,
-    .iface_ifp_domains_get_login_format = ifp_dom_get_login_format,
-    .iface_ifp_domains_get_fully_qualified_name_format = ifp_dom_get_fqdn_format,
-    .iface_ifp_domains_get_enumerable = ifp_dom_get_enumerable,
-    .iface_ifp_domains_get_use_fully_qualified_names = ifp_dom_get_use_fqdn,
-    .iface_ifp_domains_get_subdomain = ifp_dom_get_subdomain,
-    .iface_ifp_domains_get_parent_domain = ifp_dom_get_parent_domain
+    .get_name = ifp_dom_get_name,
+    .get_provider = ifp_dom_get_provider,
+    .get_primary_servers = ifp_dom_get_primary_servers,
+    .get_backup_servers = ifp_dom_get_backup_servers,
+    .get_min_id = ifp_dom_get_min_id,
+    .get_max_id = ifp_dom_get_max_id,
+    .get_realm = ifp_dom_get_realm,
+    .get_forest = ifp_dom_get_forest,
+    .get_login_format = ifp_dom_get_login_format,
+    .get_fully_qualified_name_format = ifp_dom_get_fqdn_format,
+    .get_enumerable = ifp_dom_get_enumerable,
+    .get_use_fully_qualified_names = ifp_dom_get_use_fqdn,
+    .get_subdomain = ifp_dom_get_subdomain,
+    .get_parent_domain = ifp_dom_get_parent_domain
 };
 
 struct iface_map {

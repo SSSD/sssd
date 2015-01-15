@@ -188,7 +188,7 @@ class Property(Typed):
     def fq_c_name(self):
         return "%s_%s" % (self.iface.c_name(), self.c_name())
     def getter_name(self):
-        return "%s_get_%s" % (self.iface.c_name(), self.c_name())
+        return "get_%s" % self.c_name()
     def getter_invoker_name(self):
         return "sbus_invoke_get_%s" % self.type
     def getter_signature(self, name):

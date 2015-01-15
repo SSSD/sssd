@@ -332,7 +332,7 @@ const struct sbus_property_meta iface_ifp_components__properties[] = {
         "name", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_components, iface_ifp_components_get_name),
+        offsetof(struct iface_ifp_components, get_name),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -341,7 +341,7 @@ const struct sbus_property_meta iface_ifp_components__properties[] = {
         "debug_level", /* name */
         "u", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_components, iface_ifp_components_get_debug_level),
+        offsetof(struct iface_ifp_components, get_debug_level),
         sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
@@ -350,7 +350,7 @@ const struct sbus_property_meta iface_ifp_components__properties[] = {
         "enabled", /* name */
         "b", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_components, iface_ifp_components_get_enabled),
+        offsetof(struct iface_ifp_components, get_enabled),
         sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
@@ -359,7 +359,7 @@ const struct sbus_property_meta iface_ifp_components__properties[] = {
         "type", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_components, iface_ifp_components_get_type),
+        offsetof(struct iface_ifp_components, get_type),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -368,7 +368,7 @@ const struct sbus_property_meta iface_ifp_components__properties[] = {
         "providers", /* name */
         "as", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_components, iface_ifp_components_get_providers),
+        offsetof(struct iface_ifp_components, get_providers),
         sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
@@ -391,7 +391,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "name", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_name),
+        offsetof(struct iface_ifp_domains, get_name),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -400,7 +400,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "provider", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_provider),
+        offsetof(struct iface_ifp_domains, get_provider),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -409,7 +409,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "primary_servers", /* name */
         "as", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_primary_servers),
+        offsetof(struct iface_ifp_domains, get_primary_servers),
         sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
@@ -418,7 +418,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "backup_servers", /* name */
         "as", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_backup_servers),
+        offsetof(struct iface_ifp_domains, get_backup_servers),
         sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
@@ -427,7 +427,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "min_id", /* name */
         "u", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_min_id),
+        offsetof(struct iface_ifp_domains, get_min_id),
         sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
@@ -436,7 +436,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "max_id", /* name */
         "u", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_max_id),
+        offsetof(struct iface_ifp_domains, get_max_id),
         sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
@@ -445,7 +445,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "realm", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_realm),
+        offsetof(struct iface_ifp_domains, get_realm),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -454,7 +454,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "forest", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_forest),
+        offsetof(struct iface_ifp_domains, get_forest),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -463,7 +463,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "login_format", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_login_format),
+        offsetof(struct iface_ifp_domains, get_login_format),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -472,7 +472,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "fully_qualified_name_format", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_fully_qualified_name_format),
+        offsetof(struct iface_ifp_domains, get_fully_qualified_name_format),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -481,7 +481,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "enumerable", /* name */
         "b", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_enumerable),
+        offsetof(struct iface_ifp_domains, get_enumerable),
         sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
@@ -490,7 +490,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "use_fully_qualified_names", /* name */
         "b", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_use_fully_qualified_names),
+        offsetof(struct iface_ifp_domains, get_use_fully_qualified_names),
         sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
@@ -499,7 +499,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "subdomain", /* name */
         "b", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_subdomain),
+        offsetof(struct iface_ifp_domains, get_subdomain),
         sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
@@ -508,7 +508,7 @@ const struct sbus_property_meta iface_ifp_domains__properties[] = {
         "parent_domain", /* name */
         "o", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_parent_domain),
+        offsetof(struct iface_ifp_domains, get_parent_domain),
         sbus_invoke_get_o,
         0, /* not writable */
         NULL, /* no invoker */

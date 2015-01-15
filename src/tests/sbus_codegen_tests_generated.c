@@ -97,7 +97,7 @@ const struct sbus_property_meta com_planetexpress_Ship__properties[] = {
         "Color", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct com_planetexpress_Ship, com_planetexpress_Ship_get_Color),
+        offsetof(struct com_planetexpress_Ship, get_Color),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -239,7 +239,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "FullName", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE | SBUS_PROPERTY_WRITABLE,
-        offsetof(struct test_pilot, test_pilot_get_FullName),
+        offsetof(struct test_pilot, get_FullName),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -248,7 +248,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "byte", /* name */
         "y", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_byte),
+        offsetof(struct test_pilot, get_byte),
         sbus_invoke_get_y,
         0, /* not writable */
         NULL, /* no invoker */
@@ -257,7 +257,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "boolean", /* name */
         "b", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_boolean),
+        offsetof(struct test_pilot, get_boolean),
         sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
@@ -266,7 +266,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "int16", /* name */
         "n", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_int16),
+        offsetof(struct test_pilot, get_int16),
         sbus_invoke_get_n,
         0, /* not writable */
         NULL, /* no invoker */
@@ -275,7 +275,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "uint16", /* name */
         "q", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_uint16),
+        offsetof(struct test_pilot, get_uint16),
         sbus_invoke_get_q,
         0, /* not writable */
         NULL, /* no invoker */
@@ -284,7 +284,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "int32", /* name */
         "i", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_int32),
+        offsetof(struct test_pilot, get_int32),
         sbus_invoke_get_i,
         0, /* not writable */
         NULL, /* no invoker */
@@ -293,7 +293,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "uint32", /* name */
         "u", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_uint32),
+        offsetof(struct test_pilot, get_uint32),
         sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
@@ -302,7 +302,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "int64", /* name */
         "x", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_int64),
+        offsetof(struct test_pilot, get_int64),
         sbus_invoke_get_x,
         0, /* not writable */
         NULL, /* no invoker */
@@ -311,7 +311,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "uint64", /* name */
         "t", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_uint64),
+        offsetof(struct test_pilot, get_uint64),
         sbus_invoke_get_t,
         0, /* not writable */
         NULL, /* no invoker */
@@ -320,7 +320,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "double", /* name */
         "d", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_double),
+        offsetof(struct test_pilot, get_double),
         sbus_invoke_get_d,
         0, /* not writable */
         NULL, /* no invoker */
@@ -329,7 +329,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "string", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_string),
+        offsetof(struct test_pilot, get_string),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -338,7 +338,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "object_path", /* name */
         "o", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_object_path),
+        offsetof(struct test_pilot, get_object_path),
         sbus_invoke_get_o,
         0, /* not writable */
         NULL, /* no invoker */
@@ -347,7 +347,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "null_string", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_null_string),
+        offsetof(struct test_pilot, get_null_string),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -356,7 +356,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "null_path", /* name */
         "o", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_null_path),
+        offsetof(struct test_pilot, get_null_path),
         sbus_invoke_get_o,
         0, /* not writable */
         NULL, /* no invoker */
@@ -365,7 +365,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "byte_array", /* name */
         "ay", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_byte_array),
+        offsetof(struct test_pilot, get_byte_array),
         sbus_invoke_get_ay,
         0, /* not writable */
         NULL, /* no invoker */
@@ -374,7 +374,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "int16_array", /* name */
         "an", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_int16_array),
+        offsetof(struct test_pilot, get_int16_array),
         sbus_invoke_get_an,
         0, /* not writable */
         NULL, /* no invoker */
@@ -383,7 +383,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "uint16_array", /* name */
         "aq", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_uint16_array),
+        offsetof(struct test_pilot, get_uint16_array),
         sbus_invoke_get_aq,
         0, /* not writable */
         NULL, /* no invoker */
@@ -392,7 +392,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "int32_array", /* name */
         "ai", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_int32_array),
+        offsetof(struct test_pilot, get_int32_array),
         sbus_invoke_get_ai,
         0, /* not writable */
         NULL, /* no invoker */
@@ -401,7 +401,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "uint32_array", /* name */
         "au", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_uint32_array),
+        offsetof(struct test_pilot, get_uint32_array),
         sbus_invoke_get_au,
         0, /* not writable */
         NULL, /* no invoker */
@@ -410,7 +410,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "int64_array", /* name */
         "ax", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_int64_array),
+        offsetof(struct test_pilot, get_int64_array),
         sbus_invoke_get_ax,
         0, /* not writable */
         NULL, /* no invoker */
@@ -419,7 +419,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "uint64_array", /* name */
         "at", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_uint64_array),
+        offsetof(struct test_pilot, get_uint64_array),
         sbus_invoke_get_at,
         0, /* not writable */
         NULL, /* no invoker */
@@ -428,7 +428,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "double_array", /* name */
         "ad", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_double_array),
+        offsetof(struct test_pilot, get_double_array),
         sbus_invoke_get_ad,
         0, /* not writable */
         NULL, /* no invoker */
@@ -437,7 +437,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "string_array", /* name */
         "as", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_string_array),
+        offsetof(struct test_pilot, get_string_array),
         sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
@@ -446,7 +446,7 @@ const struct sbus_property_meta test_pilot__properties[] = {
         "object_path_array", /* name */
         "ao", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct test_pilot, test_pilot_get_object_path_array),
+        offsetof(struct test_pilot, get_object_path_array),
         sbus_invoke_get_ao,
         0, /* not writable */
         NULL, /* no invoker */

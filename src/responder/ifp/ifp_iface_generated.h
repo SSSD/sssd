@@ -122,11 +122,11 @@ struct iface_ifp_components {
     int (*Disable)(struct sbus_request *req, void *data);
     int (*ChangeDebugLevel)(struct sbus_request *req, void *data, uint32_t arg_new_level);
     int (*ChangeDebugLevelTemporarily)(struct sbus_request *req, void *data, uint32_t arg_new_level);
-    void (*iface_ifp_components_get_name)(struct sbus_request *, void *data, const char * *);
-    void (*iface_ifp_components_get_debug_level)(struct sbus_request *, void *data, uint32_t *);
-    void (*iface_ifp_components_get_enabled)(struct sbus_request *, void *data, bool *);
-    void (*iface_ifp_components_get_type)(struct sbus_request *, void *data, const char * *);
-    void (*iface_ifp_components_get_providers)(struct sbus_request *, void *data, const char * * *, int *);
+    void (*get_name)(struct sbus_request *, void *data, const char * *);
+    void (*get_debug_level)(struct sbus_request *, void *data, uint32_t *);
+    void (*get_enabled)(struct sbus_request *, void *data, bool *);
+    void (*get_type)(struct sbus_request *, void *data, const char * *);
+    void (*get_providers)(struct sbus_request *, void *data, const char * * *, int *);
 };
 
 /* finish function for Enable */
@@ -144,20 +144,20 @@ int iface_ifp_components_ChangeDebugLevelTemporarily_finish(struct sbus_request 
 /* vtable for org.freedesktop.sssd.infopipe.Domains */
 struct iface_ifp_domains {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
-    void (*iface_ifp_domains_get_name)(struct sbus_request *, void *data, const char * *);
-    void (*iface_ifp_domains_get_provider)(struct sbus_request *, void *data, const char * *);
-    void (*iface_ifp_domains_get_primary_servers)(struct sbus_request *, void *data, const char * * *, int *);
-    void (*iface_ifp_domains_get_backup_servers)(struct sbus_request *, void *data, const char * * *, int *);
-    void (*iface_ifp_domains_get_min_id)(struct sbus_request *, void *data, uint32_t *);
-    void (*iface_ifp_domains_get_max_id)(struct sbus_request *, void *data, uint32_t *);
-    void (*iface_ifp_domains_get_realm)(struct sbus_request *, void *data, const char * *);
-    void (*iface_ifp_domains_get_forest)(struct sbus_request *, void *data, const char * *);
-    void (*iface_ifp_domains_get_login_format)(struct sbus_request *, void *data, const char * *);
-    void (*iface_ifp_domains_get_fully_qualified_name_format)(struct sbus_request *, void *data, const char * *);
-    void (*iface_ifp_domains_get_enumerable)(struct sbus_request *, void *data, bool *);
-    void (*iface_ifp_domains_get_use_fully_qualified_names)(struct sbus_request *, void *data, bool *);
-    void (*iface_ifp_domains_get_subdomain)(struct sbus_request *, void *data, bool *);
-    void (*iface_ifp_domains_get_parent_domain)(struct sbus_request *, void *data, const char * *);
+    void (*get_name)(struct sbus_request *, void *data, const char * *);
+    void (*get_provider)(struct sbus_request *, void *data, const char * *);
+    void (*get_primary_servers)(struct sbus_request *, void *data, const char * * *, int *);
+    void (*get_backup_servers)(struct sbus_request *, void *data, const char * * *, int *);
+    void (*get_min_id)(struct sbus_request *, void *data, uint32_t *);
+    void (*get_max_id)(struct sbus_request *, void *data, uint32_t *);
+    void (*get_realm)(struct sbus_request *, void *data, const char * *);
+    void (*get_forest)(struct sbus_request *, void *data, const char * *);
+    void (*get_login_format)(struct sbus_request *, void *data, const char * *);
+    void (*get_fully_qualified_name_format)(struct sbus_request *, void *data, const char * *);
+    void (*get_enumerable)(struct sbus_request *, void *data, bool *);
+    void (*get_use_fully_qualified_names)(struct sbus_request *, void *data, bool *);
+    void (*get_subdomain)(struct sbus_request *, void *data, bool *);
+    void (*get_parent_domain)(struct sbus_request *, void *data, const char * *);
 };
 
 /* ------------------------------------------------------------------------
