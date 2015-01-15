@@ -54,6 +54,13 @@
 #define IFACE_IFP_DOMAINS_SUBDOMAIN "subdomain"
 #define IFACE_IFP_DOMAINS_PARENT_DOMAIN "parent_domain"
 
+/* constants for org.freedesktop.sssd.infopipe.Users */
+#define IFACE_IFP_USERS "org.freedesktop.sssd.infopipe.Users"
+#define IFACE_IFP_USERS_FINDBYNAME "FindByName"
+#define IFACE_IFP_USERS_FINDBYID "FindByID"
+#define IFACE_IFP_USERS_LISTBYNAME "ListByName"
+#define IFACE_IFP_USERS_LISTBYDOMAINANDNAME "ListByDomainAndName"
+
 /* ------------------------------------------------------------------------
  * DBus handlers
  *
@@ -160,6 +167,27 @@ struct iface_ifp_domains {
     void (*get_parent_domain)(struct sbus_request *, void *data, const char * *);
 };
 
+/* vtable for org.freedesktop.sssd.infopipe.Users */
+struct iface_ifp_users {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*FindByName)(struct sbus_request *req, void *data, const char *arg_name);
+    int (*FindByID)(struct sbus_request *req, void *data, uint32_t arg_id);
+    int (*ListByName)(struct sbus_request *req, void *data, const char *arg_name_filter, uint32_t arg_limit);
+    int (*ListByDomainAndName)(struct sbus_request *req, void *data, const char *arg_domain_name, const char *arg_name_filter, uint32_t arg_limit);
+};
+
+/* finish function for FindByName */
+int iface_ifp_users_FindByName_finish(struct sbus_request *req, const char *arg_result);
+
+/* finish function for FindByID */
+int iface_ifp_users_FindByID_finish(struct sbus_request *req, const char *arg_result);
+
+/* finish function for ListByName */
+int iface_ifp_users_ListByName_finish(struct sbus_request *req, const char *arg_result[], int len_result);
+
+/* finish function for ListByDomainAndName */
+int iface_ifp_users_ListByDomainAndName_finish(struct sbus_request *req, const char *arg_result[], int len_result);
+
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata
  *
@@ -178,5 +206,8 @@ extern const struct sbus_interface_meta iface_ifp_components_meta;
 
 /* interface info for org.freedesktop.sssd.infopipe.Domains */
 extern const struct sbus_interface_meta iface_ifp_domains_meta;
+
+/* interface info for org.freedesktop.sssd.infopipe.Users */
+extern const struct sbus_interface_meta iface_ifp_users_meta;
 
 #endif /* __IFP_IFACE_XML__ */

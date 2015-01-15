@@ -12,6 +12,12 @@ static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr);
 /* invokes a handler with a 'u' DBus signature */
 static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr);
 
+/* invokes a handler with a 'su' DBus signature */
+static int invoke_su_method(struct sbus_request *dbus_req, void *function_ptr);
+
+/* invokes a handler with a 'ssu' DBus signature */
+static int invoke_ssu_method(struct sbus_request *dbus_req, void *function_ptr);
+
 /* arguments for org.freedesktop.sssd.infopipe.ListComponents */
 const struct sbus_arg_meta iface_ifp_ListComponents__out[] = {
     { "components", "ao" },
@@ -525,6 +531,149 @@ const struct sbus_interface_meta iface_ifp_domains_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+/* arguments for org.freedesktop.sssd.infopipe.Users.FindByName */
+const struct sbus_arg_meta iface_ifp_users_FindByName__in[] = {
+    { "name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Users.FindByName */
+const struct sbus_arg_meta iface_ifp_users_FindByName__out[] = {
+    { "result", "o" },
+    { NULL, }
+};
+
+int iface_ifp_users_FindByName_finish(struct sbus_request *req, const char *arg_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_OBJECT_PATH, &arg_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Users.FindByID */
+const struct sbus_arg_meta iface_ifp_users_FindByID__in[] = {
+    { "id", "u" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Users.FindByID */
+const struct sbus_arg_meta iface_ifp_users_FindByID__out[] = {
+    { "result", "o" },
+    { NULL, }
+};
+
+int iface_ifp_users_FindByID_finish(struct sbus_request *req, const char *arg_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_OBJECT_PATH, &arg_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Users.ListByName */
+const struct sbus_arg_meta iface_ifp_users_ListByName__in[] = {
+    { "name_filter", "s" },
+    { "limit", "u" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Users.ListByName */
+const struct sbus_arg_meta iface_ifp_users_ListByName__out[] = {
+    { "result", "ao" },
+    { NULL, }
+};
+
+int iface_ifp_users_ListByName_finish(struct sbus_request *req, const char *arg_result[], int len_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_result, len_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Users.ListByDomainAndName */
+const struct sbus_arg_meta iface_ifp_users_ListByDomainAndName__in[] = {
+    { "domain_name", "s" },
+    { "name_filter", "s" },
+    { "limit", "u" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Users.ListByDomainAndName */
+const struct sbus_arg_meta iface_ifp_users_ListByDomainAndName__out[] = {
+    { "result", "ao" },
+    { NULL, }
+};
+
+int iface_ifp_users_ListByDomainAndName_finish(struct sbus_request *req, const char *arg_result[], int len_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_result, len_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.infopipe.Users */
+const struct sbus_method_meta iface_ifp_users__methods[] = {
+    {
+        "FindByName", /* name */
+        iface_ifp_users_FindByName__in,
+        iface_ifp_users_FindByName__out,
+        offsetof(struct iface_ifp_users, FindByName),
+        invoke_s_method,
+    },
+    {
+        "FindByID", /* name */
+        iface_ifp_users_FindByID__in,
+        iface_ifp_users_FindByID__out,
+        offsetof(struct iface_ifp_users, FindByID),
+        invoke_u_method,
+    },
+    {
+        "ListByName", /* name */
+        iface_ifp_users_ListByName__in,
+        iface_ifp_users_ListByName__out,
+        offsetof(struct iface_ifp_users, ListByName),
+        invoke_su_method,
+    },
+    {
+        "ListByDomainAndName", /* name */
+        iface_ifp_users_ListByDomainAndName__in,
+        iface_ifp_users_ListByDomainAndName__out,
+        offsetof(struct iface_ifp_users, ListByDomainAndName),
+        invoke_ssu_method,
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.infopipe.Users */
+const struct sbus_interface_meta iface_ifp_users_meta = {
+    "org.freedesktop.sssd.infopipe.Users", /* name */
+    iface_ifp_users__methods,
+    NULL, /* no signals */
+    NULL, /* no properties */
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
+/* invokes a handler with a 'ssu' DBus signature */
+static int invoke_ssu_method(struct sbus_request *dbus_req, void *function_ptr)
+{
+    const char * arg_0;
+    const char * arg_1;
+    uint32_t arg_2;
+    int (*handler)(struct sbus_request *, void *, const char *, const char *, uint32_t) = function_ptr;
+
+    if (!sbus_request_parse_or_finish(dbus_req,
+                               DBUS_TYPE_STRING, &arg_0,
+                               DBUS_TYPE_STRING, &arg_1,
+                               DBUS_TYPE_UINT32, &arg_2,
+                               DBUS_TYPE_INVALID)) {
+         return EOK; /* request handled */
+    }
+
+    return (handler)(dbus_req, dbus_req->intf->handler_data,
+                     arg_0,
+                     arg_1,
+                     arg_2);
+}
+
 /* invokes a handler with a 's' DBus signature */
 static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr)
 {
@@ -555,4 +704,23 @@ static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr)
 
     return (handler)(dbus_req, dbus_req->intf->handler_data,
                      arg_0);
+}
+
+/* invokes a handler with a 'su' DBus signature */
+static int invoke_su_method(struct sbus_request *dbus_req, void *function_ptr)
+{
+    const char * arg_0;
+    uint32_t arg_1;
+    int (*handler)(struct sbus_request *, void *, const char *, uint32_t) = function_ptr;
+
+    if (!sbus_request_parse_or_finish(dbus_req,
+                               DBUS_TYPE_STRING, &arg_0,
+                               DBUS_TYPE_UINT32, &arg_1,
+                               DBUS_TYPE_INVALID)) {
+         return EOK; /* request handled */
+    }
+
+    return (handler)(dbus_req, dbus_req->intf->handler_data,
+                     arg_0,
+                     arg_1);
 }

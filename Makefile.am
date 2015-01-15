@@ -544,6 +544,7 @@ dist_noinst_HEADERS = \
     src/responder/ifp/ifp_private.h \
     src/responder/ifp/ifp_domains.h \
     src/responder/ifp/ifp_components.h \
+    src/responder/ifp/ifp_users.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_meta.h \
@@ -1086,6 +1087,7 @@ sssd_ifp_SOURCES = \
     src/responder/ifp/ifpsrv_util.c \
     src/responder/ifp/ifp_domains.c \
     src/responder/ifp/ifp_components.c \
+    src/responder/ifp/ifp_users.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_ifp_CFLAGS = \
