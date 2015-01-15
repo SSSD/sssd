@@ -25,20 +25,78 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
+static krb5_error_code do_keytab_copy(krb5_context kctx, krb5_keytab s_keytab,
+                                      krb5_keytab d_keytab)
+{
+    krb5_error_code kerr;
+    krb5_error_code kt_err;
+    krb5_kt_cursor cursor;
+    krb5_keytab_entry entry;
+
+    memset(&cursor, 0, sizeof(cursor));
+    kerr = krb5_kt_start_seq_get(kctx, s_keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab.\n");
+        return kerr;
+    }
+
+    memset(&entry, 0, sizeof(entry));
+    while ((kt_err = krb5_kt_next_entry(kctx, s_keytab, &entry,
+                                        &cursor)) == 0) {
+        kerr = krb5_kt_add_entry(kctx, d_keytab, &entry);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "krb5_kt_add_entry failed.\n");
+            kt_err = krb5_kt_end_seq_get(kctx, s_keytab, &cursor);
+            if (kt_err != 0) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "krb5_kt_end_seq_get failed with [%d], ignored.\n",
+                      kt_err);
+            }
+            return kerr;
+        }
+
+        kerr = sss_krb5_free_keytab_entry_contents(kctx, &entry);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to free keytab entry.\n");
+            kt_err = krb5_kt_end_seq_get(kctx, s_keytab, &cursor);
+            if (kt_err != 0) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "krb5_kt_end_seq_get failed with [%d], ignored.\n",
+                      kt_err);
+            }
+            return kerr;
+        }
+        memset(&entry, 0, sizeof(entry));
+    }
+
+    kerr = krb5_kt_end_seq_get(kctx, s_keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_end_seq_get failed.\n");
+        return kerr;
+    }
+
+    /* check if we got any errors from krb5_kt_next_entry */
+    if (kt_err != 0 && kt_err != KRB5_KT_END) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab.\n");
+        return kt_err;
+    }
+
+    return 0;
+}
+
 krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
                                         char *inp_keytab_file,
                                         char **_mem_name,
                                         krb5_keytab *_mem_keytab)
 {
     krb5_error_code kerr;
-    krb5_error_code kt_err;
     krb5_keytab keytab = NULL;
     krb5_keytab mem_keytab = NULL;
-    krb5_kt_cursor cursor;
-    krb5_keytab_entry entry;
+    krb5_keytab tmp_mem_keytab = NULL;
     char keytab_name[MAX_KEYTAB_NAME_LEN];
     char *sep;
     char *mem_name = NULL;
+    char *tmp_mem_name = NULL;
     char *keytab_file;
     char default_keytab_name[MAX_KEYTAB_NAME_LEN];
 
@@ -103,6 +161,13 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
         goto done;
     }
 
+    tmp_mem_name = talloc_asprintf(mem_ctx, "MEMORY:%s.tmp", sep + 1);
+    if (tmp_mem_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        kerr = KRB5KRB_ERR_GENERIC;
+        goto done;
+    }
+
     kerr = krb5_kt_resolve(kctx, mem_name, &mem_keytab);
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "error resolving keytab [%s].\n",
@@ -110,38 +175,29 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
         goto done;
     }
 
-    memset(&cursor, 0, sizeof(cursor));
-    kerr = krb5_kt_start_seq_get(kctx, keytab, &cursor);
+    kerr = krb5_kt_resolve(kctx, tmp_mem_name, &tmp_mem_keytab);
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab [%s].\n", keytab_file);
+        DEBUG(SSSDBG_CRIT_FAILURE, "error resolving keytab [%s].\n",
+                                    tmp_mem_name);
         goto done;
     }
 
-    memset(&entry, 0, sizeof(entry));
-    while ((kt_err = krb5_kt_next_entry(kctx, keytab, &entry, &cursor)) == 0) {
-        kerr = krb5_kt_add_entry(kctx, mem_keytab, &entry);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_OP_FAILURE, "krb5_kt_add_entry failed.\n");
-            goto done;
-        }
-
-        kerr = sss_krb5_free_keytab_entry_contents(kctx, &entry);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to free keytab entry.\n");
-        }
-        memset(&entry, 0, sizeof(entry));
-    }
-
-    kerr = krb5_kt_end_seq_get(kctx, keytab, &cursor);
+    kerr = do_keytab_copy(kctx, keytab, tmp_mem_keytab);
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_end_seq_get failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy keytab [%s] into [%s].\n",
+                                    keytab_file, tmp_mem_name);
         goto done;
     }
 
-    /* check if we got any errors from krb5_kt_next_entry */
-    if (kt_err != 0 && kt_err != KRB5_KT_END) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab [%s].\n", keytab_file);
-        kerr = KRB5KRB_ERR_GENERIC;
+    /* krb5_kt_add_entry() adds new entries into MEMORY keytabs at the
+     * beginning and not at the end as for FILE keytabs. Since we want to keep
+     * the processing order we have to copy the MEMORY keytab again to retain
+     * the order from the FILE keytab. */
+
+    kerr = do_keytab_copy(kctx, tmp_mem_keytab, mem_keytab);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy keytab [%s] into [%s].\n",
+                                    tmp_mem_name, mem_name);
         goto done;
     }
 
@@ -153,12 +209,18 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
     kerr = 0;
 done:
 
+    talloc_free(tmp_mem_name);
+
     if (kerr != 0) {
         talloc_free(mem_name);
     }
 
+    if (tmp_mem_keytab != NULL && krb5_kt_close(kctx, tmp_mem_keytab) != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "krb5_kt_close failed.\n");
+    }
+
     if (keytab != NULL && krb5_kt_close(kctx, keytab) != 0) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "krb5_kt_close failed");
+        DEBUG(SSSDBG_MINOR_FAILURE, "krb5_kt_close failed.\n");
     }
 
     return kerr;
