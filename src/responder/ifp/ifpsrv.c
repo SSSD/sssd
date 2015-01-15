@@ -68,69 +68,6 @@ static struct data_provider_iface ifp_dp_methods = {
     .getAccountInfo = NULL,
 };
 
-struct infopipe_iface ifp_iface = {
-    { &infopipe_iface_meta, 0 },
-    .Ping = ifp_ping,
-
-    /* components */
-    .ListComponents = ifp_list_components,
-    .ListResponders = ifp_list_responders,
-    .ListBackends = ifp_list_backends,
-    .FindMonitor = ifp_find_monitor,
-    .FindResponderByName = ifp_find_responder_by_name,
-    .FindBackendByName = ifp_find_backend_by_name,
-
-    .GetUserAttr = ifp_user_get_attr,
-    .GetUserGroups = ifp_user_get_groups,
-    .ListDomains = ifp_list_domains,
-    .FindDomainByName = ifp_find_domain_by_name,
-};
-
-struct infopipe_component ifp_component = {
-    { &infopipe_component_meta, 0 },
-    .Enable = ifp_component_enable,
-    .Disable = ifp_component_disable,
-    .ChangeDebugLevel = ifp_component_change_debug_level,
-    .ChangeDebugLevelTemporarily = ifp_component_change_debug_level_tmp,
-    .infopipe_component_get_name = ifp_component_get_name,
-    .infopipe_component_get_debug_level = ifp_component_get_debug_level,
-    .infopipe_component_get_enabled = ifp_component_get_enabled,
-    .infopipe_component_get_type = ifp_component_get_type,
-    /* FIXME: This should be part of Components.Backends interface, onece
-     * SSSD supports multiple interfaces per object path. */
-    .infopipe_component_get_providers = ifp_backend_get_providers
-};
-
-struct infopipe_domain ifp_domain = {
-    { &infopipe_domain_meta, 0 },
-    .infopipe_domain_get_name = ifp_dom_get_name,
-    .infopipe_domain_get_provider = ifp_dom_get_provider,
-    .infopipe_domain_get_primary_servers = ifp_dom_get_primary_servers,
-    .infopipe_domain_get_backup_servers = ifp_dom_get_backup_servers,
-    .infopipe_domain_get_min_id = ifp_dom_get_min_id,
-    .infopipe_domain_get_max_id = ifp_dom_get_max_id,
-    .infopipe_domain_get_realm = ifp_dom_get_realm,
-    .infopipe_domain_get_forest = ifp_dom_get_forest,
-    .infopipe_domain_get_login_format = ifp_dom_get_login_format,
-    .infopipe_domain_get_fully_qualified_name_format = ifp_dom_get_fqdn_format,
-    .infopipe_domain_get_enumerable = ifp_dom_get_enumerable,
-    .infopipe_domain_get_use_fully_qualified_names = ifp_dom_get_use_fqdn,
-    .infopipe_domain_get_subdomain = ifp_dom_get_subdomain,
-    .infopipe_domain_get_parent_domain = ifp_dom_get_parent_domain
-};
-
-struct sysbus_iface {
-    const char *path;
-    struct sbus_vtable *iface_vtable;
-};
-
-static struct sysbus_iface ifp_ifaces[] = {
-    { INFOPIPE_PATH, &ifp_iface.vtable },
-    { INFOPIPE_DOMAIN_PATH, &ifp_domain.vtable },
-    { INFOPIPE_COMPONENT_PATH, &ifp_component.vtable },
-    { NULL, NULL },
-};
-
 struct sss_cmd_table *get_ifp_cmds(void)
 {
     static struct sss_cmd_table ifp_cmds[] = {
@@ -171,14 +108,12 @@ static errno_t
 sysbus_init(TALLOC_CTX *mem_ctx,
             struct tevent_context *ev,
             const char *dbus_name,
-            struct sysbus_iface *sysbus_ifaces,
             void *pvt,
             struct sysbus_ctx **sysbus)
 {
     DBusError dbus_error;
     DBusConnection *conn = NULL;
     struct sysbus_ctx *system_bus = NULL;
-    int i;
     errno_t ret;
 
     system_bus = talloc_zero(mem_ctx, struct sysbus_ctx);
@@ -224,15 +159,10 @@ sysbus_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    for (i = 0; sysbus_ifaces[i].path != NULL; i++) {
-        ret = sbus_conn_register_iface(system_bus->conn,
-                                       sysbus_ifaces[i].iface_vtable,
-                                       sysbus_ifaces[i].path, pvt);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Could not add the interface\n");
-            goto fail;
-        }
+    ret = ifp_register_sbus_interface(system_bus->conn, pvt);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not register interfaces\n");
+        goto fail;
     }
 
     *sysbus = system_bus;
@@ -267,7 +197,6 @@ static int ifp_sysbus_reconnect(struct sbus_request *dbus_req, void *data)
     /* Connect to the D-BUS system bus and set up methods */
     ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
                       INFOPIPE_IFACE,
-                      ifp_ifaces,
                       ifp_ctx, &ifp_ctx->sysbus);
     if (ret == ERR_NO_SYSBUS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -398,7 +327,6 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     /* Connect to the D-BUS system bus and set up methods */
     ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
                       INFOPIPE_IFACE,
-                      ifp_ifaces,
                       ifp_ctx, &ifp_ctx->sysbus);
     if (ret == ERR_NO_SYSBUS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
