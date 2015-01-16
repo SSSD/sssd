@@ -82,9 +82,9 @@ struct iface_map {
 };
 
 static struct iface_map iface_map[] = {
-    { INFOPIPE_PATH, &iface_ifp.vtable },
-    { INFOPIPE_DOMAIN_PATH, &iface_ifp_domains.vtable },
-    { INFOPIPE_COMPONENT_PATH, &iface_ifp_components.vtable },
+    { IFP_PATH, &iface_ifp.vtable },
+    { IFP_PATH_DOMAINS_TREE, &iface_ifp_domains.vtable },
+    { IFP_PATH_COMPONENTS_TREE, &iface_ifp_components.vtable },
     { NULL, NULL },
 };
 

@@ -25,8 +25,8 @@
 #include "responder/ifp/ifp_iface_generated.h"
 #include "responder/ifp/ifp_private.h"
 
-#define INFOPIPE_DOMAIN_PATH_PFX "/org/freedesktop/sssd/infopipe/Domains"
-#define INFOPIPE_DOMAIN_PATH     INFOPIPE_DOMAIN_PATH_PFX"/*"
+#define IFP_PATH_DOMAINS IFP_PATH "/Domains"
+#define IFP_PATH_DOMAINS_TREE IFP_PATH_DOMAINS "/*"
 
 /* org.freedesktop.sssd.infopipe */
 

@@ -125,7 +125,7 @@ static void ifp_list_domains_process(struct tevent_req *req)
     for (dom = ireq->ifp_ctx->rctx->domains;
             dom != NULL;
             dom = get_next_domain(dom, true)) {
-        p = sbus_opath_compose(ireq, INFOPIPE_DOMAIN_PATH_PFX, dom->name);
+        p = sbus_opath_compose(ireq, IFP_PATH_DOMAINS, dom->name);
         if (p == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Could not create path for dom %s, skipping\n", dom->name);
@@ -234,7 +234,7 @@ static void ifp_find_domain_by_name_process(struct tevent_req *req)
         return;
     }
 
-    path = sbus_opath_compose(ireq, INFOPIPE_DOMAIN_PATH_PFX, iter->name);
+    path = sbus_opath_compose(ireq, IFP_PATH_DOMAINS, iter->name);
     if (path == NULL) {
         DEBUG(SSSDBG_MINOR_FAILURE,
                 "Could not create path for domain %s, skipping\n", iter->name);
@@ -263,7 +263,7 @@ get_domain_info_from_req(struct sbus_request *dbus_req, void *data)
     }
 
     name = sbus_opath_get_object_name(dbus_req, dbus_req->path,
-                                      INFOPIPE_DOMAIN_PATH_PFX);
+                                      IFP_PATH_DOMAINS);
     if (name == NULL) {
         return NULL;
     }
@@ -530,6 +530,6 @@ void ifp_dom_get_parent_domain(struct sbus_request *dbus_req,
         return;
     }
 
-    *_out = sbus_opath_compose(dbus_req, INFOPIPE_DOMAIN_PATH_PFX,
+    *_out = sbus_opath_compose(dbus_req, IFP_PATH_DOMAINS,
                                dom->parent->name);
 }

@@ -34,9 +34,9 @@
 #include "util/sss_config.h"
 #endif
 
-#define PATH_MONITOR    INFOPIPE_COMPONENT_PATH_PFX "/monitor"
-#define PATH_RESPONDERS INFOPIPE_COMPONENT_PATH_PFX "/Responders"
-#define PATH_BACKENDS   INFOPIPE_COMPONENT_PATH_PFX "/Backends"
+#define PATH_MONITOR    IFP_PATH_COMPONENTS "/monitor"
+#define PATH_RESPONDERS IFP_PATH_COMPONENTS "/Responders"
+#define PATH_BACKENDS   IFP_PATH_COMPONENTS "/Backends"
 
 enum component_type {
     COMPONENT_MONITOR,

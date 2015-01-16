@@ -29,7 +29,7 @@
 #include "providers/data_provider.h"
 #include "responder/ifp/ifp_iface_generated.h"
 
-#define INFOPIPE_PATH "/org/freedesktop/sssd/infopipe"
+#define IFP_PATH "/org/freedesktop/sssd/infopipe"
 
 struct sysbus_ctx {
     struct sbus_connection *conn;

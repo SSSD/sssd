@@ -24,10 +24,8 @@
 #include "responder/ifp/ifp_iface_generated.h"
 #include "responder/ifp/ifp_private.h"
 
-#define INFOPIPE_COMPONENT_PATH_PFX "/org/freedesktop/sssd/infopipe/Components"
-#define INFOPIPE_COMPONENT_PATH INFOPIPE_COMPONENT_PATH_PFX "/*"
-
-#define INFOPIPE_BACKEND_PATH INFOPIPE_COMPONENT_PATH_PFX "/Backends*"
+#define IFP_PATH_COMPONENTS IFP_PATH "/Components"
+#define IFP_PATH_COMPONENTS_TREE IFP_PATH_COMPONENTS "/*"
 
 /* org.freedesktop.sssd.infopipe */
 
