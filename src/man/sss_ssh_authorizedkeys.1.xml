@@ -51,11 +51,12 @@
             If <quote>AuthorizedKeysCommand</quote> is supported,
             <citerefentry><refentrytitle>sshd</refentrytitle>
             <manvolnum>8</manvolnum></citerefentry> can be configured to
-            use it by putting the following directive in <citerefentry>
+            use it by putting the following directives in <citerefentry>
             <refentrytitle>sshd_config</refentrytitle>
             <manvolnum>5</manvolnum></citerefentry>:
 <programlisting>
-AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
+  AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
+  AuthorizedKeysCommandUser nobody
 </programlisting>
         </para>
         <para>
