@@ -118,11 +118,7 @@ BuildRequires: libcmocka-devel
 BuildRequires: uid_wrapper
 BuildRequires: nss_wrapper
 %endif
-%if (0%{?fedora} || 0%{?rhel} >= 7)
 BuildRequires: libnl3-devel
-%else
-BuildRequires: libnl-devel
-%endif
 %if (0%{?use_systemd} == 1)
 BuildRequires: systemd-devel
 %endif
