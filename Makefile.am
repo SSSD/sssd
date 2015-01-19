@@ -381,7 +381,7 @@ AM_CPPFLAGS = \
     -DSSS_SSH_SOCKET_NAME=\"$(pipepath)/ssh\" \
     -DLOCALEDIR=\"$(localedir)\"
 
-EXTRA_DIST = build/config.rpath
+EXTRA_DIST =
 
 SSSD_RESPONDER_OBJ = \
     src/responder/common/negcache.c \
