@@ -2409,16 +2409,21 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_domain.c \
     src/providers/ldap/sdap.c \
     src/util/user_info_msg.c \
-    src/util/sss_ldap.c
+    src/util/sss_ldap.c \
+    $(NULL)
 libsss_ldap_common_la_CFLAGS = \
-    $(KRB5_CFLAGS)
+    $(KRB5_CFLAGS) \
+    $(NULL)
 libsss_ldap_common_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(KRB5_LIBS) \
     libsss_krb5_common.la \
-    libsss_idmap.la
+    libsss_idmap.la \
+    libsss_util.la \
+    $(NULL)
 libsss_ldap_common_la_LDFLAGS = \
-    -avoid-version
+    -avoid-version \
+    $(NULL)
 
 if BUILD_SUDO
 libsss_ldap_common_la_SOURCES += \

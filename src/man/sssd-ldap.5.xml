@@ -1955,6 +1955,20 @@ ldap_access_filter = (employeeType=admin)
                             be set for this feature to work.
                         </para>
                         <para>
+                            <emphasis>ppolicy</emphasis>: use account locking.
+                            If set, this option denies access in case that ldap
+                            attribute 'pwdAccountLockedTime' is present and has
+                            value of '000001010000Z' or represents any time in the past.
+                            The value of 'pwdAccountLockedTime' attribute
+                            must end with 'Z' as only UTC time zone is
+                            currently suported. Please see the option
+                            ldap_pwdlockout_dn.
+
+                            Please note that 'access_provider = ldap' must
+                            be set for this feature to work.
+                        </para>
+
+                        <para>
                             <emphasis>expire</emphasis>: use
                             ldap_account_expire_policy
                         </para>
