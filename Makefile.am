@@ -1555,15 +1555,18 @@ simple_access_tests_LDADD = \
     libsss_test_common.la
 
 util_tests_SOURCES = \
-    src/tests/util-tests.c
+    src/tests/util-tests.c \
+    $(NULL)
 util_tests_CFLAGS = \
     $(AM_CFLAGS) \
-    $(CHECK_CFLAGS)
+    $(CHECK_CFLAGS) \
+    $(NULL)
 util_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_test_common.la
+    libsss_test_common.la \
+    $(NULL)
 
 safe_format_tests_SOURCES = \
     src/tests/safe-format-tests.c

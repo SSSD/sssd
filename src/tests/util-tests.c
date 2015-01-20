@@ -28,6 +28,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdlib.h>
+
 #include "util/util.h"
 #include "util/sss_utf8.h"
 #include "util/murmurhash3.h"
@@ -1020,6 +1022,54 @@ START_TEST(test_known_service)
 }
 END_TEST
 
+static void convert_time_tz(const char* tz)
+{
+    errno_t ret, ret2;
+    time_t unix_time;
+    const char *orig_tz = NULL;
+
+    orig_tz = getenv("TZ");
+    if (orig_tz == NULL) {
+        orig_tz = "";
+    }
+
+    if (tz) {
+        ret = setenv("TZ", tz, 1);
+        fail_if(ret == -1);
+    }
+
+    ret = sss_utc_to_time_t("20140801115742Z", "%Y%m%d%H%M%SZ", &unix_time);
+
+    /* restore */
+    if (orig_tz != NULL) {
+        ret2 = setenv("TZ", orig_tz, 1);
+        fail_if(ret2 == -1);
+    }
+    fail_unless(ret == EOK && difftime(1406894262, unix_time) == 0);
+}
+
+START_TEST(test_convert_time)
+{
+    const char *format = "%Y%m%d%H%M%SZ";
+    time_t unix_time;
+    errno_t ret;
+
+    ret = sss_utc_to_time_t("20150127133540P", format, &unix_time);
+    fail_unless(ret == ERR_TIMESPEC_NOT_SUPPORTED);
+    ret = sss_utc_to_time_t("0Z", format, &unix_time);
+    fail_unless(ret == EINVAL);
+    ret = sss_utc_to_time_t("000001010000Z", format, &unix_time);
+    fail_unless(ret == EINVAL);
+
+    /* test that results are still same no matter what timezone is set */
+    convert_time_tz(NULL);
+
+    convert_time_tz("GST-1");
+
+    convert_time_tz("GST-2");
+}
+END_TEST
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -1067,10 +1117,17 @@ Suite *util_suite(void)
     tcase_add_test(tc_atomicio, test_atomicio_read_exact_sized_file);
     tcase_add_test(tc_atomicio, test_atomicio_read_from_empty_file);
 
+    TCase *tc_convert_time = tcase_create("convert_time");
+    tcase_add_checked_fixture(tc_convert_time,
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
+    tcase_add_test(tc_convert_time, test_convert_time);
+
     suite_add_tcase (s, tc_util);
     suite_add_tcase (s, tc_utf8);
     suite_add_tcase (s, tc_mh3);
     suite_add_tcase (s, tc_atomicio);
+    suite_add_tcase (s, tc_convert_time);
 
     return s;
 }

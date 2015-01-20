@@ -90,6 +90,7 @@ enum sssd_errors {
     ERR_REFERRAL,
     ERR_SELINUX_CONTEXT,
     ERR_REGEX_NOMATCH,
+    ERR_TIMESPEC_NOT_SUPPORTED,
     ERR_LAST            /* ALWAYS LAST */
 };
 

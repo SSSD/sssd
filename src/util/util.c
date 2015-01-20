@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include <ctype.h>
 #include <netdb.h>
 #include <poll.h>
@@ -26,6 +27,7 @@
 #include <arpa/inet.h>
 #include <talloc.h>
 #include <dhash.h>
+#include <time.h>
 
 #include "util/util.h"
 #include "util/sss_utf8.h"
@@ -902,5 +904,56 @@ errno_t sss_fd_nonblocking(int fd)
         return ret;
     }
 
+    return EOK;
+}
+
+/* Convert GeneralizedTime (http://en.wikipedia.org/wiki/GeneralizedTime)
+ * to unix time (seconds since epoch). Use UTC time zone.
+ */
+errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *_unix_time)
+{
+    char *end;
+    struct tm tm;
+    size_t len;
+    time_t ut;
+
+    if (str == NULL) {
+        return EINVAL;
+    }
+
+    len = strlen(str);
+    if (str[len-1] != 'Z') {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "%s does not seem to be in UTZ time zone.\n", str);
+        return ERR_TIMESPEC_NOT_SUPPORTED;
+    }
+
+    memset(&tm, 0, sizeof(tm));
+
+    end = strptime(str, format, &tm);
+    /* not all characters from format were matched */
+    if (end == NULL) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "String [%s] failed to match format [%s].\n", str, format);
+        return EINVAL;
+    }
+
+    /* str is 'longer' than format */
+    if (*end != '\0') {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "String [%s] is longer than format [%s].\n", str, format);
+        return EINVAL;
+    }
+
+    ut = mktime(&tm);
+    if (ut == -1) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "mktime failed to convert [%s].\n", str);
+        return EINVAL;
+    }
+
+    tzset();
+    ut -= timezone;
+    *_unix_time = ut;
     return EOK;
 }
