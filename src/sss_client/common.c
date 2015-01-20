@@ -749,6 +749,19 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
     }
 }
 
+int sss_pac_check_and_open(void)
+{
+    enum sss_status ret;
+    int errnop;
+
+    ret = sss_cli_check_socket(&errnop, SSS_PAC_SOCKET_NAME);
+    if (ret != SSS_STATUS_SUCCESS) {
+        return EIO;
+    }
+
+    return EOK;
+}
+
 int sss_pac_make_request(enum sss_cli_command cmd,
                          struct sss_cli_req_data *rd,
                          uint8_t **repbuf, size_t *replen,
