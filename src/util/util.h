@@ -636,4 +636,7 @@ int set_seuser(const char *login_name, const char *seuser_name,
                const char *mlsrange);
 int del_seuser(const char *login_name);
 
+/* convert time from generalized form to unix time */
+errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *unix_time);
+
 #endif /* __SSSD_UTIL_H__ */
