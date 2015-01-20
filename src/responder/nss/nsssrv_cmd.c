@@ -4605,6 +4605,61 @@ static errno_t fill_sid(struct sss_packet *packet,
     return EOK;
 }
 
+static errno_t process_attr_list(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
+                                 const char **attr_list,
+                                 struct sized_string **_keys,
+                                 struct sized_string **_vals,
+                                 size_t *array_size, size_t *sum, size_t *found)
+{
+    size_t c;
+    size_t d;
+    struct sized_string *keys;
+    struct sized_string *vals;
+    struct ldb_val *val;
+    struct ldb_message_element *el;
+
+    keys = *_keys;
+    vals = *_vals;
+
+    for (c = 0; attr_list[c] != NULL; c++) {
+        el = ldb_msg_find_element(msg, attr_list[c]);
+        if (el != NULL &&  el->num_values > 0) {
+            if (el->num_values > 1) {
+                *array_size += el->num_values;
+                keys = talloc_realloc(mem_ctx, keys, struct sized_string,
+                                      *array_size);
+                vals = talloc_realloc(mem_ctx, vals, struct sized_string,
+                                      *array_size);
+                if (keys == NULL || vals == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+                    return ENOMEM;
+                }
+            }
+            for (d = 0; d < el->num_values; d++) {
+                to_sized_string(&keys[*found], attr_list[c]);
+                *sum += keys[*found].len;
+                val = &(el->values[d]);
+                if (val == NULL || val->data == NULL
+                        || val->data[val->length] != '\0') {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "Unexpected attribute value found for [%s].\n",
+                          attr_list[c]);
+                    return EINVAL;
+                }
+                to_sized_string(&vals[*found], (const char *)val->data);
+                *sum += vals[*found].len;
+
+                (*found)++;
+            }
+        }
+    }
+
+    *_keys = keys;
+    *_vals = vals;
+
+    return EOK;
+}
+
 static errno_t fill_orig(struct sss_packet *packet,
                          struct resp_ctx *rctx,
                          enum sss_id_type id_type,
@@ -4616,7 +4671,6 @@ static errno_t fill_orig(struct sss_packet *packet,
     size_t blen;
     size_t pctr = 0;
     size_t c;
-    size_t d;
     size_t sum;
     size_t found;
     size_t array_size;
@@ -4638,8 +4692,6 @@ static errno_t fill_orig(struct sss_packet *packet,
     struct sized_string *keys;
     struct sized_string *vals;
     struct nss_ctx *nctx;
-    struct ldb_message_element *el;
-    struct ldb_val *val;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -4666,73 +4718,20 @@ static errno_t fill_orig(struct sss_packet *packet,
 
     sum = 0;
     found = 0;
-    for (c = 0; orig_attr_list[c] != NULL; c++) {
-        el = ldb_msg_find_element(msg, orig_attr_list[c]);
-        if (el != NULL &&  el->num_values > 0) {
-            if (el->num_values > 1) {
-                array_size += el->num_values;
-                keys = talloc_realloc(tmp_ctx, keys, struct sized_string,
-                                      array_size);
-                vals = talloc_realloc(tmp_ctx, vals, struct sized_string,
-                                      array_size);
-                if (keys == NULL || vals == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
-            }
-            for (d = 0; d < el->num_values; d++) {
-                to_sized_string(&keys[found], orig_attr_list[c]);
-                sum += keys[found].len;
-                val = &(el->values[d]);
-                if (val == NULL || val->data == NULL
-                        || val->data[val->length] != '\0') {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Unexpected attribute value found for [%s].\n",
-                          orig_attr_list[c]);
-                    ret = EINVAL;
-                    goto done;
-                }
-                to_sized_string(&vals[found], (const char *)val->data);
-                sum += vals[found].len;
 
-                found++;
-            }
-        }
+    ret = process_attr_list(tmp_ctx, msg, orig_attr_list, &keys, &vals,
+                            &array_size, &sum, &found);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "process_attr_list failed.\n");
+        goto done;
     }
 
-    for (c = 0; c < extra_attrs_count; c++) {
-        el = ldb_msg_find_element(msg, extra_attrs_list[c]);
-        if (el != NULL &&  el->num_values > 0) {
-            if (el->num_values > 1) {
-                array_size += el->num_values;
-                keys = talloc_realloc(tmp_ctx, keys, struct sized_string,
-                                      array_size);
-                vals = talloc_realloc(tmp_ctx, vals, struct sized_string,
-                                      array_size);
-                if (keys == NULL || vals == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
-                    ret = ENOMEM;
-                    goto done;
-                }
-            }
-            for (d = 0; d < el->num_values; d++) {
-                to_sized_string(&keys[found], extra_attrs_list[c]);
-                sum += keys[found].len;
-                val = &(el->values[d]);
-                if (val == NULL || val->data == NULL
-                        || val->data[val->length] != '\0') {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Unexpected attribute value found for [%s].\n",
-                          orig_attr_list[c]);
-                    ret = EINVAL;
-                    goto done;
-                }
-                to_sized_string(&vals[found], (const char *)val->data);
-                sum += vals[found].len;
-
-                found++;
-            }
+    if (extra_attrs_count != 0) {
+        ret = process_attr_list(tmp_ctx, msg, extra_attrs_list, &keys, &vals,
+                                &array_size, &sum, &found);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "process_attr_list failed.\n");
+            goto done;
         }
     }
 
