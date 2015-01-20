@@ -432,6 +432,8 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
         } else if (strcasecmp(order_list[c],
                               LDAP_ACCESS_EXPIRE_POLICY_RENEW_NAME) == 0) {
             access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_RENEW;
+        } else if (strcasecmp(order_list[c], LDAP_ACCESS_PPOLICY_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_PPOLICY;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unexpected access rule name [%s].\n", order_list[c]);

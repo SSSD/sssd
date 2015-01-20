@@ -32,6 +32,7 @@
 #include <errno.h>
 
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
@@ -43,6 +44,12 @@
 
 #define PERMANENTLY_LOCKED_ACCOUNT "000001010000Z"
 #define MALFORMED_FILTER "Malformed access control filter [%s]\n"
+
+enum sdap_pwpolicy_mode {
+    PWP_LOCKOUT_ONLY,
+    PWP_LOCKOUT_EXPIRE,
+    PWP_SENTINEL,
+};
 
 static errno_t perform_pwexpire_policy(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *domain,
@@ -59,14 +66,15 @@ static errno_t sdap_get_basedn_user_entry(struct ldb_message *user_entry,
                                           const char **_basedn);
 
 static struct tevent_req *
-sdap_access_lock_send(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
-                      struct be_ctx *be_ctx,
-                      struct sss_domain_info *domain,
-                      struct sdap_access_ctx *access_ctx,
-                      struct sdap_id_conn_ctx *conn,
-                      const char *username,
-                      struct ldb_message *user_entry);
+sdap_access_ppolicy_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_ctx *be_ctx,
+                         struct sss_domain_info *domain,
+                         struct sdap_access_ctx *access_ctx,
+                         struct sdap_id_conn_ctx *conn,
+                         const char *username,
+                         struct ldb_message *user_entry,
+                         enum sdap_pwpolicy_mode pwpol_mod);
 
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
@@ -79,7 +87,7 @@ static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
 
 static errno_t sdap_access_filter_recv(struct tevent_req *req);
 
-static errno_t sdap_access_lock_recv(struct tevent_req *req);
+static errno_t sdap_access_ppolicy_recv(struct tevent_req *req);
 
 static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
                                     struct pam_data *pd,
@@ -205,14 +213,34 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
             return EOK;
 
         case LDAP_ACCESS_LOCKOUT:
-            subreq = sdap_access_lock_send(state, state->ev, state->be_ctx,
-                                           state->domain,
-                                           state->access_ctx,
-                                           state->conn,
-                                           state->pd->user,
-                                           state->user_entry);
+            subreq = sdap_access_ppolicy_send(state, state->ev, state->be_ctx,
+                                              state->domain,
+                                              state->access_ctx,
+                                              state->conn,
+                                              state->pd->user,
+                                              state->user_entry,
+                                              PWP_LOCKOUT_ONLY);
             if (subreq == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "sdap_access_lock_send failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE, "sdap_access_ppolicy_send failed.\n");
+                return ENOMEM;
+            }
+
+            state->ac_type = SDAP_ACCESS_CONTROL_PPOLICY_LOCK;
+
+            tevent_req_set_callback(subreq, sdap_access_done, req);
+            return EAGAIN;
+
+        case LDAP_ACCESS_PPOLICY:
+            subreq = sdap_access_ppolicy_send(state, state->ev, state->be_ctx,
+                                              state->domain,
+                                              state->access_ctx,
+                                              state->conn,
+                                              state->pd->user,
+                                              state->user_entry,
+                                              PWP_LOCKOUT_EXPIRE);
+            if (subreq == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sdap_access_ppolicy_send failed.\n");
                 return ENOMEM;
             }
 
@@ -302,7 +330,7 @@ static void sdap_access_done(struct tevent_req *subreq)
         ret = sdap_access_filter_recv(subreq);
         break;
     case SDAP_ACCESS_CONTROL_PPOLICY_LOCK:
-        ret = sdap_access_lock_recv(subreq);
+        ret = sdap_access_ppolicy_recv(subreq);
         break;
     default:
         ret = EINVAL;
@@ -791,8 +819,8 @@ struct sdap_access_filter_req_ctx {
 
 static errno_t sdap_access_decide_offline(bool cached_ac);
 static int sdap_access_filter_retry(struct tevent_req *req);
-static void sdap_access_lock_connect_done(struct tevent_req *subreq);
-static errno_t sdap_access_lock_get_lockout_step(struct tevent_req *req);
+static void sdap_access_ppolicy_connect_done(struct tevent_req *subreq);
+static errno_t sdap_access_ppolicy_get_lockout_step(struct tevent_req *req);
 static void sdap_access_filter_connect_done(struct tevent_req *subreq);
 static void sdap_access_filter_done(struct tevent_req *req);
 static struct tevent_req *sdap_access_filter_send(TALLOC_CTX *mem_ctx,
@@ -1267,12 +1295,12 @@ static errno_t sdap_access_host(struct ldb_message *user_entry)
     return ret;
 }
 
-static void sdap_access_lock_get_lockout_done(struct tevent_req *subreq);
-static int sdap_access_lock_retry(struct tevent_req *req);
-static errno_t sdap_access_lock_step(struct tevent_req *req);
-static void sdap_access_lock_step_done(struct tevent_req *subreq);
+static void sdap_access_ppolicy_get_lockout_done(struct tevent_req *subreq);
+static int sdap_access_ppolicy_retry(struct tevent_req *req);
+static errno_t sdap_access_ppolicy_step(struct tevent_req *req);
+static void sdap_access_ppolicy_step_done(struct tevent_req *subreq);
 
-struct sdap_access_lock_req_ctx {
+struct sdap_access_ppolicy_req_ctx {
     const char *username;
     const char *filter;
     struct tevent_context *ev;
@@ -1288,24 +1316,26 @@ struct sdap_access_lock_req_ctx {
     /* default DNs to ppolicy */
     const char **ppolicy_dns;
     unsigned int ppolicy_dns_index;
+    enum sdap_pwpolicy_mode pwpol_mode;
 };
 
 static struct tevent_req *
-sdap_access_lock_send(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
-                      struct be_ctx *be_ctx,
-                      struct sss_domain_info *domain,
-                      struct sdap_access_ctx *access_ctx,
-                      struct sdap_id_conn_ctx *conn,
-                      const char *username,
-                      struct ldb_message *user_entry)
+sdap_access_ppolicy_send(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_ctx *be_ctx,
+                         struct sss_domain_info *domain,
+                         struct sdap_access_ctx *access_ctx,
+                         struct sdap_id_conn_ctx *conn,
+                         const char *username,
+                         struct ldb_message *user_entry,
+                         enum sdap_pwpolicy_mode pwpol_mode)
 {
-    struct sdap_access_lock_req_ctx *state;
+    struct sdap_access_ppolicy_req_ctx *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx,
-                            &state, struct sdap_access_lock_req_ctx);
+                            &state, struct sdap_access_ppolicy_req_ctx);
     if (req == NULL) {
         return NULL;
     }
@@ -1318,9 +1348,10 @@ sdap_access_lock_send(TALLOC_CTX *mem_ctx,
     state->access_ctx = access_ctx;
     state->domain = domain;
     state->ppolicy_dns_index = 0;
+    state->pwpol_mode = pwpol_mode;
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Performing access lock check for user [%s]\n", username);
+          "Performing access ppolicy check for user [%s]\n", username);
 
     state->cached_access = ldb_msg_find_attr_as_bool(
         user_entry, SYSDB_LDAP_ACCESS_CACHED_LOCKOUT, false);
@@ -1338,7 +1369,7 @@ sdap_access_lock_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Checking lock against LDAP\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "Checking ppolicy against LDAP\n");
 
     state->sdap_op = sdap_id_op_create(state,
                                        state->conn->conn_cache);
@@ -1348,7 +1379,7 @@ sdap_access_lock_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sdap_access_lock_retry(req);
+    ret = sdap_access_ppolicy_retry(req);
     if (ret != EOK) {
         goto done;
     }
@@ -1365,21 +1396,22 @@ done:
     return req;
 }
 
-static int sdap_access_lock_retry(struct tevent_req *req)
+static int sdap_access_ppolicy_retry(struct tevent_req *req)
 {
-    struct sdap_access_lock_req_ctx *state;
+    struct sdap_access_ppolicy_req_ctx *state;
     struct tevent_req *subreq;
     int ret;
 
-    state = tevent_req_data(req, struct sdap_access_lock_req_ctx);
+    state = tevent_req_data(req, struct sdap_access_ppolicy_req_ctx);
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (!subreq) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "sdap_id_op_connect_send failed: %d (%s)\n", ret, strerror(ret));
+              "sdap_id_op_connect_send failed: %d (%s)\n",
+              ret, sss_strerror(ret));
         return ret;
     }
 
-    tevent_req_set_callback(subreq, sdap_access_lock_connect_done, req);
+    tevent_req_set_callback(subreq, sdap_access_ppolicy_connect_done, req);
     return EOK;
 }
 
@@ -1406,15 +1438,15 @@ get_default_ppolicy_dns(TALLOC_CTX *mem_ctx, struct sdap_domain *sdom)
     return ppolicy_dns;
 }
 
-static void sdap_access_lock_connect_done(struct tevent_req *subreq)
+static void sdap_access_ppolicy_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
-    struct sdap_access_lock_req_ctx *state;
+    struct sdap_access_ppolicy_req_ctx *state;
     int ret, dp_error;
     const char *ppolicy_dn;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_access_lock_req_ctx);
+    state = tevent_req_data(req, struct sdap_access_ppolicy_req_ctx);
 
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
@@ -1440,7 +1472,7 @@ static void sdap_access_lock_connect_done(struct tevent_req *subreq)
         state->ppolicy_dns = talloc_array(state, const char*, 2);
         if (state->ppolicy_dns == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not allocate ppolicy_dns.\n");
-            tevent_req_error(req, ERR_ACCESS_DENIED);
+            tevent_req_error(req, ERR_INTERNAL);
             return;
         }
 
@@ -1454,7 +1486,7 @@ static void sdap_access_lock_connect_done(struct tevent_req *subreq)
 
         state->ppolicy_dns = get_default_ppolicy_dns(state, state->opts->sdom);
         if (state->ppolicy_dns == NULL) {
-            tevent_req_error(req, ERR_ACCESS_DENIED);
+            tevent_req_error(req, ERR_INTERNAL);
             return;
         }
     }
@@ -1462,28 +1494,33 @@ static void sdap_access_lock_connect_done(struct tevent_req *subreq)
     /* Connection to LDAP succeeded
      * Send 'pwdLockout' request
      */
-    ret = sdap_access_lock_get_lockout_step(req);
+    ret = sdap_access_ppolicy_get_lockout_step(req);
     if (ret != EOK && ret != EAGAIN) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "sdap_access_lock_get_lockout_step failed: [%d][%s]\n",
-              ret, strerror(ret));
-        tevent_req_error(req, ERR_ACCESS_DENIED);
+              "sdap_access_ppolicy_get_lockout_step failed: [%d][%s]\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ERR_INTERNAL);
         return;
+    }
+
+    if (ret == EOK) {
+        tevent_req_done(req);
     }
 }
 
 static errno_t
-sdap_access_lock_get_lockout_step(struct tevent_req *req)
+sdap_access_ppolicy_get_lockout_step(struct tevent_req *req)
 {
     const char *attrs[] = { SYSDB_LDAP_ACCESS_LOCKOUT, NULL };
-    struct sdap_access_lock_req_ctx *state;
+    struct sdap_access_ppolicy_req_ctx *state;
     struct tevent_req *subreq;
     errno_t ret;
 
-    state = tevent_req_data(req, struct sdap_access_lock_req_ctx);
+    state = tevent_req_data(req, struct sdap_access_ppolicy_req_ctx);
 
     /* no more DNs to try */
     if (state->ppolicy_dns[state->ppolicy_dns_index] == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No more DNs to try.\n");
         ret = EOK;
         goto done;
     }
@@ -1505,14 +1542,13 @@ sdap_access_lock_get_lockout_step(struct tevent_req *req)
                                    false);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not start LDAP communication\n");
-        tevent_req_error(req, EIO);
         ret = EIO;
         goto done;
     }
 
     /* try next basedn */
     state->ppolicy_dns_index++;
-    tevent_req_set_callback(subreq, sdap_access_lock_get_lockout_done, req);
+    tevent_req_set_callback(subreq, sdap_access_ppolicy_get_lockout_done, req);
 
     ret = EAGAIN;
 
@@ -1520,17 +1556,17 @@ done:
     return ret;
 }
 
-static void sdap_access_lock_get_lockout_done(struct tevent_req *subreq)
+static void sdap_access_ppolicy_get_lockout_done(struct tevent_req *subreq)
 {
     int ret, tret, dp_error;
     size_t num_results;
     bool pwdLockout = false;
     struct sysdb_attrs **results;
     struct tevent_req *req;
-    struct sdap_access_lock_req_ctx *state;
+    struct sdap_access_ppolicy_req_ctx *state;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_access_lock_req_ctx);
+    state = tevent_req_data(req, struct sdap_access_ppolicy_req_ctx);
 
     ret = sdap_get_generic_recv(subreq, state, &num_results, &results);
     talloc_zfree(subreq);
@@ -1548,7 +1584,7 @@ static void sdap_access_lock_get_lockout_done(struct tevent_req *subreq)
     /* Didn't find ppolicy attribute */
     if (num_results < 1) {
         /* Try using next $search_base */
-        ret = sdap_access_lock_get_lockout_step(req);
+        ret = sdap_access_ppolicy_get_lockout_step(req);
         if (ret == EOK) {
             /* No more search bases to try */
             DEBUG(SSSDBG_CONF_SETTINGS,
@@ -1557,8 +1593,9 @@ static void sdap_access_lock_get_lockout_done(struct tevent_req *subreq)
         } else {
             if (ret != EAGAIN) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "sdap_access_lock_get_lockout_step failed: [%d][%s]\n",
-                      ret, strerror(ret));
+                      "sdap_access_ppolicy_get_lockout_step failed: "
+                      "[%d][%s]\n",
+                      ret, sss_strerror(ret));
             }
             goto done;
         }
@@ -1579,7 +1616,7 @@ static void sdap_access_lock_get_lockout_done(struct tevent_req *subreq)
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Error reading %s: [%s]\n", SYSDB_LDAP_ACCESS_LOCKOUT,
-                  strerror(ret));
+                  sss_strerror(ret));
             ret = ERR_INTERNAL;
             goto done;
         }
@@ -1590,11 +1627,11 @@ static void sdap_access_lock_get_lockout_done(struct tevent_req *subreq)
               "Password policy is enabled on LDAP server.\n");
 
         /* ppolicy is enabled => find out if account is locked */
-        ret = sdap_access_lock_step(req);
+        ret = sdap_access_ppolicy_step(req);
         if (ret != EOK && ret != EAGAIN) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_access_lock_step failed: [%d][%s].\n",
-                  ret, strerror(ret));
+                  "sdap_access_ppolicy_step failed: [%d][%s].\n",
+                  ret, sss_strerror(ret));
         }
         goto done;
     } else {
@@ -1635,14 +1672,16 @@ done:
     }
 }
 
-errno_t sdap_access_lock_step(struct tevent_req *req)
+errno_t sdap_access_ppolicy_step(struct tevent_req *req)
 {
     errno_t ret;
     struct tevent_req *subreq;
-    struct sdap_access_lock_req_ctx *state;
-    const char *attrs[] = { SYSDB_LDAP_ACCESS_LOCKED_TIME, NULL };
+    struct sdap_access_ppolicy_req_ctx *state;
+    const char *attrs[] = { SYSDB_LDAP_ACCESS_LOCKED_TIME,
+                            SYSDB_LDAP_ACESS_LOCKOUT_DURATION,
+                            NULL };
 
-    state = tevent_req_data(req, struct sdap_access_lock_req_ctx);
+    state = tevent_req_data(req, struct sdap_access_ppolicy_req_ctx);
 
     subreq = sdap_get_generic_send(state,
                                    state->ev,
@@ -1657,30 +1696,114 @@ errno_t sdap_access_lock_step(struct tevent_req *req)
                                    false);
 
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_access_lock_send failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_access_ppolicy_send failed.\n");
         ret = ENOMEM;
         goto done;
     }
 
-    tevent_req_set_callback(subreq, sdap_access_lock_step_done, req);
+    tevent_req_set_callback(subreq, sdap_access_ppolicy_step_done, req);
     ret = EAGAIN;
 
 done:
     return ret;
 }
 
-static void sdap_access_lock_step_done(struct tevent_req *subreq)
+static errno_t
+is_account_locked(const char *pwdAccountLockedTime,
+                  const char *pwdAccountLockedDurationTime,
+                  enum sdap_pwpolicy_mode pwpol_mode,
+                  const char *username,
+                  bool *_locked)
+{
+    errno_t ret;
+    time_t lock_time;
+    time_t duration;
+    time_t now;
+    bool locked;
+
+    /* Default action is to consider account to be locked. */
+    locked = true;
+
+    /* account is permanently locked */
+    if (strcasecmp(pwdAccountLockedTime,
+                   PERMANENTLY_LOCKED_ACCOUNT) == 0) {
+        ret = EOK;
+        goto done;
+    }
+
+    switch(pwpol_mode) {
+    case PWP_LOCKOUT_ONLY:
+        /* We do *not* care about exact value of account locked time, we
+         * only *do* care if the value is equal to
+         * PERMANENTLY_LOCKED_ACCOUNT, which means that account is locked
+         * permanently.
+         */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Account of: %s is beeing blocked by password policy, "
+              "but value: [%s] value is ignored by SSSD.\n",
+              username, pwdAccountLockedTime);
+        locked = false;
+        break;
+    case PWP_LOCKOUT_EXPIRE:
+        /* Account may be locked out from natural reasons (too many attempts,
+         * expired password). In this case, pwdAccountLockedTime is also set,
+         * to the time of lock out.
+         */
+        ret = sss_utc_to_time_t(pwdAccountLockedTime, "%Y%m%d%H%M%SZ",
+                                &lock_time);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC, "sss_utc_to_time_t failed with %d:%s.\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+
+        now = time(NULL);
+
+        /* Account was NOT locked in past. */
+        if (difftime(lock_time, now) > 0.0) {
+            locked = false;
+        } else if (pwdAccountLockedDurationTime != NULL) {
+            errno = 0;
+            duration = strtouint32(pwdAccountLockedDurationTime, NULL, 0);
+            if (errno) {
+                ret = errno;
+                goto done;
+            }
+            /* Lockout has expired */
+            if (duration != 0 && difftime(now, lock_time) > duration) {
+                locked = false;
+            }
+        }
+        break;
+    case PWP_SENTINEL:
+    default:
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Unexpected value of password policy mode: %d.\n", pwpol_mode);
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_locked = locked;
+    }
+
+    return ret;
+}
+
+static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
 {
     int ret, tret, dp_error;
     size_t num_results;
     bool locked = false;
     const char *pwdAccountLockedTime;
+    const char *pwdAccountLockedDurationTime;
     struct sysdb_attrs **results;
     struct tevent_req *req;
-    struct sdap_access_lock_req_ctx *state;
+    struct sdap_access_ppolicy_req_ctx *state;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_access_lock_req_ctx);
+    state = tevent_req_data(req, struct sdap_access_ppolicy_req_ctx);
 
     ret = sdap_get_generic_recv(subreq, state, &num_results, &results);
     talloc_zfree(subreq);
@@ -1689,7 +1812,7 @@ static void sdap_access_lock_step_done(struct tevent_req *subreq)
     if (ret != EOK) {
         if (dp_error == DP_ERR_OK) {
             /* retry */
-            tret = sdap_access_lock_retry(req);
+            tret = sdap_access_ppolicy_retry(req);
             if (tret == EOK) {
                 return;
             }
@@ -1712,7 +1835,7 @@ static void sdap_access_lock_step_done(struct tevent_req *subreq)
     if (num_results < 1) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "User [%s] was not found with the specified filter. "
-                  "Denying access.\n", state->username);
+              "Denying access.\n", state->username);
     } else if (results == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "num_results > 0, but results is NULL\n");
         ret = ERR_INTERNAL;
@@ -1725,22 +1848,35 @@ static void sdap_access_lock_step_done(struct tevent_req *subreq)
         ret = ERR_INTERNAL;
         goto done;
     } else { /* Ok, we got a single reply */
+        ret = sysdb_attrs_get_string(results[0], SYSDB_LDAP_ACESS_LOCKOUT_DURATION,
+                                     &pwdAccountLockedDurationTime);
+        if (ret != EOK) {
+            /* This attribute might not be set even if account is locked */
+            pwdAccountLockedDurationTime = NULL;
+        }
+
         ret = sysdb_attrs_get_string(results[0], SYSDB_LDAP_ACCESS_LOCKED_TIME,
                                      &pwdAccountLockedTime);
         if (ret == EOK) {
-            /* We do *not* care about exact value of account locked time, we
-             * only *do* care if the value is equal to
-             * PERMANENTLY_LOCKED_ACCOUNT, which means that account is locked
-             * permanently.
-             */
-            if (strcasecmp(pwdAccountLockedTime,
-                           PERMANENTLY_LOCKED_ACCOUNT) == 0) {
+
+            ret = is_account_locked(pwdAccountLockedTime,
+                                    pwdAccountLockedDurationTime,
+                                    state->pwpol_mode,
+                                    state->username,
+                                    &locked);
+            if (ret != EOK) {
+                if (ret == ERR_TIMESPEC_NOT_SUPPORTED) {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "timezone specifier in ppolicy is not supported\n");
+                } else {
+                    DEBUG(SSSDBG_MINOR_FAILURE,
+                          "is_account_locked failed: %d:[%s].\n",
+                          ret, sss_strerror(ret));
+                }
+
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Account will be considered to be locked.\n");
                 locked = true;
-            } else {
-                DEBUG(SSSDBG_TRACE_FUNC,
-                      "Account of: %s is beeing blocked by password policy, "
-                      "but value: [%s] value is ignored by SSSD.\n",
-                      state->username, pwdAccountLockedTime);
             }
         } else {
             /* Attribute SYSDB_LDAP_ACCESS_LOCKED_TIME in not be present unless
@@ -1786,7 +1922,7 @@ done:
     }
 }
 
-static errno_t sdap_access_lock_recv(struct tevent_req *req)
+static errno_t sdap_access_ppolicy_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
