@@ -55,7 +55,7 @@ struct sbus_request;
 #endif /* DBUS_ERROR_INIT */
 
 typedef int (*sbus_msg_handler_fn)(struct sbus_request *dbus_req,
-                                   void *instance_data);
+                                   void *handler_data);
 
 /*
  * sbus_conn_destructor_fn
@@ -110,7 +110,7 @@ struct sbus_vtable {
 struct sbus_interface {
     const char *path;
     struct sbus_vtable *vtable;
-    void *instance_data;
+    void *handler_data;
 };
 
 /* Server Functions */
@@ -168,7 +168,7 @@ void sbus_disconnect(struct sbus_connection *conn);
 int sbus_conn_register_iface(struct sbus_connection *conn,
                              struct sbus_vtable *iface_vtable,
                              const char *object_path,
-                             void *pvt);
+                             void *handler_data);
 
 errno_t
 sbus_conn_reregister_paths(struct sbus_connection *conn);

@@ -430,7 +430,7 @@ static struct sbus_interface *
 sbus_new_interface(TALLOC_CTX *mem_ctx,
                    const char *object_path,
                    struct sbus_vtable *iface_vtable,
-                   void *instance_data)
+                   void *handler_data)
 {
     struct sbus_interface *intf;
 
@@ -448,7 +448,7 @@ sbus_new_interface(TALLOC_CTX *mem_ctx,
     }
 
     intf->vtable = iface_vtable;
-    intf->instance_data = instance_data;
+    intf->handler_data = handler_data;
     return intf;
 }
 
@@ -513,7 +513,7 @@ errno_t
 sbus_conn_register_iface(struct sbus_connection *conn,
                          struct sbus_vtable *iface_vtable,
                          const char *object_path,
-                         void *pvt)
+                         void *handler_data)
 {
     struct sbus_interface *iface = NULL;
     bool path_known;
@@ -523,7 +523,7 @@ sbus_conn_register_iface(struct sbus_connection *conn,
         return EINVAL;
     }
 
-    iface = sbus_new_interface(conn, object_path, iface_vtable, pvt);
+    iface = sbus_new_interface(conn, object_path, iface_vtable, handler_data);
     if (iface == NULL) {
         return ENOMEM;
     }
@@ -599,7 +599,7 @@ sbus_message_handler_got_caller_id(struct tevent_req *req);
 static DBusHandlerResult
 sbus_message_handler(DBusConnection *dbus_conn,
                      DBusMessage *message,
-                     void *user_data)
+                     void *handler_data)
 {
     struct tevent_req *req;
     struct sbus_connection *conn;
@@ -611,7 +611,7 @@ sbus_message_handler(DBusConnection *dbus_conn,
     const char *path;
     const char *sender;
 
-    conn = talloc_get_type(user_data, struct sbus_connection);
+    conn = talloc_get_type(handler_data, struct sbus_connection);
 
     /* header information */
     iface_name = dbus_message_get_interface(message);
@@ -688,7 +688,7 @@ sbus_message_handler_got_caller_id(struct tevent_req *req)
 
     handler = VTABLE_FUNC(sbus_req->intf->vtable, method->vtable_offset);
     invoker = method->invoker;
-    pvt = sbus_req->intf->instance_data;
+    pvt = sbus_req->intf->handler_data;
 
     sbus_request_invoke_or_finish(sbus_req, handler, pvt, invoker);
     return;

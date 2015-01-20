@@ -282,7 +282,7 @@ def source_method_invoker(signature, args):
     out("    }")
     out("")
 
-    out("    return (handler)(dbus_req, dbus_req->intf->instance_data", new_line=False)
+    out("    return (handler)(dbus_req, dbus_req->intf->handler_data", new_line=False)
     for i in range(0, len(args)):
         arg = args[i]
         out(",\n                     arg_%d", i, new_line=False)
@@ -323,7 +323,7 @@ def source_getter_invoker(prop):
     out(" = function_ptr;")
     out("")
 
-    out("    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val", new_line=False)
+    out("    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val", new_line=False)
     if prop.is_array:
         out(", &prop_len", new_line=False)
     out(");")
@@ -380,7 +380,7 @@ def source_getall_invoker(iface, prop_invokers):
         out("    if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {")
         out("        %s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);", prop.type)
         out("        if (%s_handler) {", prop.type)
-        out("            (%s_handler)(dbus_req, dbus_req->intf->instance_data, &%s_prop_val", prop.type, prop.type, new_line=False)
+        out("            (%s_handler)(dbus_req, dbus_req->intf->handler_data, &%s_prop_val", prop.type, prop.type, new_line=False)
         if prop.is_array:
             out(", &%s_prop_len", prop.type, new_line=False)
         out(");")

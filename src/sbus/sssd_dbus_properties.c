@@ -203,7 +203,7 @@ static int sbus_properties_get(struct sbus_request *sbus_req, void *pvt)
     }
 
     return sbus_properties_invoke(sbus_req, iface, handler_fn,
-                                  iface->instance_data, prop->invoker_get);
+                                  iface->handler_data, prop->invoker_get);
 
 fail:
     return sbus_request_fail_and_finish(sbus_req, error);
@@ -277,7 +277,7 @@ static int sbus_properties_set(struct sbus_request *sbus_req, void *pvt)
     }
 
     return sbus_properties_invoke(sbus_req, iface, handler_fn,
-                                  iface->instance_data, prop->invoker_set);
+                                  iface->handler_data, prop->invoker_set);
 
 fail:
     return sbus_request_fail_and_finish(sbus_req, error);

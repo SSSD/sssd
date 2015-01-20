@@ -155,7 +155,7 @@ static int invoke_com_planetexpress_Ship_get_all(struct sbus_request *dbus_req, 
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->instance_data, &s_prop_val);
+            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
             s_out_val = s_prop_val == NULL ? "" : s_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "Color", DBUS_TYPE_STRING, &s_out_val);
             if (ret != EOK) return ret;
@@ -617,7 +617,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->instance_data, &s_prop_val);
+            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
             s_out_val = s_prop_val == NULL ? "" : s_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "FullName", DBUS_TYPE_STRING, &s_out_val);
             if (ret != EOK) return ret;
@@ -628,7 +628,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         y_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (y_handler) {
-            (y_handler)(dbus_req, dbus_req->intf->instance_data, &y_prop_val);
+            (y_handler)(dbus_req, dbus_req->intf->handler_data, &y_prop_val);
             y_out_val = y_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "byte", DBUS_TYPE_BYTE, &y_out_val);
             if (ret != EOK) return ret;
@@ -639,7 +639,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         b_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (b_handler) {
-            (b_handler)(dbus_req, dbus_req->intf->instance_data, &b_prop_val);
+            (b_handler)(dbus_req, dbus_req->intf->handler_data, &b_prop_val);
             b_out_val = b_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "boolean", DBUS_TYPE_BOOLEAN, &b_out_val);
             if (ret != EOK) return ret;
@@ -650,7 +650,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         n_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (n_handler) {
-            (n_handler)(dbus_req, dbus_req->intf->instance_data, &n_prop_val);
+            (n_handler)(dbus_req, dbus_req->intf->handler_data, &n_prop_val);
             n_out_val = n_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "int16", DBUS_TYPE_INT16, &n_out_val);
             if (ret != EOK) return ret;
@@ -661,7 +661,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         q_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (q_handler) {
-            (q_handler)(dbus_req, dbus_req->intf->instance_data, &q_prop_val);
+            (q_handler)(dbus_req, dbus_req->intf->handler_data, &q_prop_val);
             q_out_val = q_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "uint16", DBUS_TYPE_UINT16, &q_out_val);
             if (ret != EOK) return ret;
@@ -672,7 +672,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         i_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (i_handler) {
-            (i_handler)(dbus_req, dbus_req->intf->instance_data, &i_prop_val);
+            (i_handler)(dbus_req, dbus_req->intf->handler_data, &i_prop_val);
             i_out_val = i_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "int32", DBUS_TYPE_INT32, &i_out_val);
             if (ret != EOK) return ret;
@@ -683,7 +683,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         u_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (u_handler) {
-            (u_handler)(dbus_req, dbus_req->intf->instance_data, &u_prop_val);
+            (u_handler)(dbus_req, dbus_req->intf->handler_data, &u_prop_val);
             u_out_val = u_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "uint32", DBUS_TYPE_UINT32, &u_out_val);
             if (ret != EOK) return ret;
@@ -694,7 +694,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         x_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (x_handler) {
-            (x_handler)(dbus_req, dbus_req->intf->instance_data, &x_prop_val);
+            (x_handler)(dbus_req, dbus_req->intf->handler_data, &x_prop_val);
             x_out_val = x_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "int64", DBUS_TYPE_INT64, &x_out_val);
             if (ret != EOK) return ret;
@@ -705,7 +705,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         t_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (t_handler) {
-            (t_handler)(dbus_req, dbus_req->intf->instance_data, &t_prop_val);
+            (t_handler)(dbus_req, dbus_req->intf->handler_data, &t_prop_val);
             t_out_val = t_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "uint64", DBUS_TYPE_UINT64, &t_out_val);
             if (ret != EOK) return ret;
@@ -716,7 +716,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         d_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (d_handler) {
-            (d_handler)(dbus_req, dbus_req->intf->instance_data, &d_prop_val);
+            (d_handler)(dbus_req, dbus_req->intf->handler_data, &d_prop_val);
             d_out_val = d_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "double", DBUS_TYPE_DOUBLE, &d_out_val);
             if (ret != EOK) return ret;
@@ -727,7 +727,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->instance_data, &s_prop_val);
+            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
             s_out_val = s_prop_val == NULL ? "" : s_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "string", DBUS_TYPE_STRING, &s_out_val);
             if (ret != EOK) return ret;
@@ -738,7 +738,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         o_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (o_handler) {
-            (o_handler)(dbus_req, dbus_req->intf->instance_data, &o_prop_val);
+            (o_handler)(dbus_req, dbus_req->intf->handler_data, &o_prop_val);
             o_out_val = o_prop_val == NULL ? "/" : o_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "object_path", DBUS_TYPE_OBJECT_PATH, &o_out_val);
             if (ret != EOK) return ret;
@@ -749,7 +749,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         s_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (s_handler) {
-            (s_handler)(dbus_req, dbus_req->intf->instance_data, &s_prop_val);
+            (s_handler)(dbus_req, dbus_req->intf->handler_data, &s_prop_val);
             s_out_val = s_prop_val == NULL ? "" : s_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "null_string", DBUS_TYPE_STRING, &s_out_val);
             if (ret != EOK) return ret;
@@ -760,7 +760,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         o_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (o_handler) {
-            (o_handler)(dbus_req, dbus_req->intf->instance_data, &o_prop_val);
+            (o_handler)(dbus_req, dbus_req->intf->handler_data, &o_prop_val);
             o_out_val = o_prop_val == NULL ? "/" : o_prop_val;
             ret = sbus_add_variant_to_dict(&iter_dict, "null_path", DBUS_TYPE_OBJECT_PATH, &o_out_val);
             if (ret != EOK) return ret;
@@ -771,7 +771,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         ay_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (ay_handler) {
-            (ay_handler)(dbus_req, dbus_req->intf->instance_data, &ay_prop_val, &ay_prop_len);
+            (ay_handler)(dbus_req, dbus_req->intf->handler_data, &ay_prop_val, &ay_prop_len);
             ay_out_val = ay_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "byte_array", DBUS_TYPE_BYTE, (uint8_t*)ay_out_val, ay_prop_len, sizeof(uint8_t));
             if (ret != EOK) return ret;
@@ -782,7 +782,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         an_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (an_handler) {
-            (an_handler)(dbus_req, dbus_req->intf->instance_data, &an_prop_val, &an_prop_len);
+            (an_handler)(dbus_req, dbus_req->intf->handler_data, &an_prop_val, &an_prop_len);
             an_out_val = an_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "int16_array", DBUS_TYPE_INT16, (uint8_t*)an_out_val, an_prop_len, sizeof(int16_t));
             if (ret != EOK) return ret;
@@ -793,7 +793,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         aq_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (aq_handler) {
-            (aq_handler)(dbus_req, dbus_req->intf->instance_data, &aq_prop_val, &aq_prop_len);
+            (aq_handler)(dbus_req, dbus_req->intf->handler_data, &aq_prop_val, &aq_prop_len);
             aq_out_val = aq_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "uint16_array", DBUS_TYPE_UINT16, (uint8_t*)aq_out_val, aq_prop_len, sizeof(uint16_t));
             if (ret != EOK) return ret;
@@ -804,7 +804,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         ai_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (ai_handler) {
-            (ai_handler)(dbus_req, dbus_req->intf->instance_data, &ai_prop_val, &ai_prop_len);
+            (ai_handler)(dbus_req, dbus_req->intf->handler_data, &ai_prop_val, &ai_prop_len);
             ai_out_val = ai_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "int32_array", DBUS_TYPE_INT32, (uint8_t*)ai_out_val, ai_prop_len, sizeof(int32_t));
             if (ret != EOK) return ret;
@@ -815,7 +815,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         au_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (au_handler) {
-            (au_handler)(dbus_req, dbus_req->intf->instance_data, &au_prop_val, &au_prop_len);
+            (au_handler)(dbus_req, dbus_req->intf->handler_data, &au_prop_val, &au_prop_len);
             au_out_val = au_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "uint32_array", DBUS_TYPE_UINT32, (uint8_t*)au_out_val, au_prop_len, sizeof(uint32_t));
             if (ret != EOK) return ret;
@@ -826,7 +826,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         ax_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (ax_handler) {
-            (ax_handler)(dbus_req, dbus_req->intf->instance_data, &ax_prop_val, &ax_prop_len);
+            (ax_handler)(dbus_req, dbus_req->intf->handler_data, &ax_prop_val, &ax_prop_len);
             ax_out_val = ax_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "int64_array", DBUS_TYPE_INT64, (uint8_t*)ax_out_val, ax_prop_len, sizeof(int64_t));
             if (ret != EOK) return ret;
@@ -837,7 +837,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         at_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (at_handler) {
-            (at_handler)(dbus_req, dbus_req->intf->instance_data, &at_prop_val, &at_prop_len);
+            (at_handler)(dbus_req, dbus_req->intf->handler_data, &at_prop_val, &at_prop_len);
             at_out_val = at_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "uint64_array", DBUS_TYPE_UINT64, (uint8_t*)at_out_val, at_prop_len, sizeof(uint64_t));
             if (ret != EOK) return ret;
@@ -848,7 +848,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         ad_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (ad_handler) {
-            (ad_handler)(dbus_req, dbus_req->intf->instance_data, &ad_prop_val, &ad_prop_len);
+            (ad_handler)(dbus_req, dbus_req->intf->handler_data, &ad_prop_val, &ad_prop_len);
             ad_out_val = ad_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "double_array", DBUS_TYPE_DOUBLE, (uint8_t*)ad_out_val, ad_prop_len, sizeof(double));
             if (ret != EOK) return ret;
@@ -859,7 +859,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         as_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (as_handler) {
-            (as_handler)(dbus_req, dbus_req->intf->instance_data, &as_prop_val, &as_prop_len);
+            (as_handler)(dbus_req, dbus_req->intf->handler_data, &as_prop_val, &as_prop_len);
             as_out_val = as_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "string_array", DBUS_TYPE_STRING, (uint8_t*)as_out_val, as_prop_len, sizeof(const char *));
             if (ret != EOK) return ret;
@@ -870,7 +870,7 @@ static int invoke_test_pilot_get_all(struct sbus_request *dbus_req, void *functi
     if (property != NULL && property->flags & SBUS_PROPERTY_READABLE) {
         ao_handler = VTABLE_FUNC(intf->vtable, property->vtable_offset_get);
         if (ao_handler) {
-            (ao_handler)(dbus_req, dbus_req->intf->instance_data, &ao_prop_val, &ao_prop_len);
+            (ao_handler)(dbus_req, dbus_req->intf->handler_data, &ao_prop_val, &ao_prop_len);
             ao_out_val = ao_prop_val;
             ret = sbus_add_array_as_variant_to_dict(&iter_dict, "object_path_array", DBUS_TYPE_OBJECT_PATH, (uint8_t*)ao_out_val, ao_prop_len, sizeof(const char *));
             if (ret != EOK) return ret;
@@ -906,7 +906,7 @@ static int invoke_bu_method(struct sbus_request *dbus_req, void *function_ptr)
          return EOK; /* request handled */
     }
 
-    return (handler)(dbus_req, dbus_req->intf->instance_data,
+    return (handler)(dbus_req, dbus_req->intf->handler_data,
                      arg_0,
                      arg_1);
 }
@@ -923,7 +923,7 @@ static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr)
          return EOK; /* request handled */
     }
 
-    return (handler)(dbus_req, dbus_req->intf->instance_data,
+    return (handler)(dbus_req, dbus_req->intf->handler_data,
                      arg_0);
 }
 
@@ -939,7 +939,7 @@ static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr)
          return EOK; /* request handled */
     }
 
-    return (handler)(dbus_req, dbus_req->intf->instance_data,
+    return (handler)(dbus_req, dbus_req->intf->handler_data,
                      arg_0);
 }
 
@@ -1005,7 +1005,7 @@ static int invoke_ybnqiuxtdsoayanaqaiauaxatadasao_method(struct sbus_request *db
          return EOK; /* request handled */
     }
 
-    return (handler)(dbus_req, dbus_req->intf->instance_data,
+    return (handler)(dbus_req, dbus_req->intf->handler_data,
                      arg_0,
                      arg_1,
                      arg_2,
@@ -1048,7 +1048,7 @@ static int invoke_get_aq(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, uint16_t * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_UINT16, (uint8_t*)out_val, prop_len, sizeof(uint16_t));
@@ -1062,7 +1062,7 @@ static int invoke_get_b(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, bool *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_BOOLEAN, &out_val);
@@ -1076,7 +1076,7 @@ static int invoke_get_d(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, double *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_DOUBLE, &out_val);
@@ -1091,7 +1091,7 @@ static int invoke_get_ao(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, const char * * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_OBJECT_PATH, (uint8_t*)out_val, prop_len, sizeof(const char *));
@@ -1105,7 +1105,7 @@ static int invoke_get_i(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, int32_t *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_INT32, &out_val);
@@ -1120,7 +1120,7 @@ static int invoke_get_as(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, const char * * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_STRING, (uint8_t*)out_val, prop_len, sizeof(const char *));
@@ -1134,7 +1134,7 @@ static int invoke_get_o(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, const char * *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val == NULL ? "/" : prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_OBJECT_PATH, &out_val);
@@ -1148,7 +1148,7 @@ static int invoke_get_n(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, int16_t *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_INT16, &out_val);
@@ -1162,7 +1162,7 @@ static int invoke_get_q(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, uint16_t *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_UINT16, &out_val);
@@ -1177,7 +1177,7 @@ static int invoke_get_ay(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, uint8_t * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_BYTE, (uint8_t*)out_val, prop_len, sizeof(uint8_t));
@@ -1191,7 +1191,7 @@ static int invoke_get_s(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, const char * *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val == NULL ? "" : prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_STRING, &out_val);
@@ -1205,7 +1205,7 @@ static int invoke_get_u(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, uint32_t *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_UINT32, &out_val);
@@ -1219,7 +1219,7 @@ static int invoke_get_t(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, uint64_t *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_UINT64, &out_val);
@@ -1234,7 +1234,7 @@ static int invoke_get_ax(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, int64_t * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_INT64, (uint8_t*)out_val, prop_len, sizeof(int64_t));
@@ -1248,7 +1248,7 @@ static int invoke_get_y(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, uint8_t *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_BYTE, &out_val);
@@ -1262,7 +1262,7 @@ static int invoke_get_x(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, int64_t *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val);
 
     out_val = prop_val;
     return sbus_request_return_as_variant(dbus_req, DBUS_TYPE_INT64, &out_val);
@@ -1277,7 +1277,7 @@ static int invoke_get_au(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, uint32_t * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_UINT32, (uint8_t*)out_val, prop_len, sizeof(uint32_t));
@@ -1292,7 +1292,7 @@ static int invoke_get_an(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, int16_t * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_INT16, (uint8_t*)out_val, prop_len, sizeof(int16_t));
@@ -1307,7 +1307,7 @@ static int invoke_get_ad(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, double * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_DOUBLE, (uint8_t*)out_val, prop_len, sizeof(double));
@@ -1322,7 +1322,7 @@ static int invoke_get_ai(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, int32_t * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_INT32, (uint8_t*)out_val, prop_len, sizeof(int32_t));
@@ -1337,7 +1337,7 @@ static int invoke_get_at(struct sbus_request *dbus_req, void *function_ptr)
 
     void (*handler)(struct sbus_request *, void *data, uint64_t * *, int *) = function_ptr;
 
-    (handler)(dbus_req, dbus_req->intf->instance_data, &prop_val, &prop_len);
+    (handler)(dbus_req, dbus_req->intf->handler_data, &prop_val, &prop_len);
 
     out_val = prop_val;
     return sbus_request_return_array_as_variant(dbus_req, DBUS_TYPE_UINT64, (uint8_t*)out_val, prop_len, sizeof(uint64_t));

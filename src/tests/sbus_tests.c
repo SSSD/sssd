@@ -116,7 +116,7 @@ static int blink_handler(struct sbus_request *req, void *data)
 
     ck_assert(req->intf->vtable->meta == &pilot_meta);
     ck_assert(data != NULL);
-    ck_assert(data == req->intf->instance_data);
+    ck_assert(data == req->intf->handler_data);
 
     ck_assert_str_eq(req->intf->path, req->path);
 
