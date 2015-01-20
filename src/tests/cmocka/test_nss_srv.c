@@ -51,8 +51,7 @@ struct nss_test_ctx {
     bool ncache_hit;
 };
 
-const char *global_extra_attrs[] = {"phone", "mobile", SYSDB_ORIG_MEMBEROF,
-                                    NULL};
+const char *global_extra_attrs[] = {"phone", "mobile", NULL};
 
 struct nss_test_ctx *nss_test_ctx;
 
