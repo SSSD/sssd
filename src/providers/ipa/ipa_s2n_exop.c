@@ -1299,8 +1299,10 @@ static errno_t process_members(struct sss_domain_info *domain,
                 DEBUG(SSSDBG_TRACE_ALL, "Adding ghost member [%s]\n",
                                         members[c]);
 
-                ret = sysdb_attrs_add_string(group_attrs, SYSDB_GHOST,
-                                             members[c]);
+                /* There were cases where the server returned the same user
+                 * multiple times */
+                ret = sysdb_attrs_add_string_safe(group_attrs, SYSDB_GHOST,
+                                                  members[c]);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "sysdb_attrs_add_string failed.\n");
