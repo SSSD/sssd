@@ -549,6 +549,7 @@ dist_noinst_HEADERS = \
     src/sbus/sssd_dbus_meta.h \
     src/sbus/sssd_dbus_private.h \
     src/sbus/sssd_dbus_invokers.h \
+    src/sbus/sssd_dbus_errors.h \
     src/db/sysdb.h \
     src/db/sysdb_sudo.h \
     src/db/sysdb_autofs.h \
