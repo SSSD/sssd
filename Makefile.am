@@ -320,7 +320,9 @@ dist_noinst_SCRIPTS = \
     contrib/ci/run \
     contrib/ci/valgrind-condense \
     src/tests/pyhbac-test.py \
-    src/tests/pysss_murmur-test.py
+    src/tests/pysss_murmur-test.py \
+    src/tests/python-test.py \
+    $(NULL)
 
 dist_noinst_DATA = \
     src/config/testconfigs/sssd-valid.conf \
