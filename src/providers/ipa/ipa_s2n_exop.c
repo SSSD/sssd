@@ -1748,6 +1748,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     char **del_groups_dns;
     bool in_transaction = false;
     int tret;
+    struct sysdb_attrs *gid_override_attrs = NULL;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1939,7 +1940,16 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 if (ret == EOK || ret == ENOENT) {
                     if ((orig_gid != 0 && orig_gid != attrs->a.user.pw_gid)
                             || attrs->a.user.pw_uid != attrs->a.user.pw_gid) {
-                        ret = sysdb_attrs_add_uint32(attrs->sysdb_attrs,
+
+                        gid_override_attrs = sysdb_new_attrs(tmp_ctx);
+                        if (gid_override_attrs == NULL) {
+                            DEBUG(SSSDBG_OP_FAILURE,
+                                  "sysdb_new_attrs failed.\n");
+                            ret = ENOMEM;
+                            goto done;
+                        }
+
+                        ret = sysdb_attrs_add_uint32(gid_override_attrs,
                                                      SYSDB_GIDNUM,
                                                      attrs->a.user.pw_gid);
                         if (ret != EOK) {
@@ -1971,6 +1981,15 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_user failed.\n");
                 goto done;
+            }
+
+            if (gid_override_attrs != NULL) {
+                ret = sysdb_set_user_attr(dom, name, gid_override_attrs,
+                                          SYSDB_MOD_REP);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "sysdb_set_user_attr failed.\n");
+                    goto done;
+                }
             }
 
             if (attrs->response_type == RESP_USER_GROUPLIST) {
