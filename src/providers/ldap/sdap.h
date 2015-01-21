@@ -504,7 +504,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          struct sdap_attr_map_info *minfo,
                          size_t num_maps,
                          LDAPDerefRes *dref,
-                         struct sdap_deref_attrs ***_res);
+                         struct sdap_deref_attrs ***_deref_res);
 
 errno_t setup_tls_config(struct dp_option *basic_opts);
 

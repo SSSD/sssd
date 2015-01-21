@@ -556,7 +556,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          struct sdap_attr_map_info *minfo,
                          size_t num_maps,
                          LDAPDerefRes *dref,
-                         struct sdap_deref_attrs ***_res)
+                         struct sdap_deref_attrs ***_deref_res)
 {
     TALLOC_CTX *tmp_ctx;
     LDAPDerefVal *dval;
@@ -604,7 +604,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FUNC_DATA,
               "Dereferenced entry [%s] has no attributes, skipping\n",
               orig_dn);
-        *_res = NULL;
+        *_deref_res = NULL;
         ret = EOK;
         goto done;
     }
@@ -709,7 +709,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
     }
 
 
-    *_res = talloc_steal(mem_ctx, res);
+    *_deref_res = talloc_steal(mem_ctx, res);
     ret = EOK;
 done:
     talloc_zfree(tmp_ctx);
