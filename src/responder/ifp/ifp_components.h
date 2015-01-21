@@ -25,7 +25,7 @@
 #include "responder/ifp/ifp_private.h"
 
 #define IFP_PATH_COMPONENTS IFP_PATH "/Components"
-#define IFP_PATH_COMPONENTS_TREE IFP_PATH_COMPONENTS "/*"
+#define IFP_PATH_COMPONENTS_TREE IFP_PATH_COMPONENTS SBUS_SUBTREE_SUFFIX
 
 /* org.freedesktop.sssd.infopipe */
 

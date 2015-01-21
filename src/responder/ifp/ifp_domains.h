@@ -26,7 +26,7 @@
 #include "responder/ifp/ifp_private.h"
 
 #define IFP_PATH_DOMAINS IFP_PATH "/Domains"
-#define IFP_PATH_DOMAINS_TREE IFP_PATH_DOMAINS "/*"
+#define IFP_PATH_DOMAINS_TREE IFP_PATH_DOMAINS SBUS_SUBTREE_SUFFIX
 
 /* org.freedesktop.sssd.infopipe */
 
