@@ -1099,6 +1099,8 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
                                                 struct ipa_get_ad_acct_state);
     errno_t ret;
     struct tevent_req *subreq;
+    const char *obj_name;
+    int entry_type;
 
     if (state->override_attrs != NULL) {
         /* We are in ipa-server-mode, so the view is the default view by
@@ -1112,13 +1114,51 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
         }
     }
 
-    if ((state->ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_INITGROUPS) {
+    entry_type = (state->ar->entry_type & BE_REQ_TYPE_MASK);
+    if (entry_type != BE_REQ_INITGROUPS
+            && entry_type != BE_REQ_USER
+            && entry_type != BE_REQ_BY_SECID) {
         tevent_req_done(req);
         return EOK;
     }
 
+    /* Replace ID with name in search filter */
+    if ((entry_type == BE_REQ_USER && state->ar->filter_type == BE_FILTER_IDNUM)
+            || entry_type == BE_REQ_BY_SECID) {
+        if (state->obj_msg == NULL) {
+            ret = get_object_from_cache(state, state->obj_dom, state->ar,
+                                        &state->obj_msg);
+            if (ret == ENOENT) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Object not found, ending request\n");
+                tevent_req_done(req);
+                return EOK;
+            } else if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "get_object_from_cache failed.\n");
+                return ret;
+            }
+        }
+
+        obj_name = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_NAME,
+                                               NULL);
+        if (obj_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cached object has no name.\n");
+            return EINVAL;
+        }
+
+        state->ar->filter_value = talloc_strdup(state->ar, obj_name);
+        if (state->ar->filter_value == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            return ENOMEM;
+        }
+        state->ar->filter_type = BE_FILTER_NAME;
+        state->ar->entry_type = BE_REQ_USER;
+    }
+
+
     /* For initgroups request we have to check IPA group memberships of AD
-     * users. */
+     * users. This has to be done for other user-request as well to make sure
+     * IPA related attributes are not overwritten. */
     subreq = ipa_get_ad_memberships_send(state, state->ev, state->ar,
                                          state->ipa_ctx->server_mode,
                                          state->obj_dom,

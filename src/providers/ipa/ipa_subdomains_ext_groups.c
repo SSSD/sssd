@@ -452,7 +452,8 @@ struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
     state->domain = domain;
     state->dp_error = -1;
 
-    if ((ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_INITGROUPS
+    if (((ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_INITGROUPS
+            && (ar->entry_type & BE_REQ_TYPE_MASK) != BE_REQ_USER)
             || ar->filter_type != BE_FILTER_NAME) {
         DEBUG(SSSDBG_OP_FAILURE, "Unsupported request type.\n");
         ret = EINVAL;
