@@ -589,6 +589,9 @@ errno_t get_dom_names(TALLOC_CTX *mem_ctx,
                       char ***_dom_names,
                       int *_dom_names_count);
 
+errno_t fix_domain_in_name_list(TALLOC_CTX *mem_ctx,
+                                struct sss_domain_info *dom,
+                                char **in, char ***_out);
 /* from util_lock.c */
 errno_t sss_br_lock_file(int fd, size_t start, size_t len,
                          int num_tries, useconds_t wait);

@@ -1749,6 +1749,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     bool in_transaction = false;
     int tret;
     struct sysdb_attrs *gid_override_attrs = NULL;
+    char ** exop_grouplist;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -2000,8 +2001,19 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                     goto done;
                 }
 
-                ret = diff_string_lists(tmp_ctx, attrs->groups, sysdb_grouplist,
-                                        &add_groups, &del_groups, NULL);
+                /* names returned by extdom exop will be all lower case, since
+                 * we handle domain names case sensitve in the cache we have
+                 * to make sure we use the right case. */
+                ret = fix_domain_in_name_list(tmp_ctx, dom, attrs->groups,
+                                              &exop_grouplist);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "fix_domain_name failed.\n");
+                    goto done;
+                }
+
+                ret = diff_string_lists(tmp_ctx, exop_grouplist,
+                                        sysdb_grouplist, &add_groups,
+                                        &del_groups, NULL);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE, "diff_string_lists failed.\n");
                     goto done;
