@@ -499,7 +499,7 @@ void be_mark_offline(struct be_ctx *ctx)
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to get offline_timeout from confdb. "
-                  "Will use 60 seconds.");
+                  "Will use 60 seconds.\n");
             offline_timeout = 60;
         }
         ret = be_ptask_create_sync(ctx, ctx,

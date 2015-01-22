@@ -433,8 +433,9 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
     fd = mkstemp(tmp_file);
     umask(old_mode);
     if (fd < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "creating the temp file [%s] for domain-realm "
-                                  "mappings failed.", tmp_file);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "creating the temp file [%s] for domain-realm mappings "
+              "failed.\n", tmp_file);
         ret = EIO;
         talloc_zfree(tmp_ctx);
         goto done;
@@ -682,8 +683,8 @@ static errno_t sss_write_krb5_localauth_snippet(const char *path)
     fd = mkstemp(tmp_file);
     umask(old_mode);
     if (fd < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "creating the temp file [%s] for domain-realm "
-                                  "mappings failed.", tmp_file);
+        DEBUG(SSSDBG_OP_FAILURE, "creating the temp file [%s] for "
+                                 "domain-realm mappings failed.\n", tmp_file);
         ret = EIO;
         talloc_zfree(tmp_ctx);
         goto done;
