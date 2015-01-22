@@ -1030,6 +1030,48 @@ void test_sss_write_krb5_conf_snippet(void **state)
     free(path);
 }
 
+
+void test_fix_domain_in_name_list(void **state)
+{
+    struct name_init_test_ctx *test_ctx;
+
+    int ret;
+    struct sss_domain_info *sd;
+    struct sss_domain_info *dom;
+    const char *in[] = { "abc@test.case.dom", "def@TEST.case.DOM", NULL};
+    char **out = NULL;
+
+    test_ctx = talloc_get_type(*state, struct name_init_test_ctx);
+    assert_non_null(test_ctx);
+
+    ret = confdb_get_domains(test_ctx->confdb, &dom);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_names_init(dom, test_ctx->confdb, NULL, &dom->names);
+    assert_int_equal(ret, EOK);
+
+    sd = talloc_zero(test_ctx, struct sss_domain_info);
+    assert_non_null(sd);
+    sd->name = talloc_strdup(sd, "TesT.CasE.DoM");
+    assert_non_null(sd->name);
+    sd->names = dom->names;
+    DLIST_ADD(dom->subdomains, sd);
+    sd->parent = dom;
+
+    ret = fix_domain_in_name_list(test_ctx, dom, discard_const(in), &out);
+    assert_int_equal(ret, EOK);
+    assert_non_null(out);
+    assert_non_null(out[0]);
+    assert_string_equal(out[0], "abc@TesT.CasE.DoM");
+    assert_non_null(out[1]);
+    assert_string_equal(out[1], "def@TesT.CasE.DoM");
+    assert_null(out[2]);
+
+    talloc_free(out);
+    talloc_free(sd);
+    talloc_free(dom);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1078,6 +1120,8 @@ int main(int argc, const char *argv[])
                                  setup_add_strings_lists,
                                  teardown_add_strings_lists),
         unit_test(test_sss_write_krb5_conf_snippet),
+        unit_test_setup_teardown(test_fix_domain_in_name_list,
+                                 confdb_test_setup, confdb_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
