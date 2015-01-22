@@ -4503,8 +4503,16 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Cannot set negative cache for %s\n", cmdctx->secid);
             }
+
+            return ENOENT;
         }
-        return ENOENT;
+
+        dctx->res = talloc_zero(cmdctx, struct ldb_result);
+        if (dctx->res == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+            return ENOMEM;
+        }
+        /* Fall through and call the backend */
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to make request to our cache!\n");
         return EIO;
