@@ -27,6 +27,18 @@
 #include "responder/common/responder.h"
 #include "responder/common/negcache.h"
 
+enum cache_req_type {
+    CACHE_REQ_USER_BY_NAME,
+    CACHE_REQ_INITGROUPS
+};
+
+struct cache_req_input;
+
+struct cache_req_input *
+cache_req_input_create(TALLOC_CTX *mem_ctx,
+                       enum cache_req_type type,
+                       const char *name);
+
 /**
  * Currently only SSS_DP_USER and SSS_DP_INITGROUPS are supported.
  *
@@ -38,27 +50,36 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   struct sss_nc_ctx *ncache,
                                   int neg_timeout,
                                   int cache_refresh_percent,
-                                  enum sss_dp_acct_type dp_type,
                                   const char *domain,
-                                  const char *name);
+                                  struct cache_req_input *input);
 
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        struct ldb_result **_result,
                        struct sss_domain_info **_domain);
 
-#define cache_req_user_by_name_send(mem_ctx, ev, rctx, ncache, neg_timeout, \
-                                    cache_refresh_percent, domain, name) \
-    cache_req_send(mem_ctx, ev, rctx, ncache, neg_timeout, \
-                   cache_refresh_percent, SSS_DP_USER, domain, name)
+struct tevent_req *
+cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct resp_ctx *rctx,
+                            struct sss_nc_ctx *ncache,
+                            int neg_timeout,
+                            int cache_refresh_percent,
+                            const char *domain,
+                            const char *name);
 
 #define cache_req_user_by_name_recv(mem_ctx, req, _result, _domain) \
     cache_req_recv(mem_ctx, req, _result, _domain)
 
-#define cache_req_initgr_by_name_send(mem_ctx, ev, rctx, ncache, neg_timeout, \
-                                      cache_refresh_percent, domain, name) \
-    cache_req_send(mem_ctx, ev, rctx, ncache, neg_timeout, \
-                   cache_refresh_percent, SSS_DP_INITGROUPS, domain, name)
+struct tevent_req *
+cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct resp_ctx *rctx,
+                              struct sss_nc_ctx *ncache,
+                              int neg_timeout,
+                              int cache_refresh_percent,
+                              const char *domain,
+                              const char *name);
 
 #define cache_req_initgr_by_name_recv(mem_ctx, req, _result, _domain) \
     cache_req_recv(mem_ctx, req, _result, _domain)

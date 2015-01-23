@@ -477,6 +477,7 @@ static void
 ifp_user_get_attr_lookup(struct tevent_req *subreq)
 {
     struct ifp_user_get_attr_state *state = NULL;
+    struct cache_req_input *input = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
 
@@ -490,9 +491,30 @@ ifp_user_get_attr_lookup(struct tevent_req *subreq)
         return;
     }
 
+    switch (state->search_type) {
+    case SSS_DP_USER:
+        input = cache_req_input_create(state, CACHE_REQ_USER_BY_NAME,
+                                       state->name);
+        break;
+    case SSS_DP_INITGROUPS:
+        input = cache_req_input_create(state, CACHE_REQ_INITGROUPS,
+                                       state->name);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported search type [%d]!\n",
+              state->search_type);
+        tevent_req_error(req, ERR_INTERNAL);
+        return;
+    }
+
+    if (input == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     subreq = cache_req_send(state, state->rctx->ev, state->rctx,
                             state->ncache, state->neg_timeout, 0,
-                            state->search_type, state->domname, state->name);
+                            state->domname, input);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
