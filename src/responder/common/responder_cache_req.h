@@ -29,6 +29,7 @@
 
 enum cache_req_type {
     CACHE_REQ_USER_BY_NAME,
+    CACHE_REQ_USER_BY_ID,
     CACHE_REQ_INITGROUPS
 };
 
@@ -37,7 +38,8 @@ struct cache_req_input;
 struct cache_req_input *
 cache_req_input_create(TALLOC_CTX *mem_ctx,
                        enum cache_req_type type,
-                       const char *name);
+                       const char *name,
+                       uint32_t id);
 
 /**
  * Currently only SSS_DP_USER and SSS_DP_INITGROUPS are supported.
@@ -69,6 +71,19 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
                             const char *name);
 
 #define cache_req_user_by_name_recv(mem_ctx, req, _result, _domain) \
+    cache_req_recv(mem_ctx, req, _result, _domain)
+
+struct tevent_req *
+cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct resp_ctx *rctx,
+                          struct sss_nc_ctx *ncache,
+                          int neg_timeout,
+                          int cache_refresh_percent,
+                          const char *domain,
+                          uid_t uid);
+
+#define cache_req_user_by_id_recv(mem_ctx, req, _result, _domain) \
     cache_req_recv(mem_ctx, req, _result, _domain)
 
 struct tevent_req *

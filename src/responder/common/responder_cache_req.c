@@ -33,6 +33,7 @@ struct cache_req_input {
 
     /* Provided input. */
     const char *orig_name;
+    uint32_t id;
 
     /* Data Provider request type resolved from @type.
      * FIXME: This is currently needed for data provider calls. We should
@@ -54,7 +55,8 @@ struct cache_req_input {
 struct cache_req_input *
 cache_req_input_create(TALLOC_CTX *mem_ctx,
                        enum cache_req_type type,
-                       const char *name)
+                       const char *name,
+                       uint32_t id)
 {
     struct cache_req_input *input;
 
@@ -79,11 +81,20 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
             goto fail;
         }
         break;
+    case CACHE_REQ_USER_BY_ID:
+        if (id == 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: id cannot be 0!\n");
+            goto fail;
+        }
+
+        input->id = id;
+        break;
     }
 
     /* Resolve Data Provider request type. */
     switch (type) {
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_ID:
         input->dp_type = SSS_DP_USER;
         break;
 
@@ -140,6 +151,14 @@ cache_req_input_set_domain(struct cache_req_input *input,
         }
 
         break;
+
+    case CACHE_REQ_USER_BY_ID:
+        fqn = talloc_asprintf(tmp_ctx, "UID:%d@%s", input->id, domain->name);
+        if (fqn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        break;
     }
 
     input->domain = domain;
@@ -165,6 +184,9 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
         ret = sss_ncache_check_user(ncache, neg_timeout,
                                     input->domain, input->dom_objname);
         break;
+    case CACHE_REQ_USER_BY_ID:
+        ret = sss_ncache_check_uid(ncache, neg_timeout, input->id);
+        break;
     default:
         ret = EINVAL;
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported cache request type\n");
@@ -189,6 +211,43 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
     case CACHE_REQ_INITGROUPS:
         ret = sss_ncache_set_user(ncache, false, input->domain,
                                   input->dom_objname);
+        break;
+    case CACHE_REQ_USER_BY_ID:
+        /* Nothing to do. Those types must be unique among all domains so
+         * the don't contain domain part. Therefore they must be set only
+         * if all domains are search and the entry is not found. */
+        ret = EOK;
+        break;
+    default:
+        ret = EINVAL;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported cache request type\n");
+        break;
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for [%s] [%d]: %s\n",
+              input->debug_fqn, ret, sss_strerror(ret));
+
+        /* not fatal */
+    }
+
+    return;
+}
+
+static void cache_req_add_to_ncache_global(struct cache_req_input *input,
+                                           struct sss_nc_ctx *ncache)
+{
+    errno_t ret;
+
+    switch (input->type) {
+    case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_INITGROUPS:
+        /* Nothing to do. Those types are already in ncache for selected
+         * domains. */
+        ret = EOK;
+        break;
+    case CACHE_REQ_USER_BY_ID:
+        ret = sss_ncache_set_uid(ncache, false, input->id);
         break;
     default:
         ret = EINVAL;
@@ -221,6 +280,11 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         one_item_only = true;
         ret = sysdb_getpwnam_with_views(mem_ctx, input->domain,
                                         input->dom_objname, &result);
+        break;
+    case CACHE_REQ_USER_BY_ID:
+        one_item_only = true;
+        ret = sysdb_getpwuid_with_views(mem_ctx, input->domain,
+                                        input->id, &result);
         break;
     case CACHE_REQ_INITGROUPS:
         one_item_only = false;
@@ -385,7 +449,8 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
         subreq = sss_dp_get_account_send(state, state->rctx,
                                          state->input->domain, true,
                                          state->input->dp_type,
-                                         state->input->dom_objname, 0, NULL);
+                                         state->input->dom_objname,
+                                         state->input->id, NULL);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory sending out-of-band "
                                        "data provider request\n");
@@ -406,8 +471,8 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
         subreq = sss_dp_get_account_send(state, state->rctx,
                                          state->input->domain, true,
                                          state->input->dp_type,
-                                         state->input->dom_objname, 0,
-                                         extra_flag);
+                                         state->input->dom_objname,
+                                         state->input->id, extra_flag);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");
@@ -612,6 +677,12 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
         return EAGAIN;
     }
 
+    /* If the object searched has to be unique among all maintained domains,
+     * we have to add it into negative cache here when all domains have
+     * been searched. */
+
+    cache_req_add_to_ncache_global(state->input, state->ncache);
+
     return ENOENT;
 }
 
@@ -700,7 +771,29 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
 {
     struct cache_req_input *input;
 
-    input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_NAME, name);
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_NAME, name, 0);
+    if (input == NULL) {
+        return NULL;
+    }
+
+    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
+                                          neg_timeout, cache_refresh_percent,
+                                          domain, input);
+}
+
+struct tevent_req *
+cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
+                          struct tevent_context *ev,
+                          struct resp_ctx *rctx,
+                          struct sss_nc_ctx *ncache,
+                          int neg_timeout,
+                          int cache_refresh_percent,
+                          const char *domain,
+                          uid_t uid)
+{
+    struct cache_req_input *input;
+
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_ID, NULL, uid);
     if (input == NULL) {
         return NULL;
     }
@@ -722,7 +815,7 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
 {
     struct cache_req_input *input;
 
-    input = cache_req_input_create(mem_ctx, CACHE_REQ_INITGROUPS, name);
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_INITGROUPS, name, 0);
     if (input == NULL) {
         return NULL;
     }
