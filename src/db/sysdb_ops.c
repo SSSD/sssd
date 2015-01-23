@@ -1219,8 +1219,9 @@ sysdb_remove_ghostattr_from_groups(struct sss_domain_info *domain,
         ERROR_OUT(ret, EINVAL, done);
     }
 
-    tmpdn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            SYSDB_TMPL_GROUP_BASE, domain->name);
+    /* To cover cross-domain group-membership we must search in all
+     * sub-domains. */
+    tmpdn = ldb_dn_new(tmp_ctx, domain->sysdb->ldb, SYSDB_BASE);
     if (!tmpdn) {
         ret = ENOMEM;
         goto done;
