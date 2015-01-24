@@ -452,7 +452,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     if (hret != HASH_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Hash error [%d][%s]\n", hret, hash_error_string(hret));
-        sbus_disconnect(dbus_req->conn);
+        sbus_disconnect(conn);
     }
 
     /* Signal that the child is up and ready to receive the request */
@@ -471,7 +471,7 @@ static int client_registration(struct sbus_request *dbus_req, void *data)
     }
 
     init_ctx = tevent_req_data(child_ctx->init_req, struct pc_init_ctx);
-    init_ctx->conn = dbus_req->conn;
+    init_ctx->conn = conn;
     tevent_req_done(child_ctx->init_req);
     child_ctx->init_req = NULL;
 
