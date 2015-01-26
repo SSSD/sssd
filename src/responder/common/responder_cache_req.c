@@ -70,6 +70,7 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
     /* Check that input parameters match selected type. */
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_GROUP_BY_NAME:
     case CACHE_REQ_INITGROUPS:
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
@@ -96,6 +97,10 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_ID:
         input->dp_type = SSS_DP_USER;
+        break;
+
+    case CACHE_REQ_GROUP_BY_NAME:
+        input->dp_type = SSS_DP_GROUP;
         break;
 
     case CACHE_REQ_INITGROUPS:
@@ -130,6 +135,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_GROUP_BY_NAME:
     case CACHE_REQ_INITGROUPS:
         name = sss_get_cased_name(tmp_ctx, input->orig_name,
                                   domain->case_sensitive);
@@ -184,6 +190,10 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
         ret = sss_ncache_check_user(ncache, neg_timeout,
                                     input->domain, input->dom_objname);
         break;
+    case CACHE_REQ_GROUP_BY_NAME:
+        ret = sss_ncache_check_group(ncache, neg_timeout,
+                                     input->domain, input->dom_objname);
+        break;
     case CACHE_REQ_USER_BY_ID:
         ret = sss_ncache_check_uid(ncache, neg_timeout, input->id);
         break;
@@ -211,6 +221,10 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
     case CACHE_REQ_INITGROUPS:
         ret = sss_ncache_set_user(ncache, false, input->domain,
                                   input->dom_objname);
+        break;
+    case CACHE_REQ_GROUP_BY_NAME:
+        ret = sss_ncache_set_group(ncache, false, input->domain,
+                                   input->dom_objname);
         break;
     case CACHE_REQ_USER_BY_ID:
         /* Nothing to do. Those types must be unique among all domains so
@@ -241,6 +255,7 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_GROUP_BY_NAME:
     case CACHE_REQ_INITGROUPS:
         /* Nothing to do. Those types are already in ncache for selected
          * domains. */
@@ -285,6 +300,11 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         one_item_only = true;
         ret = sysdb_getpwuid_with_views(mem_ctx, input->domain,
                                         input->id, &result);
+        break;
+    case CACHE_REQ_GROUP_BY_NAME:
+        one_item_only = true;
+        ret = sysdb_getgrnam_with_views(mem_ctx, input->domain,
+                                        input->dom_objname, &result);
         break;
     case CACHE_REQ_INITGROUPS:
         one_item_only = false;
@@ -794,6 +814,28 @@ cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
     struct cache_req_input *input;
 
     input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_ID, NULL, uid);
+    if (input == NULL) {
+        return NULL;
+    }
+
+    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
+                                          neg_timeout, cache_refresh_percent,
+                                          domain, input);
+}
+
+struct tevent_req *
+cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct resp_ctx *rctx,
+                             struct sss_nc_ctx *ncache,
+                             int neg_timeout,
+                             int cache_refresh_percent,
+                             const char *domain,
+                             const char *name)
+{
+    struct cache_req_input *input;
+
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_GROUP_BY_NAME, name, 0);
     if (input == NULL) {
         return NULL;
     }
