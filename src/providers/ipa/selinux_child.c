@@ -197,7 +197,23 @@ int main(int argc, const char *argv[])
 
     DEBUG(SSSDBG_TRACE_FUNC, "selinux_child started.\n");
     DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+          "Running with effective IDs: [%"SPRIuid"][%"SPRIgid"].\n",
+          geteuid(), getegid());
+
+    /* libsemanage calls access(2) which works with real IDs, not effective.
+     * We need to switch also the real ID to 0.
+     */
+    if (getuid() != 0) {
+        setuid(0);
+    }
+
+    if (getgid() != 0) {
+        setgid(0);
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Running with real IDs [%"SPRIuid"][%"SPRIgid"].\n",
+          getuid(), getgid());
 
     main_ctx = talloc_new(NULL);
     if (main_ctx == NULL) {
