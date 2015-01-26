@@ -316,6 +316,7 @@ static void users_get_connect_done(struct tevent_req *subreq)
 static void users_get_posix_check_done(struct tevent_req *subreq)
 {
     errno_t ret;
+    errno_t ret2;
     bool has_posix;
     int dp_error;
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -329,8 +330,8 @@ static void users_get_posix_check_done(struct tevent_req *subreq)
         /* We can only finish the id_op on error as the connection
          * is re-used by the user search
          */
-        ret = sdap_id_op_done(state->op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret != EOK) {
+        ret2 = sdap_id_op_done(state->op, ret, &dp_error);
+        if (dp_error == DP_ERR_OK && ret2 != EOK) {
             /* retry */
             ret = users_get_retry(req);
             if (ret != EOK) {
@@ -344,7 +345,7 @@ static void users_get_posix_check_done(struct tevent_req *subreq)
 
     /* If the check ran to completion, we know for certain about the attributes
      */
-    if (has_posix == false) {
+    if (ret == EOK && has_posix == false) {
         state->sdap_ret = ERR_NO_POSIX;
         tevent_req_done(req);
         return;
