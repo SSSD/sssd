@@ -1819,6 +1819,17 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
         }
     }
 
+    if (strcmp(dom->name, attrs->domain_name) != 0) {
+        dom = find_domain_by_name(get_domains_head(dom),
+                                  attrs->domain_name, true);
+        if (dom == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                    "Cannot find domain: [%s]\n", attrs->domain_name);
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
     switch (attrs->response_type) {
         case RESP_USER:
         case RESP_USER_GROUPLIST:
@@ -2056,17 +2067,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
         case RESP_GROUP:
         case RESP_GROUP_MEMBERS:
             type = SYSDB_MEMBER_GROUP;
-
-            if (0 != strcmp(dom->name, attrs->domain_name)) {
-                dom = find_domain_by_name(get_domains_head(dom),
-                                          attrs->domain_name, true);
-                if (dom == NULL) {
-                    DEBUG(SSSDBG_OP_FAILURE,
-                          "Cannot find domain: [%s]\n", attrs->domain_name);
-                    ret = EINVAL;
-                    goto done;
-                }
-            }
 
             if (name == NULL) {
                 name = attrs->a.group.gr_name;
