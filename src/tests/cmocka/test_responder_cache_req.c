@@ -33,6 +33,8 @@
 #define TEST_DOM_NAME "responder_cache_req_test"
 #define TEST_ID_PROVIDER "ldap"
 
+#define TEST_USER_NAME "test-user"
+
 #define new_single_domain_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
                                     test_single_domain_setup, \
@@ -86,9 +88,10 @@ __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     ctx->dp_called = true;
 
     if (ctx->create_user) {
-        ret = sysdb_store_user(ctx->tctx->dom, "test-user", "pwd", 1000, 1000,
-                               NULL, NULL, NULL, "cn=test-user,dc=test", NULL,
-                               NULL, 1000, time(NULL));
+        ret = sysdb_store_user(ctx->tctx->dom, TEST_USER_NAME, "pwd",
+                               1000, 1000, NULL, NULL, NULL,
+                               "cn=test-user,dc=test", NULL, NULL,
+                               1000, time(NULL));
         assert_int_equal(ret, EOK);
     }
 
@@ -177,7 +180,7 @@ void test_user_by_name_multiple_domains_found(void **state)
     struct sss_domain_info *domain = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = "test-user";
+    const char *name = TEST_USER_NAME;
     const char *ldbname = NULL;
     errno_t ret;
 
@@ -229,7 +232,7 @@ void test_user_by_name_multiple_domains_notfound(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = "test-user";
+    const char *name = TEST_USER_NAME;
     errno_t ret;
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
@@ -258,7 +261,7 @@ void test_user_by_name_cache_valid(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = "test-user";
+    const char *name = TEST_USER_NAME;
     const char *ldbname = NULL;
     errno_t ret;
 
@@ -298,7 +301,7 @@ void test_user_by_name_cache_expired(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = "test-user";
+    const char *name = TEST_USER_NAME;
     const char *ldbname = NULL;
     errno_t ret;
 
@@ -344,7 +347,7 @@ void test_user_by_name_cache_midpoint(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = "test-user";
+    const char *name = TEST_USER_NAME;
     const char *ldbname = NULL;
     errno_t ret;
 
@@ -389,7 +392,7 @@ void test_user_by_name_ncache(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = "test-user";
+    const char *name = TEST_USER_NAME;
     errno_t ret;
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
@@ -419,7 +422,7 @@ void test_user_by_name_missing_found(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = "test-user";
+    const char *name = TEST_USER_NAME;
     const char *ldbname = NULL;
     errno_t ret;
 
@@ -461,7 +464,7 @@ void test_user_by_name_missing_notfound(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = "test-user";
+    const char *name = TEST_USER_NAME;
     errno_t ret;
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
