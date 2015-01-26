@@ -182,7 +182,7 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
                                       struct sss_nc_ctx *ncache,
                                       int neg_timeout)
 {
-    errno_t ret;
+    errno_t ret = ERR_INTERNAL;
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
@@ -197,10 +197,6 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
     case CACHE_REQ_USER_BY_ID:
         ret = sss_ncache_check_uid(ncache, neg_timeout, input->id);
         break;
-    default:
-        ret = EINVAL;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported cache request type\n");
-        break;
     }
 
     if (ret == EEXIST) {
@@ -214,7 +210,7 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
 static void cache_req_add_to_ncache(struct cache_req_input *input,
                                     struct sss_nc_ctx *ncache)
 {
-    errno_t ret;
+    errno_t ret = ERR_INTERNAL;
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
@@ -231,10 +227,6 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
          * the don't contain domain part. Therefore they must be set only
          * if all domains are search and the entry is not found. */
         ret = EOK;
-        break;
-    default:
-        ret = EINVAL;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported cache request type\n");
         break;
     }
 
@@ -264,10 +256,6 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
     case CACHE_REQ_USER_BY_ID:
         ret = sss_ncache_set_uid(ncache, false, input->id);
         break;
-    default:
-        ret = EINVAL;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported cache request type\n");
-        break;
     }
 
     if (ret != EOK) {
@@ -285,8 +273,8 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
                                     struct ldb_result **_result)
 {
     struct ldb_result *result = NULL;
-    bool one_item_only;
-    errno_t ret;
+    bool one_item_only = false;
+    errno_t ret = ERR_INTERNAL;
 
     DEBUG(SSSDBG_FUNC_DATA, "Requesting info for [%s]\n", input->debug_fqn);
 
@@ -310,10 +298,6 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         one_item_only = false;
         ret = sysdb_initgroups_with_views(mem_ctx, input->domain,
                                           input->dom_objname, &result);
-        break;
-    default:
-        ret = EINVAL;
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported cache request type\n");
         break;
     }
 
