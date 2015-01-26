@@ -95,7 +95,7 @@ __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     return test_req_succeed_send(mem_ctx, rctx->ev);
 }
 
-static void cache_req_user_test_done(struct tevent_req *req)
+static void cache_req_user_by_name_test_done(struct tevent_req *req)
 {
     struct cache_req_test_ctx *ctx = NULL;
 
@@ -171,7 +171,7 @@ static int test_multi_domain_teardown(void **state)
     return 0;
 }
 
-void test_user_multiple_domains_found(void **state)
+void test_user_by_name_multiple_domains_found(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     struct sss_domain_info *domain = NULL;
@@ -202,7 +202,7 @@ void test_user_multiple_domains_found(void **state)
                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
                                       NULL, name);
     assert_non_null(req);
-    tevent_req_set_callback(req, cache_req_user_test_done, test_ctx);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ERR_OK);
@@ -224,7 +224,7 @@ void test_user_multiple_domains_found(void **state)
     assert_string_equal(domain->name, test_ctx->domain->name);
 }
 
-void test_user_multiple_domains_notfound(void **state)
+void test_user_by_name_multiple_domains_notfound(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
@@ -244,7 +244,7 @@ void test_user_multiple_domains_notfound(void **state)
                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
                                       NULL, name);
     assert_non_null(req);
-    tevent_req_set_callback(req, cache_req_user_test_done, test_ctx);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
@@ -253,7 +253,7 @@ void test_user_multiple_domains_notfound(void **state)
     assert_true(test_ctx->dp_called);
 }
 
-void test_user_cache_valid(void **state)
+void test_user_by_name_cache_valid(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
@@ -276,7 +276,7 @@ void test_user_cache_valid(void **state)
                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
                                       test_ctx->tctx->dom->name, name);
     assert_non_null(req);
-    tevent_req_set_callback(req, cache_req_user_test_done, test_ctx);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ERR_OK);
@@ -293,7 +293,7 @@ void test_user_cache_valid(void **state)
     assert_string_equal(ldbname, name);
 }
 
-void test_user_cache_expired(void **state)
+void test_user_by_name_cache_expired(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
@@ -320,7 +320,7 @@ void test_user_cache_expired(void **state)
                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
                                       test_ctx->tctx->dom->name, name);
     assert_non_null(req);
-    tevent_req_set_callback(req, cache_req_user_test_done, test_ctx);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ERR_OK);
@@ -339,7 +339,7 @@ void test_user_cache_expired(void **state)
     assert_string_equal(ldbname, name);
 }
 
-void test_user_cache_midpoint(void **state)
+void test_user_by_name_cache_midpoint(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
@@ -365,7 +365,7 @@ void test_user_cache_midpoint(void **state)
                                       test_ctx->rctx, test_ctx->ncache, 10, 50,
                                       test_ctx->tctx->dom->name, name);
     assert_non_null(req);
-    tevent_req_set_callback(req, cache_req_user_test_done, test_ctx);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ERR_OK);
@@ -384,7 +384,7 @@ void test_user_cache_midpoint(void **state)
     assert_string_equal(ldbname, name);
 }
 
-void test_user_ncache(void **state)
+void test_user_by_name_ncache(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
@@ -405,7 +405,7 @@ void test_user_ncache(void **state)
                                       test_ctx->rctx, test_ctx->ncache, 100, 0,
                                       test_ctx->tctx->dom->name, name);
     assert_non_null(req);
-    tevent_req_set_callback(req, cache_req_user_test_done, test_ctx);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
@@ -414,7 +414,7 @@ void test_user_ncache(void **state)
     assert_false(test_ctx->dp_called);
 }
 
-void test_user_missing_found(void **state)
+void test_user_by_name_missing_found(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
@@ -437,7 +437,7 @@ void test_user_missing_found(void **state)
                                       test_ctx->rctx, test_ctx->ncache, 100, 0,
                                       test_ctx->tctx->dom->name, name);
     assert_non_null(req);
-    tevent_req_set_callback(req, cache_req_user_test_done, test_ctx);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ERR_OK);
@@ -456,7 +456,7 @@ void test_user_missing_found(void **state)
     assert_string_equal(ldbname, name);
 }
 
-void test_user_missing_notfound(void **state)
+void test_user_by_name_missing_notfound(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
@@ -476,7 +476,7 @@ void test_user_missing_notfound(void **state)
                                       test_ctx->rctx, test_ctx->ncache, 100, 0,
                                       test_ctx->tctx->dom->name, name);
     assert_non_null(req);
-    tevent_req_set_callback(req, cache_req_user_test_done, test_ctx);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
@@ -496,14 +496,14 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
-        new_single_domain_test(user_cache_valid),
-        new_single_domain_test(user_cache_expired),
-        new_single_domain_test(user_cache_midpoint),
-        new_single_domain_test(user_ncache),
-        new_single_domain_test(user_missing_found),
-        new_single_domain_test(user_missing_notfound),
-        new_multi_domain_test(user_multiple_domains_found),
-        new_multi_domain_test(user_multiple_domains_notfound)
+        new_single_domain_test(user_by_name_cache_valid),
+        new_single_domain_test(user_by_name_cache_expired),
+        new_single_domain_test(user_by_name_cache_midpoint),
+        new_single_domain_test(user_by_name_ncache),
+        new_single_domain_test(user_by_name_missing_found),
+        new_single_domain_test(user_by_name_missing_notfound),
+        new_multi_domain_test(user_by_name_multiple_domains_found),
+        new_multi_domain_test(user_by_name_multiple_domains_notfound)
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
