@@ -220,11 +220,21 @@ int main(int argc, const char *argv[])
      * We need to switch also the real ID to 0.
      */
     if (getuid() != 0) {
-        setuid(0);
+        ret = setuid(0);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "setuid failed: %d, selinux_child might not work!\n", ret);
+        }
     }
 
     if (getgid() != 0) {
-        setgid(0);
+        ret = setgid(0);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "setgid failed: %d, selinux_child might not work!\n", ret);
+        }
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
