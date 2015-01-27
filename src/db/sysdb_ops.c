@@ -1610,6 +1610,7 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
                                gid_t gid,
                                const char *original_dn,
                                const char *sid_str,
+                               const char *uuid,
                                bool posix,
                                time_t now)
 {
@@ -1653,6 +1654,11 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
 
     if (sid_str) {
         ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, sid_str);
+        if (ret) goto done;
+    }
+
+    if (uuid) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_UUID, uuid);
         if (ret) goto done;
     }
 

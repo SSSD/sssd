@@ -797,6 +797,7 @@ int sysdb_add_incomplete_group(struct sss_domain_info *domain,
                                gid_t gid,
                                const char *original_dn,
                                const char *sid_str,
+                               const char *uuid,
                                bool posix,
                                time_t now);
 

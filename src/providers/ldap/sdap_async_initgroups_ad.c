@@ -929,7 +929,7 @@ static void sdap_ad_tokengroups_initgr_mapping_done(struct tevent_req *subreq)
              * it will replace this temporary entry. */
             name = sid;
             ret = sysdb_add_incomplete_group(domain, name, gid,
-                                             NULL, sid, false, now);
+                                             NULL, sid, NULL, false, now);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE, "Could not create incomplete "
                                              "group: [%s]\n", strerror(ret));
