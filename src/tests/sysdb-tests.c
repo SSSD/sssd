@@ -266,7 +266,7 @@ static int test_add_incomplete_group(struct test_data *data)
     int ret;
 
     ret = sysdb_add_incomplete_group(data->ctx->domain, data->groupname,
-                                     data->gid, NULL, NULL, true, 0);
+                                     data->gid, NULL, NULL, NULL, true, 0);
     return ret;
 }
 
@@ -4038,8 +4038,8 @@ START_TEST(test_odd_characters)
     /* ===== Groups ===== */
 
     /* Add */
-    ret = sysdb_add_incomplete_group(test_ctx->domain,
-                                     odd_groupname, 20000, NULL, NULL, true, 0);
+    ret = sysdb_add_incomplete_group(test_ctx->domain, odd_groupname,
+                                     20000, NULL, NULL, NULL, true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
@@ -4195,8 +4195,8 @@ START_TEST(test_SSS_LDB_SEARCH)
     fail_if(nonexist_dn == NULL, "sysdb_group_dn failed");
 
     /* Add */
-    ret = sysdb_add_incomplete_group(test_ctx->domain,
-                                     groupname, 20000, NULL, NULL, true, 0);
+    ret = sysdb_add_incomplete_group(test_ctx->domain, groupname,
+                                     20000, NULL, NULL, NULL, true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                 ret, strerror(ret));
 
@@ -4992,14 +4992,14 @@ START_TEST(test_sysdb_original_dn_case_insensitive)
     ret = sysdb_add_incomplete_group(test_ctx->domain,
                                      "case_sensitive_group1", 29000,
                                      "cn=case_sensitive_group1,cn=example,cn=com",
-                                     NULL, true, 0);
+                                     NULL, NULL, true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
     ret = sysdb_add_incomplete_group(test_ctx->domain,
                                      "case_sensitive_group2", 29001,
                                      "cn=CASE_SENSITIVE_GROUP1,cn=EXAMPLE,cn=COM",
-                                     NULL, true, 0);
+                                     NULL, NULL, true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
@@ -5035,7 +5035,7 @@ START_TEST(test_sysdb_search_sid_str)
     ret = sysdb_add_incomplete_group(test_ctx->domain,
                                      "group", 29000,
                                      "cn=group,cn=example,cn=com",
-                                     "S-1-2-3-4", true, 0);
+                                     "S-1-2-3-4", NULL, true, 0);
     fail_unless(ret == EOK, "sysdb_add_incomplete_group error [%d][%s]",
                             ret, strerror(ret));
 
