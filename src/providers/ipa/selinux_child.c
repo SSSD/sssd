@@ -135,6 +135,22 @@ static errno_t prepare_response(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static int sc_set_seuser(const char *login_name, const char *seuser_name,
+                         const char *mls)
+{
+    int ret;
+    mode_t old_mask;
+
+    /* This is a workaround for
+     * https://bugzilla.redhat.com/show_bug.cgi?id=1186422 to make sure
+     * the directories are created with the expected permissions
+     */
+    old_mask = umask(0);
+    ret = set_seuser(login_name, seuser_name, mls);
+    umask(old_mask);
+    return ret;
+}
+
 int main(int argc, const char *argv[])
 {
     int opt;
@@ -256,7 +272,7 @@ int main(int argc, const char *argv[])
 
     DEBUG(SSSDBG_TRACE_FUNC, "performing selinux operations\n");
 
-    ret = set_seuser(ibuf->username, ibuf->seuser, ibuf->mls_range);
+    ret = sc_set_seuser(ibuf->username, ibuf->seuser, ibuf->mls_range);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set SELinux login context.\n");
         goto fail;

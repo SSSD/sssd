@@ -628,6 +628,10 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
 errno_t restore_creds(struct sss_creds *saved_creds);
 
 /* from sss_semanage.c */
+/* Please note that libsemange relies on files and directories created with
+ * certain permissions. Therefore the caller should make sure the umask is
+ * not too restricted (especially when called from the daemon code).
+ */
 int set_seuser(const char *login_name, const char *seuser_name,
                const char *mlsrange);
 int del_seuser(const char *login_name);
