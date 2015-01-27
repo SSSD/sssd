@@ -55,6 +55,7 @@ struct cache_req_test_ctx {
 
     struct ldb_result *result;
     struct sss_domain_info *domain;
+    char *name;
     bool dp_called;
     bool create_user;
     bool create_group;
@@ -115,7 +116,9 @@ static void cache_req_user_by_name_test_done(struct tevent_req *req)
     ctx = tevent_req_callback_data(req, struct cache_req_test_ctx);
 
     ctx->tctx->error = cache_req_user_by_name_recv(ctx, req,
-                                                   &ctx->result, &ctx->domain);
+                                                   &ctx->result,
+                                                   &ctx->domain,
+                                                   &ctx->name);
     talloc_zfree(req);
 
     ctx->tctx->done = true;
@@ -141,7 +144,9 @@ static void cache_req_group_by_name_test_done(struct tevent_req *req)
     ctx = tevent_req_callback_data(req, struct cache_req_test_ctx);
 
     ctx->tctx->error = cache_req_group_by_name_recv(ctx, req,
-                                                    &ctx->result, &ctx->domain);
+                                                    &ctx->result,
+                                                    &ctx->domain,
+                                                    &ctx->name);
     talloc_zfree(req);
 
     ctx->tctx->done = true;
@@ -249,6 +254,7 @@ void test_user_by_name_multiple_domains_found(void **state)
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
+    mock_parse_inp(name, NULL);
 
     req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -291,6 +297,7 @@ void test_user_by_name_multiple_domains_notfound(void **state)
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
+    mock_parse_inp(name, NULL);
 
     req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -303,6 +310,85 @@ void test_user_by_name_multiple_domains_notfound(void **state)
     assert_true(check_leaks_pop(req_mem_ctx));
 
     assert_true(test_ctx->dp_called);
+}
+
+void test_user_by_name_multiple_domains_parse(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_USER_NAME;
+    const char *fqn = NULL;
+    const char *ldbname = NULL;
+    uid_t uid = 2000;
+    uid_t ldbuid;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Add user to the first domain. */
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_a", true);
+    assert_non_null(domain);
+
+    ret = sysdb_store_user(domain, name, "pwd", 1000, 1000,
+                           NULL, NULL, NULL, "cn=test-user,dc=test", NULL,
+                           NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    /* Add user to the last domain, with different uid. */
+
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    ret = sysdb_store_user(domain, name, "pwd", uid, 1000,
+                           NULL, NULL, NULL, "cn=test-user,dc=test", NULL,
+                           NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    /* Append domain name to the username. */
+    fqn = talloc_asprintf(test_ctx, "%s@%s", name,
+                          "responder_cache_req_test_d");
+    assert_non_null(fqn);
+
+    /* Test. */
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    mock_parse_inp(name, "responder_cache_req_test_d");
+
+    req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                      test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                      NULL, fqn);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+    assert_false(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+
+    ldbuid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
+                                       SYSDB_UIDNUM, 0);
+    assert_int_equal(ldbuid, uid);
+
+    assert_non_null(test_ctx->domain);
+    assert_string_equal(domain->name, test_ctx->domain->name);
+
+    assert_non_null(test_ctx->name);
+    assert_string_equal(name, test_ctx->name);
 }
 
 void test_user_by_name_cache_valid(void **state)
@@ -905,6 +991,7 @@ void test_group_by_name_multiple_domains_found(void **state)
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
+    mock_parse_inp(name, NULL);
 
     req = cache_req_group_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                        test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -947,6 +1034,7 @@ void test_group_by_name_multiple_domains_notfound(void **state)
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
+    mock_parse_inp(name, NULL);
 
     req = cache_req_group_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                        test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -959,6 +1047,83 @@ void test_group_by_name_multiple_domains_notfound(void **state)
     assert_true(check_leaks_pop(req_mem_ctx));
 
     assert_true(test_ctx->dp_called);
+}
+
+void test_group_by_name_multiple_domains_parse(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_GROUP_NAME;
+    const char *fqn = NULL;
+    const char *ldbname = NULL;
+    uid_t gid = 2000;
+    uid_t ldbgid;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Add user to the first domain. */
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_a", true);
+    assert_non_null(domain);
+
+    ret = sysdb_store_group(domain, name, 1000, NULL,
+                            1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    /* Add user to the last domain, with different uid. */
+
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    ret = sysdb_store_group(domain, name, gid, NULL,
+                            1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    /* Append domain name to the username. */
+    fqn = talloc_asprintf(test_ctx, "%s@%s", name,
+                          "responder_cache_req_test_d");
+    assert_non_null(fqn);
+
+    /* Test. */
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    mock_parse_inp(name, "responder_cache_req_test_d");
+
+    req = cache_req_group_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                       NULL, fqn);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+    assert_false(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+
+    ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
+                                       SYSDB_GIDNUM, 0);
+    assert_int_equal(ldbgid, gid);
+
+    assert_non_null(test_ctx->domain);
+    assert_string_equal(domain->name, test_ctx->domain->name);
+
+    assert_non_null(test_ctx->name);
+    assert_string_equal(name, test_ctx->name);
 }
 
 void test_group_by_name_cache_valid(void **state)
@@ -1548,6 +1713,7 @@ int main(int argc, const char *argv[])
         new_single_domain_test(user_by_name_missing_notfound),
         new_multi_domain_test(user_by_name_multiple_domains_found),
         new_multi_domain_test(user_by_name_multiple_domains_notfound),
+        new_multi_domain_test(user_by_name_multiple_domains_parse),
 
         new_single_domain_test(user_by_id_cache_valid),
         new_single_domain_test(user_by_id_cache_expired),
@@ -1566,6 +1732,7 @@ int main(int argc, const char *argv[])
         new_single_domain_test(group_by_name_missing_notfound),
         new_multi_domain_test(group_by_name_multiple_domains_found),
         new_multi_domain_test(group_by_name_multiple_domains_notfound),
+        new_multi_domain_test(group_by_name_multiple_domains_parse),
 
         new_single_domain_test(group_by_id_cache_valid),
         new_single_domain_test(group_by_id_cache_expired),

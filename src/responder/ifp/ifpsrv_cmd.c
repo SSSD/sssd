@@ -532,7 +532,7 @@ static void ifp_user_get_attr_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ifp_user_get_attr_state);
 
-    ret = cache_req_recv(state, subreq, &state->res, &state->dom);
+    ret = cache_req_recv(state, subreq, &state->res, &state->dom,  NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);

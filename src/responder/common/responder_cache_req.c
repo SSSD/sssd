@@ -118,6 +118,23 @@ fail:
 }
 
 static errno_t
+cache_req_input_set_orig_name(struct cache_req_input *input,
+                              const char *name)
+{
+    const char *dup;
+
+    dup = talloc_strdup(input, name);
+    if (dup == NULL) {
+        return ENOMEM;
+    }
+
+    talloc_zfree(input->orig_name);
+    input->orig_name = dup;
+
+    return EOK;
+}
+
+static errno_t
 cache_req_input_set_domain(struct cache_req_input *input,
                            struct sss_domain_info *domain,
                            struct resp_ctx *rctx)
@@ -595,7 +612,13 @@ struct cache_req_state {
     bool check_next;
 };
 
+static void cache_req_input_parsed(struct tevent_req *subreq);
+
+static errno_t cache_req_select_domains(struct tevent_req *req,
+                                        const char *domain);
+
 static errno_t cache_req_next_domain(struct tevent_req *req);
+
 static void cache_req_done(struct tevent_req *subreq);
 
 struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
@@ -609,6 +632,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
 {
     struct cache_req_state *state = NULL;
     struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct cache_req_state);
@@ -624,24 +648,20 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     state->cache_refresh_percent = cache_refresh_percent;
     state->input = input;
 
-    if (domain != NULL) {
-        /* single-domain search */
-        state->domain = responder_get_domain(state->rctx, domain);
-        if (state->domain == NULL) {
-            ret = EINVAL;
+    if (state->input->orig_name != NULL && domain == NULL) {
+        /* Parse input name first, since it may contain domain name. */
+        subreq = sss_parse_inp_send(state, rctx, input->orig_name);
+        if (subreq == NULL) {
+            ret = ENOMEM;
             goto immediately;
         }
 
-        state->check_next = false;
+        tevent_req_set_callback(subreq, cache_req_input_parsed, req);
     } else {
-        /* multi-domain search */
-        state->domain = state->rctx->domains;
-        state->check_next = true;
-    }
-
-    ret = cache_req_next_domain(req);
-    if (ret != EAGAIN) {
-        goto immediately;
+        ret = cache_req_select_domains(req, domain);
+        if (ret != EAGAIN) {
+            goto immediately;
+        }
     }
 
     return req;
@@ -655,6 +675,63 @@ immediately:
     tevent_req_post(req, ev);
 
     return req;
+}
+
+static void cache_req_input_parsed(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct cache_req_state *state;
+    char *name;
+    char *domain;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct cache_req_state);
+
+    ret = sss_parse_inp_recv(subreq, state, &name, &domain);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (strcmp(name, state->input->orig_name) != 0) {
+        /* The name has changed during input parse phase. */
+        ret = cache_req_input_set_orig_name(state->input, name);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
+    ret = cache_req_select_domains(req, domain);
+    if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+        return;
+    }
+}
+
+static errno_t cache_req_select_domains(struct tevent_req *req,
+                                        const char *domain)
+{
+    struct cache_req_state *state = NULL;
+
+    state = tevent_req_data(req, struct cache_req_state);
+
+    if (domain != NULL) {
+        /* single-domain search */
+        state->domain = responder_get_domain(state->rctx, domain);
+        if (state->domain == NULL) {
+            return ERR_DOMAIN_NOT_FOUND;
+        }
+
+        state->check_next = false;
+    } else {
+        /* multi-domain search */
+        state->domain = state->rctx->domains;
+        state->check_next = true;
+    }
+
+    return cache_req_next_domain(req);
 }
 
 static errno_t cache_req_next_domain(struct tevent_req *req)
@@ -744,12 +821,28 @@ static void cache_req_done(struct tevent_req *subreq)
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        struct ldb_result **_result,
-                       struct sss_domain_info **_domain)
+                       struct sss_domain_info **_domain,
+                       char **_name)
 {
     struct cache_req_state *state = NULL;
+    char *name;
+
     state = tevent_req_data(req, struct cache_req_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_name != NULL) {
+        if (state->input->dom_objname == NULL) {
+            *_name = NULL;
+        } else {
+            name = talloc_strdup(mem_ctx, state->input->orig_name);
+            if (name == NULL) {
+                return ENOMEM;
+            }
+
+            *_name = name;
+        }
+    }
 
     if (_result != NULL) {
         *_result = talloc_steal(mem_ctx, state->result);

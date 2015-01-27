@@ -60,7 +60,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        struct ldb_result **_result,
-                       struct sss_domain_info **_domain);
+                       struct sss_domain_info **_domain,
+                       char **_name);
 
 struct tevent_req *
 cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
@@ -72,8 +73,8 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
                             const char *domain,
                             const char *name);
 
-#define cache_req_user_by_name_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain)
+#define cache_req_user_by_name_recv(mem_ctx, req, _result, _domain, _name) \
+    cache_req_recv(mem_ctx, req, _result, _domain, _name)
 
 struct tevent_req *
 cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
@@ -86,7 +87,7 @@ cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
                           uid_t uid);
 
 #define cache_req_user_by_id_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain)
+    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
 
 struct tevent_req *
 cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
@@ -98,8 +99,8 @@ cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
                              const char *domain,
                              const char *name);
 
-#define cache_req_group_by_name_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain)
+#define cache_req_group_by_name_recv(mem_ctx, req, _result, _domain, _name) \
+    cache_req_recv(mem_ctx, req, _result, _domain, _name)
 
 struct tevent_req *
 cache_req_group_by_id_send(TALLOC_CTX *mem_ctx,
@@ -112,7 +113,7 @@ cache_req_group_by_id_send(TALLOC_CTX *mem_ctx,
                            gid_t gid);
 
 #define cache_req_group_by_id_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain)
+    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
 
 struct tevent_req *
 cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
@@ -124,7 +125,7 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
                               const char *domain,
                               const char *name);
 
-#define cache_req_initgr_by_name_recv(mem_ctx, req, _result, _domain) \
-    cache_req_recv(mem_ctx, req, _result, _domain)
+#define cache_req_initgr_by_name_recv(mem_ctx, req, _result, _domain, _name) \
+    cache_req_recv(mem_ctx, req, _result, _domain, _name)
 
 #endif /* RESPONDER_CACHE_H_ */
