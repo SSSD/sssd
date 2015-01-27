@@ -147,6 +147,19 @@ static void cache_req_group_by_name_test_done(struct tevent_req *req)
     ctx->tctx->done = true;
 }
 
+static void cache_req_group_by_id_test_done(struct tevent_req *req)
+{
+    struct cache_req_test_ctx *ctx = NULL;
+
+    ctx = tevent_req_callback_data(req, struct cache_req_test_ctx);
+
+    ctx->tctx->error = cache_req_group_by_id_recv(ctx, req,
+                                                  &ctx->result, &ctx->domain);
+    talloc_zfree(req);
+
+    ctx->tctx->done = true;
+}
+
 static int test_single_domain_setup(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
@@ -1177,6 +1190,345 @@ void test_group_by_name_missing_notfound(void **state)
     assert_true(test_ctx->dp_called);
 }
 
+void test_group_by_id_multiple_domains_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_GROUP_NAME;
+    const char *ldbname = NULL;
+    gid_t gid = TEST_GROUP_ID;
+    gid_t ldbgid;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    ret = sysdb_store_group(domain, name, gid, NULL,
+                            1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+
+    req = cache_req_group_by_id_send(req_mem_ctx, test_ctx->tctx->ev,
+                                     test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                     NULL, gid);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_id_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+
+    ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
+                                       SYSDB_GIDNUM, 0);
+    assert_int_equal(ldbgid, gid);
+
+    assert_non_null(test_ctx->domain);
+    assert_string_equal(domain->name, test_ctx->domain->name);
+}
+
+void test_group_by_id_multiple_domains_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    gid_t gid = TEST_GROUP_ID;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+
+    req = cache_req_group_by_id_send(req_mem_ctx, test_ctx->tctx->ev,
+                                     test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                     NULL, gid);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_id_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+}
+
+void test_group_by_id_cache_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_GROUP_NAME;
+    const char *ldbname = NULL;
+    gid_t gid = TEST_GROUP_ID;
+    gid_t ldbgid;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    ret = sysdb_store_group(test_ctx->tctx->dom, name, gid, NULL,
+                            1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    req = cache_req_group_by_id_send(req_mem_ctx, test_ctx->tctx->ev,
+                                     test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                     test_ctx->tctx->dom->name, gid);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_id_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+
+    ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
+                                       SYSDB_GIDNUM, 0);
+    assert_int_equal(ldbgid, gid);
+}
+
+void test_group_by_id_cache_expired(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_GROUP_NAME;
+    const char *ldbname = NULL;
+    gid_t gid = TEST_GROUP_ID;
+    gid_t ldbgid;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    ret = sysdb_store_group(test_ctx->tctx->dom, name, gid, NULL,
+                            -1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* DP should be contacted */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_group_by_id_send(req_mem_ctx, test_ctx->tctx->ev,
+                                     test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                     test_ctx->tctx->dom->name, gid);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_id_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+
+    ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
+                                       SYSDB_GIDNUM, 0);
+    assert_int_equal(ldbgid, gid);
+}
+
+void test_group_by_id_cache_midpoint(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_GROUP_NAME;
+    const char *ldbname = NULL;
+    gid_t gid = TEST_GROUP_ID;
+    gid_t ldbgid;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    ret = sysdb_store_group(test_ctx->tctx->dom, name, gid, NULL,
+                            50, time(NULL) - 26);
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* DP should be contacted without callback */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+
+    req = cache_req_group_by_id_send(req_mem_ctx, test_ctx->tctx->ev,
+                                     test_ctx->rctx, test_ctx->ncache, 10, 50,
+                                     test_ctx->tctx->dom->name, gid);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_id_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+
+    ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
+                                       SYSDB_GIDNUM, 0);
+    assert_int_equal(ldbgid, gid);
+}
+
+void test_group_by_id_ncache(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    gid_t gid = TEST_GROUP_ID;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    ret = sss_ncache_set_gid(test_ctx->ncache, false, gid);
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    req = cache_req_group_by_id_send(req_mem_ctx, test_ctx->tctx->ev,
+                                     test_ctx->rctx, test_ctx->ncache, 100, 0,
+                                     test_ctx->tctx->dom->name, gid);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_id_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_false(test_ctx->dp_called);
+}
+
+void test_group_by_id_missing_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_GROUP_NAME;
+    const char *ldbname = NULL;
+    gid_t gid = TEST_GROUP_ID;
+    gid_t ldbgid;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    test_ctx->create_group = true;
+
+    req = cache_req_group_by_id_send(req_mem_ctx, test_ctx->tctx->ev,
+                                     test_ctx->rctx, test_ctx->ncache, 100, 0,
+                                     test_ctx->tctx->dom->name, gid);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_id_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+
+    ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
+                                       SYSDB_GIDNUM, 0);
+    assert_int_equal(ldbgid, gid);
+}
+
+void test_group_by_id_missing_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    gid_t gid = TEST_GROUP_ID;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_group_by_id_send(req_mem_ctx, test_ctx->tctx->ev,
+                                     test_ctx->rctx, test_ctx->ncache, 100, 0,
+                                     test_ctx->tctx->dom->name, gid);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_id_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1213,7 +1565,16 @@ int main(int argc, const char *argv[])
         new_single_domain_test(group_by_name_missing_found),
         new_single_domain_test(group_by_name_missing_notfound),
         new_multi_domain_test(group_by_name_multiple_domains_found),
-        new_multi_domain_test(group_by_name_multiple_domains_notfound)
+        new_multi_domain_test(group_by_name_multiple_domains_notfound),
+
+        new_single_domain_test(group_by_id_cache_valid),
+        new_single_domain_test(group_by_id_cache_expired),
+        new_single_domain_test(group_by_id_cache_midpoint),
+        new_single_domain_test(group_by_id_ncache),
+        new_single_domain_test(group_by_id_missing_found),
+        new_single_domain_test(group_by_id_missing_notfound),
+        new_multi_domain_test(group_by_id_multiple_domains_found),
+        new_multi_domain_test(group_by_id_multiple_domains_notfound)
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
