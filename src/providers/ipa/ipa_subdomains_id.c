@@ -603,6 +603,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
      */
     switch (state->ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_INITGROUPS:
+    case BE_REQ_BY_SECID:
     case BE_REQ_GROUP:
         clist = ad_gc_conn_list(req, ad_id_ctx, state->obj_dom);
         if (clist == NULL) {
