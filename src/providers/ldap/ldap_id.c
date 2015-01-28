@@ -33,6 +33,7 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_users.h"
+#include "providers/ad/ad_common.h"
 
 /* =Users-Related-Functions-(by-name,by-uid)============================== */
 
@@ -1745,6 +1746,8 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
     struct get_user_and_group_state *state = tevent_req_data(req,
                                                struct get_user_and_group_state);
     int ret;
+    struct ad_id_ctx *ad_id_ctx;
+    struct sdap_id_conn_ctx *user_conn;
 
     ret = groups_get_recv(subreq, &state->dp_error, &state->sdap_ret);
     talloc_zfree(subreq);
@@ -1764,8 +1767,22 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
 
     /* Now the search finished fine but did not find an entry.
      * Retry with users. */
+
+    user_conn = state->conn;
+    /* Prefer LDAP over GC for users */
+    if (state->id_ctx->opts->schema_type == SDAP_SCHEMA_AD
+            && state->sdom->pvt != NULL) {
+        ad_id_ctx = talloc_get_type(state->sdom->pvt, struct ad_id_ctx);
+        if (ad_id_ctx != NULL &&  ad_id_ctx->ldap_ctx != NULL
+                && state->conn == ad_id_ctx->gc_ctx) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Switching to LDAP connection for user lookup.\n");
+            user_conn = ad_id_ctx->ldap_ctx;
+        }
+    }
+
     subreq = users_get_send(req, state->ev, state->id_ctx,
-                            state->sdom, state->conn,
+                            state->sdom, user_conn,
                             state->filter_val, state->filter_type, NULL,
                             state->attrs_type, state->noexist_delete);
     if (subreq == NULL) {
@@ -1792,16 +1809,17 @@ static void get_user_and_group_users_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
-
     if (state->sdap_ret == ENOENT) {
-        /* The search ran to completion, but nothing was found.
-         * Delete the existing entry, if any. */
-        ret = sysdb_delete_by_sid(state->sysdb, state->domain,
-                                  state->filter_val);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not delete entry by SID!\n");
-            tevent_req_error(req, ret);
-            return;
+        if (state->noexist_delete == true) {
+            /* The search ran to completion, but nothing was found.
+             * Delete the existing entry, if any. */
+            ret = sysdb_delete_by_sid(state->sysdb, state->domain,
+                                      state->filter_val);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Could not delete entry by SID!\n");
+                tevent_req_error(req, ret);
+                return;
+            }
         }
     } else if (state->sdap_ret != EOK) {
         tevent_req_error(req, EIO);
