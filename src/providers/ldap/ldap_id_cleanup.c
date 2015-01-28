@@ -217,13 +217,12 @@ static int cleanup_users(struct sdap_options *opts,
     }
 
     ret = sysdb_search_users(tmpctx, dom, subfilter, attrs, &count, &msgs);
-    if (ret) {
-        if (ret == ENOENT) {
-            ret = EOK;
-        }
+    if (ret == ENOENT) {
+        count = 0;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_users failed: %d\n", ret);
         goto done;
     }
-
     DEBUG(SSSDBG_FUNC_DATA, "Found %zu expired user entries!\n", count);
 
     if (count == 0) {
@@ -345,10 +344,10 @@ static int cleanup_groups(TALLOC_CTX *memctx,
     }
 
     ret = sysdb_search_groups(tmpctx, domain, subfilter, attrs, &count, &msgs);
-    if (ret) {
-        if (ret == ENOENT) {
-            ret = EOK;
-        }
+    if (ret == ENOENT) {
+        count = 0;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_groups failed: %d\n", ret);
         goto done;
     }
 
