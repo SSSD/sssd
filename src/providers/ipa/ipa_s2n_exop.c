@@ -2074,7 +2074,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
 
             if (IS_SUBDOMAIN(dom)) {
                 /* we always use the fully qualified name for subdomain users */
-                name = sss_tc_fqname(tmp_ctx, dom->names, dom, name);
+                name = sss_get_domain_name(tmp_ctx, name, dom);
                 if (!name) {
                     DEBUG(SSSDBG_OP_FAILURE, "failed to format user name,\n");
                     ret = ENOMEM;
