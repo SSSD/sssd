@@ -249,7 +249,6 @@ AM_CONDITIONAL([HAVE_MANPAGES], [test "x$HAVE_MANPAGES" != "x"])
 AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
 
 if test x$HAVE_PYTHON_BINDINGS != x; then
-    PYTHON=python2
     AM_PATH_PYTHON([2.4])
     AM_CHECK_PYTHON_HEADERS([],
                             AC_MSG_ERROR([Could not find python headers]))
