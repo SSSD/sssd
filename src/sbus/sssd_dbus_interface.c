@@ -354,6 +354,99 @@ fail:
     return NULL;
 }
 
+errno_t
+sbus_opath_decompose(TALLOC_CTX *mem_ctx,
+                     const char *object_path,
+                     const char *prefix,
+                     char ***_components,
+                     size_t *_len)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *path;
+    char **decomposed;
+    char **unescaped;
+    errno_t ret;
+    int len;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* Strip prefix from the path. */
+    if (prefix != NULL) {
+        path = sbus_opath_strip_prefix(object_path, prefix);
+        if (path == NULL) {
+            ret = ERR_SBUS_INVALID_PATH;
+            goto done;
+        }
+    } else {
+        path = object_path;
+    }
+
+    /* Split the string using / as delimiter. */
+    split_on_separator(tmp_ctx, path, '/', true, true, &decomposed, &len);
+
+    /* Unescape parts. */
+    unescaped = talloc_zero_array(tmp_ctx, char *, len + 1);
+    if (unescaped == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < len; i++) {
+        unescaped[i] = sbus_opath_unescape_part(unescaped, decomposed[i]);
+        if (unescaped[i] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    if (_components != NULL) {
+        *_components = talloc_steal(mem_ctx, unescaped);
+    }
+
+    if (_len != NULL) {
+        *_len = len;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t
+sbus_opath_decompose_exact(TALLOC_CTX *mem_ctx,
+                           const char *object_path,
+                           const char *prefix,
+                           size_t expected,
+                           char ***_components)
+{
+    char **components;
+    size_t len;
+    errno_t ret;
+
+    ret = sbus_opath_decompose(mem_ctx, object_path, prefix,
+                               &components, &len);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (len != expected) {
+        talloc_free(components);
+        return ERR_SBUS_INVALID_PATH;
+    }
+
+    if (_components != NULL) {
+        *_components = components;
+    }
+
+    return EOK;
+}
+
 const char *
 sbus_opath_strip_prefix(const char *object_path,
                         const char *prefix)

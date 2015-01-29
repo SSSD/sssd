@@ -62,6 +62,7 @@ struct err_string error_to_str[] = {
     { "Malformed extra attribute" }, /* ERR_INVALID_EXTRA_ATTR */
     { "Cannot get bus message sender" }, /* ERR_SBUS_GET_SENDER_ERROR */
     { "Bus message has no sender" }, /* ERR_SBUS_NO_SENDER */
+    { "Invalid SBUS path provided." }, /* ERR_SBUS_INVALID_PATH */
     { "User/Group SIDs not found" }, /* ERR_NO_SIDS */
     { "Bus method not supported" }, /* ERR_SBUS_NOSUP */
     { "Cannot connect to system bus" }, /* ERR_NO_SYSBUS */

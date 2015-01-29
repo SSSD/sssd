@@ -196,6 +196,20 @@ _sbus_opath_compose(TALLOC_CTX *mem_ctx,
 #define sbus_opath_compose(mem_ctx, base, ...) \
     _sbus_opath_compose(mem_ctx, base, ##__VA_ARGS__, NULL)
 
+errno_t
+sbus_opath_decompose(TALLOC_CTX *mem_ctx,
+                     const char *object_path,
+                     const char *prefix,
+                     char ***_components,
+                     size_t *_len);
+
+errno_t
+sbus_opath_decompose_exact(TALLOC_CTX *mem_ctx,
+                           const char *object_path,
+                           const char *prefix,
+                           size_t expected,
+                           char ***_components);
+
 const char *
 sbus_opath_strip_prefix(const char *object_path,
                         const char *prefix);

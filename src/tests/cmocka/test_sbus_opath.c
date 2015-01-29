@@ -121,6 +121,127 @@ void test_sbus_opath_compose_escape(void **state)
     talloc_free(path);
 }
 
+static void check_opath_components(char **input,
+                                   const char **expected)
+{
+    int i;
+
+    assert_non_null(input);
+    assert_non_null(expected);
+
+    for (i = 0; input[i] != NULL; i++) {
+        assert_non_null(input[i]);
+        assert_non_null(expected[i]);
+        assert_string_equal(input[i], expected[i]);
+    }
+
+    assert_null(input[i]);
+    assert_null(expected[i]);
+}
+
+static void check_opath_components_and_length(char **input,
+                                              size_t input_len,
+                                              const char **expected,
+                                              size_t expected_len)
+{
+    assert_true(input_len == expected_len);
+    check_opath_components(input, expected);
+}
+
+void test_sbus_opath_decompose_noprefix(void **state)
+{
+    const char *path = "/object/path/parts";
+    const char *expected[] = {"object", "path", "parts", NULL};
+    size_t expected_len = sizeof(expected) / sizeof(char *) - 1;
+    char **components;
+    size_t len;
+    errno_t ret;
+
+    ret = sbus_opath_decompose(NULL, path, NULL, &components, &len);
+    assert_int_equal(ret, EOK);
+    check_opath_components_and_length(components, len, expected, expected_len);
+    talloc_free(components);
+}
+
+void test_sbus_opath_decompose_prefix(void **state)
+{
+    const char *path = "/object/path/parts";
+    const char *expected[] = {"parts", NULL};
+    size_t expected_len = sizeof(expected) / sizeof(char *) - 1;
+    char **components;
+    size_t len;
+    errno_t ret;
+
+    ret = sbus_opath_decompose(NULL, path, "/object/path", &components, &len);
+    assert_int_equal(ret, EOK);
+    check_opath_components_and_length(components, len, expected, expected_len);
+    talloc_free(components);
+}
+
+void test_sbus_opath_decompose_prefix_slash(void **state)
+{
+    const char *path = "/object/path/parts";
+    const char *expected[] = {"parts", NULL};
+    size_t expected_len = sizeof(expected) / sizeof(char *) - 1;
+    char **components;
+    size_t len;
+    errno_t ret;
+
+    ret = sbus_opath_decompose(NULL, path, "/object/path/", &components, &len);
+    assert_int_equal(ret, EOK);
+    check_opath_components_and_length(components, len, expected, expected_len);
+    talloc_free(components);
+}
+
+void test_sbus_opath_decompose_wrong_prefix(void **state)
+{
+    const char *path = "/object/path/parts";
+    char **components;
+    size_t len;
+    errno_t ret;
+
+    ret = sbus_opath_decompose(NULL, path, "/wrong/prefix", &components, &len);
+    assert_int_equal(ret, ERR_SBUS_INVALID_PATH);
+}
+
+void test_sbus_opath_decompose_escaped(void **state)
+{
+    const char *path = "/object/redhat_2ecom";
+    const char *expected[] = {"object", "redhat.com", NULL};
+    size_t expected_len = sizeof(expected) / sizeof(char *) - 1;
+    char **components;
+    size_t len;
+    errno_t ret;
+
+    ret = sbus_opath_decompose(NULL, path, NULL, &components, &len);
+    assert_int_equal(ret, EOK);
+    check_opath_components_and_length(components, len, expected, expected_len);
+    talloc_free(components);
+}
+
+void test_sbus_opath_decompose_exact_correct(void **state)
+{
+    const char *path = "/object/path/parts";
+    const char *expected[] = {"object", "path", "parts", NULL};
+    char **components;
+    errno_t ret;
+
+    ret = sbus_opath_decompose_exact(NULL, path, NULL, 3, &components);
+    assert_int_equal(ret, EOK);
+    check_opath_components(components, expected);
+    talloc_free(components);
+}
+
+void test_sbus_opath_decompose_exact_wrong(void **state)
+{
+    const char *path = "/object/path/parts";
+    char **components;
+    errno_t ret;
+
+    ret = sbus_opath_decompose_exact(NULL, path, NULL, 2, &components);
+    assert_int_equal(ret, ERR_SBUS_INVALID_PATH);
+}
+
 void test_sbus_opath_get_object_name(void **state)
 {
     const char *path = BASE_PATH "/redhat_2ecom";
@@ -158,6 +279,13 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_sbus_opath_escape_unescape),
         cmocka_unit_test(test_sbus_opath_compose),
         cmocka_unit_test(test_sbus_opath_compose_escape),
+        cmocka_unit_test(test_sbus_opath_decompose_noprefix),
+        cmocka_unit_test(test_sbus_opath_decompose_prefix),
+        cmocka_unit_test(test_sbus_opath_decompose_prefix_slash),
+        cmocka_unit_test(test_sbus_opath_decompose_wrong_prefix),
+        cmocka_unit_test(test_sbus_opath_decompose_escaped),
+        cmocka_unit_test(test_sbus_opath_decompose_exact_correct),
+        cmocka_unit_test(test_sbus_opath_decompose_exact_wrong),
         cmocka_unit_test(test_sbus_opath_get_object_name)
     };
 
