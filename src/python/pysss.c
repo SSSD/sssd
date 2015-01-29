@@ -865,7 +865,6 @@ static PyObject *PySssLocalObject_new(PyTypeObject *type,
 
     confdb_path = talloc_asprintf(self->mem_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (confdb_path == NULL) {
-        talloc_free(mem_ctx);
         PyErr_NoMemory();
         goto fail;
     }
@@ -873,7 +872,6 @@ static PyObject *PySssLocalObject_new(PyTypeObject *type,
     /* Connect to the conf db */
     ret = confdb_init(self->mem_ctx, &self->confdb, confdb_path);
     if (ret != EOK) {
-        talloc_free(mem_ctx);
         PyErr_SetSssErrorWithMessage(ret,
                 "Could not initialize connection to the confdb\n");
         goto fail;
@@ -882,7 +880,6 @@ static PyObject *PySssLocalObject_new(PyTypeObject *type,
     ret = sssd_domain_init(self->mem_ctx, self->confdb, "local",
                            DB_PATH, &self->local);
     if (ret != EOK) {
-        talloc_free(mem_ctx);
         PyErr_SetSssErrorWithMessage(ret,
                 "Could not initialize connection to the sysdb\n");
         goto fail;
