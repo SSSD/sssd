@@ -60,13 +60,18 @@
 #    to generate for a given interface or method. By default the codegen will
 #    build up a symbol name from the DBus name.
 #
+from __future__ import print_function
 
 import optparse
 import os
 import re
-import StringIO
 import sys
 import xml.parsers.expat
+
+if sys.version_info[0] > 2:
+    import io as StringIO
+else:
+    import StringIO
 
 # -----------------------------------------------------------------------------
 # Objects
@@ -765,13 +770,13 @@ class DBusXMLParser:
         self.arg_count = 0
 
         try:
-            with open(filename, "r") as f:
+            with open(filename, "rb") as f:
                 parser.ParseFile(f)
-        except DBusXmlException, ex:
+        except DBusXmlException as ex:
             ex.line = parser.CurrentLineNumber
             ex.file = filename
             raise
-        except xml.parsers.expat.ExpatError, ex:
+        except xml.parsers.expat.ExpatError as ex:
             exc = DBusXmlException(str(ex))
             exc.line = ex.lineno
             exc.file = filename
@@ -895,11 +900,11 @@ def parse_options():
     (options, args) = parser.parse_args()
 
     if not args:
-        print >> sys.stderr, "sbus_codegen: no input file specified"
+        print("sbus_codegen: no input file specified", file=sys.stderr)
         sys.exit(2)
 
     if options.mode not in ["header", "source"]:
-        print >> sys.stderr, "sbus_codegen: specify --mode=header or --mode=source"
+        print("sbus_codegen: specify --mode=header or --mode=source", file=sys.stderr)
 
     return options, args
 
@@ -928,6 +933,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except DBusXmlException, ex:
-        print >> sys.stderr, str(ex)
+    except DBusXmlException as ex:
+        print(str(ex), file=sys.stderr)
         sys.exit(1)
