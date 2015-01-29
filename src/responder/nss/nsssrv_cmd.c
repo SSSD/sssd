@@ -4867,18 +4867,20 @@ static errno_t fill_id(struct sss_packet *packet,
     uint8_t *body;
     size_t blen;
     size_t pctr = 0;
-    uint64_t id;
+    uint64_t tmp_id;
+    uint32_t id;
 
     if (id_type == SSS_ID_TYPE_GID) {
-        id = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+        tmp_id = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
     } else {
-        id = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+        tmp_id = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
     }
 
-    if (id == 0 || id >= UINT32_MAX) {
+    if (tmp_id == 0 || tmp_id >= UINT32_MAX) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid POSIX ID.\n");
         return EINVAL;
     }
+    id = (uint32_t) tmp_id;
 
     ret = sss_packet_grow(packet, 4 * sizeof(uint32_t));
     if (ret != EOK) {
