@@ -748,12 +748,12 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # Ensure that all of the expected defaults are there
         for provider in control_provider_dict.keys():
             for ptype in control_provider_dict[provider]:
-                self.assertTrue(providers.has_key(provider))
+                self.assertTrue(provider in providers)
                 self.assertTrue(ptype in providers[provider])
 
         for provider in providers.keys():
             for ptype in providers[provider]:
-                self.assertTrue(control_provider_dict.has_key(provider))
+                self.assertTrue(provider in control_provider_dict)
                 self.assertTrue(ptype in control_provider_dict[provider])
 
     def testListProviderOptions(self):
@@ -1003,7 +1003,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # Remove the local ID provider and add an LDAP one
         # LDAP ID providers can also use the krb5_realm
         domain.remove_provider('id')
-        self.assertFalse(domain.options.has_key('id_provider'))
+        self.assertFalse('id_provider' in domain.options)
 
         domain.add_provider('ldap', 'id')
 
@@ -1020,7 +1020,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain.remove_provider('id')
         self.assertEquals(domain.get_option('krb5_realm'),
                   'EXAMPLE.COM')
-        self.assertFalse(domain.options.has_key('ldap_uri'))
+        self.assertFalse('ldap_uri' in domain.options)
 
         # Put the LOCAL provider back
         domain.add_provider('local', 'id')
@@ -1028,7 +1028,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # Remove the auth domain and verify that the options
         # revert to the backup_list
         domain.remove_provider('auth')
-        self.assertFalse(domain.options.has_key('auth_provider'))
+        self.assertFalse('auth_provider' in domain.options)
         options = domain.list_options()
 
         self.assertTrue(type(options) == dict,
@@ -1047,21 +1047,21 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                             option)
 
         # Ensure that the krb5_realm option is now gone
-        self.assertFalse(domain.options.has_key('krb5_realm'))
+        self.assertFalse('krb5_realm' in domain.options)
 
         # Test removing nonexistent provider - Real
         domain.remove_provider('id')
-        self.assertFalse(domain.options.has_key('id_provider'))
+        self.assertFalse('id_provider' in domain.options)
 
         # Test removing nonexistent provider - Bad backend type
         # Should pass without complaint
         domain.remove_provider('id')
-        self.assertFalse(domain.options.has_key('id_provider'))
+        self.assertFalse('id_provider' in domain.options)
 
         # Test removing nonexistent provider - Bad provider type
         # Should pass without complaint
         domain.remove_provider('nosuchprovider')
-        self.assertFalse(domain.options.has_key('nosuchprovider_provider'))
+        self.assertFalse('nosuchprovider_provider' in domain.options)
 
     def testGetOption(self):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
@@ -1367,7 +1367,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Positive test - Service with invalid option loads
         # but ignores the invalid option
         service = sssdconfig.get_service('pam')
-        self.assertFalse(service.options.has_key('nosuchoption'))
+        self.assertFalse('nosuchoption' in service.options)
 
     def testNewService(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -1598,13 +1598,13 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Expected result: Domain is imported, but does not contain the
         # unknown provider entry
         domain = sssdconfig.get_domain('INVALIDPROVIDER')
-        self.assertFalse(domain.options.has_key('chpass_provider'))
+        self.assertFalse('chpass_provider' in domain.options)
 
         # Positive Test - Domain with unknown option
         # Expected result: Domain is imported, but does not contain the
         # unknown option entry
         domain = sssdconfig.get_domain('INVALIDOPTION')
-        self.assertFalse(domain.options.has_key('nosuchoption'))
+        self.assertFalse('nosuchoption' in domain.options)
 
     def testNewDomain(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",

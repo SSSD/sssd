@@ -6,9 +6,9 @@ Created on Sep 18, 2009
 
 import os
 import gettext
-import exceptions
 import re
-from ipachangeconf import SSSDChangeConf
+import sys
+from .ipachangeconf import SSSDChangeConf
 
 # Exceptions
 class SSSDConfigException(Exception): pass
@@ -32,7 +32,10 @@ PACKAGE = 'sss_daemon'
 LOCALEDIR = '/usr/share/locale'
 
 translation = gettext.translation(PACKAGE, LOCALEDIR, fallback=True)
-_ = translation.ugettext
+if sys.version_info[0] > 2:
+    _ = translation.gettext
+else:
+    _ = translation.ugettext
 
 # TODO: This needs to be made external
 option_strings = {
@@ -446,7 +449,7 @@ class SSSDConfigSchema(SSSDChangeConf):
         self.type_lookup = {
             'bool' : bool,
             'int'  : int,
-            'long' : long,
+            'long' : long if sys.version_info[0] == 2 else int,
             'float': float,
             'str'  : str,
             'list' : list,
@@ -481,7 +484,7 @@ class SSSDConfigSchema(SSSDChangeConf):
             subtype = self.type_lookup[split_option[SUBTYPE]]
             mandatory = self.bool_lookup[split_option[MANDATORY]]
 
-            if option_strings.has_key(option['name']):
+            if option['name'] in option_strings:
                 desc = option_strings[option['name']]
             else:
                 desc = None
@@ -610,7 +613,7 @@ class SSSDConfigSchema(SSSDChangeConf):
             splitsection = section['name'].split('/')
             if (splitsection[0] == 'provider'):
                 if(len(splitsection) == 3):
-                    if not providers.has_key(splitsection[1]):
+                    if splitsection[1] not in providers:
                         providers[splitsection[1]] = []
                     providers[splitsection[1]].extend([splitsection[2]])
         for key in providers.keys():
@@ -674,7 +677,7 @@ class SSSDConfigObject(object):
         === Errors ===
         No errors
         """
-        if self.options.has_key(optionname):
+        if optionname in self.options:
             del self.options[optionname]
 
 class SSSDService(SSSDConfigObject):
@@ -1309,12 +1312,12 @@ class SSSDDomain(SSSDConfigObject):
         # We should now have a list of options used only by this
         # provider. So we remove them.
         for option in options:
-            if self.options.has_key(option):
+            if option in self.options:
                 del self.options[option]
 
         # Remove this provider from the option list
         option = '%s_provider' % provider_type
-        if self.options.has_key(option):
+        if option in self.options:
             del self.options[option]
 
         self.providers.remove((provider, provider_type))
@@ -1452,9 +1455,9 @@ class SSSDConfig(SSSDChangeConf):
             outputfile = self.configfile
 
         # open() will raise IOError if it fails
-        old_umask = os.umask(0177)
+        old_umask = os.umask(0o177)
         of = open(outputfile, "wb")
-        output = self.dump(self.opts)
+        output = self.dump(self.opts).encode('utf-8')
         of.write(output)
         of.close()
         os.umask(old_umask)
@@ -1477,7 +1480,7 @@ class SSSDConfig(SSSDChangeConf):
         if (self.has_option('sssd', 'services')):
             active_services = striplist(self.get('sssd', 'services').split(','))
             service_dict = dict.fromkeys(active_services)
-            if service_dict.has_key(''):
+            if '' in service_dict:
                 del service_dict['']
 
             # Remove any entries in this list that don't
@@ -1633,7 +1636,7 @@ class SSSDConfig(SSSDChangeConf):
         # This guarantees uniqueness and makes it easy
         # to add a new value
         service_dict = dict.fromkeys(striplist(item['value'].split(',')))
-        if service_dict.has_key(''):
+        if '' in service_dict:
             del service_dict['']
 
         # Add a new key for the service being activated
@@ -1674,11 +1677,11 @@ class SSSDConfig(SSSDChangeConf):
         # This guarantees uniqueness and makes it easy
         # to remove the one unwanted value.
         service_dict = dict.fromkeys(striplist(item['value'].split(',')))
-        if service_dict.has_key(''):
+        if '' in service_dict:
             del service_dict['']
 
         # Remove the unwanted service from the lest
-        if service_dict.has_key(name):
+        if name in service_dict:
             del service_dict[name]
 
         # Write out the joined keys
@@ -1760,7 +1763,7 @@ class SSSDConfig(SSSDChangeConf):
         if (self.has_option('sssd', 'domains')):
             active_domains = striplist(self.get('sssd', 'domains').split(','))
             domain_dict = dict.fromkeys(active_domains)
-            if domain_dict.has_key(''):
+            if '' in domain_dict:
                 del domain_dict['']
 
             # Remove any entries in this list that don't
@@ -1955,7 +1958,7 @@ class SSSDConfig(SSSDChangeConf):
         # This guarantees uniqueness and makes it easy
         # to add a new value
         domain_dict = dict.fromkeys(striplist(item['value'].split(',')))
-        if domain_dict.has_key(''):
+        if '' in domain_dict:
             del domain_dict['']
 
         # Add a new key for the domain being activated
@@ -1996,11 +1999,11 @@ class SSSDConfig(SSSDChangeConf):
         # This guarantees uniqueness and makes it easy
         # to remove the one unwanted value.
         domain_dict = dict.fromkeys(striplist(item['value'].split(',')))
-        if domain_dict.has_key(''):
+        if '' in domain_dict:
             del domain_dict['']
 
         # Remove the unwanted domain from the lest
-        if domain_dict.has_key(name):
+        if name in domain_dict:
             del domain_dict[name]
 
         # Write out the joined keys
