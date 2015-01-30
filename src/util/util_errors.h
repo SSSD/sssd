@@ -91,6 +91,7 @@ enum sssd_errors {
     ERR_SELINUX_CONTEXT,
     ERR_REGEX_NOMATCH,
     ERR_TIMESPEC_NOT_SUPPORTED,
+    ERR_INVALID_CONFIG,
     ERR_LAST            /* ALWAYS LAST */
 };
 

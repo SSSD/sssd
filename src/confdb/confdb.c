@@ -772,6 +772,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     const char *tmp;
     int ret, val;
     uint32_t entry_cache_timeout;
+    char *default_domain;
+    bool fqnames_default = false;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
@@ -907,11 +909,38 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         DEBUG(SSSDBG_TRACE_FUNC, "No enumeration for [%s]!\n", domain->name);
     }
 
+    ret = confdb_get_string(cdb, tmp_ctx, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_DEFAULT_DOMAIN, NULL,
+                            &default_domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannnot get the default domain [%d]: %s\n",
+               ret, strerror(ret));
+        goto done;
+    }
+
     /* Determine if user/group names will be Fully Qualified
      * in NSS interfaces */
-    ret = get_entry_as_bool(res->msgs[0], &domain->fqnames, CONFDB_DOMAIN_FQ, 0);
-    if(ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Invalid value for %s\n", CONFDB_DOMAIN_FQ);
+    if (default_domain != NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Default domain suffix set. Changing default for "
+              "use_fully_qualified_names to True.\n");
+        fqnames_default = true;
+    }
+
+    ret = get_entry_as_bool(res->msgs[0], &domain->fqnames,
+                            CONFDB_DOMAIN_FQ, fqnames_default);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Invalid value for %s\n",
+              CONFDB_DOMAIN_FQ);
+        goto done;
+    }
+
+    if (default_domain != NULL && domain->fqnames == false) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid configuration detected (default_domain_suffix is used "
+              "while use_fully_qualified_names was set to false).\n");
+        ret = ERR_INVALID_CONFIG;
         goto done;
     }
 
@@ -1282,7 +1311,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
         if (ret) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Error (%d [%s]) retrieving domain [%s], skipping!\n",
-                      ret, strerror(ret), domlist[i]);
+                      ret, sss_strerror(ret), domlist[i]);
             continue;
         }
 
