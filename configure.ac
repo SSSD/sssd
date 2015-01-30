@@ -20,10 +20,9 @@ m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_DISABLE_STATIC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
-AC_PROG_MKDIR_P
 m4_ifdef([AC_PROG_MKDIR_P],
          [AC_PROG_MKDIR_P],
-         [MKDIR_P="mkdir -p"])
+         [AC_SUBST([MKDIR_P], "mkdir -p")])
 LT_LIB_DLLOAD
 AC_CONFIG_MACRO_DIR([m4])
 AM_GNU_GETTEXT([external])
