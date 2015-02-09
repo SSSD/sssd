@@ -63,7 +63,7 @@ AC_DEFUN([AM_CHECK_PYTHON_COMPAT],
     LIBS="$LIBS $PYTHON_LIBS"
 
     AC_CHECK_FUNCS([PyErr_NewExceptionWithDoc])
-    AC_CHECK_DECLS([PyModule_AddIntMacro, PyUnicode_FromString], [], [], [[#include <Python.h>]])
+    AC_CHECK_DECLS([PyUnicode_FromString], [], [], [[#include <Python.h>]])
 
     CPPFLAGS="$save_CPPFLAGS"
     LIBS="$save_LIBS"

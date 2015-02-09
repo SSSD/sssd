@@ -32,11 +32,6 @@ PyObject *sss_python_unicode_from_string(const char *u);
 PyObject *
 sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict);
 
-/* PyModule_AddIntMacro() compatibility */
-#if !HAVE_DECL_PYMODULE_ADDINTMACRO
-#define PyModule_AddIntMacro(m, c) PyModule_AddIntConstant(m, sss_py_const_p(char, #c), c)
-#endif
-
 /* Convenience macros */
 #define TYPE_READY(module, type, name) do {         \
     if (PyType_Ready(&type) < 0)                    \
