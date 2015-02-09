@@ -62,7 +62,7 @@ AC_DEFUN([AM_CHECK_PYTHON_COMPAT],
     CPPFLAGS="$CPPFLAGS $PYTHON_INCLUDES"
     LIBS="$LIBS $PYTHON_LIBS"
 
-    AC_CHECK_FUNCS([PySet_Add PyErr_NewExceptionWithDoc])
+    AC_CHECK_FUNCS([PyErr_NewExceptionWithDoc])
     AC_CHECK_DECLS([PySet_Check, PyModule_AddIntMacro, PyUnicode_FromString], [], [], [[#include <Python.h>]])
 
     CPPFLAGS="$save_CPPFLAGS"

@@ -21,23 +21,6 @@
 #include "src/util/sss_python.h"
 #include "config.h"
 
-int
-sss_python_set_add(PyObject *set, PyObject *key)
-{
-#ifdef HAVE_PYSET_ADD
-    return PySet_Add(set, key);
-#else
-    PyObject *pyret;
-    int ret;
-
-    pyret = PyObject_CallMethod(set, sss_py_const_p(char, "add"),
-                                sss_py_const_p(char, "O"), key);
-    ret = (pyret == NULL) ? -1 : 0;
-    Py_XDECREF(pyret);
-    return ret;
-#endif
-}
-
 bool
 sss_python_set_check(PyObject *set)
 {

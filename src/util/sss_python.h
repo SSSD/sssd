@@ -26,7 +26,6 @@
 #endif
 
 /* Wrappers providing the subset of C API for python's set objects we use */
-int sss_python_set_add(PyObject *set, PyObject *key);
 bool sss_python_set_check(PyObject *set);
 
 /* Unicode compatibility */

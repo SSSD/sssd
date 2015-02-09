@@ -388,7 +388,7 @@ HbacRuleElement_init(HbacRuleElement *self, PyObject *args, PyObject *kwargs)
             return -1;
         }
 
-        if (sss_python_set_add(self->category, tmp) != 0) {
+        if (PySet_Add(self->category, tmp) != 0) {
             Py_DECREF(tmp);
             return -1;
         }
@@ -962,7 +962,7 @@ py_hbac_rule_validate(HbacRuleObject *self, PyObject *args)
             goto fail;
         }
 
-        if (sss_python_set_add(py_missing, py_attr) != 0) {
+        if (PySet_Add(py_missing, py_attr) != 0) {
             /* If the set-add succeeded, it would steal the reference */
             Py_DECREF(py_attr);
             goto fail;
