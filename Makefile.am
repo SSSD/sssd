@@ -441,15 +441,9 @@ SSSD_LIBS = \
 
 PYTHON_BINDINGS_LIBS = \
     $(TALLOC_LIBS) \
-    $(TEVENT_LIBS) \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
-    $(DBUS_LIBS) \
-    $(PCRE_LIBS) \
-    $(DHASH_LIBS) \
-    $(SSS_CRYPT_LIBS) \
-    $(OPENLDAP_LIBS) \
-    $(TDB_LIBS)
+    $(NULL)
 
 TOOLS_LIBS = \
     $(LTLIBINTL) \
