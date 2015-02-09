@@ -62,11 +62,6 @@ AC_DEFUN([AM_CHECK_PYTHON_COMPAT],
     CPPFLAGS="$CPPFLAGS $PYTHON_INCLUDES"
     LIBS="$LIBS $PYTHON_LIBS"
 
-    AC_CHECK_TYPE(Py_ssize_t,
-                  [ AC_DEFINE_UNQUOTED(HAVE_PY_SSIZE_T, 1, [Native Py_ssize_t type]) ],
-                  [],
-                  [[#include <Python.h>]])
-
     AC_CHECK_FUNCS([PySet_New PySet_Add PyErr_NewExceptionWithDoc])
     AC_CHECK_DECLS([PySet_Check, PyModule_AddIntMacro, PyUnicode_FromString], [], [], [[#include <Python.h>]])
 

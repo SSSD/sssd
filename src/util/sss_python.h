@@ -25,20 +25,6 @@
 #define PYNUMBER_ASLONG(what) PyInt_AsLong(what)
 #endif
 
-/* Py_ssize_t compatibility for python < 2.5 as per
- * http://www.python.org/dev/peps/pep-0353/ */
-#ifndef HAVE_PY_SSIZE_T
-typedef int Py_ssize_t;
-#endif
-
-#ifndef PY_SSIZE_T_MAX
-#define PY_SSIZE_T_MAX INT_MAX
-#endif
-
-#ifndef PY_SSIZE_T_MIN
-#define PY_SSIZE_T_MIN INT_MIN
-#endif
-
 /* Wrappers providing the subset of C API for python's set objects we use */
 PyObject *sss_python_set_new(void);
 int sss_python_set_add(PyObject *set, PyObject *key);
