@@ -527,7 +527,7 @@ class SSSDConfigSchema(SSSDChangeConf):
                                      mandatory,
                                      desc,
                                      [subtype(split_option[DEFAULT])])
-                        except ValueError, KeyError:
+                        except ValueError:
                             raise ParsingError
                 else:
                     try:
@@ -546,7 +546,7 @@ class SSSDConfigSchema(SSSDChangeConf):
                                  mandatory,
                                  desc,
                                  primarytype(split_option[DEFAULT]))
-                    except ValueError, KeyError:
+                    except ValueError:
                         raise ParsingError
 
             elif optionlen > 4:
@@ -561,7 +561,7 @@ class SSSDConfigSchema(SSSDChangeConf):
                             else:
                                 newvalue = subtype(x)
                             fixed_options.extend([newvalue])
-                        except ValueError, KeyError:
+                        except ValueError:
                             raise ParsingError
                     else:
                         fixed_options.extend([x])
