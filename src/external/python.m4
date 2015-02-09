@@ -37,8 +37,6 @@ AC_DEFUN([AM_CHECK_PYTHON_HEADERS],
     AC_MSG_CHECKING(for headers required to compile python extensions)
 
     dnl deduce PYTHON_INCLUDES
-    py_prefix=`$PYTHON -c "import sys; print(sys.prefix)"`
-    py_exec_prefix=`$PYTHON -c "import sys; print(sys.exec_prefix)"`
     PYTHON_INCLUDES=-I`$PYTHON -c "from distutils import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))"`
 
     AC_SUBST(PYTHON_INCLUDES)
