@@ -33,5 +33,25 @@ char * ifp_groups_build_path_from_msg(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *domain,
                                       struct ldb_message *msg);
 
+/* org.freedesktop.sssd.infopipe.Groups */
+
+int ifp_groups_find_by_name(struct sbus_request *sbus_req,
+                            void *data,
+                            const char *name);
+
+int ifp_groups_find_by_id(struct sbus_request *sbus_req,
+                          void *data,
+                          uint32_t id);
+
+int ifp_groups_list_by_name(struct sbus_request *sbus_req,
+                            void *data,
+                            const char *filter,
+                            uint32_t limit);
+
+int ifp_groups_list_by_domain_and_name(struct sbus_request *sbus_req,
+                                       void *data,
+                                       const char *domain,
+                                       const char *filter,
+                                       uint32_t limit);
 
 #endif /* IFP_GROUPS_H_ */

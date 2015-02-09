@@ -19,8 +19,13 @@
 */
 
 #include <talloc.h>
+#include <tevent.h>
 
+#include "util/util.h"
 #include "db/sysdb.h"
+#include "sbus/sssd_dbus_errors.h"
+#include "responder/common/responder.h"
+#include "responder/common/responder_cache_req.h"
 #include "responder/ifp/ifp_groups.h"
 
 char * ifp_groups_build_path_from_msg(TALLOC_CTX *mem_ctx,
@@ -36,4 +41,161 @@ char * ifp_groups_build_path_from_msg(TALLOC_CTX *mem_ctx,
     }
 
     return sbus_opath_compose(mem_ctx, IFP_PATH_GROUPS, domain->name, gid);
+}
+
+static void ifp_groups_find_by_name_done(struct tevent_req *req);
+
+int ifp_groups_find_by_name(struct sbus_request *sbus_req,
+                           void *data,
+                           const char *name)
+{
+    struct ifp_ctx *ctx;
+    struct tevent_req *req;
+
+    ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return ERR_INTERNAL;
+    }
+
+    req = cache_req_group_by_name_send(sbus_req, ctx->rctx->ev, ctx->rctx,
+                                       ctx->ncache, ctx->neg_timeout, 0,
+                                       NULL, name);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, ifp_groups_find_by_name_done, sbus_req);
+
+    return EOK;
+}
+
+static void
+ifp_groups_find_by_name_done(struct tevent_req *req)
+{
+    DBusError *error;
+    struct sbus_request *sbus_req;
+    struct sss_domain_info *domain;
+    struct ldb_result *result;
+    char *object_path;
+    errno_t ret;
+
+    sbus_req = tevent_req_callback_data(req, struct sbus_request);
+
+    ret = cache_req_group_by_name_recv(sbus_req, req, &result, &domain, NULL);
+    talloc_zfree(req);
+    if (ret == ENOENT) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
+                               "Group not found");
+        goto done;
+    } else if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "group [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    object_path = ifp_groups_build_path_from_msg(sbus_req, domain,
+                                                 result->msgs[0]);
+    if (object_path == NULL) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                               "Failed to compose object path");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    iface_ifp_groups_FindByName_finish(sbus_req, object_path);
+    return;
+}
+
+static void ifp_groups_find_by_id_done(struct tevent_req *req);
+
+int ifp_groups_find_by_id(struct sbus_request *sbus_req,
+                          void *data,
+                          uint32_t id)
+{
+    struct ifp_ctx *ctx;
+    struct tevent_req *req;
+
+    ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return ERR_INTERNAL;
+    }
+
+    req = cache_req_group_by_id_send(sbus_req, ctx->rctx->ev, ctx->rctx,
+                                     ctx->ncache, ctx->neg_timeout, 0,
+                                     NULL, id);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, ifp_groups_find_by_id_done, sbus_req);
+
+    return EOK;
+}
+
+static void
+ifp_groups_find_by_id_done(struct tevent_req *req)
+{
+    DBusError *error;
+    struct sbus_request *sbus_req;
+    struct sss_domain_info *domain;
+    struct ldb_result *result;
+    char *object_path;
+    errno_t ret;
+
+    sbus_req = tevent_req_callback_data(req, struct sbus_request);
+
+    ret = cache_req_group_by_id_recv(sbus_req, req, &result, &domain);
+    talloc_zfree(req);
+    if (ret == ENOENT) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
+                               "Group not found");
+        goto done;
+    } else if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "group [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    object_path = ifp_groups_build_path_from_msg(sbus_req, domain,
+                                                 result->msgs[0]);
+    if (object_path == NULL) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                               "Failed to compose object path");
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    iface_ifp_groups_FindByID_finish(sbus_req, object_path);
+    return;
+}
+
+int ifp_groups_list_by_name(struct sbus_request *sbus_req,
+                            void *data,
+                            const char *filter,
+                            uint32_t limit)
+{
+    return EOK;
+}
+
+int ifp_groups_list_by_domain_and_name(struct sbus_request *sbus_req,
+                                       void *data,
+                                       const char *domain,
+                                       const char *filter,
+                                       uint32_t limit)
+{
+    return EOK;
 }

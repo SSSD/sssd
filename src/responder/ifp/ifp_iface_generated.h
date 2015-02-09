@@ -73,6 +73,13 @@
 #define IFACE_IFP_USERS_USER_GROUPS "groups"
 #define IFACE_IFP_USERS_USER_EXTRAATTRIBUTES "extraAttributes"
 
+/* constants for org.freedesktop.sssd.infopipe.Groups */
+#define IFACE_IFP_GROUPS "org.freedesktop.sssd.infopipe.Groups"
+#define IFACE_IFP_GROUPS_FINDBYNAME "FindByName"
+#define IFACE_IFP_GROUPS_FINDBYID "FindByID"
+#define IFACE_IFP_GROUPS_LISTBYNAME "ListByName"
+#define IFACE_IFP_GROUPS_LISTBYDOMAINANDNAME "ListByDomainAndName"
+
 /* ------------------------------------------------------------------------
  * DBus handlers
  *
@@ -217,6 +224,27 @@ struct iface_ifp_users_user {
 /* finish function for UpdateGroupsList */
 int iface_ifp_users_user_UpdateGroupsList_finish(struct sbus_request *req);
 
+/* vtable for org.freedesktop.sssd.infopipe.Groups */
+struct iface_ifp_groups {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*FindByName)(struct sbus_request *req, void *data, const char *arg_name);
+    int (*FindByID)(struct sbus_request *req, void *data, uint32_t arg_id);
+    int (*ListByName)(struct sbus_request *req, void *data, const char *arg_name_filter, uint32_t arg_limit);
+    int (*ListByDomainAndName)(struct sbus_request *req, void *data, const char *arg_domain_name, const char *arg_name_filter, uint32_t arg_limit);
+};
+
+/* finish function for FindByName */
+int iface_ifp_groups_FindByName_finish(struct sbus_request *req, const char *arg_result);
+
+/* finish function for FindByID */
+int iface_ifp_groups_FindByID_finish(struct sbus_request *req, const char *arg_result);
+
+/* finish function for ListByName */
+int iface_ifp_groups_ListByName_finish(struct sbus_request *req, const char *arg_result[], int len_result);
+
+/* finish function for ListByDomainAndName */
+int iface_ifp_groups_ListByDomainAndName_finish(struct sbus_request *req, const char *arg_result[], int len_result);
+
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata
  *
@@ -241,5 +269,8 @@ extern const struct sbus_interface_meta iface_ifp_users_meta;
 
 /* interface info for org.freedesktop.sssd.infopipe.Users.User */
 extern const struct sbus_interface_meta iface_ifp_users_user_meta;
+
+/* interface info for org.freedesktop.sssd.infopipe.Groups */
+extern const struct sbus_interface_meta iface_ifp_groups_meta;
 
 #endif /* __IFP_IFACE_XML__ */

@@ -25,6 +25,7 @@
 #include "responder/ifp/ifp_domains.h"
 #include "responder/ifp/ifp_components.h"
 #include "responder/ifp/ifp_users.h"
+#include "responder/ifp/ifp_groups.h"
 
 struct iface_ifp iface_ifp = {
     { &iface_ifp_meta, 0 },
@@ -98,6 +99,14 @@ struct iface_ifp_users_user iface_ifp_users_user = {
     .get_extraAttributes = ifp_users_user_get_extra_attributes
 };
 
+struct iface_ifp_groups iface_ifp_groups = {
+    { &iface_ifp_groups_meta, 0 },
+    .FindByName = ifp_groups_find_by_name,
+    .FindByID = ifp_groups_find_by_id,
+    .ListByName = ifp_groups_list_by_name,
+    .ListByDomainAndName = ifp_groups_list_by_domain_and_name
+};
+
 struct iface_map {
     const char *path;
     struct sbus_vtable *vtable;
@@ -109,6 +118,7 @@ static struct iface_map iface_map[] = {
     { IFP_PATH_COMPONENTS_TREE, &iface_ifp_components.vtable },
     { IFP_PATH_USERS, &iface_ifp_users.vtable },
     { IFP_PATH_USERS_TREE, &iface_ifp_users_user.vtable },
+    { IFP_PATH_GROUPS, &iface_ifp_groups.vtable },
     { NULL, NULL },
 };
 

@@ -756,6 +756,127 @@ const struct sbus_interface_meta iface_ifp_users_user_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+/* arguments for org.freedesktop.sssd.infopipe.Groups.FindByName */
+const struct sbus_arg_meta iface_ifp_groups_FindByName__in[] = {
+    { "name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Groups.FindByName */
+const struct sbus_arg_meta iface_ifp_groups_FindByName__out[] = {
+    { "result", "o" },
+    { NULL, }
+};
+
+int iface_ifp_groups_FindByName_finish(struct sbus_request *req, const char *arg_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_OBJECT_PATH, &arg_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Groups.FindByID */
+const struct sbus_arg_meta iface_ifp_groups_FindByID__in[] = {
+    { "id", "u" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Groups.FindByID */
+const struct sbus_arg_meta iface_ifp_groups_FindByID__out[] = {
+    { "result", "o" },
+    { NULL, }
+};
+
+int iface_ifp_groups_FindByID_finish(struct sbus_request *req, const char *arg_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_OBJECT_PATH, &arg_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Groups.ListByName */
+const struct sbus_arg_meta iface_ifp_groups_ListByName__in[] = {
+    { "name_filter", "s" },
+    { "limit", "u" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Groups.ListByName */
+const struct sbus_arg_meta iface_ifp_groups_ListByName__out[] = {
+    { "result", "ao" },
+    { NULL, }
+};
+
+int iface_ifp_groups_ListByName_finish(struct sbus_request *req, const char *arg_result[], int len_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_result, len_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Groups.ListByDomainAndName */
+const struct sbus_arg_meta iface_ifp_groups_ListByDomainAndName__in[] = {
+    { "domain_name", "s" },
+    { "name_filter", "s" },
+    { "limit", "u" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Groups.ListByDomainAndName */
+const struct sbus_arg_meta iface_ifp_groups_ListByDomainAndName__out[] = {
+    { "result", "ao" },
+    { NULL, }
+};
+
+int iface_ifp_groups_ListByDomainAndName_finish(struct sbus_request *req, const char *arg_result[], int len_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_result, len_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.infopipe.Groups */
+const struct sbus_method_meta iface_ifp_groups__methods[] = {
+    {
+        "FindByName", /* name */
+        iface_ifp_groups_FindByName__in,
+        iface_ifp_groups_FindByName__out,
+        offsetof(struct iface_ifp_groups, FindByName),
+        invoke_s_method,
+    },
+    {
+        "FindByID", /* name */
+        iface_ifp_groups_FindByID__in,
+        iface_ifp_groups_FindByID__out,
+        offsetof(struct iface_ifp_groups, FindByID),
+        invoke_u_method,
+    },
+    {
+        "ListByName", /* name */
+        iface_ifp_groups_ListByName__in,
+        iface_ifp_groups_ListByName__out,
+        offsetof(struct iface_ifp_groups, ListByName),
+        invoke_su_method,
+    },
+    {
+        "ListByDomainAndName", /* name */
+        iface_ifp_groups_ListByDomainAndName__in,
+        iface_ifp_groups_ListByDomainAndName__out,
+        offsetof(struct iface_ifp_groups, ListByDomainAndName),
+        invoke_ssu_method,
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.infopipe.Groups */
+const struct sbus_interface_meta iface_ifp_groups_meta = {
+    "org.freedesktop.sssd.infopipe.Groups", /* name */
+    iface_ifp_groups__methods,
+    NULL, /* no signals */
+    NULL, /* no properties */
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
 /* invokes a handler with a 'ssu' DBus signature */
 static int invoke_ssu_method(struct sbus_request *dbus_req, void *function_ptr)
 {
