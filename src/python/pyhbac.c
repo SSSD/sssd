@@ -303,7 +303,7 @@ HbacRuleElement_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    self->category = sss_python_set_new();
+    self->category = PySet_New(NULL);
     self->names = PyList_New(0);
     self->groups = PyList_New(0);
     if (!self->names || !self->groups || !self->category) {
@@ -945,7 +945,7 @@ py_hbac_rule_validate(HbacRuleObject *self, PyObject *args)
     }
 
     py_is_valid = PyBool_FromLong(is_valid);
-    py_missing = sss_python_set_new();
+    py_missing = PySet_New(NULL);
     if (!py_missing || !py_is_valid) {
         PyErr_NoMemory();
         goto fail;

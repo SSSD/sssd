@@ -21,16 +21,6 @@
 #include "src/util/sss_python.h"
 #include "config.h"
 
-PyObject *
-sss_python_set_new(void)
-{
-#ifdef HAVE_PYSET_NEW
-    return PySet_New(NULL);
-#else
-    return PyObject_CallObject((PyObject *) &PySet_Type, NULL);
-#endif
-}
-
 int
 sss_python_set_add(PyObject *set, PyObject *key)
 {
