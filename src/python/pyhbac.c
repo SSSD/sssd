@@ -493,7 +493,7 @@ HbacRuleElement_repr(HbacRuleElement *self)
     uint32_t category;
     PyObject *o, *format, *args;
 
-    format = sss_python_unicode_from_string("<category %lu names [%s] groups [%s]>");
+    format = PyUnicode_FromString("<category %lu names [%s] groups [%s]>");
     if (format == NULL) {
         return NULL;
     }
@@ -651,7 +651,7 @@ HbacRule_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    self->name = sss_python_unicode_from_string("");
+    self->name = PyUnicode_FromString("");
     if (self->name == NULL) {
         Py_DECREF(self);
         PyErr_NoMemory();
@@ -869,7 +869,7 @@ HbacRule_repr(HbacRuleObject *self)
     PyObject *srchosts_repr;
     PyObject *o, *format, *args;
 
-    format = sss_python_unicode_from_string("<name %s enabled %d "
+    format = PyUnicode_FromString("<name %s enabled %d "
                                             "users %s services %s "
                                             "targethosts %s srchosts %s>");
     if (format == NULL) {
@@ -1149,7 +1149,7 @@ HbacRequestElement_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    self->name = sss_python_unicode_from_string("");
+    self->name = PyUnicode_FromString("");
     if (self->name == NULL) {
         PyErr_NoMemory();
         Py_DECREF(self);
@@ -1291,7 +1291,7 @@ HbacRequestElement_repr(HbacRequestElement *self)
     char *strgroups;
     PyObject *o, *format, *args;
 
-    format = sss_python_unicode_from_string("<name %s groups [%s]>");
+    format = PyUnicode_FromString("<name %s groups [%s]>");
     if (format == NULL) {
         return NULL;
     }
@@ -1609,7 +1609,7 @@ py_hbac_evaluate(HbacRequest *self, PyObject *args)
     eres = hbac_evaluate(rules, hbac_req, &info);
     switch (eres) {
     case HBAC_EVAL_ALLOW:
-        self->rule_name = sss_python_unicode_from_string(info->rule_name);
+        self->rule_name = PyUnicode_FromString(info->rule_name);
         if (!self->rule_name) {
             PyErr_NoMemory();
             goto fail;
@@ -1662,7 +1662,7 @@ HbacRequest_repr(HbacRequest *self)
     PyObject *srchost_repr;
     PyObject *o, *format, *args;
 
-    format = sss_python_unicode_from_string("<user %s service %s "
+    format = PyUnicode_FromString("<user %s service %s "
                                             "targethost %s srchost %s>");
     if (format == NULL) {
         return NULL;
@@ -1853,7 +1853,7 @@ py_hbac_result_string(PyObject *module, PyObject *args)
         return Py_None;
     }
 
-    return sss_python_unicode_from_string(str);
+    return PyUnicode_FromString(str);
 }
 
 PyDoc_STRVAR(py_hbac_error_string__doc__,
@@ -1877,7 +1877,7 @@ py_hbac_error_string(PyObject *module, PyObject *args)
         return Py_None;
     }
 
-    return sss_python_unicode_from_string(str);
+    return PyUnicode_FromString(str);
 }
 
 static PyMethodDef pyhbac_module_methods[] = {

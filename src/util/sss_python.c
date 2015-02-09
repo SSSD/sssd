@@ -22,16 +22,6 @@
 #include "config.h"
 
 PyObject *
-sss_python_unicode_from_string(const char *u)
-{
-#ifdef HAVE_PYUNICODE_FROMSTRING
-    return PyUnicode_FromString(u);
-#else
-    return PyUnicode_DecodeUTF8(u, strlen(u), NULL);
-#endif
-}
-
-PyObject *
 sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict)
 {
 #ifdef HAVE_PYERR_NEWEXCEPTIONWITHDOC

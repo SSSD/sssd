@@ -25,9 +25,6 @@
 #define PYNUMBER_ASLONG(what) PyInt_AsLong(what)
 #endif
 
-/* Unicode compatibility */
-PyObject *sss_python_unicode_from_string(const char *u);
-
 /* Exceptions compatibility */
 PyObject *
 sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict);

@@ -54,7 +54,7 @@ AC_DEFUN([AM_CHECK_PYTHON_HEADERS],
 
 
 dnl Checks for a couple of functions we use that may not be defined
-dnl in some older python versions used e.g. on RHEL5
+dnl in some older python (< 2.6) versions used e.g. on RHEL6
 AC_DEFUN([AM_CHECK_PYTHON_COMPAT],
 [AC_REQUIRE([AM_CHECK_PYTHON_HEADERS])
     save_CPPFLAGS="$CPPFLAGS"
@@ -63,7 +63,6 @@ AC_DEFUN([AM_CHECK_PYTHON_COMPAT],
     LIBS="$LIBS $PYTHON_LIBS"
 
     AC_CHECK_FUNCS([PyErr_NewExceptionWithDoc])
-    AC_CHECK_DECLS([PyUnicode_FromString], [], [], [[#include <Python.h>]])
 
     CPPFLAGS="$save_CPPFLAGS"
     LIBS="$save_LIBS"
