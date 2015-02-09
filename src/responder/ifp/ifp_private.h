@@ -73,9 +73,13 @@ int ifp_req_create_handle_failure(struct sbus_request *dbus_req, errno_t err);
 
 errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,
                                struct ldb_message_element *el);
-const char **ifp_parse_attr_list(TALLOC_CTX *mem_ctx, const char *conf_str);
 const char **
-ifp_parse_attr_list_ex(TALLOC_CTX *mem_ctx, const char *conf_str,
-                       const char **defaults);
+ifp_parse_user_attr_list(TALLOC_CTX *mem_ctx, const char *conf_str);
+
+const char **
+ifp_get_user_extra_attributes(TALLOC_CTX *mem_ctx, struct ifp_ctx *ifp_ctx);
+
 bool ifp_attr_allowed(const char *whitelist[], const char *attr);
+bool ifp_is_user_attr_allowed(struct ifp_ctx *ifp_ctx, const char *attr);
+
 #endif /* _IFPSRV_PRIVATE_H_ */

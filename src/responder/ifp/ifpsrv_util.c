@@ -24,10 +24,11 @@
 #include "db/sysdb.h"
 #include "responder/ifp/ifp_private.h"
 
-#define IFP_DEFAULT_ATTRS {SYSDB_NAME, SYSDB_UIDNUM,   \
-                           SYSDB_GIDNUM, SYSDB_GECOS,  \
-                           SYSDB_HOMEDIR, SYSDB_SHELL, \
-                           NULL}
+#define IFP_USER_DEFAULT_ATTRS {SYSDB_NAME, SYSDB_UIDNUM,   \
+                                SYSDB_GIDNUM, SYSDB_GECOS,  \
+                                SYSDB_HOMEDIR, SYSDB_SHELL, \
+                                "groups", \
+                                NULL}
 
 errno_t ifp_req_create(struct sbus_request *dbus_req,
                        struct ifp_ctx *ifp_ctx,
@@ -175,13 +176,6 @@ errno_t ifp_add_ldb_el_to_dict(DBusMessageIter *iter_dict,
     return EOK;
 }
 
-const char **
-ifp_parse_attr_list(TALLOC_CTX *mem_ctx, const char *conf_str)
-{
-    const char *defaults[] = IFP_DEFAULT_ATTRS;
-
-    return parse_attr_list_ex(mem_ctx, conf_str, defaults);
-}
 
 bool
 ifp_attr_allowed(const char *whitelist[], const char *attr)
@@ -199,4 +193,79 @@ ifp_attr_allowed(const char *whitelist[], const char *attr)
     }
 
     return (whitelist[i]) ? true : false;
+}
+
+const char **
+ifp_parse_user_attr_list(TALLOC_CTX *mem_ctx, const char *csv)
+{
+    static const char *defaults[] = IFP_USER_DEFAULT_ATTRS;
+
+    return parse_attr_list_ex(mem_ctx, csv, defaults);
+}
+
+const char **
+ifp_get_user_extra_attributes(TALLOC_CTX *mem_ctx, struct ifp_ctx *ifp_ctx)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *std[] = IFP_USER_DEFAULT_ATTRS;
+    const char **whitelist = ifp_ctx->user_whitelist;
+    const char **extra;
+    bool found;
+    int extra_num;
+    int i, j;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return NULL;
+    }
+
+    for (i = 0; whitelist[i] != NULL; i++) {
+        /* Just count number of attributes in whitelist. */
+    }
+
+    extra = talloc_zero_array(tmp_ctx, const char *, i + 1);
+    if (extra == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
+        goto fail;
+    }
+
+    extra_num = 0;
+    for (i = 0; whitelist[i] != NULL; i++) {
+        found = false;
+        for (j = 0; std[j] != NULL; j++) {
+            if (strcmp(whitelist[i], std[j]) == 0) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            extra[extra_num] = talloc_strdup(extra, whitelist[i]);
+            if (extra[extra_num] == NULL) {
+                goto fail;
+            }
+
+            extra_num++;
+        }
+    }
+
+    extra = talloc_realloc(tmp_ctx, extra, const char *, extra_num + 1);
+    if (extra == NULL) {
+        goto fail;
+    }
+
+    talloc_steal(mem_ctx, extra);
+    talloc_free(tmp_ctx);
+    return extra;
+
+fail:
+    talloc_free(tmp_ctx);
+    return NULL;
+}
+
+bool
+ifp_is_user_attr_allowed(struct ifp_ctx *ifp_ctx, const char *attr)
+{
+    return ifp_attr_allowed(ifp_ctx->user_whitelist, attr);
 }

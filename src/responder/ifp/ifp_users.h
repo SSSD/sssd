@@ -54,4 +54,42 @@ int ifp_users_list_by_domain_and_name(struct sbus_request *sbus_req,
                                       const char *filter,
                                       uint32_t limit);
 
+/* org.freedesktop.sssd.infopipe.Users.User */
+
+int ifp_users_user_update_groups_list(struct sbus_request *req,
+                                      void *data);
+
+void ifp_users_user_get_name(struct sbus_request *sbus_req,
+                             void *data,
+                             const char **_out);
+
+void ifp_users_user_get_uid_number(struct sbus_request *sbus_req,
+                                   void *data,
+                                   uint32_t *_out);
+
+void ifp_users_user_get_gid_number(struct sbus_request *sbus_req,
+                                   void *data,
+                                   uint32_t *_out);
+
+void ifp_users_user_get_gecos(struct sbus_request *sbus_req,
+                              void *data,
+                              const char **_out);
+
+void ifp_users_user_get_home_directory(struct sbus_request *sbus_req,
+                                       void *data,
+                                       const char **_out);
+
+void ifp_users_user_get_login_shell(struct sbus_request *sbus_req,
+                                    void *data,
+                                    const char **_out);
+
+void ifp_users_user_get_groups(struct sbus_request *sbus_req,
+                               void *data,
+                               const char ***_out,
+                               int *_size);
+
+void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
+                                         void *data,
+                                         hash_table_t **_out);
+
 #endif /* IFP_USERS_H_ */

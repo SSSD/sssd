@@ -61,6 +61,18 @@
 #define IFACE_IFP_USERS_LISTBYNAME "ListByName"
 #define IFACE_IFP_USERS_LISTBYDOMAINANDNAME "ListByDomainAndName"
 
+/* constants for org.freedesktop.sssd.infopipe.Users.User */
+#define IFACE_IFP_USERS_USER "org.freedesktop.sssd.infopipe.Users.User"
+#define IFACE_IFP_USERS_USER_UPDATEGROUPSLIST "UpdateGroupsList"
+#define IFACE_IFP_USERS_USER_NAME "name"
+#define IFACE_IFP_USERS_USER_UIDNUMBER "uidNumber"
+#define IFACE_IFP_USERS_USER_GIDNUMBER "gidNumber"
+#define IFACE_IFP_USERS_USER_GECOS "gecos"
+#define IFACE_IFP_USERS_USER_HOMEDIRECTORY "homeDirectory"
+#define IFACE_IFP_USERS_USER_LOGINSHELL "loginShell"
+#define IFACE_IFP_USERS_USER_GROUPS "groups"
+#define IFACE_IFP_USERS_USER_EXTRAATTRIBUTES "extraAttributes"
+
 /* ------------------------------------------------------------------------
  * DBus handlers
  *
@@ -129,11 +141,11 @@ struct iface_ifp_components {
     int (*Disable)(struct sbus_request *req, void *data);
     int (*ChangeDebugLevel)(struct sbus_request *req, void *data, uint32_t arg_new_level);
     int (*ChangeDebugLevelTemporarily)(struct sbus_request *req, void *data, uint32_t arg_new_level);
-    void (*get_name)(struct sbus_request *, void *data, const char * *);
-    void (*get_debug_level)(struct sbus_request *, void *data, uint32_t *);
-    void (*get_enabled)(struct sbus_request *, void *data, bool *);
-    void (*get_type)(struct sbus_request *, void *data, const char * *);
-    void (*get_providers)(struct sbus_request *, void *data, const char * * *, int *);
+    void (*get_name)(struct sbus_request *, void *data, const char **);
+    void (*get_debug_level)(struct sbus_request *, void *data, uint32_t*);
+    void (*get_enabled)(struct sbus_request *, void *data, bool*);
+    void (*get_type)(struct sbus_request *, void *data, const char **);
+    void (*get_providers)(struct sbus_request *, void *data, const char ***, int *);
 };
 
 /* finish function for Enable */
@@ -151,20 +163,20 @@ int iface_ifp_components_ChangeDebugLevelTemporarily_finish(struct sbus_request 
 /* vtable for org.freedesktop.sssd.infopipe.Domains */
 struct iface_ifp_domains {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
-    void (*get_name)(struct sbus_request *, void *data, const char * *);
-    void (*get_provider)(struct sbus_request *, void *data, const char * *);
-    void (*get_primary_servers)(struct sbus_request *, void *data, const char * * *, int *);
-    void (*get_backup_servers)(struct sbus_request *, void *data, const char * * *, int *);
-    void (*get_min_id)(struct sbus_request *, void *data, uint32_t *);
-    void (*get_max_id)(struct sbus_request *, void *data, uint32_t *);
-    void (*get_realm)(struct sbus_request *, void *data, const char * *);
-    void (*get_forest)(struct sbus_request *, void *data, const char * *);
-    void (*get_login_format)(struct sbus_request *, void *data, const char * *);
-    void (*get_fully_qualified_name_format)(struct sbus_request *, void *data, const char * *);
-    void (*get_enumerable)(struct sbus_request *, void *data, bool *);
-    void (*get_use_fully_qualified_names)(struct sbus_request *, void *data, bool *);
-    void (*get_subdomain)(struct sbus_request *, void *data, bool *);
-    void (*get_parent_domain)(struct sbus_request *, void *data, const char * *);
+    void (*get_name)(struct sbus_request *, void *data, const char **);
+    void (*get_provider)(struct sbus_request *, void *data, const char **);
+    void (*get_primary_servers)(struct sbus_request *, void *data, const char ***, int *);
+    void (*get_backup_servers)(struct sbus_request *, void *data, const char ***, int *);
+    void (*get_min_id)(struct sbus_request *, void *data, uint32_t*);
+    void (*get_max_id)(struct sbus_request *, void *data, uint32_t*);
+    void (*get_realm)(struct sbus_request *, void *data, const char **);
+    void (*get_forest)(struct sbus_request *, void *data, const char **);
+    void (*get_login_format)(struct sbus_request *, void *data, const char **);
+    void (*get_fully_qualified_name_format)(struct sbus_request *, void *data, const char **);
+    void (*get_enumerable)(struct sbus_request *, void *data, bool*);
+    void (*get_use_fully_qualified_names)(struct sbus_request *, void *data, bool*);
+    void (*get_subdomain)(struct sbus_request *, void *data, bool*);
+    void (*get_parent_domain)(struct sbus_request *, void *data, const char **);
 };
 
 /* vtable for org.freedesktop.sssd.infopipe.Users */
@@ -188,6 +200,23 @@ int iface_ifp_users_ListByName_finish(struct sbus_request *req, const char *arg_
 /* finish function for ListByDomainAndName */
 int iface_ifp_users_ListByDomainAndName_finish(struct sbus_request *req, const char *arg_result[], int len_result);
 
+/* vtable for org.freedesktop.sssd.infopipe.Users.User */
+struct iface_ifp_users_user {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*UpdateGroupsList)(struct sbus_request *req, void *data);
+    void (*get_name)(struct sbus_request *, void *data, const char **);
+    void (*get_uidNumber)(struct sbus_request *, void *data, uint32_t*);
+    void (*get_gidNumber)(struct sbus_request *, void *data, uint32_t*);
+    void (*get_gecos)(struct sbus_request *, void *data, const char **);
+    void (*get_homeDirectory)(struct sbus_request *, void *data, const char **);
+    void (*get_loginShell)(struct sbus_request *, void *data, const char **);
+    void (*get_groups)(struct sbus_request *, void *data, const char ***, int *);
+    void (*get_extraAttributes)(struct sbus_request *, void *data, hash_table_t **);
+};
+
+/* finish function for UpdateGroupsList */
+int iface_ifp_users_user_UpdateGroupsList_finish(struct sbus_request *req);
+
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata
  *
@@ -209,5 +238,8 @@ extern const struct sbus_interface_meta iface_ifp_domains_meta;
 
 /* interface info for org.freedesktop.sssd.infopipe.Users */
 extern const struct sbus_interface_meta iface_ifp_users_meta;
+
+/* interface info for org.freedesktop.sssd.infopipe.Users.User */
+extern const struct sbus_interface_meta iface_ifp_users_user_meta;
 
 #endif /* __IFP_IFACE_XML__ */

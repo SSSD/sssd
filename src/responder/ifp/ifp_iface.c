@@ -85,6 +85,19 @@ struct iface_ifp_users iface_ifp_users = {
     .ListByDomainAndName = ifp_users_list_by_domain_and_name
 };
 
+struct iface_ifp_users_user iface_ifp_users_user = {
+    { &iface_ifp_users_user_meta, 0 },
+    .UpdateGroupsList = ifp_users_user_update_groups_list,
+    .get_name = ifp_users_user_get_name,
+    .get_uidNumber = ifp_users_user_get_uid_number,
+    .get_gidNumber = ifp_users_user_get_gid_number,
+    .get_gecos = ifp_users_user_get_gecos,
+    .get_homeDirectory = ifp_users_user_get_home_directory,
+    .get_loginShell = ifp_users_user_get_login_shell,
+    .get_groups = ifp_users_user_get_groups,
+    .get_extraAttributes = ifp_users_user_get_extra_attributes
+};
+
 struct iface_map {
     const char *path;
     struct sbus_vtable *vtable;
@@ -95,6 +108,7 @@ static struct iface_map iface_map[] = {
     { IFP_PATH_DOMAINS_TREE, &iface_ifp_domains.vtable },
     { IFP_PATH_COMPONENTS_TREE, &iface_ifp_components.vtable },
     { IFP_PATH_USERS, &iface_ifp_users.vtable },
+    { IFP_PATH_USERS_TREE, &iface_ifp_users_user.vtable },
     { NULL, NULL },
 };
 

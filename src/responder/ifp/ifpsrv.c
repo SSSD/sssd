@@ -300,7 +300,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ifp_ctx->user_whitelist = ifp_parse_attr_list(ifp_ctx, attr_list_str);
+    ifp_ctx->user_whitelist = ifp_parse_user_attr_list(ifp_ctx, attr_list_str);
     talloc_free(attr_list_str);
     if (ifp_ctx->user_whitelist == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE,

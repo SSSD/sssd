@@ -652,6 +652,110 @@ const struct sbus_interface_meta iface_ifp_users_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+int iface_ifp_users_user_UpdateGroupsList_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.infopipe.Users.User */
+const struct sbus_method_meta iface_ifp_users_user__methods[] = {
+    {
+        "UpdateGroupsList", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct iface_ifp_users_user, UpdateGroupsList),
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
+/* property info for org.freedesktop.sssd.infopipe.Users.User */
+const struct sbus_property_meta iface_ifp_users_user__properties[] = {
+    {
+        "name", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_name),
+        sbus_invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "uidNumber", /* name */
+        "u", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_uidNumber),
+        sbus_invoke_get_u,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "gidNumber", /* name */
+        "u", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_gidNumber),
+        sbus_invoke_get_u,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "gecos", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_gecos),
+        sbus_invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "homeDirectory", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_homeDirectory),
+        sbus_invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "loginShell", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_loginShell),
+        sbus_invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "groups", /* name */
+        "ao", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_groups),
+        sbus_invoke_get_ao,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "extraAttributes", /* name */
+        "a{sas}", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_users_user, get_extraAttributes),
+        sbus_invoke_get_aDOsasDE,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.infopipe.Users.User */
+const struct sbus_interface_meta iface_ifp_users_user_meta = {
+    "org.freedesktop.sssd.infopipe.Users.User", /* name */
+    iface_ifp_users_user__methods,
+    NULL, /* no signals */
+    iface_ifp_users_user__properties,
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
 /* invokes a handler with a 'ssu' DBus signature */
 static int invoke_ssu_method(struct sbus_request *dbus_req, void *function_ptr)
 {
