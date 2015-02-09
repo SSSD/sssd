@@ -25,9 +25,6 @@
 #define PYNUMBER_ASLONG(what) PyInt_AsLong(what)
 #endif
 
-/* Wrappers providing the subset of C API for python's set objects we use */
-bool sss_python_set_check(PyObject *set);
-
 /* Unicode compatibility */
 PyObject *sss_python_unicode_from_string(const char *u);
 

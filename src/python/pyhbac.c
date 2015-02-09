@@ -452,7 +452,7 @@ hbac_rule_element_set_category(HbacRuleElement *self,
 
     CHECK_ATTRIBUTE_DELETE(category, "category");
 
-    if (!sss_python_set_check(category)) {
+    if (!PySet_Check(category)) {
         PyErr_Format(PyExc_TypeError, "The category must be a set type\n");
         return -1;
     }

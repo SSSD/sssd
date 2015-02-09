@@ -21,16 +21,6 @@
 #include "src/util/sss_python.h"
 #include "config.h"
 
-bool
-sss_python_set_check(PyObject *set)
-{
-#if HAVE_DECL_PYSET_CHECK
-    return PySet_Check(set);
-#else
-    return PyObject_TypeCheck(set, &PySet_Type);
-#endif
-}
-
 PyObject *
 sss_python_unicode_from_string(const char *u)
 {
