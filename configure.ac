@@ -248,11 +248,13 @@ AM_CONDITIONAL([HAVE_MANPAGES], [test "x$HAVE_MANPAGES" != "x"])
 AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
 
 if test x$HAVE_PYTHON_BINDINGS != x; then
-    AM_PATH_PYTHON([2.4])
+    AM_PATH_PYTHON([2.6])
+    AM_PYTHON_CONFIG([python])
     AM_CHECK_PYTHON_HEADERS([],
                             AC_MSG_ERROR([Could not find python headers]))
-    AM_PYTHON_CONFIG
     AM_CHECK_PYTHON_COMPAT
+    AC_SUBST([PYTHON_CFLAGS])
+    AC_SUBST([PYTHON_LIBS])
 fi
 
 if test x$HAVE_SELINUX != x; then

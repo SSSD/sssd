@@ -1,45 +1,32 @@
 dnl Check for python-config and substitute needed CFLAGS and LDFLAGS
 dnl Usage:
-dnl     AM_PYTHON_CONFIG
+dnl     AM_PYTHON_CONFIG(python_with_major_version)
+dnl     argument python_with_major_version should be either python2 or python3
+dnl This function sets the PYTHON_CFLAGS, PYTHON_LIBS and PYTHON_INCLUDES
+dnl variables
 
 AC_DEFUN([AM_PYTHON_CONFIG],
-[   AC_SUBST(PYTHON_CFLAGS)
-    AC_SUBST(PYTHON_LIBS)
+[
+    AC_PATH_PROG([PYTHON_CONFIG], [python$PYTHON_VERSION-config])
+    AS_IF([test x"$PYTHON_CONFIG" = x],
+          AC_MSG_ERROR([
+The program python$PYTHON_VERSION-config was not found in search path.
+Please ensure that it is installed and its directory is included in the search
+path. If you want to build sssd without $1 bindings then specify
+--without-$1-bindings when running configure.]))
 
-dnl We need to check for python build flags using distutils.sysconfig
-dnl We cannot use python-config, as it was not available on older
-dnl versions of python
-    AC_PATH_PROG(PYTHON, python)
-    AC_MSG_CHECKING([for working python])
-    if test -x "$PYTHON"; then
-        PYTHON_CFLAGS="`$PYTHON -c \"from distutils import sysconfig; \
-            print('-I' + sysconfig.get_python_inc() + \
-            ' -I' + sysconfig.get_python_inc(plat_specific=True) + ' ' + \
-            sysconfig.get_config_var('BASECFLAGS'))\"`"
-        PYTHON_LIBS="`$PYTHON -c \"from distutils import sysconfig; \
-            print(' '.join(sysconfig.get_config_var('LIBS').split() + \
-            sysconfig.get_config_var('SYSLIBS').split()) + \
-            ' ' + sysconfig.get_config_var('BLDLIBRARY') + ' ' + \
-            ' -L' + sysconfig.get_config_var('LIBDIR'))\"`"
-            AC_MSG_RESULT([yes])
-    else
-        AC_MSG_RESULT([no])
-        AC_MSG_ERROR([Please install python devel package])
-    fi
+    PYTHON_CFLAGS="` $PYTHON_CONFIG --cflags`"
+    PYTHON_LIBS="` $PYTHON_CONFIG --libs`"
+    PYTHON_INCLUDES="` $PYTHON_CONFIG --includes`"
 ])
 
 dnl Taken from GNOME sources
 dnl a macro to check for ability to create python extensions
 dnl  AM_CHECK_PYTHON_HEADERS([ACTION-IF-POSSIBLE], [ACTION-IF-NOT-POSSIBLE])
-dnl function also defines PYTHON_INCLUDES
 AC_DEFUN([AM_CHECK_PYTHON_HEADERS],
-[AC_REQUIRE([AM_PATH_PYTHON])
+[
+    AC_REQUIRE([AM_PATH_PYTHON])
     AC_MSG_CHECKING(for headers required to compile python extensions)
-
-    dnl deduce PYTHON_INCLUDES
-    PYTHON_INCLUDES=-I`$PYTHON -c "from distutils import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))"`
-
-    AC_SUBST(PYTHON_INCLUDES)
 
     dnl check if the headers exist:
     save_CPPFLAGS="$CPPFLAGS"
@@ -56,7 +43,8 @@ AC_DEFUN([AM_CHECK_PYTHON_HEADERS],
 dnl Checks for a couple of functions we use that may not be defined
 dnl in some older python (< 2.6) versions used e.g. on RHEL6
 AC_DEFUN([AM_CHECK_PYTHON_COMPAT],
-[AC_REQUIRE([AM_CHECK_PYTHON_HEADERS])
+[
+    AC_REQUIRE([AM_CHECK_PYTHON_HEADERS])
     save_CPPFLAGS="$CPPFLAGS"
     save_LIBS="$LIBS"
     CPPFLAGS="$CPPFLAGS $PYTHON_INCLUDES"
@@ -66,4 +54,17 @@ AC_DEFUN([AM_CHECK_PYTHON_COMPAT],
 
     CPPFLAGS="$save_CPPFLAGS"
     LIBS="$save_LIBS"
+])
+
+dnl Clean variables after detection of python
+AC_DEFUN([SSS_CLEAN_PYTHON_VARIABLES],
+[
+    unset pyexecdir pkgpyexecdir pythondir pgkpythondir
+    unset PYTHON PYTHON_CFLAGS PYTHON_LIBS PYTHON_INCLUDES
+    unset PYTHON_PREFIX PYTHON_EXEC_PREFIX PYTHON_VERSION PYTHON_CONFIG
+
+    dnl removed cached variables, required for reusing of AM_PATH_PYTHON
+    unset am_cv_pathless_PYTHON ac_cv_path_PYTHON am_cv_python_version
+    unset am_cv_python_platform am_cv_python_pythondir am_cv_python_pyexecdir
+    unset ac_cv_path_PYTHON_CONFIG
 ])
