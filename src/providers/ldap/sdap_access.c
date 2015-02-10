@@ -668,26 +668,38 @@ static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
     } else {
         if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_SHADOW) == 0) {
             ret = sdap_account_expired_shadow(pd, user_entry);
-            if (ret != EOK) {
+            if (ret == ERR_ACCOUNT_EXPIRED) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "sdap_account_expired_shadow: %s.\n", sss_strerror(ret));
+            } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "sdap_account_expired_shadow failed.\n");
             }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_AD) == 0) {
             ret = sdap_account_expired_ad(pd, user_entry);
-            if (ret != EOK) {
+            if (ret == ERR_ACCOUNT_EXPIRED || ret == ERR_ACCESS_DENIED) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "sdap_account_expired_ad: %s.\n", sss_strerror(ret));
+            } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "sdap_account_expired_ad failed.\n");
             }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_RHDS) == 0 ||
                    strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_IPA) == 0 ||
                    strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_389DS) == 0) {
             ret = sdap_account_expired_rhds(pd, user_entry);
-            if (ret != EOK) {
+            if (ret == ERR_ACCESS_DENIED) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "sdap_account_expired_rhds: %s.\n", sss_strerror(ret));
+            } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "sdap_account_expired_rhds failed.\n");
             }
         } else if (strcasecmp(expire, LDAP_ACCOUNT_EXPIRE_NDS) == 0) {
             ret = sdap_account_expired_nds(pd, user_entry);
-            if (ret != EOK) {
+            if (ret == ERR_ACCESS_DENIED) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "sdap_account_expired_nds: %s.\n", sss_strerror(ret));
+            } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "sdap_account_expired_nds failed.\n");
             }
