@@ -96,10 +96,16 @@ struct so {
     { "libdlopen_test_providers.so", { LIBPFX"libdlopen_test_providers.so",
                                        NULL } },
 #ifdef HAVE_PYTHON_BINDINGS
-    { "pyhbac.so", { LIBPFX"pyhbac.so", NULL } },
-    { "pysss.so", { LIBPFX"pysss.so", NULL } },
-    { "pysss_murmur.so", { LIBPFX"pysss_murmur.so", NULL } },
-    { "pysss_nss_idmap.so", { LIBPFX"pysss_nss_idmap.so", NULL } },
+    { "_py2hbac.so", { LIBPFX"_py2hbac.so", NULL } },
+    { "_py2sss.so", { LIBPFX"_py2sss.so", NULL } },
+    { "_py2sss_murmur.so", { LIBPFX"_py2sss_murmur.so", NULL } },
+    { "_py2sss_nss_idmap.so", { LIBPFX"_py2sss_nss_idmap.so", NULL } },
+#endif
+#ifdef HAVE_PYTHON_BINDINGS
+    { "_py3hbac.so", { LIBPFX"_py3hbac.so", NULL } },
+    { "_py3sss.so", { LIBPFX"_py3sss.so", NULL } },
+    { "_py3sss_murmur.so", { LIBPFX"_py3sss_murmur.so", NULL } },
+    { "_py3sss_nss_idmap.so", { LIBPFX"_py3sss_nss_idmap.so", NULL } },
 #endif
 #ifdef HAVE_CONFIG_LIB
     { "libsss_config.so", { LIBPFX"libsss_config.so", NULL } },

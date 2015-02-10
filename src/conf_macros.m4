@@ -383,7 +383,7 @@ AC_DEFUN([WITH_PYTHON3_BINDINGS],
                                 [Whether to build python3 bindings [yes]])
                 ],
                 [],
-                [with_python3_bindings=no]
+                [with_python3_bindings=yes]
                )
     if test x"$with_python3_bindings" = xyes; then
         AC_SUBST([HAVE_PYTHON3_BINDINGS], [1])

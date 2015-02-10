@@ -92,6 +92,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libxml2-utils
         make
         python-dev
+        python3-dev
         samba-dev
         systemd
         xml-core

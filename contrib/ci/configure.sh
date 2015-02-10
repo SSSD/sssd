@@ -35,9 +35,15 @@ if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ]]; then
     CONFIGURE_ARG_LIST+=(
         "--disable-cifs-idmap-plugin"
         "--with-syslog=syslog"
+        "--without-python3-bindings"
     )
 fi
 
+if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-7.*- ]]; then
+    CONFIGURE_ARG_LIST+=(
+        "--without-python3-bindings"
+    )
+fi
 declare -r -a CONFIGURE_ARG_LIST
 
 fi # _CONFIGURE_SH
