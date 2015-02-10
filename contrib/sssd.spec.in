@@ -335,14 +335,16 @@ Requires: libipa_hbac = %{version}-%{release}
 %description -n libipa_hbac-devel
 Utility library to validate FreeIPA HBAC rules for authorization requests
 
-%package -n libipa_hbac-python
+%package -n python-libipa_hbac
 Summary: Python bindings for the FreeIPA HBAC Evaluator library
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libipa_hbac = %{version}-%{release}
+Provides: libipa_hbac-python = %{version}-%{release}
+Obsoletes: libipa_hbac-python < 1.12.90
 
-%description -n libipa_hbac-python
-The libipa_hbac-python contains the bindings so that libipa_hbac can be
+%description -n python-libipa_hbac
+The python-libipa_hbac contains the bindings so that libipa_hbac can be
 used by Python applications.
 
 %package -n libsss_nss_idmap
@@ -364,14 +366,16 @@ Requires: libsss_nss_idmap = %{version}-%{release}
 %description -n libsss_nss_idmap-devel
 Utility library for SID based lookups
 
-%package -n libsss_nss_idmap-python
+%package -n python-libsss_nss_idmap
 Summary: Python bindings for libsss_nss_idmap
 Group: Development/Libraries
 License: LGPLv3+
 Requires: libsss_nss_idmap = %{version}-%{release}
+Provides: libsss_nss_idmap-python = %{version}-%{release}
+Obsoletes: libsss_nss_idmap-python < 1.12.90
 
-%description -n libsss_nss_idmap-python
-The libsss_nss_idmap-python contains the bindings so that libsss_nss_idmap can
+%description -n python-libsss_nss_idmap
+The python-libsss_nss_idmap contains the bindings so that libsss_nss_idmap can
 be used by Python applications.
 
 %package dbus
@@ -783,11 +787,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libsss_nss_idmap.so
 %{_libdir}/pkgconfig/sss_nss_idmap.pc
 
-%files -n libsss_nss_idmap-python
+%files -n python-libsss_nss_idmap
 %defattr(-,root,root,-)
 %{python_sitearch}/pysss_nss_idmap.so
 
-%files -n libipa_hbac-python
+%files -n python-libipa_hbac
 %defattr(-,root,root,-)
 %{python_sitearch}/pyhbac.so
 
