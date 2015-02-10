@@ -301,12 +301,22 @@ noinst_LTLIBRARIES =
 
 pkglib_LTLIBRARIES =
 
-if BUILD_PYTHON_BINDINGS
-pyexec_LTLIBRARIES = \
-    pysss.la \
-    pyhbac.la \
-    pysss_murmur.la \
-    pysss_nss_idmap.la
+if BUILD_PYTHON2_BINDINGS
+py2exec_LTLIBRARIES = \
+    _py2sss.la \
+    _py2hbac.la \
+    _py2sss_murmur.la \
+    _py2sss_nss_idmap.la \
+    $(NULL)
+endif
+
+if BUILD_PYTHON3_BINDINGS
+py3exec_LTLIBRARIES = \
+    _py3sss.la \
+    _py3hbac.la \
+    _py3sss_murmur.la \
+    _py3sss_nss_idmap.la \
+    $(NULL)
 endif
 
 dist_noinst_SCRIPTS = \
@@ -2812,58 +2822,109 @@ sssd_pac_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
 
-if BUILD_PYTHON_BINDINGS
+# python[23] bindings
 pysss_la_SOURCES = \
     $(SSSD_TOOLS_OBJ) \
     src/python/pysss.c
-pysss_la_CFLAGS = \
-    $(AM_CFLAGS)  \
-    $(PYTHON_CFLAGS)
-pysss_la_LIBADD = \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(PYTHON_BINDINGS_LIBS) \
-    $(PYTHON_LIBS)
 pysss_la_LDFLAGS = \
     -avoid-version \
     -module
 
+_py2sss_la_SOURCES = $(pysss_la_SOURCES)
+_py2sss_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON2_CFLAGS)
+_py2sss_la_LIBADD = \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(PYTHON_BINDINGS_LIBS) \
+    $(PYTHON2_LIBS)
+_py2sss_la_LDFLAGS = $(pysss_la_LDFLAGS)
+
+_py3sss_la_SOURCES = $(pysss_la_SOURCES)
+_py3sss_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON3_CFLAGS)
+_py3sss_la_LIBADD = \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(PYTHON_BINDINGS_LIBS) \
+    $(PYTHON3_LIBS)
+_py3sss_la_LDFLAGS = $(pysss_la_LDFLAGS)
+
+
 pyhbac_la_SOURCES = \
     src/python/pyhbac.c \
     src/util/sss_python.c
-pyhbac_la_CFLAGS = \
-    $(AM_CFLAGS)  \
-    $(PYTHON_CFLAGS)
-pyhbac_la_LIBADD = \
-    $(PYTHON_LIBS) \
-    libipa_hbac.la
 pyhbac_la_LDFLAGS = \
     -avoid-version \
     -module
 
+_py2hbac_la_SOURCES = $(pyhbac_la_SOURCES)
+_py2hbac_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON2_CFLAGS)
+_py2hbac_la_LIBADD = \
+    $(PYTHON2_LIBS) \
+    libipa_hbac.la
+_py2hbac_la_LDFLAGS = $(pyhbac_la_LDFLAGS)
+
+_py3hbac_la_SOURCES = $(pyhbac_la_SOURCES)
+_py3hbac_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON3_CFLAGS)
+_py3hbac_la_LIBADD = \
+    $(PYTHON3_LIBS) \
+    libipa_hbac.la
+_py3hbac_la_LDFLAGS = $(pyhbac_la_LDFLAGS)
+
+
 pysss_murmur_la_SOURCES = \
     src/python/pysss_murmur.c \
     src/util/murmurhash3.c
-pysss_murmur_la_CFLAGS = \
-    $(AM_CFLAGS)  \
-    $(PYTHON_CFLAGS)
-pysss_murmur_la_LIBADD = \
-    $(PYTHON_LIBS)
 pysss_murmur_la_LDFLAGS = \
     -avoid-version \
     -module
 
+_py2sss_murmur_la_SOURCES = $(pysss_murmur_la_SOURCES)
+_py2sss_murmur_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON2_CFLAGS)
+_py2sss_murmur_la_LIBADD = \
+    $(PYTHON2_LIBS)
+_py2sss_murmur_la_LDFLAGS = $(pysss_murmur_la_LDFLAGS)
+
+_py3sss_murmur_la_SOURCES = $(pysss_murmur_la_SOURCES)
+_py3sss_murmur_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON3_CFLAGS)
+_py3sss_murmur_la_LIBADD = \
+    $(PYTHON3_LIBS)
+_py3sss_murmur_la_LDFLAGS = $(pysss_murmur_la_LDFLAGS)
+
+
 pysss_nss_idmap_la_SOURCES = \
     src/python/pysss_nss_idmap.c
-pysss_nss_idmap_la_CFLAGS = \
-    $(AM_CFLAGS)  \
-    $(PYTHON_CFLAGS)
-pysss_nss_idmap_la_LIBADD = \
-    $(PYTHON_LIBS) \
-    libsss_nss_idmap.la
 pysss_nss_idmap_la_LDFLAGS = \
     -avoid-version \
     -module
-endif
+
+_py2sss_nss_idmap_la_SOURCES = $(pysss_nss_idmap_la_SOURCES)
+_py2sss_nss_idmap_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON2_CFLAGS)
+_py2sss_nss_idmap_la_LIBADD = \
+    $(PYTHON2_LIBS) \
+    libsss_nss_idmap.la
+_py2sss_nss_idmap_la_LDFLAGS = $(pysss_nss_idmap_la_LDFLAGS)
+
+_py3sss_nss_idmap_la_SOURCES = $(pysss_nss_idmap_la_SOURCES)
+_py3sss_nss_idmap_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON3_CFLAGS)
+_py3sss_nss_idmap_la_LIBADD = \
+    $(PYTHON3_LIBS) \
+    libsss_nss_idmap.la
+_py3sss_nss_idmap_la_LDFLAGS = $(pysss_nss_idmap_la_LDFLAGS)
+# end of python[23] bindings
 
 if BUILD_CIFS_IDMAP_PLUGIN
 cifs_idmap_sss_la_SOURCES = \
@@ -3025,17 +3086,51 @@ SSSSCONFIG_MODULES =
 endif
 
 all-local: ldb_mod_test_dir $(SSSDCONFIG_MODULES)
-if BUILD_PYTHON_BINDINGS
-	cd $(builddir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config
+if BUILD_PYTHON2_BINDINGS
+	cd $(builddir)/src/config; \
+	$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config
+endif
+if BUILD_PYTHON3_BINDINGS
+	cd $(builddir)/src/config; \
+	$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config
 endif
 
 install-exec-hook: installsssddirs
-if BUILD_PYTHON_BINDINGS
+if BUILD_PYTHON2_BINDINGS
 	if [ "$(DESTDIR)" = "" ]; then \
-		cd $(builddir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --record=$(abs_builddir)/src/config/.files; \
+		cd $(builddir)/src/config; \
+		$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config \
+			install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
+			--record=$(abs_builddir)/src/config/.files2; \
 	else \
-		cd $(builddir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/src/config/.files; \
+		cd $(builddir)/src/config; \
+		$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config \
+			install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
+			--record=$(abs_builddir)/src/config/.files2 --root=$(DESTDIR); \
 	fi
+	cd $(DESTDIR)$(py2execdir) && \
+		$(LN_S) _py2sss.so pysss.so ; \
+		$(LN_S) _py2hbac.so pyhbac.so ; \
+		$(LN_S) _py2sss_murmur.so pysss_murmur.so ; \
+		$(LN_S) _py2sss_nss_idmap.so pysss_nss_idmap.so
+endif
+if BUILD_PYTHON3_BINDINGS
+	if [ "$(DESTDIR)" = "" ]; then \
+		cd $(builddir)/src/config; \
+		$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config \
+			install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
+			--record=$(abs_builddir)/src/config/.files3; \
+	else \
+		cd $(builddir)/src/config; \
+		$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config \
+			install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
+			--record=$(abs_builddir)/src/config/.files3 --root=$(DESTDIR); \
+	fi
+	cd $(DESTDIR)$(py3execdir) && \
+		$(LN_S) _py3sss.so pysss.so ; \
+		$(LN_S) _py3hbac.so pyhbac.so ; \
+		$(LN_S) _py3sss_murmur.so pysss_murmur.so ; \
+		$(LN_S) _py3sss_nss_idmap.so pysss_nss_idmap.so
 endif
 	for doc in $(SSSD_DOCS); do \
 		$(MKDIR_P) $$doc $(DESTDIR)/$(docdir); \
@@ -3069,16 +3164,20 @@ install-data-hook:
 	fi
 
 uninstall-hook:
-	if [ -f $(abs_builddir)/src/config/.files ]; then \
-	    cat $(abs_builddir)/src/config/.files | xargs -iq rm -f $(DESTDIR)/q; \
-	    rm $(abs_builddir)/src/config/.files ; \
+	if [ -f $(abs_builddir)/src/config/.files2 ]; then \
+	    cat $(abs_builddir)/src/config/.files2 | xargs -iq rm -f $(DESTDIR)/q; \
+	    rm $(abs_builddir)/src/config/.files2 ; \
+	fi
+	if [ -f $(abs_builddir)/src/config/.files3 ]; then \
+	    cat $(abs_builddir)/src/config/.files3 | xargs -iq rm -f $(DESTDIR)/q; \
+	    rm $(abs_builddir)/src/config/.files3 ; \
 	fi
 	for doc in $(SSSD_DOCS); do \
 		rm -Rf $(DESTDIR)/$(docdir)/$$doc; \
 	done;
 
 clean-local:
-if BUILD_PYTHON_BINDINGS
+if BUILD_PYTHON2_BINDINGS
 	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
 		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \
 	fi
@@ -3089,7 +3188,20 @@ if BUILD_PYTHON_BINDINGS
 
 	rm -f $(builddir)/src/config/SSSDConfig/*.pyc
 
-	cd $(builddir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config clean --all
+	cd $(builddir)/src/config; $(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config clean --all
+endif
+if BUILD_PYTHON3_BINDINGS
+	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
+		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \
+	fi
+
+	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
+		rm -f $(builddir)/src/config/SSSDConfig/sssd_upgrade_config.py ; \
+	fi
+
+	rm -f $(builddir)/src/config/SSSDConfig/__pycache__/*.pyc
+
+	cd $(builddir)/src/config; $(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config clean --all
 endif
 	for doc in $(SSSD_DOCS); do \
 		rm -Rf $$doc; \

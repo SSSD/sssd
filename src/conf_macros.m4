@@ -360,21 +360,38 @@ AC_DEFUN([WITH_KRB5_CONF],
     AC_DEFINE_UNQUOTED([KRB5_CONF_PATH], ["$KRB5_CONF_PATH"], [KRB5 configuration file])
   ])
 
-AC_DEFUN([WITH_PYTHON_BINDINGS],
-  [ AC_ARG_WITH([python-bindings],
-                [AC_HELP_STRING([--with-python-bindings],
-                                [Whether to build python bindings [yes]]
-                               )
+AC_DEFUN([WITH_PYTHON2_BINDINGS],
+  [ AC_ARG_WITH([python2-bindings],
+                [AC_HELP_STRING([--with-python2-bindings],
+                                [Whether to build python2 bindings [yes]])
                 ],
                 [],
-                with_python_bindings=yes
+                [with_python2_bindings=yes]
                )
-    if test x"$with_python_bindings" = xyes; then
-        HAVE_PYTHON_BINDINGS=1
-        AC_SUBST(HAVE_PYTHON_BINDINGS)
-        AC_DEFINE_UNQUOTED(HAVE_PYTHON_BINDINGS, 1, [Build with python bindings])
+    if test x"$with_python2_bindings" = xyes; then
+        AC_SUBST([HAVE_PYTHON2_BINDINGS], [1])
+        AC_DEFINE_UNQUOTED([HAVE_PYTHON2_BINDINGS], [1],
+                           [Build with python2 bindings])
     fi
-    AM_CONDITIONAL([BUILD_PYTHON_BINDINGS], [test x"$with_python_bindings" = xyes])
+    AM_CONDITIONAL([BUILD_PYTHON2_BINDINGS],
+                   [test x"$with_python2_bindings" = xyes])
+  ])
+
+AC_DEFUN([WITH_PYTHON3_BINDINGS],
+  [ AC_ARG_WITH([python3-bindings],
+                [AC_HELP_STRING([--with-python3-bindings],
+                                [Whether to build python3 bindings [yes]])
+                ],
+                [],
+                [with_python3_bindings=no]
+               )
+    if test x"$with_python3_bindings" = xyes; then
+        AC_SUBST([HAVE_PYTHON3_BINDINGS], [1])
+        AC_DEFINE_UNQUOTED([HAVE_PYTHON3_BINDINGS], [1],
+                           [Build with python3 bindings])
+    fi
+    AM_CONDITIONAL([BUILD_PYTHON3_BINDINGS],
+                   [test x"$with_python3_bindings" = xyes])
   ])
 
 AC_DEFUN([WITH_SELINUX],

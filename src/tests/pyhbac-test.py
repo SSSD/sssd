@@ -6,10 +6,9 @@ import sys
 import os
 import copy
 import sys
+import errno
 
-srcdir = os.getenv('builddir')
-if not srcdir:
-    srcdir = "."
+srcdir = os.getenv('builddir') or "."
 MODPATH = srcdir + "/.libs" #FIXME - is there a way to get this from libtool?
 
 if sys.version_info[0] > 2:
@@ -41,6 +40,23 @@ class PyHbacImport(unittest.TestCase):
     def testImport(self):
         " Import the module and assert it comes from tree "
         try:
+            cwd_backup = os.getcwd()
+
+            try:
+                os.unlink(MODPATH + "/pyhbac.so")
+            except OSError as e:
+                if e.errno == errno.ENOENT:
+                    pass
+                else:
+                    raise e
+
+            os.chdir(MODPATH)
+            if sys.version_info[0] > 2:
+                os.symlink("_py3hbac.so", "pyhbac.so")
+            else:
+                os.symlink("_py2hbac.so", "pyhbac.so")
+            os.chdir(cwd_backup)
+
             import pyhbac
         except ImportError as e:
             print("Could not load the pyhbac module. Please check if it is compiled", file=sys.stderr)
