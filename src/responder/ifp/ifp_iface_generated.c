@@ -877,6 +877,74 @@ const struct sbus_interface_meta iface_ifp_groups_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+int iface_ifp_groups_group_UpdateMemberList_finish(struct sbus_request *req)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.infopipe.Groups.Group */
+const struct sbus_method_meta iface_ifp_groups_group__methods[] = {
+    {
+        "UpdateMemberList", /* name */
+        NULL, /* no in_args */
+        NULL, /* no out_args */
+        offsetof(struct iface_ifp_groups_group, UpdateMemberList),
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
+/* property info for org.freedesktop.sssd.infopipe.Groups.Group */
+const struct sbus_property_meta iface_ifp_groups_group__properties[] = {
+    {
+        "name", /* name */
+        "s", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_groups_group, get_name),
+        sbus_invoke_get_s,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "gidNumber", /* name */
+        "u", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_groups_group, get_gidNumber),
+        sbus_invoke_get_u,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "users", /* name */
+        "ao", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_groups_group, get_users),
+        sbus_invoke_get_ao,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    {
+        "groups", /* name */
+        "ao", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct iface_ifp_groups_group, get_groups),
+        sbus_invoke_get_ao,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.infopipe.Groups.Group */
+const struct sbus_interface_meta iface_ifp_groups_group_meta = {
+    "org.freedesktop.sssd.infopipe.Groups.Group", /* name */
+    iface_ifp_groups_group__methods,
+    NULL, /* no signals */
+    iface_ifp_groups_group__properties,
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
 /* invokes a handler with a 'ssu' DBus signature */
 static int invoke_ssu_method(struct sbus_request *dbus_req, void *function_ptr)
 {

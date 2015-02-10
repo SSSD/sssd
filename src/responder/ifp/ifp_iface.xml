@@ -164,4 +164,15 @@
             <arg name="result" type="ao" direction="out"/>
         </method>
     </interface>
+
+    <interface name="org.freedesktop.sssd.infopipe.Groups.Group">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_groups_group"/>
+
+        <method name="UpdateMemberList" />
+
+        <property name="name" type="s" access="read" />
+        <property name="gidNumber" type="u" access="read" />
+        <property name="users" type="ao" access="read" />
+        <property name="groups" type="ao" access="read" />
+    </interface>
 </node>

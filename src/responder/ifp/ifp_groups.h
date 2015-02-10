@@ -54,4 +54,27 @@ int ifp_groups_list_by_domain_and_name(struct sbus_request *sbus_req,
                                        const char *filter,
                                        uint32_t limit);
 
+/* org.freedesktop.sssd.infopipe.Groups.Group */
+
+int ifp_groups_group_update_member_list(struct sbus_request *sbus_req,
+                                        void *data);
+
+void ifp_groups_group_get_name(struct sbus_request *sbus_req,
+                               void *data,
+                               const char **_out);
+
+void ifp_groups_group_get_gid_number(struct sbus_request *sbus_req,
+                                     void *data,
+                                     uint32_t *_out);
+
+void ifp_groups_group_get_users(struct sbus_request *sbus_req,
+                                void *data,
+                                const char ***_out,
+                                int *_size);
+
+void ifp_groups_group_get_groups(struct sbus_request *sbus_req,
+                                void *data,
+                                const char ***_out,
+                                int *_size);
+
 #endif /* IFP_GROUPS_H_ */

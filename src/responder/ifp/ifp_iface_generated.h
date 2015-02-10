@@ -80,6 +80,14 @@
 #define IFACE_IFP_GROUPS_LISTBYNAME "ListByName"
 #define IFACE_IFP_GROUPS_LISTBYDOMAINANDNAME "ListByDomainAndName"
 
+/* constants for org.freedesktop.sssd.infopipe.Groups.Group */
+#define IFACE_IFP_GROUPS_GROUP "org.freedesktop.sssd.infopipe.Groups.Group"
+#define IFACE_IFP_GROUPS_GROUP_UPDATEMEMBERLIST "UpdateMemberList"
+#define IFACE_IFP_GROUPS_GROUP_NAME "name"
+#define IFACE_IFP_GROUPS_GROUP_GIDNUMBER "gidNumber"
+#define IFACE_IFP_GROUPS_GROUP_USERS "users"
+#define IFACE_IFP_GROUPS_GROUP_GROUPS "groups"
+
 /* ------------------------------------------------------------------------
  * DBus handlers
  *
@@ -245,6 +253,19 @@ int iface_ifp_groups_ListByName_finish(struct sbus_request *req, const char *arg
 /* finish function for ListByDomainAndName */
 int iface_ifp_groups_ListByDomainAndName_finish(struct sbus_request *req, const char *arg_result[], int len_result);
 
+/* vtable for org.freedesktop.sssd.infopipe.Groups.Group */
+struct iface_ifp_groups_group {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*UpdateMemberList)(struct sbus_request *req, void *data);
+    void (*get_name)(struct sbus_request *, void *data, const char **);
+    void (*get_gidNumber)(struct sbus_request *, void *data, uint32_t*);
+    void (*get_users)(struct sbus_request *, void *data, const char ***, int *);
+    void (*get_groups)(struct sbus_request *, void *data, const char ***, int *);
+};
+
+/* finish function for UpdateMemberList */
+int iface_ifp_groups_group_UpdateMemberList_finish(struct sbus_request *req);
+
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata
  *
@@ -272,5 +293,8 @@ extern const struct sbus_interface_meta iface_ifp_users_user_meta;
 
 /* interface info for org.freedesktop.sssd.infopipe.Groups */
 extern const struct sbus_interface_meta iface_ifp_groups_meta;
+
+/* interface info for org.freedesktop.sssd.infopipe.Groups.Group */
+extern const struct sbus_interface_meta iface_ifp_groups_group_meta;
 
 #endif /* __IFP_IFACE_XML__ */
