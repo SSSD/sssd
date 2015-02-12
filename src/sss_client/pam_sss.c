@@ -51,6 +51,7 @@
 #define FLAGS_USE_AUTHTOK    (1 << 2)
 #define FLAGS_IGNORE_UNKNOWN_USER (1 << 3)
 #define FLAGS_IGNORE_AUTHINFO_UNAVAIL (1 << 4)
+#define FLAGS_USE_2FA (1 << 5)
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
 #define FD_DESTRUCTOR "pam_sss:fd_destructor"
@@ -88,6 +89,10 @@ struct pam_items {
     char *domain_name;
     const char *requested_domains;
     size_t requested_domains_size;
+    char *otp_vendor;
+    char *otp_token_id;
+    char *otp_challenge;
+    char *first_factor;
 };
 
 #define DEBUG_MGS_LEN 1024
@@ -223,6 +228,12 @@ static void overwrite_and_free_authtoks(struct pam_items *pi)
         pi->pam_newauthtok = NULL;
     }
 
+    if (pi->first_factor != NULL) {
+        _pam_overwrite_n((void *)pi->first_factor, strlen(pi->first_factor));
+        free((void *)pi->first_factor);
+        pi->first_factor = NULL;
+    }
+
     pi->pamstack_authtok = NULL;
     pi->pamstack_oldauthtok = NULL;
 }
@@ -233,6 +244,15 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
 
     free(pi->domain_name);
     pi->domain_name = NULL;
+
+    free(pi->otp_vendor);
+    pi->otp_vendor = NULL;
+
+    free(pi->otp_token_id);
+    pi->otp_token_id = NULL;
+
+    free(pi->otp_challenge);
+    pi->otp_challenge = NULL;
 }
 
 static int pack_message_v3(struct pam_items *pi, size_t *size,
@@ -968,6 +988,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
     int32_t type;
     int32_t len;
     int32_t pam_status;
+    size_t offset;
 
     if (buflen < (2*sizeof(int32_t))) {
         D(("response buffer is too small"));
@@ -1074,6 +1095,45 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                        pam_strerror(pamh,ret)));
                 }
                 break;
+            case SSS_PAM_OTP_INFO:
+                if (buf[p + (len - 1)] != '\0') {
+                    D(("system info does not end with \\0."));
+                    break;
+                }
+
+                pi->otp_vendor = strdup((char *) &buf[p]);
+                if (pi->otp_vendor == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+
+                offset = strlen(pi->otp_vendor) + 1;
+                if (offset >= len) {
+                    D(("OTP message size mismatch"));
+                    free(pi->otp_vendor);
+                    pi->otp_vendor = NULL;
+                    break;
+                }
+                pi->otp_token_id = strdup((char *) &buf[p + offset]);
+                if (pi->otp_token_id == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+
+                offset += strlen(pi->otp_token_id) + 1;
+                if (offset >= len) {
+                    D(("OTP message size mismatch"));
+                    free(pi->otp_token_id);
+                    pi->otp_token_id = NULL;
+                    break;
+                }
+                pi->otp_challenge = strdup((char *) &buf[p + offset]);
+                if (pi->otp_challenge == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+
+                break;
             default:
                 D(("Unknown response type [%d]", type));
         }
@@ -1095,6 +1155,7 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     pi->pam_newauthtok_type = SSS_AUTHTOK_TYPE_EMPTY;
     pi->pam_newauthtok = NULL;
     pi->pam_newauthtok_size = 0;
+    pi->first_factor = NULL;
 
     ret = pam_get_item(pamh, PAM_SERVICE, (const void **) &(pi->pam_service));
     if (ret != PAM_SUCCESS) return ret;
@@ -1148,6 +1209,10 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
 
     if (pi->requested_domains == NULL) pi->requested_domains = "";
     pi->requested_domains_size = strlen(pi->requested_domains) + 1;
+
+    pi->otp_vendor = NULL;
+    pi->otp_token_id = NULL;
+    pi->otp_challenge = NULL;
 
     return PAM_SUCCESS;
 }
@@ -1280,6 +1345,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
         case SSS_PAM_OPEN_SESSION:
         case SSS_PAM_SETCRED:
         case SSS_PAM_CLOSE_SESSION:
+        case SSS_PAM_PREAUTH:
             break;
         default:
             D(("Illegal task [%d]", task));
@@ -1325,6 +1391,133 @@ static int prompt_password(pam_handle_t *pamh, struct pam_items *pi,
     }
 
     return PAM_SUCCESS;
+}
+
+static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
+                      const char *prompt_fa1, const char *prompt_fa2)
+{
+    int ret;
+    const struct pam_conv *conv;
+    const struct pam_message *mesg[2] = { NULL, NULL };
+    struct pam_message *m1;
+    struct pam_message *m2;
+    struct pam_response *resp = NULL;
+    size_t needed_size;
+
+    ret = pam_get_item(pamh, PAM_CONV, (const void **) &conv);
+    if (ret != PAM_SUCCESS) {
+        return ret;
+    }
+
+    m1 = malloc(sizeof(struct pam_message));
+    if (m1 == NULL) {
+        D(("Malloc failed."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    m2 = malloc(sizeof(struct pam_message));
+    if (m2 == NULL) {
+        D(("Malloc failed."));
+        free(m1);
+        return PAM_SYSTEM_ERR;
+    }
+    m1->msg_style = PAM_PROMPT_ECHO_OFF;
+    m1->msg = prompt_fa1;
+    m2->msg_style = PAM_PROMPT_ECHO_OFF;
+    m2->msg = prompt_fa2;
+
+    mesg[0] = (const struct pam_message *) m1;
+    mesg[1] = (const struct pam_message *) m2;
+
+    ret = conv->conv(2, mesg, &resp, conv->appdata_ptr);
+    free(m1);
+    free(m2);
+    if (ret != PAM_SUCCESS) {
+        D(("Conversation failure: %s.", pam_strerror(pamh, ret)));
+        return ret;
+    }
+
+    if (resp == NULL) {
+        D(("response expected, but resp==NULL"));
+        return PAM_SYSTEM_ERR;
+    }
+
+    if (resp[0].resp == NULL || *(resp[0].resp) == '\0') {
+        D(("Missing factor."));
+        ret = PAM_CRED_INSUFFICIENT;
+        goto done;
+    }
+
+    if (resp[1].resp == NULL || *(resp[1].resp) == '\0'
+            || (pi->pam_service != NULL && strcmp(pi->pam_service, "sshd") == 0
+                    && strcmp(resp[0].resp, resp[1].resp) == 0)) {
+        /* Missing second factor, assume first factor contains combined 2FA
+         * credentials.
+         * Special handling for SSH with password authentication. Combined
+         * 2FA credentials are used but SSH puts them in both responses. */
+
+        pi->pam_authtok = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
+        if (pi->pam_authtok == NULL) {
+            D(("strndup failed."));
+            ret = PAM_BUF_ERR;
+            goto done;
+        }
+        pi->pam_authtok_size = strlen(pi->pam_authtok) + 1;
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+    } else {
+
+        ret = sss_auth_pack_2fa_blob(resp[0].resp, 0, resp[1].resp, 0, NULL, 0,
+                                     &needed_size);
+        if (ret != EAGAIN) {
+            D(("sss_auth_pack_2fa_blob failed."));
+            ret = PAM_BUF_ERR;
+            goto done;
+        }
+
+        pi->pam_authtok = malloc(needed_size);
+        if (pi->pam_authtok == NULL) {
+            D(("malloc failed."));
+            ret = PAM_BUF_ERR;
+            goto done;
+        }
+
+        ret = sss_auth_pack_2fa_blob(resp[0].resp, 0, resp[1].resp, 0,
+                                     (uint8_t *) pi->pam_authtok, needed_size,
+                                     &needed_size);
+        if (ret != EOK) {
+            D(("sss_auth_pack_2fa_blob failed."));
+            ret = PAM_BUF_ERR;
+            goto done;
+        }
+
+        pi->pam_authtok_size = needed_size;
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_2FA;
+        pi->first_factor = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
+        if (pi->first_factor == NULL) {
+            D(("strndup failed."));
+            ret = PAM_BUF_ERR;
+            goto done;
+        }
+    }
+
+    ret = PAM_SUCCESS;
+
+done:
+    if (resp != NULL) {
+        if (resp[0].resp != NULL) {
+            _pam_overwrite((void *)resp[0].resp);
+            free(resp[0].resp);
+        }
+        if (resp[1].resp != NULL) {
+            _pam_overwrite((void *)resp[1].resp);
+            free(resp[1].resp);
+        }
+
+        free(resp);
+        resp = NULL;
+    }
+
+    return ret;
 }
 
 static int prompt_new_password(pam_handle_t *pamh, struct pam_items *pi)
@@ -1410,6 +1603,8 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             *flags |= FLAGS_IGNORE_UNKNOWN_USER;
         } else if (strcmp(*argv, "ignore_authinfo_unavail") == 0) {
             *flags |= FLAGS_IGNORE_AUTHINFO_UNAVAIL;
+        } else if (strcmp(*argv, "use_2fa") == 0) {
+            *flags |= FLAGS_USE_2FA;
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
@@ -1433,14 +1628,28 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
         }
         pi->pam_authtok_size = strlen(pi->pam_authtok);
     } else {
-        ret = prompt_password(pamh, pi, _("Password: "));
+        if (flags & FLAGS_USE_2FA
+                || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
+                        && pi->otp_challenge != NULL)) {
+            ret = prompt_2fa(pamh, pi, _("First Factor: "),
+                             _("Second Factor: "));
+        } else {
+            ret = prompt_password(pamh, pi, _("Password: "));
+        }
         if (ret != PAM_SUCCESS) {
             D(("failed to get password from user"));
             return ret;
         }
 
         if (flags & FLAGS_FORWARD_PASS) {
-            ret = pam_set_item(pamh, PAM_AUTHTOK, pi->pam_authtok);
+            if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_PASSWORD) {
+                ret = pam_set_item(pamh, PAM_AUTHTOK, pi->pam_authtok);
+            } else if (pi->pam_authtok_type == SSS_AUTHTOK_TYPE_2FA
+                           && pi->first_factor != NULL) {
+                ret = pam_set_item(pamh, PAM_AUTHTOK, pi->first_factor);
+            } else {
+                ret = EINVAL;
+            }
             if (ret != PAM_SUCCESS) {
                 D(("Failed to set PAM_AUTHTOK [%s], "
                    "authtok may not be available for other modules",
@@ -1576,6 +1785,27 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
         switch(task) {
             case SSS_PAM_AUTHENTICATE:
+                /*
+                 * Only do preauth if
+                 * - FLAGS_USE_FIRST_PASS is not set
+                 * - no password is on the stack
+                 * - preauth indicator file exists.
+                 */
+                if ( !(flags & FLAGS_USE_FIRST_PASS) && pi.pam_authtok == NULL
+                        && access(PAM_PREAUTH_INDICATOR, F_OK) == 0) {
+                    pam_status = send_and_receive(pamh, &pi, SSS_PAM_PREAUTH,
+                                                  quiet_mode);
+                    if (pam_status != PAM_SUCCESS) {
+                        D(("send_and_receive returned [%d] during pre-auth",
+                           pam_status));
+                        /*
+                         * Since we are only interested in the result message
+                         * and will always use password authentication
+                         * as a fallback, errors can be ignored here.
+                         */
+                    }
+                }
+
                 ret = get_authtok_for_authentication(pamh, &pi, flags);
                 if (ret != PAM_SUCCESS) {
                     D(("failed to get authentication token: %s",
@@ -1588,6 +1818,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 if (ret != PAM_SUCCESS) {
                     D(("failed to get tokens for password change: %s",
                        pam_strerror(pamh, ret)));
+                    overwrite_and_free_pam_items(&pi);
                     return ret;
                 }
                 if (pam_flags & PAM_PRELIM_CHECK) {
