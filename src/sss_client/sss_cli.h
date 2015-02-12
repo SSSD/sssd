@@ -461,15 +461,25 @@ enum user_info_type {
                                      * indicates that no message is following.
                                      * @param String with the specified
                                      * length. */
+
     SSS_PAM_USER_INFO_GRACE_LOGIN, /**< Warn the user that the password is
                                     * expired and inform about the remaining
                                     * number of grace logins.
                                     * @param The number of remaining grace
                                     * logins as uint32_t */
-    SSS_PAM_USER_INFO_EXPIRE_WARN /**< Warn the user that the password will
-                                   * expire soon.
-                                   * @param Number of seconds before the user's
-                                   * password will expire. */
+    SSS_PAM_USER_INFO_EXPIRE_WARN, /**< Warn the user that the password will
+                                    * expire soon.
+                                    * @param Number of seconds before the
+                                    * user's password will expire. */
+
+    SSS_PAM_USER_INFO_ACCOUNT_EXPIRED, /**< Tell the user that the account
+                                        * has expired and optionally give
+                                        * a reason.
+                                        * @param Size of the message as
+                                        * unsigned 32-bit integer value. A
+                                        * value of 0 indicates that no message
+                                        * is following. @param String with the
+                                        * specified length. */
 };
 /**
  * @}

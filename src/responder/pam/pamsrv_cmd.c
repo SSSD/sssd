@@ -44,6 +44,54 @@ enum pam_verbosity {
 
 static void pam_reply(struct pam_auth_req *preq);
 
+static errno_t pack_user_info_account_expired(TALLOC_CTX *mem_ctx,
+                                              const char *user_error_message,
+                                              size_t *resp_len,
+                                              uint8_t **_resp)
+{
+    uint32_t resp_type = SSS_PAM_USER_INFO_ACCOUNT_EXPIRED;
+    size_t err_len;
+    uint8_t *resp;
+    size_t p;
+
+    err_len = strlen(user_error_message);
+    *resp_len = 2 * sizeof(uint32_t) + err_len;
+    resp = talloc_size(mem_ctx, *resp_len);
+    if (resp == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_size failed.\n");
+        return ENOMEM;
+    }
+
+    p = 0;
+    SAFEALIGN_SET_UINT32(&resp[p], resp_type, &p);
+    SAFEALIGN_SET_UINT32(&resp[p], err_len, &p);
+    safealign_memcpy(&resp[p], user_error_message, err_len, &p);
+    if (p != *resp_len) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Size mismatch\n");
+    }
+
+    *_resp = resp;
+    return EOK;
+}
+
+static void inform_account_expired(struct pam_data* pd)
+{
+    size_t msg_len;
+    uint8_t *msg;
+    errno_t ret;
+
+    ret = pack_user_info_account_expired(pd, "", &msg_len, &msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "pack_user_info_account_expired failed.\n");
+    } else {
+        ret = pam_add_response(pd, SSS_PAM_USER_INFO, msg_len, msg);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+        }
+    }
+}
+
 static bool is_domain_requested(struct pam_data *pd, const char *domain_name)
 {
     int i;
@@ -607,6 +655,11 @@ static void pam_reply(struct pam_auth_req *preq)
                          &cctx->creq->out);
     if (ret != EOK) {
         goto done;
+    }
+
+    if (pd->pam_status == PAM_ACCT_EXPIRED && pd->service != NULL &&
+        strcasecmp(pd->service, "sshd") == 0) {
+        inform_account_expired(pd);
     }
 
     ret = filter_responses(pctx->rctx->cdb, pd->resp_list);

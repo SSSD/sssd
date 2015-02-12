@@ -60,6 +60,9 @@
 #define OPT_RETRY_KEY "retry="
 #define OPT_DOMAINS_KEY "domains="
 
+#define EXP_ACC_MSG _("Your account has expired. ")
+#define SRV_MSG     _("Server message: ")
+
 struct pam_items {
     const char* pam_service;
     const char* pam_user;
@@ -797,6 +800,63 @@ static int user_info_otp_chpass(pam_handle_t *pamh)
     return PAM_SUCCESS;
 }
 
+static int user_info_account_expired(pam_handle_t *pamh, size_t buflen,
+                                     uint8_t *buf)
+{
+    int ret;
+    uint32_t msg_len;
+    char *user_msg;
+    size_t bufsize = 0;
+
+    /* resp_type and length of message are expected to be in buf */
+    if (buflen < 2* sizeof(uint32_t)) {
+        D(("User info response data is too short"));
+        return PAM_BUF_ERR;
+    }
+
+    /* msg_len = legth of message */
+    memcpy(&msg_len, buf + sizeof(uint32_t), sizeof(uint32_t));
+
+    if (buflen != 2* sizeof(uint32_t) + msg_len) {
+        D(("User info response data has the wrong size"));
+        return PAM_BUF_ERR;
+    }
+
+    bufsize = strlen(EXP_ACC_MSG) + 1;
+
+    if (msg_len > 0) {
+        bufsize += strlen(SRV_MSG) + msg_len;
+    }
+
+    user_msg = (char *)malloc(sizeof(char) * bufsize);
+    if (!user_msg) {
+       D(("Out of memory."));
+       return PAM_SYSTEM_ERR;
+    }
+
+    ret = snprintf(user_msg, bufsize, "%s%s%.*s",
+                   EXP_ACC_MSG,
+                   msg_len > 0 ? SRV_MSG : "",
+                   msg_len,
+                   msg_len > 0 ? (char *)(buf + 2 * sizeof(uint32_t)) : "" );
+    if (ret < 0 || ret > bufsize) {
+        D(("snprintf failed."));
+
+        free(user_msg);
+        return PAM_SYSTEM_ERR;
+    }
+
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, user_msg, NULL, NULL);
+    free(user_msg);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+
+        return PAM_SYSTEM_ERR;
+    }
+
+    return PAM_SUCCESS;
+}
+
 static int user_info_chpass_error(pam_handle_t *pamh, size_t buflen,
                                   uint8_t *buf)
 {
@@ -852,7 +912,6 @@ static int user_info_chpass_error(pam_handle_t *pamh, size_t buflen,
     return PAM_SUCCESS;
 }
 
-
 static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
                                    uint8_t *buf)
 {
@@ -887,6 +946,9 @@ static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
             break;
         case SSS_PAM_USER_INFO_CHPASS_ERROR:
             ret = user_info_chpass_error(pamh, buflen, buf);
+            break;
+        case SSS_PAM_USER_INFO_ACCOUNT_EXPIRED:
+            ret = user_info_account_expired(pamh, buflen, buf);
             break;
         default:
             D(("Unknown user info type [%d]", type));
