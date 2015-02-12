@@ -359,7 +359,7 @@ done:
         return sbus_request_fail_and_finish(dbus_req, error);
     }
 
-    return infopipe_iface_ListComponents_finish(dbus_req, result, num);
+    return iface_ifp_ListComponents_finish(dbus_req, result, num);
 }
 
 int ifp_list_responders(struct sbus_request *dbus_req, void *data)
@@ -376,7 +376,7 @@ int ifp_list_responders(struct sbus_request *dbus_req, void *data)
         return sbus_request_fail_and_finish(dbus_req, error);
     }
 
-    return infopipe_iface_ListResponders_finish(dbus_req, result, num);
+    return iface_ifp_ListResponders_finish(dbus_req, result, num);
 }
 
 int ifp_list_backends(struct sbus_request *dbus_req, void *data)
@@ -403,12 +403,12 @@ done:
         return sbus_request_fail_and_finish(dbus_req, error);
     }
 
-    return infopipe_iface_ListBackends_finish(dbus_req, result, num);
+    return iface_ifp_ListBackends_finish(dbus_req, result, num);
 }
 
 int ifp_find_monitor(struct sbus_request *dbus_req, void *data)
 {
-    return infopipe_iface_FindMonitor_finish(dbus_req, PATH_MONITOR);
+    return iface_ifp_FindMonitor_finish(dbus_req, PATH_MONITOR);
 }
 
 int ifp_find_responder_by_name(struct sbus_request *dbus_req,
@@ -429,7 +429,7 @@ int ifp_find_responder_by_name(struct sbus_request *dbus_req,
         return sbus_request_fail_and_finish(dbus_req, error);
     }
 
-    return infopipe_iface_FindResponderByName_finish(dbus_req, result);
+    return iface_ifp_FindResponderByName_finish(dbus_req, result);
 }
 
 int ifp_find_backend_by_name(struct sbus_request *dbus_req,
@@ -459,7 +459,7 @@ int ifp_find_backend_by_name(struct sbus_request *dbus_req,
         return sbus_request_fail_and_finish(dbus_req, error);
     }
 
-    return infopipe_iface_FindBackendByName_finish(dbus_req, result);
+    return iface_ifp_FindBackendByName_finish(dbus_req, result);
 }
 
 int ifp_component_enable(struct sbus_request *dbus_req, void *data)
@@ -529,7 +529,7 @@ done:
         return sbus_request_fail_and_finish(dbus_req, error);
     }
 
-    return infopipe_component_Enable_finish(dbus_req);
+    return iface_ifp_components_Enable_finish(dbus_req);
 #endif
 }
 
@@ -600,7 +600,7 @@ done:
         return sbus_request_fail_and_finish(dbus_req, error);
     }
 
-    return infopipe_component_Disable_finish(dbus_req);
+    return iface_ifp_components_Disable_finish(dbus_req);
 #endif
 }
 
@@ -682,7 +682,7 @@ done:
         return sbus_request_fail_and_finish(dbus_req, error);
     }
 
-    return infopipe_component_ChangeDebugLevel_finish(dbus_req);
+    return iface_ifp_components_ChangeDebugLevel_finish(dbus_req);
 #endif
 }
 
@@ -728,7 +728,7 @@ done:
         return sbus_request_fail_and_finish(dbus_req, error);
     }
 
-    return infopipe_component_ChangeDebugLevelTemporarily_finish(dbus_req);
+    return iface_ifp_components_ChangeDebugLevelTemporarily_finish(dbus_req);
 }
 
 void ifp_component_get_name(struct sbus_request *dbus_req,

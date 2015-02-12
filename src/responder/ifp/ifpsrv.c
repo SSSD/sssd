@@ -196,7 +196,7 @@ static int ifp_sysbus_reconnect(struct sbus_request *dbus_req, void *data)
 
     /* Connect to the D-BUS system bus and set up methods */
     ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
-                      INFOPIPE_IFACE,
+                      IFACE_IFP,
                       ifp_ctx, &ifp_ctx->sysbus);
     if (ret == ERR_NO_SYSBUS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
@@ -326,7 +326,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
 
     /* Connect to the D-BUS system bus and set up methods */
     ret = sysbus_init(ifp_ctx, ifp_ctx->rctx->ev,
-                      INFOPIPE_IFACE,
+                      IFACE_IFP,
                       ifp_ctx, &ifp_ctx->sysbus);
     if (ret == ERR_NO_SYSBUS) {
         DEBUG(SSSDBG_MINOR_FAILURE,

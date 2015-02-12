@@ -13,12 +13,12 @@ static int invoke_s_method(struct sbus_request *dbus_req, void *function_ptr);
 static int invoke_u_method(struct sbus_request *dbus_req, void *function_ptr);
 
 /* arguments for org.freedesktop.sssd.infopipe.ListComponents */
-const struct sbus_arg_meta infopipe_iface_ListComponents__out[] = {
+const struct sbus_arg_meta iface_ifp_ListComponents__out[] = {
     { "components", "ao" },
     { NULL, }
 };
 
-int infopipe_iface_ListComponents_finish(struct sbus_request *req, const char *arg_components[], int len_components)
+int iface_ifp_ListComponents_finish(struct sbus_request *req, const char *arg_components[], int len_components)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_components, len_components,
@@ -26,12 +26,12 @@ int infopipe_iface_ListComponents_finish(struct sbus_request *req, const char *a
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.ListResponders */
-const struct sbus_arg_meta infopipe_iface_ListResponders__out[] = {
+const struct sbus_arg_meta iface_ifp_ListResponders__out[] = {
     { "responders", "ao" },
     { NULL, }
 };
 
-int infopipe_iface_ListResponders_finish(struct sbus_request *req, const char *arg_responders[], int len_responders)
+int iface_ifp_ListResponders_finish(struct sbus_request *req, const char *arg_responders[], int len_responders)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_responders, len_responders,
@@ -39,12 +39,12 @@ int infopipe_iface_ListResponders_finish(struct sbus_request *req, const char *a
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.ListBackends */
-const struct sbus_arg_meta infopipe_iface_ListBackends__out[] = {
+const struct sbus_arg_meta iface_ifp_ListBackends__out[] = {
     { "backends", "ao" },
     { NULL, }
 };
 
-int infopipe_iface_ListBackends_finish(struct sbus_request *req, const char *arg_backends[], int len_backends)
+int iface_ifp_ListBackends_finish(struct sbus_request *req, const char *arg_backends[], int len_backends)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_backends, len_backends,
@@ -52,12 +52,12 @@ int infopipe_iface_ListBackends_finish(struct sbus_request *req, const char *arg
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.FindMonitor */
-const struct sbus_arg_meta infopipe_iface_FindMonitor__out[] = {
+const struct sbus_arg_meta iface_ifp_FindMonitor__out[] = {
     { "monitor", "o" },
     { NULL, }
 };
 
-int infopipe_iface_FindMonitor_finish(struct sbus_request *req, const char *arg_monitor)
+int iface_ifp_FindMonitor_finish(struct sbus_request *req, const char *arg_monitor)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_OBJECT_PATH, &arg_monitor,
@@ -65,18 +65,18 @@ int infopipe_iface_FindMonitor_finish(struct sbus_request *req, const char *arg_
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.FindResponderByName */
-const struct sbus_arg_meta infopipe_iface_FindResponderByName__in[] = {
+const struct sbus_arg_meta iface_ifp_FindResponderByName__in[] = {
     { "name", "s" },
     { NULL, }
 };
 
 /* arguments for org.freedesktop.sssd.infopipe.FindResponderByName */
-const struct sbus_arg_meta infopipe_iface_FindResponderByName__out[] = {
+const struct sbus_arg_meta iface_ifp_FindResponderByName__out[] = {
     { "responder", "o" },
     { NULL, }
 };
 
-int infopipe_iface_FindResponderByName_finish(struct sbus_request *req, const char *arg_responder)
+int iface_ifp_FindResponderByName_finish(struct sbus_request *req, const char *arg_responder)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_OBJECT_PATH, &arg_responder,
@@ -84,18 +84,18 @@ int infopipe_iface_FindResponderByName_finish(struct sbus_request *req, const ch
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.FindBackendByName */
-const struct sbus_arg_meta infopipe_iface_FindBackendByName__in[] = {
+const struct sbus_arg_meta iface_ifp_FindBackendByName__in[] = {
     { "name", "s" },
     { NULL, }
 };
 
 /* arguments for org.freedesktop.sssd.infopipe.FindBackendByName */
-const struct sbus_arg_meta infopipe_iface_FindBackendByName__out[] = {
+const struct sbus_arg_meta iface_ifp_FindBackendByName__out[] = {
     { "backend", "o" },
     { NULL, }
 };
 
-int infopipe_iface_FindBackendByName_finish(struct sbus_request *req, const char *arg_backend)
+int iface_ifp_FindBackendByName_finish(struct sbus_request *req, const char *arg_backend)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_OBJECT_PATH, &arg_backend,
@@ -103,31 +103,31 @@ int infopipe_iface_FindBackendByName_finish(struct sbus_request *req, const char
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.GetUserAttr */
-const struct sbus_arg_meta infopipe_iface_GetUserAttr__in[] = {
+const struct sbus_arg_meta iface_ifp_GetUserAttr__in[] = {
     { "user", "s" },
     { "attr", "as" },
     { NULL, }
 };
 
 /* arguments for org.freedesktop.sssd.infopipe.GetUserAttr */
-const struct sbus_arg_meta infopipe_iface_GetUserAttr__out[] = {
+const struct sbus_arg_meta iface_ifp_GetUserAttr__out[] = {
     { "values", "a{sv}" },
     { NULL, }
 };
 
 /* arguments for org.freedesktop.sssd.infopipe.GetUserGroups */
-const struct sbus_arg_meta infopipe_iface_GetUserGroups__in[] = {
+const struct sbus_arg_meta iface_ifp_GetUserGroups__in[] = {
     { "user", "s" },
     { NULL, }
 };
 
 /* arguments for org.freedesktop.sssd.infopipe.GetUserGroups */
-const struct sbus_arg_meta infopipe_iface_GetUserGroups__out[] = {
+const struct sbus_arg_meta iface_ifp_GetUserGroups__out[] = {
     { "values", "as" },
     { NULL, }
 };
 
-int infopipe_iface_GetUserGroups_finish(struct sbus_request *req, const char *arg_values[], int len_values)
+int iface_ifp_GetUserGroups_finish(struct sbus_request *req, const char *arg_values[], int len_values)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_ARRAY, DBUS_TYPE_STRING, &arg_values, len_values,
@@ -135,18 +135,18 @@ int infopipe_iface_GetUserGroups_finish(struct sbus_request *req, const char *ar
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.FindDomainByName */
-const struct sbus_arg_meta infopipe_iface_FindDomainByName__in[] = {
+const struct sbus_arg_meta iface_ifp_FindDomainByName__in[] = {
     { "name", "s" },
     { NULL, }
 };
 
 /* arguments for org.freedesktop.sssd.infopipe.FindDomainByName */
-const struct sbus_arg_meta infopipe_iface_FindDomainByName__out[] = {
+const struct sbus_arg_meta iface_ifp_FindDomainByName__out[] = {
     { "domain", "o" },
     { NULL, }
 };
 
-int infopipe_iface_FindDomainByName_finish(struct sbus_request *req, const char *arg_domain)
+int iface_ifp_FindDomainByName_finish(struct sbus_request *req, const char *arg_domain)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_OBJECT_PATH, &arg_domain,
@@ -154,12 +154,12 @@ int infopipe_iface_FindDomainByName_finish(struct sbus_request *req, const char 
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.ListDomains */
-const struct sbus_arg_meta infopipe_iface_ListDomains__out[] = {
+const struct sbus_arg_meta iface_ifp_ListDomains__out[] = {
     { "domain", "ao" },
     { NULL, }
 };
 
-int infopipe_iface_ListDomains_finish(struct sbus_request *req, const char *arg_domain[], int len_domain)
+int iface_ifp_ListDomains_finish(struct sbus_request *req, const char *arg_domain[], int len_domain)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_domain, len_domain,
@@ -167,172 +167,172 @@ int infopipe_iface_ListDomains_finish(struct sbus_request *req, const char *arg_
 }
 
 /* methods for org.freedesktop.sssd.infopipe */
-const struct sbus_method_meta infopipe_iface__methods[] = {
+const struct sbus_method_meta iface_ifp__methods[] = {
     {
         "Ping", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
-        offsetof(struct infopipe_iface, Ping),
+        offsetof(struct iface_ifp, Ping),
         NULL, /* no invoker */
     },
     {
         "ListComponents", /* name */
         NULL, /* no in_args */
-        infopipe_iface_ListComponents__out,
-        offsetof(struct infopipe_iface, ListComponents),
+        iface_ifp_ListComponents__out,
+        offsetof(struct iface_ifp, ListComponents),
         NULL, /* no invoker */
     },
     {
         "ListResponders", /* name */
         NULL, /* no in_args */
-        infopipe_iface_ListResponders__out,
-        offsetof(struct infopipe_iface, ListResponders),
+        iface_ifp_ListResponders__out,
+        offsetof(struct iface_ifp, ListResponders),
         NULL, /* no invoker */
     },
     {
         "ListBackends", /* name */
         NULL, /* no in_args */
-        infopipe_iface_ListBackends__out,
-        offsetof(struct infopipe_iface, ListBackends),
+        iface_ifp_ListBackends__out,
+        offsetof(struct iface_ifp, ListBackends),
         NULL, /* no invoker */
     },
     {
         "FindMonitor", /* name */
         NULL, /* no in_args */
-        infopipe_iface_FindMonitor__out,
-        offsetof(struct infopipe_iface, FindMonitor),
+        iface_ifp_FindMonitor__out,
+        offsetof(struct iface_ifp, FindMonitor),
         NULL, /* no invoker */
     },
     {
         "FindResponderByName", /* name */
-        infopipe_iface_FindResponderByName__in,
-        infopipe_iface_FindResponderByName__out,
-        offsetof(struct infopipe_iface, FindResponderByName),
+        iface_ifp_FindResponderByName__in,
+        iface_ifp_FindResponderByName__out,
+        offsetof(struct iface_ifp, FindResponderByName),
         invoke_s_method,
     },
     {
         "FindBackendByName", /* name */
-        infopipe_iface_FindBackendByName__in,
-        infopipe_iface_FindBackendByName__out,
-        offsetof(struct infopipe_iface, FindBackendByName),
+        iface_ifp_FindBackendByName__in,
+        iface_ifp_FindBackendByName__out,
+        offsetof(struct iface_ifp, FindBackendByName),
         invoke_s_method,
     },
     {
         "GetUserAttr", /* name */
-        infopipe_iface_GetUserAttr__in,
-        infopipe_iface_GetUserAttr__out,
-        offsetof(struct infopipe_iface, GetUserAttr),
+        iface_ifp_GetUserAttr__in,
+        iface_ifp_GetUserAttr__out,
+        offsetof(struct iface_ifp, GetUserAttr),
         NULL, /* no invoker */
     },
     {
         "GetUserGroups", /* name */
-        infopipe_iface_GetUserGroups__in,
-        infopipe_iface_GetUserGroups__out,
-        offsetof(struct infopipe_iface, GetUserGroups),
+        iface_ifp_GetUserGroups__in,
+        iface_ifp_GetUserGroups__out,
+        offsetof(struct iface_ifp, GetUserGroups),
         invoke_s_method,
     },
     {
         "FindDomainByName", /* name */
-        infopipe_iface_FindDomainByName__in,
-        infopipe_iface_FindDomainByName__out,
-        offsetof(struct infopipe_iface, FindDomainByName),
+        iface_ifp_FindDomainByName__in,
+        iface_ifp_FindDomainByName__out,
+        offsetof(struct iface_ifp, FindDomainByName),
         invoke_s_method,
     },
     {
         "ListDomains", /* name */
         NULL, /* no in_args */
-        infopipe_iface_ListDomains__out,
-        offsetof(struct infopipe_iface, ListDomains),
+        iface_ifp_ListDomains__out,
+        offsetof(struct iface_ifp, ListDomains),
         NULL, /* no invoker */
     },
     { NULL, }
 };
 
 /* interface info for org.freedesktop.sssd.infopipe */
-const struct sbus_interface_meta infopipe_iface_meta = {
+const struct sbus_interface_meta iface_ifp_meta = {
     "org.freedesktop.sssd.infopipe", /* name */
-    infopipe_iface__methods,
+    iface_ifp__methods,
     NULL, /* no signals */
     NULL, /* no properties */
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
-int infopipe_component_Enable_finish(struct sbus_request *req)
+int iface_ifp_components_Enable_finish(struct sbus_request *req)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_INVALID);
 }
 
-int infopipe_component_Disable_finish(struct sbus_request *req)
+int iface_ifp_components_Disable_finish(struct sbus_request *req)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_INVALID);
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.Components.ChangeDebugLevel */
-const struct sbus_arg_meta infopipe_component_ChangeDebugLevel__in[] = {
+const struct sbus_arg_meta iface_ifp_components_ChangeDebugLevel__in[] = {
     { "new_level", "u" },
     { NULL, }
 };
 
-int infopipe_component_ChangeDebugLevel_finish(struct sbus_request *req)
+int iface_ifp_components_ChangeDebugLevel_finish(struct sbus_request *req)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_INVALID);
 }
 
 /* arguments for org.freedesktop.sssd.infopipe.Components.ChangeDebugLevelTemporarily */
-const struct sbus_arg_meta infopipe_component_ChangeDebugLevelTemporarily__in[] = {
+const struct sbus_arg_meta iface_ifp_components_ChangeDebugLevelTemporarily__in[] = {
     { "new_level", "u" },
     { NULL, }
 };
 
-int infopipe_component_ChangeDebugLevelTemporarily_finish(struct sbus_request *req)
+int iface_ifp_components_ChangeDebugLevelTemporarily_finish(struct sbus_request *req)
 {
    return sbus_request_return_and_finish(req,
                                          DBUS_TYPE_INVALID);
 }
 
 /* methods for org.freedesktop.sssd.infopipe.Components */
-const struct sbus_method_meta infopipe_component__methods[] = {
+const struct sbus_method_meta iface_ifp_components__methods[] = {
     {
         "Enable", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
-        offsetof(struct infopipe_component, Enable),
+        offsetof(struct iface_ifp_components, Enable),
         NULL, /* no invoker */
     },
     {
         "Disable", /* name */
         NULL, /* no in_args */
         NULL, /* no out_args */
-        offsetof(struct infopipe_component, Disable),
+        offsetof(struct iface_ifp_components, Disable),
         NULL, /* no invoker */
     },
     {
         "ChangeDebugLevel", /* name */
-        infopipe_component_ChangeDebugLevel__in,
+        iface_ifp_components_ChangeDebugLevel__in,
         NULL, /* no out_args */
-        offsetof(struct infopipe_component, ChangeDebugLevel),
+        offsetof(struct iface_ifp_components, ChangeDebugLevel),
         invoke_u_method,
     },
     {
         "ChangeDebugLevelTemporarily", /* name */
-        infopipe_component_ChangeDebugLevelTemporarily__in,
+        iface_ifp_components_ChangeDebugLevelTemporarily__in,
         NULL, /* no out_args */
-        offsetof(struct infopipe_component, ChangeDebugLevelTemporarily),
+        offsetof(struct iface_ifp_components, ChangeDebugLevelTemporarily),
         invoke_u_method,
     },
     { NULL, }
 };
 
 /* property info for org.freedesktop.sssd.infopipe.Components */
-const struct sbus_property_meta infopipe_component__properties[] = {
+const struct sbus_property_meta iface_ifp_components__properties[] = {
     {
         "name", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_name),
+        offsetof(struct iface_ifp_components, iface_ifp_components_get_name),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -341,7 +341,7 @@ const struct sbus_property_meta infopipe_component__properties[] = {
         "debug_level", /* name */
         "u", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_debug_level),
+        offsetof(struct iface_ifp_components, iface_ifp_components_get_debug_level),
         sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
@@ -350,7 +350,7 @@ const struct sbus_property_meta infopipe_component__properties[] = {
         "enabled", /* name */
         "b", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_enabled),
+        offsetof(struct iface_ifp_components, iface_ifp_components_get_enabled),
         sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
@@ -359,7 +359,7 @@ const struct sbus_property_meta infopipe_component__properties[] = {
         "type", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_type),
+        offsetof(struct iface_ifp_components, iface_ifp_components_get_type),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -368,7 +368,7 @@ const struct sbus_property_meta infopipe_component__properties[] = {
         "providers", /* name */
         "as", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_component, infopipe_component_get_providers),
+        offsetof(struct iface_ifp_components, iface_ifp_components_get_providers),
         sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
@@ -377,21 +377,21 @@ const struct sbus_property_meta infopipe_component__properties[] = {
 };
 
 /* interface info for org.freedesktop.sssd.infopipe.Components */
-const struct sbus_interface_meta infopipe_component_meta = {
+const struct sbus_interface_meta iface_ifp_components_meta = {
     "org.freedesktop.sssd.infopipe.Components", /* name */
-    infopipe_component__methods,
+    iface_ifp_components__methods,
     NULL, /* no signals */
-    infopipe_component__properties,
+    iface_ifp_components__properties,
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
 /* property info for org.freedesktop.sssd.infopipe.Domains */
-const struct sbus_property_meta infopipe_domain__properties[] = {
+const struct sbus_property_meta iface_ifp_domains__properties[] = {
     {
         "name", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_name),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_name),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -400,7 +400,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "provider", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_provider),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_provider),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -409,7 +409,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "primary_servers", /* name */
         "as", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_primary_servers),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_primary_servers),
         sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
@@ -418,7 +418,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "backup_servers", /* name */
         "as", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_backup_servers),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_backup_servers),
         sbus_invoke_get_as,
         0, /* not writable */
         NULL, /* no invoker */
@@ -427,7 +427,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "min_id", /* name */
         "u", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_min_id),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_min_id),
         sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
@@ -436,7 +436,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "max_id", /* name */
         "u", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_max_id),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_max_id),
         sbus_invoke_get_u,
         0, /* not writable */
         NULL, /* no invoker */
@@ -445,7 +445,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "realm", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_realm),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_realm),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -454,7 +454,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "forest", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_forest),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_forest),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -463,7 +463,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "login_format", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_login_format),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_login_format),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -472,7 +472,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "fully_qualified_name_format", /* name */
         "s", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_fully_qualified_name_format),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_fully_qualified_name_format),
         sbus_invoke_get_s,
         0, /* not writable */
         NULL, /* no invoker */
@@ -481,7 +481,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "enumerable", /* name */
         "b", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_enumerable),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_enumerable),
         sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
@@ -490,7 +490,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "use_fully_qualified_names", /* name */
         "b", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_use_fully_qualified_names),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_use_fully_qualified_names),
         sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
@@ -499,7 +499,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "subdomain", /* name */
         "b", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_subdomain),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_subdomain),
         sbus_invoke_get_b,
         0, /* not writable */
         NULL, /* no invoker */
@@ -508,7 +508,7 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
         "parent_domain", /* name */
         "o", /* type */
         SBUS_PROPERTY_READABLE,
-        offsetof(struct infopipe_domain, infopipe_domain_get_parent_domain),
+        offsetof(struct iface_ifp_domains, iface_ifp_domains_get_parent_domain),
         sbus_invoke_get_o,
         0, /* not writable */
         NULL, /* no invoker */
@@ -517,11 +517,11 @@ const struct sbus_property_meta infopipe_domain__properties[] = {
 };
 
 /* interface info for org.freedesktop.sssd.infopipe.Domains */
-const struct sbus_interface_meta infopipe_domain_meta = {
+const struct sbus_interface_meta iface_ifp_domains_meta = {
     "org.freedesktop.sssd.infopipe.Domains", /* name */
     NULL, /* no methods */
     NULL, /* no signals */
-    infopipe_domain__properties,
+    iface_ifp_domains__properties,
     sbus_invoke_get_all, /* GetAll invoker */
 };
 

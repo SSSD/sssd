@@ -411,8 +411,7 @@ ifp_user_get_groups_reply(struct sss_domain_info *domain,
         DEBUG(SSSDBG_TRACE_FUNC, "Adding group %s\n", groupnames[i]);
     }
 
-    return infopipe_iface_GetUserGroups_finish(ireq->dbus_req,
-                                               groupnames, num);
+    return iface_ifp_GetUserGroups_finish(ireq->dbus_req, groupnames, num);
 }
 
 struct ifp_user_get_attr_state {

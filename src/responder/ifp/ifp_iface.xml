@@ -2,7 +2,7 @@
  "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
     <interface name="org.freedesktop.sssd.infopipe">
-        <annotation value="infopipe_iface" name="org.freedesktop.DBus.GLib.CSymbol"/>
+        <annotation value="iface_ifp" name="org.freedesktop.DBus.GLib.CSymbol"/>
 
         <method name="Ping">
             <!-- manual argument parsing, raw handler -->
@@ -61,7 +61,7 @@
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Components">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="infopipe_component"/>
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_components"/>
 
         <method name="Enable" />
         <method name="Disable" />
@@ -84,7 +84,7 @@
     </interface>
 
     <interface name="org.freedesktop.sssd.infopipe.Domains">
-        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="infopipe_domain"/>
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_domains"/>
 
         <property name="name" type="s" access="read"/>
         <property name="provider" type="s" access="read"/>

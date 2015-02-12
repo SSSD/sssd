@@ -25,8 +25,8 @@
 #include "responder/ifp/ifp_domains.h"
 #include "responder/ifp/ifp_components.h"
 
-struct infopipe_iface ifp_iface = {
-    { &infopipe_iface_meta, 0 },
+struct iface_ifp iface_ifp = {
+    { &iface_ifp_meta, 0 },
     .Ping = ifp_ping,
 
     /* components */
@@ -43,37 +43,37 @@ struct infopipe_iface ifp_iface = {
     .FindDomainByName = ifp_find_domain_by_name,
 };
 
-struct infopipe_component ifp_component = {
-    { &infopipe_component_meta, 0 },
+struct iface_ifp_components iface_ifp_components = {
+    { &iface_ifp_components_meta, 0 },
     .Enable = ifp_component_enable,
     .Disable = ifp_component_disable,
     .ChangeDebugLevel = ifp_component_change_debug_level,
     .ChangeDebugLevelTemporarily = ifp_component_change_debug_level_tmp,
-    .infopipe_component_get_name = ifp_component_get_name,
-    .infopipe_component_get_debug_level = ifp_component_get_debug_level,
-    .infopipe_component_get_enabled = ifp_component_get_enabled,
-    .infopipe_component_get_type = ifp_component_get_type,
+    .iface_ifp_components_get_name = ifp_component_get_name,
+    .iface_ifp_components_get_debug_level = ifp_component_get_debug_level,
+    .iface_ifp_components_get_enabled = ifp_component_get_enabled,
+    .iface_ifp_components_get_type = ifp_component_get_type,
     /* FIXME: This should be part of Components.Backends interface, onece
      * SSSD supports multiple interfaces per object path. */
-    .infopipe_component_get_providers = ifp_backend_get_providers
+    .iface_ifp_components_get_providers = ifp_backend_get_providers
 };
 
-struct infopipe_domain ifp_domain = {
-    { &infopipe_domain_meta, 0 },
-    .infopipe_domain_get_name = ifp_dom_get_name,
-    .infopipe_domain_get_provider = ifp_dom_get_provider,
-    .infopipe_domain_get_primary_servers = ifp_dom_get_primary_servers,
-    .infopipe_domain_get_backup_servers = ifp_dom_get_backup_servers,
-    .infopipe_domain_get_min_id = ifp_dom_get_min_id,
-    .infopipe_domain_get_max_id = ifp_dom_get_max_id,
-    .infopipe_domain_get_realm = ifp_dom_get_realm,
-    .infopipe_domain_get_forest = ifp_dom_get_forest,
-    .infopipe_domain_get_login_format = ifp_dom_get_login_format,
-    .infopipe_domain_get_fully_qualified_name_format = ifp_dom_get_fqdn_format,
-    .infopipe_domain_get_enumerable = ifp_dom_get_enumerable,
-    .infopipe_domain_get_use_fully_qualified_names = ifp_dom_get_use_fqdn,
-    .infopipe_domain_get_subdomain = ifp_dom_get_subdomain,
-    .infopipe_domain_get_parent_domain = ifp_dom_get_parent_domain
+struct iface_ifp_domains iface_ifp_domains = {
+    { &iface_ifp_domains_meta, 0 },
+    .iface_ifp_domains_get_name = ifp_dom_get_name,
+    .iface_ifp_domains_get_provider = ifp_dom_get_provider,
+    .iface_ifp_domains_get_primary_servers = ifp_dom_get_primary_servers,
+    .iface_ifp_domains_get_backup_servers = ifp_dom_get_backup_servers,
+    .iface_ifp_domains_get_min_id = ifp_dom_get_min_id,
+    .iface_ifp_domains_get_max_id = ifp_dom_get_max_id,
+    .iface_ifp_domains_get_realm = ifp_dom_get_realm,
+    .iface_ifp_domains_get_forest = ifp_dom_get_forest,
+    .iface_ifp_domains_get_login_format = ifp_dom_get_login_format,
+    .iface_ifp_domains_get_fully_qualified_name_format = ifp_dom_get_fqdn_format,
+    .iface_ifp_domains_get_enumerable = ifp_dom_get_enumerable,
+    .iface_ifp_domains_get_use_fully_qualified_names = ifp_dom_get_use_fqdn,
+    .iface_ifp_domains_get_subdomain = ifp_dom_get_subdomain,
+    .iface_ifp_domains_get_parent_domain = ifp_dom_get_parent_domain
 };
 
 struct iface_map {
@@ -82,9 +82,9 @@ struct iface_map {
 };
 
 static struct iface_map iface_map[] = {
-    { INFOPIPE_PATH, &ifp_iface.vtable },
-    { INFOPIPE_DOMAIN_PATH, &ifp_domain.vtable },
-    { INFOPIPE_COMPONENT_PATH, &ifp_component.vtable },
+    { INFOPIPE_PATH, &iface_ifp.vtable },
+    { INFOPIPE_DOMAIN_PATH, &iface_ifp_domains.vtable },
+    { INFOPIPE_COMPONENT_PATH, &iface_ifp_components.vtable },
     { NULL, NULL },
 };
 

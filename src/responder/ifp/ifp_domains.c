@@ -135,7 +135,7 @@ static void ifp_list_domains_process(struct tevent_req *req)
         pi++;
     }
 
-    ret = infopipe_iface_ListDomains_finish(ireq->dbus_req, paths, num_domains);
+    ret = iface_ifp_ListDomains_finish(ireq->dbus_req, paths, num_domains);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not finish request!\n");
     }
@@ -242,7 +242,7 @@ static void ifp_find_domain_by_name_process(struct tevent_req *req)
         return;
     }
 
-    ret = infopipe_iface_FindDomainByName_finish(ireq->dbus_req, path);
+    ret = iface_ifp_FindDomainByName_finish(ireq->dbus_req, path);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not finish request!\n");
     }
