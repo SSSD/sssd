@@ -1859,11 +1859,14 @@ test_authtok_SOURCES = \
 test_authtok_CFLAGS = \
     $(AM_CFLAGS) \
     $(TALLOC_CFLAGS) \
+    $(POPT_CFLAGS) \
     $(DHASH_CFLAGS)
 test_authtok_LDADD = \
     $(TALLOC_LIBS) \
     $(CMOCKA_LIBS) \
     $(DHASH_LIBS) \
+    $(POPT_LIBS) \
+    libsss_test_common.la \
     libsss_debug.la
 
 sss_nss_idmap_tests_SOURCES = \

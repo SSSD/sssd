@@ -22,11 +22,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
 #include <string.h>
+#include <popt.h>
+
+#include "tests/cmocka/common_mock.h"
 
 #include "util/authtok.h"
 
@@ -39,12 +38,15 @@ static int setup(void **state)
 {
     struct test_state *ts = NULL;
 
-    ts = talloc(NULL, struct test_state);
+    assert_true(leak_check_setup());
+
+    ts = talloc(global_talloc_context, struct test_state);
     assert_non_null(ts);
 
     ts->authtoken = sss_authtok_new(ts);
     assert_non_null(ts->authtoken);
 
+    check_leaks_push(ts);
     *state = (void *)ts;
     return 0;
 }
@@ -52,7 +54,12 @@ static int setup(void **state)
 static int teardown(void **state)
 {
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+
+    assert_non_null(ts);
+
+    assert_true(check_leaks_pop(ts) == true);
     talloc_free(ts);
+    assert_true(leak_check_teardown());
     return 0;
 }
 
@@ -85,7 +92,7 @@ static void test_sss_authtok_password(void **state)
 {
     size_t len;
     errno_t ret;
-    const char *data;
+    char *data;
     size_t ret_len;
     const char *pwd;
     struct test_state *ts;
@@ -117,6 +124,9 @@ static void test_sss_authtok_password(void **state)
     assert_int_equal(ret, EOK);
     assert_string_equal(data, pwd);
     assert_int_equal(len - 1, ret_len);
+
+    talloc_free(data);
+    sss_authtok_set_empty(ts->authtoken);
 }
 
 /* Test when type has value SSS_AUTHTOK_TYPE_CCFILE */
@@ -124,7 +134,7 @@ static void test_sss_authtok_ccfile(void **state)
 {
     size_t len;
     errno_t ret;
-    const char *data;
+    char *data;
     size_t ret_len;
     const char *pwd;
     struct test_state *ts;
@@ -172,6 +182,9 @@ static void test_sss_authtok_ccfile(void **state)
     assert_int_equal(ret, EOK);
     assert_string_equal(data, pwd);
     assert_int_equal(len - 1, ret_len);
+
+    talloc_free(data);
+    sss_authtok_set_empty(ts->authtoken);
 }
 
 /* Test when type has value SSS_AUTHTOK_TYPE_EMPTY */
@@ -226,7 +239,7 @@ static void test_sss_authtok_wipe_password(void **state)
 {
     size_t len;
     errno_t ret;
-    const char *data;
+    char *data;
     size_t ret_len;
     const char *pwd;
     struct test_state *ts;
@@ -249,13 +262,16 @@ static void test_sss_authtok_wipe_password(void **state)
     assert_int_equal(ret, EOK);
     assert_string_equal(pwd, "");
     assert_int_equal(len - 1, ret_len);
+
+    sss_authtok_set_empty(ts->authtoken);
+    talloc_free(data);
 }
 
 static void test_sss_authtok_copy(void **state)
 {
     size_t len;
     errno_t ret;
-    const char *data;
+    char *data;
     struct test_state *ts;
     enum sss_authtok_type type;
     struct sss_auth_token *dest_authtoken;
@@ -276,6 +292,7 @@ static void test_sss_authtok_copy(void **state)
     assert_int_equal(EOK, sss_authtok_copy(ts->authtoken, dest_authtoken));
     assert_int_equal(type, sss_authtok_get_type(dest_authtoken));
 
+    sss_authtok_set_empty(dest_authtoken);
     type = SSS_AUTHTOK_TYPE_PASSWORD;
     ret = sss_authtok_set(ts->authtoken, type, (const uint8_t *)data, len);
 
@@ -287,10 +304,23 @@ static void test_sss_authtok_copy(void **state)
     assert_int_equal(type, sss_authtok_get_type(dest_authtoken));
     assert_string_equal(data, sss_authtok_get_data(dest_authtoken));
     assert_int_equal(len, sss_authtok_get_size(dest_authtoken));
+
+    sss_authtok_set_empty(dest_authtoken);
+    talloc_free(dest_authtoken);
+    sss_authtok_set_empty(ts->authtoken);
+    talloc_free(data);
 }
 
-int main(void)
+int main(int argc, const char *argv[])
 {
+    poptContext pc;
+    int opt;
+    struct poptOption long_options[] = {
+        POPT_AUTOHELP
+        SSSD_DEBUG_OPTS
+        POPT_TABLEEND
+    };
+
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_sss_authtok_new,
                                         setup, teardown),
@@ -305,6 +335,23 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_authtok_copy,
                                         setup, teardown)
     };
+
+    /* Set debug level to invalid value so we can deside if -d 0 was used. */
+    debug_level = SSSDBG_INVALID;
+
+    pc = poptGetContext(argv[0], argc, argv, long_options, 0);
+    while((opt = poptGetNextOpt(pc)) != -1) {
+        switch(opt) {
+        default:
+            fprintf(stderr, "\nInvalid option %s: %s\n\n",
+                    poptBadOption(pc, 0), poptStrerror(opt));
+            poptPrintUsage(pc, stderr, 0);
+            return 1;
+        }
+    }
+    poptFreeContext(pc);
+
+    DEBUG_CLI_INIT(debug_level);
 
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
