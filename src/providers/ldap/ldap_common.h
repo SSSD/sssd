@@ -327,6 +327,7 @@ sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
 struct tevent_req *sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
                                                struct be_ctx *be_ctx,
+                                               struct sss_domain_info *domain,
                                                char **names,
                                                void *pvt);
 

@@ -36,6 +36,7 @@ typedef struct tevent_req *
 (*be_refresh_send_t)(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct be_ctx *be_ctx,
+                     struct sss_domain_info *domain,
                      char **values,
                      void *pvt);
 

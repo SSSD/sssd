@@ -27,6 +27,7 @@
 struct sdap_refresh_netgroups_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *id_ctx;
+    struct sdap_domain *sdom;
     char **names;
     size_t index;
 };
@@ -37,6 +38,7 @@ static void sdap_refresh_netgroups_done(struct tevent_req *subreq);
 struct tevent_req *sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
                                                struct be_ctx *be_ctx,
+                                               struct sss_domain_info *domain,
                                                char **names,
                                                void *pvt)
 {
@@ -51,13 +53,19 @@ struct tevent_req *sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    if (names == NULL) {
+        ret = EOK;
+        goto immediately;
+    }
+
     state->ev = ev;
     state->id_ctx = talloc_get_type(pvt, struct sdap_id_ctx);
     state->names = names;
     state->index = 0;
 
-    if (names == NULL) {
-        ret = EOK;
+    state->sdom = sdap_domain_get(state->id_ctx->opts, domain);
+    if (state->sdom == NULL) {
+        ret = ERR_DOMAIN_NOT_FOUND;
         goto immediately;
     }
 
@@ -107,8 +115,7 @@ static errno_t sdap_refresh_netgroups_step(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing refresh of netgroup %s\n", name);
 
     subreq = ldap_netgroup_get_send(state, state->ev, state->id_ctx,
-                                    state->id_ctx->opts->sdom,
-                                    state->id_ctx->conn,
+                                    state->sdom, state->id_ctx->conn,
                                     name, true);
     if (subreq == NULL) {
         ret = ENOMEM;

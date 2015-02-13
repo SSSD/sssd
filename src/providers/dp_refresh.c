@@ -117,6 +117,7 @@ typedef errno_t
 
 
 struct be_refresh_cb {
+    const char *name;
     bool enabled;
     be_refresh_get_values_t get_values;
     be_refresh_send_t send_fn;
@@ -137,6 +138,7 @@ struct be_refresh_ctx *be_refresh_ctx_init(TALLOC_CTX *mem_ctx)
         return NULL;
     }
 
+    ctx->callbacks[BE_REFRESH_TYPE_NETGROUPS].name = "netgroups";
     ctx->callbacks[BE_REFRESH_TYPE_NETGROUPS].get_values \
         = be_refresh_get_netgroups;
 
@@ -171,6 +173,8 @@ struct be_refresh_state {
     struct be_ctx *be_ctx;
     struct be_refresh_ctx *ctx;
     struct be_refresh_cb *cb;
+
+    struct sss_domain_info *domain;
     enum be_refresh_type index;
     time_t period;
 };
@@ -197,6 +201,7 @@ struct tevent_req *be_refresh_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->be_ctx = be_ctx;
+    state->domain = be_ctx->domain;
     state->period = be_ptask_get_period(be_ptask);
     state->ctx = talloc_get_type(pvt, struct be_refresh_ctx);
     if (state->ctx == NULL) {
@@ -235,47 +240,62 @@ static errno_t be_refresh_step(struct tevent_req *req)
 
     state = tevent_req_data(req, struct be_refresh_state);
 
-    state->cb = &state->ctx->callbacks[state->index];
-    while (state->index != BE_REFRESH_TYPE_SENTINEL && !state->cb->enabled) {
-        state->index++;
+    while (state->domain != NULL) {
+        /* find first enabled callback */
         state->cb = &state->ctx->callbacks[state->index];
-    }
+        while (state->index != BE_REFRESH_TYPE_SENTINEL && !state->cb->enabled) {
+            state->index++;
+            state->cb = &state->ctx->callbacks[state->index];
+        }
 
-    if (state->index == BE_REFRESH_TYPE_SENTINEL) {
-        ret = EOK;
+        /* if not found than continue with next domain */
+        if (state->index == BE_REFRESH_TYPE_SENTINEL) {
+            state->domain = get_next_domain(state->domain, false);
+            continue;
+        }
+
+        if (state->cb->get_values == NULL || state->cb->send_fn == NULL
+            || state->cb->recv_fn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Invalid parameters!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        ret = state->cb->get_values(state, state->domain, state->period,
+                                    &values);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain DN list [%d]: %s\n",
+                                        ret, sss_strerror(ret));
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Refreshing %s in domain %s\n",
+              state->cb->name, state->domain->name);
+
+        subreq = state->cb->send_fn(state, state->ev, state->be_ctx,
+                                    state->domain, values, state->cb->pvt);
+        if (subreq == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* make the list disappear with subreq */
+        talloc_steal(subreq, values);
+
+        tevent_req_set_callback(subreq, be_refresh_done, req);
+
+        state->index++;
+        ret = EAGAIN;
         goto done;
     }
 
-    if (state->cb->get_values == NULL || state->cb->send_fn == NULL
-        || state->cb->recv_fn == NULL) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    ret = state->cb->get_values(state, state->be_ctx->domain, state->period,
-                                &values);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain DN list [%d]: %s\n",
-                                    ret, sss_strerror(ret));
-        goto done;
-    }
-
-    subreq = state->cb->send_fn(state, state->ev, state->be_ctx,
-                             values, state->cb->pvt);
-    if (subreq == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* make the list disappear with subreq */
-    talloc_steal(subreq, values);
-
-    tevent_req_set_callback(subreq, be_refresh_done, req);
-
-    state->index++;
-    ret = EAGAIN;
+    ret = EOK;
 
 done:
+    if (ret != EOK && ret != EAGAIN) {
+        talloc_free(values);
+    }
+
     return ret;
 }
 
