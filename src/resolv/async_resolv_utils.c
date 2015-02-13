@@ -334,7 +334,7 @@ errno_t resolv_discover_srv_recv(TALLOC_CTX *mem_ctx,
         *_reply_list = talloc_steal(mem_ctx, state->reply_list);
     }
 
-    if (*_ttl) {
+    if (_ttl != NULL) {
         *_ttl = state->ttl;
     }
 
