@@ -749,7 +749,7 @@ static errno_t choose_best_seuser(TALLOC_CTX *mem_ctx,
 
     /* If no maps match, we'll use the default SELinux user from the
      * config */
-    seuser_mls_str = talloc_strdup(tmp_ctx, default_user);
+    seuser_mls_str = talloc_strdup(tmp_ctx, default_user ? default_user : "");
     if (seuser_mls_str == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1373,11 +1373,13 @@ ipa_get_selinux_maps_offline(struct tevent_req *req)
         return ENOMEM;
     }
 
-    ret = sysdb_attrs_add_string(state->defaults,
-                                 IPA_CONFIG_SELINUX_DEFAULT_USER_CTX,
-                                 default_user);
-    if (ret != EOK) {
-        return ret;
+    if (default_user) {
+        ret = sysdb_attrs_add_string(state->defaults,
+                                    IPA_CONFIG_SELINUX_DEFAULT_USER_CTX,
+                                    default_user);
+        if (ret != EOK) {
+            return ret;
+        }
     }
 
     ret = sysdb_attrs_add_string(state->defaults,
