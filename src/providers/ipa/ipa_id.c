@@ -744,7 +744,7 @@ static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
                                           struct ipa_id_get_account_info_state);
     struct tevent_req *subreq;
 
-    subreq = sdap_handle_acct_req_send(state, state->be_req, ar,
+    subreq = sdap_handle_acct_req_send(state, state->ctx->be, ar,
                                        state->ipa_ctx->sdap_id_ctx,
                                        state->ipa_ctx->sdap_id_ctx->opts->sdom,
                                        state->ipa_ctx->sdap_id_ctx->conn, true);
