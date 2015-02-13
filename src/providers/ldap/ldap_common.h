@@ -104,7 +104,7 @@ int sdap_id_setup_tasks(struct be_ctx *be_ctx,
 
 struct tevent_req *
 sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
-                          struct be_req *breq,
+                          struct be_ctx *be_ctx,
                           struct be_acct_req *ar,
                           struct sdap_id_ctx *id_ctx,
                           struct sdap_domain *sdom,

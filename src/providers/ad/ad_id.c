@@ -120,7 +120,7 @@ ad_handle_acct_info_step(struct tevent_req *req)
         noexist_delete = true;
     }
 
-    subreq = sdap_handle_acct_req_send(state, state->breq,
+    subreq = sdap_handle_acct_req_send(state, state->ctx->be,
                                        state->ar, state->ctx,
                                        state->sdom,
                                        state->conn[state->cindex],
