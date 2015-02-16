@@ -46,15 +46,9 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/ldap/ldap_auth.h"
 
 #define LDAP_PWEXPIRE_WARNING_TIME 0
-
-enum pwexpire {
-    PWEXPIRE_NONE = 0,
-    PWEXPIRE_LDAP_PASSWORD_POLICY,
-    PWEXPIRE_KERBEROS,
-    PWEXPIRE_SHADOW
-};
 
 static errno_t add_expired_warning(struct pam_data *pd, long exp_time)
 {
@@ -248,10 +242,41 @@ done:
     return ret;
 }
 
-static errno_t find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
-                                               const struct ldb_message *msg,
-                                               struct dp_option *opts,
-                                               enum pwexpire *type, void **data)
+errno_t check_pwexpire_policy(enum pwexpire pw_expire_type,
+                              void *pw_expire_data,
+                              struct pam_data *pd,
+                              int pwd_expiration_warning)
+{
+    errno_t ret;
+
+    switch (pw_expire_type) {
+    case PWEXPIRE_SHADOW:
+        ret = check_pwexpire_shadow(pw_expire_data, time(NULL), pd);
+        break;
+    case PWEXPIRE_KERBEROS:
+        ret = check_pwexpire_kerberos(pw_expire_data, time(NULL), pd,
+                                      pwd_expiration_warning);
+        break;
+    case PWEXPIRE_LDAP_PASSWORD_POLICY:
+        ret = check_pwexpire_ldap(pd, pw_expire_data,
+                                  pwd_expiration_warning);
+        break;
+    case PWEXPIRE_NONE:
+        ret = EOK;
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown password expiration type.\n");
+        ret = EINVAL;
+    }
+
+    return ret;
+}
+
+static errno_t
+find_password_expiration_attributes(TALLOC_CTX *mem_ctx,
+                                    const struct ldb_message *msg,
+                                    struct dp_option *opts,
+                                    enum pwexpire *type, void **data)
 {
     const char *mark;
     const char *val;
@@ -492,7 +517,7 @@ static int get_user_dn_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req,
     return EOK;
 }
 
-static int get_user_dn(TALLOC_CTX *memctx,
+int get_user_dn(TALLOC_CTX *memctx,
                        struct sss_domain_info *domain,
                        struct sdap_options *opts,
                        const char *username,
@@ -998,7 +1023,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
         case PWEXPIRE_NONE:
             break;
         default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknow pasword expiration type.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown password expiration type.\n");
                 state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
         }
@@ -1247,25 +1272,12 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     talloc_zfree(req);
 
     if (ret == EOK) {
-        switch (pw_expire_type) {
-        case PWEXPIRE_SHADOW:
-            ret = check_pwexpire_shadow(pw_expire_data, time(NULL), state->pd);
-            break;
-        case PWEXPIRE_KERBEROS:
-            ret = check_pwexpire_kerberos(pw_expire_data, time(NULL),
-                                          state->pd,
-                                          be_ctx->domain->pwd_expiration_warning);
-            break;
-        case PWEXPIRE_LDAP_PASSWORD_POLICY:
-            ret = check_pwexpire_ldap(state->pd, pw_expire_data,
-                                      be_ctx->domain->pwd_expiration_warning);
-            break;
-        case PWEXPIRE_NONE:
-            break;
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknow pasword expiration type.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
-                goto done;
+        ret = check_pwexpire_policy(pw_expire_type, pw_expire_data, state->pd,
+                                    be_ctx->domain->pwd_expiration_warning);
+        if (ret == EINVAL) {
+            /* Unknown password expiration type. */
+            state->pd->pam_status = PAM_SYSTEM_ERR;
+            goto done;
         }
     }
 
