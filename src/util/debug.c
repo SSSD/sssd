@@ -431,5 +431,5 @@ int rotate_debug_files(void)
 
 void talloc_log_fn(const char *message)
 {
-    DEBUG(SSSDBG_FATAL_FAILURE, "%s", message);
+    DEBUG(SSSDBG_FATAL_FAILURE, "%s\n", message);
 }

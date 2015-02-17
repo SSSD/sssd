@@ -73,7 +73,7 @@ setup_krb5_child_test(TALLOC_CTX *mem_ctx, struct krb5_child_test_ctx **_ctx)
 
     ctx->ev = tevent_context_init(ctx);
     if (ctx->ev == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not init tevent context");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not init tevent context\n");
         talloc_free(ctx);
         return EFAULT;
     }

@@ -1792,7 +1792,7 @@ static void sdap_initgr_rfc2307bis_done(struct tevent_req *subreq)
     ret = save_rfc2307bis_groups(state);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not save groups memberships [%d]", ret);
+              "Could not save groups memberships [%d]\n", ret);
         goto fail;
     }
 
@@ -1800,7 +1800,7 @@ static void sdap_initgr_rfc2307bis_done(struct tevent_req *subreq)
     ret = save_rfc2307bis_group_memberships(state);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not save group memberships [%d]", ret);
+              "Could not save group memberships [%d]\n", ret);
         goto fail;
     }
 
@@ -1808,7 +1808,7 @@ static void sdap_initgr_rfc2307bis_done(struct tevent_req *subreq)
     ret = save_rfc2307bis_user_memberships(state);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not save user memberships [%d]", ret);
+              "Could not save user memberships [%d]\n", ret);
         goto fail;
     }
 

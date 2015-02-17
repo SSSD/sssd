@@ -568,8 +568,8 @@ done:
         if (err < 0) {
             err = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Could not remove file [%s]: [%d]: %s",
-                   tmp_file, err, strerror(err));
+                  "Could not remove file [%s]: [%d]: %s\n",
+                  tmp_file, err, strerror(err));
         }
     }
     talloc_free(tmp_ctx);
@@ -731,8 +731,8 @@ done:
         if (err == -1) {
             err = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Could not remove file [%s]: [%d]: %s",
-                   tmp_file, err, sss_strerror(err));
+                  "Could not remove file [%s]: [%d]: %s\n",
+                  tmp_file, err, sss_strerror(err));
         }
     }
 

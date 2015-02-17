@@ -927,7 +927,7 @@ be_file_account_request(struct be_req *be_req, struct be_acct_req *ar)
     if ((ar->entry_type & 0xFF) == BE_REQ_INITGROUPS) {
         ret = be_initgroups_prereq(be_req);
         if (ret) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Prerequest failed");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Prerequest failed\n");
             return ret;
         }
     }
@@ -936,7 +936,7 @@ be_file_account_request(struct be_req *be_req, struct be_acct_req *ar)
     ret = be_file_request(be_ctx, be_req,
                           be_ctx->bet_info[BET_ID].bet_ops->handler);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to file request");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to file request\n");
         return ret;
     }
 

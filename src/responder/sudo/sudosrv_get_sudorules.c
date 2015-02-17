@@ -664,7 +664,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                               SUDORULE_SUBDIR, attrs,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up SUDO rules");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up SUDO rules\n");
         goto done;
     } if (ret == ENOENT) {
        *_rules = NULL;

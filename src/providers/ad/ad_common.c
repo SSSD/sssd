@@ -437,8 +437,8 @@ _ad_servers_init(struct ad_service *service,
                                        false, sdata);
             if (ret != EOK) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
-                      "Failed to add service discovery to failover: [%s]",
-                       strerror(ret));
+                      "Failed to add service discovery to failover: [%s]\n",
+                      strerror(ret));
                 goto done;
             }
 
@@ -454,8 +454,8 @@ _ad_servers_init(struct ad_service *service,
                                        false, sdata);
             if (ret != EOK) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
-                      "Failed to add service discovery to failover: [%s]",
-                       strerror(ret));
+                      "Failed to add service discovery to failover: [%s]\n",
+                      strerror(ret));
                 goto done;
             }
 

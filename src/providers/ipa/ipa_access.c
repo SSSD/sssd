@@ -711,7 +711,7 @@ errno_t hbac_get_cached_rules(TALLOC_CTX *mem_ctx,
                               HBAC_RULES_SUBDIR, attrs,
                               &rule_count, &msgs);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up HBAC rules");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up HBAC rules\n");
         goto done;
     } if (ret == ENOENT) {
        rule_count = 0;

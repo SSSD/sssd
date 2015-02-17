@@ -425,7 +425,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
             ldif_attr = talloc_asprintf(tmp_ctx,
                                         "%s: %s\n", attrs[j], value);
-            DEBUG(SSSDBG_TRACE_ALL, "%s", ldif_attr);
+            DEBUG(SSSDBG_TRACE_ALL, "%s\n", ldif_attr);
 
             attr_len = strlen(ldif_attr);
 
@@ -455,7 +455,7 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         dn[dn_size-1] = '\n';
         dn[dn_size] = '\0';
 
-        DEBUG(SSSDBG_TRACE_ALL, "Section dn\n%s", dn);
+        DEBUG(SSSDBG_TRACE_ALL, "Section dn\n%s\n", dn);
 
         tmp_ldif = talloc_realloc(mem_ctx, ldif, char,
                                   ldif_len+dn_size+1);

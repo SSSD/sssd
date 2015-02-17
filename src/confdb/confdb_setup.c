@@ -275,7 +275,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, "LDIF file to import: \n%s", config_ldif);
+    DEBUG(SSSDBG_TRACE_LIBS, "LDIF file to import: \n%s\n", config_ldif);
 
     while ((ldif = ldb_ldif_read_string(cdb->ldb, &config_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);

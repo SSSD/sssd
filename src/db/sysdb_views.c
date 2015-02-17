@@ -238,7 +238,7 @@ errno_t sysdb_invalidate_overrides(struct sysdb_ctx *sysdb)
 
     base_dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
     if (base_dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed");
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed\n");
         ret = ENOMEM;
         goto done;
     }

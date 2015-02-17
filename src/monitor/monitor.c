@@ -998,9 +998,9 @@ static int get_monitor_config(struct mt_ctx *ctx)
 
     ret = add_implicit_services(ctx->cdb, ctx, &ctx->services);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to add implicit configured " \
-                                  "services. Some functionality might " \
-                                  "be missing");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to add implicit configured "
+                                 "services. Some functionality might "
+                                 "be missing\n");
     }
 
     badsrv = check_services(ctx->services);

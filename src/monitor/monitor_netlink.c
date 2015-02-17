@@ -220,7 +220,7 @@ static bool has_phy_80211_subdir(const char *sysfs_path)
     ret = snprintf(phy80211_path, SYSFS_SUBDIR_PATH_MAX,
                    "%s/%s", sysfs_path, PHY_80211_SUBDIR);
     if (ret < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "snprintf failed");
+        DEBUG(SSSDBG_OP_FAILURE, "snprintf failed\n");
         return false;
     } else if (ret >= SYSFS_SUBDIR_PATH_MAX) {
         DEBUG(SSSDBG_OP_FAILURE, "path too long?!?!\n");
@@ -263,7 +263,7 @@ static bool discard_iff_up(const char *ifname)
 
     ret = snprintf(path, SYSFS_IFACE_PATH_MAX, SYSFS_IFACE_TEMPLATE, ifname);
     if (ret < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "snprintf failed");
+        DEBUG(SSSDBG_OP_FAILURE, "snprintf failed\n");
         return false;
     } else if (ret >= SYSFS_IFACE_PATH_MAX) {
         DEBUG(SSSDBG_OP_FAILURE, "path too long?!?!\n");
@@ -339,8 +339,8 @@ static bool nlw_accept_message(struct nlw_handle *nlp,
     }
 
     if (accept_msg == false) {
-        DEBUG(SSSDBG_TRACE_ALL, "ignoring netlink message from PID %d",
-                  hdr->nlmsg_pid);
+        DEBUG(SSSDBG_TRACE_ALL,
+              "ignoring netlink message from PID %d\n", hdr->nlmsg_pid);
     }
 
     return accept_msg;
@@ -475,8 +475,8 @@ static int event_msg_recv(struct nl_msg *msg, void *arg)
     creds = nlmsg_get_creds(msg);
     if (!creds || creds->uid != 0) {
         DEBUG(SSSDBG_TRACE_ALL,
-              "Ignoring netlink message from UID %"SPRIuid,
-                  creds ? creds->uid : (uid_t)-1);
+              "Ignoring netlink message from UID %"SPRIuid"\n",
+              creds ? creds->uid : (uid_t)-1);
         return NL_SKIP;
     }
 
@@ -754,8 +754,8 @@ int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     /* allocate the libnl handle/socket and register the default filter set */
     nlctx->nlp = nlw_alloc();
     if (!nlctx->nlp) {
-        DEBUG(SSSDBG_CRIT_FAILURE, ("unable to allocate netlink handle: %s"),
-                                     nlw_geterror(ENOMEM));
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "unable to allocate netlink handle: %s\n", nlw_geterror(ENOMEM));
         ret = ENOMEM;
         goto fail;
     }

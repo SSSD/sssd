@@ -668,7 +668,7 @@ errno_t sysdb_sudo_purge_byfilter(struct sss_domain_info *domain,
         ret = EOK;
         goto done;
     } else if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up SUDO rules");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up SUDO rules\n");
         goto done;
     }
 

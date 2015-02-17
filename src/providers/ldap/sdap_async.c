@@ -1481,7 +1481,7 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
                                                &total_count, &cookie);
         ldap_controls_free(returned_controls);
         if (lret != LDAP_SUCCESS) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine page control");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Could not determine page control\n");
             tevent_req_error(req, EIO);
             return;
         }

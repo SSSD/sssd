@@ -56,7 +56,7 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
                                SBUS_CONN_TYPE_PRIVATE, &conn);
     if (ret != 0) {
         dbus_connection_close(dbus_conn);
-        DEBUG(SSSDBG_FUNC_DATA,"Closing connection (failed setup)");
+        DEBUG(SSSDBG_FUNC_DATA, "Closing connection (failed setup)\n");
         return;
     }
 
@@ -145,7 +145,7 @@ remove_socket_symlink(const char *symlink_name)
     ret = snprintf(pidpath, PATH_MAX, "%s.%lu",
                    symlink_name, (unsigned long) getpid());
     if (ret < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "snprintf failed");
+        DEBUG(SSSDBG_OP_FAILURE, "snprintf failed\n");
         return EIO;
     } else if (ret >= PATH_MAX) {
         DEBUG(SSSDBG_OP_FAILURE, "path too long?!?!\n");

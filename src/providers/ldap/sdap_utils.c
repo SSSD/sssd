@@ -86,7 +86,7 @@ sdap_save_all_names(const char *name,
     ret = sysdb_attrs_get_aliases(tmp_ctx, ldap_attrs, name,
                                   lowercase, &aliases);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to get the alias list");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get the alias list\n");
         goto done;
     }
 

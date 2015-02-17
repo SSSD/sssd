@@ -131,7 +131,7 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
 
     pr_ctx->domain_name = pr_ctx->logon_info->info3.base.logon_domain.string;
     if (pr_ctx->domain_name == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No domain name in PAC");
+        DEBUG(SSSDBG_FATAL_FAILURE, "No domain name in PAC\n");
         ret = EINVAL;
         goto done;
     }

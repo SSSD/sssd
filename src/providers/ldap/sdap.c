@@ -437,7 +437,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             if (!vals) {
                 ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
                 if (lerrno != LDAP_SUCCESS) {
-                    DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)",
+                    DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)\n",
                           lerrno, sss_ldap_err2string(lerrno));
                     ret = EIO;
                     goto done;
@@ -517,7 +517,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
     ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
     if (lerrno) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)",
+        DEBUG(SSSDBG_CRIT_FAILURE, "LDAP Library error: %d(%s)\n",
               lerrno, sss_ldap_err2string(lerrno));
         ret = EIO;
         goto done;

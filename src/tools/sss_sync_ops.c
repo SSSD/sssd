@@ -40,7 +40,7 @@
 
 #define VAR_CHECK(var, val, attr, msg) do { \
         if (var != (val)) { \
-            DEBUG(SSSDBG_CRIT_FAILURE, msg" attribute: %s", attr); \
+            DEBUG(SSSDBG_CRIT_FAILURE, msg" attribute: %s\n", attr); \
             return val; \
         } \
 } while(0)

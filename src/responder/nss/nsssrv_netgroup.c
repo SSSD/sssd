@@ -76,9 +76,9 @@ static errno_t set_netgroup_entry(struct nss_ctx *nctx,
     hret = hash_enter(nctx->netgroups, &key, &value);
     if (hret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Unable to add hash table entry for [%s]", key.str);
+              "Unable to add hash table entry for [%s]\n", key.str);
         DEBUG(SSSDBG_CONF_SETTINGS,
-              "Hash error [%d][%s]", hret, hash_error_string(hret));
+              "Hash error [%d][%s]\n", hret, hash_error_string(hret));
         return EIO;
     }
     talloc_steal(nctx->netgroups, netgr);

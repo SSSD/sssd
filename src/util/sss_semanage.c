@@ -326,8 +326,9 @@ int del_seuser(const char *login_name)
     }
 
     if (!exists) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Login mapping for %s is defined in policy, "
-                  "cannot be deleted", login_name);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Login mapping for %s is defined in policy, cannot be deleted\n",
+              login_name);
         ret = ENOENT;
         goto done;
     }
@@ -335,7 +336,7 @@ int del_seuser(const char *login_name)
     ret = semanage_seuser_del_local(handle, key);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not delete login mapping for %s", login_name);
+              "Could not delete login mapping for %s\n", login_name);
         ret = EIO;
         goto done;
     }

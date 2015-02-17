@@ -516,7 +516,7 @@ copy_entry(struct copy_ctx *cctx,
     if (ret != 0) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-                "couldn't stat '%s': %s", src_ent_path, strerror(ret));
+              "couldn't stat '%s': %s\n", src_ent_path, strerror(ret));
         goto done;
     }
 
@@ -577,7 +577,7 @@ copy_dir(struct copy_ctx *cctx,
     if (dir == NULL) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error reading '%s': %s", src_dir_path, strerror(ret));
+              "Error reading '%s': %s\n", src_dir_path, strerror(ret));
         goto done;
     }
 
@@ -590,7 +590,7 @@ copy_dir(struct copy_ctx *cctx,
     if (ret == -1 && errno != EEXIST) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error reading '%s': %s", dest_dir_path, strerror(ret));
+              "Error reading '%s': %s\n", dest_dir_path, strerror(ret));
         goto done;
     }
 
@@ -599,7 +599,7 @@ copy_dir(struct copy_ctx *cctx,
     if (dest_dir_fd == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error opening '%s': %s", dest_dir_path, strerror(ret));
+              "Error opening '%s': %s\n", dest_dir_path, strerror(ret));
         goto done;
     }
 
@@ -628,7 +628,7 @@ copy_dir(struct copy_ctx *cctx,
     if (ret == -1 && errno != EPERM) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
-              "Error changing owner of '%s': %s",
+              "Error changing owner of '%s': %s\n",
               dest_dir_path, strerror(ret));
         goto done;
     }
@@ -640,7 +640,7 @@ copy_dir(struct copy_ctx *cctx,
     if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_OP_FAILURE,
-              "Error setting mode of '%s': %s",
+              "Error setting mode of '%s': %s\n",
               dest_dir_path, strerror(ret));
         goto done;
     }
