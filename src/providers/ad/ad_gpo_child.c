@@ -207,6 +207,7 @@ static errno_t prepare_gpo_cache(TALLOC_CTX *mem_ctx,
     char *first = NULL;
     char *last = NULL;
     char *smb_path_with_suffix = NULL;
+    errno_t ret;
 
     smb_path_with_suffix = talloc_strdup(mem_ctx, input_smb_path_with_suffix);
     if (smb_path_with_suffix == NULL) {
@@ -242,9 +243,13 @@ static errno_t prepare_gpo_cache(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
             return ENOMEM;
         }
+        DEBUG(SSSDBG_TRACE_FUNC, "Storing GPOs in %s\n", current_dir);
 
         if ((mkdir(current_dir, 0644)) < 0 && errno != EEXIST) {
-            return EINVAL;
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "mkdir(%s) failed: %d\n", current_dir, ret);
+            return ret;
         }
 
         ptr = last;
