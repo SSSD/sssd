@@ -133,3 +133,62 @@ void test_reverse_replace_whitespaces(void **state)
     assert_true(check_leaks_pop(mem_ctx) == true);
     talloc_free(mem_ctx);
 }
+
+void test_guid_blob_to_string_buf(void **state)
+{
+    int ret;
+    char str_buf[GUID_STR_BUF_SIZE];
+    size_t c;
+
+    /* How to get test data:
+     * The objectGUID attribute contains a 16byte long binary value
+     * representing the GUID of the object. This data can be converted
+     * manually to the string representation but it might be easier to use
+     * LDAP_SERVER_EXTENDED_DN_OID as described in [MS-ADST] section
+     * 3.1.1.3.4.1.5. This is an LDAP extended control which adds the GUID and
+     * the SID to the DN of an object. This can be activate with the -E
+     * ldapsearch option like:
+     *
+     *  ldapsearch -E 1.2.840.113556.1.4.529=::MAMCAQE= ....
+     *
+     * where 'MAMCAQE=' is the base64 encoded BER sequence with the integer
+     * value 1 (see [MS-ADTS] for details about possible values).
+     *
+     * Btw, if you want to use the string representation of a GUID to search
+     * for an object in AD you have to use the GUID as the search base in the
+     * following form:
+     *
+     *  ldapsearch b '<GUID=fea80d8d-dbd5-4f84-8574-7db0477f962e>' ...
+     *
+     * (please note that the '<' and '>' are really needed).
+     */
+    struct test_data {
+        uint8_t blob[16];
+        const char *guid_str;
+    } test_data[] = {
+        {{0x8d, 0x0d, 0xa8, 0xfe, 0xd5, 0xdb, 0x84, 0x4f,
+          0x85, 0x74, 0x7d, 0xb0, 0x47, 0x7f, 0x96, 0x2e},
+        "fea80d8d-dbd5-4f84-8574-7db0477f962e"},
+        {{0x91, 0x7e, 0x2e, 0xf8, 0x4e, 0x44, 0xfa, 0x4e,
+         0xb1, 0x13, 0x08, 0x98, 0x63, 0x49, 0x6c, 0xc6},
+        "f82e7e91-444e-4efa-b113-089863496cc6"},
+        {{0}, NULL}
+    };
+
+    ret = guid_blob_to_string_buf(NULL, str_buf, GUID_STR_BUF_SIZE);
+    assert_int_equal(ret, EINVAL);
+
+    ret = guid_blob_to_string_buf((const uint8_t *) "1234567812345678", NULL,
+                                  GUID_STR_BUF_SIZE);
+    assert_int_equal(ret, EINVAL);
+
+    ret = guid_blob_to_string_buf((const uint8_t *) "1234567812345678", str_buf, 0);
+    assert_int_equal(ret, EINVAL);
+
+    for (c = 0; test_data[c].guid_str != NULL; c++) {
+        ret = guid_blob_to_string_buf(test_data[c].blob, str_buf,
+                                      sizeof(str_buf));
+        assert_int_equal(ret, EOK);
+        assert_string_equal(test_data[c].guid_str, str_buf);
+    }
+}

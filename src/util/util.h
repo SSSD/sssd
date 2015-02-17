@@ -630,6 +630,13 @@ char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
                                  const char *orig_name,
                                  const char replace_char);
 
+#define GUID_BIN_LENGTH 16
+/* 16 2-digit hex values + 4 dashes + terminating 0 */
+#define GUID_STR_BUF_SIZE (2 * GUID_BIN_LENGTH + 4 + 1)
+
+errno_t guid_blob_to_string_buf(const uint8_t *blob, char *str_buf,
+                                size_t buf_size);
+
 /* from become_user.c */
 errno_t become_user(uid_t uid, gid_t gid);
 struct sss_creds;

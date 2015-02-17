@@ -78,6 +78,7 @@ server_tests_SOURCES = \
     ../../../src/util/atomic_io.c \
     ../../../src/util/signal.c \
     ../../../src/util/util.c \
+    ../../../src/util/string_utils.c \
     ../../../src/util/strtonum.c \
     ../../../src/util/util_errors.c \
     ../../../src/util/safe-format-string.c \
@@ -115,6 +116,7 @@ usertools_tests_SOURCES = \
     ../../../src/util/domain_info_utils.c \
     ../../../src/util/safe-format-string.c \
     ../../../src/util/usertools.c \
+    ../../../src/util/string_utils.c \
     ../../../src/util/strtonum.c \
     ../../../src/util/backup_file.c \
     ../../../src/util/atomic_io.c \

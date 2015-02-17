@@ -511,7 +511,6 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     bool posix_group;
     bool use_id_mapping;
     char *sid_str;
-    const char *uuid;
     struct sss_domain_info *subdomain;
     int32_t ad_group_type;
 
@@ -549,22 +548,14 @@ static int sdap_save_group(TALLOC_CTX *memctx,
     }
 
     /* Always store UUID if available */
-    ret = sysdb_attrs_get_string(attrs,
-                                 opts->group_map[SDAP_AT_GROUP_UUID].sys_name,
-                                 &uuid);
-    if (ret == EOK) {
-        ret = sysdb_attrs_add_string(group_attrs, SYSDB_UUID, uuid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Could not add UUID string: [%s]\n",
-                                         sss_strerror(ret));
-            goto done;
-        }
-    } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_ALL, "UUID not available for group [%s].\n",
-                                 group_name);
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Could not identify UUID [%s]\n",
-                                     sss_strerror(ret));
+    ret = sysdb_handle_original_uuid(
+                                   opts->group_map[SDAP_AT_GROUP_UUID].def_name,
+                                   attrs,
+                                   opts->group_map[SDAP_AT_GROUP_UUID].sys_name,
+                                   group_attrs, SYSDB_UUID);
+    if (ret != EOK) {
+        DEBUG((ret == ENOENT) ? SSSDBG_TRACE_ALL : SSSDBG_MINOR_FAILURE,
+              "Failed to retrieve UUID [%d][%s].\n", ret, sss_strerror(ret));
     }
 
     /* If this object has a SID available, we will determine the correct

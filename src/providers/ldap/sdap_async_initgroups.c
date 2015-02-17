@@ -196,8 +196,13 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                     original_dn = NULL;
                 }
 
+                ret = sysdb_handle_original_uuid(
+                                   opts->group_map[SDAP_AT_GROUP_UUID].def_name,
+                                   ldap_groups[ai],
+                                   opts->group_map[SDAP_AT_GROUP_UUID].sys_name,
+                                   ldap_groups[ai], "uniqueIDstr");
                 ret = sysdb_attrs_get_string(ldap_groups[ai],
-                                             SYSDB_UUID,
+                                             "uniqueIDstr",
                                              &uuid);
                 if (ret) {
                     DEBUG(SSSDBG_FUNC_DATA,
