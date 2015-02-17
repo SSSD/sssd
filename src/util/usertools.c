@@ -144,7 +144,7 @@ static errno_t sss_fqnames_init(struct sss_names_ctx *nctx, const char *fq_fmt)
     fq = sss_tc_fqname2 (nctx, nctx, "unused.example.com", "unused", "the-test-user");
     if (fq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "The fq format is invalid [%s]", nctx->fq_fmt);
+              "The fq format is invalid [%s]\n", nctx->fq_fmt);
         return EINVAL;
     } else if (strstr (fq, "the-test-user") == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,

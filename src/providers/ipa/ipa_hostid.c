@@ -110,7 +110,7 @@ ipa_host_info_complete(struct be_req *breq, int dp_error,
             error_text = NULL;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Bug: dp_error is OK on failed request");
+                  "Bug: dp_error is OK on failed request\n");
             dp_error = DP_ERR_FATAL;
             error_text = default_error_text;
         }

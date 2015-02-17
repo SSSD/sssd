@@ -211,7 +211,7 @@ done:
     if (in_transaction) {
         sret = sysdb_transaction_cancel(sysdb);
         if (sret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to cancel transaction\n");
         }
     }
     return ret;
@@ -788,7 +788,7 @@ static errno_t choose_best_seuser(TALLOC_CTX *mem_ctx,
 
     ret = selinux_child_setup(tmp_ctx, pd->user, user_domain, seuser_mls_str, &sci);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot set up child input buffer");
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set up child input buffer\n");
         goto done;
     }
 
@@ -865,7 +865,7 @@ selinux_child_setup(TALLOC_CTX *mem_ctx,
             }
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "sss_parse_name failed: [%d] %s", ret, sss_strerror(ret));
+                  "sss_parse_name failed: [%d] %s\n", ret, sss_strerror(ret));
             goto done;
         }
     } else {

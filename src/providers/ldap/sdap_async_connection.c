@@ -1792,7 +1792,7 @@ static void sdap_cli_auth_step(struct tevent_req *req)
         ret = sdap_cli_auth_reconnect(req);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "sdap_cli_auth_reconnect failed: %d:[%s]",
+                  "sdap_cli_auth_reconnect failed: %d:[%s]\n",
                   ret, sss_strerror(ret));
             tevent_req_error(req, ret);
         }

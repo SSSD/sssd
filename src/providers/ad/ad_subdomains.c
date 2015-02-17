@@ -1186,12 +1186,12 @@ int ad_subdom_init(struct be_ctx *be_ctx,
 
     ret = be_add_online_cb(ctx, be_ctx, ad_subdom_online_cb, ctx, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom online callback");
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom online callback\n");
     }
 
     ret = be_add_offline_cb(ctx, be_ctx, ad_subdom_offline_cb, ctx, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom offline callback");
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to add subdom offline callback\n");
     }
 
     err = sss_idmap_init(sss_idmap_talloc, ctx, sss_idmap_talloc_free,

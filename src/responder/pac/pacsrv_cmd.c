@@ -131,7 +131,7 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
 
     pr_ctx->domain_name = pr_ctx->logon_info->info3.base.logon_domain.string;
     if (pr_ctx->domain_name == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "No domain name in PAC");
+        DEBUG(SSSDBG_FATAL_FAILURE, "No domain name in PAC\n");
         ret = EINVAL;
         goto done;
     }
@@ -584,15 +584,13 @@ static errno_t save_pac_user(struct pac_req_ctx *pr_ctx)
                                    &msg);
     if (ret == ENOENT) {
         if (pwd->pw_gid == 0 && !pr_ctx->dom->mpg) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Primary group RID from the PAC " \
-                                        "cannot be translated into a GID for " \
-                                        "user [%s]. Typically this happens " \
-                                        "when UIDs and GIDs are read from AD " \
-                                        "and the primary AD group does not " \
-                                        "have a GID assigned. Make sure the " \
-                                        "user is created by the ID provider " \
-                                        "before GSSAPI based authentication " \
-                                        "is used in this case.", pwd->pw_name);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Primary group RID from the PAC cannot be translated into "
+                  "a GID for user [%s]. Typically this happens when UIDs and "
+                  "GIDs are read from AD and the primary AD group does not "
+                  "have a GID assigned. Make sure the user is created by the "
+                  "ID provider before GSSAPI based authentication "
+                  "is used in this case.\n", pwd->pw_name);
             ret = EINVAL;
             goto done;
         }

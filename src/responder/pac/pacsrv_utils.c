@@ -433,8 +433,8 @@ errno_t get_pwd_from_pac(TALLOC_CTX *mem_ctx,
             goto done;
         }
     } else {
-        DEBUG(SSSDBG_OP_FAILURE, "Missing full name in PAC, "
-                                  "gecos field will by empty.\n ");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Missing full name in PAC, gecos field will by empty.\n");
     }
 
     /* Check if there is a special homedir template for sub-domains. If not a

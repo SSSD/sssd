@@ -433,8 +433,9 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
     fd = mkstemp(tmp_file);
     umask(old_mode);
     if (fd < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "creating the temp file [%s] for domain-realm "
-                                  "mappings failed.", tmp_file);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "creating the temp file [%s] for domain-realm mappings failed\n",
+              tmp_file);
         ret = EIO;
         talloc_zfree(tmp_ctx);
         goto done;
@@ -567,8 +568,8 @@ done:
         if (err < 0) {
             err = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Could not remove file [%s]: [%d]: %s",
-                   tmp_file, err, strerror(err));
+                  "Could not remove file [%s]: [%d]: %s\n",
+                  tmp_file, err, strerror(err));
         }
     }
     talloc_free(tmp_ctx);
@@ -682,8 +683,9 @@ static errno_t sss_write_krb5_localauth_snippet(const char *path)
     fd = mkstemp(tmp_file);
     umask(old_mode);
     if (fd < 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "creating the temp file [%s] for domain-realm "
-                                  "mappings failed.", tmp_file);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "creating the temp file [%s] for domain-realm mappings failed\n",
+              tmp_file);
         ret = EIO;
         talloc_zfree(tmp_ctx);
         goto done;
@@ -730,8 +732,8 @@ done:
         if (err == -1) {
             err = errno;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Could not remove file [%s]: [%d]: %s",
-                   tmp_file, err, sss_strerror(err));
+                  "Could not remove file [%s]: [%d]: %s\n",
+                  tmp_file, err, sss_strerror(err));
         }
     }
 

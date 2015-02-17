@@ -188,9 +188,9 @@ set_autofs_map(struct autofs_ctx *actx,
     hret = hash_enter(actx->maps, &key, &value);
     if (hret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to add hash table entry for [%s]", key.str);
+              "Unable to add hash table entry for [%s]\n", key.str);
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Hash error [%d][%s]", hret, hash_error_string(hret));
+              "Hash error [%d][%s]\n", hret, hash_error_string(hret));
         return EIO;
     }
     talloc_steal(actx->maps, map);

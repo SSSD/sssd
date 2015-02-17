@@ -426,15 +426,16 @@ static bool invalidate_entries(TALLOC_CTX *ctx,
         c_name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
         if (c_name == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Something bad happened, can't find attribute %s", SYSDB_NAME);
-            ERROR("Couldn't invalidate %1$s", type_string);
+                  "Something bad happened, can't find attribute %s\n",
+                  SYSDB_NAME);
+            ERROR("Couldn't invalidate %1$s\n", type_string);
             iret = false;
         } else {
             ret = invalidate_entry(ctx, dinfo, c_name, entry_type);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
-                      "Couldn't invalidate %s %s", type_string, c_name);
-                ERROR("Couldn't invalidate %1$s %2$s", type_string, c_name);
+                      "Couldn't invalidate %s %s\n", type_string, c_name);
+                ERROR("Couldn't invalidate %1$s %2$s\n", type_string, c_name);
                 iret = false;
             }
         }

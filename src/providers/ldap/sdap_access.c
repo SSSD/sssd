@@ -276,7 +276,7 @@ static void sdap_access_done(struct tevent_req *subreq)
         break;
     default:
         ret = EINVAL;
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unknown access control type: %d.",
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unknown access control type: %d.\n",
               state->ac_type);
         break;
     }

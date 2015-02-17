@@ -165,7 +165,7 @@ errno_t sysdb_update_view_name(struct sysdb_ctx *sysdb,
         ret = ldb_add(sysdb->ldb, msg);
     }
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to %s view container",
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to %s view container\n",
                                     view_container_exists ? "modify" : "add");
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -236,7 +236,7 @@ errno_t sysdb_invalidate_overrides(struct sysdb_ctx *sysdb)
 
     base_dn = ldb_dn_new(tmp_ctx, sysdb->ldb, SYSDB_BASE);
     if (base_dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed");
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed\n");
         ret = ENOMEM;
         goto done;
     }

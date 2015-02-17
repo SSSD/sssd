@@ -317,15 +317,17 @@ errno_t be_ptask_create(TALLOC_CTX *mem_ctx,
         /* install offline and online callbacks */
         ret = be_add_online_cb(task, be_ctx, be_ptask_online_cb, task, NULL);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Unable to install online callback "
-                                      "[%d]: %s", ret, sss_strerror(ret));
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unable to install online callback [%d]: %s\n",
+                  ret, sss_strerror(ret));
             goto done;
         }
 
         ret = be_add_offline_cb(task, be_ctx, be_ptask_offline_cb, task, NULL);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Unable to install offline callback "
-                                      "[%d]: %s", ret, sss_strerror(ret));
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unable to install offline callback [%d]: %s\n",
+                  ret, sss_strerror(ret));
             goto done;
         }
     }

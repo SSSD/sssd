@@ -476,10 +476,10 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          " -- Begin nsupdate message -- \n%s",
-           update_msg);
-    DEBUG(SSSDBG_TRACE_FUNC,
-          " -- End nsupdate message -- \n");
+          " -- Begin nsupdate message -- \n"
+          "%s"
+          " -- End nsupdate message -- \n",
+          update_msg);
 
     ret = ERR_OK;
     *_update_msg = talloc_steal(mem_ctx, update_msg);
@@ -518,10 +518,10 @@ be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          " -- Begin nsupdate message -- \n%s",
-           update_msg);
-    DEBUG(SSSDBG_TRACE_FUNC,
-          " -- End nsupdate message -- \n");
+          " -- Begin nsupdate message -- \n"
+          "%s"
+          " -- End nsupdate message -- \n",
+          update_msg);
 
     ret = ERR_OK;
     *_update_msg = talloc_steal(mem_ctx, update_msg);

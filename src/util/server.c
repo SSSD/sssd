@@ -350,8 +350,8 @@ int die_if_parent_died(void)
     ret = prctl(PR_SET_PDEATHSIG, SIGTERM, 0, 0, 0);
     if (ret != 0) {
         ret = errno;
-        DEBUG(SSSDBG_OP_FAILURE, "prctl failed [%d]: %s",
-                                  ret, strerror(ret));
+        DEBUG(SSSDBG_OP_FAILURE, "prctl failed [%d]: %s\n",
+                                 ret, strerror(ret));
         return ret;
     }
 #endif

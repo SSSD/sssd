@@ -915,7 +915,7 @@ done:
     }
 
     if (krb5_kt_close(kr->ctx, keytab) != 0) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "krb5_kt_close failed");
+        DEBUG(SSSDBG_MINOR_FAILURE, "krb5_kt_close failed\n");
     }
     if (validation_princ != NULL) {
         krb5_free_principal(kr->ctx, validation_princ);

@@ -172,7 +172,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
         if (_principal) {
             kerr = krb5_unparse_name(krb_ctx, client_princ, &principal_string);
             if (kerr) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "krb5_unparse_name failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "krb5_unparse_name failed\n");
                 ret = EFAULT;
                 goto done;
             }
@@ -180,7 +180,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             *_principal = talloc_strdup(mem_ctx, principal_string);
             free(principal_string);
             if (!*_principal) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed\n");
                 ret = ENOMEM;
                 goto done;
             }
@@ -192,7 +192,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
                                                KRB5_PRINCIPAL_UNPARSE_NO_REALM,
                                                &principal_string);
             if (kerr) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "krb5_unparse_name failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "krb5_unparse_name failed\n");
                 ret = EFAULT;
                 goto done;
             }
@@ -200,7 +200,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             *_primary = talloc_strdup(mem_ctx, principal_string);
             free(principal_string);
             if (!*_primary) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed\n");
                 if (_principal) talloc_zfree(*_principal);
                 ret = ENOMEM;
                 goto done;
@@ -223,7 +223,7 @@ errno_t select_principal_from_keytab(TALLOC_CTX *mem_ctx,
             *_realm = talloc_asprintf(mem_ctx, "%.*s",
                                       realm_len, realm_name);
             if (!*_realm) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed");
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed\n");
                 if (_principal) talloc_zfree(*_principal);
                 if (_primary) talloc_zfree(*_primary);
                 ret = ENOMEM;

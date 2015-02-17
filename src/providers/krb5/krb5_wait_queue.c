@@ -84,7 +84,7 @@ errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
                                  &krb5_ctx->wait_queue_hash, 0, 0, 0, 0,
                                  wait_queue_del_cb, NULL);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sss_hash_create failed");
+            DEBUG(SSSDBG_CRIT_FAILURE, "sss_hash_create failed\n");
             return ret;
         }
     }

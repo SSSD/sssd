@@ -74,7 +74,7 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
 
     ret = snprintf(path, PATHLEN, "/proc/%d/status", pid);
     if (ret < 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "snprintf failed");
+        DEBUG(SSSDBG_CRIT_FAILURE, "snprintf failed\n");
         return EINVAL;
     } else if (ret >= PATHLEN) {
         DEBUG(SSSDBG_CRIT_FAILURE, "path too long?!?!\n");

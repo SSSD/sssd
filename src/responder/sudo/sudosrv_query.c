@@ -109,7 +109,7 @@ static int sudosrv_response_append_attr(TALLOC_CTX *mem_ctx,
     /* values */
     for (i = 0; i < values_num; i++) {
         if (strlen((char*)(values[i].data)) != values[i].length) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "value is not a string");
+            DEBUG(SSSDBG_CRIT_FAILURE, "value is not a string\n");
             ret = EINVAL;
             goto done;
         }

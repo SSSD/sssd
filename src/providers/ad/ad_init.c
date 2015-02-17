@@ -457,16 +457,16 @@ sssm_ad_access_init(struct be_ctx *bectx,
     ret = sss_hash_create(access_ctx, 10, &access_ctx->gpo_map_options_table);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not create gpo_map_options hash table: [%s]",
-               strerror(ret));
+              "Could not create gpo_map_options hash table: [%s]\n",
+              strerror(ret));
         goto fail;
     }
 
     ret = ad_gpo_parse_map_options(access_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
-              "Could not parse gpo_map_options (invalid config): [%s]",
-               strerror(ret));
+              "Could not parse gpo_map_options (invalid config): [%s]\n",
+              strerror(ret));
         goto fail;
     }
 

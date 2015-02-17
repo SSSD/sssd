@@ -222,7 +222,7 @@ sysdb_get_map_byname(TALLOC_CTX *mem_ctx,
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error looking up autofs map [%s]", safe_map_name);
+              "Error looking up autofs map [%s]\n", safe_map_name);
         goto done;
     } else if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC, "No such map\n");
@@ -467,7 +467,7 @@ sysdb_invalidate_autofs_maps(struct sss_domain_info *domain)
                               &count, &msgs);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error looking up autofs maps");
+              "Error looking up autofs maps\n");
         goto done;
     } else if (ret == ENOENT) {
         ret = EOK;
