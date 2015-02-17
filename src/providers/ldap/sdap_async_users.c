@@ -140,7 +140,6 @@ int sdap_save_user(TALLOC_CTX *memctx,
     TALLOC_CTX *tmpctx = NULL;
     bool use_id_mapping;
     char *sid_str;
-    const char *uuid;
     char *dom_sid_str = NULL;
     struct sss_domain_info *subdomain;
 
@@ -179,21 +178,13 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
 
     /* Always store UUID if available */
-    ret = sysdb_attrs_get_string(attrs,
-                                 opts->user_map[SDAP_AT_USER_UUID].sys_name,
-                                 &uuid);
-    if (ret == EOK) {
-        ret = sysdb_attrs_add_string(user_attrs, SYSDB_UUID, uuid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Could not add UUID string: [%s]\n",
-                                         sss_strerror(ret));
-            goto done;
-        }
-    } else if (ret == ENOENT) {
-        DEBUG(SSSDBG_TRACE_ALL, "UUID not available for user.\n");
-    } else {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Could not identify UUID [%s]\n",
-                                     sss_strerror(ret));
+    ret = sysdb_handle_original_uuid(opts->user_map[SDAP_AT_USER_UUID].def_name,
+                                     attrs,
+                                     opts->user_map[SDAP_AT_USER_UUID].sys_name,
+                                     user_attrs, SYSDB_UUID);
+    if (ret != EOK) {
+        DEBUG((ret == ENOENT) ? SSSDBG_TRACE_ALL : SSSDBG_MINOR_FAILURE,
+              "Failed to retrieve UUID [%d][%s].\n", ret, sss_strerror(ret));
     }
 
     /* If this object has a SID available, we will determine the correct

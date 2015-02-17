@@ -3696,3 +3696,55 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+errno_t sysdb_handle_original_uuid(const char *orig_name,
+                                   struct sysdb_attrs *src_attrs,
+                                   const char *src_name,
+                                   struct sysdb_attrs *dest_attrs,
+                                   const char *dest_name)
+{
+    int ret;
+    struct ldb_message_element *el;
+    char guid_str_buf[GUID_STR_BUF_SIZE];
+
+    if (orig_name == NULL || src_attrs == NULL || src_name == NULL
+            || dest_attrs == NULL || dest_name == NULL) {
+        return EINVAL;
+    }
+
+    ret = sysdb_attrs_get_el_ext(src_attrs, src_name, false, &el);
+    if (ret != EOK) {
+        if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el failed.\n");
+        }
+        return ret;
+    }
+
+    if (el->num_values != 1) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Found more than one UUID value, using the first.\n");
+    }
+
+    /* Check if we got a binary AD objectGUID */
+    if (el->values[0].length == GUID_BIN_LENGTH
+            && strcasecmp(orig_name, "objectGUID") == 0) {
+        ret = guid_blob_to_string_buf(el->values[0].data, guid_str_buf,
+                                      GUID_STR_BUF_SIZE);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "guid_blob_to_string_buf failed.\n");
+            return ret;
+        }
+
+        ret = sysdb_attrs_add_string(dest_attrs, dest_name, guid_str_buf);
+    } else {
+        ret = sysdb_attrs_add_string(dest_attrs, dest_name,
+                                     (const char *)el->values[0].data);
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_string failed.\n");
+        return ret;;
+    }
+
+    return EOK;
+}

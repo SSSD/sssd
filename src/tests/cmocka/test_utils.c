@@ -1127,6 +1127,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_textual_public_key),
         cmocka_unit_test(test_replace_whitespaces),
         cmocka_unit_test(test_reverse_replace_whitespaces),
+        cmocka_unit_test(test_guid_blob_to_string_buf),
         cmocka_unit_test_setup_teardown(test_add_strings_lists,
                                         setup_add_strings_lists,
                                         teardown_add_strings_lists),

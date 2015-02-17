@@ -214,6 +214,7 @@ if HAVE_CMOCKA
         test_search_bases \
         sdap-tests \
         test_sysdb_views \
+        test_sysdb_utils \
         test_be_ptask \
         test_copy_ccache \
         test_copy_keytab \
@@ -2105,6 +2106,21 @@ test_sysdb_views_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 test_sysdb_views_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(LDB_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_sysdb_utils_SOURCES = \
+    src/tests/cmocka/test_sysdb_utils.c \
+    $(NULL)
+test_sysdb_utils_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_sysdb_utils_LDADD = \
     $(CMOCKA_LIBS) \
     $(LDB_LIBS) \
     $(POPT_LIBS) \
