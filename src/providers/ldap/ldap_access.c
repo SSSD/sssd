@@ -96,6 +96,18 @@ static void sdap_access_done(struct tevent_req *req)
     case ERR_ACCOUNT_EXPIRED:
         pam_status = PAM_ACCT_EXPIRED;
         break;
+    case ERR_PASSWORD_EXPIRED:
+        pam_status = PAM_PERM_DENIED;
+        break;
+    case ERR_PASSWORD_EXPIRED_REJECT:
+        pam_status = PAM_PERM_DENIED;
+        break;
+    case ERR_PASSWORD_EXPIRED_WARN:
+        pam_status = PAM_SUCCESS;
+        break;
+    case ERR_PASSWORD_EXPIRED_RENEW:
+        pam_status = PAM_NEW_AUTHTOK_REQD;
+        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Error retrieving access check result.\n");
         pam_status = PAM_SYSTEM_ERR;

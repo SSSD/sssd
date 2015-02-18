@@ -423,6 +423,15 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
             access_ctx->access_rule[c] = LDAP_ACCESS_HOST;
         } else if (strcasecmp(order_list[c], LDAP_ACCESS_LOCK_NAME) == 0) {
             access_ctx->access_rule[c] = LDAP_ACCESS_LOCKOUT;
+        } else if (strcasecmp(order_list[c],
+                              LDAP_ACCESS_EXPIRE_POLICY_REJECT_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_REJECT;
+        } else if (strcasecmp(order_list[c],
+                              LDAP_ACCESS_EXPIRE_POLICY_WARN_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_WARN;
+        } else if (strcasecmp(order_list[c],
+                              LDAP_ACCESS_EXPIRE_POLICY_RENEW_NAME) == 0) {
+            access_ctx->access_rule[c] = LDAP_ACCESS_EXPIRE_POLICY_RENEW;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unexpected access rule name [%s].\n", order_list[c]);

@@ -47,6 +47,7 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_auth.h"
+#include "providers/ldap/sdap_access.h"
 
 #define LDAP_PWEXPIRE_WARNING_TIME 0
 

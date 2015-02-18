@@ -1959,6 +1959,33 @@ ldap_access_filter = (employeeType=admin)
                             ldap_account_expire_policy
                         </para>
                         <para>
+                            <emphasis>pwd_expire_policy_reject,
+                                      pwd_expire_policy_warn,
+                                      pwd_expire_policy_renew:
+                            </emphasis>
+                            These options are useful if users are interested
+                            in being warned that password is about to expire
+                            and authentication is based on using a different
+                            method than passwords - for example SSH keys.
+                       </para>
+                       <para>
+                            The difference between these options is the action
+                            taken if user password is expired:
+                            pwd_expire_policy_reject - user is denied to log in,
+                            pwd_expire_policy_warn - user is still able to log in,
+                            pwd_expire_policy_renew - user is prompted to change
+                            his password immediately.
+                        </para>
+                        <para>
+                            Note If user password is expired no explicit message
+                            is prompted by SSSD.
+                        </para>
+                        <para>
+                            Please note that 'access_provider = ldap' must
+                            be set for this feature to work. Also 'ldap_pwd_policy'
+                            must be set to an appropriate password policy.
+                        </para>
+                        <para>
                             <emphasis>authorized_service</emphasis>: use
                             the authorizedService attribute to determine
                             access
