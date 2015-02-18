@@ -908,6 +908,10 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         if (dctx->res->count > 1) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "getpwnam call returned more than one result !?!\n");
+            sss_log(SSS_LOG_ERR,
+                    "More users have the same name [%s@%s] in SSSD cache. "
+                    "SSSD will not work correctly.\n",
+                    name, dom->name);
             return ENOENT;
         }
 
@@ -1580,6 +1584,9 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         if (dctx->res->count > 1) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "getpwuid call returned more than one result !?!\n");
+            sss_log(SSS_LOG_ERR,
+                    "More users have the same UID [%"PRIu32"] in directory "
+                    "server. SSSD will not work correctly.\n", cmdctx->id);
             ret = ENOENT;
             goto done;
         }
@@ -3003,6 +3010,10 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         if (dctx->res->count > 1) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "getgrnam call returned more than one result !?!\n");
+            sss_log(SSS_LOG_ERR,
+                    "More groups have the same name [%s@%s] in SSSD cache. "
+                    "SSSD will not work correctly.\n",
+                    name, dom->name);
             return ENOENT;
         }
 
@@ -3138,6 +3149,9 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         if (dctx->res->count > 1) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "getgrgid call returned more than one result !?!\n");
+            sss_log(SSS_LOG_ERR,
+                    "More groups have the same GID [%"PRIu32"] in directory "
+                    "server. SSSD will not work correctly.\n", cmdctx->id);
             ret = ENOENT;
             goto done;
         }
