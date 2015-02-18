@@ -39,6 +39,9 @@
 
 #define LDAP_ACCESS_FILTER_NAME "filter"
 #define LDAP_ACCESS_EXPIRE_NAME "expire"
+#define LDAP_ACCESS_EXPIRE_POLICY_REJECT_NAME "pwd_expire_policy_reject"
+#define LDAP_ACCESS_EXPIRE_POLICY_WARN_NAME "pwd_expire_policy_warn"
+#define LDAP_ACCESS_EXPIRE_POLICY_RENEW_NAME "pwd_expire_policy_renew"
 #define LDAP_ACCESS_SERVICE_NAME "authorized_service"
 #define LDAP_ACCESS_HOST_NAME "host"
 #define LDAP_ACCESS_LOCK_NAME "lockout"
@@ -57,6 +60,9 @@ enum ldap_access_rule {
     LDAP_ACCESS_SERVICE,
     LDAP_ACCESS_HOST,
     LDAP_ACCESS_LOCKOUT,
+    LDAP_ACCESS_EXPIRE_POLICY_REJECT,
+    LDAP_ACCESS_EXPIRE_POLICY_WARN,
+    LDAP_ACCESS_EXPIRE_POLICY_RENEW,
     LDAP_ACCESS_LAST
 };
 

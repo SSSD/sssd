@@ -39,9 +39,15 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/data_provider.h"
 #include "providers/dp_backend.h"
+#include "providers/ldap/ldap_auth.h"
 
 #define PERMANENTLY_LOCKED_ACCOUNT "000001010000Z"
 #define MALFORMED_FILTER "Malformed access control filter [%s]\n"
+
+static errno_t perform_pwexpire_policy(TALLOC_CTX *mem_ctx,
+                                       struct sss_domain_info *domain,
+                                       struct pam_data *pd,
+                                       struct sdap_options *opts);
 
 static errno_t sdap_save_user_cache_bool(struct sss_domain_info *domain,
                                          const char *username,
@@ -235,6 +241,30 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
         case LDAP_ACCESS_EXPIRE:
             ret = sdap_account_expired(state->access_ctx,
                                        state->pd, state->user_entry);
+            break;
+
+        case LDAP_ACCESS_EXPIRE_POLICY_REJECT:
+            ret = perform_pwexpire_policy(state, state->domain, state->pd,
+                                          state->access_ctx->id_ctx->opts);
+            if (ret == ERR_PASSWORD_EXPIRED) {
+                ret = ERR_PASSWORD_EXPIRED_REJECT;
+            }
+            break;
+
+        case LDAP_ACCESS_EXPIRE_POLICY_WARN:
+            ret = perform_pwexpire_policy(state, state->domain, state->pd,
+                                          state->access_ctx->id_ctx->opts);
+            if (ret == ERR_PASSWORD_EXPIRED) {
+                ret = ERR_PASSWORD_EXPIRED_WARN;
+            }
+            break;
+
+        case LDAP_ACCESS_EXPIRE_POLICY_RENEW:
+            ret = perform_pwexpire_policy(state, state->domain, state->pd,
+                                          state->access_ctx->id_ctx->opts);
+            if (ret == ERR_PASSWORD_EXPIRED) {
+                ret = ERR_PASSWORD_EXPIRED_RENEW;
+            }
             break;
 
         case LDAP_ACCESS_SERVICE:
@@ -651,7 +681,6 @@ static errno_t sdap_account_expired_nds(struct pam_data *pd,
     return EOK;
 }
 
-
 static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
                                     struct pam_data *pd,
                                     struct ldb_message *user_entry)
@@ -699,6 +728,37 @@ static errno_t sdap_account_expired(struct sdap_access_ctx *access_ctx,
         }
     }
 
+    return ret;
+}
+
+static errno_t perform_pwexpire_policy(TALLOC_CTX *mem_ctx,
+                                       struct sss_domain_info *domain,
+                                       struct pam_data *pd,
+                                       struct sdap_options *opts)
+{
+    enum pwexpire pw_expire_type;
+    void *pw_expire_data;
+    errno_t ret;
+    char *dn;
+
+    ret = get_user_dn(mem_ctx, domain, opts, pd->user, &dn, &pw_expire_type,
+                      &pw_expire_data);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "get_user_dn returned %d:[%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = check_pwexpire_policy(pw_expire_type, pw_expire_data, pd,
+                                domain->pwd_expiration_warning);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "check_pwexpire_policy returned %d:[%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+done:
     return ret;
 }
 
