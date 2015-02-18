@@ -1090,6 +1090,10 @@ static int pam_check_user_search(struct pam_auth_req *preq)
             if (res->count > 1) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
                       "getpwnam call returned more than one result !?!\n");
+                sss_log(SSS_LOG_ERR,
+                        "More users have the same name [%s@%s] in SSSD cache. "
+                        "SSSD will not work correctly.\n",
+                        name, dom->name);
                 return ENOENT;
             } else if (res->count == 0) {
                 ret = ENOENT;
