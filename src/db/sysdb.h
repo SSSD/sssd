@@ -387,6 +387,8 @@ struct ldb_dn *sysdb_user_base_dn(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *dom);
 struct ldb_dn *sysdb_group_dn(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
                               const char *name);
+struct ldb_dn *sysdb_group_base_dn(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *dom);
 struct ldb_dn *sysdb_netgroup_dn(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *dom, const char *name);
 struct ldb_dn *sysdb_netgroup_base_dn(TALLOC_CTX *mem_ctx,

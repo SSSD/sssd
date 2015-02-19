@@ -198,6 +198,14 @@ struct ldb_dn *sysdb_group_dn(TALLOC_CTX *mem_ctx,
     return dn;
 }
 
+struct ldb_dn *sysdb_group_base_dn(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *dom)
+{
+    return ldb_dn_new_fmt(mem_ctx, dom->sysdb->ldb,
+                          SYSDB_TMPL_GROUP_BASE, dom->name);
+}
+
+
 struct ldb_dn *sysdb_netgroup_dn(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info *dom, const char *name)
 {
