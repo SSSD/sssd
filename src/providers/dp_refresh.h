@@ -45,6 +45,7 @@ typedef errno_t
 
 enum be_refresh_type {
     BE_REFRESH_TYPE_USERS,
+    BE_REFRESH_TYPE_GROUPS,
     BE_REFRESH_TYPE_NETGROUPS,
     BE_REFRESH_TYPE_SENTINEL
 };
