@@ -199,18 +199,36 @@ static errno_t sdap_refresh_recv(struct tevent_req *req)
     return EOK;
 }
 
-struct tevent_req *sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
-                                               struct tevent_context *ev,
-                                               struct be_ctx *be_ctx,
-                                               struct sss_domain_info *domain,
-                                               char **names,
-                                               void *pvt)
+static struct tevent_req *
+sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct be_ctx *be_ctx,
+                            struct sss_domain_info *domain,
+                            char **names,
+                            void *pvt)
 {
     return sdap_refresh_send(mem_ctx, ev, be_ctx, domain,
                              BE_REQ_NETGROUP, names, pvt);
 }
 
-errno_t sdap_refresh_netgroups_recv(struct tevent_req *req)
+static errno_t sdap_refresh_netgroups_recv(struct tevent_req *req)
 {
     return sdap_refresh_recv(req);
+}
+
+errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
+                          struct sdap_id_ctx *id_ctx)
+{
+    errno_t ret;
+
+    ret = be_refresh_add_cb(refresh_ctx, BE_REFRESH_TYPE_NETGROUPS,
+                            sdap_refresh_netgroups_send,
+                            sdap_refresh_netgroups_recv,
+                            id_ctx);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of netgroups "
+              "will not work [%d]: %s\n", ret, strerror(ret));
+    }
+
+    return ret;
 }
