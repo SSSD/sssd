@@ -260,12 +260,9 @@ sssm_ad_id_init(struct be_ctx *bectx,
     }
 
     /* setup periodical refresh of expired records */
-    ret = be_refresh_add_cb(bectx->refresh_ctx, BE_REFRESH_TYPE_NETGROUPS,
-                            sdap_refresh_netgroups_send,
-                            sdap_refresh_netgroups_recv,
-                            ad_ctx->sdap_id_ctx);
+    ret = sdap_refresh_init(bectx->refresh_ctx, ad_ctx->sdap_id_ctx);
     if (ret != EOK && ret != EEXIST) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of netgroups "
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh "
               "will not work [%d]: %s\n", ret, strerror(ret));
     }
 

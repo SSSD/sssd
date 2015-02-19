@@ -324,13 +324,7 @@ struct sdap_id_ctx *
 sdap_id_ctx_new(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                 struct sdap_service *sdap_service);
 
-struct tevent_req *sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
-                                               struct tevent_context *ev,
-                                               struct be_ctx *be_ctx,
-                                               struct sss_domain_info *domain,
-                                               char **names,
-                                               void *pvt);
-
-errno_t sdap_refresh_netgroups_recv(struct tevent_req *req);
+errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
+                          struct sdap_id_ctx *id_ctx);
 
 #endif /* _LDAP_COMMON_H_ */
