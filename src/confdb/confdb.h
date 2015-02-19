@@ -114,6 +114,7 @@
 #define CONFDB_PAM_PWD_EXPIRATION_WARNING "pam_pwd_expiration_warning"
 #define CONFDB_PAM_TRUSTED_USERS "pam_trusted_users"
 #define CONFDB_PAM_PUBLIC_DOMAINS "pam_public_domains"
+#define CONFDB_PAM_ACCOUNT_EXPIRED_MESSAGE "pam_account_expired_message"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"

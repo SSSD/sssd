@@ -60,7 +60,7 @@
 #define OPT_RETRY_KEY "retry="
 #define OPT_DOMAINS_KEY "domains="
 
-#define EXP_ACC_MSG _("Your account has expired. ")
+#define EXP_ACC_MSG _("Permission denied. ")
 #define SRV_MSG     _("Server message: ")
 
 struct pam_items {

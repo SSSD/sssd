@@ -88,6 +88,7 @@ option_strings = {
     'pam_pwd_expiration_warning' : _('How many days before password expiration a warning should be displayed'),
     'pam_trusted_users' : _('List of trusted uids or user\'s name'),
     'pam_public_domains' : _('List of domains accessible even for untrusted users.'),
+    'pam_account_expired_message' : _('Message printed when user account is expired.'),
 
     # [sudo]
     'sudo_timed' : _('Whether to evaluate the time-based attributes in sudo rules'),
