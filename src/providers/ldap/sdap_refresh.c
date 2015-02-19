@@ -75,6 +75,9 @@ static struct tevent_req *sdap_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     switch (entry_type) {
+    case BE_REQ_USER:
+        state->type = "user";
+        break;
     case BE_REQ_NETGROUP:
         state->type = "netgroup";
         break;
@@ -200,6 +203,23 @@ static errno_t sdap_refresh_recv(struct tevent_req *req)
 }
 
 static struct tevent_req *
+sdap_refresh_users_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct be_ctx *be_ctx,
+                        struct sss_domain_info *domain,
+                        char **names,
+                        void *pvt)
+{
+    return sdap_refresh_send(mem_ctx, ev, be_ctx, domain,
+                             BE_REQ_USER, names, pvt);
+}
+
+static errno_t sdap_refresh_users_recv(struct tevent_req *req)
+{
+    return sdap_refresh_recv(req);
+}
+
+static struct tevent_req *
 sdap_refresh_netgroups_send(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct be_ctx *be_ctx,
@@ -220,6 +240,15 @@ errno_t sdap_refresh_init(struct be_refresh_ctx *refresh_ctx,
                           struct sdap_id_ctx *id_ctx)
 {
     errno_t ret;
+
+    ret = be_refresh_add_cb(refresh_ctx, BE_REFRESH_TYPE_USERS,
+                            sdap_refresh_users_send,
+                            sdap_refresh_users_recv,
+                            id_ctx);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh of users "
+              "will not work [%d]: %s\n", ret, strerror(ret));
+    }
 
     ret = be_refresh_add_cb(refresh_ctx, BE_REFRESH_TYPE_NETGROUPS,
                             sdap_refresh_netgroups_send,

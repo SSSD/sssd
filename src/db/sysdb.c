@@ -172,6 +172,13 @@ struct ldb_dn *sysdb_user_dn(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     return dn;
 }
 
+struct ldb_dn *sysdb_user_base_dn(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *dom)
+{
+    return ldb_dn_new_fmt(mem_ctx, dom->sysdb->ldb,
+                          SYSDB_TMPL_USER_BASE, dom->name);
+}
+
 struct ldb_dn *sysdb_group_dn(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *dom, const char *name)
 {

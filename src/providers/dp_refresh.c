@@ -89,6 +89,26 @@ done:
     return ret;
 }
 
+static errno_t be_refresh_get_users(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    time_t period,
+                                    char ***_values)
+{
+    struct ldb_dn *base_dn = NULL;
+    errno_t ret;
+
+    base_dn = sysdb_user_base_dn(mem_ctx, domain);
+    if (base_dn == NULL) {
+        return ENOMEM;
+    }
+
+    ret = be_refresh_get_values(mem_ctx, domain, period, SYSDB_USER_CLASS,
+                                base_dn, SYSDB_NAME, _values);
+
+    talloc_free(base_dn);
+    return ret;
+}
+
 static errno_t be_refresh_get_netgroups(TALLOC_CTX *mem_ctx,
                                         struct sss_domain_info *domain,
                                         time_t period,
@@ -137,6 +157,9 @@ struct be_refresh_ctx *be_refresh_ctx_init(TALLOC_CTX *mem_ctx)
     if (ctx == NULL) {
         return NULL;
     }
+
+    ctx->callbacks[BE_REFRESH_TYPE_USERS].name = "users";
+    ctx->callbacks[BE_REFRESH_TYPE_USERS].get_values = be_refresh_get_users;
 
     ctx->callbacks[BE_REFRESH_TYPE_NETGROUPS].name = "netgroups";
     ctx->callbacks[BE_REFRESH_TYPE_NETGROUPS].get_values \
