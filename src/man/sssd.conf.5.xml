@@ -933,6 +933,27 @@ fallback_homedir = /home/%u
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pam_account_expired_message (string)</term>
+                    <listitem>
+                        <para>
+                           If user is authenticating using SSH keys and
+                           account is expired then by default
+                           'Permission denied' is output. This output will
+                           be changed to content of this variable if it is
+                           set.
+                        </para>
+                        <para>
+                            example:
+                            <programlisting>
+pam_account_expired_message = Account expired, please call help desk.
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
 
             </variablelist>
         </refsect2>

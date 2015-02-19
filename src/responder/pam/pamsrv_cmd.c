@@ -74,13 +74,14 @@ static errno_t pack_user_info_account_expired(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void inform_account_expired(struct pam_data* pd)
+static void inform_account_expired(struct pam_data* pd,
+                                   const char *pam_message)
 {
     size_t msg_len;
     uint8_t *msg;
     errno_t ret;
 
-    ret = pack_user_info_account_expired(pd, "", &msg_len, &msg);
+    ret = pack_user_info_account_expired(pd, pam_message, &msg_len, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pack_user_info_account_expired failed.\n");
@@ -544,6 +545,7 @@ static void pam_reply(struct pam_auth_req *preq)
     uint32_t user_info_type;
     time_t exp_date = -1;
     time_t delay_until = -1;
+    char* pam_account_expired_message;
 
     pd = preq->pd;
     cctx = preq->cctx;
@@ -620,7 +622,7 @@ static void pam_reply(struct pam_auth_req *preq)
         ret = gettimeofday(&tv, NULL);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "gettimeofday failed [%d][%s].\n",
-                      errno, strerror(errno));
+                  errno, strerror(errno));
             goto done;
         }
         tv.tv_sec += pd->response_delay;
@@ -659,7 +661,11 @@ static void pam_reply(struct pam_auth_req *preq)
 
     if (pd->pam_status == PAM_ACCT_EXPIRED && pd->service != NULL &&
         strcasecmp(pd->service, "sshd") == 0) {
-        inform_account_expired(pd);
+        ret = confdb_get_string(pctx->rctx->cdb, pd, CONFDB_PAM_CONF_ENTRY,
+                                CONFDB_PAM_ACCOUNT_EXPIRED_MESSAGE, "",
+                                &pam_account_expired_message);
+
+        inform_account_expired(pd, pam_account_expired_message);
     }
 
     ret = filter_responses(pctx->rctx->cdb, pd->resp_list);
