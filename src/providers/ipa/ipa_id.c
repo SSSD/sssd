@@ -461,7 +461,6 @@ static int ipa_initgr_get_overrides_recv(struct tevent_req *req, int *dp_error)
  */
 static errno_t ipa_id_get_group_uuids(TALLOC_CTX *mem_ctx,
                                       struct sysdb_ctx *sysdb,
-                                      const char *username,
                                       size_t *_msgs_count,
                                       struct ldb_message ***_msgs)
 {
@@ -800,7 +799,6 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
                         BE_REQ_INITGROUPS) {
             /* Get UUID list of groups that have no overrideDN set. */
             ret = ipa_id_get_group_uuids(state, state->sysdb,
-                                         state->ar->filter_value,
                                          &state->group_cnt,
                                          &state->user_groups);
             if (ret != EOK) {
