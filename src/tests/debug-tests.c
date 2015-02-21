@@ -122,7 +122,7 @@ int test_helper_debug_check_message(int level)
     char *msg = NULL;
     char *compare_to = NULL;
     const char *function = __FUNCTION__;
-    const char *body = "some error\n";
+    const char *body = "some error";
     int filesize;
     int fsize;
     int fd;
@@ -157,7 +157,7 @@ int test_helper_debug_check_message(int level)
         goto done;
     }
 
-    DEBUG(level, "%s", body);
+    DEBUG(level, "%s\n", body);
 
     ret = fseek(file, 0, SEEK_END);
     if (ret == -1) {
@@ -210,7 +210,7 @@ int test_helper_debug_check_message(int level)
             }
             compare_to = talloc_asprintf(ctx,
                                          "(%s %s %2d %.2d:%.2d:%.2d %.4d) "
-                                         "[%s] [%s] (%#.4x): %s",
+                                         "[%s] [%s] (%#.4x): %s\n",
                                          time_day, time_month, time_day_num,
                                          time_hour, time_min, time_sec, time_year,
                                          debug_prg_name, function, level, body);
@@ -230,7 +230,7 @@ int test_helper_debug_check_message(int level)
             }
             compare_to = talloc_asprintf(ctx,
                                          "(%s %s %2d %.2d:%.2d:%.2d:%.6d %.4d) "
-                                         "[%s] [%s] (%#.4x): %s",
+                                         "[%s] [%s] (%#.4x): %s\n",
                                          time_day, time_month, time_day_num,
                                          time_hour, time_min, time_sec, time_usec,
                                          time_year, debug_prg_name, function, level, body);
@@ -241,7 +241,7 @@ int test_helper_debug_check_message(int level)
             }
         }
     } else {
-        compare_to = talloc_asprintf(ctx, "[%s] [%s] (%#.4x): %s",
+        compare_to = talloc_asprintf(ctx, "[%s] [%s] (%#.4x): %s\n",
                                      debug_prg_name, function, level, body);
         if (compare_to == NULL) {
             _errno = ENOMEM;
