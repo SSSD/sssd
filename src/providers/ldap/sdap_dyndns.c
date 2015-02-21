@@ -320,7 +320,7 @@ sdap_dyndns_update_step(struct tevent_req *req)
     ret = be_nsupdate_create_fwd_msg(state, state->realm, state->dns_zone,
                                      servername, state->hostname,
                                      state->ttl, state->remove_af,
-                                     state->addresses, state->dns_addrlist,
+                                     state->addresses,
                                      &state->update_msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Can't get addresses for DNS update\n");

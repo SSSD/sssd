@@ -437,7 +437,6 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
                            const char *zone, const char *servername,
                            const char *hostname, const unsigned int ttl,
                            uint8_t remove_af, struct sss_iface_addr *addresses,
-                           struct sss_iface_addr *old_addresses,
                            char **_update_msg)
 {
     int ret;
