@@ -1005,7 +1005,9 @@ sssd_pam_LDADD = \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(PAM_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
 
 if BUILD_SUDO
 sssd_sudo_SOURCES = \

@@ -74,9 +74,11 @@ static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
                 preq->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-            DEBUG(SSSDBG_CONF_SETTINGS,
-                  "received: [%d][%s]\n", preq->pd->pam_status, preq->pd->domain);
-            break;
+            DEBUG(SSSDBG_FUNC_DATA,
+                  "received: [%d (%s)][%s]\n", preq->pd->pam_status,
+                  pam_strerror(NULL, preq->pd->pam_status),
+                  preq->pd->domain);
+             break;
         case DBUS_MESSAGE_TYPE_ERROR:
             DEBUG(SSSDBG_FATAL_FAILURE, "Reply error.\n");
             preq->pd->pam_status = PAM_SYSTEM_ERR;

@@ -562,7 +562,8 @@ static void pam_reply(struct pam_auth_req *preq)
     }
 
     DEBUG(SSSDBG_FUNC_DATA,
-          "pam_reply called with result [%d].\n", pd->pam_status);
+          "pam_reply called with result [%d]: %s.\n",
+          pd->pam_status, pam_strerror(NULL, pd->pam_status));
 
     if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
         switch(pd->cmd) {

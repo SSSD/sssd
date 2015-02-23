@@ -536,7 +536,8 @@ static char *dp_pam_err_to_string(TALLOC_CTX *memctx, int dp_err_type, int errnu
 {
     switch (dp_err_type) {
     case DP_ERR_OK:
-        return talloc_strdup(memctx, "Success");
+        return talloc_asprintf(memctx, "Success (%s)",
+                               pam_strerror(NULL, errnum));
         break;
 
     case DP_ERR_OFFLINE:
