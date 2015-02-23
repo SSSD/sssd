@@ -346,7 +346,7 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         ret = ENOENT;
         goto done;
     } else if (one_item_only && result->count > 1) {
-        ret = ENOENT;
+        ret = ERR_INTERNAL;
         DEBUG(SSSDBG_CRIT_FAILURE, "Multiple objects were found when"
               "sysdb search expected only one!\n");
         goto done;
