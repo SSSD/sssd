@@ -250,13 +250,20 @@ endif # HAVE_CMOCKA
 
 PYTHON_TESTS =
 
-if BUILD_PYTHON_BINDINGS
-PYTHON_TESTS += src/config/SSSDConfigTest.py \
-                src/tests/pyhbac-test.py \
-                src/tests/pysss_murmur-test.py
+if BUILD_PYTHON2_BINDINGS
+PYTHON_TESTS += src/config/SSSDConfigTest.py2.sh \
+                src/tests/pyhbac-test.py2.sh \
+                src/tests/pysss_murmur-test.py2.sh \
+                $(NULL)
+endif
+if BUILD_PYTHON3_BINDINGS
+PYTHON_TESTS += src/config/SSSDConfigTest.py3.sh \
+                src/tests/pyhbac-test.py3.sh \
+                src/tests/pysss_murmur-test.py3.sh \
+                $(NULL)
 endif
 
-TEST_EXTENSIONS = .py
+TEST_EXTENSIONS = .sh
 TESTS = \
     $(PYTHON_TESTS) \
     $(non_interactive_cmocka_based_tests) \
@@ -325,6 +332,8 @@ dist_noinst_SCRIPTS = \
     src/config/SSSDConfig/ipachangeconf.py \
     src/config/SSSDConfig/__init__.py \
     src/config/SSSDConfigTest.py \
+    src/config/SSSDConfigTest.py2.sh \
+    src/config/SSSDConfigTest.py3.sh \
     src/config/SSSDConfig/sssd_upgrade_config.py \
     contrib/rhel/update_debug_levels.py \
     contrib/fedora/bashrc_sssd \
@@ -335,7 +344,11 @@ dist_noinst_SCRIPTS = \
     contrib/ci/run \
     contrib/ci/valgrind-condense \
     src/tests/pyhbac-test.py \
+    src/tests/pyhbac-test.py2.sh \
+    src/tests/pyhbac-test.py3.sh \
     src/tests/pysss_murmur-test.py \
+    src/tests/pysss_murmur-test.py2.sh \
+    src/tests/pysss_murmur-test.py3.sh \
     src/tests/python-test.py \
     $(NULL)
 
