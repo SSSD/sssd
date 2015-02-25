@@ -187,7 +187,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     int kdc_time_offset_usec;
     int ret;
     TALLOC_CTX *tmp_ctx;
-    char *ccname_file_dummy;
+    char *ccname_file_dummy = NULL;
     char *ccname_file;
 
     krberr = krb5_init_context(&context);
@@ -401,16 +401,26 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
               "rename failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
+    ccname_file_dummy = NULL;
 
     krberr = 0;
     *ccname_out = talloc_steal(memctx, ccname);
     *expire_time_out = my_creds.times.endtime - kdc_time_offset;
 
 done:
-    talloc_free(tmp_ctx);
     if (krberr != 0) KRB5_SYSLOG(krberr);
     if (keytab) krb5_kt_close(context, keytab);
     if (context) krb5_free_context(context);
+    if (ccname_file_dummy) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Unlinking [%s]\n", ccname_file_dummy);
+        ret = unlink(ccname_file_dummy);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Unlink failed [%d][%s].\n", ret, strerror(ret));
+        }
+    }
+    talloc_free(tmp_ctx);
     return krberr;
 }
 
