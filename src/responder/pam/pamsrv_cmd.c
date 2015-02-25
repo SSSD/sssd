@@ -680,6 +680,12 @@ static void pam_reply(struct pam_auth_req *preq)
         ret = confdb_get_string(pctx->rctx->cdb, pd, CONFDB_PAM_CONF_ENTRY,
                                 CONFDB_PAM_ACCOUNT_EXPIRED_MESSAGE, "",
                                 &pam_account_expired_message);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to get expiration message: %d:[%s].\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
 
         inform_account_expired(pd, pam_account_expired_message);
     }
