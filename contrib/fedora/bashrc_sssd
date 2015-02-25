@@ -78,7 +78,8 @@ SSS_WARNINGS='-Wall \
 # them. This builds with optimizations turned off and GDB debugging symbols.
 chmake()
 {
-    make V=0 CFLAGS+="-ggdb3 -O0 $SSS_WARNINGS ${SSS_WERROR-}" \
+    make V=0 \
+         CFLAGS+="-ggdb3 $SSS_WARNINGS ${SSS_WERROR-} -O0 -Wp,-U_FORTIFY_SOURCE" \
          -j$PROCESSORS check "$@"
 }
 
