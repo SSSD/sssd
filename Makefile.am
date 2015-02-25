@@ -3124,10 +3124,10 @@ if BUILD_PYTHON2_BINDINGS
 			--record=$(abs_builddir)/src/config/.files2 --root=$(DESTDIR); \
 	fi
 	cd $(DESTDIR)$(py2execdir) && \
-		$(LN_S) _py2sss.so pysss.so ; \
-		$(LN_S) _py2hbac.so pyhbac.so ; \
-		$(LN_S) _py2sss_murmur.so pysss_murmur.so ; \
-		$(LN_S) _py2sss_nss_idmap.so pysss_nss_idmap.so
+		$(LN_S) -f _py2sss.so pysss.so ; \
+		$(LN_S) -f _py2hbac.so pyhbac.so ; \
+		$(LN_S) -f _py2sss_murmur.so pysss_murmur.so ; \
+		$(LN_S) -f _py2sss_nss_idmap.so pysss_nss_idmap.so
 endif
 if BUILD_PYTHON3_BINDINGS
 	if [ "$(DESTDIR)" = "" ]; then \
@@ -3142,10 +3142,10 @@ if BUILD_PYTHON3_BINDINGS
 			--record=$(abs_builddir)/src/config/.files3 --root=$(DESTDIR); \
 	fi
 	cd $(DESTDIR)$(py3execdir) && \
-		$(LN_S) _py3sss.so pysss.so ; \
-		$(LN_S) _py3hbac.so pyhbac.so ; \
-		$(LN_S) _py3sss_murmur.so pysss_murmur.so ; \
-		$(LN_S) _py3sss_nss_idmap.so pysss_nss_idmap.so
+		$(LN_S) -f _py3sss.so pysss.so ; \
+		$(LN_S) -f _py3hbac.so pyhbac.so ; \
+		$(LN_S) -f _py3sss_murmur.so pysss_murmur.so ; \
+		$(LN_S) -f _py3sss_nss_idmap.so pysss_nss_idmap.so
 endif
 	for doc in $(SSSD_DOCS); do \
 		$(MKDIR_P) $$doc $(DESTDIR)/$(docdir); \
@@ -3190,6 +3190,14 @@ uninstall-hook:
 	for doc in $(SSSD_DOCS); do \
 		rm -Rf $(DESTDIR)/$(docdir)/$$doc; \
 	done;
+if BUILD_PYTHON2_BINDINGS
+	cd $(DESTDIR)$(py2execdir) && \
+		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
+endif
+if BUILD_PYTHON3_BINDINGS
+	cd $(DESTDIR)$(py3execdir) && \
+		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
+endif
 
 clean-local:
 if BUILD_PYTHON2_BINDINGS
