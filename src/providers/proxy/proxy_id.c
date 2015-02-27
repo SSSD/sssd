@@ -1336,8 +1336,8 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
                                  "primary group (%"SPRIgid")\n", pwd->pw_gid);
         /* fall through */
     case NSS_STATUS_SUCCESS:
-        DEBUG(SSSDBG_CONF_SETTINGS, "User [%s] appears to be member of %lu"
-                    "groups\n", pwd->pw_name, num_gids);
+        DEBUG(SSSDBG_CONF_SETTINGS, "User [%s] appears to be member of %lu "
+              "groups\n", pwd->pw_name, num_gids);
 
         now = time(NULL);
         for (i = 0; i < num_gids; i++) {
