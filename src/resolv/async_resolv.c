@@ -1757,8 +1757,10 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     state->reply_list = reply_list;
     ok = resolv_get_ttl(abuf, alen, &state->ttl);
     if (ok == false) {
-        state->ttl = RESOLV_DEFAULT_TTL;
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not read TTL, using the default..\n");
+        state->ttl = RESOLV_DEFAULT_SRV_TTL;
     }
+    DEBUG(SSSDBG_TRACE_LIBS, "Using TTL [%"PRIu32"]\n", state->ttl);
 
     tevent_req_done(req);
     return;

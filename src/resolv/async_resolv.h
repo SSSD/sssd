@@ -36,6 +36,10 @@
 #define RESOLV_DEFAULT_TTL 7200
 #endif  /* RESOLV_DEFAULT_TTL */
 
+#ifndef RESOLV_DEFAULT_SRV_TTL
+#define RESOLV_DEFAULT_SRV_TTL 14400
+#endif  /* RESOLV_DEFAULT_SRV_TTL */
+
 #include "util/util.h"
 
 /*
