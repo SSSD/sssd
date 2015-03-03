@@ -330,7 +330,10 @@
                                 Please note that if this option is set all
                                 users from the primary domain have to use their
                                 fully qualified name, e.g. user@domain.name,
-                                to log in.
+                                to log in. Setting this option changes default
+                                of use_fully_qualified_names to True. It is not
+                                allowed to use this option together with
+                                use_fully_qualified_names set to False.
                             </para>
                             <para>
                                 Default: not set
@@ -1494,7 +1497,8 @@ pam_account_expired_message = Account expired, please call help desk.
                             name is requested.
                         </para>
                         <para>
-                            Default: FALSE
+                            Default: FALSE (TRUE if default_domain_suffix is
+                            used)
                         </para>
                     </listitem>
                 </varlistentry>
