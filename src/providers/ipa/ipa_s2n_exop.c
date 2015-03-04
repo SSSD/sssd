@@ -165,6 +165,11 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
         ret = ERR_NETWORK_IO;
         goto done;
     }
+    if (retdata == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing exop result data.\n");
+        ret = EINVAL;
+        goto done;
+    }
 
     state->retoid = talloc_strdup(state, retoid);
     if (state->retoid == NULL) {
