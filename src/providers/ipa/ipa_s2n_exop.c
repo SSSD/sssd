@@ -147,9 +147,13 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
           sss_ldap_err2string(result), result, errmsg);
 
     if (result != LDAP_SUCCESS) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldap_extended_operation failed, " \
-                                 "server logs might contain more details.\n");
-        ret = ERR_NETWORK_IO;
+        if (result == LDAP_NO_SUCH_OBJECT) {
+            ret = ENOENT;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "ldap_extended_operation failed, server " \
+                                     "logs might contain more details.\n");
+            ret = ERR_NETWORK_IO;
+        }
         goto done;
     }
 
