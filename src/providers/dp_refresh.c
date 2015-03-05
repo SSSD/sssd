@@ -29,13 +29,13 @@
 #include "util/util_errors.h"
 #include "db/sysdb.h"
 
-static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
-                                     struct sss_domain_info *domain,
-                                     time_t period,
-                                     const char *objectclass,
-                                     struct ldb_dn *base_dn,
-                                     const char *attr,
-                                     char ***_values)
+static errno_t be_refresh_get_values_ex(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *domain,
+                                        time_t period,
+                                        const char *objectclass,
+                                        struct ldb_dn *base_dn,
+                                        const char *attr,
+                                        char ***_values)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *attrs[] = {attr, NULL};
@@ -89,77 +89,48 @@ done:
     return ret;
 }
 
-static errno_t be_refresh_get_users(TALLOC_CTX *mem_ctx,
-                                    struct sss_domain_info *domain,
-                                    time_t period,
-                                    char ***_values)
-{
-    struct ldb_dn *base_dn = NULL;
-    errno_t ret;
-
-    base_dn = sysdb_user_base_dn(mem_ctx, domain);
-    if (base_dn == NULL) {
-        return ENOMEM;
-    }
-
-    ret = be_refresh_get_values(mem_ctx, domain, period, SYSDB_USER_CLASS,
-                                base_dn, SYSDB_NAME, _values);
-
-    talloc_free(base_dn);
-    return ret;
-}
-
-static errno_t be_refresh_get_groups(TALLOC_CTX *mem_ctx,
+static errno_t be_refresh_get_values(TALLOC_CTX *mem_ctx,
+                                     enum be_refresh_type type,
                                      struct sss_domain_info *domain,
                                      time_t period,
                                      char ***_values)
 {
     struct ldb_dn *base_dn = NULL;
+    const char *class = NULL;
     errno_t ret;
 
-    base_dn = sysdb_group_base_dn(mem_ctx, domain);
+    switch (type) {
+    case BE_REFRESH_TYPE_USERS:
+        base_dn = sysdb_user_base_dn(mem_ctx, domain);
+        class = SYSDB_USER_CLASS;
+        break;
+    case BE_REFRESH_TYPE_GROUPS:
+        base_dn = sysdb_group_base_dn(mem_ctx, domain);
+        class = SYSDB_GROUP_CLASS;
+        break;
+    case BE_REFRESH_TYPE_NETGROUPS:
+        base_dn = sysdb_netgroup_base_dn(mem_ctx, domain);
+        class = SYSDB_NETGROUP_CLASS;
+        break;
+    case BE_REFRESH_TYPE_SENTINEL:
+        return ERR_INTERNAL;
+        break;
+    }
+
     if (base_dn == NULL) {
         return ENOMEM;
     }
 
-    ret = be_refresh_get_values(mem_ctx, domain, period, SYSDB_GROUP_CLASS,
-                                base_dn, SYSDB_NAME, _values);
+    ret = be_refresh_get_values_ex(mem_ctx, domain, period, class,
+                                   base_dn, SYSDB_NAME, _values);
 
     talloc_free(base_dn);
     return ret;
 }
-
-static errno_t be_refresh_get_netgroups(TALLOC_CTX *mem_ctx,
-                                        struct sss_domain_info *domain,
-                                        time_t period,
-                                        char ***_values)
-{
-    struct ldb_dn *base_dn = NULL;
-    errno_t ret;
-
-    base_dn = sysdb_netgroup_base_dn(mem_ctx, domain);
-    if (base_dn == NULL) {
-        return ENOMEM;
-    }
-
-    ret = be_refresh_get_values(mem_ctx, domain, period, SYSDB_NETGROUP_CLASS,
-                                base_dn, SYSDB_NAME, _values);
-
-    talloc_free(base_dn);
-    return ret;
-}
-
-typedef errno_t
-(*be_refresh_get_values_t)(TALLOC_CTX *mem_ctx,
-                           struct sss_domain_info *domain,
-                           time_t period,
-                           char ***_values);
-
 
 struct be_refresh_cb {
     const char *name;
     bool enabled;
-    be_refresh_get_values_t get_values;
     be_refresh_send_t send_fn;
     be_refresh_recv_t recv_fn;
     void *pvt;
@@ -179,14 +150,8 @@ struct be_refresh_ctx *be_refresh_ctx_init(TALLOC_CTX *mem_ctx)
     }
 
     ctx->callbacks[BE_REFRESH_TYPE_USERS].name = "users";
-    ctx->callbacks[BE_REFRESH_TYPE_USERS].get_values = be_refresh_get_users;
-
     ctx->callbacks[BE_REFRESH_TYPE_GROUPS].name = "groups";
-    ctx->callbacks[BE_REFRESH_TYPE_GROUPS].get_values = be_refresh_get_groups;
-
     ctx->callbacks[BE_REFRESH_TYPE_NETGROUPS].name = "netgroups";
-    ctx->callbacks[BE_REFRESH_TYPE_NETGROUPS].get_values \
-        = be_refresh_get_netgroups;
 
     return ctx;
 }
@@ -300,15 +265,14 @@ static errno_t be_refresh_step(struct tevent_req *req)
             continue;
         }
 
-        if (state->cb->get_values == NULL || state->cb->send_fn == NULL
-            || state->cb->recv_fn == NULL) {
+        if (state->cb->send_fn == NULL || state->cb->recv_fn == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Invalid parameters!\n");
             ret = ERR_INTERNAL;
             goto done;
         }
 
-        ret = state->cb->get_values(state, state->domain, state->period,
-                                    &values);
+        ret = be_refresh_get_values(state, state->index, state->domain,
+                                    state->period, &values);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain DN list [%d]: %s\n",
                                         ret, sss_strerror(ret));
