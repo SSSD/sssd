@@ -111,12 +111,8 @@ static int parse_members(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    user_basedn = ldb_dn_new_fmt(tmp_ctx, ldb,
-                                 SYSDB_TMPL_USER_BASE,
-                                 domain->name);
-    group_basedn = ldb_dn_new_fmt(tmp_ctx, ldb,
-                                  SYSDB_TMPL_GROUP_BASE,
-                                  domain->name);
+    user_basedn = sysdb_user_base_dn(tmp_ctx, domain);
+    group_basedn = sysdb_group_base_dn(tmp_ctx, domain);
     if (!user_basedn || !group_basedn) {
         ret = ENOMEM;
         goto fail;

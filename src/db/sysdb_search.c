@@ -46,8 +46,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, domain->name);
+    base_dn = sysdb_user_base_dn(tmp_ctx, domain);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
@@ -168,8 +167,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, domain->name);
+    base_dn = sysdb_user_base_dn(tmp_ctx, domain);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
@@ -272,8 +270,7 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, domain->name);
+    base_dn = sysdb_user_base_dn(tmp_ctx, domain);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
@@ -489,8 +486,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                                  SYSDB_DOM_BASE, domain->name);
     } else {
         fmt_filter = SYSDB_GRNAM_FILTER;
-        base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                                 SYSDB_TMPL_GROUP_BASE, domain->name);
+        base_dn = sysdb_group_base_dn(tmp_ctx, domain);
     }
     if (!base_dn) {
         ret = ENOMEM;
@@ -640,8 +636,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                                  SYSDB_DOM_BASE, domain->name);
     } else {
         fmt_filter = SYSDB_GRGID_FILTER;
-        base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                                 SYSDB_TMPL_GROUP_BASE, domain->name);
+        base_dn = sysdb_group_base_dn(tmp_ctx, domain);
     }
     if (!base_dn) {
         ret = ENOMEM;
@@ -689,8 +684,7 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                                  SYSDB_DOM_BASE, domain->name);
     } else {
         fmt_filter = SYSDB_GRENT_FILTER;
-        base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                                 SYSDB_TMPL_GROUP_BASE, domain->name);
+        base_dn = sysdb_group_base_dn(tmp_ctx, domain);
     }
     if (!base_dn) {
         ret = ENOMEM;
@@ -998,8 +992,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, domain->name);
+    base_dn = sysdb_user_base_dn(tmp_ctx, domain);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
@@ -1530,8 +1523,7 @@ errno_t sysdb_get_direct_parents(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, sysdb_ctx_get_ldb(dom->sysdb),
-                            SYSDB_TMPL_GROUP_BASE, dom->name);
+    basedn = sysdb_group_base_dn(tmp_ctx, dom);
     if (!basedn) {
         ret = ENOMEM;
         goto done;

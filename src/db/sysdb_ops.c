@@ -423,8 +423,7 @@ int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            SYSDB_TMPL_USER_BASE, domain->name);
+    basedn = sysdb_user_base_dn(tmp_ctx, domain);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -494,8 +493,7 @@ int sysdb_search_user_by_upn(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            SYSDB_TMPL_USER_BASE, domain->name);
+    basedn = sysdb_user_base_dn(tmp_ctx, domain);
     if (basedn == NULL) {
         ret = ENOMEM;
         goto done;
@@ -564,8 +562,7 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            SYSDB_TMPL_GROUP_BASE, domain->name);
+    basedn = sysdb_group_base_dn(tmp_ctx, domain);
     if (!basedn) {
         ret = ENOMEM;
         goto done;
@@ -2629,8 +2626,7 @@ int sysdb_search_users(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            SYSDB_TMPL_USER_BASE, domain->name);
+    basedn = sysdb_user_base_dn(tmp_ctx, domain);
     if (!basedn) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
         ret = ENOMEM;
@@ -2791,8 +2787,7 @@ int sysdb_search_groups(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            SYSDB_TMPL_GROUP_BASE, domain->name);
+    basedn = sysdb_group_base_dn(tmp_ctx, domain);
     if (!basedn) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
         ret = ENOMEM;
