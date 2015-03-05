@@ -140,14 +140,18 @@ errno_t pam_initgr_check_timeout(hash_table_t *id_table,
     hret = hash_lookup(id_table, &key, &val);
     if (hret != HASH_SUCCESS
             && hret != HASH_ERROR_KEY_NOT_FOUND) {
+            DEBUG(SSSDBG_TRACE_ALL, "Error searching user [%s] in PAM cache.\n",
+                                    name);
         return EIO;
     } else if (hret == HASH_ERROR_KEY_NOT_FOUND) {
+        DEBUG(SSSDBG_TRACE_ALL, "User [%s] not found in PAM cache.\n", name);
         return ENOENT;
     }
 
     /* If there's a value here, then the cache
      * entry is still valid.
      */
+    DEBUG(SSSDBG_TRACE_INTERNAL, "User [%s] found in PAM cache.\n", name);
     return EOK;
 }
 
