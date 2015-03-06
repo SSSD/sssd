@@ -1767,6 +1767,8 @@ is_account_locked(const char *pwdAccountLockedTime,
     default:
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Unexpected value of password policy mode: %d.\n", pwpol_mode);
+        ret = EINVAL;
+        goto done;
     }
 
     ret = EOK;
