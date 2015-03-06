@@ -47,7 +47,6 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
     if (ret == ENOENT) {
         /* default value */
         has_enumerated = false;
-        ret = EOK;
     } else if (ret != EOK) {
         return ret;
     }
