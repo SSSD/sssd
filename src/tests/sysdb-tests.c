@@ -1440,6 +1440,7 @@ START_TEST (test_sysdb_remove_group_member)
     data->uid = _i - 1000; /* the UID of user to add */
 
     ret = test_remove_group_member(data);
+    fail_if(ret != EOK, "Remove group member failed: %d", ret);
 
     talloc_free(test_ctx);
 }
@@ -1894,6 +1895,8 @@ static void cached_authentication_with_expiration(const char *username,
 
     data->attrs = sysdb_new_attrs(data);
     ret = sysdb_attrs_add_time_t(data->attrs, SYSDB_LAST_ONLINE_AUTH, now);
+    fail_unless(ret == EOK, "Could not mdd attribute "SYSDB_LAST_ONLINE_AUTH
+                            ": %s", data->username);
 
     ret = sysdb_set_user_attr(data->ctx->domain, data->username, data->attrs,
                               SYSDB_MOD_REP);
