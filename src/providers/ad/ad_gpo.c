@@ -2184,6 +2184,12 @@ ad_gpo_cse_done(struct tevent_req *subreq)
      */
     ret = ad_gpo_store_policy_settings(state->domain,
                                        cse_filtered_gpo->policy_filename);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ad_gpo_store_policy_settings failed: [%d](%s)\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
 
     state->cse_gpo_index++;
     ret = ad_gpo_cse_step(req);
