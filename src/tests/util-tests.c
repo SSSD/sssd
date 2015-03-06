@@ -1004,7 +1004,7 @@ END_TEST
 START_TEST(test_known_service)
 {
     const char * const * svcs;
-    bool found_nss;
+    bool found_nss = false;
     int i;
 
     /* Just make sure we can't find a bogus service and nss
