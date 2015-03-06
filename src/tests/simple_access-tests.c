@@ -536,9 +536,7 @@ static void check_access_list(char **list, const char **values)
 {
     int i;
 
-    if (list == NULL) {
-        fail_if(values != NULL, "List is empty, but it shouldn't be");
-    }
+    fail_if(values == NULL, "List is empty, but it shouldn't be");
 
     for (i = 0; list[i] != NULL; i++) {
         fail_if(values[i] == NULL, "List contains too many entries");
