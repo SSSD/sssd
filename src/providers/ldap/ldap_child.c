@@ -272,7 +272,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     int kdc_time_offset_usec;
     int ret;
     TALLOC_CTX *tmp_ctx;
-    char *ccname_file_dummy;
+    char *ccname_file_dummy = NULL;
     char *ccname_file;
     mode_t old_umask;
 
