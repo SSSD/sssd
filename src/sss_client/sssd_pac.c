@@ -279,6 +279,7 @@ sssdpac_internalize(krb5_context kcontext,
     /* verified */
     code = krb5_ser_unpack_int32(&ibuf, &bp, &remain);
     if (code != 0) {
+        free(data.data);
         return code;
     }
 
