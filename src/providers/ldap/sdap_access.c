@@ -528,7 +528,7 @@ static errno_t sdap_account_expired_rhds(struct pam_data *pd,
 #define NDS_EXPIRED_MSG "The user account is expired"
 #define NDS_TIME_MAP_MSG "The user account is not allowed at this time"
 
-static bool nds_check_expired(const char *exp_time_str)
+bool nds_check_expired(const char *exp_time_str)
 {
     char *end;
     struct tm tm;

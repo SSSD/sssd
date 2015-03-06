@@ -212,6 +212,8 @@ if HAVE_CMOCKA
         sbus-internal-tests \
         sss_sifp-tests \
         test_search_bases \
+        test_ldap_auth \
+        test_sdap_access \
         sdap-tests \
         test_sysdb_views \
         test_sysdb_utils \
@@ -1970,6 +1972,48 @@ test_search_bases_LDADD = \
     libsss_idmap.la \
     libsss_krb5_common.la \
     libsss_test_common.la
+
+test_ldap_auth_SOURCES = \
+    $(sssd_be_SOURCES) \
+    src/tests/cmocka/test_ldap_auth.c \
+    src/tests/cmocka/test_expire_common.c \
+    $(NULL)
+test_ldap_auth_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DUNIT_TESTING
+    $(NULL)
+test_ldap_auth_LDADD = \
+    $(PAM_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    libsss_test_common.la \
+    $(NULL)
+
+test_sdap_access_SOURCES = \
+    $(sssd_be_SOURCES) \
+    src/tests/cmocka/test_sdap_access.c \
+    src/tests/cmocka/test_expire_common.c \
+    $(NULL)
+test_sdap_access_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DUNIT_TESTING
+    $(NULL)
+test_sdap_access_LDADD = \
+    $(PAM_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    libsss_test_common.la \
+    $(NULL)
 
 ad_access_filter_tests_SOURCES = \
     $(sssd_be_SOURCES) \
