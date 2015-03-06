@@ -5602,6 +5602,7 @@ START_TEST(test_autofs_get_duplicate_keys)
 
     ret = sysdb_search_entry(test_ctx, test_ctx->sysdb, dn, LDB_SCOPE_SUBTREE,
                              filter, attrs, &count, &msgs);
+    fail_unless(ret == EOK, "sysdb_search_entry returned [%d]", ret);
     fail_if(count != expected, "Found %d entries with name %s, expected %d\n",
             count, autofskey, expected);
     talloc_free(test_ctx);
