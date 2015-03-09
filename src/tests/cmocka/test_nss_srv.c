@@ -49,7 +49,7 @@ struct nss_test_ctx {
     struct sss_cmd_table *nss_cmds;
     struct nss_ctx *nctx;
 
-    bool ncache_hit;
+    int ncache_hits;
 };
 
 const char *global_extra_attrs[] = {"phone", "mobile", NULL};
@@ -160,7 +160,7 @@ int __wrap_sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
 
     ret = __real_sss_ncache_check_user(ctx, ttl, dom, name);
     if (ret == EEXIST) {
-        nss_test_ctx->ncache_hit = true;
+        nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
@@ -173,7 +173,7 @@ int __wrap_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
 
     ret = __real_sss_ncache_check_uid(ctx, ttl, uid);
     if (ret == EEXIST) {
-        nss_test_ctx->ncache_hit = true;
+        nss_test_ctx->ncache_hits++;
     }
     return ret;
 }
@@ -348,7 +348,7 @@ void test_nss_getpwnam_neg(void **state)
     mock_input_user_or_group("testuser_neg");
     mock_account_recv_simple();
 
-    assert_true(nss_test_ctx->ncache_hit == false);
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
                           nss_test_ctx->nss_cmds);
@@ -357,7 +357,7 @@ void test_nss_getpwnam_neg(void **state)
     /* Wait until the test finishes with ENOENT */
     ret = test_ev_loop(nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
-    assert_true(nss_test_ctx->ncache_hit == false);
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
     /* Test that subsequent search for a nonexistent user yields
      * ENOENT and Account callback is not called, on the other hand
@@ -374,7 +374,7 @@ void test_nss_getpwnam_neg(void **state)
     ret = test_ev_loop(nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
     /* Negative cache was hit this time */
-    assert_true(nss_test_ctx->ncache_hit == true);
+    assert_int_equal(nss_test_ctx->ncache_hits, 1);
 }
 
 static int test_nss_getpwnam_search_acct_cb(void *pvt)
@@ -792,7 +792,7 @@ void test_nss_getpwuid_neg(void **state)
     mock_input_id(nss_test_ctx, id);
     mock_account_recv_simple();
 
-    assert_true(nss_test_ctx->ncache_hit == false);
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
     ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWUID,
                           nss_test_ctx->nss_cmds);
@@ -801,7 +801,7 @@ void test_nss_getpwuid_neg(void **state)
     /* Wait until the test finishes with ENOENT */
     ret = test_ev_loop(nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
-    assert_true(nss_test_ctx->ncache_hit == false);
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
 
     /* Test that subsequent search for a nonexistent id yields
      * ENOENT and Account callback is not called, on the other hand
@@ -818,7 +818,7 @@ void test_nss_getpwuid_neg(void **state)
     ret = test_ev_loop(nss_test_ctx->tctx);
     assert_int_equal(ret, ENOENT);
     /* Negative cache was hit this time */
-    assert_true(nss_test_ctx->ncache_hit == true);
+    assert_int_equal(nss_test_ctx->ncache_hits, 1);
 }
 
 static int test_nss_getpwuid_search_acct_cb(void *pvt)
