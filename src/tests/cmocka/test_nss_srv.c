@@ -40,6 +40,9 @@
 #define TEST_SUBDOM_NAME "test.subdomain"
 #define TEST_ID_PROVIDER "ldap"
 
+#define N_ELEMENTS(arr) \
+    (sizeof(arr) / sizeof(arr[0]))
+
 struct nss_test_ctx {
     struct sss_test_ctx *tctx;
     struct sss_domain_info *subdom;
@@ -206,6 +209,11 @@ static void mock_fill_user(void)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 }
 
+static void mock_fill_initgr_user(void)
+{
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+}
+
 static void mock_fill_group_with_members(unsigned members)
 {
     unsigned i;
@@ -286,6 +294,26 @@ static int parse_group_packet(uint8_t *body, size_t blen, struct group *gr, uint
     /* Make sure we exactly matched the end of the packet */
     if (rp != blen) return EINVAL;
     return EOK;
+}
+
+static void check_initgr_packet(uint8_t *body, size_t blen,
+                                gid_t *gids, size_t num_gids)
+{
+    size_t rp;
+    unsigned i;
+    gid_t cur_gid;
+    uint32_t num_ret;
+
+    rp = 0;
+    SAFEALIGN_COPY_UINT32(&num_ret, body, NULL);
+    assert_int_equal(num_ret, num_gids);
+
+    rp = 2 * sizeof(uint32_t); /* Len and reserved */
+
+    for (i = 0; i < num_gids; i++) {
+        SAFEALIGN_COPY_UINT32(&cur_gid, body + rp, &rp);
+        assert_int_equal(cur_gid, gids[i]);
+    }
 }
 
 /* ====================== The tests =============================== */
@@ -2165,6 +2193,312 @@ void test_nss_getpwnam_upn_neg(void **state)
     assert_int_equal(nss_test_ctx->ncache_hits, 1);
 }
 
+static int test_nss_initgr_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    gid_t expected_gids[] = { 3211, 3212 };
+
+    assert_int_equal(status, EOK);
+    check_initgr_packet(body, blen, expected_gids, N_ELEMENTS(expected_gids));
+    return EOK;
+}
+
+void test_nss_initgroups(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_uint32(attrs, SYSDB_INITGR_EXPIRE,
+                                 time(NULL) + 300);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, "upninitgr@upndomain.test");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "testinitgr", 321, 654, "test initgroups",
+                         "/home/testinitgr", "/bin/sh", NULL,
+                         attrs, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
+                          "testinitgr_gr1", 3211,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
+                          "testinitgr_gr2", 3212,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
+                                 "testinitgr_gr1", "testinitgr",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
+                                 "testinitgr_gr2", "testinitgr",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testinitgr");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
+    mock_fill_initgr_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_initgr_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* Test that searching for a nonexistant user yields ENOENT.
+ * Account callback will be called
+ */
+void test_initgr_neg_by_name(const char *name, bool is_upn)
+{
+    errno_t ret;
+
+    mock_input_user_or_group(name);
+    mock_account_recv_simple();
+
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    /* UPN lookup will first hit negcache with the username */
+    assert_int_equal(nss_test_ctx->ncache_hits, is_upn ? 1 : 0);
+
+    /* Test that subsequent search for a nonexistent user yields
+     * ENOENT and Account callback is not called, on the other hand
+     * the ncache functions will be called
+     */
+    nss_test_ctx->tctx->done = false;
+    nss_test_ctx->ncache_hits = 0;
+
+    mock_input_user_or_group(name);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    /* Negative cache was hit this time */
+    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+}
+
+void test_nss_initgr_neg(void **state)
+{
+    test_initgr_neg_by_name("testinitgr_neg", false);
+}
+
+static int test_nss_initgr_search_acct_cb(void *pvt)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_uint32(attrs, SYSDB_INITGR_EXPIRE,
+                                 time(NULL) + 300);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "testinitgr_srch", 421, 654, "test initgroups",
+                         "/home/testinitgr", "/bin/sh", NULL,
+                         attrs, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
+                          "testinitgr_srch_gr1", 4211,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
+                          "testinitgr_srch_gr2", 4212,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
+                                 "testinitgr_srch_gr1", "testinitgr_srch",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
+                                 "testinitgr_srch_gr2", "testinitgr_srch",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+
+    return EOK;
+}
+
+static int test_nss_initgr_search_check(uint32_t status,
+                                        uint8_t *body, size_t blen)
+{
+    gid_t expected_gids[] = { 4211, 4212 };
+
+    assert_int_equal(status, EOK);
+    check_initgr_packet(body, blen, expected_gids, N_ELEMENTS(expected_gids));
+    return EOK;
+}
+
+void test_nss_initgr_search(void **state)
+{
+    errno_t ret;
+    struct ldb_result *res;
+
+    mock_input_user_or_group("testinitgr_srch");
+    mock_account_recv(0, 0, NULL, test_nss_initgr_search_acct_cb, nss_test_ctx);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
+    mock_fill_initgr_user();
+    set_cmd_cb(test_nss_initgr_search_check);
+
+    ret = sysdb_getpwnam(nss_test_ctx, nss_test_ctx->tctx->dom,
+                         "testinitgr_srch", &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 0);
+
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+
+    /* test_nss_getpwnam_search_check will check the user attributes */
+    ret = sysdb_getpwnam(nss_test_ctx, nss_test_ctx->tctx->dom,
+                         "testinitgr_srch", &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+}
+
+static int test_nss_initgr_update_acct_cb(void *pvt)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_uint32(attrs, SYSDB_INITGR_EXPIRE,
+                                 time(NULL) + 300);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(nss_test_ctx->tctx->dom,
+                              "testinitgr_update",
+                              attrs, SYSDB_MOD_REP);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
+                          "testinitgr_check_gr2", 5212,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
+                                 "testinitgr_check_gr2",
+                                 "testinitgr_update",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+static int test_nss_initgr_update_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    gid_t expected_gids[] = { 5211, 5212 };
+
+    assert_int_equal(status, EOK);
+    check_initgr_packet(body, blen, expected_gids, N_ELEMENTS(expected_gids));
+    return EOK;
+}
+
+void test_nss_initgr_update(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_uint32(attrs, SYSDB_INITGR_EXPIRE,
+                                 time(NULL) - 1);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "testinitgr_update", 521, 654, "test initgroups",
+                         "/home/testinitgr", "/bin/sh", NULL,
+                         attrs, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
+                          "testinitgr_update_gr1", 5211,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
+                                 "testinitgr_update_gr1", "testinitgr_update",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testinitgr_update");
+    mock_account_recv(0, 0, NULL, test_nss_initgr_update_acct_cb, nss_test_ctx);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
+    mock_fill_initgr_user();
+    set_cmd_cb(test_nss_initgr_update_check);
+
+
+    /* Query for that user, call a callback when command finishes */
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_nss_initgroups_upn(void **state)
+{
+    errno_t ret;
+
+    mock_input_user_or_group("upninitgr@upndomain.test");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
+    mock_fill_initgr_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_initgr_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* Test that searching for a nonexistant user yields ENOENT.
+ * Account callback will be called
+ */
+void test_nss_initgr_neg_upn(void **state)
+{
+    test_initgr_neg_by_name("upninitgr_neg@upndomain.test", true);
+}
+
 static int nss_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
@@ -2336,6 +2670,18 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn_neg,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_initgroups,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_initgr_neg,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_initgr_search,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_initgr_update,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_initgroups_upn,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_initgr_neg_upn,
                                         nss_test_setup, nss_test_teardown),
     };
 
