@@ -4062,27 +4062,37 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         if (cmdctx->name_is_upn) {
             ret = sysdb_search_user_by_upn(cmdctx, dom, name, user_attrs, &msg);
-            if (ret != EOK && ret != ENOENT) {
+            if (ret == ENOENT) {
+                dctx->res = talloc_zero(cmdctx, struct ldb_result);
+                if (dctx->res == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+                    return ENOMEM;
+                }
+
+                dctx->res->count = 0;
+                dctx->res->msgs = NULL;
+                ret = EOK;
+            } else if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_upn failed.\n");
                 return ret;
-            }
+            } else {
+                sysdb_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+                if (sysdb_name == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                        "Sysdb entry does not have a name.\n");
+                    return EINVAL;
+                }
 
-            sysdb_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-            if (sysdb_name == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Sysdb entry does not have a name.\n");
-                return EINVAL;
-            }
-
-            ret = sysdb_initgroups(cmdctx, dom, sysdb_name, &dctx->res);
-            if (ret == EOK && DOM_HAS_VIEWS(dom)) {
-                for (c = 0; c < dctx->res->count; c++) {
-                    ret = sysdb_add_overrides_to_object(dom, dctx->res->msgs[c],
-                                                        NULL, NULL);
-                    if (ret != EOK) {
-                        DEBUG(SSSDBG_OP_FAILURE,
-                              "sysdb_add_overrides_to_object failed.\n");
-                        return ret;
+                ret = sysdb_initgroups(cmdctx, dom, sysdb_name, &dctx->res);
+                if (ret == EOK && DOM_HAS_VIEWS(dom)) {
+                    for (c = 0; c < dctx->res->count; c++) {
+                        ret = sysdb_add_overrides_to_object(dom, dctx->res->msgs[c],
+                                                            NULL, NULL);
+                        if (ret != EOK) {
+                            DEBUG(SSSDBG_OP_FAILURE,
+                                "sysdb_add_overrides_to_object failed.\n");
+                            return ret;
+                        }
                     }
                 }
             }
