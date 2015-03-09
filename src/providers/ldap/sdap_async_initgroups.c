@@ -29,12 +29,12 @@
 #include "providers/ldap/sdap_users.h"
 
 /* ==Save-fake-group-list=====================================*/
-static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
-                                          struct sss_domain_info *domain,
-                                          struct sdap_options *opts,
-                                          char **groupnames,
-                                          struct sysdb_attrs **ldap_groups,
-                                          int ldap_groups_count)
+errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
+                                   struct sdap_options *opts,
+                                   char **groupnames,
+                                   struct sysdb_attrs **ldap_groups,
+                                   int ldap_groups_count)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -3152,7 +3152,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
     subreq = groups_get_send(req, state->ev, state->id_ctx,
                              state->id_ctx->opts->sdom, state->conn,
-                             gid, BE_FILTER_IDNUM, BE_ATTR_ALL, NULL);
+                             gid, BE_FILTER_IDNUM, BE_ATTR_ALL, false, false);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;

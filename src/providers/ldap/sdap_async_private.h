@@ -132,4 +132,10 @@ errno_t sdap_nested_group_recv(TALLOC_CTX *mem_ctx,
                                unsigned long *_num_groups,
                                struct sysdb_attrs ***_groups);
 
+errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
+                                   struct sss_domain_info *domain,
+                                   struct sdap_options *opts,
+                                   char **groupnames,
+                                   struct sysdb_attrs **ldap_groups,
+                                   int ldap_groups_count);
 #endif /* _SDAP_ASYNC_PRIVATE_H_ */

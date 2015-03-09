@@ -1750,6 +1750,7 @@ struct sdap_get_groups_state {
     char *filter;
     int timeout;
     bool enumeration;
+    bool no_members;
 
     char *higher_usn;
     struct sysdb_attrs **groups;
@@ -1779,7 +1780,8 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        const char **attrs,
                                        const char *filter,
                                        int timeout,
-                                       bool enumeration)
+                                       bool enumeration,
+                                       bool no_members)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -1802,6 +1804,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     state->count = 0;
     state->timeout = timeout;
     state->enumeration = enumeration;
+    state->no_members = no_members;
     state->base_filter = filter;
     state->base_iter = 0;
     state->search_bases = sdom->group_search_bases;
@@ -1926,6 +1929,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     bool next_base = false;
     size_t count;
     struct sysdb_attrs **groups;
+    char **groupnamelist;
 
     ret = sdap_get_generic_recv(subreq, state,
                                 &count, &groups);
@@ -1990,6 +1994,36 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     if (state->count == 0) {
         tevent_req_error(req, ENOENT);
         return;
+    }
+
+    if (state->no_members) {
+        ret = sysdb_attrs_primary_name_list(state->sysdb, state,
+                                state->groups, state->count,
+                                state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                &groupnamelist);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sysdb_attrs_primary_name_list failed.\n");
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        ret = sdap_add_incomplete_groups(state->sysdb, state->dom, state->opts,
+                                         groupnamelist, state->groups,
+                                         state->count);
+        if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_LIBS,
+                  "Reading only group data without members successful.\n");
+            tevent_req_done(req);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE, "sdap_add_incomplete_groups failed.\n");
+            tevent_req_error(req, ret);
+        }
+        return;
+
+        ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
+                               state->groups, state->count, false,
+                               NULL, true, NULL);
     }
 
     /* Check whether we need to do nested searches
