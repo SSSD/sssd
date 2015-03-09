@@ -37,7 +37,7 @@ struct keytab_test_ctx {
     krb5_principal principal;
 };
 
-void setup_keytab(void **state)
+static int setup_keytab(void **state)
 {
     struct keytab_test_ctx *test_ctx;
     krb5_error_code kerr;
@@ -98,9 +98,10 @@ void setup_keytab(void **state)
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
+    return 0;
 }
 
-void teardown_keytab(void **state)
+static int teardown_keytab(void **state)
 {
     int ret;
     struct keytab_test_ctx *test_ctx = talloc_get_type(*state,
@@ -116,6 +117,7 @@ void teardown_keytab(void **state)
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_copy_keytab(void **state)
@@ -292,13 +294,13 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_copy_keytab,
-                                 setup_keytab, teardown_keytab),
-        unit_test_setup_teardown(test_sss_krb5_kt_have_content,
-                                 setup_keytab, teardown_keytab),
-        unit_test_setup_teardown(test_copy_keytab_order,
-                                 setup_keytab, teardown_keytab),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_copy_keytab,
+                                        setup_keytab, teardown_keytab),
+        cmocka_unit_test_setup_teardown(test_sss_krb5_kt_have_content,
+                                        setup_keytab, teardown_keytab),
+        cmocka_unit_test_setup_teardown(test_copy_keytab_order,
+                                        setup_keytab, teardown_keytab),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -322,7 +324,7 @@ int main(int argc, const char *argv[])
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
 
     return rv;
 }

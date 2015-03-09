@@ -84,7 +84,7 @@ struct parse_inp_test_ctx {
     struct resp_ctx *rctx;
 };
 
-void parse_inp_test_setup(void **state)
+static int parse_inp_test_setup(void **state)
 {
     struct parse_inp_test_ctx *parse_inp_ctx;
     int ret;
@@ -115,9 +115,10 @@ void parse_inp_test_setup(void **state)
 
     check_leaks_push(parse_inp_ctx);
     *state = parse_inp_ctx;
+    return 0;
 }
 
-void parse_inp_test_teardown(void **state)
+static int parse_inp_test_teardown(void **state)
 {
     struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type(*state,
                                                    struct parse_inp_test_ctx);
@@ -126,6 +127,7 @@ void parse_inp_test_teardown(void **state)
 
     talloc_free(parse_inp_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 int __real_sss_parse_name_for_domains(TALLOC_CTX *memctx,
@@ -279,19 +281,19 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(parse_inp_simple,
-                                 parse_inp_test_setup,
-                                 parse_inp_test_teardown),
-        unit_test_setup_teardown(parse_inp_call_dp,
-                                 parse_inp_test_setup,
-                                 parse_inp_test_teardown),
-        unit_test_setup_teardown(parse_inp_call_attach,
-                                 parse_inp_test_setup,
-                                 parse_inp_test_teardown),
-        unit_test_setup_teardown(parse_inp_call_neg,
-                                 parse_inp_test_setup,
-                                 parse_inp_test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(parse_inp_simple,
+                                        parse_inp_test_setup,
+                                        parse_inp_test_teardown),
+        cmocka_unit_test_setup_teardown(parse_inp_call_dp,
+                                        parse_inp_test_setup,
+                                        parse_inp_test_teardown),
+        cmocka_unit_test_setup_teardown(parse_inp_call_attach,
+                                        parse_inp_test_setup,
+                                        parse_inp_test_teardown),
+        cmocka_unit_test_setup_teardown(parse_inp_call_neg,
+                                        parse_inp_test_setup,
+                                        parse_inp_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -317,7 +319,7 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
     test_dom_suite_setup(TESTS_PATH);
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv == 0 && !no_cleanup) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
     }

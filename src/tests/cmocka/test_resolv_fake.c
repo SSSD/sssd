@@ -221,7 +221,7 @@ struct resolv_fake_ctx {
     struct sss_test_ctx *ctx;
 };
 
-void test_resolv_fake_setup(void **state)
+static int test_resolv_fake_setup(void **state)
 {
     struct resolv_fake_ctx *test_ctx;
     int ret;
@@ -242,9 +242,10 @@ void test_resolv_fake_setup(void **state)
     assert_int_equal(ret, EOK);
 
     *state = test_ctx;
+    return 0;
 }
 
-void test_resolv_fake_teardown(void **state)
+static int test_resolv_fake_teardown(void **state)
 {
     struct resolv_fake_ctx *test_ctx =
         talloc_get_type(*state, struct resolv_fake_ctx);
@@ -252,6 +253,7 @@ void test_resolv_fake_teardown(void **state)
     talloc_free(test_ctx);
     talloc_free(global_mock_context);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_resolv_fake_srv_done(struct tevent_req *req)
@@ -342,10 +344,10 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_resolv_fake_srv,
-                                 test_resolv_fake_setup,
-                                 test_resolv_fake_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_resolv_fake_srv,
+                                        test_resolv_fake_setup,
+                                        test_resolv_fake_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -369,6 +371,6 @@ int main(int argc, const char *argv[])
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     return rv;
 }

@@ -169,10 +169,10 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test(test_run_as_root_fg),
-        unit_test(test_run_as_sssd_fg),
-        unit_test(test_run_as_root_daemon),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_run_as_root_fg),
+        cmocka_unit_test(test_run_as_sssd_fg),
+        cmocka_unit_test(test_run_as_root_daemon),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -198,7 +198,7 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TEST_DB_PATH, CONFDB_FILE, NULL);
     test_dom_suite_setup(TEST_DB_PATH);
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv != 0) {
         test_dom_suite_cleanup(TEST_DB_PATH, CONFDB_FILE, NULL);
     }

@@ -111,7 +111,7 @@ struct create_pipe_ctx {
     const char *sock_name;
 };
 
-void test_create_pipe_fd_setup(void **state)
+static int test_create_pipe_fd_setup(void **state)
 {
     struct create_pipe_ctx *ctx;
 
@@ -120,6 +120,7 @@ void test_create_pipe_fd_setup(void **state)
     ctx->fd = -1;
 
     *state = ctx;
+    return 0;
 }
 
 void check_sock_properties(struct create_pipe_ctx *ctx, mode_t mode)
@@ -181,7 +182,7 @@ void test_create_pipe_fd(void **state)
     check_sock_properties(ctx, 0777);
 }
 
-void test_create_pipe_fd_teardown(void **state)
+static int test_create_pipe_fd_teardown(void **state)
 {
     struct create_pipe_ctx *ctx;
 
@@ -191,6 +192,7 @@ void test_create_pipe_fd_teardown(void **state)
         unlink(ctx->sock_name);
         close(ctx->fd);
     }
+    return 0;
 }
 
 int main(int argc, const char *argv[])
@@ -203,13 +205,13 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test(test_uid_csv_to_uid_list),
-        unit_test(test_name_csv_to_uid_list),
-        unit_test(test_csv_to_uid_list_neg),
-        unit_test_setup_teardown(test_create_pipe_fd,
-                                 test_create_pipe_fd_setup,
-                                 test_create_pipe_fd_teardown)
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_uid_csv_to_uid_list),
+        cmocka_unit_test(test_name_csv_to_uid_list),
+        cmocka_unit_test(test_csv_to_uid_list_neg),
+        cmocka_unit_test_setup_teardown(test_create_pipe_fd,
+                                        test_create_pipe_fd_setup,
+                                        test_create_pipe_fd_teardown)
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -231,5 +233,5 @@ int main(int argc, const char *argv[])
 
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

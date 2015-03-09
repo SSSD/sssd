@@ -116,7 +116,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
 
 #define setup_sysdb_tests(ctx) _setup_sysdb_tests((ctx), false)
 
-static void test_sysdb_setup(void **state)
+static int test_sysdb_setup(void **state)
 {
     int ret;
     struct sysdb_test_ctx *test_ctx;
@@ -127,15 +127,17 @@ static void test_sysdb_setup(void **state)
     assert_int_equal(ret, EOK);
 
     *state = (void *) test_ctx;
+    return 0;
 }
 
-static void test_sysdb_teardown(void **state)
+static int test_sysdb_teardown(void **state)
 {
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
 
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 static void test_sysdb_store_override(void **state)
@@ -440,17 +442,17 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_sysdb_store_override,
-                                 test_sysdb_setup, test_sysdb_teardown),
-        unit_test_setup_teardown(test_sysdb_add_overrides_to_object,
-                                 test_sysdb_setup, test_sysdb_teardown),
-        unit_test_setup_teardown(test_split_ipa_anchor,
-                                 test_sysdb_setup, test_sysdb_teardown),
-        unit_test_setup_teardown(test_sysdb_delete_view_tree,
-                                 test_sysdb_setup, test_sysdb_teardown),
-        unit_test_setup_teardown(test_sysdb_invalidate_overrides,
-                                 test_sysdb_setup, test_sysdb_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_sysdb_store_override,
+                                        test_sysdb_setup, test_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_add_overrides_to_object,
+                                        test_sysdb_setup, test_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_split_ipa_anchor,
+                                        test_sysdb_setup, test_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_delete_view_tree,
+                                        test_sysdb_setup, test_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_invalidate_overrides,
+                                        test_sysdb_setup, test_sysdb_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -473,7 +475,7 @@ int main(int argc, const char *argv[])
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);
     test_dom_suite_setup(TESTS_PATH);
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
 
     if (rv == 0 && no_cleanup == 0) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_FILE, LOCAL_SYSDB_FILE);

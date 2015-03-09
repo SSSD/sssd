@@ -246,7 +246,7 @@ struct parse_test_ctx {
     struct sdap_msg sm;
 };
 
-void parse_entry_test_setup(void **state)
+static int parse_entry_test_setup(void **state)
 {
     struct parse_test_ctx *test_ctx;
 
@@ -257,9 +257,10 @@ void parse_entry_test_setup(void **state)
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
+    return 0;
 }
 
-void parse_entry_test_teardown(void **state)
+static int parse_entry_test_teardown(void **state)
 {
     struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                       struct parse_test_ctx);
@@ -267,6 +268,7 @@ void parse_entry_test_teardown(void **state)
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_parse_with_map(void **state)
@@ -728,41 +730,41 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_parse_with_map,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
-        unit_test_setup_teardown(test_parse_no_map,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
-        unit_test_setup_teardown(test_parse_no_attrs,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
-        unit_test_setup_teardown(test_parse_dups,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
-        unit_test_setup_teardown(test_parse_deref,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
-        unit_test_setup_teardown(test_parse_deref_no_attrs,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
-        unit_test_setup_teardown(test_parse_secondary_oc,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_parse_with_map,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_no_map,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_no_attrs,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_dups,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_deref,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_deref_no_attrs,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_secondary_oc,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
         /* Negative tests */
-        unit_test_setup_teardown(test_parse_no_oc,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
-        unit_test_setup_teardown(test_parse_bad_oc,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
-        unit_test_setup_teardown(test_parse_no_dn,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
-        unit_test_setup_teardown(test_parse_deref_map_mismatch,
-                                 parse_entry_test_setup,
-                                 parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_no_oc,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_bad_oc,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_no_dn,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_deref_map_mismatch,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -786,5 +788,5 @@ int main(int argc, const char *argv[])
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

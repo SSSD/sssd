@@ -34,7 +34,7 @@
 #define PERIOD 1
 
 #define new_test(test) \
-    unit_test_setup_teardown(test_ ## test, test_setup, test_teardown)
+    cmocka_unit_test_setup_teardown(test_ ## test, test_setup, test_teardown)
 
 struct test_ctx {
     struct be_ctx *be_ctx;
@@ -265,7 +265,7 @@ errno_t test_be_ptask_sync_error(TALLOC_CTX *mem_ctx,
     return ERR_INTERNAL;
 }
 
-void test_setup(void **state)
+static int test_setup(void **state)
 {
     struct test_ctx *test_ctx = NULL;
 
@@ -282,12 +282,14 @@ void test_setup(void **state)
     assert_non_null(test_ctx->be_ctx->ev);
 
     *state = test_ctx;
+    return 0;
 }
 
-void test_teardown(void **state)
+static int test_teardown(void **state)
 {
     talloc_zfree(*state);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_be_ptask_create_einval_be(void **state)
@@ -944,7 +946,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
+    const struct CMUnitTest tests[] = {
         new_test(be_ptask_create_einval_be),
         new_test(be_ptask_create_einval_period),
         new_test(be_ptask_create_einval_send),
@@ -987,5 +989,5 @@ int main(int argc, const char *argv[])
 
     DEBUG_CLI_INIT(debug_level);
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

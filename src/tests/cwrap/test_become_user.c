@@ -133,9 +133,9 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test(test_become_user),
-        unit_test(test_switch_user),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_become_user),
+        cmocka_unit_test(test_switch_user),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -159,5 +159,5 @@ int main(int argc, const char *argv[])
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

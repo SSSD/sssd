@@ -179,13 +179,13 @@ void test_get_by_dn_fail(void **state)
 
 int main(void)
 {
-    const UnitTest tests[] = {
-        unit_test(test_search_bases_fail),
-        unit_test(test_search_bases_success),
-        unit_test(test_get_by_dn_fail),
-        unit_test(test_get_by_dn),
-        unit_test(test_get_by_dn2)
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_search_bases_fail),
+        cmocka_unit_test(test_search_bases_success),
+        cmocka_unit_test(test_get_by_dn_fail),
+        cmocka_unit_test(test_get_by_dn),
+        cmocka_unit_test(test_get_by_dn2)
      };
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

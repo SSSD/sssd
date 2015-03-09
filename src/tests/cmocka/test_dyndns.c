@@ -393,7 +393,7 @@ void dyndns_test_interval(void **state)
 }
 
 /* Testsuite setup and teardown */
-void dyndns_test_setup(void **state)
+static int dyndns_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "dyndns_update", "true" },
@@ -419,9 +419,10 @@ void dyndns_test_setup(void **state)
     dyndns_test_ctx->be_ctx->cdb = dyndns_test_ctx->tctx->confdb;
     dyndns_test_ctx->be_ctx->ev  = dyndns_test_ctx->tctx->ev;
     dyndns_test_ctx->be_ctx->conf_path = dyndns_test_ctx->tctx->conf_dom_path;
+    return 0;
 }
 
-void dyndns_test_simple_setup(void **state)
+static int dyndns_test_simple_setup(void **state)
 {
     assert_true(leak_check_setup());
     global_mock_context = talloc_new(global_talloc_context);
@@ -429,13 +430,15 @@ void dyndns_test_simple_setup(void **state)
 
     dyndns_test_ctx = talloc_zero(global_talloc_context, struct dyndns_test_ctx);
     assert_non_null(dyndns_test_ctx);
+    return 0;
 }
 
-void dyndns_test_teardown(void **state)
+static int dyndns_test_teardown(void **state)
 {
     talloc_free(dyndns_test_ctx);
     talloc_free(global_mock_context);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 int main(int argc, const char *argv[])
@@ -452,24 +455,28 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
+    const struct CMUnitTest tests[] = {
         /* Utility functions unit test */
-        unit_test_setup_teardown(dyndns_test_get_ifaddr,
-                                 dyndns_test_simple_setup,
-                                 dyndns_test_teardown),
-        unit_test_setup_teardown(dyndns_test_get_multi_ifaddr,
-                                 dyndns_test_simple_setup,
-                                 dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_get_ifaddr,
+                                        dyndns_test_simple_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_get_multi_ifaddr,
+                                        dyndns_test_simple_setup,
+                                        dyndns_test_teardown),
 
         /* Dynamic DNS update unit tests*/
-        unit_test_setup_teardown(dyndns_test_ok,
-                                 dyndns_test_setup, dyndns_test_teardown),
-        unit_test_setup_teardown(dyndns_test_error,
-                                 dyndns_test_setup, dyndns_test_teardown),
-        unit_test_setup_teardown(dyndns_test_timeout,
-                                 dyndns_test_setup, dyndns_test_teardown),
-        unit_test_setup_teardown(dyndns_test_interval,
-                                 dyndns_test_setup, dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_ok,
+                                        dyndns_test_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_error,
+                                        dyndns_test_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_timeout,
+                                        dyndns_test_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_interval,
+                                        dyndns_test_setup,
+                                        dyndns_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -495,7 +502,7 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
     test_dom_suite_setup(TESTS_PATH);
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv == 0 && !no_cleanup) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_SYSDB_FILE);
     }

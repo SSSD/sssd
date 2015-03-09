@@ -116,7 +116,7 @@ static void reply_variant_array(DBusMessage *reply,
     assert_true(bret);
 }
 
-static void test_setup(void **state)
+static int test_setup(void **state)
 {
     sss_sifp_error ret;
 
@@ -125,23 +125,26 @@ static void test_setup(void **state)
 
     test_ctx.reply = dbus_message_new(DBUS_MESSAGE_TYPE_METHOD_RETURN);
     assert_non_null(test_ctx.reply);
+    return 0;
 }
 
-static void test_teardown_parser(void **state)
+static int test_teardown_parser(void **state)
 {
     sss_sifp_free(&test_ctx.dbus_ctx);
     assert_null(test_ctx.dbus_ctx);
 
     dbus_message_unref(test_ctx.reply);
     test_ctx.reply = NULL;
+    return 0;
 }
 
-static void test_teardown_api(void **state)
+static int test_teardown_api(void **state)
 {
     sss_sifp_free(&test_ctx.dbus_ctx);
     assert_null(test_ctx.dbus_ctx);
 
     /* sss_sifp is responsible for freeing the reply */
+    return 0;
 }
 
 void test_sss_sifp_strdup_valid(void **state)
@@ -2150,100 +2153,100 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_sss_sifp_strdup_valid,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_strdup_null,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_strcat_valid,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_strcat_left_null,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_strcat_right_null,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_strcat_both_null,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_object_path_valid,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_object_path_invalid,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_object_path_list_valid,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_object_path_list_invalid,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_bool,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_int16,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_uint16,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_int32,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_uint32,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_int64,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_uint64,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_string,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_string_dict,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_bool_array,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_bool_array_empty,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_int32_array,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_int32_array_empty,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_uint32_array,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_uint32_array_empty,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_int64_array,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_int64_array_empty,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_uint64_array,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_uint64_array_empty,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_string_array,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_string_array_empty,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path_array,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path_array_empty,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_string_dict_array,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_list,
-                                 test_setup, test_teardown_parser),
-        unit_test_setup_teardown(test_sss_sifp_parse_attr_list_empty,
-                                 test_setup, test_teardown_parser),
-        unit_test(test_sss_sifp_get_iface_for_object),
-        unit_test_setup_teardown(test_sss_sifp_fetch_attr,
-                                 test_setup, test_teardown_api),
-        unit_test_setup_teardown(test_sss_sifp_fetch_all_attrs,
-                                 test_setup, test_teardown_api),
-        unit_test_setup_teardown(test_sss_sifp_fetch_object,
-                                 test_setup, test_teardown_api),
-        unit_test_setup_teardown(test_sss_sifp_invoke_list_zeroargs,
-                                 test_setup, test_teardown_api),
-        unit_test_setup_teardown(test_sss_sifp_invoke_list_withargs,
-                                 test_setup, test_teardown_api),
-        unit_test_setup_teardown(test_sss_sifp_invoke_find_zeroargs,
-                                 test_setup, test_teardown_api),
-        unit_test_setup_teardown(test_sss_sifp_invoke_find_withargs,
-                                 test_setup, test_teardown_api),
-        unit_test_setup_teardown(test_sss_sifp_list_domains,
-                                 test_setup, test_teardown_api),
-        unit_test_setup_teardown(test_sss_sifp_fetch_domain_by_name,
-                                 test_setup, test_teardown_api),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_sss_sifp_strdup_valid,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_strdup_null,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_strcat_valid,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_strcat_left_null,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_strcat_right_null,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_strcat_both_null,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_object_path_valid,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_object_path_invalid,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_object_path_list_valid,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_object_path_list_invalid,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_bool,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_int16,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_uint16,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_int32,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_uint32,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_int64,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_uint64,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_string,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_string_dict,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_bool_array,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_bool_array_empty,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_int32_array,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_int32_array_empty,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_uint32_array,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_uint32_array_empty,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_int64_array,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_int64_array_empty,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_uint64_array,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_uint64_array_empty,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_string_array,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_string_array_empty,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path_array,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_object_path_array_empty,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_string_dict_array,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_list,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_parse_attr_list_empty,
+                                        test_setup, test_teardown_parser),
+        cmocka_unit_test(test_sss_sifp_get_iface_for_object),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_fetch_attr,
+                                        test_setup, test_teardown_api),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_fetch_all_attrs,
+                                        test_setup, test_teardown_api),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_fetch_object,
+                                        test_setup, test_teardown_api),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_invoke_list_zeroargs,
+                                        test_setup, test_teardown_api),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_invoke_list_withargs,
+                                        test_setup, test_teardown_api),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_invoke_find_zeroargs,
+                                        test_setup, test_teardown_api),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_invoke_find_withargs,
+                                        test_setup, test_teardown_api),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_list_domains,
+                                        test_setup, test_teardown_api),
+        cmocka_unit_test_setup_teardown(test_sss_sifp_fetch_domain_by_name,
+                                        test_setup, test_teardown_api),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -2263,7 +2266,7 @@ int main(int argc, const char *argv[])
 
     DEBUG_CLI_INIT(debug_level);
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
 
     return rv;
 }
