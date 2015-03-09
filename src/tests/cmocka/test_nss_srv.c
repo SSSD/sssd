@@ -2072,6 +2072,99 @@ void test_nss_getorigbyname_multi_value_attrs(void **state)
     assert_int_equal(ret, EOK);
 }
 
+static int test_nss_getpwnam_upn_check(uint32_t status,
+                                       uint8_t *body,
+                                       size_t blen)
+{
+    struct passwd pwd;
+    errno_t ret;
+
+    assert_int_equal(status, EOK);
+
+    ret = parse_user_packet(body, blen, &pwd);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(pwd.pw_uid, 34567);
+    assert_int_equal(pwd.pw_gid, 45678);
+    assert_string_equal(pwd.pw_name, "upnuser");
+    assert_string_equal(pwd.pw_shell, "/bin/sh");
+    assert_string_equal(pwd.pw_passwd, "*");
+    return EOK;
+}
+
+void test_nss_getpwnam_upn(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, "upnuser@upndomain.test");
+    assert_int_equal(ret, EOK);
+
+    /* Prime the cache with a valid user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "upnuser", 34567, 45678, "up user",
+                         "/home/upnuser", "/bin/sh", NULL,
+                         attrs, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("upnuser@upndomain.test");
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETPWNAM);
+    mock_fill_user();
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_nss_getpwnam_upn_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* Test that searching for a nonexistant user yields ENOENT.
+ * Account callback will be called
+ */
+void test_nss_getpwnam_upn_neg(void **state)
+{
+    errno_t ret;
+
+    mock_input_user_or_group("nosuchupnuser@upndomain.test");
+    mock_account_recv_simple();
+
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+
+    /* Test that subsequent search for a nonexistent user yields
+     * ENOENT and Account callback is not called, on the other hand
+     * the ncache functions will be called
+     */
+    nss_test_ctx->tctx->done = false;
+    nss_test_ctx->ncache_hits = 0;
+
+    mock_input_user_or_group("nosuchupnuser@upndomain.test");
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETPWNAM,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    /* Negative cache was hit this time */
+    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+}
+
 static int nss_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
@@ -2240,6 +2333,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_getorigbyname_multi_value_attrs,
                                         nss_test_setup_extra_attr,
                                         nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_upn_neg,
+                                        nss_test_setup, nss_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
