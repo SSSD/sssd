@@ -114,7 +114,7 @@ int sss_dbus_conn_send(DBusConnection *dbus_conn,
     return EOK;
 }
 
-void sbus_get_id_test_setup(void **state)
+int sbus_get_id_test_setup(void **state)
 {
     struct sbus_get_id_ctx *test_ctx;
     int ret;
@@ -133,6 +133,7 @@ void sbus_get_id_test_setup(void **state)
 
     *state = test_ctx;
     global_test_ctx = test_ctx;
+    return 0;
 }
 
 void sbus_int_test_get_uid_done(struct tevent_req *req)
@@ -218,11 +219,12 @@ void sbus_int_test_get_uid_no_sender(void **state)
     assert_int_equal(ret, EOK);
 }
 
-void sbus_get_id_test_teardown(void **state)
+int sbus_get_id_test_teardown(void **state)
 {
     struct sbus_get_id_ctx *test_ctx = talloc_get_type(*state,
                                             struct sbus_get_id_ctx);
     talloc_free(test_ctx);
+    return 0;
 }
 
 int main(int argc, const char *argv[])
@@ -235,13 +237,13 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(sbus_int_test_get_uid,
-                                 sbus_get_id_test_setup,
-                                 sbus_get_id_test_teardown),
-        unit_test_setup_teardown(sbus_int_test_get_uid_no_sender,
-                                 sbus_get_id_test_setup,
-                                 sbus_get_id_test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(sbus_int_test_get_uid,
+                                        sbus_get_id_test_setup,
+                                        sbus_get_id_test_teardown),
+        cmocka_unit_test_setup_teardown(sbus_int_test_get_uid_no_sender,
+                                        sbus_get_id_test_setup,
+                                        sbus_get_id_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -261,5 +263,5 @@ int main(int argc, const char *argv[])
 
     DEBUG_CLI_INIT(debug_level);
     tests_set_cwd();
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

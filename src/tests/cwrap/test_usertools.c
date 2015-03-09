@@ -77,10 +77,10 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test(test_get_user_num),
-        unit_test(test_get_user_str),
-        unit_test(test_get_user_nullparm),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_get_user_num),
+        cmocka_unit_test(test_get_user_str),
+        cmocka_unit_test(test_get_user_nullparm),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -102,5 +102,5 @@ int main(int argc, const char *argv[])
 
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

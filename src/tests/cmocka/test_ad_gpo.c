@@ -40,7 +40,7 @@ struct ad_gpo_test_ctx {
 
 static struct ad_gpo_test_ctx *test_ctx;
 
-void ad_gpo_test_setup(void **state)
+static int ad_gpo_test_setup(void **state)
 {
     assert_true(leak_check_setup());
     test_ctx = talloc_zero(global_talloc_context,
@@ -49,12 +49,14 @@ void ad_gpo_test_setup(void **state)
 
     test_ctx->ldb_ctx = ldb_init(test_ctx, NULL);
     assert_non_null(test_ctx->ldb_ctx);
+    return 0;
 }
 
-void ad_gpo_test_teardown(void **state)
+static int ad_gpo_test_teardown(void **state)
 {
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 struct som_list_result {
@@ -337,31 +339,31 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_populate_som_list_plain,
-                                 ad_gpo_test_setup,
-                                 ad_gpo_test_teardown),
-        unit_test_setup_teardown(test_populate_som_list_malformed,
-                                 ad_gpo_test_setup,
-                                 ad_gpo_test_teardown),
-        unit_test_setup_teardown(test_populate_gplink_list_plain,
-                                 ad_gpo_test_setup,
-                                 ad_gpo_test_teardown),
-        unit_test_setup_teardown(test_populate_gplink_list_with_ignored,
-                                 ad_gpo_test_setup,
-                                 ad_gpo_test_teardown),
-        unit_test_setup_teardown(test_populate_gplink_list_with_allow_enforced,
-                                 ad_gpo_test_setup,
-                                 ad_gpo_test_teardown),
-        unit_test_setup_teardown(test_populate_gplink_list_malformed,
-                                 ad_gpo_test_setup,
-                                 ad_gpo_test_teardown),
-        unit_test_setup_teardown(test_ad_gpo_ace_includes_client_sid_true,
-                                 ad_gpo_test_setup,
-                                 ad_gpo_test_teardown),
-        unit_test_setup_teardown(test_ad_gpo_ace_includes_client_sid_false,
-                                 ad_gpo_test_setup,
-                                 ad_gpo_test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_populate_som_list_plain,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_populate_som_list_malformed,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_populate_gplink_list_plain,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_populate_gplink_list_with_ignored,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_populate_gplink_list_with_allow_enforced,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_populate_gplink_list_malformed,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_gpo_ace_includes_client_sid_true,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_gpo_ace_includes_client_sid_false,
+                                        ad_gpo_test_setup,
+                                        ad_gpo_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -383,5 +385,5 @@ int main(int argc, const char *argv[])
 
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

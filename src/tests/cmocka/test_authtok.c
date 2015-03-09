@@ -35,7 +35,7 @@ struct test_state {
     struct sss_auth_token *authtoken;
 };
 
-static void setup(void **state)
+static int setup(void **state)
 {
     struct test_state *ts = NULL;
 
@@ -46,12 +46,14 @@ static void setup(void **state)
     assert_non_null(ts->authtoken);
 
     *state = (void *)ts;
+    return 0;
 }
 
-static void teardown(void **state)
+static int teardown(void **state)
 {
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     talloc_free(ts);
+    return 0;
 }
 
 static void test_sss_authtok_new(void **state)
@@ -289,15 +291,20 @@ static void test_sss_authtok_copy(void **state)
 
 int main(void)
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_sss_authtok_new, setup, teardown),
-        unit_test_setup_teardown(test_sss_authtok_password, setup, teardown),
-        unit_test_setup_teardown(test_sss_authtok_ccfile, setup, teardown),
-        unit_test_setup_teardown(test_sss_authtok_empty, setup, teardown),
-        unit_test_setup_teardown(test_sss_authtok_wipe_password, setup,
-                                 teardown),
-        unit_test_setup_teardown(test_sss_authtok_copy, setup, teardown)
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_sss_authtok_new,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_password,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_ccfile,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_empty,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_wipe_password,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_copy,
+                                        setup, teardown)
     };
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

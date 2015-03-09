@@ -42,7 +42,7 @@ struct ad_access_test_ctx {
 
 static struct ad_access_test_ctx *test_ctx;
 
-void ad_access_filter_test_setup(void **state)
+int ad_access_filter_test_setup(void **state)
 {
     assert_true(leak_check_setup());
     test_ctx = talloc_zero(global_talloc_context,
@@ -54,12 +54,14 @@ void ad_access_filter_test_setup(void **state)
 
     test_ctx->dom->name = talloc_strdup(test_ctx->dom, DOM_NAME);
     assert_non_null(test_ctx->dom->name);
+    return 0;
 }
 
-void ad_access_filter_test_teardown(void **state)
+int ad_access_filter_test_teardown(void **state)
 {
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 struct filter_parse_result {
@@ -153,14 +155,16 @@ void test_filter_no_match(void **state)
 }
 
 
-void parse_test_setup(void **state)
+int parse_test_setup(void **state)
 {
     assert_true(leak_check_setup());
+    return 0;
 }
 
-void parse_test_teardown(void **state)
+int parse_test_teardown(void **state)
 {
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 struct parse_result {
@@ -295,42 +299,42 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_parse_plain,
-                                 parse_test_setup,
-                                 parse_test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_parse_plain,
+                                        parse_test_setup,
+                                        parse_test_teardown),
 
-        unit_test_setup_teardown(test_parse_dom_without_kw,
-                                 parse_test_setup,
-                                 parse_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_dom_without_kw,
+                                        parse_test_setup,
+                                        parse_test_teardown),
 
-        unit_test_setup_teardown(test_parse_dom_kw,
-                                 parse_test_setup,
-                                 parse_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_dom_kw,
+                                        parse_test_setup,
+                                        parse_test_teardown),
 
-        unit_test_setup_teardown(test_parse_forest_kw,
-                                 parse_test_setup,
-                                 parse_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_forest_kw,
+                                        parse_test_setup,
+                                        parse_test_teardown),
 
-        unit_test_setup_teardown(test_parse_malformed,
-                                 parse_test_setup,
-                                 parse_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_malformed,
+                                        parse_test_setup,
+                                        parse_test_teardown),
 
-        unit_test_setup_teardown(test_no_filter,
-                                 ad_access_filter_test_setup,
-                                 ad_access_filter_test_teardown),
+        cmocka_unit_test_setup_teardown(test_no_filter,
+                                        ad_access_filter_test_setup,
+                                        ad_access_filter_test_teardown),
 
-        unit_test_setup_teardown(test_single_filter,
-                                 ad_access_filter_test_setup,
-                                 ad_access_filter_test_teardown),
+        cmocka_unit_test_setup_teardown(test_single_filter,
+                                        ad_access_filter_test_setup,
+                                        ad_access_filter_test_teardown),
 
-        unit_test_setup_teardown(test_filter_order,
-                                 ad_access_filter_test_setup,
-                                 ad_access_filter_test_teardown),
+        cmocka_unit_test_setup_teardown(test_filter_order,
+                                        ad_access_filter_test_setup,
+                                        ad_access_filter_test_teardown),
 
-        unit_test_setup_teardown(test_filter_no_match,
-                                 ad_access_filter_test_setup,
-                                 ad_access_filter_test_teardown),
+        cmocka_unit_test_setup_teardown(test_filter_no_match,
+                                        ad_access_filter_test_setup,
+                                        ad_access_filter_test_teardown),
 
     };
 
@@ -353,5 +357,5 @@ int main(int argc, const char *argv[])
 
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

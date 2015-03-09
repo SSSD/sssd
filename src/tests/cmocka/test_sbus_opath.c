@@ -153,12 +153,12 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test(test_sbus_opath_strip_prefix),
-        unit_test(test_sbus_opath_escape_unescape),
-        unit_test(test_sbus_opath_compose),
-        unit_test(test_sbus_opath_compose_escape),
-        unit_test(test_sbus_opath_get_object_name)
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_sbus_opath_strip_prefix),
+        cmocka_unit_test(test_sbus_opath_escape_unescape),
+        cmocka_unit_test(test_sbus_opath_compose),
+        cmocka_unit_test(test_sbus_opath_compose_escape),
+        cmocka_unit_test(test_sbus_opath_get_object_name)
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -178,5 +178,5 @@ int main(int argc, const char *argv[])
 
     DEBUG_CLI_INIT(debug_level);
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

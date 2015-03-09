@@ -67,7 +67,7 @@ static char *get_random_filepath(const char *template)
     return path;
 }
 
-void test_file_setup(void **state)
+static int test_file_setup(void **state)
 {
     int ret;
     char *file_path;
@@ -83,9 +83,10 @@ void test_file_setup(void **state)
     assert_int_equal(ret, ENOENT);
 
     *state = file_path;
+    return 0;
 }
 
-void test_file_teardown(void **state)
+static int test_file_teardown(void **state)
 {
     int ret;
     char *file_path = (char *)*state;
@@ -96,6 +97,7 @@ void test_file_teardown(void **state)
 
     ret = rmdir(TESTS_PATH);
     assert_int_equal(ret, EOK);
+    return 0;
 }
 
 struct dir_state {
@@ -107,7 +109,7 @@ struct dir_state {
     char *filename;
 };
 
-void test_dir_setup(void **state)
+static int test_dir_setup(void **state)
 {
     struct dir_state *data;
     int ret;
@@ -139,9 +141,10 @@ void test_dir_setup(void **state)
     assert_int_equal(ret, ENOENT);
 
     *state = data;
+    return 0;
 }
 
-void test_dir_teardown(void **state)
+static int test_dir_teardown(void **state)
 {
     int ret;
     struct dir_state *data = (struct dir_state *) *state;
@@ -157,6 +160,7 @@ void test_dir_teardown(void **state)
     assert_int_equal(ret, EOK);
 
     free(data);
+    return 0;
 }
 
 void test_sss_open_cloexec_success(void **state)
@@ -223,17 +227,17 @@ void test_sss_openat_cloexec_fail(void **state)
 
 int main(void)
 {
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_sss_open_cloexec_success,
-                                 test_file_setup, test_file_teardown),
-        unit_test_setup_teardown(test_sss_open_cloexec_fail,
-                                  test_file_setup, test_file_teardown),
-        unit_test_setup_teardown(test_sss_openat_cloexec_success,
-                                 test_dir_setup, test_dir_teardown),
-        unit_test_setup_teardown(test_sss_openat_cloexec_fail,
-                                 test_dir_setup, test_dir_teardown)
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_sss_open_cloexec_success,
+                                        test_file_setup, test_file_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_open_cloexec_fail,
+                                        test_file_setup, test_file_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_openat_cloexec_success,
+                                        test_dir_setup, test_dir_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_openat_cloexec_fail,
+                                        test_dir_setup, test_dir_teardown)
     };
 
     tests_set_cwd();
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -47,7 +47,7 @@ struct ad_common_test_ctx {
     struct sss_domain_info *subdom;
 };
 
-static void
+static int
 ad_common_test_setup(void **state)
 {
     struct ad_common_test_ctx *test_ctx;
@@ -111,9 +111,10 @@ ad_common_test_setup(void **state)
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
+    return 0;
 }
 
-static void
+static int
 ad_common_test_teardown(void **state)
 {
     struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
@@ -124,6 +125,7 @@ ad_common_test_teardown(void **state)
     talloc_free(test_ctx);
     assert_true(check_leaks_pop(global_talloc_context) == true);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 errno_t
@@ -210,13 +212,13 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_ldap_conn_list,
-                                 ad_common_test_setup,
-                                 ad_common_test_teardown),
-        unit_test_setup_teardown(test_conn_list,
-                                 ad_common_test_setup,
-                                 ad_common_test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_ldap_conn_list,
+                                        ad_common_test_setup,
+                                        ad_common_test_teardown),
+        cmocka_unit_test_setup_teardown(test_conn_list,
+                                        ad_common_test_setup,
+                                        ad_common_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -238,5 +240,5 @@ int main(int argc, const char *argv[])
 
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

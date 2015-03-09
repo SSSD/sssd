@@ -39,7 +39,7 @@ struct ccache_test_ctx {
     krb5_principal server_principal;
 };
 
-void setup_ccache(void **state)
+static int setup_ccache(void **state)
 {
     struct ccache_test_ctx *test_ctx;
     krb5_error_code kerr;
@@ -131,9 +131,10 @@ void setup_ccache(void **state)
     *state = test_ctx;
 
     krb5_free_authdata(test_ctx->kctx, test_creds.authdata);
+    return 0;
 }
 
-void teardown_ccache(void **state)
+static int teardown_ccache(void **state)
 {
     int ret;
     struct ccache_test_ctx *test_ctx = talloc_get_type(*state,
@@ -150,6 +151,7 @@ void teardown_ccache(void **state)
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_copy_ccache(void **state)
@@ -206,9 +208,9 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_copy_ccache,
-                                 setup_ccache, teardown_ccache),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_copy_ccache,
+                                        setup_ccache, teardown_ccache),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -232,7 +234,7 @@ int main(int argc, const char *argv[])
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
 
     return rv;
 }

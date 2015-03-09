@@ -34,14 +34,14 @@
 #define TEST_ID_PROVIDER "ldap"
 
 #define new_single_domain_test(test) \
-    unit_test_setup_teardown(test_ ## test, \
-                             test_single_domain_setup, \
-                             test_single_domain_teardown)
+    cmocka_unit_test_setup_teardown(test_ ## test, \
+                                    test_single_domain_setup, \
+                                    test_single_domain_teardown)
 
 #define new_multi_domain_test(test) \
-    unit_test_setup_teardown(test_ ## test, \
-                             test_multi_domain_setup, \
-                             test_multi_domain_teardown)
+    cmocka_unit_test_setup_teardown(test_ ## test, \
+                                    test_multi_domain_setup, \
+                                    test_multi_domain_teardown)
 
 struct cache_req_test_ctx {
     struct sss_test_ctx *tctx;
@@ -108,7 +108,7 @@ static void cache_req_user_test_done(struct tevent_req *req)
     ctx->tctx->done = true;
 }
 
-void test_single_domain_setup(void **state)
+static int test_single_domain_setup(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     errno_t ret;
@@ -129,15 +129,17 @@ void test_single_domain_setup(void **state)
 
     ret = sss_ncache_init(test_ctx, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
+    return 0;
 }
 
-void test_single_domain_teardown(void **state)
+static int test_single_domain_teardown(void **state)
 {
     talloc_zfree(*state);
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
+    return 0;
 }
 
-void test_multi_domain_setup(void **state)
+static int test_multi_domain_setup(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
     errno_t ret;
@@ -159,12 +161,14 @@ void test_multi_domain_setup(void **state)
 
     ret = sss_ncache_init(test_ctx, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
+    return 0;
 }
 
-void test_multi_domain_teardown(void **state)
+static int test_multi_domain_teardown(void **state)
 {
     talloc_zfree(*state);
     test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);
+    return 0;
 }
 
 void test_user_multiple_domains_found(void **state)
@@ -491,7 +495,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
+    const struct CMUnitTest tests[] = {
         new_single_domain_test(user_cache_valid),
         new_single_domain_test(user_cache_expired),
         new_single_domain_test(user_cache_midpoint),
@@ -525,5 +529,5 @@ int main(int argc, const char *argv[])
     test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

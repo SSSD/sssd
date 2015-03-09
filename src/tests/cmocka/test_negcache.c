@@ -131,7 +131,7 @@ struct test_state {
     struct resp_ctx *rctx;
 };
 
-static void setup(void **state)
+static int setup(void **state)
 {
     int ret;
     struct test_state *ts;
@@ -144,12 +144,14 @@ static void setup(void **state)
     assert_non_null(ts->ctx);
 
     *state = (void *)ts;
+    return 0;
 }
 
-static void teardown(void **state)
+static int teardown(void **state)
 {
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
     talloc_free(ts);
+    return 0;
 }
 
 static void test_sss_ncache_init(void **state)
@@ -620,28 +622,29 @@ static void test_sss_ncache_prepopulate(void **state)
 int main(void)
 {
     int rv;
-    const UnitTest tests[] = {
-        unit_test(test_sss_ncache_init),
-        unit_test_setup_teardown(test_sss_ncache_uid, setup, teardown),
-        unit_test_setup_teardown(test_sss_ncache_gid, setup, teardown),
-        unit_test_setup_teardown(test_sss_ncache_sid, setup, teardown),
-        unit_test_setup_teardown(test_sss_ncache_user, setup, teardown),
-        unit_test_setup_teardown(test_sss_ncache_group, setup, teardown),
-        unit_test_setup_teardown(test_sss_ncache_netgr, setup, teardown),
-        unit_test_setup_teardown(test_sss_ncache_service_name, setup,
-                                 teardown),
-        unit_test_setup_teardown(test_sss_ncache_service_port, setup,
-                                  teardown),
-        unit_test_setup_teardown(test_sss_ncache_reset_permanent, setup,
-                                  teardown),
-        unit_test_setup_teardown(test_sss_ncache_prepopulate, setup, teardown)
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_sss_ncache_init),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_uid, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_gid, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_sid, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_user, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_group, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_netgr, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_service_name, setup,
+                                        teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_service_port,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_reset_permanent, setup,
+                                        teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_prepopulate,
+                                        setup, teardown)
     };
 
     tests_set_cwd();
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv == 0) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }

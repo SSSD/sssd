@@ -207,7 +207,7 @@ int test_fo_srv_data_cmp(void *ud1, void *ud2)
     return strcasecmp((char*) ud1, (char*) ud2);
 }
 
-void test_fo_srv_setup(void **state)
+static int test_fo_srv_setup(void **state)
 {
     struct test_fo_srv_ctx *test_ctx;
     errno_t ret;
@@ -253,9 +253,10 @@ void test_fo_srv_setup(void **state)
     assert_int_equal(ret, ERR_OK);
 
     *state = test_ctx;
+    return 0;
 }
 
-void test_fo_srv_teardown(void **state)
+static int test_fo_srv_teardown(void **state)
 {
     struct test_fo_srv_ctx *test_ctx =
         talloc_get_type(*state, struct test_fo_srv_ctx);
@@ -263,6 +264,7 @@ void test_fo_srv_teardown(void **state)
     talloc_free(test_ctx);
     talloc_free(global_mock_context);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 /* reply_list and dns_domain must be a talloc context so it can be used as
@@ -564,13 +566,13 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_fo_srv,
-                                 test_fo_srv_setup,
-                                 test_fo_srv_teardown),
-        unit_test_setup_teardown(test_fo_srv_ttl_change,
-                                 test_fo_srv_setup,
-                                 test_fo_srv_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_fo_srv,
+                                        test_fo_srv_setup,
+                                        test_fo_srv_teardown),
+        cmocka_unit_test_setup_teardown(test_fo_srv_ttl_change,
+                                        test_fo_srv_setup,
+                                        test_fo_srv_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -594,6 +596,6 @@ int main(int argc, const char *argv[])
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     return rv;
 }

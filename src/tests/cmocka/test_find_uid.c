@@ -95,11 +95,11 @@ void test_get_uid_table(void **state)
 
 int main(void)
 {
-    const UnitTest tests[] = {
-        unit_test(test_check_if_uid_is_active_success),
-        unit_test(test_check_if_uid_is_active_fail),
-        unit_test(test_get_uid_table)
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_check_if_uid_is_active_success),
+        cmocka_unit_test(test_check_if_uid_is_active_fail),
+        cmocka_unit_test(test_get_uid_table)
     };
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

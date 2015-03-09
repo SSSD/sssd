@@ -2071,7 +2071,7 @@ void test_nss_getorigbyname_multi_value_attrs(void **state)
     assert_int_equal(ret, EOK);
 }
 
-void nss_test_setup(void **state)
+static int nss_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "enumerate", "false" },
@@ -2079,9 +2079,10 @@ void nss_test_setup(void **state)
     };
 
     test_nss_setup(params, state);
+    return 0;
 }
 
-void nss_fqdn_test_setup(void **state)
+static int nss_fqdn_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "enumerate", "false" },
@@ -2090,9 +2091,10 @@ void nss_fqdn_test_setup(void **state)
     };
 
     test_nss_setup(params, state);
+    return 0;
 }
 
-void nss_test_setup_extra_attr(void **state)
+static int nss_test_setup_extra_attr(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "enumerate", "false" },
@@ -2102,9 +2104,10 @@ void nss_test_setup_extra_attr(void **state)
     test_nss_setup(params, state);
 
     nss_test_ctx->nctx->extra_attributes = global_extra_attrs;
+    return 0;
 }
 
-void nss_subdom_test_setup(void **state)
+static int nss_subdom_test_setup(void **state)
 {
     const char *const testdom[4] = { TEST_SUBDOM_NAME, "TEST.SUB", "test", "S-3" };
     struct sss_domain_info *subdomain;
@@ -2126,9 +2129,10 @@ void nss_subdom_test_setup(void **state)
     assert_int_equal(ret, EOK);
 
     nss_test_ctx->subdom = subdomain;
+    return 0;
 }
 
-void nss_fqdn_fancy_test_setup(void **state)
+static int nss_fqdn_fancy_test_setup(void **state)
 {
     struct sss_test_conf_param params[] = {
         { "enumerate", "false" },
@@ -2137,11 +2141,13 @@ void nss_fqdn_fancy_test_setup(void **state)
     };
 
     test_nss_setup(params, state);
+    return 0;
 }
 
-void nss_test_teardown(void **state)
+static int nss_test_teardown(void **state)
 {
     talloc_free(nss_test_ctx);
+    return 0;
 }
 
 int main(int argc, const char *argv[])
@@ -2158,71 +2164,81 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_nss_getpwnam,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwuid,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwnam_neg,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwuid_neg,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwnam_search,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwuid_search,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwnam_update,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwuid_update,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwnam_fqdn,
-                                 nss_fqdn_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwnam_fqdn_fancy,
-                                 nss_fqdn_fancy_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwnam_space,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwnam_space_sub,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getpwnam_space_sub_query,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getgrnam_no_members,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getgrnam_members,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getgrnam_members_fqdn,
-                                 nss_fqdn_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getgrnam_members_subdom,
-                                 nss_subdom_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getgrnam_mix_dom,
-                                 nss_subdom_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getgrnam_mix_dom_fqdn,
-                                 nss_subdom_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getgrnam_mix_subdom,
-                                 nss_subdom_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getgrnam_space,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getgrnam_space_sub,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_well_known_getnamebysid,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_well_known_getnamebysid_special,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_well_known_getnamebysid_non_existing,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_well_known_getidbysid_failure,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_well_known_getsidbyname,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_well_known_getsidbyname_nonexisting,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_well_known_getsidbyname_special,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getorigbyname,
-                                 nss_test_setup, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getorigbyname_extra_attrs,
-                                 nss_test_setup_extra_attr, nss_test_teardown),
-        unit_test_setup_teardown(test_nss_getorigbyname_multi_value_attrs,
-                                 nss_test_setup_extra_attr, nss_test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwuid,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_neg,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwuid_neg,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_search,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwuid_search,
+                                        nss_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_update,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwuid_update,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_fqdn,
+                                        nss_fqdn_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_fqdn_fancy,
+                                        nss_fqdn_fancy_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_space,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_space_sub,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getpwnam_space_sub_query,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_no_members,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_members,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_members_fqdn,
+                                        nss_fqdn_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_members_subdom,
+                                        nss_subdom_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom,
+                                        nss_subdom_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_dom_fqdn,
+                                        nss_subdom_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_mix_subdom,
+                                        nss_subdom_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_space,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getgrnam_space_sub,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_well_known_getnamebysid,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_well_known_getnamebysid_special,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_well_known_getnamebysid_non_existing,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_well_known_getidbysid_failure,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_well_known_getsidbyname,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_well_known_getsidbyname_nonexisting,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_well_known_getsidbyname_special,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getorigbyname,
+                                        nss_test_setup,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getorigbyname_extra_attrs,
+                                        nss_test_setup_extra_attr,
+                                        nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getorigbyname_multi_value_attrs,
+                                        nss_test_setup_extra_attr,
+                                        nss_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -2248,7 +2264,7 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv == 0 && !no_cleanup) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }

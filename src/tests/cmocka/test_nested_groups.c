@@ -37,9 +37,9 @@
 #define TEST_ID_PROVIDER "ldap"
 
 #define new_test(test) \
-    unit_test_setup_teardown(nested_groups_test_ ## test, \
-                             nested_groups_test_setup, \
-                             nested_groups_test_teardown)
+    cmocka_unit_test_setup_teardown(nested_groups_test_ ## test, \
+                                    nested_groups_test_setup, \
+                                    nested_groups_test_teardown)
 
 /* put users and groups under the same container so we can easily run the
  * same tests cases for several search base scenarios */
@@ -563,7 +563,7 @@ static void nested_groups_test_nested_chain_with_error(void **state)
     assert_int_equal(ret, EIO);
 }
 
-void nested_groups_test_setup(void **state)
+static int nested_groups_test_setup(void **state)
 {
     errno_t ret;
     struct nested_groups_test_ctx *test_ctx = NULL;
@@ -609,11 +609,13 @@ void nested_groups_test_setup(void **state)
     ret = sdap_idmap_init(test_ctx, test_ctx->sdap_id_ctx, &test_ctx->idmap_ctx);
     assert_int_equal(ret, EOK);
     test_ctx->sdap_opts->idmap_ctx = test_ctx->idmap_ctx;
+    return 0;
 }
 
-void nested_groups_test_teardown(void **state)
+static int nested_groups_test_teardown(void **state)
 {
     talloc_zfree(*state);
+    return 0;
 }
 
 int main(int argc, const char *argv[])
@@ -630,7 +632,7 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
+    const struct CMUnitTest tests[] = {
         new_test(one_group_no_members),
         new_test(one_group_unique_members),
         new_test(one_group_dup_users),
@@ -663,7 +665,7 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv == 0 && !no_cleanup) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }

@@ -264,7 +264,7 @@ void opt_test_get(void **state)
     assert_true(bo == false);
 }
 
-void opt_test_getset_setup(void **state)
+static int opt_test_getset_setup(void **state)
 {
     int ret;
     struct dp_option *opts;
@@ -275,12 +275,14 @@ void opt_test_getset_setup(void **state)
     assert_defaults(opts);
 
     *state = opts;
+    return 0;
 }
 
-void opt_test_getset_teardown(void **state)
+static int opt_test_getset_teardown(void **state)
 {
     struct dp_option *opts = talloc_get_type(*state, struct dp_option);
     talloc_free(opts);
+    return 0;
 }
 
 void opt_test_getset_string(void **state)
@@ -366,22 +368,22 @@ int main(int argc, const char *argv[])
          _("Do not delete the test database after a test run"), NULL },
         POPT_TABLEEND
     };
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(opt_test_getset_string,
-                                 opt_test_getset_setup,
-                                 opt_test_getset_teardown),
-        unit_test_setup_teardown(opt_test_getset_int,
-                                 opt_test_getset_setup,
-                                 opt_test_getset_teardown),
-        unit_test_setup_teardown(opt_test_getset_bool,
-                                 opt_test_getset_setup,
-                                 opt_test_getset_teardown),
-        unit_test_setup_teardown(opt_test_getset_blob,
-                                 opt_test_getset_setup,
-                                 opt_test_getset_teardown),
-        unit_test(opt_test_copy_default),
-        unit_test(opt_test_copy_options),
-        unit_test(opt_test_get)
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(opt_test_getset_string,
+                                        opt_test_getset_setup,
+                                        opt_test_getset_teardown),
+        cmocka_unit_test_setup_teardown(opt_test_getset_int,
+                                        opt_test_getset_setup,
+                                        opt_test_getset_teardown),
+        cmocka_unit_test_setup_teardown(opt_test_getset_bool,
+                                        opt_test_getset_setup,
+                                        opt_test_getset_teardown),
+        cmocka_unit_test_setup_teardown(opt_test_getset_blob,
+                                        opt_test_getset_setup,
+                                        opt_test_getset_teardown),
+        cmocka_unit_test(opt_test_copy_default),
+        cmocka_unit_test(opt_test_copy_options),
+        cmocka_unit_test(opt_test_get)
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -407,7 +409,7 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
 
-    ret = run_tests(tests);
+    ret = cmocka_run_group_tests(tests, NULL, NULL);
     if (ret == 0 && !no_cleanup) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }

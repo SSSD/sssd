@@ -40,7 +40,7 @@ struct child_test_ctx {
     struct sss_test_ctx *test_ctx;
 };
 
-void child_test_setup(void **state)
+static int child_test_setup(void **state)
 {
     struct child_test_ctx *child_tctx;
     errno_t ret;
@@ -65,15 +65,17 @@ void child_test_setup(void **state)
                              child_tctx->pipefd_to_child[1]);
 
     *state = child_tctx;
+    return 0;
 }
 
-void child_test_teardown(void **state)
+static int child_test_teardown(void **state)
 {
     struct child_test_ctx *child_tctx = talloc_get_type(*state,
                                                         struct child_test_ctx);
 
     talloc_free(child_tctx);
     check_leaks_pop(global_talloc_context);
+    return 0;
 }
 
 /* Just make sure the exec works. The child does nothing but exits */
@@ -453,25 +455,25 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_exec_child,
-                                 child_test_setup,
-                                 child_test_teardown),
-        unit_test_setup_teardown(test_exec_child_extra_args,
-                                 child_test_setup,
-                                 child_test_teardown),
-        unit_test_setup_teardown(test_exec_child_io_destruct,
-                                 child_test_setup,
-                                 child_test_teardown),
-        unit_test_setup_teardown(test_exec_child_handler,
-                                 child_test_setup,
-                                 child_test_teardown),
-        unit_test_setup_teardown(test_exec_child_echo,
-                                 child_test_setup,
-                                 child_test_teardown),
-        unit_test_setup_teardown(test_sss_child,
-                                 child_test_setup,
-                                 child_test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_exec_child,
+                                        child_test_setup,
+                                        child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_extra_args,
+                                        child_test_setup,
+                                        child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_io_destruct,
+                                        child_test_setup,
+                                        child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_handler,
+                                        child_test_setup,
+                                        child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_echo,
+                                        child_test_setup,
+                                        child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_child,
+                                        child_test_setup,
+                                        child_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -491,6 +493,6 @@ int main(int argc, const char *argv[])
 
     DEBUG_CLI_INIT(debug_level);
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     return rv;
 }

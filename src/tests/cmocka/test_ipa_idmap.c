@@ -142,7 +142,7 @@ static struct range_info **get_range_list(TALLOC_CTX *mem_ctx)
     return range_list;
 }
 
-void setup_idmap_ctx(void **state)
+static int setup_idmap_ctx(void **state)
 {
     int ret;
     struct test_ctx *test_ctx;
@@ -177,9 +177,10 @@ void setup_idmap_ctx(void **state)
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
+    return 0;
 }
 
-void teardown_idmap_ctx(void **state)
+static int teardown_idmap_ctx(void **state)
 {
     struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
 
@@ -189,6 +190,7 @@ void teardown_idmap_ctx(void **state)
 
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_ipa_idmap_get_ranges_from_sysdb(void **state)
@@ -220,10 +222,10 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test(test_get_idmap_data_from_range),
-        unit_test_setup_teardown(test_ipa_idmap_get_ranges_from_sysdb,
-                                 setup_idmap_ctx, teardown_idmap_ctx),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_get_idmap_data_from_range),
+        cmocka_unit_test_setup_teardown(test_ipa_idmap_get_ranges_from_sysdb,
+                                        setup_idmap_ctx, teardown_idmap_ctx),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -245,5 +247,5 @@ int main(int argc, const char *argv[])
 
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

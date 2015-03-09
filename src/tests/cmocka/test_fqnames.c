@@ -69,7 +69,7 @@ struct fqdn_test_ctx {
     struct sss_names_ctx *nctx;
 };
 
-void fqdn_test_setup(void **state)
+static int fqdn_test_setup(void **state)
 {
     struct fqdn_test_ctx *test_ctx;
 
@@ -83,21 +83,23 @@ void fqdn_test_setup(void **state)
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
+    return 0;
 }
 
-void fqdn_test_teardown(void **state)
+static int fqdn_test_teardown(void **state)
 {
     struct fqdn_test_ctx *test_ctx = talloc_get_type(*state,
                                                      struct fqdn_test_ctx);
 
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
-        return;
+        return 1;
     }
 
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_default(void **state)
@@ -270,7 +272,7 @@ void parse_name_check(struct parse_name_test_ctx *test_ctx,
     assert_true(check_leaks_pop(test_ctx) == true);
 }
 
-void parse_name_test_setup(void **state)
+static int parse_name_test_setup(void **state)
 {
     struct parse_name_test_ctx *test_ctx;
     struct sss_domain_info *dom;
@@ -312,9 +314,10 @@ void parse_name_test_setup(void **state)
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
+    return 0;
 }
 
-void parse_name_test_teardown(void **state)
+static int parse_name_test_teardown(void **state)
 {
     struct parse_name_test_ctx *test_ctx = talloc_get_type(*state,
                                                            struct parse_name_test_ctx);
@@ -322,6 +325,7 @@ void parse_name_test_teardown(void **state)
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void sss_parse_name_check(struct parse_name_test_ctx *test_ctx,
@@ -513,40 +517,40 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_default,
-                                 fqdn_test_setup, fqdn_test_teardown),
-        unit_test_setup_teardown(test_all,
-                                 fqdn_test_setup, fqdn_test_teardown),
-        unit_test_setup_teardown(test_flat,
-                                 fqdn_test_setup, fqdn_test_teardown),
-        unit_test_setup_teardown(test_flat_fallback,
-                                 fqdn_test_setup, fqdn_test_teardown),
-        unit_test_setup_teardown(test_init_nouser,
-                                 fqdn_test_setup, fqdn_test_teardown),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_default,
+                                        fqdn_test_setup, fqdn_test_teardown),
+        cmocka_unit_test_setup_teardown(test_all,
+                                        fqdn_test_setup, fqdn_test_teardown),
+        cmocka_unit_test_setup_teardown(test_flat,
+                                        fqdn_test_setup, fqdn_test_teardown),
+        cmocka_unit_test_setup_teardown(test_flat_fallback,
+                                        fqdn_test_setup, fqdn_test_teardown),
+        cmocka_unit_test_setup_teardown(test_init_nouser,
+                                        fqdn_test_setup, fqdn_test_teardown),
 
-        unit_test_setup_teardown(parse_name_plain,
-                                 parse_name_test_setup,
-                                 parse_name_test_teardown),
-        unit_test_setup_teardown(parse_name_fqdn,
-                                 parse_name_test_setup,
-                                 parse_name_test_teardown),
-        unit_test_setup_teardown(parse_name_sub,
-                                 parse_name_test_setup,
-                                 parse_name_test_teardown),
-        unit_test_setup_teardown(parse_name_flat,
-                                 parse_name_test_setup,
-                                 parse_name_test_teardown),
-        unit_test_setup_teardown(parse_name_default,
-                                 parse_name_test_setup,
-                                 parse_name_test_teardown),
-        unit_test_setup_teardown(sss_parse_name_fail,
-                                 parse_name_test_setup,
-                                 parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(parse_name_plain,
+                                        parse_name_test_setup,
+                                        parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(parse_name_fqdn,
+                                        parse_name_test_setup,
+                                        parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(parse_name_sub,
+                                        parse_name_test_setup,
+                                        parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(parse_name_flat,
+                                        parse_name_test_setup,
+                                        parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(parse_name_default,
+                                        parse_name_test_setup,
+                                        parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(sss_parse_name_fail,
+                                        parse_name_test_setup,
+                                        parse_name_test_teardown),
 
-        unit_test_setup_teardown(test_sss_get_domain_name,
-                                 parse_name_test_setup,
-                                 parse_name_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_get_domain_name,
+                                        parse_name_test_setup,
+                                        parse_name_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -570,5 +574,5 @@ int main(int argc, const char *argv[])
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

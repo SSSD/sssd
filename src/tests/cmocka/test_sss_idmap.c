@@ -58,7 +58,7 @@ static void idmap_free(void *ptr, void *pvt)
     talloc_free(ptr);
 }
 
-void test_sss_idmap_setup(void **state)
+static int test_sss_idmap_setup(void **state)
 {
     struct test_ctx *test_ctx;
     enum idmap_error_code err;
@@ -78,10 +78,11 @@ void test_sss_idmap_setup(void **state)
     assert_int_equal(err, IDMAP_SUCCESS);
 
     *state = test_ctx;
+    return 0;
 }
 
-void setup_ranges(struct test_ctx *test_ctx, bool external_mapping,
-                  bool second_domain)
+static int setup_ranges(struct test_ctx *test_ctx, bool external_mapping,
+                        bool second_domain)
 {
     struct sss_idmap_range range;
     enum idmap_error_code err;
@@ -112,9 +113,10 @@ void setup_ranges(struct test_ctx *test_ctx, bool external_mapping,
     err = sss_idmap_add_domain_ex(test_ctx->idmap_ctx, name, sid, &range, NULL,
                                   TEST_OFFSET, external_mapping);
     assert_int_equal(err, IDMAP_SUCCESS);
+    return 0;
 }
 
-void test_sss_idmap_setup_with_domains(void **state) {
+static int test_sss_idmap_setup_with_domains(void **state) {
     struct test_ctx *test_ctx;
 
     test_sss_idmap_setup(state);
@@ -123,9 +125,10 @@ void test_sss_idmap_setup_with_domains(void **state) {
     assert_non_null(test_ctx);
 
     setup_ranges(test_ctx, false, false);
+    return 0;
 }
 
-void test_sss_idmap_setup_with_external_mappings(void **state) {
+static int test_sss_idmap_setup_with_external_mappings(void **state) {
     struct test_ctx *test_ctx;
 
     test_sss_idmap_setup(state);
@@ -134,9 +137,10 @@ void test_sss_idmap_setup_with_external_mappings(void **state) {
     assert_non_null(test_ctx);
 
     setup_ranges(test_ctx, true, false);
+    return 0;
 }
 
-void test_sss_idmap_setup_with_both(void **state) {
+static int test_sss_idmap_setup_with_both(void **state) {
     struct test_ctx *test_ctx;
 
     test_sss_idmap_setup(state);
@@ -146,9 +150,10 @@ void test_sss_idmap_setup_with_both(void **state) {
 
     setup_ranges(test_ctx, false, false);
     setup_ranges(test_ctx, true, true);
+    return 0;
 }
 
-void test_sss_idmap_teardown(void **state)
+static int test_sss_idmap_teardown(void **state)
 {
     struct test_ctx *test_ctx;
 
@@ -161,6 +166,7 @@ void test_sss_idmap_teardown(void **state)
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_add_domain(void **state)
@@ -510,28 +516,29 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_add_domain,
-                                 test_sss_idmap_setup, test_sss_idmap_teardown),
-        unit_test_setup_teardown(test_map_id,
-                                 test_sss_idmap_setup_with_domains,
-                                 test_sss_idmap_teardown),
-        unit_test_setup_teardown(test_map_id_external,
-                                 test_sss_idmap_setup_with_external_mappings,
-                                 test_sss_idmap_teardown),
-        unit_test_setup_teardown(test_check_sid_id,
-                                 test_sss_idmap_setup_with_domains,
-                                 test_sss_idmap_teardown),
-        unit_test_setup_teardown(test_check_sid_id,
-                                 test_sss_idmap_setup_with_external_mappings,
-                                 test_sss_idmap_teardown),
-        unit_test_setup_teardown(test_has_algorithmic,
-                                 test_sss_idmap_setup_with_both,
-                                 test_sss_idmap_teardown),
-        unit_test_setup_teardown(test_has_algorithmic_by_name,
-                                 test_sss_idmap_setup_with_both,
-                                 test_sss_idmap_teardown),
-        unit_test(test_sss_idmap_check_collision_ex),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_add_domain,
+                                        test_sss_idmap_setup,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_map_id,
+                                        test_sss_idmap_setup_with_domains,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_map_id_external,
+                                        test_sss_idmap_setup_with_external_mappings,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sid_id,
+                                        test_sss_idmap_setup_with_domains,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sid_id,
+                                        test_sss_idmap_setup_with_external_mappings,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_has_algorithmic,
+                                        test_sss_idmap_setup_with_both,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_has_algorithmic_by_name,
+                                        test_sss_idmap_setup_with_both,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test(test_sss_idmap_check_collision_ex),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -553,5 +560,5 @@ int main(int argc, const char *argv[])
 
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

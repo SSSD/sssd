@@ -360,7 +360,7 @@ struct ifp_test_req_ctx {
     struct ifp_ctx *ifp_ctx;
 };
 
-void ifp_test_req_setup(void **state)
+static int ifp_test_req_setup(void **state)
 {
     struct ifp_test_req_ctx *test_ctx;
     errno_t ret;
@@ -381,9 +381,10 @@ void ifp_test_req_setup(void **state)
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
+    return 0;
 }
 
-void ifp_test_req_teardown(void **state)
+static int ifp_test_req_teardown(void **state)
 {
     struct ifp_test_req_ctx *test_ctx = talloc_get_type_abort(*state,
                                                 struct ifp_test_req_ctx);
@@ -394,6 +395,7 @@ void ifp_test_req_teardown(void **state)
     talloc_free(test_ctx);
 
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 int main(int argc, const char *argv[])
@@ -406,14 +408,15 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test(ifp_test_req_create),
-        unit_test(ifp_test_req_wrong_uid),
-        unit_test_setup_teardown(test_el_to_dict,
-                                 ifp_test_req_setup, ifp_test_req_teardown),
-        unit_test(test_attr_acl),
-        unit_test(test_attr_acl_ex),
-        unit_test(test_attr_allowed),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(ifp_test_req_create),
+        cmocka_unit_test(ifp_test_req_wrong_uid),
+        cmocka_unit_test_setup_teardown(test_el_to_dict,
+                                        ifp_test_req_setup,
+                                        ifp_test_req_teardown),
+        cmocka_unit_test(test_attr_acl),
+        cmocka_unit_test(test_attr_acl_ex),
+        cmocka_unit_test(test_attr_allowed),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -437,5 +440,5 @@ int main(int argc, const char *argv[])
      * they might not after a failed run. Remove the old db to be sure */
     tests_set_cwd();
 
-    return run_tests(tests);
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

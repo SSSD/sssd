@@ -56,7 +56,7 @@ struct dom_list_test_ctx {
 };
 
 
-void setup_dom_list(void **state)
+static int setup_dom_list(void **state)
 {
     struct dom_list_test_ctx *test_ctx;
     struct sss_domain_info *dom = NULL;
@@ -87,20 +87,22 @@ void setup_dom_list(void **state)
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
+    return 0;
 }
 
-void teardown_dom_list(void **state)
+static int teardown_dom_list(void **state)
 {
     struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
                                                       struct dom_list_test_ctx);
     if (test_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
-        return;
+        return 1;
     }
 
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_find_domain_by_name_null(void **state)
@@ -465,7 +467,7 @@ struct name_init_test_ctx {
                              "((?P<name>[^@]+)@(?P<domain>.+$))|" \
                              "(^(?P<name>[^@\\\\]+)$))"
 
-void confdb_test_setup(void **state)
+static int confdb_test_setup(void **state)
 {
     struct name_init_test_ctx *test_ctx;
     char *conf_db = NULL;
@@ -524,9 +526,10 @@ void confdb_test_setup(void **state)
 
     check_leaks_push(test_ctx);
     *state = test_ctx;
+    return 0;
 }
 
-void confdb_test_teardown(void **state)
+static int confdb_test_teardown(void **state)
 {
     struct name_init_test_ctx *test_ctx;
 
@@ -535,6 +538,7 @@ void confdb_test_teardown(void **state)
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_sss_names_init(void **state)
@@ -721,7 +725,7 @@ void check_expanded_value(TALLOC_CTX *tmp_ctx,
     talloc_free(homedir);
 }
 
-void setup_homedir_ctx(void **state)
+static int setup_homedir_ctx(void **state)
 {
     struct sss_nss_homedir_ctx *homedir_ctx;
 
@@ -740,20 +744,22 @@ void setup_homedir_ctx(void **state)
 
     check_leaks_push(homedir_ctx);
     *state = homedir_ctx;
+    return 0;
 }
 
-void teardown_homedir_ctx(void **state)
+static int teardown_homedir_ctx(void **state)
 {
     struct sss_nss_homedir_ctx *homedir_ctx = talloc_get_type(*state,
                                                  struct sss_nss_homedir_ctx);
     if (homedir_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
-        return;
+        return 1;
     }
 
     assert_true(check_leaks_pop(homedir_ctx) == true);
     talloc_free(homedir_ctx);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_expand_homedir_template_NULL(void **state)
@@ -877,17 +883,19 @@ void test_expand_homedir_template(void **state)
     talloc_free(tmp_ctx);
 }
 
-void setup_add_strings_lists(void **state)
+static int setup_add_strings_lists(void **state)
 {
     assert_true(leak_check_setup());
 
     check_leaks_push(global_talloc_context);
+    return 0;
 }
 
-void teardown_add_strings_lists(void **state)
+static int teardown_add_strings_lists(void **state)
 {
     assert_true(check_leaks_pop(global_talloc_context) == true);
     assert_true(leak_check_teardown());
+    return 0;
 }
 
 void test_add_strings_lists(void **state)
@@ -1083,45 +1091,49 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test_setup_teardown(test_find_domain_by_sid_null,
-                                 setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_domain_by_sid,
-                                 setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_domain_by_sid_missing_sid,
-                                 setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_domain_by_sid_disabled,
-                                 setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_domain_by_name_null,
-                                 setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_domain_by_name,
-                                 setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_domain_by_name_missing_flat_name,
-                                 setup_dom_list, teardown_dom_list),
-        unit_test_setup_teardown(test_find_domain_by_name_disabled,
-                                 setup_dom_list, teardown_dom_list),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_find_domain_by_sid_null,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_sid,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_sid_missing_sid,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_sid_disabled,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_name_null,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_name,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_name_missing_flat_name,
+                                        setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_find_domain_by_name_disabled,
+                                        setup_dom_list, teardown_dom_list),
 
-        unit_test_setup_teardown(test_sss_names_init,
-                                 confdb_test_setup, confdb_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_names_init,
+                                        confdb_test_setup,
+                                        confdb_test_teardown),
 
-        unit_test(test_well_known_sid_to_name),
-        unit_test(test_name_to_well_known_sid),
+        cmocka_unit_test(test_well_known_sid_to_name),
+        cmocka_unit_test(test_name_to_well_known_sid),
 
-        unit_test_setup_teardown(test_sss_filter_sanitize_for_dom,
-                                 setup_dom_list, teardown_dom_list),
+        cmocka_unit_test_setup_teardown(test_sss_filter_sanitize_for_dom,
+                                        setup_dom_list,
+                                        teardown_dom_list),
 
-        unit_test(test_expand_homedir_template_NULL),
-        unit_test_setup_teardown(test_expand_homedir_template,
-                                 setup_homedir_ctx, teardown_homedir_ctx),
-        unit_test(test_textual_public_key),
-        unit_test(test_replace_whitespaces),
-        unit_test(test_reverse_replace_whitespaces),
-        unit_test_setup_teardown(test_add_strings_lists,
-                                 setup_add_strings_lists,
-                                 teardown_add_strings_lists),
-        unit_test(test_sss_write_krb5_conf_snippet),
-        unit_test_setup_teardown(test_fix_domain_in_name_list,
-                                 confdb_test_setup, confdb_test_teardown),
+        cmocka_unit_test(test_expand_homedir_template_NULL),
+        cmocka_unit_test_setup_teardown(test_expand_homedir_template,
+                                        setup_homedir_ctx,
+                                        teardown_homedir_ctx),
+        cmocka_unit_test(test_textual_public_key),
+        cmocka_unit_test(test_replace_whitespaces),
+        cmocka_unit_test(test_reverse_replace_whitespaces),
+        cmocka_unit_test_setup_teardown(test_add_strings_lists,
+                                        setup_add_strings_lists,
+                                        teardown_add_strings_lists),
+        cmocka_unit_test(test_sss_write_krb5_conf_snippet),
+        cmocka_unit_test_setup_teardown(test_fix_domain_in_name_list,
+                                        confdb_test_setup,
+                                        confdb_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -1147,7 +1159,7 @@ int main(int argc, const char *argv[])
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     test_dom_suite_setup(TESTS_PATH);
 
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
     if (rv == 0) {
         test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
     }
