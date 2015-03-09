@@ -391,14 +391,20 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     ccname_file = talloc_asprintf(tmp_ctx, "%s/ccache_%s",
                                   DB_PATH, realm_name);
     if (ccname_file == NULL) {
-        ret = ENOMEM;
+        krberr = ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "talloc_asprintf failed: %s:[%d].\n",
+              strerror(krberr), krberr);
         goto done;
     }
 
     ccname_file_dummy = talloc_asprintf(tmp_ctx, "%s/ccache_%s_XXXXXX",
                                         DB_PATH, realm_name);
     if (ccname_file_dummy == NULL) {
-        ret = ENOMEM;
+        krberr = ENOMEM;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "talloc_asprintf failed: %s:[%d].\n",
+              strerror(krberr), krberr);
         goto done;
     }
 
@@ -407,6 +413,10 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     umask(old_umask);
     if (fd == -1) {
         ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "mkstemp failed: %s:[%d].\n",
+              strerror(ret), ret);
+        krberr = KRB5KRB_ERR_GENERIC;
         goto done;
     }
     /* We only care about creating a unique file name here, we don't
