@@ -811,7 +811,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                   state->attrs, state->filter,
                                   dp_opt_get_int(state->ctx->opts->basic,
                                                  SDAP_ENUM_SEARCH_TIMEOUT),
-                                  true);
+                                  true, false);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;

@@ -872,7 +872,7 @@ static void ipa_add_ad_memberships_get_next(struct tevent_req *req)
                                  state->sdap_id_ctx->conn,
                                  (const char *) val->data,
                                  BE_FILTER_NAME, BE_ATTR_CORE,
-                                 false);
+                                 false, false);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "groups_get_send failed.\n");
         ret = ENOMEM;

@@ -212,7 +212,8 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    const char *name,
                                    int filter_type,
                                    int attrs_type,
-                                   bool noexist_delete);
+                                   bool noexist_delete,
+                                   bool no_members);
 int groups_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret);
 
 struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
