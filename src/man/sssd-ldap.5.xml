@@ -1236,7 +1236,8 @@
                             calls to synchronous LDAP APIs will abort if no
                             response is received. Also controls the timeout
                             when communicating with the KDC in case of SASL
-                            bind and the timeout of an LDAP bind operation.
+                            bind, the timeout of an LDAP bind operation and
+                            password change extended operation.
                         </para>
                         <para>
                             Default: 6

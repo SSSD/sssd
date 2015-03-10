@@ -1046,6 +1046,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
         } else {
             const char *password;
             const char *new_password;
+            int timeout;
 
             ret = sss_authtok_get_password(state->pd->authtok,
                                            &password, NULL);
@@ -1060,9 +1061,12 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
                 goto done;
             }
 
+            timeout = dp_opt_get_int(state->ctx->opts->basic, SDAP_OPT_TIMEOUT);
+
             subreq = sdap_exop_modify_passwd_send(state, be_ctx->ev,
                                                   state->sh, state->dn,
-                                                  password, new_password);
+                                                  password, new_password,
+                                                  timeout);
             if (!subreq) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Failed to change password for %s\n", state->username);

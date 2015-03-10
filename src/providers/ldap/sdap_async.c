@@ -494,7 +494,8 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                                            struct sdap_handle *sh,
                                            char *user_dn,
                                            const char *password,
-                                           const char *new_password)
+                                           const char *new_password,
+                                           int timeout)
 {
     struct tevent_req *req = NULL;
     struct sdap_exop_modify_passwd_state *state;
@@ -562,9 +563,8 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "ldap_extended_operation sent, msgid = %d\n", msgid);
 
-    /* FIXME: get timeouts from configuration, for now 5 secs. */
     ret = sdap_op_add(state, ev, state->sh, msgid,
-                      sdap_exop_modify_passwd_done, req, 5, &state->op);
+                      sdap_exop_modify_passwd_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         ret = ERR_INTERNAL;

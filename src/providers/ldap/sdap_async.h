@@ -145,7 +145,8 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                                                 struct sdap_handle *sh,
                                                 char *user_dn,
                                                 const char *password,
-                                                const char *new_password);
+                                                const char *new_password,
+                                                int timeout);
 errno_t sdap_exop_modify_passwd_recv(struct tevent_req *req,
                                      TALLOC_CTX *mem_ctx,
                                      char **user_error_msg);
