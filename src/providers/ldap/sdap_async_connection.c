@@ -314,9 +314,10 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     ret = sdap_set_connected(state->sh, state->ev);
     if (ret) goto fail;
 
-    /* FIXME: get timeouts from configuration, for now 5 secs. */
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_connect_done, req, 5, &state->op);
+                      sdap_connect_done, req,
+                      dp_opt_get_int(state->opts->basic, SDAP_OPT_TIMEOUT),
+                      &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         goto fail;
