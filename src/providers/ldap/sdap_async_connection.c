@@ -625,6 +625,7 @@ static void simple_bind_done(struct sdap_op *op,
 static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
                                            struct tevent_context *ev,
                                            struct sdap_handle *sh,
+                                           int timeout,
                                            const char *user_dn,
                                            struct berval *pw)
 {
@@ -686,9 +687,8 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
         if (ret) goto fail;
     }
 
-    /* FIXME: get timeouts from configuration, for now 5 secs. */
     ret = sdap_op_add(state, ev, sh, msgid,
-                      simple_bind_done, req, 5, &state->op);
+                      simple_bind_done, req, timeout, &state->op);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to set up operation!\n");
         goto fail;
@@ -1275,7 +1275,8 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *sasl_mech,
                                   const char *sasl_user,
                                   const char *user_dn,
-                                  struct sss_auth_token *authtok)
+                                  struct sss_auth_token *authtok,
+                                  int simple_bind_timeout)
 {
     struct tevent_req *req, *subreq;
     struct sdap_auth_state *state;
@@ -1311,7 +1312,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
         pw.bv_len = pwlen;
 
         state->is_sasl = false;
-        subreq = simple_bind_send(state, ev, sh, user_dn, &pw);
+        subreq = simple_bind_send(state, ev, sh, simple_bind_timeout, user_dn, &pw);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return tevent_req_post(req, ev);
@@ -1852,7 +1853,9 @@ static void sdap_cli_auth_step(struct tevent_req *req)
                             state->sh, sasl_mech,
                             dp_opt_get_string(state->opts->basic,
                                               SDAP_SASL_AUTHID),
-                            user_dn, authtok);
+                            user_dn, authtok,
+                            dp_opt_get_int(state->opts->basic,
+                                           SDAP_OPT_TIMEOUT));
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

@@ -831,7 +831,9 @@ static void auth_do_bind(struct tevent_req *req)
 
     subreq = sdap_auth_send(state, state->ev, state->sh,
                             NULL, NULL, state->dn,
-                            state->authtok);
+                            state->authtok,
+                            dp_opt_get_int(state->ctx->opts->basic,
+                                           SDAP_OPT_TIMEOUT));
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

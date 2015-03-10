@@ -330,6 +330,7 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
     const char *dn;
     int dp_err = DP_ERR_FATAL;
     int ret;
+    int auth_timeout;
 
     ret = sdap_cli_connect_recv(req, state, NULL, &state->sh, NULL);
     talloc_zfree(req);
@@ -369,8 +370,12 @@ static void ipa_migration_flag_connect_done(struct tevent_req *req)
         goto done;
     }
 
+    auth_timeout = dp_opt_get_int(
+                            state->ipa_auth_ctx->sdap_auth_ctx->opts->basic,
+                            SDAP_OPT_TIMEOUT);
+
     req = sdap_auth_send(state, state->ev, state->sh, NULL, NULL, dn,
-                         state->pd->authtok);
+                         state->pd->authtok, auth_timeout);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_auth_send failed.\n");
         goto done;
