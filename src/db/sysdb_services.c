@@ -590,6 +590,11 @@ sysdb_svc_update(struct sysdb_ctx *sysdb,
     }
 
     lret = ldb_modify(sysdb->ldb, msg);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_modify failed: [%s](%d)[%s]\n",
+              ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb));
+    }
     ret = sysdb_error_to_errno(lret);
 
 done:
@@ -623,6 +628,11 @@ sysdb_svc_remove_alias(struct sysdb_ctx *sysdb,
     if (ret != EOK) goto done;
 
     lret = ldb_modify(sysdb->ldb, msg);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_modify failed: [%s](%d)[%s]\n",
+              ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb));
+    }
     ret = sysdb_error_to_errno(lret);
 
 done:

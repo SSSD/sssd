@@ -704,7 +704,8 @@ int sysdb_set_entry_attr(struct sysdb_ctx *sysdb,
     lret = ldb_modify(sysdb->ldb, msg);
     if (lret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "ldb_modify failed: [%s]\n", ldb_strerror(lret));
+              "ldb_modify failed: [%s](%d)[%s]\n",
+              ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb));
     }
 
     ret = sysdb_error_to_errno(lret);
@@ -966,6 +967,11 @@ int sysdb_get_new_id(struct sss_domain_info *domain,
     }
 
     ret = ldb_modify(domain->sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_modify failed: [%s](%d)[%s]\n",
+              ldb_strerror(ret), ret, ldb_errstring(domain->sysdb->ldb));
+    }
     ret = sysdb_error_to_errno(ret);
 
     *_id = new_id;
@@ -1136,6 +1142,12 @@ sysdb_remove_ghost_from_group(struct sss_domain_info *dom,
 
 
     ret = sss_ldb_modify_permissive(dom->sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sss_ldb_modify_permissive failed: [%s](%d)[%s]\n",
+              ldb_strerror(ret), ret, ldb_errstring(dom->sysdb->ldb));
+    }
+
     ret = sysdb_error_to_errno(ret);
     if (ret != EOK) {
         goto done;
@@ -1703,6 +1715,11 @@ int sysdb_mod_group_member(struct sss_domain_info *domain,
     }
 
     ret = ldb_modify(domain->sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb_modify failed: [%s](%d)[%s]\n",
+              ldb_strerror(ret), ret, ldb_errstring(domain->sysdb->ldb));
+    }
     ret = sysdb_error_to_errno(ret);
 
 fail:
@@ -2746,6 +2763,12 @@ int sysdb_delete_user(struct sss_domain_info *domain,
             if (ret) goto fail;
 
             ret = ldb_modify(domain->sysdb->ldb, msg);
+            if (ret != LDB_SUCCESS) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "ldb_modify failed: [%s](%d)[%s]\n",
+                      ldb_strerror(ret), ret,
+                      ldb_errstring(domain->sysdb->ldb));
+            }
             ret = sysdb_error_to_errno(ret);
             if (ret != EOK) {
                 goto fail;
@@ -3474,6 +3497,9 @@ errno_t sysdb_remove_attrs(struct sss_domain_info *domain,
          */
         lret = ldb_modify(domain->sysdb->ldb, msg);
         if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_ATTRIBUTE) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "ldb_modify failed: [%s](%d)[%s]\n",
+                  ldb_strerror(lret), lret, ldb_errstring(domain->sysdb->ldb));
             ret = sysdb_error_to_errno(lret);
             goto done;
         }
