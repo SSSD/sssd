@@ -70,6 +70,7 @@ struct err_string error_to_str[] = {
     { "Username format not allowed by re_expression" }, /* ERR_REGEX_NOMATCH */
     { "Time specification not supported" }, /* ERR_TIMESPEC_NOT_SUPPORTED */
     { "Invalid SSSD configuration detected." }, /* ERR_INVALID_CONFIG */
+    { "ERR_LAST" } /* ERR_LAST */
 };
 
 
