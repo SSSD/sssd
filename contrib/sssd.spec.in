@@ -112,7 +112,7 @@ BuildRequires: findutils
 BuildRequires: glib2-devel
 BuildRequires: selinux-policy-targeted
 %if 0%{?fedora}
-BuildRequires: libcmocka-devel
+BuildRequires: libcmocka-devel >= 1.0.0
 %endif
 %if (0%{?fedora} >= 20)
 BuildRequires: uid_wrapper
