@@ -42,6 +42,9 @@ struct err_string error_to_str[] = {
     { "Network I/O Error" }, /* ERR_NETWORK_IO */
     { "Account Expired" }, /* ERR_ACCOUNT_EXPIRED */
     { "Password Expired" }, /* ERR_PASSWORD_EXPIRED */
+    { "Password Expired (reject access)" }, /* ERR_PASSWORD_EXPIRED_REJECT */
+    { "Password Expired (warn user)" }, /* ERR_PASSWORD_EXPIRED_WARN */
+    { "Password Expired (ask for new password)" }, /* ERR_PASSWORD_EXPIRED_RENEW */
     { "Host Access Denied" }, /* ERR_ACCESS_DENIED */
     { "SRV record not found" }, /* ERR_SRV_NOT_FOUND */
     { "SRV lookup error" }, /* ERR_SRV_LOOKUP_ERROR */
