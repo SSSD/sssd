@@ -409,12 +409,16 @@ static int sdap_op_destructor(void *mem)
 
     DLIST_REMOVE(op->sh->ops, op);
 
-    if (op->done) return 0;
+    if (op->done) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Operation %d finished\n", op->msgid);
+        return 0;
+    }
 
     /* we don't check the result here, if a message was really abandoned,
      * hopefully the server will get an abandon.
      * If the operation was already fully completed, this is going to be
      * just a noop */
+    DEBUG(SSSDBG_TRACE_LIBS, "Abandoning operation %d\n", op->msgid);
     ldap_abandon_ext(op->sh->ldap, op->msgid, NULL, NULL);
 
     return 0;
@@ -431,6 +435,7 @@ static void sdap_op_timeout(struct tevent_req *req)
     }
 
     /* signal the caller that we have a timeout */
+    DEBUG(SSSDBG_TRACE_LIBS, "Issuing timeout for %d\n", op->msgid);
     op->callback(op, NULL, ETIMEDOUT, op->data);
 }
 
@@ -449,6 +454,9 @@ int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
     op->callback = callback;
     op->data = data;
     op->ev = ev;
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "New operation %d timeout %d\n", op->msgid, timeout);
 
     /* check if we need to set a timeout */
     if (timeout) {
