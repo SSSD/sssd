@@ -165,8 +165,10 @@ errno_t sysdb_update_view_name(struct sysdb_ctx *sysdb,
         ret = ldb_add(sysdb->ldb, msg);
     }
     if (ret != LDB_SUCCESS) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to %s view container\n",
-                                    view_container_exists ? "modify" : "add");
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to %s view container [%s](%d)[%s]\n",
+              view_container_exists ? "modify" : "add",
+              ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb));
         ret = sysdb_error_to_errno(ret);
         goto done;
     }
@@ -282,7 +284,9 @@ errno_t sysdb_invalidate_overrides(struct sysdb_ctx *sysdb)
 
         ret = ldb_modify(sysdb->ldb, msg);
         if (ret != LDB_SUCCESS && ret != LDB_ERR_NO_SUCH_ATTRIBUTE) {
-            DEBUG(SSSDBG_OP_FAILURE, "ldb_modify failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ldb_modify failed: [%s](%d)[%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb));
             ret = sysdb_error_to_errno(ret);
             goto done;
         }
@@ -303,7 +307,9 @@ errno_t sysdb_invalidate_overrides(struct sysdb_ctx *sysdb)
 
         ret = ldb_modify(sysdb->ldb, msg);
         if (ret != LDB_SUCCESS && ret != LDB_ERR_NO_SUCH_ATTRIBUTE) {
-            DEBUG(SSSDBG_OP_FAILURE, "ldb_modify failed.\n");
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ldb_modify failed: [%s](%d)[%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb));
             ret = sysdb_error_to_errno(ret);
             goto done;
         }

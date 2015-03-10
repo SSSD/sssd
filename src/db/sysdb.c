@@ -1636,6 +1636,11 @@ errno_t sysdb_set_bool(struct sysdb_ctx *sysdb,
         lret = ldb_add(sysdb->ldb, msg);
     }
 
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ldb operation failed: [%s](%d)[%s]\n",
+              ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb));
+    }
     ret = sysdb_error_to_errno(lret);
 
 done:

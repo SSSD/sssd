@@ -521,6 +521,11 @@ static errno_t sysdb_sudo_set_refresh_time(struct sss_domain_info *domain,
         lret = ldb_add(domain->sysdb->ldb, msg);
     }
 
+    if (lret != LDB_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "ldb operation failed: [%s](%d)[%s]\n",
+              ldb_strerror(lret), lret, ldb_errstring(domain->sysdb->ldb));
+    }
     ret = sysdb_error_to_errno(lret);
 
 done:

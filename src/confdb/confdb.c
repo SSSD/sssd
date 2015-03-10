@@ -200,6 +200,9 @@ int confdb_add_param(struct confdb_ctx *cdb,
 
         ret = ldb_modify(cdb->ldb, msg);
         if (ret != LDB_SUCCESS) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "ldb_modify failed: [%s](%d)[%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(cdb->ldb));
             ret = EIO;
             goto done;
         }
@@ -348,7 +351,8 @@ int confdb_set_string(struct confdb_ctx *cdb,
     lret = ldb_modify(cdb->ldb, msg);
     if (lret != LDB_SUCCESS) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "ldb_modify failed: [%s]\n", ldb_strerror(lret));
+              "ldb_modify failed: [%s](%d)[%s]\n",
+              ldb_strerror(lret), lret, ldb_errstring(cdb->ldb));
         ret = EIO;
         goto done;
     }

@@ -247,8 +247,8 @@ sysdb_idmap_store_mapping(struct sss_domain_info *domain,
         lret = ldb_modify(domain->sysdb->ldb, update_msg);
         if (lret != LDB_SUCCESS) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Failed to update mapping: [%s]\n",
-                   ldb_strerror(lret));
+                  "Failed to update mapping: [%s](%d)[%s]\n",
+                  ldb_strerror(lret), lret, ldb_errstring(domain->sysdb->ldb));
             ret = sysdb_error_to_errno(lret);
             goto done;
         }
