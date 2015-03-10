@@ -1050,6 +1050,12 @@ START_TEST(test_convert_time)
 }
 END_TEST
 
+START_TEST(test_sss_strerror_err_last)
+{
+    ck_assert_str_eq(sss_strerror(ERR_LAST), "ERR_LAST");
+}
+END_TEST
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -1102,11 +1108,15 @@ Suite *util_suite(void)
                               ck_leak_check_teardown);
     tcase_add_test(tc_convert_time, test_convert_time);
 
+    TCase *tc_sss_strerror = tcase_create("sss_strerror");
+    tcase_add_test(tc_sss_strerror, test_sss_strerror_err_last);
+
     suite_add_tcase (s, tc_util);
     suite_add_tcase (s, tc_utf8);
     suite_add_tcase (s, tc_mh3);
     suite_add_tcase (s, tc_atomicio);
     suite_add_tcase (s, tc_convert_time);
+    suite_add_tcase (s, tc_sss_strerror);
 
     return s;
 }
