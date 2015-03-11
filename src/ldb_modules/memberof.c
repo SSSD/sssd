@@ -3302,6 +3302,12 @@ static int mbof_inherited_mod(struct mbof_mod_ctx *mod_ctx)
     }
     el->num_values = j;
 
+    if (el->num_values == 0) {
+        /* nothing to do */
+        /* We cannot modify element which has 0 values */
+        msg->num_elements = 0;
+    }
+
     mod_ctx->igh->mod_msg = msg;
     mod_ctx->igh->el = el;
 
