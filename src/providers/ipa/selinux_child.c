@@ -49,7 +49,9 @@ static errno_t unpack_buffer(uint8_t *buf,
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
     DEBUG(SSSDBG_TRACE_INTERNAL, "seuser length: %d\n", len);
     if (len == 0) {
-        return EINVAL;
+        ibuf->seuser = "";
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Empty SELinux user, will delete the mapping\n");
     } else {
         if ((p + len ) > size) return EINVAL;
         ibuf->seuser = talloc_strndup(ibuf, (char *)(buf + p), len);
@@ -62,7 +64,10 @@ static errno_t unpack_buffer(uint8_t *buf,
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
     DEBUG(SSSDBG_TRACE_INTERNAL, "mls_range length: %d\n", len);
     if (len == 0) {
-        return EINVAL;
+        if (strcmp(ibuf->seuser, "") != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "No MLS mapping!\n");
+            return EINVAL;
+        }
     } else {
         if ((p + len ) > size) return EINVAL;
         ibuf->mls_range = talloc_strndup(ibuf, (char *)(buf + p), len);
@@ -75,6 +80,7 @@ static errno_t unpack_buffer(uint8_t *buf,
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
     DEBUG(SSSDBG_TRACE_INTERNAL, "username length: %d\n", len);
     if (len == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No username set!\n");
         return EINVAL;
     } else {
         if ((p + len ) > size) return EINVAL;
