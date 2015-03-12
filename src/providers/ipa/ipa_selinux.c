@@ -808,7 +808,7 @@ selinux_child_setup(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     char *seuser;
-    char *mls_range;
+    const char *mls_range;
     char *ptr;
     char *username;
     char *username_final;
@@ -834,7 +834,7 @@ selinux_child_setup(TALLOC_CTX *mem_ctx,
     }
     if (*ptr == '\0') {
         /* No mls_range specified */
-        mls_range = NULL;
+        mls_range = "";
     } else {
         *ptr = '\0'; /* split */
         mls_range = ptr + 1;
