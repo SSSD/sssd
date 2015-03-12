@@ -2467,7 +2467,8 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
 
             ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, username);
             if (ret) goto done;
-            ret = sysdb_set_user_attr(user_dom, sysdb_name, attrs, SYSDB_MOD_REP);
+            ret = sysdb_set_entry_attr(user_dom->sysdb, msgs[0]->dn, attrs,
+                                       SYSDB_MOD_REP);
             if (ret != EOK) goto done;
         } else {
             key.type = HASH_KEY_STRING;
