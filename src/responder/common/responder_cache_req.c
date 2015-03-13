@@ -274,7 +274,7 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
 static void cache_req_add_to_ncache_global(struct cache_req_input *input,
                                            struct sss_nc_ctx *ncache)
 {
-    errno_t ret;
+    errno_t ret = ERR_INTERNAL;
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
