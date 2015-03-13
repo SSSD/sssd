@@ -330,7 +330,7 @@ static void ipa_selinux_handler_done(struct tevent_req *req)
     struct sysdb_attrs **hbac_rules = 0;
     struct sysdb_attrs **best_match_maps;
     struct map_order_ctx *map_order_ctx;
-    struct selinux_child_input *sci;
+    struct selinux_child_input *sci = NULL;
     struct tevent_req *child_req;
 
     ret = ipa_get_selinux_recv(req, breq, &map_count, &maps,
