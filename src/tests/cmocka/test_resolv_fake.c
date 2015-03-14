@@ -52,20 +52,21 @@ struct srv_rrdata {
 static ssize_t dns_header(unsigned char **buf, size_t ancount)
 {
     uint8_t *hb;
-    HEADER *h;
+    HEADER h;
 
     hb = *buf;
     memset(hb, 0, NS_HFIXEDSZ);
+    memset(&h, 0, sizeof(h));
 
-    h = (HEADER *) hb;
-    h->id = res_randomid();     /* random query ID */
-    h->qr = 1;                  /* response flag */
-    h->rd = 1;                  /* recursion desired */
-    h->ra = 1;                  /* resursion available */
+    h.id = res_randomid();     /* random query ID */
+    h.qr = 1;                  /* response flag */
+    h.rd = 1;                  /* recursion desired */
+    h.ra = 1;                  /* resursion available */
 
-    h->qdcount = htons(1);          /* no. of questions */
-    h->ancount = htons(ancount);    /* no. of answers */
-    h->arcount = htons(0);          /* no. of add'tl records */
+    h.qdcount = htons(1);          /* no. of questions */
+    h.ancount = htons(ancount);    /* no. of answers */
+    h.arcount = htons(0);          /* no. of add'tl records */
+    memcpy(hb, &h, sizeof(h));
 
     hb += NS_HFIXEDSZ;              /* move past the header */
     *buf = hb;
