@@ -530,10 +530,9 @@ static errno_t sdap_account_expired_rhds(struct pam_data *pd,
 
 bool nds_check_expired(const char *exp_time_str)
 {
-    char *end;
-    struct tm tm;
     time_t expire_time;
     time_t now;
+    errno_t ret;
 
     if (exp_time_str == NULL) {
         DEBUG(SSSDBG_TRACE_ALL,
@@ -541,30 +540,14 @@ bool nds_check_expired(const char *exp_time_str)
         return false;
     }
 
-    memset(&tm, 0, sizeof(tm));
-
-    end = strptime(exp_time_str, "%Y%m%d%H%M%SZ", &tm);
-    if (end == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "NDS expire date [%s] invalid.\n", exp_time_str);
-        return true;
-    }
-    if (*end != '\0') {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "NDS expire date [%s] contains extra characters.\n",
-                  exp_time_str);
+    ret = sss_utc_to_time_t(exp_time_str, "%Y%m%d%H%M%SZ",
+                            &expire_time);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "sss_utc_to_time_t failed with %d:%s.\n",
+              ret, sss_strerror(ret));
         return true;
     }
 
-    expire_time = mktime(&tm);
-    if (expire_time == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "mktime failed to convert [%s].\n", exp_time_str);
-        return true;
-    }
-
-    tzset();
-    expire_time -= timezone;
     now = time(NULL);
     DEBUG(SSSDBG_TRACE_ALL,
           "Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
