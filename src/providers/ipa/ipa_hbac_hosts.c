@@ -362,14 +362,14 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
     }
 
     if (!ldb_dn_validate(dn)) {
-        ret = EINVAL;
+        ret = ERR_MALFORMED_ENTRY;
         goto done;
     }
 
     if (ldb_dn_get_comp_num(dn) < 4) {
         /* RDN, hostgroups, accounts, and at least one DC= */
         /* If it's fewer, it's not a group DN */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -379,7 +379,7 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
         /* Shouldn't happen if ldb_dn_validate()
          * passed, but we'll be careful.
          */
-        ret = EINVAL;
+        ret = ERR_MALFORMED_ENTRY;
         goto done;
     }
 
@@ -387,7 +387,7 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
         /* RDN has the wrong attribute name.
          * It's not a host.
          */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -395,7 +395,7 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
     hostgroup_comp_name = ldb_dn_get_component_name(dn, 1);
     if (strcasecmp("cn", hostgroup_comp_name) != 0) {
         /* The second component name is not "cn" */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -404,7 +404,7 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
                     (const char *) hostgroup_comp_val->data,
                     hostgroup_comp_val->length) != 0) {
         /* The second component value is not "hostgroups" */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -412,7 +412,7 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
     account_comp_name = ldb_dn_get_component_name(dn, 2);
     if (strcasecmp("cn", account_comp_name) != 0) {
         /* The third component name is not "cn" */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -421,7 +421,7 @@ get_ipa_hostgroupname(TALLOC_CTX *mem_ctx,
                     (const char *) account_comp_val->data,
                     account_comp_val->length) != 0) {
         /* The third component value is not "accounts" */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 

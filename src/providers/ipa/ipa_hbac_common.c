@@ -567,7 +567,7 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
 
         ret = get_ipa_groupname(users->groups, sysdb, member_dn,
                                 &users->groups[num_groups]);
-        if (ret != EOK && ret != ENOENT) {
+        if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Parse error on [%s]\n", member_dn);
             goto done;
         } else if (ret == EOK) {
@@ -676,9 +676,9 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
         ret = get_ipa_servicegroupname(tmp_ctx, sysdb,
                                        (const char *)el->values[i].data,
                                        &name);
-        if (ret != EOK && ret != ENOENT) goto done;
+        if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) goto done;
 
-        /* ENOENT means we had a memberOf entry that wasn't a
+        /* ERR_UNEXPECTED_ENTRY_TYPE means we had a memberOf entry that wasn't a
          * service group. We'll just ignore those (could be
          * HBAC rules)
          */
@@ -783,9 +783,9 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
         ret = get_ipa_hostgroupname(tmp_ctx, sysdb,
                                     (const char *)el->values[i].data,
                                     &name);
-        if (ret != EOK && ret != ENOENT) goto done;
+        if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) goto done;
 
-        /* ENOENT means we had a memberOf entry that wasn't a
+        /* ERR_UNEXPECTED_ENTRY_TYPE means we had a memberOf entry that wasn't a
          * host group. We'll just ignore those (could be
          * HBAC rules)
          */
