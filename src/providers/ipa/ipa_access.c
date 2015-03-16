@@ -178,6 +178,10 @@ static void ipa_hbac_check(struct tevent_req *req)
         hbac_ctx->get_deny_rules = false;
     } else {
         hbac_ctx->get_deny_rules = true;
+        sss_log(SSS_LOG_NOTICE,
+                "WARNING: Using deny rules is deprecated, the option "
+                "ipa_hbac_treat_deny_as will be removed in the next "
+                "upstream version\n");
     }
 
     ret = hbac_retry(hbac_ctx);
