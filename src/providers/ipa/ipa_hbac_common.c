@@ -403,21 +403,18 @@ static errno_t
 hbac_eval_user_element(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *domain,
                        const char *username,
-                       bool deny_rules,
                        struct hbac_request_element **user_element);
 
 static errno_t
 hbac_eval_service_element(TALLOC_CTX *mem_ctx,
                           struct sss_domain_info *domain,
                           const char *servicename,
-                          bool deny_rules,
                           struct hbac_request_element **svc_element);
 
 static errno_t
 hbac_eval_host_element(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *domain,
                        const char *hostname,
-                       bool deny_rules,
                        struct hbac_request_element **host_element);
 
 static errno_t
@@ -456,18 +453,15 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
             goto done;
         }
         ret = hbac_eval_user_element(eval_req, user_dom, pd->user,
-                                     hbac_ctx->get_deny_rules,
                                      &eval_req->user);
     } else {
         ret = hbac_eval_user_element(eval_req, domain, pd->user,
-                                     hbac_ctx->get_deny_rules,
                                      &eval_req->user);
     }
     if (ret != EOK) goto done;
 
     /* Get the PAM service and service groups */
     ret = hbac_eval_service_element(eval_req, domain, pd->service,
-                                    hbac_ctx->get_deny_rules,
                                     &eval_req->service);
     if (ret != EOK) goto done;
 
@@ -484,7 +478,6 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     }
 
     ret = hbac_eval_host_element(eval_req, domain, rhost,
-                                 hbac_ctx->get_deny_rules,
                                  &eval_req->srchost);
     if (ret != EOK) goto done;
 
@@ -498,7 +491,6 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
     }
 
     ret = hbac_eval_host_element(eval_req, domain, thost,
-                                 hbac_ctx->get_deny_rules,
                                  &eval_req->targethost);
     if (ret != EOK) goto done;
 
@@ -515,7 +507,6 @@ static errno_t
 hbac_eval_user_element(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *domain,
                        const char *username,
-                       bool deny_rules,
                        struct hbac_request_element **user_element)
 {
     errno_t ret;
@@ -573,15 +564,9 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
         ret = get_ipa_groupname(users->groups, domain->sysdb, member_dn,
                                 &users->groups[num_groups]);
         if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) {
-            if (deny_rules) {
-                DEBUG(SSSDBG_OP_FAILURE, "Parse error on [%s]: %s\n",
-                      member_dn, sss_strerror(ret));
-                goto done;
-            } else {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      "Skipping malformed entry [%s]\n", member_dn);
-                continue;
-            }
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                    "Skipping malformed entry [%s]\n", member_dn);
+            continue;
         } else if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_LIBS, "Added group [%s] for user [%s]\n",
                       users->groups[num_groups], users->name);
@@ -617,7 +602,6 @@ static errno_t
 hbac_eval_service_element(TALLOC_CTX *mem_ctx,
                           struct sss_domain_info *domain,
                           const char *servicename,
-                          bool deny_rules,
                           struct hbac_request_element **svc_element)
 {
     errno_t ret;
@@ -689,16 +673,9 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
                                        (const char *)el->values[i].data,
                                        &name);
         if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) {
-            if (deny_rules) {
-                DEBUG(SSSDBG_OP_FAILURE, "Parse error on [%s]: %s\n",
-                                         (const char *)el->values[i].data,
-                                         sss_strerror(ret));
-                goto done;
-            } else {
-                DEBUG(SSSDBG_MINOR_FAILURE, "Skipping malformed entry [%s]\n",
-                                            (const char *)el->values[i].data);
-                continue;
-            }
+            DEBUG(SSSDBG_MINOR_FAILURE, "Skipping malformed entry [%s]\n",
+                                        (const char *)el->values[i].data);
+            continue;
         }
 
         /* ERR_UNEXPECTED_ENTRY_TYPE means we had a memberOf entry that wasn't a
@@ -727,7 +704,6 @@ static errno_t
 hbac_eval_host_element(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *domain,
                        const char *hostname,
-                       bool deny_rules,
                        struct hbac_request_element **host_element)
 {
     errno_t ret;
@@ -807,16 +783,9 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
                                     (const char *)el->values[i].data,
                                     &name);
         if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) {
-            if (deny_rules) {
-                DEBUG(SSSDBG_OP_FAILURE, "Parse error on [%s]: %s\n",
-                                         (const char *)el->values[i].data,
-                                         sss_strerror(ret));
-                goto done;
-            } else {
-                DEBUG(SSSDBG_MINOR_FAILURE, "Skipping malformed entry [%s]\n",
-                                            (const char *)el->values[i].data);
-                continue;
-            }
+            DEBUG(SSSDBG_MINOR_FAILURE, "Skipping malformed entry [%s]\n",
+                                        (const char *)el->values[i].data);
+            continue;
         }
 
         /* ERR_UNEXPECTED_ENTRY_TYPE means we had a memberOf entry that wasn't a

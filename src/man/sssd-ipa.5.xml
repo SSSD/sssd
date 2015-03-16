@@ -500,34 +500,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ipa_hbac_treat_deny_as (string)</term>
-                    <listitem>
-                        <para>
-                            This option specifies how to treat the deprecated
-                            DENY-type HBAC rules. As of FreeIPA v2.1, DENY
-                            rules are no longer supported on the server. All
-                            users of FreeIPA will need to migrate their rules
-                            to use only the ALLOW rules. The client will
-                            support two modes of operation during this
-                            transition period:
-                        </para>
-                        <para>
-                            <emphasis>DENY_ALL</emphasis>: If any HBAC DENY
-                            rules are detected, all users will be denied
-                            access.
-                        </para>
-                        <para>
-                            <emphasis>IGNORE</emphasis>: SSSD will ignore any
-                            DENY rules. Be very careful with this option, as
-                            it may result in opening unintended access.
-                        </para>
-                        <para>
-                            Default: DENY_ALL
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>ipa_server_mode (boolean)</term>
                     <listitem>
                         <para>

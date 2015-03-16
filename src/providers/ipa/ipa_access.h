@@ -64,7 +64,6 @@ struct hbac_ctx {
     struct sysdb_attrs *ipa_host;
 
     /* Rules */
-    bool get_deny_rules;
     size_t rule_count;
     struct sysdb_attrs **rules;
 

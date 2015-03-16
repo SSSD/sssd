@@ -114,7 +114,6 @@ static void ipa_hbac_check(struct tevent_req *req)
     struct be_ctx *be_ctx;
     struct pam_data *pd;
     struct hbac_ctx *hbac_ctx = NULL;
-    const char *deny_method;
     struct ipa_access_ctx *ipa_access_ctx;
     int ret;
 
@@ -170,18 +169,6 @@ static void ipa_hbac_check(struct tevent_req *req)
         DEBUG(SSSDBG_CRIT_FAILURE, "No HBAC search base found.\n");
         ret = EINVAL;
         goto fail;
-    }
-
-    deny_method = dp_opt_get_string(hbac_ctx->ipa_options,
-                                    IPA_HBAC_DENY_METHOD);
-    if (strcasecmp(deny_method, "IGNORE") == 0) {
-        hbac_ctx->get_deny_rules = false;
-    } else {
-        hbac_ctx->get_deny_rules = true;
-        sss_log(SSS_LOG_NOTICE,
-                "WARNING: Using deny rules is deprecated, the option "
-                "ipa_hbac_treat_deny_as will be removed in the next "
-                "upstream version\n");
     }
 
     ret = hbac_retry(hbac_ctx);
@@ -471,7 +458,6 @@ static void hbac_get_rule_info_step(struct tevent_req *req)
 
     /* Get the list of applicable rules */
     req = ipa_hbac_rule_info_send(hbac_ctx,
-                                  hbac_ctx->get_deny_rules,
                                   be_ctx->ev,
                                   sdap_id_op_handle(hbac_ctx->sdap_op),
                                   hbac_ctx->sdap_ctx->opts,

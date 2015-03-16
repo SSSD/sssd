@@ -49,7 +49,6 @@ ipa_hbac_rule_info_done(struct tevent_req *subreq);
 
 struct tevent_req *
 ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
-                        bool get_deny_rules,
                         struct tevent_context *ev,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
@@ -116,25 +115,15 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     state->attrs[13] = IPA_HOST_CATEGORY;
     state->attrs[14] = NULL;
 
-    if (get_deny_rules) {
-        rule_filter = talloc_asprintf(tmp_ctx,
-                                      "(&(objectclass=%s)"
-                                      "(%s=%s)(|(%s=%s)(%s=%s)",
-                                      IPA_HBAC_RULE,
-                                      IPA_ENABLED_FLAG, IPA_TRUE_VALUE,
-                                      IPA_HOST_CATEGORY, "all",
-                                      IPA_MEMBER_HOST, host_dn_clean);
-    } else {
-        rule_filter = talloc_asprintf(tmp_ctx,
-                                      "(&(objectclass=%s)"
-                                      "(%s=%s)(%s=%s)"
-                                      "(|(%s=%s)(%s=%s)",
-                                      IPA_HBAC_RULE,
-                                      IPA_ENABLED_FLAG, IPA_TRUE_VALUE,
-                                      IPA_ACCESS_RULE_TYPE, IPA_HBAC_ALLOW,
-                                      IPA_HOST_CATEGORY, "all",
-                                      IPA_MEMBER_HOST, host_dn_clean);
-    }
+    rule_filter = talloc_asprintf(tmp_ctx,
+                                  "(&(objectclass=%s)"
+                                  "(%s=%s)(%s=%s)"
+                                  "(|(%s=%s)(%s=%s)",
+                                  IPA_HBAC_RULE,
+                                  IPA_ENABLED_FLAG, IPA_TRUE_VALUE,
+                                  IPA_ACCESS_RULE_TYPE, IPA_HBAC_ALLOW,
+                                  IPA_HOST_CATEGORY, "all",
+                                  IPA_MEMBER_HOST, host_dn_clean);
     if (rule_filter == NULL) {
         ret = ENOMEM;
         goto immediate;

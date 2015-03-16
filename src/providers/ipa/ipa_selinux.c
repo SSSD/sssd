@@ -1557,7 +1557,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
 
         DEBUG(SSSDBG_TRACE_FUNC, "SELinux maps referenced an HBAC rule. "
               "Need to refresh HBAC rules\n");
-        subreq = ipa_hbac_rule_info_send(state, false, state->be_ctx->ev,
+        subreq = ipa_hbac_rule_info_send(state, state->be_ctx->ev,
                                          sdap_id_op_handle(state->op),
                                          id_ctx->sdap_id_ctx->opts,
                                          state->selinux_ctx->hbac_search_bases,

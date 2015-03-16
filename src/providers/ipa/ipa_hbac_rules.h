@@ -26,7 +26,6 @@
 /* From ipa_hbac_rules.c */
 struct tevent_req *
 ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
-                        bool get_deny_rules,
                         struct tevent_context *ev,
                         struct sdap_handle *sh,
                         struct sdap_options *opts,
