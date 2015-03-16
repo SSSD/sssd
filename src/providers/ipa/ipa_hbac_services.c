@@ -606,14 +606,14 @@ get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
     }
 
     if (!ldb_dn_validate(dn)) {
-        ret = EINVAL;
+        ret = ERR_MALFORMED_ENTRY;
         goto done;
     }
 
     if (ldb_dn_get_comp_num(dn) < 4) {
         /* RDN, services, hbac, and at least one DC= */
         /* If it's fewer, it's not a group DN */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -623,7 +623,7 @@ get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
         /* Shouldn't happen if ldb_dn_validate()
          * passed, but we'll be careful.
          */
-        ret = EINVAL;
+        ret = ERR_MALFORMED_ENTRY;
         goto done;
     }
 
@@ -631,7 +631,7 @@ get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
         /* RDN has the wrong attribute name.
          * It's not a service.
          */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -639,7 +639,7 @@ get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
     svc_comp_name = ldb_dn_get_component_name(dn, 1);
     if (strcasecmp("cn", svc_comp_name) != 0) {
         /* The second component name is not "cn" */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -648,7 +648,7 @@ get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
                     (const char *) svc_comp_val->data,
                     svc_comp_val->length) != 0) {
         /* The second component value is not "hbacservicegroups" */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -656,7 +656,7 @@ get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
     hbac_comp_name = ldb_dn_get_component_name(dn, 2);
     if (strcasecmp("cn", hbac_comp_name) != 0) {
         /* The third component name is not "cn" */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
@@ -665,7 +665,7 @@ get_ipa_servicegroupname(TALLOC_CTX *mem_ctx,
                     (const char *) hbac_comp_val->data,
                     hbac_comp_val->length) != 0) {
         /* The third component value is not "hbac" */
-        ret = ENOENT;
+        ret = ERR_UNEXPECTED_ENTRY_TYPE;
         goto done;
     }
 
