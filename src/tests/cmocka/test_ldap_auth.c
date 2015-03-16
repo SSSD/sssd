@@ -58,11 +58,11 @@ static void test_pwexpire_krb(void **state)
 
     ret = check_pwexpire_policy(type,
                                 (void*) tc->invalid_longer_format, NULL, 0);
-    assert_true(ret == EINVAL);
+    assert_true(ret == ERR_TIMESPEC_NOT_SUPPORTED);
 
     ret = check_pwexpire_policy(type, (void*) tc->invalid_format,
                                 NULL, 0);
-    assert_true(ret == EINVAL);
+    assert_true(ret == ERR_TIMESPEC_NOT_SUPPORTED);
 
     ret = check_pwexpire_policy(type, (void*) tc->past_time,
                                 NULL, 0);

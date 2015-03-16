@@ -83,36 +83,18 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
                                        struct pam_data *pd,
                                        int pwd_exp_warning)
 {
-    char *end;
-    struct tm tm;
     time_t expire_time;
     int expiration_warning;
     int ret = ERR_INTERNAL;
 
-    memset(&tm, 0, sizeof(tm));
-
-    end = strptime(expire_date, "%Y%m%d%H%M%SZ", &tm);
-    if (end == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Kerberos expire date [%s] invalid.\n", expire_date);
-        return EINVAL;
-    }
-    if (*end != '\0') {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Kerberos expire date [%s] contains extra characters.\n",
-                  expire_date);
-        return EINVAL;
+    ret = sss_utc_to_time_t(expire_date, "%Y%m%d%H%M%SZ",
+                            &expire_time);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "sss_utc_to_time_t failed with %d:%s.\n",
+              ret, sss_strerror(ret));
+        return ret;
     }
 
-    expire_time = mktime(&tm);
-    if (expire_time == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "mktime failed to convert [%s].\n", expire_date);
-        return EINVAL;
-    }
-
-    tzset();
-    expire_time -= timezone;
     DEBUG(SSSDBG_TRACE_ALL,
           "Time info: tzname[0] [%s] tzname[1] [%s] timezone [%ld] "
            "daylight [%d] now [%ld] expire_time [%ld].\n", tzname[0],
