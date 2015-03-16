@@ -401,21 +401,18 @@ done:
 
 static errno_t
 hbac_eval_user_element(TALLOC_CTX *mem_ctx,
-                       struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain,
                        const char *username,
                        struct hbac_request_element **user_element);
 
 static errno_t
 hbac_eval_service_element(TALLOC_CTX *mem_ctx,
-                          struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain,
                           const char *servicename,
                           struct hbac_request_element **svc_element);
 
 static errno_t
 hbac_eval_host_element(TALLOC_CTX *mem_ctx,
-                       struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain,
                        const char *hostname,
                        struct hbac_request_element **host_element);
@@ -455,16 +452,16 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
-        ret = hbac_eval_user_element(eval_req, user_dom->sysdb, user_dom,
+        ret = hbac_eval_user_element(eval_req, user_dom,
                                      pd->user, &eval_req->user);
     } else {
-        ret = hbac_eval_user_element(eval_req, domain->sysdb, domain,
+        ret = hbac_eval_user_element(eval_req, domain,
                                      pd->user, &eval_req->user);
     }
     if (ret != EOK) goto done;
 
     /* Get the PAM service and service groups */
-    ret = hbac_eval_service_element(eval_req, domain->sysdb, domain,
+    ret = hbac_eval_service_element(eval_req, domain,
                                     pd->service, &eval_req->service);
     if (ret != EOK) goto done;
 
@@ -480,7 +477,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
         rhost = pd->rhost;
     }
 
-    ret = hbac_eval_host_element(eval_req, domain->sysdb, domain,
+    ret = hbac_eval_host_element(eval_req, domain,
                                  rhost, &eval_req->srchost);
     if (ret != EOK) goto done;
 
@@ -493,7 +490,7 @@ hbac_ctx_to_eval_request(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = hbac_eval_host_element(eval_req, domain->sysdb, domain,
+    ret = hbac_eval_host_element(eval_req, domain,
                                  thost, &eval_req->targethost);
     if (ret != EOK) goto done;
 
@@ -508,7 +505,6 @@ done:
 
 static errno_t
 hbac_eval_user_element(TALLOC_CTX *mem_ctx,
-                       struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain,
                        const char *username,
                        struct hbac_request_element **user_element)
@@ -565,7 +561,7 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
     for (i = 0; i < el->num_values; i++) {
         member_dn = (const char *)el->values[i].data;
 
-        ret = get_ipa_groupname(users->groups, sysdb, member_dn,
+        ret = get_ipa_groupname(users->groups, domain->sysdb, member_dn,
                                 &users->groups[num_groups]);
         if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Parse error on [%s]\n", member_dn);
@@ -603,7 +599,6 @@ done:
 
 static errno_t
 hbac_eval_service_element(TALLOC_CTX *mem_ctx,
-                          struct sysdb_ctx *sysdb,
                           struct sss_domain_info *domain,
                           const char *servicename,
                           struct hbac_request_element **svc_element)
@@ -636,7 +631,7 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
     }
 
     /* Look up the service to get its originalMemberOf entries */
-    ret = sysdb_search_entry(tmp_ctx, sysdb, svc_dn,
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, svc_dn,
                              LDB_SCOPE_BASE, NULL,
                              memberof_attrs,
                              &count, &msgs);
@@ -673,7 +668,7 @@ hbac_eval_service_element(TALLOC_CTX *mem_ctx,
     }
 
     for (i = j = 0; i < el->num_values; i++) {
-        ret = get_ipa_servicegroupname(tmp_ctx, sysdb,
+        ret = get_ipa_servicegroupname(tmp_ctx, domain->sysdb,
                                        (const char *)el->values[i].data,
                                        &name);
         if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) goto done;
@@ -702,7 +697,6 @@ done:
 
 static errno_t
 hbac_eval_host_element(TALLOC_CTX *mem_ctx,
-                       struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain,
                        const char *hostname,
                        struct hbac_request_element **host_element)
@@ -743,7 +737,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
     }
 
     /* Look up the host to get its originalMemberOf entries */
-    ret = sysdb_search_entry(tmp_ctx, sysdb, host_dn,
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, host_dn,
                              LDB_SCOPE_BASE, NULL,
                              memberof_attrs,
                              &count, &msgs);
@@ -780,7 +774,7 @@ hbac_eval_host_element(TALLOC_CTX *mem_ctx,
     }
 
     for (i = j = 0; i < el->num_values; i++) {
-        ret = get_ipa_hostgroupname(tmp_ctx, sysdb,
+        ret = get_ipa_hostgroupname(tmp_ctx, domain->sysdb,
                                     (const char *)el->values[i].data,
                                     &name);
         if (ret != EOK && ret != ERR_UNEXPECTED_ENTRY_TYPE) goto done;
