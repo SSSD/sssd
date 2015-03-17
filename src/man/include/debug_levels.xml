@@ -7,6 +7,25 @@
         disable specific levels (such as if you wish to suppress a level).
     </para>
     <para>
+        Please note that each SSSD service logs into its own log
+        file. Also please note that enabling <quote>debug_level</quote>
+        in the <quote>[sssd]</quote> section only enables debugging just
+        for the sssd process itself, not for the responder or provider
+        processes. The <quote>debug_level</quote> parameter should be
+        added to all sections that you wish to produce debug logs from.
+    </para>
+    <para>
+        In addition to changing the log level in the config file using
+        the <quote>debug_level</quote> parameter, which is persistent, but
+        requires SSSD restart, it is also possible to change the debug level
+        on the fly using the
+        <citerefentry>
+            <refentrytitle>sss_debuglevel</refentrytitle>
+            <manvolnum>8</manvolnum>
+        </citerefentry>
+        tool.
+    </para>
+    <para>
         Currently supported debug levels:
     </para>
     <para>
