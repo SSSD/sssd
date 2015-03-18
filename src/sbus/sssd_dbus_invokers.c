@@ -303,6 +303,124 @@ int sbus_invoke_get_ao(DBusMessageIter *iter,
                                  DBUS_TYPE_OBJECT_PATH, iter);
 }
 
+int sbus_invoke_get_aDOsasDE(DBusMessageIter *iter,
+                             struct sbus_request *sbus_req,
+                             void *function_ptr)
+{
+    void (*handler_fn)(struct sbus_request *, void *, hash_table_t **);
+    DBusMessageIter it_array;
+    DBusMessageIter it_dict;
+    DBusMessageIter it_values;
+    hash_table_t *table;
+    struct hash_iter_context_t *table_iter = NULL;
+    hash_entry_t *entry;
+    const char **values;
+    dbus_bool_t dbret;
+    errno_t ret;
+    int i;
+
+    handler_fn = function_ptr;
+    handler_fn(sbus_req, sbus_req->intf->handler_data, &table);
+
+    dbret = dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY,
+                    DBUS_DICT_ENTRY_BEGIN_CHAR_AS_STRING
+                    DBUS_TYPE_STRING_AS_STRING
+                    DBUS_TYPE_ARRAY_AS_STRING
+                    DBUS_TYPE_STRING_AS_STRING
+                    DBUS_DICT_ENTRY_END_CHAR_AS_STRING, &it_array);
+    if (!dbret) {
+        ret = EIO;
+        goto done;
+    }
+
+    /* iterate over keys */
+
+    if (table == NULL) {
+        dbret = dbus_message_iter_close_container(iter, &it_array);
+        if (!dbret) {
+            ret = EIO;
+            goto done;
+        }
+
+        ret = EOK;
+        goto done;
+    }
+
+    table_iter = new_hash_iter_context(table);
+    while ((entry = table_iter->next(table_iter)) != NULL) {
+        if (entry->key.type != HASH_KEY_STRING || entry->key.str == NULL
+                || entry->value.type != HASH_VALUE_PTR
+                || entry->value.ptr == NULL) {
+            continue;
+        }
+
+        dbret = dbus_message_iter_open_container(&it_array,
+                                                 DBUS_TYPE_DICT_ENTRY, NULL,
+                                                 &it_dict);
+        if (!dbret) {
+            ret = EIO;
+            goto done;
+        }
+
+        /* append key as dict entry key */
+
+        dbret = dbus_message_iter_append_basic(&it_dict,
+                                               DBUS_TYPE_STRING,
+                                               &entry->key.str);
+        if (!dbret) {
+            ret = EIO;
+            goto done;
+        }
+
+        /* iterate over values */
+
+        dbret = dbus_message_iter_open_container(&it_dict,
+                                                 DBUS_TYPE_ARRAY,
+                                                 DBUS_TYPE_STRING_AS_STRING,
+                                                 &it_values);
+        if (!dbret) {
+            ret = EIO;
+            goto done;
+        }
+
+        values = entry->value.ptr;
+        for (i = 0; values[i] != NULL; i++) {
+            /* append value into array */
+            dbret = dbus_message_iter_append_basic(&it_values,
+                                                   DBUS_TYPE_STRING,
+                                                   &values[i]);
+            if (!dbret) {
+                ret = EIO;
+                goto done;
+            }
+        }
+
+        dbret = dbus_message_iter_close_container(&it_dict, &it_values);
+        if (!dbret) {
+            ret = EIO;
+            goto done;
+        }
+
+        dbret = dbus_message_iter_close_container(&it_array, &it_dict);
+        if (!dbret) {
+            ret = EIO;
+            goto done;
+        }
+    }
+
+    dbret = dbus_message_iter_close_container(iter, &it_array);
+    if (!dbret) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(table_iter);
+    return ret;
+}
+
 void sbus_invoke_get(struct sbus_request *sbus_req,
                      const char *type,
                      sbus_get_invoker_fn invoker_fn,

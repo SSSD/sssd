@@ -539,6 +539,62 @@ void pilot_get_path_array_handler(struct sbus_request *dbus_req,
     array_getter_body(pilot_path_array, arr_out, arr_len);
 }
 
+void special_get_array_dict_sas(struct sbus_request *sbus_req,
+                                void *data,
+                                hash_table_t **_out)
+{
+    hash_table_t *table;
+    hash_key_t key;
+    hash_value_t value;
+    char **values;
+    errno_t ret;
+    int hret;
+
+    *_out = NULL;
+
+    ret = sss_hash_create(sbus_req, 10, &table);
+    ck_assert_int_eq(ret, EOK);
+
+    values = talloc_zero_array(table, char *, 3);
+    ck_assert(values != NULL);
+
+    values[0] = talloc_strdup(values, "hello1");
+    values[1] = talloc_strdup(values, "world1");
+
+    ck_assert(values[0] != NULL);
+    ck_assert(values[1] != NULL);
+
+    key.type = HASH_KEY_STRING;
+    key.str = talloc_strdup(table, "key1");
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = values;
+
+    hret = hash_enter(table, &key, &value);
+    ck_assert_int_eq(hret, HASH_SUCCESS);
+
+    values = talloc_zero_array(table, char *, 3);
+    ck_assert(values != NULL);
+
+    values[0] = talloc_strdup(values, "hello2");
+    values[1] = talloc_strdup(values, "world2");
+
+    ck_assert(values[0] != NULL);
+    ck_assert(values[1] != NULL);
+
+    key.type = HASH_KEY_STRING;
+    key.str = talloc_strdup(table, "key2");
+    ck_assert(key.str != NULL);
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = values;
+
+    hash_enter(table, &key, &value);
+    ck_assert_int_eq(hret, HASH_SUCCESS);
+
+    *_out = table;
+}
+
 struct test_pilot pilot_iface = {
     { &test_pilot_meta, 0 },
     .Eject = eject_handler,
@@ -570,12 +626,28 @@ struct test_pilot pilot_iface = {
     .get_object_path_array = pilot_get_path_array_handler,
 };
 
+struct test_special special_iface = {
+    { &test_special_meta, 0},
+    .get_array_dict_sas = special_get_array_dict_sas
+};
+
 static int pilot_test_server_init(struct sbus_connection *server, void *unused)
 {
     int ret;
 
     ret = sbus_conn_register_iface(server, &pilot_iface.vtable, "/test/leela",
                                    "Crash into the billboard");
+    ck_assert_int_eq(ret, EOK);
+
+    return EOK;
+}
+
+static int special_test_server_init(struct sbus_connection *server, void *unused)
+{
+    int ret;
+
+    ret = sbus_conn_register_iface(server, &special_iface.vtable,
+                                   "/test/special", "Crash into the billboard");
     ck_assert_int_eq(ret, EOK);
 
     return EOK;
@@ -1043,6 +1115,90 @@ START_TEST(test_get_basic_array_types)
 }
 END_TEST
 
+START_TEST(test_get_array_dict_sas)
+{
+    TALLOC_CTX *ctx;
+    DBusConnection *client;
+    DBusMessage *reply;
+    DBusMessageIter it_variant;
+    DBusMessageIter it_array;
+    DBusMessageIter it_dict;
+    DBusMessageIter it_dict_entry;
+    DBusMessageIter it_values;
+    DBusError error = DBUS_ERROR_INIT;
+    const char *prop = "array_dict_sas";
+    dbus_bool_t dbret;
+    const char *value;
+    const char *hash_content[2][2] = {{"hello1", "world1"},
+                                      {"hello2", "world2"}};
+    const char **exp_values;
+    int i;
+
+    ctx = talloc_new(NULL);
+    ck_assert(ctx != NULL);
+
+    client = test_dbus_setup_mock(ctx, NULL, special_test_server_init, NULL);
+    ck_assert(client != NULL);
+
+    reply = test_dbus_call_sync(client,
+                                "/test/special",
+                                DBUS_PROPERTIES_INTERFACE,
+                                "Get",
+                                &error,
+                                DBUS_TYPE_STRING, &test_special_meta.name,
+                                DBUS_TYPE_STRING, &prop,
+                                DBUS_TYPE_INVALID);
+    ck_assert(reply != NULL);
+
+    dbret = dbus_message_iter_init(reply, &it_variant);
+    ck_assert(dbret == TRUE);
+
+    ck_assert_int_eq(dbus_message_iter_get_arg_type(&it_variant), DBUS_TYPE_VARIANT);
+    dbus_message_iter_recurse(&it_variant, &it_array);
+
+    /* array */
+    ck_assert_int_eq(dbus_message_iter_get_arg_type(&it_array), DBUS_TYPE_ARRAY);
+    ck_assert_int_eq(dbus_message_iter_get_element_type(&it_array), DBUS_TYPE_DICT_ENTRY);
+
+    /* dict entry */
+
+    /* first item */
+    dbus_message_iter_recurse(&it_array, &it_dict);
+    for (i = 0; i < 2; i++) {
+        dbus_message_iter_recurse(&it_dict, &it_dict_entry);
+        ck_assert_int_eq(dbus_message_iter_get_arg_type(&it_dict_entry), DBUS_TYPE_STRING);
+
+        dbus_message_iter_get_basic(&it_dict_entry, &value);
+        ck_assert(value != NULL);
+        if (strcmp(value, "key1") == 0) {
+            exp_values = hash_content[0];
+        } else if (strcmp(value, "key2") == 0) {
+            exp_values = hash_content[1];
+        } else {
+            ck_abort_msg("Invalid key! %s", value);
+        }
+
+        dbret = dbus_message_iter_next(&it_dict_entry);
+        ck_assert(dbret == TRUE);
+
+        ck_assert_int_eq(dbus_message_iter_get_arg_type(&it_dict_entry), DBUS_TYPE_ARRAY);
+        ck_assert_int_eq(dbus_message_iter_get_element_type(&it_dict_entry), DBUS_TYPE_STRING);
+
+        dbus_message_iter_recurse(&it_dict_entry, &it_values);
+
+        dbus_message_iter_get_basic(&it_values, &value);
+        ck_assert(value != NULL);
+        ck_assert_str_eq(value, exp_values[0]);
+
+        dbret = dbus_message_iter_next(&it_values);
+        dbus_message_iter_get_basic(&it_values, &value);
+        ck_assert(value != NULL);
+        ck_assert_str_eq(value, exp_values[1]);
+        dbus_message_iter_next(&it_dict);
+    }
+}
+END_TEST
+
 struct prop_test {
     const char *name;
     bool handled;
@@ -1356,6 +1512,7 @@ TCase *create_handler_tests(void)
     tcase_add_test(tc, test_get_basic_types);
     tcase_add_test(tc, test_getall_basic_types);
     tcase_add_test(tc, test_get_basic_array_types);
+    tcase_add_test(tc, test_get_array_dict_sas);
 
     return tc;
 }

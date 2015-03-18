@@ -125,12 +125,15 @@ class Typed(Base):
         self.type = type
         self.is_basic = False
         self.is_array = False
+        self.is_dictionary = False
         self.dbus_constant = None
         self.dbus_type = None
         self.sssd_type = None
         if type[0] == 'a':
             type = type[1:]
             self.is_array = True
+        if "{" in type:
+            self.is_dictionary = True
         if type in BASIC_TYPES:
             (self.dbus_constant, self.dbus_type, self.sssd_type) = BASIC_TYPES[type]
             # If types are not identical, we can't do array (yet)
@@ -192,16 +195,29 @@ class Property(Typed):
             raise DBusXmlException('Invalid access type %s'%self.access)
     def fq_c_name(self):
         return "%s_%s" % (self.iface.c_name(), self.c_name())
+    def get_invoker_name(self):
+        type = self.type
+        type = type.replace("{", "DO")
+        type = type.replace("}", "DE")
+        return type
+    def get_invoker_signature(self, name):
+        sig = "void (*%s)(struct sbus_request *, void *data, " % (name)
+        if self.is_dictionary:
+            sig += "hash_table_t **"
+        elif self.is_array:
+            sig += "%s**, int *" % (self.sssd_type)
+        else:
+            sig += "%s*" % (self.sssd_type)
+        sig += ")"
+        return sig
+
+
     def getter_name(self):
         return "get_%s" % self.c_name()
     def getter_invoker_name(self):
-        return "sbus_invoke_get_%s" % self.type
-    def getter_signature(self, name):
-        sig = "void (*%s)(struct sbus_request *, void *data, %s *" % (name, self.sssd_type)
-        if self.is_array:
-            sig += " *, int *"
-        sig += ")"
-        return sig
+        return "sbus_invoke_get_%s" % self.get_invoker_name()
+    def getter_signature(self):
+        return self.get_invoker_signature(self.getter_name())
 
 class Interface(Base):
     def __init__(self, name):
@@ -253,7 +269,7 @@ def method_function_pointer(meth, name, with_names=False):
              method_arg_types(meth.in_args, with_names))
 
 def property_handlers(prop):
-    return prop.getter_signature(prop.getter_name())
+    return prop.getter_signature()
 
 def forward_method_invoker(signature, args):
     out("")

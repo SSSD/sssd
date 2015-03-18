@@ -109,6 +109,10 @@ int sbus_invoke_get_ao(DBusMessageIter *iter,
                        struct sbus_request *sbus_req,
                        void *function_ptr);
 
+int sbus_invoke_get_aDOsasDE(DBusMessageIter *iter,
+                             struct sbus_request *sbus_req,
+                             void *function_ptr);
+
 void sbus_invoke_get(struct sbus_request *sbus_req,
                      const char *type,
                      sbus_get_invoker_fn invoker_fn,

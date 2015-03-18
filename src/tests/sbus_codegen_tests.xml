@@ -136,7 +136,15 @@
         <property name="double_array" type="ad" access="read"/>
         <property name="string_array" type="as" access="read"/>
         <property name="object_path_array" type="ao" access="read"/>
+    </interface>
 
+    <!--
+      Special property types not suitable for group automatic tests.
+    -->
+    <interface name="com.planetexpress.Special">
+        <annotation value="test_special" name="org.freedesktop.DBus.GLib.CSymbol"/>
+
+        <property name="array_dict_sas" type="a{sas}" access="read"/>
     </interface>
 
 </node>

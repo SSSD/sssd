@@ -48,6 +48,10 @@
 #define TEST_PILOT_STRING_ARRAY "string_array"
 #define TEST_PILOT_OBJECT_PATH_ARRAY "object_path_array"
 
+/* constants for com.planetexpress.Special */
+#define TEST_SPECIAL "com.planetexpress.Special"
+#define TEST_SPECIAL_ARRAY_DICT_SAS "array_dict_sas"
+
 /* ------------------------------------------------------------------------
  * DBus handlers
  *
@@ -72,7 +76,7 @@ struct com_planetexpress_Ship {
     int (*MoveUniverse)(struct sbus_request *req, void *data, bool arg_smoothly, uint32_t arg_speed_factor);
     int (*crash_now)(struct sbus_request *req, void *data, const char *arg_where);
     sbus_msg_handler_fn Land;
-    void (*get_Color)(struct sbus_request *, void *data, const char * *);
+    void (*get_Color)(struct sbus_request *, void *data, const char **);
 };
 
 /* finish function for MoveUniverse */
@@ -86,30 +90,30 @@ struct test_pilot {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
     int (*Blink)(struct sbus_request *req, void *data, uint32_t arg_duration);
     int (*Eject)(struct sbus_request *req, void *data, uint8_t arg_byte, bool arg_boolean, int16_t arg_int16, uint16_t arg_uint16, int32_t arg_int32, uint32_t arg_uint32, int64_t arg_int64, uint64_t arg_uint64, double arg_double, const char *arg_string, const char *arg_object_path, uint8_t arg_byte_array[], int len_byte_array, int16_t arg_int16_array[], int len_int16_array, uint16_t arg_uint16_array[], int len_uint16_array, int32_t arg_int32_array[], int len_int32_array, uint32_t arg_uint32_array[], int len_uint32_array, int64_t arg_int64_array[], int len_int64_array, uint64_t arg_uint64_array[], int len_uint64_array, double arg_double_array[], int len_double_array, const char *arg_string_array[], int len_string_array, const char *arg_object_path_array[], int len_object_path_array);
-    void (*get_FullName)(struct sbus_request *, void *data, const char * *);
-    void (*get_byte)(struct sbus_request *, void *data, uint8_t *);
-    void (*get_boolean)(struct sbus_request *, void *data, bool *);
-    void (*get_int16)(struct sbus_request *, void *data, int16_t *);
-    void (*get_uint16)(struct sbus_request *, void *data, uint16_t *);
-    void (*get_int32)(struct sbus_request *, void *data, int32_t *);
-    void (*get_uint32)(struct sbus_request *, void *data, uint32_t *);
-    void (*get_int64)(struct sbus_request *, void *data, int64_t *);
-    void (*get_uint64)(struct sbus_request *, void *data, uint64_t *);
-    void (*get_double)(struct sbus_request *, void *data, double *);
-    void (*get_string)(struct sbus_request *, void *data, const char * *);
-    void (*get_object_path)(struct sbus_request *, void *data, const char * *);
-    void (*get_null_string)(struct sbus_request *, void *data, const char * *);
-    void (*get_null_path)(struct sbus_request *, void *data, const char * *);
-    void (*get_byte_array)(struct sbus_request *, void *data, uint8_t * *, int *);
-    void (*get_int16_array)(struct sbus_request *, void *data, int16_t * *, int *);
-    void (*get_uint16_array)(struct sbus_request *, void *data, uint16_t * *, int *);
-    void (*get_int32_array)(struct sbus_request *, void *data, int32_t * *, int *);
-    void (*get_uint32_array)(struct sbus_request *, void *data, uint32_t * *, int *);
-    void (*get_int64_array)(struct sbus_request *, void *data, int64_t * *, int *);
-    void (*get_uint64_array)(struct sbus_request *, void *data, uint64_t * *, int *);
-    void (*get_double_array)(struct sbus_request *, void *data, double * *, int *);
-    void (*get_string_array)(struct sbus_request *, void *data, const char * * *, int *);
-    void (*get_object_path_array)(struct sbus_request *, void *data, const char * * *, int *);
+    void (*get_FullName)(struct sbus_request *, void *data, const char **);
+    void (*get_byte)(struct sbus_request *, void *data, uint8_t*);
+    void (*get_boolean)(struct sbus_request *, void *data, bool*);
+    void (*get_int16)(struct sbus_request *, void *data, int16_t*);
+    void (*get_uint16)(struct sbus_request *, void *data, uint16_t*);
+    void (*get_int32)(struct sbus_request *, void *data, int32_t*);
+    void (*get_uint32)(struct sbus_request *, void *data, uint32_t*);
+    void (*get_int64)(struct sbus_request *, void *data, int64_t*);
+    void (*get_uint64)(struct sbus_request *, void *data, uint64_t*);
+    void (*get_double)(struct sbus_request *, void *data, double*);
+    void (*get_string)(struct sbus_request *, void *data, const char **);
+    void (*get_object_path)(struct sbus_request *, void *data, const char **);
+    void (*get_null_string)(struct sbus_request *, void *data, const char **);
+    void (*get_null_path)(struct sbus_request *, void *data, const char **);
+    void (*get_byte_array)(struct sbus_request *, void *data, uint8_t**, int *);
+    void (*get_int16_array)(struct sbus_request *, void *data, int16_t**, int *);
+    void (*get_uint16_array)(struct sbus_request *, void *data, uint16_t**, int *);
+    void (*get_int32_array)(struct sbus_request *, void *data, int32_t**, int *);
+    void (*get_uint32_array)(struct sbus_request *, void *data, uint32_t**, int *);
+    void (*get_int64_array)(struct sbus_request *, void *data, int64_t**, int *);
+    void (*get_uint64_array)(struct sbus_request *, void *data, uint64_t**, int *);
+    void (*get_double_array)(struct sbus_request *, void *data, double**, int *);
+    void (*get_string_array)(struct sbus_request *, void *data, const char ***, int *);
+    void (*get_object_path_array)(struct sbus_request *, void *data, const char ***, int *);
 };
 
 /* finish function for Blink */
@@ -117,6 +121,12 @@ int test_pilot_Blink_finish(struct sbus_request *req, bool arg_crashed);
 
 /* finish function for Eject */
 int test_pilot_Eject_finish(struct sbus_request *req, uint8_t arg_byte, bool arg_boolean, int16_t arg_int16, uint16_t arg_uint16, int32_t arg_int32, uint32_t arg_uint32, int64_t arg_int64, uint64_t arg_uint64, double arg_double, const char *arg_string, const char *arg_object_path, uint8_t arg_byte_array[], int len_byte_array, int16_t arg_int16_array[], int len_int16_array, uint16_t arg_uint16_array[], int len_uint16_array, int32_t arg_int32_array[], int len_int32_array, uint32_t arg_uint32_array[], int len_uint32_array, int64_t arg_int64_array[], int len_int64_array, uint64_t arg_uint64_array[], int len_uint64_array, double arg_double_array[], int len_double_array, const char *arg_string_array[], int len_string_array, const char *arg_object_path_array[], int len_object_path_array);
+
+/* vtable for com.planetexpress.Special */
+struct test_special {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    void (*get_array_dict_sas)(struct sbus_request *, void *data, hash_table_t **);
+};
 
 /* ------------------------------------------------------------------------
  * DBus Interface Metadata
@@ -133,5 +143,8 @@ extern const struct sbus_interface_meta com_planetexpress_Ship_meta;
 
 /* interface info for com.planetexpress.Pilot */
 extern const struct sbus_interface_meta test_pilot_meta;
+
+/* interface info for com.planetexpress.Special */
+extern const struct sbus_interface_meta test_special_meta;
 
 #endif /* __SBUS_CODEGEN_TESTS_XML__ */

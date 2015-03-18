@@ -463,6 +463,29 @@ const struct sbus_interface_meta test_pilot_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+/* property info for com.planetexpress.Special */
+const struct sbus_property_meta test_special__properties[] = {
+    {
+        "array_dict_sas", /* name */
+        "a{sas}", /* type */
+        SBUS_PROPERTY_READABLE,
+        offsetof(struct test_special, get_array_dict_sas),
+        sbus_invoke_get_aDOsasDE,
+        0, /* not writable */
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
+/* interface info for com.planetexpress.Special */
+const struct sbus_interface_meta test_special_meta = {
+    "com.planetexpress.Special", /* name */
+    NULL, /* no methods */
+    NULL, /* no signals */
+    test_special__properties,
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
 /* invokes a handler with a 'bu' DBus signature */
 static int invoke_bu_method(struct sbus_request *dbus_req, void *function_ptr)
 {
