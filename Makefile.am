@@ -224,6 +224,7 @@ if HAVE_CMOCKA
         responder_cache_req-tests \
         test_sbus_opath \
         test_fo_srv \
+        pam-srv-tests \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -1775,6 +1776,37 @@ nss_srv_tests_LDADD = \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libsss_idmap.la
+
+EXTRA_pam_srv_tests_DEPENDENCIES = \
+    $(ldblib_LTLIBRARIES) \
+    $(NULL)
+pam_srv_tests_SOURCES = \
+    $(TEST_MOCK_RESP_OBJ) \
+    src/tests/cmocka/test_pam_srv.c \
+    src/sss_client/pam_message.c \
+    src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pam_helpers.c \
+    src/responder/pam/pamsrv_dp.c \
+    src/responder/pam/pam_LOCAL_domain.c \
+    $(NULL)
+pam_srv_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+pam_srv_tests_LDFLAGS = \
+    -Wl,-wrap,sss_packet_get_body \
+    -Wl,-wrap,sss_packet_get_cmd \
+    -Wl,-wrap,sss_cmd_send_empty \
+    -Wl,-wrap,sss_cmd_done \
+    -Wl,-wrap,pam_dp_send_req \
+    $(NULL)
+pam_srv_tests_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(PAM_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    libsss_idmap.la \
+    $(NULL)
 
 EXTRA_responder_get_domains_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)

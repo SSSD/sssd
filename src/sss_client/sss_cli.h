@@ -430,12 +430,12 @@ enum response_type {
  *  - #SSS_PAM_USER_INFO_OFFLINE_CHPASS
  *     uint32_t | uint32_t | uint32_t
  *    ----------|----------|----------
- *     0x06     | 0x01     | 0x03
+ *     0x06     | 0x04     | 0x03
  *
  *  - #SSS_PAM_USER_INFO_CHPASS_ERROR
  *     uint32_t | uint32_t | uint32_t | uint32_t | uint8_t[3]
  *    ----------|----------|----------|----------|------------
- *     0x06     | 0x05     | 0x04     | 0x03     | abc
+ *     0x06     | 0x0B     | 0x04     | 0x03     | abc
  * @{
  */
 
