@@ -1253,7 +1253,9 @@ static errno_t process_members(struct sss_domain_info *domain,
 
     if (members == NULL) {
         DEBUG(SSSDBG_TRACE_INTERNAL, "No members\n");
-        *_missing_members = NULL;
+        if (_missing_members != NULL) {
+            *_missing_members = NULL;
+        }
         return EOK;
     }
 
