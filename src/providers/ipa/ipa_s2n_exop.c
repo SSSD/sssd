@@ -1293,6 +1293,7 @@ static errno_t process_members(struct sss_domain_info *domain,
                 dn_str = ldb_dn_get_linearized(msg->dn);
                 if (dn_str == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_get_linearized failed.\n");
+                    ret = EINVAL;
                     goto done;
                 }
 
