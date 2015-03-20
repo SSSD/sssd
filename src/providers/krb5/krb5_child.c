@@ -1895,7 +1895,8 @@ static krb5_error_code check_fast_ccache(TALLOC_CTX *mem_ctx,
 
     if (tgtt.endtime < time(NULL)) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Valid FAST TGT not found after attempting to renew it\n");
+              "FAST TGT was renewed but is already expired, please check that "
+              "time is synchronized with server.\n");
         kerr = ERR_CREDS_EXPIRED;
         goto done;
     }
