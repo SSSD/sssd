@@ -2013,17 +2013,13 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
                                          state->count);
         if (ret == EOK) {
             DEBUG(SSSDBG_TRACE_LIBS,
-                  "Reading only group data without members successful.\n");
+                  "Writing only group data without members was successful.\n");
             tevent_req_done(req);
         } else {
             DEBUG(SSSDBG_OP_FAILURE, "sdap_add_incomplete_groups failed.\n");
             tevent_req_error(req, ret);
         }
         return;
-
-        ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
-                               state->groups, state->count, false,
-                               NULL, true, NULL);
     }
 
     /* Check whether we need to do nested searches
