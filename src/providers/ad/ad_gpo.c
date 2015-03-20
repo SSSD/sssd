@@ -581,7 +581,10 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
         group_sid = ldb_msg_find_attr_as_string(res->msgs[i+1],
                                                 SYSDB_SID_STR, NULL);
         if (group_sid == NULL) {
-            continue;
+            DEBUG(SSSDBG_CRIT_FAILURE, "Missing SID for cache entry [%s].\n",
+                  ldb_dn_get_linearized(res->msgs[i+1]->dn));
+            ret = EINVAL;
+            goto done;
         }
 
         group_sids[i] = talloc_steal(group_sids, group_sid);
