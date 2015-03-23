@@ -612,6 +612,7 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock_resp.h \
     src/tests/cmocka/common_mock_sdap.h \
     src/tests/cmocka/common_mock_sysdb_objects.h \
+    src/tests/cmocka/test_expire_common.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
     src/sss_client/libwbclient/libwbclient.h \
