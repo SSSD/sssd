@@ -200,6 +200,7 @@ struct test_fo_srv_ctx {
     struct fo_resolve_srv_dns_ctx *srv_ctx;
     struct fo_service *fo_svc;
     struct sss_test_ctx *ctx;
+    int ttl;
 };
 
 int test_fo_srv_data_cmp(void *ud1, void *ud2)
@@ -431,15 +432,23 @@ static void test_fo_srv_done4(struct tevent_req *req)
 /* Make sure that two queries more than TTL seconds apart resolve
  * into two different lists
  */
+static void test_fo_srv_ttl_change_step(struct test_fo_srv_ctx *test_ctx);
 static void test_fo_srv_before(struct tevent_req *req);
 static void test_fo_srv_after(struct tevent_req *req);
 
 void test_fo_srv_ttl_change(void **state)
 {
-    errno_t ret;
-    struct tevent_req *req;
     struct test_fo_srv_ctx *test_ctx =
         talloc_get_type(*state, struct test_fo_srv_ctx);
+
+    test_ctx->ttl = TEST_SRV_SHORT_TTL;
+    test_fo_srv_ttl_change_step(test_ctx);
+}
+
+static void test_fo_srv_ttl_change_step(struct test_fo_srv_ctx *test_ctx)
+{
+    errno_t ret;
+    struct tevent_req *req;
     struct ares_srv_reply *s1;
     struct ares_srv_reply *s2;
     char *dns_domain;
@@ -465,7 +474,7 @@ void test_fo_srv_ttl_change(void **state)
     dns_domain = talloc_strdup(test_ctx, "sssd.com");
     assert_non_null(dns_domain);
 
-    mock_srv_results(s1, TEST_SRV_SHORT_TTL, dns_domain);
+    mock_srv_results(s1, test_ctx->ttl, dns_domain);
 
     ret = fo_add_srv_server(test_ctx->fo_svc, "_ldap", "sssd.com",
                             "sssd.local", "tcp", test_ctx);
@@ -527,8 +536,8 @@ static void test_fo_srv_before(struct tevent_req *req)
     dns_domain = talloc_strdup(test_ctx, "sssd.com");
     assert_non_null(dns_domain);
 
-    mock_srv_results(s1, TEST_SRV_SHORT_TTL, dns_domain);
-    sleep(TEST_SRV_SHORT_TTL + 1);
+    mock_srv_results(s1, test_ctx->ttl, dns_domain);
+    sleep(test_ctx->ttl + 1);
 
     req = fo_resolve_service_send(test_ctx, test_ctx->ctx->ev,
                                   test_ctx->resolv, test_ctx->fo_ctx,
@@ -555,6 +564,15 @@ static void test_fo_srv_after(struct tevent_req *req)
     test_ctx->ctx->done = true;
 }
 
+void test_fo_srv_ttl_zero(void **state)
+{
+    struct test_fo_srv_ctx *test_ctx =
+        talloc_get_type(*state, struct test_fo_srv_ctx);
+
+    test_ctx->ttl = 0;
+    test_fo_srv_ttl_change_step(test_ctx);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -571,6 +589,9 @@ int main(int argc, const char *argv[])
                                         test_fo_srv_setup,
                                         test_fo_srv_teardown),
         cmocka_unit_test_setup_teardown(test_fo_srv_ttl_change,
+                                        test_fo_srv_setup,
+                                        test_fo_srv_teardown),
+        cmocka_unit_test_setup_teardown(test_fo_srv_ttl_zero,
                                         test_fo_srv_setup,
                                         test_fo_srv_teardown),
     };
