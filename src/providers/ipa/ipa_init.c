@@ -371,6 +371,62 @@ done:
     return ret;
 }
 
+void cleanup_ipa_preauth_indicator(void)
+{
+    int ret;
+
+    ret = unlink(PAM_PREAUTH_INDICATOR);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to remove preauth indicator file [%s].\n",
+              PAM_PREAUTH_INDICATOR);
+    }
+}
+
+static errno_t create_ipa_preauth_indicator(void)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    int fd;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    fd = open(PAM_PREAUTH_INDICATOR, O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW,
+              0644);
+    if (fd < 0) {
+        if (errno != EEXIST) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to create preauth indicator file [%s].\n",
+                  PAM_PREAUTH_INDICATOR);
+            ret = EOK;
+            goto done;
+        }
+
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Preauth indicator file [%s] already exists. "
+              "Maybe it is left after an unplanned exit. Continuing.\n",
+              PAM_PREAUTH_INDICATOR);
+    } else {
+        close(fd);
+    }
+
+    ret = atexit(cleanup_ipa_preauth_indicator);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "atexit failed. Continuing.\n");
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 int sssm_ipa_auth_init(struct be_ctx *bectx,
                        struct bet_ops **ops,
                        void **pvt_data)
@@ -467,6 +523,16 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
               "Could not initialize krb5_child settings: [%s]\n",
                strerror(ret));
         goto done;
+    }
+
+    ret = create_ipa_preauth_indicator();
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to create preauth indicator file, special password "
+              "prompting might not be available.\n");
+        sss_log(SSSDBG_CRIT_FAILURE,
+                "Failed to create preauth indicator file, special password "
+                "prompting might not be available.\n");
     }
 
     *ops = &ipa_auth_ops;
