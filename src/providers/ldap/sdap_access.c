@@ -1722,7 +1722,7 @@ is_account_locked(const char *pwdAccountLockedTime,
          * permanently.
          */
         DEBUG(SSSDBG_TRACE_FUNC,
-              "Account of: %s is beeing blocked by password policy, "
+              "Account of: %s is being blocked by password policy, "
               "but value: [%s] value is ignored by SSSD.\n",
               username, pwdAccountLockedTime);
         locked = false;
