@@ -2223,9 +2223,11 @@ int sysdb_remove_group_member(struct sss_domain_info *domain,
 
 /* =Password-Caching====================================================== */
 
-int sysdb_cache_password(struct sss_domain_info *domain,
-                         const char *username,
-                         const char *password)
+int sysdb_cache_password_ex(struct sss_domain_info *domain,
+                            const char *username,
+                            const char *password,
+                            enum sss_authtok_type authtok_type,
+                            size_t second_factor_len)
 {
     TALLOC_CTX *tmp_ctx;
     struct sysdb_attrs *attrs;
@@ -2258,6 +2260,15 @@ int sysdb_cache_password(struct sss_domain_info *domain,
     ret = sysdb_attrs_add_string(attrs, SYSDB_CACHEDPWD, hash);
     if (ret) goto fail;
 
+    ret = sysdb_attrs_add_long(attrs, SYSDB_CACHEDPWD_TYPE, authtok_type);
+    if (ret) goto fail;
+
+    if (authtok_type == SSS_AUTHTOK_TYPE_2FA && second_factor_len > 0) {
+        ret = sysdb_attrs_add_long(attrs, SYSDB_CACHEDPWD_FA2_LEN,
+                                   second_factor_len);
+        if (ret) goto fail;
+    }
+
     /* FIXME: should we use a different attribute for chache passwords ?? */
     ret = sysdb_attrs_add_long(attrs, "lastCachedPasswordChange",
                                (long)time(NULL));
@@ -2280,6 +2291,14 @@ fail:
     }
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+int sysdb_cache_password(struct sss_domain_info *domain,
+                         const char *username,
+                         const char *password)
+{
+    return sysdb_cache_password_ex(domain, username, password,
+                                   SSS_AUTHTOK_TYPE_PASSWORD, 0);
 }
 
 /* =Custom Search================== */

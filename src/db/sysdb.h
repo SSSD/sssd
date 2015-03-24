@@ -24,6 +24,7 @@
 
 #include "util/util.h"
 #include "confdb/confdb.h"
+#include "sss_client/sss_cli.h"
 #include <tevent.h>
 
 #define CACHE_SYSDB_FILE "cache_%s.ldb"
@@ -105,6 +106,8 @@
 #define SYSDB_SERVERHOSTNAME "serverHostname"
 
 #define SYSDB_CACHEDPWD "cachedPassword"
+#define SYSDB_CACHEDPWD_TYPE "cachedPasswordType"
+#define SYSDB_CACHEDPWD_FA2_LEN "cachedPasswordSecondFactorLen"
 
 #define SYSDB_UUID "uniqueID"
 #define SYSDB_SID "objectSID"
@@ -887,6 +890,12 @@ errno_t sysdb_store_override(struct sss_domain_info *domain,
 int sysdb_cache_password(struct sss_domain_info *domain,
                          const char *username,
                          const char *password);
+
+int sysdb_cache_password_ex(struct sss_domain_info *domain,
+                            const char *username,
+                            const char *password,
+                            enum sss_authtok_type authtok_type,
+                            size_t second_factor_size);
 
 errno_t check_failed_login_attempts(struct confdb_ctx *cdb,
                                     struct ldb_message *ldb_msg,

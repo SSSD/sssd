@@ -1809,6 +1809,57 @@ START_TEST (test_sysdb_cache_password)
 }
 END_TEST
 
+START_TEST (test_sysdb_cache_password_ex)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+    struct ldb_result *res;
+    const char *attrs[] = { SYSDB_CACHEDPWD_TYPE, SYSDB_CACHEDPWD_FA2_LEN,
+                            NULL };
+    int val;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_unless(ret == EOK, "Could not set up the test");
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->username = talloc_asprintf(data, "testuser%d", _i);
+
+    ret = sysdb_get_user_attr(test_ctx, test_ctx->domain, data->username,
+                              attrs, &res);
+    fail_unless(ret == EOK, "sysdb_get_user_attr request failed [%d].", ret);
+
+    val = ldb_msg_find_attr_as_int(res->msgs[0], SYSDB_CACHEDPWD_TYPE, 0);
+    fail_unless(val == SSS_AUTHTOK_TYPE_PASSWORD,
+                "Unexptected authtok type, found [%d], expected [%d].",
+                val, SSS_AUTHTOK_TYPE_PASSWORD);
+
+    ret = sysdb_cache_password_ex(test_ctx->domain, data->username,
+                                  data->username, SSS_AUTHTOK_TYPE_2FA, 12);
+
+    fail_unless(ret == EOK, "sysdb_cache_password request failed [%d].", ret);
+
+    ret = sysdb_get_user_attr(test_ctx, test_ctx->domain, data->username,
+                              attrs, &res);
+    fail_unless(ret == EOK, "sysdb_get_user_attr request failed [%d].", ret);
+
+    val = ldb_msg_find_attr_as_int(res->msgs[0], SYSDB_CACHEDPWD_TYPE, 0);
+    fail_unless(val == SSS_AUTHTOK_TYPE_2FA,
+                "Unexptected authtok type, found [%d], expected [%d].",
+                val, SSS_AUTHTOK_TYPE_2FA);
+
+    val = ldb_msg_find_attr_as_int(res->msgs[0], SYSDB_CACHEDPWD_FA2_LEN, 0);
+    fail_unless(val == 12,
+                "Unexptected second factor lenght, found [%d], expected [%d].",
+                val, 12);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 static void cached_authentication_without_expiration(const char *username,
                                                      const char *password,
                                                      int expected_result)
@@ -6259,6 +6310,8 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_sysdb, test_sysdb_cached_authentication_wrong_password,
                         27010, 27011);
     tcase_add_loop_test(tc_sysdb, test_sysdb_cached_authentication, 27010, 27011);
+
+    tcase_add_loop_test(tc_sysdb, test_sysdb_cache_password_ex, 27010, 27011);
 
     /* ASQ search test */
     tcase_add_loop_test(tc_sysdb, test_sysdb_prepare_asq_test_user, 28011, 28020);
