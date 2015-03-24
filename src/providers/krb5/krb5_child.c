@@ -54,6 +54,9 @@ struct krb5_req {
     char* name;
     krb5_creds *creds;
     bool otp;
+    char *otp_vendor;
+    char *otp_token_id;
+    char *otp_challenge;
     krb5_get_init_creds_opt *options;
 
     struct pam_data *pd;
@@ -268,7 +271,87 @@ static int token_pin_destructor(char *mem)
     return 0;
 }
 
-static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
+static krb5_error_code tokeninfo_matches_2fa(TALLOC_CTX *mem_ctx,
+                                         const krb5_responder_otp_tokeninfo *ti,
+                                         const char *fa1, size_t fa1_len,
+                                         const char *fa2, size_t fa2_len,
+                                         char **out_token, char **out_pin)
+{
+    char *token = NULL, *pin = NULL;
+    checker check = NULL;
+    int i;
+
+    if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_NEXTOTP) {
+        return ENOTSUP;
+    }
+
+    if (ti->challenge != NULL) {
+        return ENOTSUP;
+    }
+
+    /* This is a non-sensical value. */
+    if (ti->length == 0) {
+        return EPROTO;
+    }
+
+    if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_COLLECT_TOKEN) {
+        if (ti->length > 0 && ti->length != fa2_len) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Expected [%d] and given [%zu] token size "
+                  "do not match.\n", ti->length, fa2_len);
+            return EMSGSIZE;
+        }
+
+        if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_COLLECT_PIN) {
+            if (ti->flags & KRB5_RESPONDER_OTP_FLAGS_SEPARATE_PIN) {
+
+                pin = talloc_strndup(mem_ctx, fa1, fa1_len);
+                if (pin == NULL) {
+                    talloc_free(token);
+                    return ENOMEM;
+                }
+                talloc_set_destructor(pin, token_pin_destructor);
+
+                token = talloc_strndup(mem_ctx, fa2, fa2_len);
+                if (token == NULL) {
+                    return ENOMEM;
+                }
+                talloc_set_destructor(token, token_pin_destructor);
+
+                check = pick_checker(ti->format);
+            }
+        } else {
+            token = talloc_asprintf(mem_ctx, "%s%s", fa1, fa2);
+            if (token == NULL) {
+                return ENOMEM;
+            }
+            talloc_set_destructor(token, token_pin_destructor);
+
+            check = pick_checker(ti->format);
+        }
+    } else {
+        /* Assuming PIN only required */
+        pin = talloc_strndup(mem_ctx, fa1, fa1_len);
+        if (pin == NULL) {
+            return ENOMEM;
+        }
+        talloc_set_destructor(pin, token_pin_destructor);
+    }
+
+    /* If check is set, we need to verify the contents of the token. */
+    for (i = 0; check != NULL && token[i] != '\0'; i++) {
+        if (!check(token[i])) {
+            talloc_free(token);
+            talloc_free(pin);
+            return EBADMSG;
+        }
+    }
+
+    *out_token = token;
+    *out_pin = pin;
+    return 0;
+}
+static krb5_error_code tokeninfo_matches_pwd(TALLOC_CTX *mem_ctx,
                                          const krb5_responder_otp_tokeninfo *ti,
                                          const char *pwd, size_t len,
                                          char **out_token, char **out_pin)
@@ -364,15 +447,52 @@ static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
     return 0;
 }
 
+static krb5_error_code tokeninfo_matches(TALLOC_CTX *mem_ctx,
+                                         const krb5_responder_otp_tokeninfo *ti,
+                                         struct sss_auth_token *auth_tok,
+                                         char **out_token, char **out_pin)
+{
+    int ret;
+    const char *pwd;
+    size_t len;
+    const char *fa2;
+    size_t fa2_len;
+
+    switch (sss_authtok_get_type(auth_tok)) {
+    case SSS_AUTHTOK_TYPE_PASSWORD:
+        ret = sss_authtok_get_password(auth_tok, &pwd, &len);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_password failed.\n");
+            return ret;
+        }
+
+        return tokeninfo_matches_pwd(mem_ctx, ti, pwd, len, out_token, out_pin);
+        break;
+    case SSS_AUTHTOK_TYPE_2FA:
+        ret = sss_authtok_get_2fa(auth_tok, &pwd, &len, &fa2, &fa2_len);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_2fa failed.\n");
+            return ret;
+        }
+
+        return tokeninfo_matches_2fa(mem_ctx, ti, pwd, len, fa2, fa2_len,
+                                     out_token, out_pin);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported authtok type.\n");
+    }
+
+    return EINVAL;
+}
+
 static krb5_error_code answer_otp(krb5_context ctx,
                                   struct krb5_req *kr,
                                   krb5_responder_context rctx)
 {
     krb5_responder_otp_challenge *chl;
     char *token = NULL, *pin = NULL;
-    const char *pwd = NULL;
     krb5_error_code ret;
-    size_t i, len;
+    size_t i;
 
     ret = krb5_responder_otp_get_challenge(ctx, rctx, &chl);
     if (ret != EOK || chl == NULL) {
@@ -388,14 +508,37 @@ static krb5_error_code answer_otp(krb5_context ctx,
 
     kr->otp = true;
 
-    /* Validate our assumptions about the contents of authtok. */
-    ret = sss_authtok_get_password(kr->pd->authtok, &pwd, &len);
-    if (ret != EOK)
-        goto done;
+    if (kr->pd->cmd == SSS_PAM_PREAUTH) {
+        for (i = 0; chl->tokeninfo[i] != NULL; i++) {
+            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Vendor [%s].\n",
+                                    i, chl->tokeninfo[i]->vendor);
+            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Token-ID [%s].\n",
+                                    i, chl->tokeninfo[i]->token_id);
+            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Challenge [%s].\n",
+                                    i, chl->tokeninfo[i]->challenge);
+            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Flags [%d].\n",
+                                    i, chl->tokeninfo[i]->flags);
+        }
+
+        if (chl->tokeninfo[0]->vendor != NULL) {
+            kr->otp_vendor = talloc_strdup(kr, chl->tokeninfo[0]->vendor);
+        }
+        if (chl->tokeninfo[0]->token_id != NULL) {
+            kr->otp_token_id = talloc_strdup(kr, chl->tokeninfo[0]->token_id);
+        }
+        if (chl->tokeninfo[0]->challenge != NULL) {
+            kr->otp_challenge = talloc_strdup(kr, chl->tokeninfo[0]->challenge);
+        }
+        /* Allocation errors are ignored on purpose */
+
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Exit answer_otp during pre-auth.\n");
+        return EAGAIN;
+    }
 
     /* Find the first supported tokeninfo which matches our authtoken. */
     for (i = 0; chl->tokeninfo[i] != NULL; i++) {
-        ret = tokeninfo_matches(kr, chl->tokeninfo[i], pwd, len, &token, &pin);
+        ret = tokeninfo_matches(kr, chl->tokeninfo[i], kr->pd->authtok,
+                                &token, &pin);
         if (ret == EOK) {
             break;
         }
@@ -715,6 +858,58 @@ static errno_t pack_response_packet(TALLOC_CTX *mem_ctx, errno_t error,
     return EOK;
 }
 
+static errno_t k5c_attach_otp_info_msg(struct krb5_req *kr)
+{
+    uint8_t *msg = NULL;
+    size_t msg_len;
+    int ret;
+    size_t vendor_len = 0;
+    size_t token_id_len = 0;
+    size_t challenge_len = 0;
+    size_t idx = 0;
+
+    msg_len = 3;
+    if (kr->otp_vendor != NULL) {
+        vendor_len = strlen(kr->otp_vendor);
+        msg_len += vendor_len;
+    }
+
+    if (kr->otp_token_id != NULL) {
+        token_id_len = strlen(kr->otp_token_id);
+        msg_len += token_id_len;
+    }
+
+    if (kr->otp_challenge != NULL) {
+        challenge_len = strlen(kr->otp_challenge);
+        msg_len += challenge_len;
+    }
+
+    msg = talloc_zero_size(kr, msg_len);
+    if (msg == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        return ENOMEM;
+    }
+
+    if (kr->otp_vendor != NULL) {
+        memcpy(msg, kr->otp_vendor, vendor_len);
+    }
+    idx += vendor_len +1;
+
+    if (kr->otp_token_id != NULL) {
+        memcpy(msg + idx, kr->otp_token_id, token_id_len);
+    }
+    idx += token_id_len +1;
+
+    if (kr->otp_challenge != NULL) {
+        memcpy(msg + idx, kr->otp_challenge, challenge_len);
+    }
+
+    ret = pam_add_response(kr->pd, SSS_PAM_OTP_INFO, msg_len, msg);
+    talloc_zfree(msg);
+
+    return ret;
+}
+
 static errno_t k5c_attach_ccname_msg(struct krb5_req *kr)
 {
     char *msg = NULL;
@@ -1027,9 +1222,18 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                                         discard_const(password),
                                         sss_krb5_prompter, kr, 0,
                                         NULL, kr->options);
-    if (kerr != 0) {
-        KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
-        return kerr;
+    if (kr->pd->cmd == SSS_PAM_PREAUTH) {
+        /* Any errors are ignored during pre-auth, only data is collected to
+         * be send back to the client.*/
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "krb5_get_init_creds_password returned [%d} during pre-auth.\n",
+              kerr);
+        return 0;
+    } else {
+        if (kerr != 0) {
+            KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+            return kerr;
+        }
     }
 
     if (kr->validate) {
@@ -1330,8 +1534,11 @@ static errno_t tgt_req_child(struct krb5_req *kr)
 
     DEBUG(SSSDBG_TRACE_LIBS, "Attempting to get a TGT\n");
 
-    ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
-    switch (ret) {
+    /* No password is needed for pre-auth, or if we have 2FA */
+    if (kr->pd->cmd != SSS_PAM_PREAUTH
+            && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_2FA) {
+        ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
+        switch (ret) {
         case EOK:
             break;
 
@@ -1344,13 +1551,21 @@ static errno_t tgt_req_child(struct krb5_req *kr)
             DEBUG(SSSDBG_OP_FAILURE, "No credentials available\n");
             return ERR_NO_CREDS;
             break;
+        }
     }
 
     kerr = get_and_save_tgt(kr, password);
 
     if (kerr != KRB5KDC_ERR_KEY_EXP) {
-        if (kerr == 0) {
-            kerr = k5c_attach_ccname_msg(kr);
+        if (kr->pd->cmd == SSS_PAM_PREAUTH) {
+            /* add OTP tokeninfo messge if available */
+            if (kr->otp) {
+                kerr = k5c_attach_otp_info_msg(kr);
+            }
+        } else {
+            if (kerr == 0) {
+                kerr = k5c_attach_ccname_msg(kr);
+            }
         }
         ret = map_krb5_error(kerr);
         goto done;
@@ -1550,6 +1765,10 @@ static errno_t unpack_authtok(struct sss_auth_token *tok,
         break;
     case SSS_AUTHTOK_TYPE_CCFILE:
         ret = sss_authtok_set_ccfile(tok, (char *)(buf + *p), 0);
+        break;
+    case SSS_AUTHTOK_TYPE_2FA:
+        ret = sss_authtok_set(tok, SSS_AUTHTOK_TYPE_2FA, (buf + *p),
+                              auth_token_length);
         break;
     default:
         return EINVAL;
@@ -2314,11 +2533,13 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     }
 
     /* For ccache types FILE: and DIR: we might need to create some directory
-     * components as root */
-    ret = k5c_ccache_setup(kr, offline);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "k5c_ccache_setup failed.\n");
-        return ret;
+     * components as root. Cache files are not needed during preauth. */
+    if (kr->pd->cmd != SSS_PAM_PREAUTH) {
+        ret = k5c_ccache_setup(kr, offline);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "k5c_ccache_setup failed.\n");
+            return ret;
+        }
     }
 
     if (!(offline ||
@@ -2492,6 +2713,10 @@ int main(int argc, const char *argv[])
         }
         DEBUG(SSSDBG_TRACE_FUNC, "Will perform ticket renewal\n");
         ret = renew_tgt_child(kr);
+        break;
+    case SSS_PAM_PREAUTH:
+        DEBUG(SSSDBG_TRACE_FUNC, "Will perform pre-auth\n");
+        ret = tgt_req_child(kr);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,

@@ -402,6 +402,12 @@ enum response_type {
                           * the user.This should only be used in the case where
                           * it is not possile to use SSS_PAM_USER_INFO.
                           * @param A zero terminated string. */
+    SSS_PAM_OTP_INFO,    /**< A message which optionally may contain the name
+                          * of the vendor, the ID of an OTP token and a
+                          * challenge.
+                          * @param Three zero terminated strings, if one of the
+                          * strings is missing the message will contain only
+                          * an empty string (\0) for that component. */
     SSS_OTP,             /**< Indicates that the autotok was a OTP, so don't
                           * cache it. There is no message.
                           * @param None. */

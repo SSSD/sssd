@@ -394,7 +394,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK:
-            if (authtok_type != SSS_AUTHTOK_TYPE_PASSWORD) {
+            if (authtok_type != SSS_AUTHTOK_TYPE_PASSWORD
+                    && authtok_type != SSS_AUTHTOK_TYPE_2FA) {
                 /* handle empty password gracefully */
                 if (authtok_type == SSS_AUTHTOK_TYPE_EMPTY) {
                     DEBUG(SSSDBG_CRIT_FAILURE,

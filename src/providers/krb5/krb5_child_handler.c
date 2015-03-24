@@ -77,6 +77,10 @@ static errno_t pack_authtok(struct io_buffer *buf, size_t *rp,
         ret = sss_authtok_get_ccfile(tok, &data, &len);
         auth_token_length = len + 1;
         break;
+    case SSS_AUTHTOK_TYPE_2FA:
+        data = (char *) sss_authtok_get_data(tok);
+        auth_token_length = sss_authtok_get_size(tok);
+        break;
     default:
         ret = EINVAL;
     }
