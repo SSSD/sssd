@@ -106,8 +106,8 @@ int main(int argc, const char *argv[])
         POPT_TABLEEND
     };
 
-    const UnitTest tests[] = {
-        unit_test(test_sysdb_handle_original_uuid),
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_sysdb_handle_original_uuid),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -128,7 +128,7 @@ int main(int argc, const char *argv[])
     DEBUG_CLI_INIT(debug_level);
 
     tests_set_cwd();
-    rv = run_tests(tests);
+    rv = cmocka_run_group_tests(tests, NULL, NULL);
 
     return rv;
 }
