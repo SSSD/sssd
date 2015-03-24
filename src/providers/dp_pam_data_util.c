@@ -43,6 +43,8 @@ static const char *pamcmd2str(int cmd) {
         return "PAM_CHAUTHTOK";
     case SSS_PAM_CHAUTHTOK_PRELIM:
         return "PAM_CHAUTHTOK_PRELIM";
+    case SSS_PAM_PREAUTH:
+        return "SSS_PAM_PREAUTH";
     default:
         return "UNKNOWN";
     }

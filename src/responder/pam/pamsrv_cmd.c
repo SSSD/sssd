@@ -1455,6 +1455,12 @@ static int pam_cmd_chauthtok_prelim(struct cli_ctx *cctx) {
     return pam_forwarder(cctx, SSS_PAM_CHAUTHTOK_PRELIM);
 }
 
+static int pam_cmd_preauth(struct cli_ctx *cctx)
+{
+    DEBUG(SSSDBG_CONF_SETTINGS, "entering pam_cmd_preauth\n");
+    return pam_forwarder(cctx, SSS_PAM_PREAUTH);
+}
+
 struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version pam_cli_protocol_version[] = {
@@ -1478,6 +1484,7 @@ struct sss_cmd_table *get_pam_cmds(void)
         {SSS_PAM_CLOSE_SESSION, pam_cmd_close_session},
         {SSS_PAM_CHAUTHTOK, pam_cmd_chauthtok},
         {SSS_PAM_CHAUTHTOK_PRELIM, pam_cmd_chauthtok_prelim},
+        {SSS_PAM_PREAUTH, pam_cmd_preauth},
         {SSS_CLI_NULL, NULL}
     };
 

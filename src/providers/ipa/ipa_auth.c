@@ -208,6 +208,7 @@ void ipa_auth(struct be_req *be_req)
 
     switch (state->pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
+        case SSS_PAM_PREAUTH:
             state->ipa_auth_ctx = talloc_get_type(
                                     be_ctx->bet_info[BET_AUTH].pvt_bet_data,
                                     struct ipa_auth_ctx);

@@ -441,6 +441,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                 goto done;
             }
             break;
+        case SSS_PAM_PREAUTH:
+            break;
         default:
             DEBUG(SSSDBG_CONF_SETTINGS, "Unexpected pam task %d.\n", pd->cmd);
             state->pam_status = PAM_SYSTEM_ERR;

@@ -1374,6 +1374,7 @@ static int be_pam_handler(struct sbus_request *dbus_req, void *user_data)
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
+        case SSS_PAM_PREAUTH:
             target = BET_AUTH;
             break;
         case SSS_PAM_ACCT_MGMT:
