@@ -686,7 +686,7 @@ ssh_cmd_parse_request(struct ssh_cmd_ctx *cmd_ctx)
     uint32_t alias_len;
     char *alias = NULL;
     uint32_t domain_len;
-    char *domain = cctx->rctx->default_domain;
+    char *domain = NULL;
 
     sss_packet_get_body(cctx->creq->in, &body, &body_len);
 
