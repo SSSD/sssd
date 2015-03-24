@@ -162,6 +162,9 @@
 #define CONFDB_DOMAIN_MINID "min_id"
 #define CONFDB_DOMAIN_MAXID "max_id"
 #define CONFDB_DOMAIN_CACHE_CREDS "cache_credentials"
+#define CONFDB_DOMAIN_CACHE_CREDS_MIN_FF_LENGTH \
+                                 "cache_credentials_minimal_first_factor_length"
+#define CONFDB_DEFAULT_CACHE_CREDS_MIN_FF_LENGTH 8
 #define CONFDB_DOMAIN_LEGACY_PASS "store_legacy_passwords"
 #define CONFDB_DOMAIN_MPG "magic_private_groups"
 #define CONFDB_DOMAIN_FQ "use_fully_qualified_names"
@@ -221,6 +224,7 @@ struct sss_domain_info {
     uint32_t id_max;
 
     bool cache_credentials;
+    uint32_t cache_credentials_min_ff_length;
     bool legacy_passwords;
     bool case_sensitive;
     bool case_preserve;

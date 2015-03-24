@@ -1392,6 +1392,28 @@ pam_account_expired_message = Account expired, please call help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>cache_credentials_minimal_first_factor_length (int)</term>
+                    <listitem>
+                        <para>
+                            If 2-Factor-Authentication (2FA) is used and
+                            credentials should be saved this value determines
+                            the minimal lenght the first authentication factor
+                            (long term password) must have to be saved as SHA512
+                            hash into the cache.
+                        </para>
+                        <para>
+                            This should avoid that the short PINs of a PIN based
+                            2FA scheme are saved in the cache which would make
+                            them easy targets for brute-force attacks.
+                        </para>
+                        <para>
+                            Default: 8
+                        </para>
+                    </listitem>
+                </varlistentry>
+
                 <varlistentry>
                     <term>account_cache_expiration (integer)</term>
                     <listitem>

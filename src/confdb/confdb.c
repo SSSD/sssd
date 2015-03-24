@@ -985,6 +985,17 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    ret = get_entry_as_uint32(res->msgs[0],
+                              &domain->cache_credentials_min_ff_length,
+                              CONFDB_DOMAIN_CACHE_CREDS_MIN_FF_LENGTH,
+                              CONFDB_DEFAULT_CACHE_CREDS_MIN_FF_LENGTH);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for %s\n",
+              CONFDB_DOMAIN_CACHE_CREDS_MIN_FF_LENGTH);
+        goto done;
+    }
+
     ret = get_entry_as_bool(res->msgs[0], &domain->legacy_passwords,
                             CONFDB_DOMAIN_LEGACY_PASS, 0);
     if(ret != EOK) {
