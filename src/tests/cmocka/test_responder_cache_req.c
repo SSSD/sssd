@@ -38,6 +38,9 @@
 #define TEST_GROUP_NAME "test-group"
 #define TEST_GROUP_ID 1000
 
+#define TEST_USER_NAME2 "test-user2"
+#define TEST_GROUP_NAME2 "test-group2"
+
 #define new_single_domain_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
                                     test_single_domain_setup, \
@@ -1694,6 +1697,405 @@ void test_group_by_id_missing_notfound(void **state)
     assert_true(test_ctx->dp_called);
 }
 
+static void cache_req_user_by_filter_test_done(struct tevent_req *req)
+{
+    struct cache_req_test_ctx *ctx = NULL;
+
+    ctx = tevent_req_callback_data(req, struct cache_req_test_ctx);
+
+    ctx->tctx->error = cache_req_user_by_filter_recv(ctx, req,
+                                                     &ctx->result,
+                                                     &ctx->domain);
+    talloc_zfree(req);
+    ctx->tctx->done = true;
+}
+
+void test_users_by_filter_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_user = true;
+
+    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME2, "pwd", 1001, 1001,
+                           NULL, NULL, NULL, "cn="TEST_USER_NAME2",dc=test", NULL,
+                           NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        test_ctx->tctx->dom->name,
+                                        "test*");
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 2);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_USER_NAME2);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[1],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_USER_NAME);
+}
+
+void test_users_by_filter_filter_old(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_user = true;
+
+    /* This user was updated in distant past, so it wont't be reported by
+     * the filter search */
+    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME2, "pwd", 1001, 1001,
+                           NULL, NULL, NULL, "cn="TEST_USER_NAME2",dc=test", NULL,
+                           NULL, 1000, 1);
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        test_ctx->tctx->dom->name,
+                                        "test*");
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_USER_NAME);
+}
+
+void test_users_by_filter_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        test_ctx->tctx->dom->name,
+                                        "nosuchuser*");
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+}
+
+static void test_users_by_filter_multiple_domains_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    ret = sysdb_store_user(domain, TEST_USER_NAME, "pwd", 1000, 1000,
+                           NULL, NULL, NULL, "cn="TEST_USER_NAME",dc=test", NULL,
+                           NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_user(domain, TEST_USER_NAME2, "pwd", 1001, 1001,
+                           NULL, NULL, NULL, "cn="TEST_USER_NAME2",dc=test", NULL,
+                           NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        domain->name,
+                                        "test*");
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 2);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_USER_NAME2);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[1],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_USER_NAME);
+}
+
+static void test_users_by_filter_multiple_domains_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        domain->name,
+                                        "nosuchuser*");
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+}
+
+static void cache_req_group_by_filter_test_done(struct tevent_req *req)
+{
+    struct cache_req_test_ctx *ctx = NULL;
+
+    ctx = tevent_req_callback_data(req, struct cache_req_test_ctx);
+
+    ctx->tctx->error = cache_req_group_by_filter_recv(ctx, req,
+                                                      &ctx->result,
+                                                      &ctx->domain);
+    talloc_zfree(req);
+    ctx->tctx->done = true;
+}
+
+void test_groups_by_filter_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_group = true;
+
+    ret = sysdb_store_group(test_ctx->tctx->dom, TEST_GROUP_NAME2,
+                            1001, NULL, 1001, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                         test_ctx->rctx,
+                                         test_ctx->tctx->dom->name,
+                                         "test*");
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 2);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_GROUP_NAME2);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[1],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_GROUP_NAME);
+}
+
+void test_groups_by_filter_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        test_ctx->tctx->dom->name,
+                                        "nosuchgroup*");
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+}
+
+void test_groups_by_filter_multiple_domains_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    ret = sysdb_store_group(domain, TEST_GROUP_NAME,
+                            1000, NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_group(domain, TEST_GROUP_NAME2,
+                            1001, NULL, 1001, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                         test_ctx->rctx,
+                                         domain->name,
+                                         "test*");
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 2);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_GROUP_NAME2);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[1],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_GROUP_NAME);
+}
+
+void test_groups_by_filter_multiple_domains_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        domain->name,
+                                        "nosuchgroup*");
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1741,7 +2143,17 @@ int main(int argc, const char *argv[])
         new_single_domain_test(group_by_id_missing_found),
         new_single_domain_test(group_by_id_missing_notfound),
         new_multi_domain_test(group_by_id_multiple_domains_found),
-        new_multi_domain_test(group_by_id_multiple_domains_notfound)
+        new_multi_domain_test(group_by_id_multiple_domains_notfound),
+
+        new_single_domain_test(users_by_filter_valid),
+        new_single_domain_test(users_by_filter_filter_old),
+        new_single_domain_test(users_by_filter_notfound),
+        new_multi_domain_test(users_by_filter_multiple_domains_valid),
+        new_multi_domain_test(users_by_filter_multiple_domains_notfound),
+        new_single_domain_test(groups_by_filter_valid),
+        new_single_domain_test(groups_by_filter_notfound),
+        new_multi_domain_test(groups_by_filter_multiple_domains_valid),
+        new_multi_domain_test(groups_by_filter_multiple_domains_notfound),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

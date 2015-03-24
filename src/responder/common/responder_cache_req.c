@@ -28,6 +28,44 @@
 #include "responder/common/responder_cache_req.h"
 #include "providers/data_provider.h"
 
+static errno_t updated_users_by_filter(TALLOC_CTX *mem_ctx,
+                                       struct sss_domain_info *domain,
+                                       const char *name_filter,
+                                       time_t since,
+                                       struct ldb_result **_res)
+{
+    int ret;
+    char *recent_filter;
+
+    recent_filter = talloc_asprintf(mem_ctx, "(%s>=%lu)",
+                                    SYSDB_LAST_UPDATE, since);
+    ret = sysdb_enumpwent_filter_with_views(mem_ctx, domain,
+                                            name_filter, recent_filter,
+                                            _res);
+    talloc_free(recent_filter);
+
+    return ret;
+}
+
+static errno_t updated_groups_by_filter(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *domain,
+                                        const char *name_filter,
+                                        time_t since,
+                                        struct ldb_result **_res)
+{
+    int ret;
+    char *recent_filter;
+
+    recent_filter = talloc_asprintf(mem_ctx, "(%s>=%lu)",
+                                    SYSDB_LAST_UPDATE, since);
+    ret = sysdb_enumgrent_filter_with_views(mem_ctx, domain,
+                                            name_filter, recent_filter,
+                                            _res);
+    talloc_free(recent_filter);
+
+    return ret;
+}
+
 struct cache_req_input {
     enum cache_req_type type;
 
@@ -51,6 +89,8 @@ struct cache_req_input {
 
     /* Fully qualified object name used in debug messages. */
     const char *debug_fqn;
+    /* Time when the request started. Useful for by-filter lookups */
+    time_t req_start;
 };
 
 struct cache_req_input *
@@ -68,11 +108,14 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
     }
 
     input->type = type;
+    input->req_start = time(NULL);
 
     /* Check that input parameters match selected type. */
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_GROUP_BY_NAME:
+    case CACHE_REQ_USER_BY_FILTER:
+    case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
@@ -121,8 +164,17 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_INITGROUPS:
         input->dp_type = SSS_DP_INITGROUPS;
         break;
+
     case CACHE_REQ_USER_BY_CERT:
         input->dp_type = SSS_DP_CERT;
+        break;
+
+    case CACHE_REQ_USER_BY_FILTER:
+        input->dp_type = SSS_DP_WILDCARD_USER;
+        break;
+
+    case CACHE_REQ_GROUP_BY_FILTER:
+        input->dp_type = SSS_DP_WILDCARD_GROUP;
         break;
     }
 
@@ -157,7 +209,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *name = NULL;
-    const char *fqn = NULL;
+    const char *debug_fqn = NULL;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -171,6 +223,8 @@ cache_req_input_set_domain(struct cache_req_input *input,
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_GROUP_BY_NAME:
+    case CACHE_REQ_USER_BY_FILTER:
+    case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
         name = sss_get_cased_name(tmp_ctx, input->orig_name,
                                   domain->case_sensitive);
@@ -185,8 +239,8 @@ cache_req_input_set_domain(struct cache_req_input *input,
             goto done;
         }
 
-        fqn = talloc_asprintf(tmp_ctx, "%s@%s", name, domain->name);
-        if (fqn == NULL) {
+        debug_fqn = talloc_asprintf(tmp_ctx, "%s@%s", name, domain->name);
+        if (debug_fqn == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -194,16 +248,16 @@ cache_req_input_set_domain(struct cache_req_input *input,
         break;
 
     case CACHE_REQ_USER_BY_ID:
-        fqn = talloc_asprintf(tmp_ctx, "UID:%d@%s", input->id, domain->name);
-        if (fqn == NULL) {
+        debug_fqn = talloc_asprintf(tmp_ctx, "UID:%d@%s", input->id, domain->name);
+        if (debug_fqn == NULL) {
             ret = ENOMEM;
             goto done;
         }
         break;
 
     case CACHE_REQ_GROUP_BY_ID:
-        fqn = talloc_asprintf(tmp_ctx, "GID:%d@%s", input->id, domain->name);
-        if (fqn == NULL) {
+        debug_fqn = talloc_asprintf(tmp_ctx, "GID:%d@%s", input->id, domain->name);
+        if (debug_fqn == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -211,10 +265,10 @@ cache_req_input_set_domain(struct cache_req_input *input,
     case CACHE_REQ_USER_BY_CERT:
         /* certificates might be quite long, only use the last 10 charcters
          * for logging */
-        fqn = talloc_asprintf(tmp_ctx, "CERT:%s@%s",
-                              get_last_x_chars(input->cert, 10),
-                              domain->name);
-        if (fqn == NULL) {
+        debug_fqn = talloc_asprintf(tmp_ctx, "CERT:%s@%s",
+                                    get_last_x_chars(input->cert, 10),
+                                    domain->name);
+        if (debug_fqn == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -223,7 +277,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
 
     input->domain = domain;
     input->dom_objname = talloc_steal(input, name);
-    input->debug_fqn = talloc_steal(input, fqn);
+    input->debug_fqn = talloc_steal(input, debug_fqn);
 
     ret = EOK;
 
@@ -257,6 +311,10 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
     case CACHE_REQ_USER_BY_CERT:
         ret = sss_ncache_check_cert(ncache, neg_timeout, input->cert);
         break;
+    case CACHE_REQ_USER_BY_FILTER:
+    case CACHE_REQ_GROUP_BY_FILTER:
+        ret = EOK;
+        break;
     }
 
     if (ret == EEXIST) {
@@ -282,6 +340,10 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
         ret = sss_ncache_set_group(ncache, false, input->domain,
                                    input->dom_objname);
         break;
+    case CACHE_REQ_USER_BY_FILTER:
+    case CACHE_REQ_GROUP_BY_FILTER:
+        /* Nothing to do, adding a wildcard request to ncache doesn't
+         * make sense */
     case CACHE_REQ_USER_BY_ID:
     case CACHE_REQ_GROUP_BY_ID:
     case CACHE_REQ_USER_BY_CERT:
@@ -308,6 +370,10 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
     errno_t ret = ERR_INTERNAL;
 
     switch (input->type) {
+    case CACHE_REQ_USER_BY_FILTER:
+    case CACHE_REQ_GROUP_BY_FILTER:
+        /* Nothing to do, adding a wildcard request to ncache doesn't
+         * make sense */
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_GROUP_BY_NAME:
     case CACHE_REQ_INITGROUPS:
@@ -377,6 +443,18 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         ret = sysdb_search_user_by_cert(mem_ctx, input->domain,
                                         input->cert, &result);
         break;
+    case CACHE_REQ_USER_BY_FILTER:
+        one_item_only = false;
+        ret = updated_users_by_filter(mem_ctx, input->domain,
+                                      input->dom_objname, input->req_start,
+                                      &result);
+        break;
+    case CACHE_REQ_GROUP_BY_FILTER:
+        one_item_only = false;
+        ret = updated_groups_by_filter(mem_ctx, input->domain,
+                                       input->dom_objname, input->req_start,
+                                       &result);
+        break;
     }
 
     if (ret != EOK) {
@@ -395,6 +473,19 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
 
 done:
     return ret;
+}
+
+/* Return true if the request bypasses cache or false if the cache_req
+ * code can leverage sysdb for this request.
+ */
+static bool cache_req_bypass_cache(struct cache_req_input *input)
+{
+    if (input->type == CACHE_REQ_USER_BY_FILTER ||
+            input->type == CACHE_REQ_GROUP_BY_FILTER) {
+        return true;
+    }
+
+    return false;
 }
 
 struct cache_req_cache_state {
@@ -504,7 +595,8 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
 
     state = tevent_req_data(req, struct cache_req_cache_state);
 
-    if (state->result == NULL || state->result->count == 0) {
+    if (state->result == NULL || state->result->count == 0 ||
+            cache_req_bypass_cache(state->input) == true) {
         ret = ENOENT;
     } else {
         if (state->input->type == CACHE_REQ_INITGROUPS) {
@@ -1058,4 +1150,42 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
     return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
                                           neg_timeout, cache_refresh_percent,
                                           domain, input);
+}
+
+struct tevent_req *
+cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct resp_ctx *rctx,
+                              const char *domain,
+                              const char *filter)
+{
+    struct cache_req_input *input;
+
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_FILTER,
+                                   filter, 0, NULL);
+    if (input == NULL) {
+        return NULL;
+    }
+
+    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, NULL,
+                                          0, 0, domain, input);
+}
+
+struct tevent_req *
+cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
+                               struct tevent_context *ev,
+                               struct resp_ctx *rctx,
+                               const char *domain,
+                               const char *filter)
+{
+    struct cache_req_input *input;
+
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_GROUP_BY_FILTER,
+                                   filter, 0, NULL);
+    if (input == NULL) {
+        return NULL;
+    }
+
+    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, NULL,
+                                          0, 0, domain, input);
 }

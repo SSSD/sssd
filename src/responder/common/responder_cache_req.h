@@ -33,7 +33,9 @@ enum cache_req_type {
     CACHE_REQ_GROUP_BY_NAME,
     CACHE_REQ_GROUP_BY_ID,
     CACHE_REQ_INITGROUPS,
-    CACHE_REQ_USER_BY_CERT
+    CACHE_REQ_USER_BY_CERT,
+    CACHE_REQ_USER_BY_FILTER,
+    CACHE_REQ_GROUP_BY_FILTER,
 };
 
 struct cache_req_input;
@@ -142,5 +144,25 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
 
 #define cache_req_initgr_by_name_recv(mem_ctx, req, _result, _domain, _name) \
     cache_req_recv(mem_ctx, req, _result, _domain, _name)
+
+struct tevent_req *
+cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct resp_ctx *rctx,
+                              const char *domain,
+                              const char *filter);
+
+#define cache_req_user_by_filter_recv(mem_ctx, req, _result, _domain) \
+    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
+
+struct tevent_req *
+cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct resp_ctx *rctx,
+                              const char *domain,
+                              const char *filter);
+
+#define cache_req_group_by_filter_recv(mem_ctx, req, _result, _domain) \
+    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
 
 #endif /* RESPONDER_CACHE_H_ */
