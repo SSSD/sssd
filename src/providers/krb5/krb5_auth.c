@@ -265,6 +265,9 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
                                   struct pam_data *pd)
 {
     const char *password = NULL;
+    const char *fa2;
+    size_t password_len;
+    size_t fa2_len = 0;
     int ret = EOK;
 
     switch(pd->cmd) {
@@ -276,7 +279,20 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
             break;
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK_PRELIM:
-            ret = sss_authtok_get_password(pd->authtok, &password, NULL);
+            if (sss_authtok_get_type(pd->authtok) == SSS_AUTHTOK_TYPE_2FA) {
+                ret = sss_authtok_get_2fa(pd->authtok, &password, &password_len,
+                                          &fa2, &fa2_len);
+                if (ret == EOK && password_len <
+                                      domain->cache_credentials_min_ff_length) {
+                    DEBUG(SSSDBG_FATAL_FAILURE,
+                          "First factor is too short to be cache, "
+                          "minimum length is [%u].\n",
+                          domain->cache_credentials_min_ff_length);
+                    ret = EINVAL;
+                }
+            } else {
+                ret = sss_authtok_get_password(pd->authtok, &password, NULL);
+            }
             break;
         case SSS_PAM_CHAUTHTOK:
             ret = sss_authtok_get_password(pd->newauthtok, &password, NULL);
@@ -302,7 +318,8 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
         return;
     }
 
-    ret = sysdb_cache_password(domain, pd->user, password);
+    ret = sysdb_cache_password_ex(domain, pd->user, password,
+                                  sss_authtok_get_type(pd->authtok), fa2_len);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to cache password, offline auth may not work."
@@ -1018,7 +1035,10 @@ static void krb5_auth_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (state->be_ctx->domain->cache_credentials == TRUE && !res->otp) {
+    if (state->be_ctx->domain->cache_credentials == TRUE
+            && (!res->otp
+                || (res->otp && sss_authtok_get_type(pd->authtok) ==
+                                                       SSS_AUTHTOK_TYPE_2FA))) {
         krb5_auth_store_creds(state->domain, pd);
     }
 
