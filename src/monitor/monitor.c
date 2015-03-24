@@ -341,7 +341,7 @@ static int svc_destructor(void *mem)
         dbus_pending_call_cancel(svc->pending);
     }
 
-    /* svc is beeing freed, neutralize the spy */
+    /* svc is being freed, neutralize the spy */
     if (svc->conn_spy) {
         talloc_set_destructor((TALLOC_CTX *)svc->conn_spy, NULL);
         talloc_zfree(svc->conn_spy);

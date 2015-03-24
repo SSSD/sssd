@@ -788,7 +788,7 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
 /* search for a user.
  * Returns:
  *   ENOENT, if user is definitely not found
- *   EAGAIN, if user is beeing fetched from backend via async operations
+ *   EAGAIN, if user is being fetched from backend via async operations
  *   EOK, if found
  *   anything else on a fatal error
  */
@@ -1520,7 +1520,7 @@ done:
 /* search for a uid.
  * Returns:
  *   ENOENT, if uid is definitely not found
- *   EAGAIN, if uid is beeing fetched from backend via async operations
+ *   EAGAIN, if uid is being fetched from backend via async operations
  *   EOK, if found
  *   anything else on a fatal error
  */
@@ -2923,7 +2923,7 @@ static int nss_cmd_getgr_send_reply(struct nss_dom_ctx *dctx, bool filter)
 /* search for a group.
  * Returns:
  *   ENOENT, if group is definitely not found
- *   EAGAIN, if group is beeing fetched from backend via async operations
+ *   EAGAIN, if group is being fetched from backend via async operations
  *   EOK, if found
  *   anything else on a fatal error
  */
@@ -3085,7 +3085,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 /* search for a gid.
  * Returns:
  *   ENOENT, if gid is definitely not found
- *   EAGAIN, if gid is beeing fetched from backend via async operations
+ *   EAGAIN, if gid is being fetched from backend via async operations
  *   EOK, if found
  *   anything else on a fatal error
  */
