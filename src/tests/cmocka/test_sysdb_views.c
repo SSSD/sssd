@@ -45,6 +45,7 @@
 #define TEST_USER_HOMEDIR "/home/home"
 #define TEST_USER_SHELL "/bin/shell"
 #define TEST_USER_SID "S-1-2-3-4"
+#define TEST_GID_OVERRIDE_BASE 100
 
 struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
@@ -108,6 +109,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
                            TESTS_PATH, &test_ctx->domain);
     assert_int_equal(ret, EOK);
 
+    test_ctx->domain->has_views = true;
     test_ctx->sysdb = test_ctx->domain->sysdb;
 
     *ctx = test_ctx;
@@ -115,6 +117,7 @@ static int _setup_sysdb_tests(struct sysdb_test_ctx **ctx, bool enumerate)
 }
 
 #define setup_sysdb_tests(ctx) _setup_sysdb_tests((ctx), false)
+#define setup_sysdb_enum_tests(ctx) _setup_sysdb_tests((ctx), true)
 
 static int test_sysdb_setup(void **state)
 {
@@ -426,6 +429,473 @@ void test_sysdb_invalidate_overrides(void **state)
     assert_int_equal(ldb_msg_find_attr_as_uint64(msg, SYSDB_CACHE_EXPIRE, 0),
                      1);
     assert_null(ldb_msg_find_attr_as_string(msg, SYSDB_OVERRIDE_DN, NULL));
+
+    ret = sysdb_delete_user(test_ctx->domain, TEST_USER_NAME, 0);
+    assert_int_equal(ret, EOK);
+}
+
+static const char *users[] = { "alice", "bob", "barney", NULL };
+
+static void enum_test_user_override(struct sysdb_test_ctx *test_ctx,
+                                    const char *name)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+    const char *anchor;
+    const char *override_gecos;
+
+    tmp_ctx = talloc_new(test_ctx);
+    assert_non_null(tmp_ctx);
+
+    attrs = sysdb_new_attrs(tmp_ctx);
+    assert_non_null(attrs);
+
+    dn = sysdb_user_dn(tmp_ctx, test_ctx->domain, name);
+    assert_non_null(dn);
+
+    anchor = talloc_asprintf(tmp_ctx, "%s%s", TEST_ANCHOR_PREFIX, name);
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OVERRIDE_ANCHOR_UUID, anchor);
+    assert_int_equal(ret, EOK);
+
+    override_gecos = talloc_asprintf(attrs, "%s_GECOS_OVERRIDE", name);
+    ret = sysdb_attrs_add_string(attrs, SYSDB_GECOS, override_gecos);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+                               SYSDB_MEMBER_USER, attrs, dn);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(tmp_ctx);
+}
+
+static void enum_test_add_users(struct sysdb_test_ctx *test_ctx,
+                                const char *usernames[])
+{
+    int i;
+    int ret;
+    struct sysdb_attrs *attrs;
+
+    for (i = 0; usernames[i] != NULL; i++) {
+        attrs = talloc(test_ctx, struct sysdb_attrs);
+        assert_non_null(attrs);
+
+        ret = sysdb_store_user(test_ctx->domain, usernames[i],
+                               NULL, 0, 0, usernames[i], "/", "/bin/sh",
+                               NULL, NULL, NULL, 1, 1234 + i);
+        assert_int_equal(ret, EOK);
+
+        enum_test_user_override(test_ctx, usernames[i]);
+
+        talloc_free(attrs);
+    }
+}
+
+static void enum_test_del_users(struct sss_domain_info *dom,
+                               const char *usernames[])
+{
+    int i;
+    int ret;
+
+    for (i = 0; usernames[i] != NULL; i++) {
+        ret = sysdb_delete_user(dom, usernames[i], 0);
+        if (ret != EOK && ret != ENOENT) {
+            fail();
+        }
+    }
+}
+
+static int test_enum_users_setup(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx;
+
+    assert_true(leak_check_setup());
+
+    ret = setup_sysdb_enum_tests(&test_ctx);
+    assert_int_equal(ret, EOK);
+
+    enum_test_add_users(test_ctx, users);
+
+    *state = (void *) test_ctx;
+    return 0;
+}
+
+static void assert_user_attrs(struct ldb_message *msg,
+                              const char *name,
+                              bool has_views)
+{
+    const char *str;
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    assert_string_equal(str, name);
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_GECOS, NULL);
+    assert_string_equal(str, name);
+
+    str = ldb_msg_find_attr_as_string(msg, OVERRIDE_PREFIX SYSDB_GECOS, NULL);
+    if (has_views) {
+        char *override;
+
+        assert_non_null(str);
+        override = talloc_asprintf(msg, "%s_GECOS_OVERRIDE", name);
+        assert_non_null(override);
+
+        assert_string_equal(str, override);
+        talloc_free(override);
+    } else {
+        assert_null(str);
+    }
+}
+
+static int test_enum_users_teardown(void **state)
+{
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+
+    enum_test_del_users(test_ctx->domain, users);
+    return test_sysdb_teardown(state);
+}
+
+static void check_enumpwent(int ret, struct ldb_result *res, bool views)
+{
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, N_ELEMENTS(users)-1);
+    assert_user_attrs(res->msgs[0], "barney", views);
+    assert_user_attrs(res->msgs[1], "alice", views);
+    assert_user_attrs(res->msgs[2], "bob", views);
+}
+
+static void test_sysdb_enumpwent(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+    struct ldb_result *res;
+
+    ret = sysdb_enumpwent(test_ctx, test_ctx->domain, &res);
+    check_enumpwent(ret, res, false);
+}
+
+static void test_sysdb_enumpwent_views(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+    struct ldb_result *res;
+
+    ret = sysdb_enumpwent_with_views(test_ctx, test_ctx->domain, &res);
+    check_enumpwent(ret, res, true);
+}
+
+static void test_sysdb_enumpwent_filter(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+    struct ldb_result *res;
+    char *addtl_filter;
+
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "a*", 0, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_user_attrs(res->msgs[0], "alice", false);
+
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "b*", 0, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 2);
+    assert_user_attrs(res->msgs[0], "barney", false);
+    assert_user_attrs(res->msgs[1], "bob", false);
+
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "c*", 0, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 0);
+
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "*", 0, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, N_ELEMENTS(users)-1);
+
+    /* Test searching based on time as well */
+    addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
+                                   SYSDB_LAST_UPDATE, 1233);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "a*", addtl_filter, &res);
+    talloc_free(addtl_filter);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 0);
+
+    addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
+                                   SYSDB_LAST_UPDATE, 1234);
+    ret = sysdb_enumpwent_filter(test_ctx, test_ctx->domain, "a*", addtl_filter, &res);
+    talloc_free(addtl_filter);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_user_attrs(res->msgs[0], "alice", false);
+}
+
+static void test_sysdb_enumpwent_filter_views(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+    struct ldb_result *res;
+    char *addtl_filter;
+
+    ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
+                                            "a*", NULL, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_user_attrs(res->msgs[0], "alice", true);
+
+    ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
+                                            "b*", NULL, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 2);
+    assert_user_attrs(res->msgs[0], "barney", true);
+    assert_user_attrs(res->msgs[1], "bob", true);
+
+    addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
+                                   SYSDB_LAST_UPDATE, 1235);
+    ret = sysdb_enumpwent_filter_with_views(test_ctx, test_ctx->domain,
+                                            "b*", addtl_filter, &res);
+    talloc_free(addtl_filter);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_user_attrs(res->msgs[0], "bob", true);
+
+    ret = sysdb_enumpwent_filter_with_views(test_ctx,
+                                            test_ctx->domain, "c*", NULL, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 0);
+
+    ret = sysdb_enumpwent_filter_with_views(test_ctx,
+                                            test_ctx->domain, "*", NULL, &res);
+    check_enumpwent(ret, res, true);
+}
+
+static const char *groups[] = { "one", "two", "three", NULL };
+
+static void enum_test_group_override(struct sysdb_test_ctx *test_ctx,
+                                     const char *name,
+                                     unsigned override_gid)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+    const char *anchor;
+
+    tmp_ctx = talloc_new(test_ctx);
+    assert_non_null(tmp_ctx);
+
+    attrs = sysdb_new_attrs(tmp_ctx);
+    assert_non_null(attrs);
+
+    dn = sysdb_group_dn(tmp_ctx, test_ctx->domain, name);
+    assert_non_null(dn);
+
+    anchor = talloc_asprintf(tmp_ctx, "%s%s", TEST_ANCHOR_PREFIX, name);
+    ret = sysdb_attrs_add_string(attrs, SYSDB_OVERRIDE_ANCHOR_UUID, anchor);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, override_gid);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_override(test_ctx->domain, TEST_VIEW_NAME,
+                               SYSDB_MEMBER_GROUP, attrs, dn);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(tmp_ctx);
+}
+
+static void enum_test_add_groups(struct sysdb_test_ctx *test_ctx,
+                                 const char *groupnames[])
+{
+    int i;
+    int ret;
+    struct sysdb_attrs *attrs;
+
+    for (i = 0; groupnames[i] != NULL; i++) {
+        attrs = talloc(test_ctx, struct sysdb_attrs);
+        assert_non_null(attrs);
+
+        ret = sysdb_store_group(test_ctx->domain, groupnames[i],
+                                0, NULL, 1, 1234 + i);
+        assert_int_equal(ret, EOK);
+
+        enum_test_group_override(test_ctx, groupnames[i],
+                                 TEST_GID_OVERRIDE_BASE + i);
+        talloc_free(attrs);
+    }
+}
+
+static void enum_test_del_groups(struct sss_domain_info *dom,
+                                 const char *groupnames[])
+{
+    int i;
+    int ret;
+
+    for (i = 0; groupnames[i] != NULL; i++) {
+        ret = sysdb_delete_group(dom, groupnames[i], 0);
+        if (ret != EOK && ret != ENOENT) {
+            fail();
+        }
+    }
+}
+
+static int test_enum_groups_setup(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx;
+
+    assert_true(leak_check_setup());
+
+    ret = setup_sysdb_enum_tests(&test_ctx);
+    assert_int_equal(ret, EOK);
+
+    enum_test_add_groups(test_ctx, groups);
+
+    *state = (void *) test_ctx;
+    return 0;
+}
+
+static int test_enum_groups_teardown(void **state)
+{
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+
+    enum_test_del_groups(test_ctx->domain, groups);
+    return test_sysdb_teardown(state);
+}
+
+static void assert_group_attrs(struct ldb_message *msg,
+                               const char *name,
+                               unsigned expected_override_gid)
+{
+    const char *str;
+    unsigned gid;
+
+    str = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+    assert_string_equal(str, name);
+
+    if (expected_override_gid) {
+        gid = ldb_msg_find_attr_as_uint64(msg,
+                                          OVERRIDE_PREFIX SYSDB_GIDNUM, 0);
+        assert_int_equal(gid, expected_override_gid);
+    }
+}
+
+static void check_enumgrent(int ret, struct ldb_result *res, bool views)
+{
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, N_ELEMENTS(groups)-1);
+    assert_group_attrs(res->msgs[0], "three", views ? TEST_GID_OVERRIDE_BASE + 2 : 0);
+    assert_group_attrs(res->msgs[1], "one", views ? TEST_GID_OVERRIDE_BASE : 0);
+    assert_group_attrs(res->msgs[2], "two", views ? TEST_GID_OVERRIDE_BASE + 1 : 0);
+}
+
+static void test_sysdb_enumgrent(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+    struct ldb_result *res;
+
+    ret = sysdb_enumgrent(test_ctx, test_ctx->domain, &res);
+    check_enumgrent(ret, res, false);
+}
+
+static void test_sysdb_enumgrent_views(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+    struct ldb_result *res;
+
+    ret = sysdb_enumgrent_with_views(test_ctx, test_ctx->domain, &res);
+    check_enumgrent(ret, res, true);
+}
+
+static void test_sysdb_enumgrent_filter(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+    struct ldb_result *res;
+    char *addtl_filter;
+
+    ret = sysdb_enumgrent_filter(test_ctx, test_ctx->domain, "o*", 0, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_group_attrs(res->msgs[0], "one", 0);
+
+    ret = sysdb_enumgrent_filter(test_ctx, test_ctx->domain, "t*", 0, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 2);
+    assert_group_attrs(res->msgs[0], "three", 0);
+    assert_group_attrs(res->msgs[1], "two", 0);
+
+    ret = sysdb_enumgrent_filter(test_ctx, test_ctx->domain, "x*", 0, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 0);
+
+    ret = sysdb_enumgrent_filter(test_ctx, test_ctx->domain, "*", 0, &res);
+    check_enumgrent(ret, res, false);
+
+    addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
+                                   SYSDB_LAST_UPDATE, 1233);
+    ret = sysdb_enumgrent_filter(test_ctx, test_ctx->domain, "o*", addtl_filter, &res);
+    talloc_free(addtl_filter);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 0);
+
+    addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
+                                   SYSDB_LAST_UPDATE, 1234);
+    ret = sysdb_enumgrent_filter(test_ctx, test_ctx->domain, "o*", addtl_filter, &res);
+    talloc_free(addtl_filter);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_group_attrs(res->msgs[0], "one", 0);
+
+}
+
+static void test_sysdb_enumgrent_filter_views(void **state)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                        struct sysdb_test_ctx);
+    struct ldb_result *res;
+    char *addtl_filter;
+
+    ret = sysdb_enumgrent_filter_with_views(test_ctx, test_ctx->domain,
+                                            "o*", NULL, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_group_attrs(res->msgs[0], "one", TEST_GID_OVERRIDE_BASE);
+
+    ret = sysdb_enumgrent_filter_with_views(test_ctx, test_ctx->domain,
+                                            "t*", NULL, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 2);
+    assert_group_attrs(res->msgs[0], "three", TEST_GID_OVERRIDE_BASE + 2);
+    assert_group_attrs(res->msgs[1], "two", TEST_GID_OVERRIDE_BASE + 1);
+
+    addtl_filter = talloc_asprintf(test_ctx, "(%s<=%d)",
+                                   SYSDB_LAST_UPDATE, 1235);
+    ret = sysdb_enumgrent_filter_with_views(test_ctx, test_ctx->domain,
+                                            "t*", addtl_filter, &res);
+    talloc_free(addtl_filter);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+    assert_group_attrs(res->msgs[0], "two", TEST_GID_OVERRIDE_BASE + 1);
+
+    ret = sysdb_enumgrent_filter_with_views(test_ctx, test_ctx->domain,
+                                            "x*", NULL, &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 0);
+
+    ret = sysdb_enumgrent_filter_with_views(test_ctx, test_ctx->domain,
+                                            "*", NULL, &res);
+    check_enumgrent(ret, res, true);
 }
 
 int main(int argc, const char *argv[])
@@ -453,6 +923,30 @@ int main(int argc, const char *argv[])
                                         test_sysdb_setup, test_sysdb_teardown),
         cmocka_unit_test_setup_teardown(test_sysdb_invalidate_overrides,
                                         test_sysdb_setup, test_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_enumpwent,
+                                        test_enum_users_setup,
+                                        test_enum_users_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_enumpwent_views,
+                                        test_enum_users_setup,
+                                        test_enum_users_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_enumpwent_filter,
+                                        test_enum_users_setup,
+                                        test_enum_users_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_enumpwent_filter_views,
+                                        test_enum_users_setup,
+                                        test_enum_users_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_enumgrent,
+                                        test_enum_groups_setup,
+                                        test_enum_groups_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_enumgrent_views,
+                                        test_enum_groups_setup,
+                                        test_enum_groups_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_enumgrent_filter,
+                                        test_enum_groups_setup,
+                                        test_enum_groups_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_enumgrent_filter_views,
+                                        test_enum_groups_setup,
+                                        test_enum_groups_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

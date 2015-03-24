@@ -255,12 +255,55 @@ done:
     return ret;
 }
 
-int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
-                    struct sss_domain_info *domain,
-                    struct ldb_result **_res)
+static char *enum_filter(TALLOC_CTX *mem_ctx,
+                         const char *base_filter,
+                         const char *name_filter,
+                         const char *addtl_filter)
+{
+    char *filter;
+    TALLOC_CTX *tmp_ctx = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return NULL;
+    }
+
+    if (name_filter == NULL && addtl_filter == NULL) {
+        filter = talloc_strdup(tmp_ctx, base_filter);
+    } else {
+        filter = talloc_asprintf(tmp_ctx, "(&%s", base_filter);
+
+        if (filter != NULL && name_filter != NULL) {
+            filter = talloc_asprintf_append(filter, "(%s=%s)",
+                                            SYSDB_NAME, name_filter);
+        }
+
+        if (filter != NULL && addtl_filter != NULL) {
+            filter = talloc_asprintf_append(filter, "%s", addtl_filter);
+        }
+
+        if (filter != NULL) {
+            filter = talloc_asprintf_append(filter, ")");
+        }
+    }
+
+    if (filter) {
+        talloc_steal(mem_ctx, filter);
+    }
+
+    talloc_free(tmp_ctx);
+    return filter;
+}
+
+int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
+                           struct sss_domain_info *domain,
+                           const char *name_filter,
+                           const char *addtl_filter,
+                           struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_PW_ATTRS;
+    char *filter = NULL;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     int ret;
@@ -276,8 +319,16 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    filter = enum_filter(tmp_ctx, SYSDB_PWENT_FILTER,
+                         name_filter, addtl_filter);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_LIBS, "Searching cache with [%s]\n", filter);
+
     ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, SYSDB_PWENT_FILTER);
+                     LDB_SCOPE_SUBTREE, attrs, "%s", filter);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -290,9 +341,18 @@ done:
     return ret;
 }
 
-int sysdb_enumpwent_with_views(TALLOC_CTX *mem_ctx,
-                               struct sss_domain_info *domain,
-                               struct ldb_result **_res)
+int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
+                    struct sss_domain_info *domain,
+                    struct ldb_result **_res)
+{
+    return sysdb_enumpwent_filter(mem_ctx, domain, NULL, 0, _res);
+}
+
+int sysdb_enumpwent_filter_with_views(TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *domain,
+                                      const char *name_filter,
+                                      const char *addtl_filter,
+                                      struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
@@ -305,7 +365,7 @@ int sysdb_enumpwent_with_views(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_enumpwent(tmp_ctx, domain, &res);
+    ret = sysdb_enumpwent_filter(tmp_ctx, domain, name_filter, addtl_filter, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_enumpwent failed.\n");
         goto done;
@@ -329,6 +389,13 @@ int sysdb_enumpwent_with_views(TALLOC_CTX *mem_ctx,
 done:
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+int sysdb_enumpwent_with_views(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domain,
+                               struct ldb_result **_res)
+{
+    return sysdb_enumpwent_filter_with_views(mem_ctx, domain, NULL, NULL, _res);
 }
 
 /* groups */
@@ -662,13 +729,16 @@ done:
     return ret;
 }
 
-int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
-                    struct sss_domain_info *domain,
-                    struct ldb_result **_res)
+int sysdb_enumgrent_filter(TALLOC_CTX *mem_ctx,
+                           struct sss_domain_info *domain,
+                           const char *name_filter,
+                           const char *addtl_filter,
+                           struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
     static const char *attrs[] = SYSDB_GRSRC_ATTRS;
-    const char *fmt_filter;
+    const char *filter = NULL;
+    const char *base_filter;
     struct ldb_dn *base_dn;
     struct ldb_result *res;
     int ret;
@@ -679,11 +749,11 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
     }
 
     if (domain->mpg) {
-        fmt_filter = SYSDB_GRENT_MPG_FILTER;
+        base_filter = SYSDB_GRENT_MPG_FILTER;
         base_dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
                                  SYSDB_DOM_BASE, domain->name);
     } else {
-        fmt_filter = SYSDB_GRENT_FILTER;
+        base_filter = SYSDB_GRENT_FILTER;
         base_dn = sysdb_group_base_dn(tmp_ctx, domain);
     }
     if (!base_dn) {
@@ -691,8 +761,16 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    filter = enum_filter(tmp_ctx, base_filter,
+                         name_filter, addtl_filter);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_LIBS, "Searching cache with [%s]\n", filter);
+
     ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res, base_dn,
-                     LDB_SCOPE_SUBTREE, attrs, "%s", fmt_filter);
+                     LDB_SCOPE_SUBTREE, attrs, "%s", filter);
     if (ret) {
         ret = sysdb_error_to_errno(ret);
         goto done;
@@ -710,9 +788,18 @@ done:
     return ret;
 }
 
-int sysdb_enumgrent_with_views(TALLOC_CTX *mem_ctx,
-                               struct sss_domain_info *domain,
-                               struct ldb_result **_res)
+int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
+                    struct sss_domain_info *domain,
+                    struct ldb_result **_res)
+{
+    return sysdb_enumgrent_filter(mem_ctx, domain, NULL, 0, _res);
+}
+
+int sysdb_enumgrent_filter_with_views(TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *domain,
+                                      const char *name_filter,
+                                      const char *addtl_filter,
+                                      struct ldb_result **_res)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
@@ -725,7 +812,7 @@ int sysdb_enumgrent_with_views(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_enumgrent(tmp_ctx, domain,&res);
+    ret = sysdb_enumgrent_filter(tmp_ctx, domain, name_filter, addtl_filter, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_enumgrent failed.\n");
         goto done;
@@ -757,6 +844,13 @@ int sysdb_enumgrent_with_views(TALLOC_CTX *mem_ctx,
 done:
     talloc_zfree(tmp_ctx);
     return ret;
+}
+
+int sysdb_enumgrent_with_views(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domain,
+                               struct ldb_result **_res)
+{
+    return sysdb_enumgrent_filter_with_views(mem_ctx, domain, NULL, NULL, _res);
 }
 
 int sysdb_initgroups(TALLOC_CTX *mem_ctx,
