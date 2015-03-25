@@ -58,19 +58,19 @@ static void test_pwexpire_krb(void **state)
 
     ret = check_pwexpire_policy(type,
                                 (void*) tc->invalid_longer_format, NULL, 0);
-    assert_true(ret == ERR_TIMESPEC_NOT_SUPPORTED);
+    assert_int_equal(ret, ERR_TIMESPEC_NOT_SUPPORTED);
 
     ret = check_pwexpire_policy(type, (void*) tc->invalid_format,
                                 NULL, 0);
-    assert_true(ret == ERR_TIMESPEC_NOT_SUPPORTED);
+    assert_int_equal(ret, ERR_TIMESPEC_NOT_SUPPORTED);
 
     ret = check_pwexpire_policy(type, (void*) tc->past_time,
                                 NULL, 0);
-    assert_true(ret == ERR_PASSWORD_EXPIRED);
+    assert_int_equal(ret, ERR_PASSWORD_EXPIRED);
 
     ret = check_pwexpire_policy(type, (void*) tc->future_time,
                                 NULL, 0);
-    assert_true(ret == EOK);
+    assert_int_equal(ret, EOK);
 
     /* changing time zone has no effect as time of expiration is in UTC */
     struct check_pwexpire_policy_wrap_indata data;
@@ -80,14 +80,14 @@ static void test_pwexpire_krb(void **state)
                    check_pwexpire_policy_wrap,
                    (void*)&data,
                    (void*)&ret);
-    assert_true(ret == EOK);
+    assert_int_equal(ret, EOK);
 
     data.time_fmt = (void*)tc->past_time;
     expire_test_tz("GST-2",
                    check_pwexpire_policy_wrap,
                    (void*)&data,
                    (void*)&ret);
-    assert_true(ret == ERR_PASSWORD_EXPIRED);
+    assert_int_equal(ret, ERR_PASSWORD_EXPIRED);
 }
 
 int main(void)
