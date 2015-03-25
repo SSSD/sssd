@@ -48,9 +48,6 @@
 #define GROUP_BASE_DN "cn=groups," OBJECT_BASE_DN
 #define USER_BASE_DN "cn=users," OBJECT_BASE_DN
 
-#define N_ELEMENTS(arr) \
-    (sizeof(arr) / sizeof(arr[0]))
-
 struct nested_groups_test_ctx {
     struct sss_test_ctx *tctx;
 

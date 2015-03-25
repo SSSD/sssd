@@ -30,6 +30,8 @@
 #include "providers/data_provider.h"
 #include "providers/ldap/sdap.h"
 
+#define N_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
+
 extern TALLOC_CTX *global_talloc_context;
 
 #define check_leaks(ctx, bytes) _check_leaks((ctx), (bytes), __location__)

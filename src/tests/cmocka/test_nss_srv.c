@@ -41,9 +41,6 @@
 #define TEST_ID_PROVIDER "ldap"
 #define TEST_DOM_SID "S-1-5-21-444379608-1639770488-2995963434"
 
-#define N_ELEMENTS(arr) \
-    (sizeof(arr) / sizeof(arr[0]))
-
 struct nss_test_ctx {
     struct sss_test_ctx *tctx;
     struct sss_domain_info *subdom;

@@ -33,9 +33,6 @@
 #include "tests/sbus_codegen_tests_generated.h"
 #include "util/util_errors.h"
 
-#define N_ELEMENTS(arr) \
-    (sizeof(arr) / sizeof(arr[0]))
-
 /* The following 2 macros were taken from check's project source files (0.9.10)
  * http://check.sourceforge.net/
  */
