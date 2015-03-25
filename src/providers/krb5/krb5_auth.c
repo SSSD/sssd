@@ -207,6 +207,13 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
     const char *password = NULL;
     errno_t ret;
 
+    if (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Delayed authentication is only available for password "
+              "authentication (single factor).\n");
+        return;
+    }
+
     ret = sss_authtok_get_password(pd->authtok, &password, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
