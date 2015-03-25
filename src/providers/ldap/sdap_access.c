@@ -212,7 +212,13 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
             /* we are done with no errors */
             return EOK;
 
+        /* This option is deprecated by LDAP_ACCESS_PPOLICY */
         case LDAP_ACCESS_LOCKOUT:
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "WARNING: %s option is deprecated and might be removed in "
+                  "a future release. Please migrate to %s option instead.\n",
+                  LDAP_ACCESS_LOCK_NAME, LDAP_ACCESS_PPOLICY_NAME);
+
             subreq = sdap_access_ppolicy_send(state, state->ev, state->be_ctx,
                                               state->domain,
                                               state->access_ctx,
@@ -221,7 +227,8 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
                                               state->user_entry,
                                               PWP_LOCKOUT_ONLY);
             if (subreq == NULL) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "sdap_access_ppolicy_send failed.\n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "sdap_access_ppolicy_send failed.\n");
                 return ENOMEM;
             }
 

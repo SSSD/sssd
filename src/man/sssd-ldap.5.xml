@@ -1963,6 +1963,13 @@ ldap_access_filter = (employeeType=admin)
                             be set for this feature to work.
                         </para>
                         <para>
+                            <emphasis>
+                            Please note that this option is superseded by
+                            the <quote>ppolicy</quote> option and might be
+                            removed in a future release.
+                            </emphasis>
+                        </para>
+                        <para>
                             <emphasis>ppolicy</emphasis>: use account locking.
                             If set, this option denies access in case that ldap
                             attribute 'pwdAccountLockedTime' is present and has
