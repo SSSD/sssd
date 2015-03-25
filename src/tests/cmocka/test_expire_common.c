@@ -117,7 +117,8 @@ void expire_test_tz(const char* tz,
 
     if (tz) {
         ret = setenv("TZ", tz, 1);
-        assert_false(ret == -1);
+
+        assert_return_code(ret, errno);
     }
 
     test_func(test_in, _test_out);
@@ -125,6 +126,6 @@ void expire_test_tz(const char* tz,
     /* restore */
     if (orig_tz != NULL) {
         ret = setenv("TZ", orig_tz, 1);
-        assert_false(ret == -1);
+        assert_return_code(ret, errno);
     }
 }
