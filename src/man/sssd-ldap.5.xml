@@ -1959,11 +1959,14 @@ ldap_access_filter = (employeeType=admin)
                             If set, this option denies access in case that ldap
                             attribute 'pwdAccountLockedTime' is present and has
                             value of '000001010000Z' or represents any time in the past.
-                            The value of 'pwdAccountLockedTime' attribute
-                            must end with 'Z' as only UTC time zone is
-                            currently suported. Please see the option
-                            ldap_pwdlockout_dn.
 
+                            The value of the 'pwdAccountLockedTime' attribute
+                            must end with 'Z', which denotes the UTC time zone.
+                            Other time zones are not currently supported and
+                            will result in "access-denied" when users attempt
+                            to log in.
+
+                            Please see the option ldap_pwdlockout_dn.
                             Please note that 'access_provider = ldap' must
                             be set for this feature to work.
                         </para>
