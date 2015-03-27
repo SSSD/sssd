@@ -556,7 +556,7 @@ static int delete_permanent(struct tdb_context *tdb,
     char *ep;
 
     if (strncmp((char *)key.dptr,
-                NC_ENTRY_PREFIX, sizeof(NC_ENTRY_PREFIX)) != 0) {
+                NC_ENTRY_PREFIX, sizeof(NC_ENTRY_PREFIX) - 1) != 0) {
         /* not interested in this key */
         return 0;
     }
