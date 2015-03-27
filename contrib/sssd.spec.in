@@ -542,15 +542,6 @@ Development libraries for the SSSD libwbclient implementation.
 %setup -q -n %{name}-%{version}
 
 %build
-
-# RHEL 5 uses an old libtool, so we need to force it to reconfigure
-# This is safe to do on newer packages too, as it will just
-# gather the appropriate m4 files from the libtool package
-for i in libtool.m4  lt~obsolete.m4  ltoptions.m4  ltsugar.m4  ltversion.m4
-do
-    find . -name $i -exec rm -f {} \;
-done
-
 autoreconf -ivf
 
 %configure \
