@@ -680,7 +680,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/sssd_be
 %{_libexecdir}/%{servicename}/sssd_nss
 %{_libexecdir}/%{servicename}/sssd_pam
-
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
@@ -729,14 +728,14 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{_datadir}/sssd
 %{_datadir}/sssd/sssd.api.conf
 %{_datadir}/sssd/sssd.api.d
+%{_mandir}/man1/sss_ssh_authorizedkeys.1*
+%{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man5/sssd-sudo.5*
 %{_mandir}/man5/sss_rpcidmapd.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_cache.8*
-%{_mandir}/man1/sss_ssh_authorizedkeys.1*
-%{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 
 %files ldap -f sssd_ldap.lang
 %defattr(-,root,root,-)
@@ -761,7 +760,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc COPYING
 %{_libexecdir}/%{servicename}/sssd_pac
-
 
 %files ipa -f sssd_ipa.lang
 %defattr(-,root,root,-)
@@ -990,7 +988,7 @@ fi
 /sbin/service %{servicename} condrestart 2>&1 > /dev/null
 
 %preun common
-if [ $1 = 0 ]; then
+if [ $1 = 0 ] ; then
     /sbin/service %{servicename} stop 2>&1 > /dev/null
     /sbin/chkconfig --del %{servicename}
 fi
@@ -1002,7 +1000,7 @@ fi
 /usr/sbin/alternatives --install /etc/cifs-utils/idmap-plugin cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so 20
 
 %preun client
-if [ $1 -eq 0 ]; then
+if [ $1 -eq 0 ] ; then
         /usr/sbin/alternatives --remove cifs-idmap-plugin %{_libdir}/cifs-utils/cifs_idmap_sss.so
 fi
 %else
