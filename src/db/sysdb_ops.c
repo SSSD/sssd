@@ -3150,6 +3150,76 @@ done:
     return ret;
 }
 
+static errno_t check_for_combined_2fa_password(struct sss_domain_info *domain,
+                                               struct ldb_message *ldb_msg,
+                                               const char *password,
+                                               const char *userhash)
+{
+
+    unsigned int cached_authtok_type;
+    unsigned int cached_fa2_len;
+    char *short_pw;
+    char *comphash;
+    size_t pw_len;
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+
+    cached_authtok_type = ldb_msg_find_attr_as_uint(ldb_msg,
+                                                    SYSDB_CACHEDPWD_TYPE,
+                                                    SSS_AUTHTOK_TYPE_EMPTY);
+    if (cached_authtok_type != SSS_AUTHTOK_TYPE_2FA) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Wrong authtok type.\n");
+        return EINVAL;
+    }
+
+    cached_fa2_len = ldb_msg_find_attr_as_uint(ldb_msg, SYSDB_CACHEDPWD_FA2_LEN,
+                                               0);
+    if (cached_fa2_len == 0) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Second factor size not available.\n");
+        return EINVAL;
+    }
+
+    pw_len = strlen(password);
+    if (pw_len < cached_fa2_len + domain->cache_credentials_min_ff_length) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Password too short.\n");
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    short_pw = talloc_strndup(tmp_ctx, password, (pw_len - cached_fa2_len));
+    if (short_pw == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = s3crypt_sha512(tmp_ctx, short_pw, userhash, &comphash);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Failed to create password hash.\n");
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    if (strcmp(userhash, comphash) != 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Hash of shorten password does not match.\n");
+        ret = ERR_AUTH_FAILED;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
 int sysdb_cache_auth(struct sss_domain_info *domain,
                      const char *name,
                      const char *password,
@@ -3163,7 +3233,8 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
                             SYSDB_LAST_LOGIN, SYSDB_LAST_ONLINE_AUTH,
                             "lastCachedPasswordChange",
                             "accountExpires", SYSDB_FAILED_LOGIN_ATTEMPTS,
-                            SYSDB_LAST_FAILED_LOGIN, NULL };
+                            SYSDB_LAST_FAILED_LOGIN, SYSDB_CACHEDPWD_TYPE,
+                            SYSDB_CACHEDPWD_FA2_LEN, NULL };
     struct ldb_message *ldb_msg;
     const char *userhash;
     char *comphash;
@@ -3274,7 +3345,9 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
         goto done;
     }
 
-    if (strcmp(userhash, comphash) == 0) {
+    if (strcmp(userhash, comphash) == 0
+            || check_for_combined_2fa_password(domain, ldb_msg,
+                                               password, userhash) == EOK) {
         /* TODO: probable good point for audit logging */
         DEBUG(SSSDBG_CONF_SETTINGS, "Hashes do match!\n");
         authentication_successful = true;

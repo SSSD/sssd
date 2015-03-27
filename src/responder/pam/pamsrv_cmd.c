@@ -528,6 +528,34 @@ static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
     pam_reply(preq);
 }
 
+static errno_t get_password_for_cache_auth(struct sss_auth_token *authtok,
+                                           const char **password)
+{
+    int ret;
+    size_t pw_len;
+    const char *fa2;
+    size_t fa2_len;
+
+    switch (sss_authtok_get_type(authtok)) {
+    case SSS_AUTHTOK_TYPE_PASSWORD:
+        ret = sss_authtok_get_password(authtok, password, NULL);
+        break;
+    case SSS_AUTHTOK_TYPE_2FA:
+        ret = sss_authtok_get_2fa(authtok, password, &pw_len, &fa2, &fa2_len);
+        break;
+    default:
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unsupported auth token type [%d].\n",
+              sss_authtok_get_type(authtok));
+        ret = EINVAL;
+    }
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get password.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd);
 static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
                                     time_t expire_date, time_t delayed_until);
@@ -587,9 +615,10 @@ static void pam_reply(struct pam_auth_req *preq)
                     goto done;
                 }
 
-                ret = sss_authtok_get_password(pd->authtok, &password, NULL);
-                if (ret) {
-                    DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get password.\n");
+                ret = get_password_for_cache_auth(pd->authtok, &password);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_FATAL_FAILURE,
+                          "get_password_and_type_for_cache_auth failed.\n");
                     goto done;
                 }
 
