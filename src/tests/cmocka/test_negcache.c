@@ -564,10 +564,21 @@ static void test_sss_ncache_reset_permanent(void **state)
 {
     int ret;
     struct test_state *ts;
+    const bool permanent = true;
 
     ts = talloc_get_type_abort(*state, struct test_state);
+
+    ret = sss_ncache_set_uid(ts->ctx, permanent, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_uid(ts->ctx, 0, 0);
+    assert_int_equal(ret, EEXIST);
+
     ret = sss_ncache_reset_permanent(ts->ctx);
     assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_uid(ts->ctx, 0, 0);
+    assert_int_equal(ret, ENOENT);
 }
 
 static void test_sss_ncache_prepopulate(void **state)
