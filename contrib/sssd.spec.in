@@ -586,10 +586,6 @@ make install DESTDIR=$RPM_BUILD_ROOT
 # Prepare language files
 /usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT sssd
 
-# Prepare empty config file (needed for RHEL 5)
-mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sssd
-touch $RPM_BUILD_ROOT/%{_sysconfdir}/sssd/sssd.conf
-
 # Copy default logrotate file
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d
 install -m644 src/examples/logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/sssd
@@ -662,11 +658,6 @@ do
             ;;
     esac
 done
-
-# Old versions of rpmbuild require ghost files to be present in the buildroot
-mkdir -p $RPM_BUILD_ROOT/%{mcpath}
-touch $RPM_BUILD_ROOT/%{mcpath}/passwd
-touch $RPM_BUILD_ROOT/%{mcpath}/group
 
 %clean
 rm -rf $RPM_BUILD_ROOT
