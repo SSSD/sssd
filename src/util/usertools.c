@@ -481,8 +481,7 @@ int sss_parse_name_for_domains(TALLOC_CTX *memctx,
                 }
                 if (match == NULL) {
                     DEBUG(SSSDBG_FUNC_DATA, "default domain [%s] is currently " \
-                                            "not known, trying to look it up.\n",
-                                            rdomain);
+                                            "not known\n", rdomain);
                     *domain = talloc_steal(memctx, rdomain);
                     ret = EAGAIN;
                     goto done;

@@ -630,7 +630,11 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                              rctx->default_domain,
                                              filter_list[i],
                                              &domainname, &name);
-            if (ret != EOK) {
+            if (ret == EAGAIN) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "cannot add [%s] to negcache because the required or "
+                      "default domain are not known yet\n", filter_list[i]);
+            } else if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Invalid name in filterUsers list: [%s] (%d)\n",
                          filter_list[i], ret);
@@ -679,7 +683,11 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         ret = sss_parse_name_for_domains(tmpctx, domain_list,
                                          rctx->default_domain, filter_list[i],
                                          &domainname, &name);
-        if (ret != EOK) {
+        if (ret == EAGAIN) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot add [%s] to negcache because the required or "
+                  "default domain are not known yet\n", filter_list[i]);
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Invalid name in filterUsers list: [%s] (%d)\n",
                      filter_list[i], ret);
@@ -783,7 +791,11 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         ret = sss_parse_name_for_domains(tmpctx, domain_list,
                                          rctx->default_domain, filter_list[i],
                                          &domainname, &name);
-        if (ret != EOK) {
+        if (ret == EAGAIN) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot add [%s] to negcache because the required or "
+                  "default domain are not known yet\n", filter_list[i]);
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Invalid name in filterGroups list: [%s] (%d)\n",
                      filter_list[i], ret);
