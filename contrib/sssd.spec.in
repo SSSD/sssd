@@ -558,7 +558,6 @@ autoreconf -ivf
     --enable-nfsidmaplibdir=%{_libdir}/libnfsidmap \
     --disable-static \
     --disable-rpath \
-    %{?with_ccache} \
     %{with_initscript} \
     %{?with_syslog} \
     %{?with_cifs_utils_plugin_option} \
