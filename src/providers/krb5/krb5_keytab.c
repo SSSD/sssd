@@ -24,6 +24,7 @@
 
 #include "util/util.h"
 #include "util/sss_krb5.h"
+#include "providers/krb5/krb5_common.h"
 
 static krb5_error_code do_keytab_copy(krb5_context kctx, krb5_keytab s_keytab,
                                       krb5_keytab d_keytab)
@@ -85,7 +86,7 @@ static krb5_error_code do_keytab_copy(krb5_context kctx, krb5_keytab s_keytab,
 }
 
 krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
-                                        char *inp_keytab_file,
+                                        const char *inp_keytab_file,
                                         char **_mem_name,
                                         krb5_keytab *_mem_keytab)
 {
@@ -97,7 +98,7 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
     char *sep;
     char *mem_name = NULL;
     char *tmp_mem_name = NULL;
-    char *keytab_file;
+    const char *keytab_file;
     char default_keytab_name[MAX_KEYTAB_NAME_LEN];
 
     keytab_file = inp_keytab_file;
