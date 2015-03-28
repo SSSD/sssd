@@ -26,41 +26,6 @@
 #include "util/util.h"
 #include "responder/pac/pacsrv.h"
 
-/**
- * Check if a given SID belongs to a domain identified by the domain SID.
- */
-bool dom_sid_in_domain(const struct dom_sid *domain_sid,
-                       const struct dom_sid *sid)
-{
-    size_t c;
-
-    if (!domain_sid || !sid) {
-        return false;
-    }
-
-    if (domain_sid->sid_rev_num != sid->sid_rev_num) {
-        return false;
-    }
-
-    for (c = 0; c < 6; c++) {
-        if (domain_sid->id_auth[c] != sid->id_auth[c]) {
-            return false;
-        }
-    }
-
-    if (domain_sid->num_auths > sid->num_auths) {
-        return false;
-    }
-
-    for (c = 0; c < domain_sid->num_auths-1; c++) {
-        if (domain_sid->sub_auths[c] != sid->sub_auths[c]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 errno_t get_sids_from_pac(TALLOC_CTX *mem_ctx,
                           struct pac_ctx *pac_ctx,
                           struct PAC_LOGON_INFO *logon_info,
