@@ -710,6 +710,97 @@ static void test_sss_ncache_default_domain_suffix(void **state)
 
 }
 
+static void test_sss_ncache_reset_prepopulate(void **state)
+{
+    int ret;
+    struct test_state *ts;
+    struct tevent_context *ev;
+    struct sss_nc_ctx *ncache;
+    struct sss_test_ctx *tc;
+    struct sss_domain_info *dom;
+    struct sss_domain_info *dom2;
+
+    struct sss_test_conf_param params[] = {
+        { "filter_users", "testuser1@"TEST_DOM_NAME", testuser2@"TEST_DOM_NAME"2" },
+        { "filter_groups", "testgroup1@"TEST_DOM_NAME", testgroup2@"TEST_DOM_NAME"2" },
+        { NULL, NULL },
+    };
+
+    const char *nss_filter_users[] = { params[0].value, NULL};
+    const char *nss_filter_groups[] = { params[1].value, NULL};
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    dom = talloc_zero(ts, struct sss_domain_info);
+    assert_non_null(dom);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
+
+    ts->nctx = mock_nctx(ts);
+    assert_non_null(ts->nctx);
+
+    tc = create_dom_test_ctx(ts, TESTS_PATH, TEST_CONF_DB,
+                             TEST_DOM_NAME, TEST_ID_PROVIDER, params);
+    assert_non_null(tc);
+
+    ret = confdb_add_param(tc->confdb, true, "config/nss",
+                           "filter_users", nss_filter_users);
+    assert_int_equal(ret, EOK);
+
+    ret = confdb_add_param(tc->confdb, true, "config/nss",
+                           "filter_groups", nss_filter_groups);
+    assert_int_equal(ret, EOK);
+
+    ncache = ts->ctx;
+    ts->rctx = mock_rctx(ts, ev, dom, ts->nctx);
+    assert_non_null(ts->rctx);
+    ts->rctx->default_domain = discard_const(TEST_DOM_NAME);
+    ts->rctx->cdb = tc->confdb;
+
+    ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &dom->names);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    assert_int_equal(ret, EOK);
+
+    /* Add another domain */
+    dom2 = talloc_zero(ts, struct sss_domain_info);
+    assert_non_null(dom2);
+    dom2->name = discard_const_p(char, TEST_DOM_NAME"2");
+    dom->next = dom2;
+    dom2->names = dom->names;
+
+    /* First domain should not be known, the second not */
+    ret = sss_ncache_check_user(ncache, 1, dom, "testuser1");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_group(ncache, 1, dom, "testgroup1");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_user(ncache, 1, dom2, "testuser2");
+    assert_int_equal(ret, ENOENT);
+
+    ret = sss_ncache_check_group(ncache, 1, dom2, "testgroup2");
+    assert_int_equal(ret, ENOENT);
+
+    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    assert_int_equal(ret, EOK);
+
+    /* First domain should not be known, the second not */
+    ret = sss_ncache_check_user(ncache, 1, dom, "testuser1");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_group(ncache, 1, dom, "testgroup1");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_user(ncache, 1, dom2, "testuser2");
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_group(ncache, 1, dom2, "testgroup2");
+    assert_int_equal(ret, EEXIST);
+}
 int main(void)
 {
     int rv;
@@ -730,6 +821,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_ncache_prepopulate,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_default_domain_suffix,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_reset_prepopulate,
                                         setup, teardown),
     };
 
