@@ -838,3 +838,17 @@ done:
     talloc_free(tmpctx);
     return ret;
 }
+
+/* Reset permanent negcache after checking the domains */
+errno_t sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
+                                              struct sss_nc_ctx *ncache)
+{
+    int ret;
+
+    ret = sss_ncache_reset_permanent(ncache);
+    if (ret == EOK) {
+        ret = sss_ncache_prepopulate(ncache, rctx->cdb, rctx);
+    }
+
+    return ret;
+}

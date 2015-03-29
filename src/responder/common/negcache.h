@@ -69,11 +69,17 @@ int sss_ncache_set_service_port(struct sss_nc_ctx *ctx, bool permanent,
 
 int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx);
 
+struct resp_ctx;
+
 /* Set up the negative cache with values from filter_users and
  * filter_groups in the sssd.conf
  */
 errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                struct confdb_ctx *cdb,
                                struct resp_ctx *rctx);
+
+/* Flush the negcache and then repopulate */
+errno_t sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
+                                              struct sss_nc_ctx *ncache);
 
 #endif /* _NSS_NEG_CACHE_H_ */
