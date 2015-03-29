@@ -105,6 +105,18 @@ struct setent_ctx {
     struct getent_ctx *getent_ctx;
 };
 
+static int nss_reset_negcache(struct resp_ctx *rctx)
+{
+    struct nss_ctx *nss_ctx;
+
+    nss_ctx = talloc_get_type(rctx->pvt_ctx, struct nss_ctx);
+    if (nss_ctx == NULL) {
+        return EIO;
+    }
+
+    return sss_ncache_reset_repopulate_permanent(rctx, nss_ctx->ncache);
+}
+
 /****************************************************************************
  * PASSWD db related functions
  ***************************************************************************/
@@ -1460,6 +1472,12 @@ static void nss_cmd_getbynam_done(struct tevent_req *req)
         goto done;
     }
 
+    ret = nss_reset_negcache(cctx->rctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot reset negcache records\n");
+        /* Not fatal */
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Requesting info for [%s] from [%s]\n",
               cmdctx->name, domname?domname:"<ALL>");
 
@@ -1819,6 +1837,12 @@ static void nss_cmd_getbyid_done(struct tevent_req *req)
     talloc_free(req);
     if (ret != EOK) {
         goto done;
+    }
+
+    ret = nss_reset_negcache(cmdctx->cctx->rctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot reset negcache records\n");
+        /* Not fatal */
     }
 
     /* ok, find it ! */
