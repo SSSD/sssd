@@ -34,6 +34,7 @@
 #include <dhash.h>
 
 #include "sbus/sssd_dbus.h"
+#include "responder/common/negcache.h"
 #include "sss_client/sss_cli.h"
 
 extern hash_table_t *dp_requests;
@@ -314,7 +315,8 @@ errno_t sss_dp_get_domains_recv(struct tevent_req *req);
 
 errno_t schedule_get_domains_task(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
-                                  struct resp_ctx *rctx);
+                                  struct resp_ctx *rctx,
+                                  struct sss_nc_ctx *optional_ncache);
 
 errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
                                 bool allow_sss_loop,

@@ -267,6 +267,40 @@ void parse_inp_call_neg(void **state)
     assert_int_equal(ret, EOK);
 }
 
+struct sss_nc_ctx {
+    struct parse_inp_test_ctx *pctx;
+};
+
+errno_t sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
+                                              struct sss_nc_ctx *dummy_ncache_ptr)
+{
+    dummy_ncache_ptr->pctx->tctx->error = EOK;
+    dummy_ncache_ptr->pctx->tctx->done = true;
+    return EOK;
+}
+
+void test_schedule_get_domains_task(void **state)
+{
+    struct parse_inp_test_ctx *parse_inp_ctx = talloc_get_type(*state,
+                                                   struct parse_inp_test_ctx);
+    errno_t ret;
+    struct sss_nc_ctx *dummy_ncache_ptr;
+
+    dummy_ncache_ptr = talloc(parse_inp_ctx, struct sss_nc_ctx);
+    assert_non_null(dummy_ncache_ptr);
+    dummy_ncache_ptr->pctx = parse_inp_ctx;
+
+    ret = schedule_get_domains_task(dummy_ncache_ptr,
+                                    parse_inp_ctx->rctx->ev,
+                                    parse_inp_ctx->rctx,
+                                    dummy_ncache_ptr);
+    assert_int_equal(ret, EOK);
+
+    ret = test_ev_loop(parse_inp_ctx->tctx);
+    assert_int_equal(ret, EOK);
+    talloc_free(dummy_ncache_ptr);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -292,6 +326,9 @@ int main(int argc, const char *argv[])
                                         parse_inp_test_setup,
                                         parse_inp_test_teardown),
         cmocka_unit_test_setup_teardown(parse_inp_call_neg,
+                                        parse_inp_test_setup,
+                                        parse_inp_test_teardown),
+        cmocka_unit_test_setup_teardown(test_schedule_get_domains_task,
                                         parse_inp_test_setup,
                                         parse_inp_test_teardown),
     };
