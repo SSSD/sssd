@@ -4539,6 +4539,15 @@ static errno_t nss_cmd_getbysid_search(struct nss_dom_ctx *dctx)
         return EIO;
     }
 
+    /* verify this user has not yet been negatively cached,
+        * or has been permanently filtered */
+    ret = sss_ncache_check_sid(nctx->ncache, nctx->neg_timeout, cmdctx->secid);
+    if (ret == EEXIST) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "SID [%s] does not exist! (negative cache)\n", cmdctx->secid);
+        return ENOENT;
+    }
+
     ret = sysdb_search_object_by_sid(cmdctx, dom, cmdctx->secid, NULL,
                                      &dctx->res);
     if (ret == ENOENT) {
