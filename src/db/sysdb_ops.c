@@ -3538,7 +3538,8 @@ static errno_t sysdb_search_object_by_str_attr(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_GIDNUM,
                                 ORIGINALAD_PREFIX SYSDB_NAME,
-                                SYSDB_OBJECTCLASS, NULL };
+                                SYSDB_DEFAULT_ATTRS,
+                                NULL };
     struct ldb_dn *basedn;
     int ret;
     struct ldb_result *res = NULL;
