@@ -1761,6 +1761,7 @@ nss_srv_tests_CFLAGS = \
 nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_ncache_check_user \
     -Wl,-wrap,sss_ncache_check_uid \
+    -Wl,-wrap,sss_ncache_check_sid \
     -Wl,-wrap,sss_packet_get_body \
     -Wl,-wrap,sss_packet_get_cmd \
     -Wl,-wrap,sss_cmd_send_empty \

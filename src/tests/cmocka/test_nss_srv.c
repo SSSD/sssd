@@ -38,6 +38,7 @@
 #define TEST_DOM_NAME "nss_test"
 #define TEST_SUBDOM_NAME "test.subdomain"
 #define TEST_ID_PROVIDER "ldap"
+#define TEST_DOM_SID "S-1-5-21-444379608-1639770488-2995963434"
 
 #define N_ELEMENTS(arr) \
     (sizeof(arr) / sizeof(arr[0]))
@@ -180,6 +181,21 @@ int __wrap_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
     return ret;
 }
 
+int __real_sss_ncache_check_sid(struct sss_nc_ctx *ctx,
+                                int ttl, const char *sid);
+
+int __wrap_sss_ncache_check_sid(struct sss_nc_ctx *ctx,
+                                int ttl, const char *sid)
+{
+    int ret;
+
+    ret = __real_sss_ncache_check_sid(ctx, ttl, sid);
+    if (ret == EEXIST) {
+        nss_test_ctx->ncache_hits++;
+    }
+    return ret;
+}
+
 /* Mock input from the client library */
 static void mock_input_user_or_group(const char *username)
 {
@@ -205,6 +221,12 @@ static void mock_fill_user(void)
 {
     /* One packet for the entry and one for num entries */
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+}
+
+static void mock_fill_bysid(void)
+{
+    /* One packet for the entry and one for num entries */
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 }
 
@@ -1006,6 +1028,8 @@ void test_nss_setup(struct sss_test_conf_param params[],
                                              TEST_CONF_DB, TEST_DOM_NAME,
                                              TEST_ID_PROVIDER, params);
     assert_non_null(nss_test_ctx->tctx);
+
+    nss_test_ctx->tctx->dom->domain_id = discard_const(TEST_DOM_SID);
 
     nss_test_ctx->nss_cmds = get_nss_cmds();
     assert_non_null(nss_test_ctx->nss_cmds);
@@ -2577,6 +2601,195 @@ static int nss_test_teardown(void **state)
     return 0;
 }
 
+static int test_nss_getnamebysid_check(uint32_t status, uint8_t *body, size_t blen)
+{
+    size_t rp = 2 * sizeof(uint32_t); /* num_results and reserved */
+    uint32_t id_type;
+    const char *name;
+
+    assert_int_equal(status, EOK);
+
+    SAFEALIGN_COPY_UINT32(&id_type, body+rp, &rp);
+    assert_int_equal(id_type, SSS_ID_TYPE_UID);
+
+    name = (const char *) body + rp;
+    assert_string_equal(name, "testsiduser");
+
+    return EOK;
+}
+
+static void test_nss_getnamebysid(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+    char *user_sid;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    user_sid = talloc_asprintf(attrs, "%s-500",
+                               nss_test_ctx->tctx->dom->domain_id);
+    assert_non_null(user_sid);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, user_sid);
+    assert_int_equal(ret, EOK);
+
+    /* Prime the cache with a valid user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "testsiduser", 12345, 6890, "test sid user",
+                         "/home/testsiduser", "/bin/sh", NULL,
+                         attrs, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group(user_sid);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
+    mock_fill_bysid();
+
+    /* Query for that user, call a callback when command finishes */
+    /* Should go straight to back end, without contacting DP */
+    set_cmd_cb(test_nss_getnamebysid_check);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* Test that searching for a nonexistant user yields ENOENT.
+ * Account callback will be called
+ */
+void test_nss_getnamebysid_neg(void **state)
+{
+    errno_t ret;
+    char *user_sid;
+
+    user_sid = talloc_asprintf(nss_test_ctx, "%s-499",
+                               nss_test_ctx->tctx->dom->domain_id);
+    assert_non_null(user_sid);
+
+    mock_input_user_or_group(user_sid);
+    mock_account_recv_simple();
+
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_int_equal(nss_test_ctx->ncache_hits, 0);
+
+    /* Test that subsequent search for a nonexistent user yields
+     * ENOENT and Account callback is not called, on the other hand
+     * the ncache functions will be called
+     */
+    nss_test_ctx->tctx->done = false;
+
+    mock_input_user_or_group(user_sid);
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with ENOENT */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    /* Negative cache was hit this time */
+    assert_int_equal(nss_test_ctx->ncache_hits, 1);
+}
+
+static int test_nss_getnamebysid_update_check(uint32_t status,
+                                              uint8_t *body,
+                                              size_t blen)
+{
+    size_t rp = 2 * sizeof(uint32_t); /* num_results and reserved */
+    uint32_t id_type;
+    const char *name;
+
+    assert_int_equal(status, EOK);
+
+    SAFEALIGN_COPY_UINT32(&id_type, body+rp, &rp);
+    assert_int_equal(id_type, SSS_ID_TYPE_UID);
+
+    name = (const char *) body + rp;
+    assert_string_equal(name, "testsidbyname_update");
+
+    return EOK;
+}
+
+static int test_nss_getnamebysid_update_acct_cb(void *pvt)
+{
+    errno_t ret;
+    struct nss_test_ctx *ctx = talloc_get_type(pvt, struct nss_test_ctx);
+
+    ret = sysdb_store_user(ctx->tctx->dom, "testsidbyname_update", NULL,
+                           123456, 789, "test user",
+                           "/home/testsidbyname_update", "/bin/ksh", NULL,
+                           NULL, NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+void test_nss_getnamebysid_update(void **state)
+{
+    errno_t ret;
+    struct ldb_result *res;
+    struct sysdb_attrs *attrs;
+    const char *shell;
+    char *user_sid;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    user_sid = talloc_asprintf(attrs, "%s-123456",
+                               nss_test_ctx->tctx->dom->domain_id);
+    assert_non_null(user_sid);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, user_sid);
+    assert_int_equal(ret, EOK);
+
+    /* Prime the cache with a valid but expired user */
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "testsidbyname_update", 123456, 789, "test user",
+                         "/home/testsidbyname_update", "/bin/sh", NULL,
+                         attrs, 1, 1);
+    assert_int_equal(ret, EOK);
+
+    /* Mock client input */
+    mock_input_user_or_group(user_sid);
+    /* Mock client command */
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_GETNAMEBYSID);
+    /* Call this function when user is updated by the mock DP request */
+    mock_account_recv(0, 0, NULL, test_nss_getnamebysid_update_acct_cb,
+                      nss_test_ctx);
+    /* Call this function to check what the responder returned to the client */
+    set_cmd_cb(test_nss_getnamebysid_update_check);
+    /* Mock output buffer */
+    mock_fill_bysid();
+
+    /* Fire the command */
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_GETNAMEBYSID,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+
+    /* Check the user was updated in the cache */
+    ret = sysdb_getpwnam(nss_test_ctx, nss_test_ctx->tctx->dom,
+                         "testsidbyname_update", &res);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(res->count, 1);
+
+    shell = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, NULL);
+    assert_string_equal(shell, "/bin/ksh");
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -2681,6 +2894,12 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_initgroups_upn,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_initgr_neg_upn,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getnamebysid,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getnamebysid_neg,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_getnamebysid_update,
                                         nss_test_setup, nss_test_teardown),
     };
 
