@@ -1300,10 +1300,11 @@ static errno_t process_members(struct sss_domain_info *domain,
                 DEBUG(SSSDBG_TRACE_ALL, "Adding member [%s][%s]\n",
                                         members[c], dn_str);
 
-                ret = sysdb_attrs_add_string(group_attrs, SYSDB_MEMBER, dn_str);
+                ret = sysdb_attrs_add_string_safe(group_attrs, SYSDB_MEMBER,
+                                                  dn_str);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
-                          "sysdb_attrs_add_string failed.\n");
+                          "sysdb_attrs_add_string_safe failed.\n");
                     goto done;
                 }
             }
