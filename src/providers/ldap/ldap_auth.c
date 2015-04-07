@@ -762,6 +762,18 @@ static void auth_connect_done(struct tevent_req *subreq)
                               state->srv, PORT_WORKING);
     }
 
+    /* In case the ID provider is set to proxy, this might be the first
+     * LDAP operation at all, so we need to set the connection status
+     */
+    if (state->sh->connected == false) {
+        ret = sdap_set_connected(state->sh, state->ev);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot set connected status\n");
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
     ret = get_user_dn(state, state->ctx->be->domain,
                       state->ctx->opts, state->username, &state->dn,
                       &state->pw_expire_type, &state->pw_expire_data);
