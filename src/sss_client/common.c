@@ -725,6 +725,7 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
     ret = sss_cli_check_socket(errnop, SSS_NSS_SOCKET_NAME);
     if (ret != SSS_STATUS_SUCCESS) {
 #ifdef NONSTANDARD_SSS_NSS_BEHAVIOUR
+        *errnop = 0;
         errno = 0;
         return NSS_STATUS_NOTFOUND;
 #else
@@ -741,6 +742,7 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
     case SSS_STATUS_UNAVAIL:
     default:
 #ifdef NONSTANDARD_SSS_NSS_BEHAVIOUR
+        *errnop = 0;
         errno = 0;
         return NSS_STATUS_NOTFOUND;
 #else
