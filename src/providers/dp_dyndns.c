@@ -925,6 +925,7 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq = NULL;
     struct be_nsupdate_state *state;
     char **args;
+    int debug_fd;
 
     req = tevent_req_create(mem_ctx, &state, struct be_nsupdate_state);
     if (req == NULL) {
@@ -950,6 +951,17 @@ struct tevent_req *be_nsupdate_send(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "dup2 failed [%d][%s].\n", ret, strerror(ret));
             goto done;
+        }
+
+        if (debug_level >= SSSDBG_TRACE_LIBS) {
+            debug_fd = get_fd_from_debug_file();
+            ret = dup2(debug_fd, STDERR_FILENO);
+            if (ret == -1) {
+                ret = errno;
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                    "dup2 failed [%d][%s].\n", ret, strerror(ret));
+                /* stderr is not fatal */
+            }
         }
 
         args = be_nsupdate_args(state, auth_type, force_tcp);
