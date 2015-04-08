@@ -1010,7 +1010,7 @@ be_nsupdate_args(TALLOC_CTX *mem_ctx,
     char **argv;
     int argc = 0;
 
-    argv = talloc_zero_array(mem_ctx, char *, 4);
+    argv = talloc_zero_array(mem_ctx, char *, 6);
     if (argv == NULL) {
         return NULL;
     }
@@ -1041,6 +1041,22 @@ be_nsupdate_args(TALLOC_CTX *mem_ctx,
     if (force_tcp) {
         DEBUG(SSSDBG_FUNC_DATA, "TCP is set to on\n");
         argv[argc] = talloc_strdup(argv, "-v");
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+    }
+
+    if (debug_level >= SSSDBG_TRACE_LIBS) {
+        argv[argc] = talloc_strdup(argv, "-d");
+        if (argv[argc] == NULL) {
+            goto fail;
+        }
+        argc++;
+    }
+
+    if (debug_level >= SSSDBG_TRACE_INTERNAL) {
+        argv[argc] = talloc_strdup(argv, "-D");
         if (argv[argc] == NULL) {
             goto fail;
         }
