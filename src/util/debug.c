@@ -70,6 +70,15 @@ errno_t set_debug_file_from_fd(const int fd)
     return EOK;
 }
 
+int get_fd_from_debug_file(void)
+{
+    if (debug_file == NULL) {
+        return STDERR_FILENO;
+    }
+
+    return fileno(debug_file);
+}
+
 int debug_convert_old_level(int old_level)
 {
     if ((old_level != 0) && !(old_level & 0x000F))

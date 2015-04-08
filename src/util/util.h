@@ -78,6 +78,7 @@ void debug_fn(const char *file,
               const char *format, ...) SSS_ATTRIBUTE_PRINTF(5,6);
 int debug_convert_old_level(int old_level);
 errno_t set_debug_file_from_fd(const int fd);
+int get_fd_from_debug_file(void);
 
 #define SSS_DOM_ENV           "_SSS_DOM"
 
