@@ -993,7 +993,7 @@ START_TEST(test_known_service)
     svcs = get_known_services();
     for (i = 0; svcs[i]; i++) {
         ck_assert_str_ne(svcs[i], "nosuchservice");
-        if (strcmp(svcs[i], "nss")) {
+        if (strcmp(svcs[i], "nss") == 0) {
             found_nss = true;
         }
     }
