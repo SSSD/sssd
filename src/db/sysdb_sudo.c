@@ -221,6 +221,7 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
     TALLOC_CTX *tmp_ctx = NULL;
     char *filter = NULL;
     char *specific_filter = NULL;
+    char *sanitized = NULL;
     time_t now;
     errno_t ret;
     int i;
@@ -246,9 +247,14 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
     }
 
     if ((flags & SYSDB_SUDO_FILTER_USERNAME) && (username != NULL)) {
+        ret = sss_filter_sanitize(tmp_ctx, username, &sanitized);
+        if (ret != EOK) {
+            goto done;
+        }
+
         specific_filter = talloc_asprintf_append(specific_filter, "(%s=%s)",
                                                  SYSDB_SUDO_CACHE_AT_USER,
-                                                 username);
+                                                 sanitized);
         NULL_CHECK(specific_filter, ret, done);
     }
 
@@ -261,9 +267,14 @@ sysdb_get_sudo_filter(TALLOC_CTX *mem_ctx, const char *username,
 
     if ((flags & SYSDB_SUDO_FILTER_GROUPS) && (groupnames != NULL)) {
         for (i=0; groupnames[i] != NULL; i++) {
+            ret = sss_filter_sanitize(tmp_ctx, groupnames[i], &sanitized);
+            if (ret != EOK) {
+                goto done;
+            }
+
             specific_filter = talloc_asprintf_append(specific_filter, "(%s=%%%s)",
                                                      SYSDB_SUDO_CACHE_AT_USER,
-                                                     groupnames[i]);
+                                                     sanitized);
             NULL_CHECK(specific_filter, ret, done);
         }
     }
