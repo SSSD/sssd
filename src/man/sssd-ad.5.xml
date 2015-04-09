@@ -356,9 +356,9 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                             DenyInteractiveLogonRight policy settings.
                         </para>
                         <para>
-                            Note: Using the Group Policy Management Editor this
-                            value InteractiveLogonRight  is called "Allow log on
-                            locally" and "Deny log on locally".
+                            Note: Using the Group Policy Management Editor
+                            this value is called "Allow log on locally"
+                            and "Deny log on locally".
                         </para>
                         <para>
                             It is possible to add another PAM service name
@@ -467,6 +467,12 @@ ad_gpo_map_remote_interactive = +my_pam_service, -sshd
                             policy settings.
                         </para>
                         <para>
+                            Note: Using the Group Policy Management Editor
+                            this value is called "Access this computer
+                            from the network" and "Deny access to this
+                            computer from the network".
+                        </para>
+                        <para>
                             It is possible to add another PAM service name
                             to the default set by using <quote>+service_name</quote>
                             or to explicitly remove a PAM service name from
@@ -507,6 +513,11 @@ ad_gpo_map_network = +my_pam_service, -ftp
                             policy settings.
                         </para>
                         <para>
+                            Note: Using the Group Policy Management Editor
+                            this value is called "Allow log on as a batch
+                            job" and "Deny log on as a batch job".
+                        </para>
+                        <para>
                             It is possible to add another PAM service name
                             to the default set by using <quote>+service_name</quote>
                             or to explicitly remove a PAM service name from
@@ -540,6 +551,11 @@ ad_gpo_map_batch = +my_pam_service, -crond
                             which GPO-based access control is evaluated based on
                             the ServiceLogonRight and DenyServiceLogonRight
                             policy settings.
+                        </para>
+                        <para>
+                            Note: Using the Group Policy Management Editor
+                            this value is called "Allow log on as a service"
+                            and "Deny log on as a service".
                         </para>
                         <para>
                             It is possible to add a PAM service name to the
