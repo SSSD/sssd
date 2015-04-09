@@ -789,10 +789,15 @@ endif
 libsss_util_la_LDFLAGS = -avoid-version
 
 pkglib_LTLIBRARIES += libsss_semanage.la
+libsss_semanage_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(NULL)
 libsss_semanage_la_SOURCES = \
     src/util/sss_semanage.c \
     $(NULL)
 libsss_semanage_la_LIBADD = \
+    $(TALLOC_LIBS) \
     libsss_debug.la \
     $(NULL)
 if BUILD_SEMANAGE

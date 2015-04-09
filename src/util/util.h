@@ -655,6 +655,8 @@ errno_t restore_creds(struct sss_creds *saved_creds);
 int set_seuser(const char *login_name, const char *seuser_name,
                const char *mlsrange);
 int del_seuser(const char *login_name);
+int get_seuser(TALLOC_CTX *mem_ctx, const char *login_name,
+               char **_seuser, char **_mls_range);
 
 /* convert time from generalized form to unix time */
 errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *unix_time);

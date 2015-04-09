@@ -165,6 +165,29 @@ static int sc_set_seuser(const char *login_name, const char *seuser_name,
     return ret;
 }
 
+static bool seuser_needs_update(struct input_buffer *ibuf)
+{
+    bool needs_update = true;
+    char *db_seuser = NULL;
+    char *db_mls_range = NULL;
+    errno_t ret;
+
+    ret = get_seuser(ibuf, ibuf->username, &db_seuser, &db_mls_range);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "get_seuser: ret: %d seuser: %s mls: %s\n",
+          ret, db_seuser ? db_seuser : "unknown",
+          db_mls_range ? db_mls_range : "unknown");
+    if (ret == EOK && db_seuser && db_mls_range &&
+            strcmp(db_seuser, ibuf->seuser) == 0 &&
+            strcmp(db_mls_range, ibuf->mls_range) == 0) {
+        needs_update = false;
+    }
+
+    talloc_free(db_seuser);
+    talloc_free(db_mls_range);
+    return needs_update;
+}
+
 int main(int argc, const char *argv[])
 {
     int opt;
@@ -177,6 +200,7 @@ int main(int argc, const char *argv[])
     struct input_buffer *ibuf = NULL;
     struct response *resp = NULL;
     ssize_t written;
+    bool needs_update;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -296,10 +320,13 @@ int main(int argc, const char *argv[])
 
     DEBUG(SSSDBG_TRACE_FUNC, "performing selinux operations\n");
 
-    ret = sc_set_seuser(ibuf->username, ibuf->seuser, ibuf->mls_range);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set SELinux login context.\n");
-        goto fail;
+    needs_update = seuser_needs_update(ibuf);
+    if (needs_update == true) {
+        ret = sc_set_seuser(ibuf->username, ibuf->seuser, ibuf->mls_range);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set SELinux login context.\n");
+            goto fail;
+        }
     }
 
     ret = prepare_response(main_ctx, ret, &resp);
