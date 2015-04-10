@@ -599,13 +599,6 @@ static int sdap_save_group(TALLOC_CTX *memctx,
             gid = 0;
             DEBUG(SSSDBG_TRACE_FUNC, "Filtering AD group [%s].\n",
                                       group_name);
-            ret = sysdb_attrs_add_uint32(group_attrs,
-                                         opts->group_map[SDAP_AT_GROUP_GID].sys_name, 0);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to add a GID to non-posix group!\n");
-                return ret;
-            }
             ret = sysdb_attrs_add_bool(group_attrs, SYSDB_POSIX, false);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
