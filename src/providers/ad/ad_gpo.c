@@ -1401,7 +1401,8 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
                                enum gpo_access_control_mode gpo_mode,
                                enum gpo_map_type gpo_map_type,
                                const char *user,
-                               struct sss_domain_info *domain)
+                               struct sss_domain_info *user_domain,
+                               struct sss_domain_info *host_domain)
 {
     int ret;
     const char *allow_key = NULL;
@@ -1416,7 +1417,7 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
     deny_key = gpo_map_option_entries[gpo_map_type].deny_key;
     DEBUG(SSSDBG_TRACE_ALL, "deny_key: %s\n", deny_key);
 
-    ret = parse_policy_setting_value(mem_ctx, domain, allow_key,
+    ret = parse_policy_setting_value(mem_ctx, host_domain, allow_key,
                                      &allow_sids, &allow_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1426,7 +1427,7 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = parse_policy_setting_value(mem_ctx, domain, deny_key,
+    ret = parse_policy_setting_value(mem_ctx, host_domain, deny_key,
                                      &deny_sids, &deny_size);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1437,8 +1438,9 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
     }
 
     /* perform access check with the final resultant allow_sids and deny_sids */
-    ret = ad_gpo_access_check(mem_ctx, gpo_mode, gpo_map_type, user, domain,
-                              allow_sids, allow_size, deny_sids, deny_size);
+    ret = ad_gpo_access_check(mem_ctx, gpo_mode, gpo_map_type, user,
+                              user_domain, allow_sids, allow_size, deny_sids,
+                              deny_size);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1463,7 +1465,8 @@ struct ad_gpo_access_state {
     char *server_hostname;
     struct sdap_options *opts;
     int timeout;
-    struct sss_domain_info *domain;
+    struct sss_domain_info *user_domain;
+    struct sss_domain_info *host_domain;
     const char *user;
     int gpo_timeout_option;
     const char *ad_hostname;
@@ -1556,8 +1559,13 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* GPO Operations all happen against the enrolled domain,
+     * not the user's domain (which may be a trusted realm)
+     */
+    state->user_domain = domain;
+    state->host_domain = get_domains_head(domain);
+
     state->gpo_map_type = gpo_map_type;
-    state->domain = domain;
     state->dacl_filtered_gpos = NULL;
     state->num_dacl_filtered_gpos = 0;
     state->cse_filtered_gpos = NULL;
@@ -1565,13 +1573,13 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     state->cse_gpo_index = 0;
     state->ev = ev;
     state->user = user;
-    state->ldb_ctx = sysdb_ctx_get_ldb(domain->sysdb);
+    state->ldb_ctx = sysdb_ctx_get_ldb(state->host_domain->sysdb);
     state->gpo_mode = ctx->gpo_access_control_mode;
     state->gpo_timeout_option = ctx->gpo_cache_timeout;
     state->ad_hostname = dp_opt_get_string(ctx->ad_options, AD_HOSTNAME);
     state->opts = ctx->sdap_access_ctx->id_ctx->opts;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
-    state->conn = ad_get_dom_ldap_conn(ctx->ad_id_ctx, domain);
+    state->conn = ad_get_dom_ldap_conn(ctx->ad_id_ctx, state->host_domain);
     state->sdap_op = sdap_id_op_create(state, state->conn->conn_cache);
     if (state->sdap_op == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
@@ -1606,7 +1614,8 @@ static errno_t
 process_offline_gpos(TALLOC_CTX *mem_ctx,
                      const char *user,
                      enum gpo_access_control_mode gpo_mode,
-                     struct sss_domain_info *domain,
+                     struct sss_domain_info *user_domain,
+                     struct sss_domain_info *host_domain,
                      enum gpo_map_type gpo_map_type)
 
 {
@@ -1616,7 +1625,8 @@ process_offline_gpos(TALLOC_CTX *mem_ctx,
                                          gpo_mode,
                                          gpo_map_type,
                                          user,
-                                         domain);
+                                         user_domain,
+                                         host_domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "HBAC processing failed: [%d](%s}\n",
               ret, sss_strerror(ret));
@@ -1662,7 +1672,8 @@ ad_gpo_connect_done(struct tevent_req *subreq)
             ret = process_offline_gpos(state,
                                        state->user,
                                        state->gpo_mode,
-                                       state->domain,
+                                       state->user_domain,
+                                       state->host_domain,
                                        state->gpo_map_type);
 
             if (ret == EOK) {
@@ -1714,11 +1725,11 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "sam_account_name is %s\n", sam_account_name);
 
     /* Convert the domain name into domain DN */
-    ret = domain_to_basedn(state, state->domain->name, &domain_dn);
+    ret = domain_to_basedn(state, state->host_domain->name, &domain_dn);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Cannot convert domain name [%s] to base DN [%d]: %s\n",
-               state->domain->name, ret, sss_strerror(ret));
+               state->host_domain->name, ret, sss_strerror(ret));
         goto done;
     }
 
@@ -1837,7 +1848,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
                                      state->opts,
                                      state->timeout,
                                      state->target_dn,
-                                     state->domain->name);
+                                     state->host_domain->name);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1939,7 +1950,7 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = ad_gpo_filter_gpos_by_dacl(state, state->user, state->domain,
+    ret = ad_gpo_filter_gpos_by_dacl(state, state->user, state->user_domain,
                                      state->opts->idmap_ctx->map,
                                      candidate_gpos, num_candidate_gpos,
                                      &state->dacl_filtered_gpos,
@@ -2014,7 +2025,7 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
      * subsequent functions will add the GPO Result object (and populate it
      * with resultant policy settings) for this policy application
      */
-    ret = sysdb_gpo_delete_gpo_result_object(state, state->domain);
+    ret = sysdb_gpo_delete_gpo_result_object(state, state->host_domain);
     if (ret != EOK) {
         switch (ret) {
         case ENOENT:
@@ -2085,7 +2096,7 @@ ad_gpo_cse_step(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, "retrieving GPO from cache [%s]\n",
           cse_filtered_gpo->gpo_guid);
     ret = sysdb_gpo_get_gpo_by_guid(state,
-                                    state->domain,
+                                    state->host_domain,
                                     cse_filtered_gpo->gpo_guid,
                                     &res);
     if (ret == EOK) {
@@ -2127,7 +2138,7 @@ ad_gpo_cse_step(struct tevent_req *req)
     subreq = ad_gpo_process_cse_send(state,
                                      state->ev,
                                      send_to_child,
-                                     state->domain,
+                                     state->host_domain,
                                      cse_filtered_gpo->gpo_guid,
                                      cse_filtered_gpo->smb_server,
                                      cse_filtered_gpo->smb_share,
@@ -2180,7 +2191,7 @@ ad_gpo_cse_done(struct tevent_req *subreq)
      * GPO CACHE, we store all of the supported keys present in the file
      * (as part of the GPO Result object in the sysdb cache).
      */
-    ret = ad_gpo_store_policy_settings(state->domain,
+    ret = ad_gpo_store_policy_settings(state->host_domain,
                                        cse_filtered_gpo->policy_filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -2198,7 +2209,8 @@ ad_gpo_cse_done(struct tevent_req *subreq)
                                              state->gpo_mode,
                                              state->gpo_map_type,
                                              state->user,
-                                             state->domain);
+                                             state->user_domain,
+                                             state->host_domain);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "HBAC processing failed: [%d](%s}\n",
                   ret, sss_strerror(ret));
