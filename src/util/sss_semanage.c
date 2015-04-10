@@ -109,12 +109,6 @@ static semanage_handle_t *sss_semanage_init(void)
         goto fail;
     }
 
-    ret = semanage_begin_transaction(handle);
-    if (ret != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot begin SELinux transaction\n");
-        goto fail;
-    }
-
     return handle;
 fail:
     sss_semanage_close(handle);
@@ -243,6 +237,13 @@ int set_seuser(const char *login_name, const char *seuser_name,
         goto done;
     }
 
+    ret = semanage_begin_transaction(handle);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot begin SELinux transaction\n");
+        ret = EIO;
+        goto done;
+    }
+
     ret = semanage_seuser_key_create(handle, login_name, &key);
     if (ret != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create SELinux user key\n");
@@ -299,6 +300,13 @@ int del_seuser(const char *login_name)
     handle = sss_semanage_init();
     if (!handle) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot init SELinux management\n");
+        ret = EIO;
+        goto done;
+    }
+
+    ret = semanage_begin_transaction(handle);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot begin SELinux transaction\n");
         ret = EIO;
         goto done;
     }
