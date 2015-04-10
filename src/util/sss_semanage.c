@@ -68,6 +68,13 @@ static void sss_semanage_error_callback(void *varg,
     free(message);
 }
 
+static void sss_semanage_close(semanage_handle_t *handle)
+{
+    /* Calling disconnect on a disconnected handle is safe */
+    semanage_disconnect(handle);
+    semanage_handle_destroy(handle);
+}
+
 static semanage_handle_t *sss_semanage_init(void)
 {
     int ret;
@@ -110,7 +117,7 @@ static semanage_handle_t *sss_semanage_init(void)
 
     return handle;
 fail:
-    semanage_handle_destroy(handle);
+    sss_semanage_close(handle);
     return NULL;
 }
 
@@ -278,7 +285,7 @@ int set_seuser(const char *login_name, const char *seuser_name,
     ret = EOK;
 done:
     semanage_seuser_key_free(key);
-    semanage_handle_destroy(handle);
+    sss_semanage_close(handle);
     return ret;
 }
 
@@ -350,7 +357,7 @@ int del_seuser(const char *login_name)
 
     ret = EOK;
 done:
-    semanage_handle_destroy(handle);
+    sss_semanage_close(handle);
     return ret;
 }
 
