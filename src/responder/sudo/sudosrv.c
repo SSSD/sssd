@@ -27,6 +27,7 @@
 #include "responder/common/responder_sbus.h"
 #include "responder/sudo/sudosrv_private.h"
 #include "providers/data_provider.h"
+#include "responder/common/negcache.h"
 
 struct mon_cli_iface monitor_sudo_methods = {
     { &mon_cli_iface_meta, 0 },
@@ -113,8 +114,31 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    ret = sss_ncache_init(rctx, &sudo_ctx->ncache);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "fatal error initializing ncache\n");
+        goto fail;
+    }
+
     sudo_ctx->rctx = rctx;
     sudo_ctx->rctx->pvt_ctx = sudo_ctx;
+
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
+                         &sudo_ctx->neg_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "fatal error getting ncache timeout\n");
+        goto fail;
+    }
+
+    sss_ncache_prepopulate(sudo_ctx->ncache, sudo_ctx->rctx->cdb, rctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "failed to set ncache for sudo's filter_users\n");
+        goto fail;
+    }
 
     /* Enable automatic reconnection to the Data Provider */
     ret = confdb_get_int(sudo_ctx->rctx->cdb,
