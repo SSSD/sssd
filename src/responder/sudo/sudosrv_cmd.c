@@ -28,6 +28,7 @@
 #include "responder/sudo/sudosrv_private.h"
 #include "db/sysdb_sudo.h"
 #include "sss_client/sss_cli.h"
+#include "responder/common/negcache.h"
 
 static errno_t sudosrv_cmd_send_reply(struct sudo_cmd_ctx *cmd_ctx,
                                       uint8_t *response_body,
@@ -239,6 +240,7 @@ static void sudosrv_cmd_parse_query_done(struct tevent_req *req)
 {
     struct sudo_cmd_ctx *cmd_ctx = NULL;
     struct sudo_dom_ctx *dom_ctx = NULL;
+    struct sudo_ctx *sudo_ctx = NULL;
     errno_t ret;
 
     cmd_ctx = tevent_req_callback_data(req, struct sudo_cmd_ctx);
@@ -277,6 +279,16 @@ static void sudosrv_cmd_parse_query_done(struct tevent_req *req)
     dom_ctx->cmd_ctx = cmd_ctx;
     dom_ctx->domain = cmd_ctx->domain != NULL ? cmd_ctx->domain
                                               : cmd_ctx->cli_ctx->rctx->domains;
+
+    sudo_ctx = talloc_get_type(cmd_ctx->cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
+    ret = sss_ncache_check_user(sudo_ctx->ncache, sudo_ctx->neg_timeout,
+                                dom_ctx->domain, cmd_ctx->username);
+    if (ret == EEXIST) {
+        DEBUG(SSSDBG_TRACE_FUNC, "User [%s@%s] filtered out (ncache)\n",
+              cmd_ctx->username, dom_ctx->domain->name);
+        ret = ENOENT;
+        goto done;
+    }
 
     ret = sudosrv_get_sudorules(dom_ctx);
 
