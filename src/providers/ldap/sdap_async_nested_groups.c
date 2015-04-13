@@ -240,32 +240,21 @@ sdap_nested_group_hash_group(struct sdap_nested_group_ctx *group_ctx,
 {
     struct sdap_attr_map *map = group_ctx->opts->group_map;
     gid_t gid;
-    errno_t ret = ENOENT;
-    int32_t ad_group_type;
+    errno_t ret;
     bool posix_group = true;
     bool use_id_mapping;
     bool can_find_gid;
+    bool need_filter;
 
-    if (group_ctx->opts->schema_type == SDAP_SCHEMA_AD) {
-        ret = sysdb_attrs_get_int32_t(group, SYSDB_GROUP_TYPE, &ad_group_type);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_int32_t failed.\n");
-            return ret;
-        }
+    ret = sdap_check_ad_group_type(group_ctx->domain, group_ctx->opts,
+                                   group, "", &need_filter);
+    if (ret != EOK) {
+        return ret;
+    }
 
-        DEBUG(SSSDBG_TRACE_ALL, "AD group has type flags %#x.\n",
-                                 ad_group_type);
-        /* Only security groups from AD are considered for POSIX groups.
-         * Additionally only global and universal group are taken to account
-         * for trusted domains. */
-        if (!(ad_group_type & SDAP_AD_GROUP_TYPE_SECURITY)
-                || (IS_SUBDOMAIN(group_ctx->domain)
-                    && (!((ad_group_type & SDAP_AD_GROUP_TYPE_GLOBAL)
-                        || (ad_group_type & SDAP_AD_GROUP_TYPE_UNIVERSAL))))) {
-            posix_group = false;
-            gid = 0;
-            DEBUG(SSSDBG_TRACE_FUNC, "Filtering AD group.\n");
-        }
+    if (need_filter) {
+        posix_group = false;
+        gid = 0;
     }
 
     use_id_mapping = sdap_idmap_domain_has_algorithmic_mapping(

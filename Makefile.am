@@ -1905,6 +1905,7 @@ nestedgroups_tests_SOURCES = \
     src/providers/ldap/sdap_idmap.c \
     src/tests/cmocka/test_nested_groups.c \
     src/providers/ldap/sdap_async_nested_groups.c \
+    src/providers/ldap/sdap_ad_groups.c \
     $(NULL)
 nestedgroups_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2506,6 +2507,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_async_connection.c \
     src/providers/ldap/sdap_async_netgroups.c \
     src/providers/ldap/sdap_async_services.c \
+    src/providers/ldap/sdap_ad_groups.c \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
     src/providers/ldap/sdap_id_op.c \
