@@ -248,8 +248,22 @@ AM_CONDITIONAL([HAVE_PROFILE_CATALOGS], [test "x$HAVE_PROFILE_CATALOGS" != "x"])
 AM_CONDITIONAL([HAVE_MANPAGES], [test "x$HAVE_MANPAGES" != "x"])
 AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
 
+AC_CHECK_PROG(HAVE_PYTHON2, python2, yes, no)
+AS_IF([test x$HAVE_PYTHON2 = xyes],
+      [AC_PATH_PROG(PYTHON2, python2)])
+
+AC_CHECK_PROG(HAVE_PYTHON3, python3, yes, no)
+AS_IF([test x$HAVE_PYTHON3 = xyes],
+      [AC_PATH_PROG(PYTHON3, python3)])
+
 if test x$HAVE_PYTHON2_BINDINGS = x1; then
-    AC_PATH_PROG(PYTHON2, python2)
+    AS_IF([test x$HAVE_PYTHON2 != xyes],
+          [AC_MSG_ERROR([
+The program python2 was not found in search path.
+Please ensure that it is installed and its directory is included in the search
+path. It is required for building python2 bindings. If you do not want to build
+them please use argument --without-python2-bindings when running configure.])])
+
     PYTHON=$PYTHON2
     AM_PATH_PYTHON([2.6])
     AM_PYTHON_CONFIG([python2])
@@ -270,7 +284,13 @@ if test x$HAVE_PYTHON2_BINDINGS = x1; then
 fi
 
 if test x$HAVE_PYTHON3_BINDINGS = x1; then
-    AC_PATH_PROG(PYTHON3, python3)
+    AS_IF([test x$HAVE_PYTHON3 != xyes],
+          [AC_MSG_ERROR([
+The program python3 was not found in search path.
+Please ensure that it is installed and its directory is included in the search
+path. It is required for building python3 bindings. If you do not want to build
+them please use argument --without-python3-bindings when running configure.])])
+
     PYTHON=$PYTHON3
     AM_PATH_PYTHON([3.3])
     AM_PYTHON_CONFIG([python3])
