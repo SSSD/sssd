@@ -1534,8 +1534,6 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
 
     if (gpo_map_type == GPO_MAP_PERMIT) {
         ret = EOK;
-        tevent_req_done(req);
-        tevent_req_post(req, ev);
         goto immediately;
     }
 
@@ -1551,8 +1549,6 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
                         "ad_gpo_access_control option were set to enforcing " \
                         "mode.");
             ret = EOK;
-            tevent_req_done(req);
-            tevent_req_post(req, ev);
             goto immediately;
         default:
             ret = EINVAL;
@@ -1592,15 +1588,17 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     }
     tevent_req_set_callback(subreq, ad_gpo_connect_done, req);
 
-    ret = EOK;
+    return req;
 
 immediately:
 
-    if (ret != EOK) {
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
         tevent_req_error(req, ret);
-        tevent_req_post(req, ev);
     }
 
+    tevent_req_post(req, ev);
     return req;
 }
 
