@@ -1140,18 +1140,14 @@ ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom)
     struct sdap_domain *sdom;
     struct ad_id_ctx *subdom_id_ctx;
 
-    if (IS_SUBDOMAIN(dom)) {
-        sdom = sdap_domain_get(ad_ctx->sdap_id_ctx->opts, dom);
-        if (sdom == NULL || sdom->pvt == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "No ID ctx available for [%s].\n",
-                                        dom->name);
-            return NULL;
-        }
-        subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
-        conn = subdom_id_ctx->ldap_ctx;
-    } else {
-        conn = ad_ctx->ldap_ctx;
+    sdom = sdap_domain_get(ad_ctx->sdap_id_ctx->opts, dom);
+    if (sdom == NULL || sdom->pvt == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No ID ctx available for [%s].\n",
+                                    dom->name);
+        return NULL;
     }
+    subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+    conn = subdom_id_ctx->ldap_ctx;
 
     return conn;
 }
