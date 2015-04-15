@@ -384,27 +384,6 @@ ipa_ad_subdom_remove(struct ipa_subdomains_ctx *ctx,
     talloc_zfree(sdom);
 }
 
-const char *get_flat_name_from_subdomain_name(struct be_ctx *be_ctx,
-                                              const char *name)
-{
-    struct ipa_subdomains_ctx *ctx;
-    struct sss_domain_info *dom;
-
-    ctx = talloc_get_type(be_ctx->bet_info[BET_SUBDOMAINS].pvt_bet_data,
-                          struct ipa_subdomains_ctx);
-    if (ctx == NULL) {
-        DEBUG(SSSDBG_TRACE_ALL, "Subdomains are not configured.\n");
-        return NULL;
-    }
-
-    dom = find_domain_by_name(ctx->be_ctx->domain, name, true);
-    if (dom) {
-        return dom->flat_name;
-    }
-
-    return NULL;
-}
-
 static errno_t ipa_ranges_parse_results(TALLOC_CTX *mem_ctx,
                                         char *domain_name,
                                         size_t count,
