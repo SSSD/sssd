@@ -94,6 +94,7 @@ ad_common_test_setup(void **state)
 
     ret = sdap_domain_add(ad_ctx->sdap_id_ctx->opts, test_ctx->dom, &sdom);
     assert_int_equal(ret, EOK);
+    sdom->pvt = ad_ctx;
 
     subdom_ad_ctx = talloc_zero(test_ctx, struct ad_id_ctx);
     assert_non_null(subdom_ad_ctx);
