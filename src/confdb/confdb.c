@@ -760,6 +760,59 @@ static uint32_t confdb_get_min_id(struct sss_domain_info *domain)
     return defval;
 }
 
+static errno_t init_cached_auth_timeout(struct confdb_ctx *cdb,
+                                        struct ldb_message *msg,
+                                        uint32_t *_cached_auth_timeout)
+{
+    int cred_expiration;
+    int id_timeout;
+    errno_t ret;
+    uint32_t cached_auth_timeout;
+
+    ret = get_entry_as_uint32(msg, &cached_auth_timeout,
+                              CONFDB_DOMAIN_CACHED_AUTH_TIMEOUT, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for [%s]\n", CONFDB_DOMAIN_CACHED_AUTH_TIMEOUT);
+        goto done;
+    }
+
+    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_CRED_TIMEOUT, 0, &cred_expiration);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read expiration time of offline credentials.\n");
+        goto done;
+    }
+
+    /* convert from days to seconds */
+    cred_expiration *= 3600 * 24;
+    if (cred_expiration != 0 &&
+        cred_expiration < cached_auth_timeout) {
+        cached_auth_timeout = cred_expiration;
+    }
+
+    /* Set up the PAM identity timeout */
+    ret = confdb_get_int(cdb, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_ID_TIMEOUT, 5,
+                         &id_timeout);
+    if (ret != EOK) goto done;
+
+    if (cached_auth_timeout > id_timeout) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "cached_auth_timeout is greater than pam_id_timeout so be aware "
+              "that back end could be called to handle initgroups.\n");
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_cached_auth_timeout = cached_auth_timeout;
+    }
+    return ret;
+}
+
 static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                       TALLOC_CTX *mem_ctx,
                                       const char *name,
@@ -1274,6 +1327,15 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (ret != EOK || domain->subdomain_refresh_interval == 0) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Invalid value for [%s]\n", CONFDB_DOMAIN_SUBDOMAIN_REFRESH);
+        goto done;
+    }
+
+    ret = init_cached_auth_timeout(cdb, res->msgs[0],
+                                   &domain->cached_auth_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "init_cached_auth_timeout failed: %s:[%d].\n",
+              sss_strerror(ret), ret);
         goto done;
     }
 

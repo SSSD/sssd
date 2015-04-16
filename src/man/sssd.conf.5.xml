@@ -2176,6 +2176,30 @@ pam_account_expired_message = Account expired, please call help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>cached_auth_timeout (int)</term>
+                    <listitem>
+                        <para>
+                            Specifies time in seconds since last successful
+                            online authentication for which user will be
+                            authenticated using cached credentials while
+                            SSSD is in the online mode.
+                        </para>
+                        <para>
+                            Special value 0 implies that this feature is
+                            disabled.
+                        </para>
+                        <para>
+                            Please note that if <quote>cached_auth_timeout</quote>
+                            is longer than <quote>pam_id_timeout</quote> then the
+                            back end could be called to handle
+                            <quote>initgroups.</quote>
+                        </para>
+                        <para>
+                            Default: 0
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 

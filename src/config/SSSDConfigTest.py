@@ -547,7 +547,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'subdomains_provider',
             'realmd_tags',
             'subdomain_refresh_interval',
-            'subdomain_inherit']
+            'subdomain_inherit',
+            'cached_auth_timeout']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -910,7 +911,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'subdomains_provider',
             'realmd_tags',
             'subdomain_refresh_interval',
-            'subdomain_inherit']
+            'subdomain_inherit',
+            'cached_auth_timeout']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")

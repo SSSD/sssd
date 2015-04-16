@@ -60,6 +60,9 @@ struct pam_auth_req {
     bool is_uid_trusted;
     bool check_provider;
     void *data;
+    bool use_cached_auth;
+    /* whether cached authentication was tried and failed */
+    bool cached_auth_failed;
 
     struct pam_auth_dp_req *dpreq_spy;
 };

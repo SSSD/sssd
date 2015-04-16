@@ -188,6 +188,7 @@
 #define CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL "refresh_expired_interval"
 #define CONFDB_DOMAIN_OFFLINE_TIMEOUT "offline_timeout"
 #define CONFDB_DOMAIN_SUBDOMAIN_INHERIT "subdomain_inherit"
+#define CONFDB_DOMAIN_CACHED_AUTH_TIMEOUT "cached_auth_timeout"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -248,6 +249,7 @@ struct sss_domain_info {
 
     uint32_t refresh_expired_interval;
     uint32_t subdomain_refresh_interval;
+    uint32_t cached_auth_timeout;
 
     int pwd_expiration_warning;
 

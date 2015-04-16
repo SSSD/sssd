@@ -45,6 +45,10 @@ enum pam_verbosity {
 static errno_t
 pam_null_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                           const char *username);
+static errno_t
+pam_get_last_online_auth_with_curr_token(struct sss_domain_info *domain,
+                                         const char *name,
+                                         uint64_t *_value);
 static void pam_reply(struct pam_auth_req *preq);
 
 static errno_t pack_user_info_account_expired(TALLOC_CTX *mem_ctx,
@@ -568,7 +572,7 @@ static errno_t get_password_for_cache_auth(struct sss_auth_token *authtok,
 
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd);
 static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
-                                    time_t expire_date, time_t delayed_until);
+                                    time_t expire_date, time_t delayed_until, bool cached_auth);
 
 static void pam_reply(struct pam_auth_req *preq)
 {
@@ -606,14 +610,21 @@ static void pam_reply(struct pam_auth_req *preq)
     DEBUG(SSSDBG_FUNC_DATA,
           "pam_reply called with result [%d]: %s.\n",
           pd->pam_status, pam_strerror(NULL, pd->pam_status));
+    if (pd->pam_status == PAM_AUTHINFO_UNAVAIL || preq->use_cached_auth) {
 
-    if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
         switch(pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
             if ((preq->domain != NULL) &&
                 (preq->domain->cache_credentials == true) &&
                 (pd->offline_auth == false)) {
                 const char *password = NULL;
+                bool use_cached_auth;
+
+                /* backup value of preq->use_cached_auth*/
+                use_cached_auth = preq->use_cached_auth;
+                /* set to false to avoid entering this branch when pam_reply()
+                 * is recursively called from pam_handle_cached_login() */
+                preq->use_cached_auth = false;
 
                 /* do auth with offline credentials */
                 pd->offline_auth = true;
@@ -637,7 +648,8 @@ static void pam_reply(struct pam_auth_req *preq)
                                        pctx->rctx->cdb, false,
                                        &exp_date, &delay_until);
 
-                pam_handle_cached_login(preq, ret, exp_date, delay_until);
+                pam_handle_cached_login(preq, ret, exp_date, delay_until,
+                                        use_cached_auth);
                 return;
             }
             break;
@@ -805,8 +817,11 @@ done:
     sss_cmd_done(cctx, preq);
 }
 
+static void pam_dom_forwarder(struct pam_auth_req *preq);
+
 static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
-                                    time_t expire_date, time_t delayed_until)
+                                    time_t expire_date, time_t delayed_until,
+                                    bool use_cached_auth)
 {
     uint32_t resp_type;
     size_t resp_len;
@@ -855,6 +870,18 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
                 }
             }
             break;
+        case PAM_AUTH_ERR:
+            /* Was this attempt to authenticate from cache? */
+            if (use_cached_auth) {
+                /* Don't try cached authentication again, try online check. */
+                DEBUG(SSSDBG_FUNC_DATA,
+                      "Cached authentication failed for: %s\n",
+                      preq->pd->user);
+                preq->cached_auth_failed = true;
+                pam_dom_forwarder(preq);
+                return;
+            }
+            break;
         default:
             DEBUG(SSSDBG_TRACE_LIBS,
                   "cached login returned: %d\n", preq->pd->pam_status);
@@ -869,7 +896,6 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                                        const char *err_msg, void *ptr);
 static int pam_check_user_search(struct pam_auth_req *preq);
 static int pam_check_user_done(struct pam_auth_req *preq, int ret);
-static void pam_dom_forwarder(struct pam_auth_req *preq);
 
 /* TODO: we should probably return some sort of cookie that is set in the
  * PAM_ENVIRONMENT, so that we can save performing some calls and cache
@@ -1423,6 +1449,76 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 }
 
+static errno_t pam_is_last_online_login_fresh(struct sss_domain_info *domain,
+                                              const char* user,
+                                              struct confdb_ctx *cdb,
+                                              int cached_auth_timeout,
+                                              bool *_result)
+{
+    errno_t ret;
+    bool result;
+    uint64_t last_login;
+
+    ret = pam_get_last_online_auth_with_curr_token(domain, user, &last_login);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sysdb_get_last_online_auth_with_curr_token failed: %s:[%d]\n",
+              sss_strerror(ret), ret);
+        goto done;
+    }
+
+    result = time(NULL) < (last_login + cached_auth_timeout);
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_result = result;
+    }
+    return ret;
+}
+
+static bool pam_is_cmd_cachable(int cmd)
+{
+    bool is_cachable;
+
+    switch(cmd) {
+    case SSS_PAM_AUTHENTICATE:
+        is_cachable = true;
+        break;
+    default:
+        is_cachable = false;
+    }
+
+    return is_cachable;
+}
+
+static bool pam_can_user_cache_auth(struct confdb_ctx *cdb,
+                                    struct sss_domain_info *domain,
+                                    int pam_cmd, const char* user,
+                                    bool cached_auth_failed)
+{
+    errno_t ret;
+    bool result = false;
+
+    if (!cached_auth_failed /* don't try cached auth again */
+            && domain->cache_credentials
+            && domain->cached_auth_timeout > 0
+            && pam_is_cmd_cachable(pam_cmd)) {
+
+        ret = pam_is_last_online_login_fresh(domain, user, cdb,
+                                             domain->cached_auth_timeout,
+                                             &result);
+        if (ret != EOK) {
+            /* non-critical, consider fail as 'non-fresh value' */
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "pam_is_last_online_login_fresh failed: %s:[%d]\n",
+                  sss_strerror(ret), ret);
+        }
+    }
+
+    return result;
+}
+
 static void pam_dom_forwarder(struct pam_auth_req *preq)
 {
     int ret;
@@ -1454,7 +1550,17 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         return;
     }
 
-    if (!NEED_CHECK_PROVIDER(preq->domain->provider)) {
+    if (pam_can_user_cache_auth(pctx->rctx->cdb,
+                                preq->domain,
+                                preq->pd->cmd,
+                                preq->pd->user,
+                                preq->cached_auth_failed)) {
+        preq->use_cached_auth = true;
+        pam_reply(preq);
+        return;
+    }
+
+    if (!NEED_CHECK_PROVIDER(preq->domain->provider) ) {
         preq->callback = pam_reply;
         ret = LOCAL_pam_handler(preq);
     }
@@ -1584,4 +1690,56 @@ pam_null_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                           const char *username)
 {
     return pam_set_last_online_auth_with_curr_token(domain, username, 0);
+}
+
+static errno_t
+pam_get_last_online_auth_with_curr_token(struct sss_domain_info *domain,
+                                         const char *name,
+                                         uint64_t *_value)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *attrs[] = { SYSDB_LAST_ONLINE_AUTH_WITH_CURR_TOKEN, NULL };
+    struct ldb_message *ldb_msg;
+    uint64_t value;
+    errno_t ret;
+
+    if (name == NULL || *name == '\0') {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing user name.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (domain->sysdb == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing sysdb db context.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_user_by_name(tmp_ctx, domain, name, attrs, &ldb_msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sysdb_search_user_by_name failed [%d][%s].\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    /* Check offline_auth_cache_timeout */
+    value = ldb_msg_find_attr_as_uint64(ldb_msg,
+                                        SYSDB_LAST_ONLINE_AUTH_WITH_CURR_TOKEN,
+                                        0);
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_value = value;
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
 }
