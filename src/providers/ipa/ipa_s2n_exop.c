@@ -1724,6 +1724,8 @@ static errno_t get_groups_dns(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
             ret = ENOMEM;
             goto done;
         }
+
+        DEBUG(SSSDBG_TRACE_ALL, "Added [%s][%s].\n", name_list[c], dn_list[c]);
     }
 
     *_dn_list = talloc_steal(mem_ctx, dn_list);

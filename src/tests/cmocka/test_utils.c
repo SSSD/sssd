@@ -1063,6 +1063,7 @@ void test_fix_domain_in_name_list(void **state)
     sd->name = talloc_strdup(sd, "TesT.CasE.DoM");
     assert_non_null(sd->name);
     sd->names = dom->names;
+    sd->fqnames = true;
     DLIST_ADD(dom->subdomains, sd);
     sd->parent = dom;
 
