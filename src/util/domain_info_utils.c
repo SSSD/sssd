@@ -830,7 +830,7 @@ errno_t fix_domain_in_name_list(TALLOC_CTX *mem_ctx,
                 goto done;
             }
 
-            out[c] = sss_tc_fqname(out, head->names, out_domain, in_name);
+            out[c] = sss_get_domain_name(out, in_name, out_domain);
         }
 
         if (out[c] == NULL) {
