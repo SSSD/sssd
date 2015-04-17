@@ -205,7 +205,6 @@ static int entry_has_objectclass(struct ldb_message *entry,
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    /* see if this is a user */
     for (i = 0; i < el->num_values; i++) {
         val = &(el->values[i]);
         if (strncasecmp(objectclass, (char *)val->data, val->length) == 0) {
