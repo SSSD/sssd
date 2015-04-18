@@ -588,6 +588,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/libsss_child.so
 %{_libdir}/%{name}/libsss_crypt.so
 %{_libdir}/%{name}/libsss_debug.so
+%{_libdir}/%{name}/libsss_krb5_common.so
 %{_libdir}/%{name}/libsss_ldap_common.so
 %{_libdir}/%{name}/libsss_util.so
 %{_libdir}/%{name}/libsss_semanage.so
@@ -645,7 +646,6 @@ rm -rf $RPM_BUILD_ROOT
 %files krb5-common
 %defattr(-,root,root,-)
 %doc COPYING
-%{_libdir}/%{name}/libsss_krb5_common.so
 %attr(4750,root,sssd) %{_libexecdir}/%{servicename}/ldap_child
 %attr(4750,root,sssd) %{_libexecdir}/%{servicename}/krb5_child
 
