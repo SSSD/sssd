@@ -395,6 +395,8 @@ struct simple_check_groups_state {
 
     const char **group_names;
     size_t num_names;
+
+    bool failed_to_resolve_groups;
 };
 
 static void simple_check_get_groups_next(struct tevent_req *subreq);
@@ -430,6 +432,7 @@ simple_check_get_groups_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->ctx = ctx;
+    state->failed_to_resolve_groups = false;
 
     DEBUG(SSSDBG_TRACE_LIBS, "Looking up groups for user %s\n", username);
 
@@ -548,11 +551,10 @@ static void simple_check_get_groups_next(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not resolve name of group with GID %"SPRIgid"\n",
               state->lookup_groups[state->giter].gid);
-        tevent_req_error(req, ret);
-        return;
+        state->failed_to_resolve_groups = true;
+    } else {
+        state->num_names++;
     }
-
-    state->num_names++;
     state->giter++;
 
     if (state->giter < state->num_groups) {
@@ -686,6 +688,9 @@ simple_check_get_groups_recv(struct tevent_req *req,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *_group_names = talloc_steal(mem_ctx, state->group_names);
+    if (state->failed_to_resolve_groups) {
+        return ERR_SIMPLE_GROUPS_MISSING;
+    }
     return EOK;
 }
 
@@ -775,12 +780,25 @@ static void simple_access_check_done(struct tevent_req *subreq)
 
     /* We know the names now. Run the check. */
     ret = simple_check_get_groups_recv(subreq, state, &state->group_names);
+
     talloc_zfree(subreq);
     if (ret == ENOENT) {
         /* If the user wasn't found, just shortcut */
         state->access_granted = false;
         tevent_req_done(req);
         return;
+    } else if (ret == ERR_SIMPLE_GROUPS_MISSING) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not collect groups of user %s\n", state->username);
+        if (state->ctx->deny_groups == NULL) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "But no deny groups were defined so we can continue.\n");
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Some deny groups were defined, we can't continue\n");
+            tevent_req_error(req, ret);
+            return;
+        }
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not collect groups of user %s\n", state->username);

@@ -94,6 +94,7 @@ enum sssd_errors {
     ERR_INVALID_CONFIG,
     ERR_MALFORMED_ENTRY,
     ERR_UNEXPECTED_ENTRY_TYPE,
+    ERR_SIMPLE_GROUPS_MISSING,
     ERR_LAST            /* ALWAYS LAST */
 };
 

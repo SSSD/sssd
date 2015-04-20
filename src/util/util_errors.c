@@ -72,6 +72,7 @@ struct err_string error_to_str[] = {
     { "Invalid SSSD configuration detected." }, /* ERR_INVALID_CONFIG */
     { "Malformed cache entry" }, /* ERR_MALFORMED_ENTRY */
     { "Unexpected cache entry type" }, /* ERR_UNEXPECTED_ENTRY_TYPE */
+    { "Failed to resolve one of user groups." }, /* ERR_SIMPLE_GROUPS_MISSING */
     { "ERR_LAST" } /* ERR_LAST */
 };
 
