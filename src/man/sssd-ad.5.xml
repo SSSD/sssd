@@ -324,8 +324,11 @@ FOREST:EXAMPLE.COM:(memberOf=cn=admins,ou=groups,dc=example,dc=com)
                                 </listitem>
                             </itemizedlist>
                         </para>
-                        <para>
+                        <para condition="gpo_default_permissive">
                             Default: permissive
+                        </para>
+                        <para condition="gpo_default_enforcing">
+                            Default: enforcing
                         </para>
                     </listitem>
                 </varlistentry>

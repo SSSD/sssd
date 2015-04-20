@@ -24,7 +24,12 @@ endif
 if BUILD_IFP
 IFP_CONDS = ;with_ifp
 endif
-CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)
+if GPO_DEFAULT_ENFORCING
+GPO_CONDS = ;gpo_default_enforcing
+else
+GPO_CONDS = ;gpo_default_permissive
+endif
+CONDS = with_false$(SUDO_CONDS)$(AUTOFS_CONDS)$(SSH_CONDS)$(PAC_RESPONDER_CONDS)$(IFP_CONDS)$(GPO_CONDS)
 
 
 #Special Rules:

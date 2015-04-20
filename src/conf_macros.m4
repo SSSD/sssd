@@ -792,3 +792,25 @@ AC_DEFUN([WITH_SSSD_USER],
     AC_DEFINE_UNQUOTED(SSSD_USER, "$SSSD_USER", ["The default user to run SSSD as"])
     AM_CONDITIONAL([SSSD_USER], [test x"$with_sssd_user" != x])
   ])
+
+  AC_DEFUN([WITH_AD_GPO_DEFAULT],
+    [ AC_ARG_WITH([ad-gpo-default],
+                  [AS_HELP_STRING([--with-ad-gpo-default=[enforcing|permissive]],
+                                  [Default enforcing level for AD GPO access-control (enforcing)]
+                                 )
+                  ]
+                 )
+      GPO_DEFAULT=enforcing
+
+      if test x"$with_ad_gpo_default" != x; then
+          if test ! "$with_ad_gpo_default" = "enforcing" -a ! "$with_ad_gpo_default" = "permissive"; then
+              AC_MSG_ERROR("GPO Default must be either "enforcing" or "permissive")
+          else
+              GPO_DEFAULT=$with_ad_gpo_default
+          fi
+      fi
+
+      AC_SUBST(GPO_DEFAULT)
+      AC_DEFINE_UNQUOTED(AD_GPO_ACCESS_MODE_DEFAULT, "$GPO_DEFAULT", ["The default enforcing level for AD GPO access-control"])
+      AM_CONDITIONAL([GPO_DEFAULT_ENFORCING], [test x"$GPO_DEFAULT" = xenforcing])
+  ])

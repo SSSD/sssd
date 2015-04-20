@@ -27,6 +27,7 @@
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
 #include "providers/ldap/ldap_common.h"
+#include "config.h"
 
 struct dp_option ad_basic_opts[] = {
     { "ad_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -38,7 +39,7 @@ struct dp_option ad_basic_opts[] = {
     { "ad_enable_dns_sites", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ad_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ad_enable_gc", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
-    { "ad_gpo_access_control", DP_OPT_STRING, { "permissive" }, NULL_STRING },
+    { "ad_gpo_access_control", DP_OPT_STRING, { AD_GPO_ACCESS_MODE_DEFAULT }, NULL_STRING },
     { "ad_gpo_cache_timeout", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
     { "ad_gpo_map_interactive", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ad_gpo_map_remote_interactive", DP_OPT_STRING, NULL_STRING, NULL_STRING },
