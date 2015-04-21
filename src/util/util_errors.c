@@ -97,6 +97,7 @@ struct err_string error_to_str[] = {
     { "No timestamp cache record" }, /* ERR_TS_CACHE_MISS */
     { "Dereference threshold reached" }, /* ERR_DEREF_THRESHOLD */
     { "The user is not handled by SSSD" }, /* ERR_NON_SSSD_USER */
+    { "The internal name format cannot be parsed" }, /* ERR_WRONG_NAME_FORMAT */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

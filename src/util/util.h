@@ -272,6 +272,12 @@ char *
 sss_get_domain_name(TALLOC_CTX *mem_ctx, const char *orig_name,
                     struct sss_domain_info *dom);
 
+/* Accepts fqname in the format shortname@domname only. */
+errno_t sss_parse_internal_fqname(TALLOC_CTX *mem_ctx,
+                                  const char *fqname,
+                                  char **_shortname,
+                                  char **_dom_name);
+
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 
