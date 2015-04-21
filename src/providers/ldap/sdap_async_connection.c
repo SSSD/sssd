@@ -1235,6 +1235,7 @@ static void sdap_kinit_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_OP_FAILURE,
                   "Unable to set env. variable KRB5CCNAME!\n");
             tevent_req_error(req, ERR_AUTH_FAILED);
+            return;
         }
 
         state->expire_time = expire_time;
