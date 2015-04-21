@@ -278,6 +278,12 @@ errno_t sss_parse_internal_fqname(TALLOC_CTX *mem_ctx,
                                   char **_shortname,
                                   char **_dom_name);
 
+/* Creates internal fqname in format shortname@domname.
+ * The domain portion is lowercased. */
+char *sss_create_internal_fqname(TALLOC_CTX *mem_ctx,
+                                 const char *shortname,
+                                 const char *dom_name);
+
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 

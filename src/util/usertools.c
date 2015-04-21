@@ -772,3 +772,28 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+/* Creates internal fqname in format shortname@domname.
+ * The domain portion is lowercased. */
+char *sss_create_internal_fqname(TALLOC_CTX *mem_ctx,
+                                 const char *shortname,
+                                 const char *dom_name)
+{
+    char *lc_dom_name;
+    char *fqname = NULL;
+
+    if (shortname == NULL || dom_name == NULL) {
+        /* Avoid allocating null@null */
+        return NULL;
+    }
+
+    lc_dom_name = sss_tc_utf8_str_tolower(mem_ctx, dom_name);
+    if (lc_dom_name == NULL) {
+        goto done;
+    }
+
+    fqname = talloc_asprintf(mem_ctx, "%s@%s", shortname, lc_dom_name);
+    talloc_free(lc_dom_name);
+done:
+    return fqname;
+}
