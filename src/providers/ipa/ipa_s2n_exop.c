@@ -2164,11 +2164,16 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
         goto done;
     }
 
-    ret = sysdb_store_override(dom, view_name, type, override_attrs,
-                               res->msgs[0]->dn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_override failed.\n");
-        goto done;
+    if (strcmp(view_name, SYSDB_DEFAULT_VIEW_NAME) != 0) {
+        /* For the default view the data return by the extdom plugin already
+         * contains all needed data and it is not expected to have a separate
+         * override object. */
+        ret = sysdb_store_override(dom, view_name, type, override_attrs,
+                                   res->msgs[0]->dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_override failed.\n");
+            goto done;
+        }
     }
 
 done:
