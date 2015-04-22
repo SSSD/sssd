@@ -2716,6 +2716,8 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
 
     if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
         search_attr =  state->opts->user_map[SDAP_AT_USER_PRINC].name;
+    } else if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_SID) == 0) {
+        search_attr =  state->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
     } else {
         search_attr =  state->opts->user_map[SDAP_AT_USER_NAME].name;
     }

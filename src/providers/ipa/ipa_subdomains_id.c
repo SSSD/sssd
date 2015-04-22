@@ -201,6 +201,7 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
     }
 
     if (state->override_attrs != NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Processing override.\n");
         ret = sysdb_attrs_get_string(state->override_attrs,
                                      SYSDB_OVERRIDE_ANCHOR_UUID,
                                      &anchor);
@@ -218,6 +219,16 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
                 goto fail;
+            }
+
+            if (state->ipa_server_mode
+                    && (state->ar->entry_type & BE_REQ_TYPE_MASK)
+                                                         == BE_REQ_INITGROUPS) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Switching back to BE_REQ_INITGROUPS.\n");
+                ar->entry_type = BE_REQ_INITGROUPS;
+                ar->filter_type = BE_FILTER_SECID;
+                ar->attr_type = BE_ATTR_CORE;
             }
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1125,6 +1136,8 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
 
     /* Replace ID with name in search filter */
     if ((entry_type == BE_REQ_USER && state->ar->filter_type == BE_FILTER_IDNUM)
+            || (entry_type == BE_REQ_INITGROUPS
+                    && state->ar->filter_type == BE_FILTER_SECID)
             || entry_type == BE_REQ_BY_SECID) {
         if (state->obj_msg == NULL) {
             ret = get_object_from_cache(state, state->obj_dom, state->ar,
