@@ -1392,7 +1392,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         break;
 
     case BE_REQ_INITGROUPS: /* init groups for user */
-        if (ar->filter_type != BE_FILTER_NAME) {
+        if (ar->filter_type != BE_FILTER_NAME
+                && ar->filter_type != BE_FILTER_SECID) {
             ret = EINVAL;
             state->err = "Invalid filter type";
             goto done;
@@ -1402,11 +1403,21 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             state->err = "Invalid attr type";
             goto done;
         }
+        if (ar->filter_type == BE_FILTER_SECID && ar->extra_value != NULL
+                && strcmp(ar->extra_value, EXTRA_NAME_IS_SID) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unexpected extra value [%s] for BE_FILTER_SECID.\n",
+                  ar->extra_value);
+            ret = EINVAL;
+            state->err = "Invalid extra value";
+            goto done;
+        }
 
         subreq = groups_by_user_send(state, be_ctx->ev, id_ctx,
                                      sdom, conn,
                                      ar->filter_value,
-                                     ar->extra_value,
+                                     (ar->filter_type == BE_FILTER_SECID)
+                                        ? EXTRA_NAME_IS_SID : ar->extra_value,
                                      noexist_delete);
         break;
 

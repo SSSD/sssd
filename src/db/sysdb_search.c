@@ -1581,7 +1581,7 @@ done:
 
 errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
                             struct sss_domain_info *domain,
-                            const char *name_or_upn,
+                            const char *name_or_upn_or_sid,
                             const char **_cname)
 {
     errno_t ret;
@@ -1595,20 +1595,28 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_getpwnam(tmp_ctx, domain, name_or_upn, &res);
+    ret = sysdb_getpwnam(tmp_ctx, domain, name_or_upn_or_sid, &res);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot canonicalize username\n");
         goto done;
     }
 
     if (res->count == 0) {
-        ret = sysdb_search_user_by_upn(tmp_ctx, domain, name_or_upn, NULL,
-                                       &msg);
+        ret = sysdb_search_user_by_upn(tmp_ctx, domain, name_or_upn_or_sid,
+                                       NULL, &msg);
         if (ret != EOK) {
-            /* User cannot be found in cache */
-            DEBUG(SSSDBG_OP_FAILURE, "Cannot find user [%s] in cache\n",
-                                     name_or_upn);
-            goto done;
+            if (ret == ENOENT) {
+                ret = sysdb_search_user_by_sid_str(tmp_ctx, domain,
+                                                   name_or_upn_or_sid, NULL,
+                                                   &msg);
+            }
+
+            if (ret != EOK) {
+                /* User cannot be found in cache */
+                DEBUG(SSSDBG_OP_FAILURE, "Cannot find user [%s] in cache\n",
+                                         name_or_upn_or_sid);
+                goto done;
+            }
         }
     } else if (res->count == 1) {
         msg = res->msgs[0];
