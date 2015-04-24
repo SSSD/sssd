@@ -68,3 +68,52 @@ AC_DEFUN([SSS_CLEAN_PYTHON_VARIABLES],
     unset am_cv_python_platform am_cv_python_pythondir am_cv_python_pyexecdir
     unset ac_cv_path_PYTHON_CONFIG
 ])
+
+dnl ===========================================================================
+dnl     http://www.gnu.org/software/autoconf-archive/ax_python_module.html
+dnl ===========================================================================
+dnl
+dnl SYNOPSIS
+dnl
+dnl   AM_PYTHON2_MODULE(modname[, fatal])
+dnl
+dnl DESCRIPTION
+dnl
+dnl   Checks for Python 2 module.
+dnl
+dnl   If fatal is non-empty then absence of a module will trigger an error.
+dnl
+dnl LICENSE
+dnl
+dnl   Copyright (c) 2008 Andrew Collier
+dnl
+dnl   Copying and distribution of this file, with or without modification, are
+dnl   permitted in any medium without royalty provided the copyright notice
+dnl   and this notice are preserved. This file is offered as-is, without any
+dnl   warranty.
+AC_DEFUN([AM_PYTHON2_MODULE],[
+    if test x"$PYTHON2" = x; then
+        if test -n "$2"; then
+            AC_MSG_ERROR([cannot look for $1 module: Python 2 not found])
+        else
+            AC_MSG_NOTICE([cannot look for $1 module: Python 2 not found])
+            eval AS_TR_CPP(HAVE_PY2MOD_$1)=no
+        fi
+    else
+        AC_MSG_CHECKING($(basename $PYTHON2) module: $1)
+        $PYTHON2 -c "import $1" 2>/dev/null
+        if test $? -eq 0; then
+            AC_MSG_RESULT(yes)
+            eval AS_TR_CPP(HAVE_PY2MOD_$1)=yes
+        else
+            AC_MSG_RESULT(no)
+            eval AS_TR_CPP(HAVE_PY2MOD_$1)=no
+            #
+            if test -n "$2"
+            then
+                AC_MSG_ERROR(failed to find required module $1)
+                exit 1
+            fi
+        fi
+    fi
+])
