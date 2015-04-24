@@ -789,10 +789,21 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         goto fail;
     }
 
+    class = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_OBJECTCLASS,
+                                        NULL);
+    if (class == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find an objectclass.\n");
+        ret = EINVAL;
+        goto fail;
+    }
+
+
     if (state->ipa_ctx->view_name != NULL &&
             strcmp(state->ipa_ctx->view_name, SYSDB_DEFAULT_VIEW_NAME) != 0) {
 
-        if ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_GROUP) {
+        if ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_GROUP
+                || ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_BY_UUID
+                        && strcmp(class, SYSDB_GROUP_CLASS) == 0)) {
             /* check for ghost members because ghost members are not allowed
              * if a view other than the default view is applied.*/
             state->ghosts = ldb_msg_find_element(state->obj_msg, SYSDB_GHOST);
@@ -840,14 +851,6 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
         tevent_req_set_callback(subreq, ipa_id_get_account_info_done, req);
         return;
     } else {
-        class = ldb_msg_find_attr_as_string(state->obj_msg, SYSDB_OBJECTCLASS,
-                                            NULL);
-        if (class == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot find an objectclass.\n");
-            ret = EINVAL;
-            goto fail;
-        }
-
         if (strcmp(class, SYSDB_USER_CLASS) == 0) {
             type = SYSDB_MEMBER_USER;
         } else {
