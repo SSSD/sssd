@@ -386,14 +386,8 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
         case BE_REQ_GROUP:
         case BE_REQ_BY_SECID:
         case BE_REQ_USER_AND_GROUP:
-            ret = EOK;
-            break;
         case BE_REQ_INITGROUPS:
-            ret = ENOTSUP;
-            DEBUG(SSSDBG_TRACE_FUNC, "Initgroups requests are not handled " \
-                                      "by the IPA provider but are resolved " \
-                                      "by the responder directly from the " \
-                                      "cache.\n");
+            ret = EOK;
             break;
         default:
             ret = EINVAL;
@@ -432,6 +426,22 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
         state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
+    }
+
+    if (state->entry_type == BE_REQ_INITGROUPS) {
+        /* With V1 of the extdom plugin a user lookup will resolve the full
+         * group membership of the user. */
+        if (sdap_is_extension_supported(sdap_id_op_handle(state->op),
+                                        EXOP_SID2NAME_V1_OID)) {
+            state->entry_type = BE_REQ_USER;
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC, "Initgroups requests are not handled " \
+                                      "by the IPA provider but are resolved " \
+                                      "by the responder directly from the " \
+                                      "cache.\n");
+            tevent_req_error(req, ENOTSUP);
+            return;
+        }
     }
 
     req_input = talloc(state, struct req_input);
