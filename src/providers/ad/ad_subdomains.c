@@ -183,6 +183,10 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
         return EFAULT;
     }
 
+    sdap_inherit_options(subdom->parent->sd_inherit,
+                         id_ctx->sdap_id_ctx->opts,
+                         ad_id_ctx->sdap_id_ctx->opts);
+
     /* Set up the ID mapping object */
     ad_id_ctx->sdap_id_ctx->opts->idmap_ctx =
         id_ctx->sdap_id_ctx->opts->idmap_ctx;

@@ -491,6 +491,10 @@ int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
                               struct sdap_attr_map **_map,
                               size_t *_new_size);
 
+void sdap_inherit_options(char **inherit_opt_list,
+                          struct sdap_options *parent_sdap_opts,
+                          struct sdap_options *child_sdap_opts);
+
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,

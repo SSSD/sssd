@@ -243,6 +243,64 @@ int sdap_extend_map_with_list(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static void sdap_inherit_basic_options(char **inherit_opt_list,
+                                       struct dp_option *parent_opts,
+                                       struct dp_option *subdom_opts)
+{
+    int inherit_options[] = {
+        SDAP_CACHE_PURGE_TIMEOUT,
+        SDAP_AD_USE_TOKENGROUPS,
+        SDAP_OPTS_BASIC     /* sentinel */
+    };
+    int i;
+
+    for (i = 0; inherit_options[i] != SDAP_OPTS_BASIC; i++) {
+        dp_option_inherit(inherit_opt_list,
+                          inherit_options[i],
+                          parent_opts,
+                          subdom_opts);
+    }
+}
+
+static void sdap_inherit_user_options(char **inherit_opt_list,
+                                      struct sdap_attr_map *parent_user_map,
+                                      struct sdap_attr_map *child_user_map)
+{
+    int inherit_options[] = {
+        SDAP_AT_USER_PRINC,
+        SDAP_OPTS_USER          /* sentinel */
+    };
+    int i;
+    int opt_index;
+    bool inherit_option;
+
+    for (i = 0; inherit_options[i] != SDAP_OPTS_USER; i++) {
+        opt_index = inherit_options[i];
+
+        inherit_option = string_in_list(parent_user_map[opt_index].opt_name,
+                                        inherit_opt_list,
+                                        false);
+        if (inherit_option == false) {
+            continue;
+        }
+
+        sdap_copy_map_entry(parent_user_map, child_user_map, opt_index);
+    }
+}
+
+void sdap_inherit_options(char **inherit_opt_list,
+                          struct sdap_options *parent_sdap_opts,
+                          struct sdap_options *child_sdap_opts)
+{
+    sdap_inherit_basic_options(inherit_opt_list,
+                               parent_sdap_opts->basic,
+                               child_sdap_opts->basic);
+
+    sdap_inherit_user_options(inherit_opt_list,
+                              parent_sdap_opts->user_map,
+                              child_sdap_opts->user_map);
+}
+
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,
