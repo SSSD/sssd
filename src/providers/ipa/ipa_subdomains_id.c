@@ -569,6 +569,8 @@ struct ipa_get_ad_acct_state {
 static void ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq);
 static void ipa_get_ad_override_done(struct tevent_req *subreq);
 static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req);
+static errno_t ipa_get_ad_ipa_membership_step(struct tevent_req *req);
+static void ipa_id_get_groups_overrides_done(struct tevent_req *subreq);
 static void ipa_get_ad_acct_done(struct tevent_req *subreq);
 static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
                                            struct sss_domain_info *dom);
@@ -1123,6 +1125,9 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
     struct tevent_req *subreq;
     const char *obj_name;
     int entry_type;
+    size_t groups_count = 0;
+    struct ldb_message **groups = NULL;
+    const char *attrs[] = SYSDB_INITGR_ATTRS;
 
     if (state->override_attrs != NULL) {
         /* We are in ipa-server-mode, so the view is the default view by
@@ -1179,6 +1184,70 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
         state->ar->entry_type = BE_REQ_USER;
     }
 
+    /* Lookup all groups the user is a member of which do not have ORIGINALAD
+     * attributes set, i.e. where overrides might not have been applied. */
+    ret = sysdb_asq_search(state, state->obj_dom, state->obj_msg->dn,
+                          "(&("SYSDB_GC")("SYSDB_GIDNUM"=*)" \
+                            "(!("ORIGINALAD_PREFIX SYSDB_GIDNUM"=*))" \
+                            "(!("ORIGINALAD_PREFIX SYSDB_NAME"=*)))",
+                          SYSDB_INITGR_ATTR,
+                          attrs, &groups_count, &groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_groups_without_orig failed.\n");
+        return ret;
+    }
+
+    if (groups != NULL) {
+        subreq = ipa_initgr_get_overrides_send(state, state->ev, state->ipa_ctx,
+                                               state->obj_dom, groups_count,
+                                               groups, SYSDB_SID_STR);
+        if (subreq == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "ipa_initgr_get_overrides_send failed.\n");
+            return ENOMEM;
+        }
+        tevent_req_set_callback(subreq, ipa_id_get_groups_overrides_done, req);
+        return EOK;
+    }
+
+    ret = ipa_get_ad_ipa_membership_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_ipa_membership_step failed.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+static void ipa_id_get_groups_overrides_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    errno_t ret;
+
+    ret = ipa_initgr_get_overrides_recv(subreq, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "IPA resolve user groups overrides failed [%d].\n", ret);
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = ipa_get_ad_ipa_membership_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_ad_ipa_membership_step failed.\n");
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    return;
+}
+
+static errno_t ipa_get_ad_ipa_membership_step(struct tevent_req *req)
+{
+    struct ipa_get_ad_acct_state *state = tevent_req_data(req,
+                                                struct ipa_get_ad_acct_state);
+    struct tevent_req *subreq;
 
     /* For initgroups request we have to check IPA group memberships of AD
      * users. This has to be done for other user-request as well to make sure
