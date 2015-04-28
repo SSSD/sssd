@@ -206,6 +206,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *forest)
 {
     struct sss_domain_info *dom;
+    bool inherit_option;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Creating [%s] as subdomain of [%s]!\n", name, parent->name);
@@ -281,6 +282,14 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
     dom->enumerate = enumerate;
     dom->fqnames = true;
     dom->mpg = mpg;
+    /* If the parent domain filters out group members, the subdomain should
+     * as well if configured */
+    inherit_option = string_in_list(CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS,
+                                    parent->sd_inherit, false);
+    if (inherit_option) {
+        dom->ignore_group_members = parent->ignore_group_members;
+    }
+
     /* If the parent domain explicitly limits ID ranges, the subdomain
      * should honour the limits as well.
      */
