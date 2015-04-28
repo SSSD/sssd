@@ -739,6 +739,11 @@ errno_t sysdb_apply_default_override(struct sss_domain_info *domain,
                                     NULL };
     bool override_attrs_found = false;
 
+    if (override_attrs == NULL) {
+        /* nothing to do */
+        return EOK;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");

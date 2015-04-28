@@ -119,4 +119,14 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *dom,
                               struct be_acct_req *ar,
                               struct ldb_message **_msg);
+
+struct tevent_req *
+ipa_initgr_get_overrides_send(TALLOC_CTX *memctx,
+                             struct tevent_context *ev,
+                             struct ipa_id_ctx *ipa_ctx,
+                             struct sss_domain_info *user_dom,
+                             size_t groups_count,
+                             struct ldb_message **groups,
+                             const char *groups_id_attr);
+int ipa_initgr_get_overrides_recv(struct tevent_req *req, int *dp_error);
 #endif
