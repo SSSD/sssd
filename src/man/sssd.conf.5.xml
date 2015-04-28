@@ -486,6 +486,10 @@
                             Specifies a list of configuration parameters that
                             should be inherited by a subdomain. Please note
                             that only selected parameters can be inherited.
+                            Currently the following options can be inherited:
+                        </para>
+                        <para>
+                            ignore_group_members
                         </para>
                         <para>
                             Example:
