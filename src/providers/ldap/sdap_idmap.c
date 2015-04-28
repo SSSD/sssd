@@ -288,6 +288,13 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
 
         sid_str = dp_opt_get_string(idmap_ctx->id_ctx->opts->basic, SDAP_IDMAP_DEFAULT_DOMAIN_SID);
         if (sid_str) {
+            struct sss_domain_info *domain = idmap_ctx->id_ctx->be->domain;
+            domain->domain_id = talloc_strdup(domain, sid_str);
+            if (domain->domain_id == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+
             /* Set the default domain as slice 0 */
             ret = sdap_idmap_add_domain(idmap_ctx, dom_name,
                                         sid_str, 0);
