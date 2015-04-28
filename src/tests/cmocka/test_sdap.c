@@ -795,6 +795,152 @@ static void test_sdap_copy_map_entry_null_name(void **state)
     assert_null(uuid_val);
 }
 
+struct test_sdap_inherit_ctx {
+    struct sdap_options *parent_sdap_opts;
+    struct sdap_options *child_sdap_opts;
+};
+
+struct sdap_options *mock_sdap_opts(TALLOC_CTX *mem_ctx)
+{
+    int ret;
+    struct sdap_options *opts;
+
+    opts = talloc_zero(mem_ctx, struct sdap_options);
+    assert_non_null(opts);
+
+    ret = sdap_copy_map(opts, rfc2307_user_map,
+                        SDAP_OPTS_USER, &opts->user_map);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = dp_copy_defaults(opts, default_basic_opts,
+                           SDAP_OPTS_BASIC, &opts->basic);
+    assert_int_equal(ret, ERR_OK);
+
+    return opts;
+}
+
+static int test_sdap_inherit_option_setup(void **state)
+{
+    int ret;
+    struct test_sdap_inherit_ctx *test_ctx;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context,
+                           struct test_sdap_inherit_ctx);
+    assert_non_null(test_ctx);
+
+    test_ctx->child_sdap_opts = talloc_zero(test_ctx, struct sdap_options);
+
+    test_ctx->parent_sdap_opts = mock_sdap_opts(test_ctx);
+    assert_non_null(test_ctx->parent_sdap_opts);
+    test_ctx->child_sdap_opts = mock_sdap_opts(test_ctx);
+    assert_non_null(test_ctx->child_sdap_opts);
+
+    test_ctx->parent_sdap_opts->user_map[SDAP_AT_USER_PRINC].name = \
+                                                  discard_const("test_princ");
+
+    ret = dp_opt_set_int(test_ctx->parent_sdap_opts->basic,
+                         SDAP_CACHE_PURGE_TIMEOUT, 123);
+    assert_int_equal(ret, EOK);
+
+    *state = test_ctx;
+    return 0;
+}
+
+static int test_sdap_inherit_option_teardown(void **state)
+{
+    struct test_sdap_inherit_ctx *test_ctx = \
+                talloc_get_type_abort(*state, struct test_sdap_inherit_ctx);
+
+    talloc_free(test_ctx);
+    assert_true(leak_check_teardown());
+    return 0;
+}
+
+static void test_sdap_inherit_option_null(void **state)
+{
+    struct test_sdap_inherit_ctx *test_ctx = \
+                talloc_get_type_abort(*state, struct test_sdap_inherit_ctx);
+    int val;
+
+    val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
+                         SDAP_CACHE_PURGE_TIMEOUT);
+    assert_int_equal(val, 0);
+
+    sdap_inherit_options(NULL,
+                         test_ctx->parent_sdap_opts,
+                         test_ctx->child_sdap_opts);
+
+    val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
+                         SDAP_CACHE_PURGE_TIMEOUT);
+    assert_int_equal(val, 0);
+}
+
+static void test_sdap_inherit_option_notset(void **state)
+{
+    struct test_sdap_inherit_ctx *test_ctx = \
+                talloc_get_type_abort(*state, struct test_sdap_inherit_ctx);
+    int val;
+    const char *inherit_options[] = { "ldap_use_tokengroups", NULL };
+
+    val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
+                         SDAP_CACHE_PURGE_TIMEOUT);
+    assert_int_equal(val, 0);
+
+    /* parent has nondefault, but it's not supposed to be inherited */
+    sdap_inherit_options(discard_const(inherit_options),
+                         test_ctx->parent_sdap_opts,
+                         test_ctx->child_sdap_opts);
+
+    val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
+                         SDAP_CACHE_PURGE_TIMEOUT);
+    assert_int_equal(val, 0);
+}
+
+static void test_sdap_inherit_option_basic(void **state)
+{
+    struct test_sdap_inherit_ctx *test_ctx = \
+                talloc_get_type_abort(*state, struct test_sdap_inherit_ctx);
+    int val;
+    const char *inherit_options[] = { "ldap_purge_cache_timeout", NULL };
+
+    val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
+                         SDAP_CACHE_PURGE_TIMEOUT);
+    assert_int_equal(val, 0);
+
+    /* parent has nondefault, but it's not supposed to be inherited */
+    sdap_inherit_options(discard_const(inherit_options),
+                         test_ctx->parent_sdap_opts,
+                         test_ctx->child_sdap_opts);
+
+    val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
+                         SDAP_CACHE_PURGE_TIMEOUT);
+    assert_int_equal(val, 123);
+}
+
+static void test_sdap_inherit_option_user(void **state)
+{
+    struct test_sdap_inherit_ctx *test_ctx = \
+                talloc_get_type_abort(*state, struct test_sdap_inherit_ctx);
+    const char *inherit_options[] = { "ldap_user_principal", NULL };
+
+    assert_string_equal(
+            test_ctx->child_sdap_opts->user_map[SDAP_AT_USER_PRINC].name,
+            "krbPrincipalName");
+
+    /* parent has nondefault, but it's not supposed to be inherited */
+    sdap_inherit_options(discard_const(inherit_options),
+                         test_ctx->parent_sdap_opts,
+                         test_ctx->child_sdap_opts);
+
+    assert_string_equal(
+            test_ctx->child_sdap_opts->user_map[SDAP_AT_USER_PRINC].name,
+            "test_princ");
+
+    talloc_free(test_ctx->child_sdap_opts->user_map[SDAP_AT_USER_PRINC].name);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -848,6 +994,20 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sdap_copy_map_entry_null_name,
                                         copy_map_entry_test_setup,
                                         copy_map_entry_test_teardown),
+
+        /* Option inherit tests */
+        cmocka_unit_test_setup_teardown(test_sdap_inherit_option_null,
+                                        test_sdap_inherit_option_setup,
+                                        test_sdap_inherit_option_teardown),
+        cmocka_unit_test_setup_teardown(test_sdap_inherit_option_notset,
+                                        test_sdap_inherit_option_setup,
+                                        test_sdap_inherit_option_teardown),
+        cmocka_unit_test_setup_teardown(test_sdap_inherit_option_basic,
+                                        test_sdap_inherit_option_setup,
+                                        test_sdap_inherit_option_teardown),
+        cmocka_unit_test_setup_teardown(test_sdap_inherit_option_user,
+                                        test_sdap_inherit_option_setup,
+                                        test_sdap_inherit_option_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

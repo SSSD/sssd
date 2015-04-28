@@ -232,6 +232,10 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         return EFAULT;
     }
 
+    sdap_inherit_options(subdom->parent->sd_inherit,
+                         id_ctx->sdap_id_ctx->opts,
+                         ad_id_ctx->sdap_id_ctx->opts);
+
     ret = sdap_id_setup_tasks(be_ctx,
                               ad_id_ctx->sdap_id_ctx,
                               sdom,

@@ -492,6 +492,15 @@
                             ignore_group_members
                         </para>
                         <para>
+                            ldap_purge_cache_timeout
+                        </para>
+                        <para>
+                            ldap_use_tokengroups
+                        </para>
+                        <para>
+                            ldap_user_principal
+                        </para>
+                        <para>
                             Example:
                             <programlisting>
 subdomain_inherit = ldap_purge_cache_timeout
