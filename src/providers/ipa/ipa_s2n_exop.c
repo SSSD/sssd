@@ -50,9 +50,6 @@ enum response_types {
 };
 
 /* ==Sid2Name Extended Operation============================================= */
-#define EXOP_SID2NAME_OID "2.16.840.1.113730.3.8.10.4"
-#define EXOP_SID2NAME_V1_OID "2.16.840.1.113730.3.8.10.4.1"
-
 struct ipa_s2n_exop_state {
     struct sdap_handle *sh;
 
