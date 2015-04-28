@@ -685,7 +685,8 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct resp_attrs *attrs,
                                     struct resp_attrs *simple_attrs,
                                     const char *view_name,
-                                    struct sysdb_attrs *override_attrs);
+                                    struct sysdb_attrs *override_attrs,
+                                    bool update_initgr_timeout);
 
 static errno_t s2n_response_to_attrs(TALLOC_CTX *mem_ctx,
                                      char *retoid,
@@ -1118,7 +1119,7 @@ static errno_t ipa_s2n_get_fqlist_save_step(struct tevent_req *req)
 
     ret = ipa_s2n_save_objects(state->dom, &state->req_input, state->attrs,
                                NULL, state->ipa_ctx->view_name,
-                               state->override_attrs);
+                               state->override_attrs, false);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
         return ret;
@@ -1617,7 +1618,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
             || strcmp(state->ipa_ctx->view_name,
                       SYSDB_DEFAULT_VIEW_NAME) == 0) {
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
-                                   state->simple_attrs, NULL, NULL);
+                                   state->simple_attrs, NULL, NULL, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
             goto done;
@@ -1739,7 +1740,8 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                     struct resp_attrs *attrs,
                                     struct resp_attrs *simple_attrs,
                                     const char *view_name,
-                                    struct sysdb_attrs *override_attrs)
+                                    struct sysdb_attrs *override_attrs,
+                                    bool update_initgr_timeout)
 {
     int ret;
     time_t now;
@@ -1938,7 +1940,8 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 }
             }
 
-            if (attrs->response_type == RESP_USER_GROUPLIST) {
+            if (attrs->response_type == RESP_USER_GROUPLIST
+                    && update_initgr_timeout) {
                 /* Since RESP_USER_GROUPLIST contains all group memberships it
                  * is effectively an initgroups request hence
                  * SYSDB_INITGR_EXPIRE will be set.*/
@@ -2209,7 +2212,7 @@ static void ipa_s2n_get_fqlist_done(struct tevent_req  *subreq)
                                  &sid_str);
     if (ret == ENOENT) {
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
-                                   state->simple_attrs, NULL, NULL);
+                                   state->simple_attrs, NULL, NULL, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
             goto fail;
@@ -2249,7 +2252,7 @@ static void ipa_s2n_get_fqlist_done(struct tevent_req  *subreq)
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
                                    state->simple_attrs,
                                    state->ipa_ctx->view_name,
-                                   state->override_attrs);
+                                   state->override_attrs, true);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
             tevent_req_error(req, ret);
@@ -2285,7 +2288,7 @@ static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq)
 
     ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
                                state->simple_attrs, state->ipa_ctx->view_name,
-                               override_attrs);
+                               override_attrs, true);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_save_objects failed.\n");
         tevent_req_error(req, ret);
