@@ -719,10 +719,15 @@
                         </para>
                         <para>
                             Setting this option to zero will disable the
-                            cache cleanup operation.
+                            cache cleanup operation. Please note that if
+                            enumeration is enabled, the cleanup task is
+                            required in order to detect entries removed from
+                            the server and can't be disabled. By default,
+                            the cleanup task will run every 3 hours with
+                            enumeration enabled.
                         </para>
                         <para>
-                            Default: 10800 (3 hours)
+                            Default: 0 (disabled)
                         </para>
                     </listitem>
                 </varlistentry>

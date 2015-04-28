@@ -27,6 +27,8 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_enum.h"
 
+#define LDAP_ENUM_PURGE_TIMEOUT 10800
+
 errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
                                struct sdap_options *opts,
                                struct sdap_domain *sdom,
@@ -37,6 +39,7 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
     errno_t ret;
     time_t first_delay;
     time_t period;
+    time_t cleanup;
     bool has_enumerated;
     struct ldap_enum_ctx *ectx;
 
@@ -63,6 +66,22 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
          * enter the mainloop.
          */
         first_delay = 0;
+    }
+
+    cleanup = dp_opt_get_int(opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
+    if (cleanup == 0) {
+        /* We need to cleanup the cache once in a while when enumerating, otherwise
+         * enumeration would only download deltas since the previous lastUSN and would
+         * not detect removed entries
+         */
+        ret = dp_opt_set_int(opts->basic, SDAP_CACHE_PURGE_TIMEOUT,
+                             LDAP_ENUM_PURGE_TIMEOUT);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot set cleanup timeout, enumeration wouldn't "
+                  "detect removed entries!\n");
+            return ret;
+        }
     }
 
     period = dp_opt_get_int(opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);

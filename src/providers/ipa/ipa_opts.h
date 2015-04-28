@@ -98,7 +98,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
-    { "ldap_purge_cache_timeout", DP_OPT_NUMBER, { .number = 3600 }, NULL_NUMBER },
+    { "ldap_purge_cache_timeout", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
     { "ldap_tls_cacert", DP_OPT_STRING, { "/etc/ipa/ca.crt" }, NULL_STRING },
     { "ldap_tls_cacertdir", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_tls_cert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
