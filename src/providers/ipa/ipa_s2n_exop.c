@@ -2165,7 +2165,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
         goto done;
     }
 
-    if (strcmp(view_name, SYSDB_DEFAULT_VIEW_NAME) != 0) {
+    if (view_name != NULL && strcmp(view_name, SYSDB_DEFAULT_VIEW_NAME) != 0) {
         /* For the default view the data return by the extdom plugin already
          * contains all needed data and it is not expected to have a separate
          * override object. */
