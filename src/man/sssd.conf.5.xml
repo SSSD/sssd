@@ -479,7 +479,25 @@
                         </para>
                     </listitem>
                 </varlistentry>
-
+                <varlistentry>
+                    <term>subdomain_inherit (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies a list of configuration parameters that
+                            should be inherited by a subdomain. Please note
+                            that only selected parameters can be inherited.
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+subdomain_inherit = ldap_purge_cache_timeout
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

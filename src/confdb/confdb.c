@@ -1256,6 +1256,19 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
 
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_DOMAIN_SUBDOMAIN_INHERIT,
+                                      NULL);
+    if (tmp != NULL) {
+        ret = split_on_separator(domain, tmp, ',', true, true,
+                                 &domain->sd_inherit, NULL);
+        if (ret != 0) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Cannot parse %s\n", CONFDB_SUBDOMAIN_ENUMERATE);
+            goto done;
+        }
+    }
+
     ret = get_entry_as_uint32(res->msgs[0], &domain->subdomain_refresh_interval,
                               CONFDB_DOMAIN_SUBDOMAIN_REFRESH, 14400);
     if (ret != EOK || domain->subdomain_refresh_interval == 0) {
