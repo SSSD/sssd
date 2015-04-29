@@ -965,6 +965,7 @@ struct groups_by_user_state {
     struct sss_domain_info *domain;
 
     const char *name;
+    int name_type;
     const char *extra_value;
     const char **attrs;
 
@@ -983,6 +984,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                               struct sdap_domain *sdom,
                                               struct sdap_id_conn_ctx *conn,
                                               const char *name,
+                                              int name_type,
                                               const char *extra_value,
                                               bool noexist_delete)
 {
@@ -1008,6 +1010,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
     }
 
     state->name = name;
+    state->name_type = name_type;
     state->extra_value = extra_value;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
@@ -1070,6 +1073,7 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                   state->ctx,
                                   state->conn,
                                   state->name,
+                                  state->name_type,
                                   state->extra_value,
                                   state->attrs);
     if (!subreq) {
@@ -1393,7 +1397,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_INITGROUPS: /* init groups for user */
         if (ar->filter_type != BE_FILTER_NAME
-                && ar->filter_type != BE_FILTER_SECID) {
+                && ar->filter_type != BE_FILTER_SECID
+                && ar->filter_type != BE_FILTER_UUID) {
             ret = EINVAL;
             state->err = "Invalid filter type";
             goto done;
@@ -1403,21 +1408,12 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             state->err = "Invalid attr type";
             goto done;
         }
-        if (ar->filter_type == BE_FILTER_SECID && ar->extra_value != NULL
-                && strcmp(ar->extra_value, EXTRA_NAME_IS_SID) != 0) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Unexpected extra value [%s] for BE_FILTER_SECID.\n",
-                  ar->extra_value);
-            ret = EINVAL;
-            state->err = "Invalid extra value";
-            goto done;
-        }
 
         subreq = groups_by_user_send(state, be_ctx->ev, id_ctx,
                                      sdom, conn,
                                      ar->filter_value,
-                                     (ar->filter_type == BE_FILTER_SECID)
-                                        ? EXTRA_NAME_IS_SID : ar->extra_value,
+                                     ar->filter_type,
+                                     ar->extra_value,
                                      noexist_delete);
         break;
 

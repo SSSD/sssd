@@ -1604,19 +1604,29 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
     if (res->count == 0) {
         ret = sysdb_search_user_by_upn(tmp_ctx, domain, name_or_upn_or_sid,
                                        NULL, &msg);
-        if (ret != EOK) {
+        if (ret == ENOENT) {
+            ret = sysdb_search_user_by_sid_str(tmp_ctx, domain,
+                                               name_or_upn_or_sid, NULL, &msg);
             if (ret == ENOENT) {
-                ret = sysdb_search_user_by_sid_str(tmp_ctx, domain,
-                                                   name_or_upn_or_sid, NULL,
-                                                   &msg);
+                ret = sysdb_search_object_by_uuid(tmp_ctx, domain,
+                                                  name_or_upn_or_sid, NULL,
+                                                  &res);
+                if (ret == EOK && res->count == 1) {
+                    msg = res->msgs[0];
+                } else {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_search_object_by_uuid did not return a " \
+                          "single result.\n");
+                    ret = ENOENT;
+                    goto done;
+                }
             }
-
-            if (ret != EOK) {
-                /* User cannot be found in cache */
-                DEBUG(SSSDBG_OP_FAILURE, "Cannot find user [%s] in cache\n",
-                                         name_or_upn_or_sid);
-                goto done;
-            }
+        }
+        if (ret != EOK) {
+            /* User cannot be found in cache */
+            DEBUG(SSSDBG_OP_FAILURE, "Cannot find user [%s] in cache\n",
+                                     name_or_upn_or_sid);
+            goto done;
         }
     } else if (res->count == 1) {
         msg = res->msgs[0];

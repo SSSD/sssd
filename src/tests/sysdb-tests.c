@@ -3584,6 +3584,10 @@ START_TEST(test_sysdb_get_real_name)
                                  "S-1-5-21-123-456-789-111");
     fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
 
+    ret = sysdb_attrs_add_string(user_attrs, SYSDB_UUID,
+                                 "12345678-9012-3456-7890-123456789012");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed.");
+
     ret = sysdb_store_user(test_ctx->domain, "RealName",
                            NULL, 22345, 0, "gecos",
                            "/home/realname", "/bin/bash",
@@ -3607,6 +3611,11 @@ START_TEST(test_sysdb_get_real_name)
     fail_unless(strcmp(str, "RealName") == 0, "Expected [%s], got [%s].",
                                               "RealName", str);
 
+    ret = sysdb_get_real_name(test_ctx, test_ctx->domain,
+                              "12345678-9012-3456-7890-123456789012", &str);
+    fail_unless(ret == EOK, "sysdb_get_real_name failed.");
+    fail_unless(strcmp(str, "RealName") == 0, "Expected [%s], got [%s].",
+                                              "RealName", str);
 }
 END_TEST
 
