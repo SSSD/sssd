@@ -3497,9 +3497,15 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     }
 
     if ((num_results < 1) || (results == NULL)) {
-        DEBUG(SSSDBG_OP_FAILURE, "no attrs found for GPO; try next GPO.\n");
-        state->gpo_index++;
-        ret = ad_gpo_get_gpo_attrs_step(req);
+        const char *gpo_dn = state->candidate_gpos[state->gpo_index]->gpo_dn;
+
+        DEBUG(SSSDBG_OP_FAILURE,
+              "BUG: No attrs found for GPO [%s]. This was likely caused by "
+              "the GPO entry being a referred to another domain controller."
+              " SSSD does not yet support this configuration. See upstream "
+              "ticket #2645 for more information.\n",
+              gpo_dn);
+        ret = ERR_INTERNAL;
         goto done;
     }
     else if (num_results > 1) {
