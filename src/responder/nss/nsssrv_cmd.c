@@ -960,7 +960,10 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
             if (cmdctx->name_is_upn) {
                 extra_flag = EXTRA_NAME_IS_UPN;
-            } else if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+            } else if (DOM_HAS_VIEWS(dom) && (dctx->res->count == 0
+                    || ldb_msg_find_attr_as_string(dctx->res->msgs[0],
+                                                   OVERRIDE_PREFIX SYSDB_NAME,
+                                                   NULL) != NULL)) {
                 extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
             } else {
                 extra_flag = NULL;
@@ -1626,7 +1629,10 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
 
-            if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+            if (DOM_HAS_VIEWS(dom) && (dctx->res->count == 0
+                    || ldb_msg_find_attr_as_uint64(dctx->res->msgs[0],
+                                                   OVERRIDE_PREFIX SYSDB_UIDNUM,
+                                                   0) != 0)) {
                 extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
             } else {
                 extra_flag = NULL;
@@ -3073,7 +3079,10 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
 
-            if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+            if (DOM_HAS_VIEWS(dom) && (dctx->res->count == 0
+                    || ldb_msg_find_attr_as_string(dctx->res->msgs[0],
+                                                   OVERRIDE_PREFIX SYSDB_NAME,
+                                                   NULL) != NULL)) {
                 extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
             } else {
                 extra_flag = NULL;
@@ -3197,7 +3206,10 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
 
-            if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+            if (DOM_HAS_VIEWS(dom) && (dctx->res->count == 0
+                    || ldb_msg_find_attr_as_uint64(dctx->res->msgs[0],
+                                                   OVERRIDE_PREFIX SYSDB_GIDNUM,
+                                                   0) != 0)) {
                 extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
             } else {
                 extra_flag = NULL;
@@ -4155,7 +4167,10 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
             if (cmdctx->name_is_upn) {
                 extra_flag = EXTRA_NAME_IS_UPN;
-            } else if (DOM_HAS_VIEWS(dom) && dctx->res->count == 0) {
+            } else if (DOM_HAS_VIEWS(dom) && (dctx->res->count == 0
+                    || ldb_msg_find_attr_as_string(dctx->res->msgs[0],
+                                                   OVERRIDE_PREFIX SYSDB_NAME,
+                                                   NULL) != NULL)) {
                 extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
             } else {
                 extra_flag = NULL;
