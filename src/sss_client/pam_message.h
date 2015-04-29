@@ -26,6 +26,8 @@
 #include <unistd.h>
 #include <stdint.h>
 
+#include "util/authtok.h"
+
 struct pam_items {
     const char *pam_service;
     const char *pam_user;
@@ -41,9 +43,9 @@ struct pam_items {
     size_t pam_tty_size;
     size_t pam_ruser_size;
     size_t pam_rhost_size;
-    int pam_authtok_type;
+    enum sss_authtok_type pam_authtok_type;
     size_t pam_authtok_size;
-    int pam_newauthtok_type;
+    enum sss_authtok_type pam_newauthtok_type;
     size_t pam_newauthtok_size;
     pid_t cli_pid;
     const char *login_name;
