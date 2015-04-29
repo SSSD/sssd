@@ -186,7 +186,6 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
         return ENOMEM;
     }
     kr->is_offline = false;
-    kr->run_as_user = true;
     talloc_set_destructor((TALLOC_CTX *) kr, krb5_cleanup);
 
     kr->pd = pd;
@@ -697,19 +696,6 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
 
     if (!kr->is_offline) {
         kr->is_offline = be_is_offline(state->be_ctx);
-    }
-
-    /* We need to keep the root privileges to read the keytab file if
-     * validation or FAST is enabled, otherwise we can drop them and run
-     * krb5_child with user privileges.
-     * If we are offline we want to create an empty ccache file. In this
-     * case we can drop the privileges, too. */
-    if ((dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE) ||
-         kr->krb5_ctx->use_fast) &&
-        (!kr->is_offline)) {
-        kr->run_as_user = false;
-    } else {
-        kr->run_as_user = true;
     }
 
     subreq = handle_child_send(state, state->ev, kr);

@@ -53,7 +53,6 @@ struct krb5child_req {
     struct fo_server *kpasswd_srv;
     bool active_ccache;
     bool valid_tgt;
-    bool run_as_user;
     bool upn_from_different_realm;
     bool send_pac;
 };
