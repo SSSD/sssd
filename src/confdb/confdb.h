@@ -184,6 +184,7 @@
 #define CONFDB_DOMAIN_PWD_EXPIRATION_WARNING "pwd_expiration_warning"
 #define CONFDB_DOMAIN_REFRESH_EXPIRED_INTERVAL "refresh_expired_interval"
 #define CONFDB_DOMAIN_OFFLINE_TIMEOUT "offline_timeout"
+#define CONFDB_DOMAIN_SUBDOMAIN_INHERIT "subdomain_inherit"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
@@ -264,6 +265,7 @@ struct sss_domain_info {
     struct sss_domain_info *next;
 
     bool disabled;
+    char **sd_inherit;
 };
 
 /**

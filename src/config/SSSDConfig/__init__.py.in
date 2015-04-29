@@ -148,6 +148,7 @@ option_strings = {
     'dyndns_auth' : _("What kind of authentication should be used to perform the DNS update"),
     'subdomain_enumerate' : _('Control enumeration of trusted domains'),
     'subdomain_refresh_interval' : _('How often should subdomains list be refreshed'),
+    'subdomain_inherit' : _('List of options that should be inherited into a subdomain'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),
