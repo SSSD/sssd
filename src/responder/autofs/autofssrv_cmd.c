@@ -624,15 +624,6 @@ lookup_automntmap_step(struct setautomntent_lookup_ctx *lookup_ctx)
 
     /* Check each domain for this map name */
     while (dom) {
-        /* if it is a domainless search, skip domains that require fully
-         * qualified names instead */
-        while (dom && dctx->cmd_ctx->check_next && dom->fqnames) {
-            dom = get_next_domain(dom, false);
-        }
-
-        /* No domains left to search */
-        if (!dom) break;
-
         if (dom != dctx->domain) {
             /* make sure we reset the check_provider flag when we check
              * a new domain */
