@@ -555,6 +555,7 @@ struct ipa_id_get_account_info_state {
     struct sss_domain_info *domain;
     struct be_req *be_req;
     struct be_acct_req *ar;
+    struct be_acct_req *orig_ar;
     const char *realm;
 
     struct sysdb_attrs *override_attrs;
@@ -733,13 +734,25 @@ static void ipa_id_get_account_info_got_override(struct tevent_req *subreq)
 
         if (strcmp(state->ar->domain, anchor_domain) == 0) {
 
+            state->orig_ar = state->ar;
+
             ret = get_be_acct_req_for_uuid(state, ipa_uuid,
                                            state->ar->domain,
                                            &state->ar);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_sid failed.\n");
+                DEBUG(SSSDBG_OP_FAILURE, "get_be_acct_req_for_uuid failed.\n");
                 goto fail;
             }
+
+            if ((state->orig_ar->entry_type & BE_REQ_TYPE_MASK)
+                                                         == BE_REQ_INITGROUPS) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "Switching back to BE_REQ_INITGROUPS.\n");
+                state->ar->entry_type = BE_REQ_INITGROUPS;
+                state->ar->filter_type = BE_FILTER_UUID;
+                state->ar->attr_type = BE_ATTR_CORE;
+            }
+
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Anchor from a different domain [%s], expected [%s]. " \

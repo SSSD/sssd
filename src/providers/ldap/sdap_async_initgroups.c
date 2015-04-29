@@ -2667,6 +2667,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct sdap_id_ctx *id_ctx,
                                         struct sdap_id_conn_ctx *conn,
                                         const char *name,
+                                        int name_type,
                                         const char *extra_value,
                                         const char **grp_attrs)
 {
@@ -2716,10 +2717,17 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
 
     if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
         search_attr =  state->opts->user_map[SDAP_AT_USER_PRINC].name;
-    } else if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_SID) == 0) {
-        search_attr =  state->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
     } else {
-        search_attr =  state->opts->user_map[SDAP_AT_USER_NAME].name;
+        switch (name_type) {
+        case BE_FILTER_SECID:
+            search_attr =  state->opts->user_map[SDAP_AT_USER_OBJECTSID].name;
+            break;
+        case BE_FILTER_UUID:
+            search_attr =  state->opts->user_map[SDAP_AT_USER_UUID].name;
+            break;
+        default:
+            search_attr =  state->opts->user_map[SDAP_AT_USER_NAME].name;
+        }
     }
 
     state->user_base_filter =
