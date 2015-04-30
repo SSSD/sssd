@@ -36,6 +36,7 @@
 #include "util/find_uid.h"
 #include "util/auth_utils.h"
 #include "db/sysdb.h"
+#include "util/sss_utf8.h"
 #include "util/child_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
@@ -175,15 +176,51 @@ static int krb5_cleanup(void *ptr)
     return EOK;
 }
 
-errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
-                   struct krb5_ctx *krb5_ctx, struct krb5child_req **krb5_req)
+static errno_t
+get_krb_primary(struct map_id_name_to_krb_primary *name_to_primary,
+                char *id_prov_name, bool cs, const char **_krb_primary)
 {
-    struct krb5child_req *kr = NULL;
+    errno_t ret;
+    int i = 0;
 
-    kr = talloc_zero(mem_ctx, struct krb5child_req);
+    while(name_to_primary != NULL &&
+          name_to_primary[i].id_name != NULL &&
+          name_to_primary[i].krb_primary != NULL) {
+
+        if (sss_string_equal(cs, name_to_primary[i].id_name, id_prov_name)) {
+            *_krb_primary = name_to_primary[i].krb_primary;
+            ret = EOK;
+            goto done;
+        }
+        i++;
+    }
+
+    /* Handle also the case of name_to_primary being NULL */
+    ret = ENOENT;
+
+done:
+    return ret;
+}
+
+errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
+                   struct krb5_ctx *krb5_ctx, bool cs,
+                   struct krb5child_req **_krb5_req)
+{
+    struct krb5child_req *kr;
+    const char *mapped_name;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    kr = talloc_zero(tmp_ctx, struct krb5child_req);
     if (kr == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc failed.\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
     kr->is_offline = false;
     kr->run_as_user = true;
@@ -192,9 +229,28 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
     kr->pd = pd;
     kr->krb5_ctx = krb5_ctx;
 
-    *krb5_req = kr;
+    ret = get_krb_primary(krb5_ctx->name_to_primary,
+                          pd->user, cs, &mapped_name);
+    if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Setting mapped name to: %s\n", mapped_name);
+        kr->user = mapped_name;
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_ALL, "No mapping for: %s\n", pd->user);
+        kr->user = pd->user;
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "get_krb_primary failed - %s:[%d]\n",
+              sss_strerror(ret), ret);
+        goto done;
+    }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_krb5_req = talloc_steal(mem_ctx, kr);
+    }
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 
@@ -476,7 +532,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     attrs[6] = SYSDB_AUTH_TYPE;
     attrs[7] = NULL;
 
-    ret = krb5_setup(state, pd, krb5_ctx, &state->kr);
+    ret = krb5_setup(state, pd, krb5_ctx, be_ctx->domain->case_sensitive,
+                     &state->kr);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_setup failed.\n");
         goto done;
@@ -509,9 +566,8 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         break;
 
     case 1:
-        ret = find_or_guess_upn(state, res->msgs[0], krb5_ctx,
-                                be_ctx->domain, pd->user, pd->domain,
-                                &kr->upn);
+        ret = find_or_guess_upn(state, res->msgs[0], krb5_ctx, be_ctx->domain,
+                                kr->user, pd->domain, &kr->upn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "find_or_guess_upn failed.\n");
             goto done;

@@ -29,6 +29,7 @@
 #include "providers/krb5/krb5_utils.h"
 #include "providers/krb5/krb5_ccache.h"
 #include "providers/krb5/krb5_auth.h"
+#include "util/sss_utf8.h"
 #include "tests/common.h"
 
 #define TESTS_PATH "tests_krb5_utils"
@@ -574,6 +575,115 @@ START_TEST(test_compare_principal_realm)
 }
 END_TEST
 
+static void
+compare_map_id_name_to_krb_primary(struct map_id_name_to_krb_primary *a,
+                                   const char **str,
+                                   size_t len)
+{
+    int i = 0;
+    errno_t ret;
+
+    while (a[i].id_name != NULL && a[i].krb_primary != NULL) {
+        fail_unless(i < len);
+        ret = sss_utf8_case_eq((const uint8_t*)a[i].id_name,
+                               (const uint8_t*)str[i*2]);
+        fail_unless(ret == EOK,
+                    "%s does not match %s", a[i].id_name, str[i*2]);
+
+        ret = sss_utf8_case_eq((const uint8_t*)a[i].krb_primary,
+                               (const uint8_t*)str[i*2+1]);
+        fail_unless(ret == EOK, "%s does not match %s",
+                    a[i].krb_primary, str[i*2+1]);
+        i++;
+    }
+    fail_unless(len == i, "%u != %u", len, i);
+}
+
+START_TEST(test_parse_krb5_map_user)
+{
+    errno_t ret;
+    TALLOC_CTX *mem_ctx;
+    struct map_id_name_to_krb_primary *name_to_primary;
+
+    mem_ctx = talloc_new(NULL);
+
+    /* empty input */
+    {
+        check_leaks_push(mem_ctx);
+        ret = parse_krb5_map_user(mem_ctx, NULL, &name_to_primary);
+        fail_unless(ret == EOK);
+        fail_unless(name_to_primary[0].id_name == NULL &&
+                    name_to_primary[0].krb_primary == NULL);
+        talloc_free(name_to_primary);
+
+        ret = parse_krb5_map_user(mem_ctx, "", &name_to_primary);
+        fail_unless(ret == EOK);
+        fail_unless(name_to_primary[0].id_name == NULL &&
+                    name_to_primary[0].krb_primary == NULL);
+        talloc_free(name_to_primary);
+
+        ret = parse_krb5_map_user(mem_ctx, ",", &name_to_primary);
+        fail_unless(ret == EOK);
+        fail_unless(name_to_primary[0].id_name == NULL &&
+                    name_to_primary[0].krb_primary == NULL);
+        talloc_free(name_to_primary);
+
+        ret = parse_krb5_map_user(mem_ctx, ",,", &name_to_primary);
+        fail_unless(ret == EOK);
+        fail_unless(name_to_primary[0].id_name == NULL &&
+                    name_to_primary[0].krb_primary == NULL);
+        talloc_free(name_to_primary);
+
+        check_leaks_pop(mem_ctx);
+    }
+    /* valid input */
+    {
+        check_leaks_push(mem_ctx);
+        const char *p = "pája:preichl,joe:juser,jdoe:ßlack";
+        const char *p2 = " pája  : preichl , joe:\njuser,jdoe\t:   ßlack ";
+        const char *expected[] = {"pája", "preichl", "joe", "juser", "jdoe", "ßlack"};
+        ret = parse_krb5_map_user(mem_ctx, p, &name_to_primary);
+        fail_unless(ret == EOK);
+        compare_map_id_name_to_krb_primary(name_to_primary, expected,
+                                         sizeof(expected)/sizeof(const char*)/2);
+        talloc_free(name_to_primary);
+
+        ret = parse_krb5_map_user(mem_ctx, p2, &name_to_primary);
+        fail_unless(ret == EOK);
+        compare_map_id_name_to_krb_primary(name_to_primary,  expected,
+                                         sizeof(expected)/sizeof(const char*)/2);
+        talloc_free(name_to_primary);
+        check_leaks_pop(mem_ctx);
+    }
+    /* invalid input */
+    {
+        check_leaks_push(mem_ctx);
+
+        ret = parse_krb5_map_user(mem_ctx, ":", &name_to_primary);
+        fail_unless(ret == EINVAL);
+
+        ret = parse_krb5_map_user(mem_ctx, "joe:", &name_to_primary);
+        fail_unless(ret == EINVAL);
+
+        ret = parse_krb5_map_user(mem_ctx, ":joe", &name_to_primary);
+        fail_unless(ret == EINVAL);
+
+        ret = parse_krb5_map_user(mem_ctx, "joe:,", &name_to_primary);
+        fail_unless(ret == EINVAL);
+
+        ret = parse_krb5_map_user(mem_ctx, ",joe", &name_to_primary);
+        fail_unless(ret == EINVAL);
+
+        ret = parse_krb5_map_user(mem_ctx, "joe:j:user", &name_to_primary);
+        fail_unless(ret == EINVAL);
+
+        check_leaks_pop(mem_ctx);
+    }
+
+    talloc_free(mem_ctx);
+}
+END_TEST
+
 Suite *krb5_utils_suite (void)
 {
     Suite *s = suite_create ("krb5_utils");
@@ -612,6 +722,7 @@ Suite *krb5_utils_suite (void)
 
     TCase *tc_krb5_helpers = tcase_create("Helper functions");
     tcase_add_test(tc_krb5_helpers, test_compare_principal_realm);
+    tcase_add_test(tc_krb5_helpers, test_parse_krb5_map_user);
     suite_add_tcase(s, tc_krb5_helpers);
 
     return s;

@@ -67,6 +67,7 @@ enum krb5_opts {
     KRB5_CANONICALIZE,
     KRB5_USE_ENTERPRISE_PRINCIPAL,
     KRB5_USE_KDCINFO,
+    KRB5_MAP_USER,
 
     KRB5_OPTS
 };
@@ -87,6 +88,11 @@ enum krb5_config_type {
     K5C_GENERIC,
     K5C_IPA_CLIENT,
     K5C_IPA_SERVER
+};
+
+struct map_id_name_to_krb_primary {
+    const char *id_name;
+    const char* krb_primary;
 };
 
 struct krb5_ctx {
@@ -128,6 +134,8 @@ struct krb5_ctx {
     hash_table_t *wait_queue_hash;
 
     enum krb5_config_type config_type;
+
+    struct map_id_name_to_krb_primary *name_to_primary;
 };
 
 struct remove_info_files_ctx {

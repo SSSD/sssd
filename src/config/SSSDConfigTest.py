@@ -621,7 +621,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_fast_principal',
              'krb5_canonicalize',
              'krb5_use_enterprise_principal',
-             'krb5_use_kdcinfo'])
+             'krb5_use_kdcinfo',
+             'krb5_map_user'])
 
         options = domain.list_options()
 
@@ -781,7 +782,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'krb5_fast_principal',
             'krb5_canonicalize',
             'krb5_use_enterprise_principal',
-            'krb5_use_kdcinfo']
+            'krb5_use_kdcinfo',
+            'krb5_map_user']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -981,7 +983,8 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_fast_principal',
              'krb5_canonicalize',
              'krb5_use_enterprise_principal',
-             'krb5_use_kdcinfo'])
+             'krb5_use_kdcinfo',
+             'krb5_map_user'])
 
         options = domain.list_options()
 

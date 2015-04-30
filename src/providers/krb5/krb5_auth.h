@@ -56,10 +56,13 @@ struct krb5child_req {
     bool run_as_user;
     bool upn_from_different_realm;
     bool send_pac;
+
+    const char *user;
 };
 
 errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
-                   struct krb5_ctx *krb5_ctx, struct krb5child_req **krb5_req);
+                   struct krb5_ctx *krb5_ctx, bool case_sensitive,
+                   struct krb5child_req **krb5_req);
 
 void krb5_pam_handler(struct be_req *be_req);
 void krb5_pam_handler_auth_done(struct tevent_req *req);

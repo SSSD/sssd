@@ -49,4 +49,9 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
 errno_t get_domain_or_subdomain(struct be_ctx *be_ctx,
                                 char *domain_name,
                                 struct sss_domain_info **dom);
+
+errno_t
+parse_krb5_map_user(TALLOC_CTX *mem_ctx, const char *krb5_map_user,
+                    struct map_id_name_to_krb_primary **_name_to_primary);
+
 #endif /* __KRB5_UTILS_H__ */
