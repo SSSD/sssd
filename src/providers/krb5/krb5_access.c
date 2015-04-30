@@ -64,7 +64,8 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
     state->krb5_ctx = krb5_ctx;
     state->access_allowed = false;
 
-    ret = krb5_setup(state, pd, krb5_ctx, &state->kr);
+    ret = krb5_setup(state, pd, krb5_ctx, be_ctx->domain->case_sensitive,
+                     &state->kr);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_setup failed.\n");
         goto done;
@@ -105,9 +106,8 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
         goto done;
         break;
     case 1:
-        ret = find_or_guess_upn(state, res->msgs[0], krb5_ctx,
-                                be_ctx->domain, pd->user, pd->domain,
-                                &state->kr->upn);
+        ret = find_or_guess_upn(state, res->msgs[0], krb5_ctx, be_ctx->domain,
+                                state->kr->user, pd->domain, &state->kr->upn);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "find_or_guess_upn failed.\n");
             goto done;

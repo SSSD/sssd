@@ -465,3 +465,117 @@ errno_t get_domain_or_subdomain(struct be_ctx *be_ctx,
 
     return EOK;
 }
+
+static errno_t split_tuple(TALLOC_CTX *mem_ctx, const char *tuple,
+                           const char **_first, const char **_second)
+{
+    errno_t ret;
+    char **list;
+    int n;
+
+    ret = split_on_separator(mem_ctx, tuple, ':', true, true, &list, &n);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "split_on_separator failed - %s:[%d]\n",
+              sss_strerror(ret), ret);
+        goto done;
+    } else if (n != 2) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "split_on_separator failed - Expected format is: "
+              "'username:primary' but got: '%s'.\n", tuple);
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_first = list[0];
+    *_second = list[1];
+
+done:
+    return ret;
+}
+
+static errno_t
+fill_name_to_primary_map(TALLOC_CTX *mem_ctx, char **map,
+                         struct map_id_name_to_krb_primary *name_to_primary,
+                         size_t size)
+{
+    int i;
+    errno_t ret;
+
+    for (i = 0; i < size; i++) {
+        ret = split_tuple(mem_ctx, map[i],
+                          &name_to_primary[i].id_name,
+                          &name_to_primary[i].krb_primary);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "split_tuple failed - %s:[%d]\n", sss_strerror(ret), ret);
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
+errno_t
+parse_krb5_map_user(TALLOC_CTX *mem_ctx, const char *krb5_map_user,
+                    struct map_id_name_to_krb_primary **_name_to_primary)
+{
+    int size;
+    char **map;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    struct map_id_name_to_krb_primary *name_to_primary;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (krb5_map_user == NULL || strlen(krb5_map_user) == 0) {
+        DEBUG(SSSDBG_FUNC_DATA, "Warning: krb5_map_user is empty!\n");
+        size = 0;
+    } else {
+        ret = split_on_separator(tmp_ctx, krb5_map_user, ',', true, true,
+                                 &map, &size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to parse krb5_map_user!\n");
+            goto done;
+        }
+    }
+
+    name_to_primary = talloc_zero_array(tmp_ctx,
+                                        struct map_id_name_to_krb_primary,
+                                        size + 1);
+    if (name_to_primary == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    /* sentinel */
+    name_to_primary[size].id_name = NULL;
+    name_to_primary[size].krb_primary = NULL;
+
+    if (size > 0) {
+        ret = fill_name_to_primary_map(name_to_primary, map, name_to_primary,
+                                       size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "fill_name_to_primary_map failed: %s:[%d]\n",
+                  sss_strerror(ret), ret);
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_name_to_primary = talloc_steal(mem_ctx, name_to_primary);
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}

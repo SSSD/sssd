@@ -215,6 +215,7 @@ option_strings = {
     'krb5_fast_principal' : _("Selects the principal to use for FAST"),
     'krb5_canonicalize' : _("Enables principal canonicalization"),
     'krb5_use_enterprise_principal' : _("Enables enterprise principals"),
+    'krb5_map_user' : _('A mapping from user names to kerberos principal names'),
 
     # [provider/krb5/chpass]
     'krb5_kpasswd' : _('Server where the change password service is running if not on the KDC'),

@@ -24,6 +24,7 @@
 
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/krb5/krb5_utils.h"
 #include "providers/krb5/krb5_init_shared.h"
 
 errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
@@ -87,6 +88,16 @@ errno_t krb5_child_init(struct krb5_ctx *krb5_auth_ctx,
                            &krb5_auth_ctx->child_debug_fd);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Could not set krb5_child debugging!\n");
+        goto done;
+    }
+
+    ret = parse_krb5_map_user(krb5_auth_ctx,
+                              dp_opt_get_cstring(krb5_auth_ctx->opts,
+                                                 KRB5_MAP_USER),
+                              &krb5_auth_ctx->name_to_primary);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "parse_krb5_map_user failed: %s:[%d]\n",
+              sss_strerror(ret), ret);
         goto done;
     }
 
