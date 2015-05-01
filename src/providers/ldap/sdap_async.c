@@ -2006,6 +2006,10 @@ struct sdap_sd_search_state {
   size_t reply_count;
   struct sysdb_attrs **reply;
   struct sdap_reply sreply;
+
+  /* Referrals returned by the search */
+  size_t ref_count;
+  char **refs;
 };
 
 static int sdap_sd_search_create_control(struct sdap_handle *sh,
@@ -2137,12 +2141,26 @@ static errno_t sdap_sd_search_parse_entry(struct sdap_handle *sh,
 
 static void sdap_sd_search_done(struct tevent_req *subreq)
 {
+    int ret;
+
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct sdap_sd_search_state *state =
                 tevent_req_data(req, struct sdap_sd_search_state);
 
-    return generic_ext_search_handler(subreq, state->opts);
+    ret = sdap_get_generic_ext_recv(subreq, state,
+                                    &state->ref_count,
+                                    &state->refs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sdap_get_generic_ext_recv failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
 }
 
 static int sdap_sd_search_ctrls_destructor(void *ptr)
@@ -2158,7 +2176,9 @@ static int sdap_sd_search_ctrls_destructor(void *ptr)
 int sdap_sd_search_recv(struct tevent_req *req,
                         TALLOC_CTX *mem_ctx,
                         size_t *_reply_count,
-                        struct sysdb_attrs ***_reply)
+                        struct sysdb_attrs ***_reply,
+                        size_t *_ref_count,
+                        char ***_refs)
 {
     struct sdap_sd_search_state *state = tevent_req_data(req,
                                             struct sdap_sd_search_state);
@@ -2166,6 +2186,14 @@ int sdap_sd_search_recv(struct tevent_req *req,
 
     *_reply_count = state->sreply.reply_count;
     *_reply = talloc_steal(mem_ctx, state->sreply.reply);
+
+    if(_ref_count) {
+        *_ref_count = state->ref_count;
+    }
+
+    if (_refs) {
+        *_refs = talloc_steal(mem_ctx, state->refs);
+    }
 
     return EOK;
 }

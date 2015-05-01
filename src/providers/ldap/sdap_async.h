@@ -251,9 +251,11 @@ sdap_sd_search_send(TALLOC_CTX *memctx,
 		    const char **attrs,
 		    int timeout);
 int sdap_sd_search_recv(struct tevent_req *req,
-			TALLOC_CTX *mem_ctx,
-			size_t *reply_count,
-			struct sysdb_attrs ***reply);
+                        TALLOC_CTX *mem_ctx,
+                        size_t *_reply_count,
+                        struct sysdb_attrs ***_reply,
+                        size_t *_ref_count,
+                        char ***_refs);
 
 errno_t
 sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,

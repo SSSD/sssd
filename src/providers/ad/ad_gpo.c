@@ -146,13 +146,16 @@ int ad_gpo_process_som_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx,
                             struct gp_som ***som_list);
 
-struct tevent_req *ad_gpo_process_gpo_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct sdap_id_op *sdap_op,
-                                           struct sdap_options *opts,
-                                           char *server_hostname,
-                                           int timeout,
-                                           struct gp_som **som_list);
+struct tevent_req *
+ad_gpo_process_gpo_send(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct sdap_id_op *sdap_op,
+                        struct sdap_options *opts,
+                        char *server_hostname,
+                        struct sss_domain_info *host_domain,
+                        struct ad_access_ctx *access_ctx,
+                        int timeout,
+                        struct gp_som **som_list);
 int ad_gpo_process_gpo_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx,
                             struct gp_gpo ***candidate_gpos,
@@ -1458,6 +1461,7 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
 struct ad_gpo_access_state {
     struct tevent_context *ev;
     struct ldb_context *ldb_ctx;
+    struct ad_access_ctx *access_ctx;
     enum gpo_access_control_mode gpo_mode;
     enum gpo_map_type gpo_map_type;
     struct sdap_id_conn_ctx *conn;
@@ -1577,6 +1581,7 @@ ad_gpo_access_send(TALLOC_CTX *mem_ctx,
     state->gpo_mode = ctx->gpo_access_control_mode;
     state->gpo_timeout_option = ctx->gpo_cache_timeout;
     state->ad_hostname = dp_opt_get_string(ctx->ad_options, AD_HOSTNAME);
+    state->access_ctx = ctx;
     state->opts = ctx->sdap_access_ctx->id_ctx->opts;
     state->timeout = dp_opt_get_int(state->opts->basic, SDAP_SEARCH_TIMEOUT);
     state->conn = ad_get_dom_ldap_conn(ctx->ad_id_ctx, state->host_domain);
@@ -1891,6 +1896,8 @@ ad_gpo_process_som_done(struct tevent_req *subreq)
                                      state->sdap_op,
                                      state->opts,
                                      state->server_hostname,
+                                     state->host_domain,
+                                     state->access_ctx,
                                      state->timeout,
                                      som_list);
     if (subreq == NULL) {
@@ -3350,10 +3357,12 @@ static errno_t ad_gpo_parse_sd(TALLOC_CTX *mem_ctx,
 /* == ad_gpo_process_gpo_send/recv implementation ========================== */
 
 struct ad_gpo_process_gpo_state {
+    struct ad_access_ctx *access_ctx;
     struct tevent_context *ev;
     struct sdap_id_op *sdap_op;
     struct sdap_options *opts;
     char *server_hostname;
+    struct sss_domain_info *host_domain;
     int timeout;
     struct gp_gpo **candidate_gpos;
     int num_candidate_gpos;
@@ -3378,6 +3387,8 @@ ad_gpo_process_gpo_send(TALLOC_CTX *mem_ctx,
                         struct sdap_id_op *sdap_op,
                         struct sdap_options *opts,
                         char *server_hostname,
+                        struct sss_domain_info *host_domain,
+                        struct ad_access_ctx *access_ctx,
                         int timeout,
                         struct gp_som **som_list)
 {
@@ -3395,6 +3406,8 @@ ad_gpo_process_gpo_send(TALLOC_CTX *mem_ctx,
     state->sdap_op = sdap_op;
     state->opts = opts;
     state->server_hostname = server_hostname;
+    state->host_domain = host_domain;
+    state->access_ctx = access_ctx;
     state->timeout = timeout;
     state->gpo_index = 0;
     state->candidate_gpos = NULL;
@@ -3437,9 +3450,7 @@ immediately:
 static errno_t
 ad_gpo_get_gpo_attrs_step(struct tevent_req *req)
 {
-    const char *attrs[] = {AD_AT_NT_SEC_DESC, AD_AT_CN, AD_AT_FILE_SYS_PATH,
-                           AD_AT_MACHINE_EXT_NAMES, AD_AT_FUNC_VERSION,
-                           AD_AT_FLAGS, NULL};
+    const char *attrs[] = AD_GPO_ATTRS;
     struct tevent_req *subreq;
     struct ad_gpo_process_gpo_state *state;
 
@@ -3457,13 +3468,34 @@ ad_gpo_get_gpo_attrs_step(struct tevent_req *req)
                                  gpo_dn, SECINFO_DACL, attrs, state->timeout);
 
     if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_sd_search_send failed.\n");
         return ENOMEM;
     }
 
     tevent_req_set_callback(subreq, ad_gpo_get_gpo_attrs_done, req);
     return EAGAIN;
 }
+
+static errno_t
+ad_gpo_sd_process_attrs(struct tevent_req *req,
+                        char *smb_host,
+                        struct sysdb_attrs *result);
+void
+ad_gpo_get_sd_referral_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ad_gpo_get_sd_referral_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct ad_access_ctx *access_ctx,
+                            struct sdap_options *opts,
+                            const char *referral,
+                            struct sss_domain_info *host_domain,
+                            int timeout);
+errno_t
+ad_gpo_get_sd_referral_recv(struct tevent_req *req,
+                            TALLOC_CTX *mem_ctx,
+                            char **_smb_host,
+                            struct sysdb_attrs **_reply);
 
 static void
 ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
@@ -3472,18 +3504,16 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     struct ad_gpo_process_gpo_state *state;
     int ret;
     int dp_error;
-    size_t num_results;
+    size_t num_results, refcount;
     struct sysdb_attrs **results;
-    struct ldb_message_element *el = NULL;
-    const char *gpo_guid = NULL;
-    const char *raw_file_sys_path = NULL;
-    char *file_sys_path = NULL;
-    uint8_t *raw_machine_ext_names = NULL;
+    char **refs;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_process_gpo_state);
 
-    ret = sdap_sd_search_recv(subreq, state, &num_results, &results);
+    ret = sdap_sd_search_recv(subreq, state,
+                              &num_results, &results,
+                              &refcount, &refs);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -3497,27 +3527,109 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     }
 
     if ((num_results < 1) || (results == NULL)) {
-        const char *gpo_dn = state->candidate_gpos[state->gpo_index]->gpo_dn;
+        if (refcount == 1) {
+            /* If we were redirected to a referral, process it.
+             * There must be a single referral result here; if we get
+             * more than one (or zero) it's a bug.
+             */
 
-        DEBUG(SSSDBG_OP_FAILURE,
-              "BUG: No attrs found for GPO [%s]. This was likely caused by "
-              "the GPO entry being a referred to another domain controller."
-              " SSSD does not yet support this configuration. See upstream "
-              "ticket #2645 for more information.\n",
-              gpo_dn);
-        ret = ERR_INTERNAL;
-        goto done;
-    }
-    else if (num_results > 1) {
+            subreq = ad_gpo_get_sd_referral_send(state, state->ev,
+                                                 state->access_ctx,
+                                                 state->opts,
+                                                 refs[0],
+                                                 state->host_domain,
+                                                 state->timeout);
+            if (!subreq) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            tevent_req_set_callback(subreq, ad_gpo_get_sd_referral_done, req);
+            ret = EAGAIN;
+            goto done;
+
+        } else {
+            const char *gpo_dn = state->candidate_gpos[state->gpo_index]->gpo_dn;
+
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "No attrs found for GPO [%s].", gpo_dn);
+            ret = ENOENT;
+            goto done;
+        }
+    } else if (num_results > 1) {
         DEBUG(SSSDBG_OP_FAILURE, "Received multiple replies\n");
         ret = ERR_INTERNAL;
         goto done;
     }
 
-    struct gp_gpo *gp_gpo = state->candidate_gpos[state->gpo_index];
+    ret = ad_gpo_sd_process_attrs(req, state->server_hostname, results[0]);
+
+done:
+
+   if (ret == EOK) {
+       tevent_req_done(req);
+   } else if (ret != EAGAIN) {
+       tevent_req_error(req, ret);
+   }
+}
+
+void
+ad_gpo_get_sd_referral_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    int dp_error;
+    struct sysdb_attrs *reply;
+    char *smb_host;
+
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct ad_gpo_process_gpo_state *state =
+            tevent_req_data(req, struct ad_gpo_process_gpo_state);
+
+    ret = ad_gpo_get_sd_referral_recv(subreq, state, &smb_host, &reply);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        /* Terminate the sdap_id_op */
+        ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to get referred GPO attributes: [%d](%s)\n",
+              ret, sss_strerror(ret));
+
+        goto done;
+    }
+
+    /* Lookup succeeded. Process it */
+    ret = ad_gpo_sd_process_attrs(req, smb_host, reply);
+
+done:
+
+   if (ret == EOK) {
+       tevent_req_done(req);
+   } else if (ret != EAGAIN) {
+       tevent_req_error(req, ret);
+   }
+}
+
+static errno_t
+ad_gpo_sd_process_attrs(struct tevent_req *req,
+                        char *smb_host,
+                        struct sysdb_attrs *result)
+{
+    struct ad_gpo_process_gpo_state *state;
+    struct gp_gpo *gp_gpo;
+    int ret;
+    struct ldb_message_element *el = NULL;
+    const char *gpo_guid = NULL;
+    const char *raw_file_sys_path = NULL;
+    char *file_sys_path = NULL;
+    uint8_t *raw_machine_ext_names = NULL;
+
+    state = tevent_req_data(req, struct ad_gpo_process_gpo_state);
+    gp_gpo = state->candidate_gpos[state->gpo_index];
 
     /* retrieve AD_AT_CN */
-    ret = sysdb_attrs_get_string(results[0], AD_AT_CN, &gpo_guid);
+    ret = sysdb_attrs_get_string(result, AD_AT_CN, &gpo_guid);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_attrs_get_string failed: [%d](%s)\n",
@@ -3535,7 +3647,7 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
           gp_gpo->gpo_guid);
 
     /* retrieve AD_AT_FILE_SYS_PATH */
-    ret = sysdb_attrs_get_string(results[0],
+    ret = sysdb_attrs_get_string(result,
                                  AD_AT_FILE_SYS_PATH,
                                  &raw_file_sys_path);
 
@@ -3548,7 +3660,7 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
 
     file_sys_path = talloc_strdup(gp_gpo, raw_file_sys_path);
 
-    ret = ad_gpo_extract_smb_components(gp_gpo, state->server_hostname,
+    ret = ad_gpo_extract_smb_components(gp_gpo, smb_host,
                                         file_sys_path, &gp_gpo->smb_server,
                                         &gp_gpo->smb_share, &gp_gpo->smb_path);
     if (ret != EOK) {
@@ -3563,7 +3675,7 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_ALL, "smb_path: %s\n", gp_gpo->smb_path);
 
     /* retrieve AD_AT_FUNC_VERSION */
-    ret = sysdb_attrs_get_int32_t(results[0], AD_AT_FUNC_VERSION,
+    ret = sysdb_attrs_get_int32_t(result, AD_AT_FUNC_VERSION,
                                   &gp_gpo->gpo_func_version);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -3576,7 +3688,7 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
                             gp_gpo->gpo_func_version);
 
     /* retrieve AD_AT_FLAGS */
-    ret = sysdb_attrs_get_int32_t(results[0], AD_AT_FLAGS,
+    ret = sysdb_attrs_get_int32_t(result, AD_AT_FLAGS,
                                   &gp_gpo->gpo_flags);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -3588,7 +3700,7 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_ALL, "gpo_flags: %d\n", gp_gpo->gpo_flags);
 
     /* retrieve AD_AT_NT_SEC_DESC */
-    ret = sysdb_attrs_get_el(results[0], AD_AT_NT_SEC_DESC, &el);
+    ret = sysdb_attrs_get_el(result, AD_AT_NT_SEC_DESC, &el);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el() failed\n");
         goto done;
@@ -3608,7 +3720,7 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
     }
 
     /* retrieve AD_AT_MACHINE_EXT_NAMES */
-    ret = sysdb_attrs_get_el(results[0], AD_AT_MACHINE_EXT_NAMES, &el);
+    ret = sysdb_attrs_get_el(result, AD_AT_MACHINE_EXT_NAMES, &el);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_el() failed\n");
         goto done;
@@ -3642,11 +3754,7 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
 
  done:
 
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-    }
+    return ret;
 }
 
 int
@@ -4016,6 +4124,261 @@ gpo_fork_child(struct tevent_req *req)
               "fork failed [%d][%s].\n", errno, strerror(errno));
         return err;
     }
+
+    return EOK;
+}
+
+struct ad_gpo_get_sd_referral_state {
+    struct tevent_context *ev;
+    struct ad_access_ctx *access_ctx;
+    struct sdap_options *opts;
+    struct sss_domain_info *host_domain;
+    struct sss_domain_info *ref_domain;
+    struct sdap_id_conn_ctx *conn;
+    struct sdap_id_op *ref_op;
+    int timeout;
+    char *gpo_dn;
+    char *smb_host;
+
+
+    struct sysdb_attrs *reply;
+};
+
+static void
+ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq);
+
+static struct tevent_req *
+ad_gpo_get_sd_referral_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct ad_access_ctx *access_ctx,
+                            struct sdap_options *opts,
+                            const char *referral,
+                            struct sss_domain_info *host_domain,
+                            int timeout)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct ad_gpo_get_sd_referral_state *state;
+    struct tevent_req *subreq;
+    LDAPURLDesc *lud;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ad_gpo_get_sd_referral_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->access_ctx = access_ctx;
+    state->opts = opts;
+    state->host_domain = host_domain;
+    state->timeout = timeout;
+
+    /* Parse the URL for the domain */
+    ret = ldap_url_parse(referral, &lud);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to parse referral URI (%s)!\n", referral);
+        ret = EINVAL;
+        goto done;
+    }
+
+    state->gpo_dn = talloc_strdup(state, lud->lud_dn);
+    if (!state->gpo_dn) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not copy referral DN (%s)!\n", lud->lud_dn);
+        ldap_free_urldesc(lud);
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Active Directory returns the domain name as the hostname
+     * in these referrals, so we can use that to look up the
+     * necessary connection.
+     */
+    state->ref_domain = find_domain_by_name(state->host_domain,
+                                            lud->lud_host, true);
+    ldap_free_urldesc(lud);
+    if (!state->ref_domain) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Could not find domain matching [%s]\n",
+              lud->lud_host);
+        ret = EIO;
+        goto done;
+    }
+
+    state->conn = ad_get_dom_ldap_conn(state->access_ctx->ad_id_ctx,
+                                       state->ref_domain);
+    if (!state->conn) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "No connection for %s\n", state->ref_domain->name);
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* Get the hostname we're going to connect to.
+     * We'll need this later for performing the samba
+     * connection.
+     */
+    ret = ldap_url_parse(state->conn->service->uri, &lud);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to parse service URI (%s)!\n", referral);
+        ret = EINVAL;
+        goto done;
+    }
+
+    state->smb_host = talloc_strdup(state, lud->lud_host);
+    ldap_free_urldesc(lud);
+    if (!state->smb_host) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Start an ID operation for the referral */
+    state->ref_op = sdap_id_op_create(state, state->conn->conn_cache);
+    if (!state->ref_op) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Establish the sdap_id_op connection */
+    subreq = sdap_id_op_connect_send(state->ref_op, state, &ret);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
+                                  ret, sss_strerror(ret));
+        goto done;
+    }
+    tevent_req_set_callback(subreq, ad_gpo_get_sd_referral_conn_done, req);
+
+done:
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+    return req;
+}
+
+static void
+ad_gpo_get_sd_referral_search_done(struct tevent_req *subreq);
+
+static void
+ad_gpo_get_sd_referral_conn_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    int dp_error;
+    const char *attrs[] = AD_GPO_ATTRS;
+
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct ad_gpo_get_sd_referral_state *state =
+            tevent_req_data(req, struct ad_gpo_get_sd_referral_state);
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Backend is marked offline, retry later!\n");
+            tevent_req_done(req);
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cross-realm GPO processing failed to connect to " \
+                   "referred LDAP server: (%d)[%s]\n",
+                   ret, sss_strerror(ret));
+            tevent_req_error(req, ret);
+        }
+        return;
+    }
+
+    /* Request the referred GPO data */
+    subreq = sdap_sd_search_send(state, state->ev, state->opts,
+                                 sdap_id_op_handle(state->ref_op),
+                                 state->gpo_dn,
+                                 SECINFO_DACL,
+                                 attrs,
+                                 state->timeout);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_sd_search_send failed.\n");
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, ad_gpo_get_sd_referral_search_done, req);
+
+}
+
+static void
+ad_gpo_get_sd_referral_search_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    int dp_error;
+    size_t num_results, num_refs;
+    struct sysdb_attrs **results = NULL;
+    char **refs;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct ad_gpo_get_sd_referral_state *state =
+            tevent_req_data(req, struct ad_gpo_get_sd_referral_state);
+
+    ret = sdap_sd_search_recv(subreq, NULL,
+                              &num_results, &results,
+                              &num_refs, &refs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        ret = sdap_id_op_done(state->ref_op, ret, &dp_error);
+
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to get GPO attributes: [%d](%s)\n",
+              ret, sss_strerror(ret));
+        ret = ENOENT;
+        goto done;
+
+    }
+
+    if ((num_results < 1) || (results == NULL)) {
+        /* TODO:
+         * It's strictly possible for the referral search to return
+         * another referral value here, but it shouldn't actually
+         * happen with Active Directory. Properly handling (and
+         * limiting) the referral chain would be fairly complex, so
+         * we will do it later if it ever becomes necessary.
+         */
+        DEBUG(SSSDBG_OP_FAILURE,
+              "No attrs found for referred GPO [%s].", state->gpo_dn);
+        ret = ENOENT;
+        goto done;
+
+    } else if (num_results > 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Received multiple replies\n");
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    state->reply = talloc_steal(state, results[0]);
+
+done:
+   talloc_free(results);
+
+   if (ret == EOK) {
+       tevent_req_done(req);
+   } else if (ret != EAGAIN) {
+       tevent_req_error(req, ret);
+   }
+}
+
+errno_t
+ad_gpo_get_sd_referral_recv(struct tevent_req *req,
+                            TALLOC_CTX *mem_ctx,
+                            char **_smb_host,
+                            struct sysdb_attrs **_reply)
+{
+    struct ad_gpo_get_sd_referral_state *state =
+                tevent_req_data(req, struct ad_gpo_get_sd_referral_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *_smb_host = talloc_steal(mem_ctx, state->smb_host);
+    *_reply = talloc_steal(mem_ctx, state->reply);
 
     return EOK;
 }
