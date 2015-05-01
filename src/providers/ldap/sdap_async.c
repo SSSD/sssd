@@ -299,14 +299,9 @@ static void sdap_process_message(struct tevent_context *ev,
 
     switch (msgtype) {
     case LDAP_RES_SEARCH_ENTRY:
+    case LDAP_RES_SEARCH_REFERENCE:
         /* go and process entry */
         break;
-
-    case LDAP_RES_SEARCH_REFERENCE:
-        /* more ops to come with this msgid */
-        /* just ignore */
-        ldap_msgfree(msg);
-        return;
 
     case LDAP_RES_BIND:
     case LDAP_RES_SEARCH_RESULT:
@@ -1156,6 +1151,9 @@ struct sdap_get_generic_ext_state {
     int nserverctrls;
     LDAPControl **clientctrls;
 
+    size_t ref_count;
+    char **refs;
+
     sdap_parse_cb parse_cb;
     void *cb_data;
 
@@ -1377,6 +1375,47 @@ done:
     return ret;
 }
 
+static errno_t
+sdap_get_generic_ext_add_references(struct sdap_get_generic_ext_state *state,
+                                    char **refs)
+{
+    int i;
+
+    if (refs == NULL) {
+        /* Rare, but it's possible that we might get a reference result with
+         * no references attached.
+         */
+        return EOK;
+    }
+
+    for (i = 0; refs[i]; i++) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Additional References: %s\n", refs[i]);
+    }
+
+    /* Extend the size of the ref array */
+    state->refs = talloc_realloc(state, state->refs, char *,
+                                 state->ref_count + i);
+    if (state->refs == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "talloc_realloc failed extending ref_array.\n");
+        return ENOMEM;
+    }
+
+    /* Copy in all the references */
+    for (i = 0; refs[i]; i++) {
+        state->refs[state->ref_count + i] =
+                talloc_strdup(state->refs, refs[i]);
+
+        if (state->refs[state->ref_count + i] == NULL) {
+            return ENOMEM;
+        }
+    }
+
+    state->ref_count += i;
+
+    return EOK;
+}
+
 static void sdap_get_generic_op_finished(struct sdap_op *op,
                                          struct sdap_msg *reply,
                                          int error, void *pvt)
@@ -1385,7 +1424,6 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
     struct sdap_get_generic_ext_state *state = tevent_req_data(req,
                                             struct sdap_get_generic_ext_state);
     char *errmsg = NULL;
-    int i;
     char **refs = NULL;
     int result;
     int ret;
@@ -1402,8 +1440,27 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
 
     switch (ldap_msgtype(reply->msg)) {
     case LDAP_RES_SEARCH_REFERENCE:
-        /* ignore references for now */
-        talloc_free(reply);
+        ret = ldap_parse_reference(state->sh->ldap, reply->msg,
+                                   &refs, NULL, 0);
+        if (ret != LDAP_SUCCESS) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "ldap_parse_reference failed (%d)\n", state->op->msgid);
+            tevent_req_error(req, EIO);
+            return;
+        }
+
+        ret = sdap_get_generic_ext_add_references(state, refs);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sdap_get_generic_ext_add_references failed: %s(%d)",
+                  sss_strerror(ret), ret);
+            ldap_memvfree((void **)refs);
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        /* Remove the original strings */
+        ldap_memvfree((void **)refs);
 
         /* unlock the operation so that we can proceed with the next result */
         sdap_unlock_next_reply(state->op);
@@ -1456,15 +1513,14 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
             tevent_req_error(req, ENOTSUP);
             return;
         } else if (result == LDAP_REFERRAL) {
-            if (refs != NULL) {
-                for (i = 0; refs[i]; i++) {
-                    DEBUG(SSSDBG_TRACE_LIBS, "Ref: %s\n", refs[i]);
-                }
-                ldap_memvfree((void **) refs);
+            ret = sdap_get_generic_ext_add_references(state, refs);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sdap_get_generic_ext_add_references failed: %s(%d)",
+                      sss_strerror(ret), ret);
+                tevent_req_error(req, ret);
             }
-            ldap_memfree(errmsg);
-            tevent_req_error(req, ERR_REFERRAL);
-            return;
+            /* For referrals, we need to fall through as if it was LDAP_SUCCESS */
         } else if (result != LDAP_SUCCESS && result != LDAP_NO_SUCH_OBJECT) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Unexpected result from ldap: %s(%d), %s\n",
@@ -1534,25 +1590,58 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
 }
 
 static int
-sdap_get_generic_ext_recv(struct tevent_req *req)
+sdap_get_generic_ext_recv(struct tevent_req *req,
+                          TALLOC_CTX *mem_ctx,
+                          size_t *ref_count,
+                          char ***refs)
 {
+    struct sdap_get_generic_ext_state *state =
+            tevent_req_data(req, struct sdap_get_generic_ext_state);
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (ref_count) {
+        *ref_count = state->ref_count;
+    }
+
+    if (refs) {
+        *refs = talloc_steal(mem_ctx, state->refs);
+    }
+
     return EOK;
 }
 
+/* This search handler can be used by most calls */
 static void generic_ext_search_handler(struct tevent_req *subreq,
                                        struct sdap_options *opts)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     int ret;
+    size_t ref_count, i;
+    char **refs;
 
-    ret = sdap_get_generic_ext_recv(subreq);
+    ret = sdap_get_generic_ext_recv(subreq, req, &ref_count, &refs);
     talloc_zfree(subreq);
-    if (ret == ERR_REFERRAL) {
+    if (ref_count > 0) {
         if (dp_opt_get_bool(opts->basic, SDAP_REFERRALS)) {
-            tevent_req_error(req, ret);
+            /* We got back referrals here, but they should have
+             * been processed internally by openldap libs.
+             * This should never happen.
+             */
+            talloc_free(refs);
+            tevent_req_error(req, EINVAL);
             return;
+        }
+
+        /* We will ignore referrals in the generic handler */
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Request included referrals which were ignored.\n");
+        if (debug_level & SSSDBG_TRACE_ALL) {
+            for(i = 0; i < ref_count; i++) {
+                DEBUG(SSSDBG_TRACE_ALL,
+                      "    Ref: %s\n", refs[i]);
+            }
         }
     } else if (ret) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1564,6 +1653,7 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
 
     tevent_req_done(req);
 }
+
 
 /* ==Generic Search============================================ */
 struct sdap_get_generic_state {
@@ -2485,7 +2575,7 @@ static void sdap_posix_check_done(struct tevent_req *subreq)
         tevent_req_data(req, struct sdap_posix_check_state);
     errno_t ret;
 
-    ret = sdap_get_generic_ext_recv(subreq);
+    ret = sdap_get_generic_ext_recv(subreq, NULL, NULL, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
