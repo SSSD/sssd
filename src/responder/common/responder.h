@@ -282,7 +282,9 @@ enum sss_dp_acct_type {
     SSS_DP_SERVICES,
     SSS_DP_SECID,
     SSS_DP_USER_AND_GROUP,
-    SSS_DP_CERT
+    SSS_DP_CERT,
+    SSS_DP_WILDCARD_USER,
+    SSS_DP_WILDCARD_GROUP,
 };
 
 struct tevent_req *

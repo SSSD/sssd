@@ -129,6 +129,7 @@
 #define BE_FILTER_SECID 4
 #define BE_FILTER_UUID 5
 #define BE_FILTER_CERT 6
+#define BE_FILTER_WILDCARD 7
 
 #define BE_REQ_USER          0x0001
 #define BE_REQ_GROUP         0x0002
@@ -152,6 +153,9 @@
  * length */
 #define DP_SEC_ID_LEN (sizeof(DP_SEC_ID) - 1)
 #define DP_CERT_LEN (sizeof(DP_CERT) - 1)
+
+#define DP_WILDCARD "wildcard"
+#define DP_WILDCARD_LEN (sizeof(DP_WILDCARD) - 1)
 
 #define EXTRA_NAME_IS_UPN "U"
 #define EXTRA_INPUT_MAYBE_WITH_VIEW "V"
