@@ -688,13 +688,13 @@ static errno_t sdap_search_user_next_base(struct tevent_req *req)
           "Searching for users with base [%s]\n",
            state->search_bases[state->base_iter]->basedn);
 
-    subreq = sdap_get_generic_send(
+    subreq = sdap_get_and_parse_generic_send(
             state, state->ev, state->opts, state->sh,
             state->search_bases[state->base_iter]->basedn,
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
             state->opts->user_map, state->opts->user_map_cnt,
-            state->timeout,
+            0, NULL, NULL, 0, state->timeout,
             state->enumeration); /* If we're enumerating, we need paging */
     if (subreq == NULL) {
         return ENOMEM;
@@ -715,8 +715,8 @@ static void sdap_search_user_process(struct tevent_req *subreq)
     struct sysdb_attrs **users;
     bool next_base = false;
 
-    ret = sdap_get_generic_recv(subreq, state,
-                                &count, &users);
+    ret = sdap_get_and_parse_generic_recv(subreq, state,
+                                          &count, &users);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
