@@ -39,6 +39,9 @@
 #define LDAP_SSL_URI "ldaps://"
 #define LDAP_LDAPI_URI "ldapi://"
 
+/* Only the asterisk is allowed in wildcard requests */
+#define LDAP_ALLOWED_WILDCARDS "*"
+
 /* a fd the child process would log into */
 extern int ldap_child_debug_fd;
 

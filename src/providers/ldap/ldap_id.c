@@ -114,6 +114,14 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                                           sdom->dom->name,
                                                           sdom->dom->domain_id);
     switch (filter_type) {
+    case BE_FILTER_WILDCARD:
+        attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
+        ret = sss_filter_sanitize_ex(state, name, &clean_name,
+                                     LDAP_ALLOWED_WILDCARDS);
+        if (ret != EOK) {
+            goto done;
+        }
+        break;
     case BE_FILTER_NAME:
         if (extra_value && strcmp(extra_value, EXTRA_NAME_IS_UPN) == 0) {
             attr_name = ctx->opts->user_map[SDAP_AT_USER_PRINC].name;
@@ -388,6 +396,13 @@ static void users_get_search(struct tevent_req *req)
     struct users_get_state *state = tevent_req_data(req,
                                                      struct users_get_state);
     struct tevent_req *subreq;
+    bool multiple_results;
+
+    if (state->filter_type == BE_FILTER_WILDCARD) {
+        multiple_results = true;
+    } else {
+        multiple_results = false;
+    }
 
     subreq = sdap_get_users_send(state, state->ev,
                                  state->domain, state->sysdb,
@@ -397,7 +412,7 @@ static void users_get_search(struct tevent_req *req)
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
                                                 SDAP_SEARCH_TIMEOUT),
-                                 false);
+                                 multiple_results);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -506,6 +521,13 @@ static void users_get_done(struct tevent_req *subreq)
         case BE_FILTER_UUID:
             /* Since it is not clear if the SID/UUID belongs to a user or a
              * group we have nothing to do here. */
+            break;
+
+        case BE_FILTER_WILDCARD:
+            /* We can't know if all users are up-to-date, especially in a large
+             * environment. Do not delete any records, let the responder fetch
+             * the entries they are requested in
+             */
             break;
 
         default:
@@ -619,6 +641,14 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                                           sdom->dom->domain_id);
 
     switch(filter_type) {
+    case BE_FILTER_WILDCARD:
+        attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
+        ret = sss_filter_sanitize_ex(state, name, &clean_name,
+                                     LDAP_ALLOWED_WILDCARDS);
+        if (ret != EOK) {
+            goto done;
+        }
+        break;
     case BE_FILTER_NAME:
         attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
 
@@ -871,6 +901,13 @@ static void groups_get_search(struct tevent_req *req)
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
     struct tevent_req *subreq;
+    bool multiple_results;
+
+    if (state->filter_type == BE_FILTER_WILDCARD) {
+        multiple_results = true;
+    } else {
+        multiple_results = false;
+    }
 
     subreq = sdap_get_groups_send(state, state->ev,
                                   state->sdom,
@@ -879,7 +916,8 @@ static void groups_get_search(struct tevent_req *req)
                                   state->attrs, state->filter,
                                   dp_opt_get_int(state->ctx->opts->basic,
                                                  SDAP_SEARCH_TIMEOUT),
-                                  false, state->no_members);
+                                  multiple_results,
+                                  state->no_members);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -952,6 +990,14 @@ static void groups_get_done(struct tevent_req *subreq)
             /* Since it is not clear if the SID/UUID belongs to a user or a
              * group we have nothing to do here. */
             break;
+
+        case BE_FILTER_WILDCARD:
+            /* We can't know if all groups are up-to-date, especially in
+             * a large environment. Do not delete any records, let the
+             * responder fetch the entries they are requested in.
+             */
+            break;
+
 
         default:
             tevent_req_error(req, EINVAL);
