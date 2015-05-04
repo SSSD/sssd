@@ -1656,9 +1656,8 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
     tevent_req_done(req);
 }
 
-
-/* ==Generic Search============================================ */
-struct sdap_get_generic_state {
+/* ==Generic Search exposing all options======================= */
+struct sdap_get_and_parse_generic_state {
     struct sdap_attr_map *map;
     int map_num_attrs;
 
@@ -1666,29 +1665,34 @@ struct sdap_get_generic_state {
     struct sdap_options *opts;
 };
 
-static void sdap_get_generic_done(struct tevent_req *subreq);
-static errno_t sdap_get_generic_parse_entry(struct sdap_handle *sh,
-                                            struct sdap_msg *msg,
-                                            void *pvt);
+static void sdap_get_and_parse_generic_done(struct tevent_req *subreq);
+static errno_t sdap_get_and_parse_generic_parse_entry(struct sdap_handle *sh,
+                                                      struct sdap_msg *msg,
+                                                      void *pvt);
 
-struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
-                                         struct tevent_context *ev,
-                                         struct sdap_options *opts,
-                                         struct sdap_handle *sh,
-                                         const char *search_base,
-                                         int scope,
-                                         const char *filter,
-                                         const char **attrs,
-                                         struct sdap_attr_map *map,
-                                         int map_num_attrs,
-                                         int timeout,
-                                         bool allow_paging)
+struct tevent_req *sdap_get_and_parse_generic_send(TALLOC_CTX *memctx,
+                                                   struct tevent_context *ev,
+                                                   struct sdap_options *opts,
+                                                   struct sdap_handle *sh,
+                                                   const char *search_base,
+                                                   int scope,
+                                                   const char *filter,
+                                                   const char **attrs,
+                                                   struct sdap_attr_map *map,
+                                                   int map_num_attrs,
+                                                   int attrsonly,
+                                                   LDAPControl **serverctrls,
+                                                   LDAPControl **clientctrls,
+                                                   int sizelimit,
+                                                   int timeout,
+                                                   bool allow_paging)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
-    struct sdap_get_generic_state *state = NULL;
+    struct sdap_get_and_parse_generic_state *state = NULL;
 
-    req = tevent_req_create(memctx, &state, struct sdap_get_generic_state);
+    req = tevent_req_create(memctx, &state,
+                            struct sdap_get_and_parse_generic_state);
     if (!req) return NULL;
 
     state->map = map;
@@ -1697,25 +1701,25 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, search_base,
                                        scope, filter, attrs, false, NULL,
-                                       NULL, 0, timeout, allow_paging,
-                                       sdap_get_generic_parse_entry, state);
+                                       NULL, sizelimit, timeout, allow_paging,
+                                       sdap_get_and_parse_generic_parse_entry, state);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
     }
-    tevent_req_set_callback(subreq, sdap_get_generic_done, req);
+    tevent_req_set_callback(subreq, sdap_get_and_parse_generic_done, req);
 
     return req;
 }
 
-static errno_t sdap_get_generic_parse_entry(struct sdap_handle *sh,
-                                            struct sdap_msg *msg,
-                                            void *pvt)
+static errno_t sdap_get_and_parse_generic_parse_entry(struct sdap_handle *sh,
+                                                      struct sdap_msg *msg,
+                                                      void *pvt)
 {
     errno_t ret;
     struct sysdb_attrs *attrs;
-    struct sdap_get_generic_state *state =
-                talloc_get_type(pvt, struct sdap_get_generic_state);
+    struct sdap_get_and_parse_generic_state *state =
+                talloc_get_type(pvt, struct sdap_get_and_parse_generic_state);
 
     bool disable_range_rtrvl = dp_opt_get_bool(state->opts->basic,
                                                SDAP_DISABLE_RANGE_RETRIEVAL);
@@ -1740,14 +1744,89 @@ static errno_t sdap_get_generic_parse_entry(struct sdap_handle *sh,
     return EOK;
 }
 
+static void sdap_get_and_parse_generic_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_and_parse_generic_state *state =
+                tevent_req_data(req, struct sdap_get_and_parse_generic_state);
+
+    return generic_ext_search_handler(subreq, state->opts);
+}
+
+int sdap_get_and_parse_generic_recv(struct tevent_req *req,
+                                    TALLOC_CTX *mem_ctx,
+                                    size_t *reply_count,
+                                    struct sysdb_attrs ***reply)
+{
+    struct sdap_get_and_parse_generic_state *state = tevent_req_data(req,
+                                     struct sdap_get_and_parse_generic_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *reply_count = state->sreply.reply_count;
+    *reply = talloc_steal(mem_ctx, state->sreply.reply);
+
+    return EOK;
+}
+
+
+/* ==Simple generic search============================================== */
+struct sdap_get_generic_state {
+    size_t reply_count;
+    struct sysdb_attrs **reply;
+};
+
+static void sdap_get_generic_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_options *opts,
+                                         struct sdap_handle *sh,
+                                         const char *search_base,
+                                         int scope,
+                                         const char *filter,
+                                         const char **attrs,
+                                         struct sdap_attr_map *map,
+                                         int map_num_attrs,
+                                         int timeout,
+                                         bool allow_paging)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct sdap_get_generic_state *state = NULL;
+
+    req = tevent_req_create(memctx, &state, struct sdap_get_generic_state);
+    if (!req) return NULL;
+
+    subreq = sdap_get_and_parse_generic_send(memctx, ev, opts, sh, search_base,
+                                             scope, filter, attrs,
+                                             map, map_num_attrs,
+                                             false, NULL, NULL, 0, timeout,
+                                             allow_paging);
+    if (subreq == NULL) {
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_get_generic_done, req);
+
+    return req;
+}
+
 static void sdap_get_generic_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct sdap_get_generic_state *state =
                 tevent_req_data(req, struct sdap_get_generic_state);
+    errno_t ret;
 
-    return generic_ext_search_handler(subreq, state->opts);
+    ret = sdap_get_and_parse_generic_recv(subreq, state,
+                                          &state->reply_count, &state->reply);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    tevent_req_done(req);
 }
 
 int sdap_get_generic_recv(struct tevent_req *req,
@@ -1755,13 +1834,13 @@ int sdap_get_generic_recv(struct tevent_req *req,
                           size_t *reply_count,
                           struct sysdb_attrs ***reply)
 {
-    struct sdap_get_generic_state *state = tevent_req_data(req,
-                                            struct sdap_get_generic_state);
+    struct sdap_get_generic_state *state =
+                tevent_req_data(req, struct sdap_get_generic_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *reply_count = state->sreply.reply_count;
-    *reply = talloc_steal(mem_ctx, state->sreply.reply);
+    *reply_count = state->reply_count;
+    *reply = talloc_steal(mem_ctx, state->reply);
 
     return EOK;
 }

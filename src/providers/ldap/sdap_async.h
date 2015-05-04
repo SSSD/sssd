@@ -181,6 +181,28 @@ int sdap_cli_connect_recv(struct tevent_req *req,
                           struct sdap_handle **gsh,
                           struct sdap_server_opts **srv_opts);
 
+/* Exposes all options of generic send while allowing to parse by map */
+struct tevent_req *sdap_get_and_parse_generic_send(TALLOC_CTX *memctx,
+                                                   struct tevent_context *ev,
+                                                   struct sdap_options *opts,
+                                                   struct sdap_handle *sh,
+                                                   const char *search_base,
+                                                   int scope,
+                                                   const char *filter,
+                                                   const char **attrs,
+                                                   struct sdap_attr_map *map,
+                                                   int map_num_attrs,
+                                                   int attrsonly,
+                                                   LDAPControl **serverctrls,
+                                                   LDAPControl **clientctrls,
+                                                   int sizelimit,
+                                                   int timeout,
+                                                   bool allow_paging);
+int sdap_get_and_parse_generic_recv(struct tevent_req *req,
+                                    TALLOC_CTX *mem_ctx,
+                                    size_t *reply_count,
+                                    struct sysdb_attrs ***reply);
+
 struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sdap_options *opts,
