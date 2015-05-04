@@ -525,13 +525,15 @@ errno_t sss_hash_create(TALLOC_CTX *mem_ctx, unsigned long count,
     return sss_hash_create_ex(mem_ctx, count, tbl, 0, 0, 0, 0, NULL, NULL);
 }
 
-errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
-                            const char *input,
-                            char **sanitized)
+errno_t sss_filter_sanitize_ex(TALLOC_CTX *mem_ctx,
+                               const char *input,
+                               char **sanitized,
+                               const char *ignore)
 {
     char *output;
     size_t i = 0;
     size_t j = 0;
+    char *allowed;
 
     /* Assume the worst-case. We'll resize it later, once */
     output = talloc_array(mem_ctx, char, strlen(input) * 3 + 1);
@@ -540,6 +542,19 @@ errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
     }
 
     while (input[i]) {
+        /* Even though this character might have a special meaning, if it's
+         * expliticly allowed, just copy it and move on
+         */
+        if (ignore == NULL) {
+            allowed = NULL;
+        } else {
+            allowed = strchr(ignore, input[i]);
+        }
+        if (allowed) {
+            output[j++] = input[i++];
+            continue;
+        }
+
         switch(input[i]) {
         case '\t':
             output[j++] = '\\';
@@ -585,6 +600,13 @@ errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
     }
 
     return EOK;
+}
+
+errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
+                            const char *input,
+                            char **sanitized)
+{
+    return sss_filter_sanitize_ex(mem_ctx, input, sanitized, NULL);
 }
 
 char *

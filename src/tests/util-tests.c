@@ -406,6 +406,15 @@ START_TEST(test_sss_filter_sanitize)
                 "Expected [%s], got [%s]",
                 has_all_expected, sanitized);
 
+    /* Input is reused from previous test - "\\(user)*name" */
+    const char has_all_allow_asterisk_expected[] = "\\5c\\28user\\29*name";
+    ret = sss_filter_sanitize_ex(test_ctx, has_all, &sanitized, "*");
+    fail_unless(ret == EOK, "has_all error [%d][%s]",
+                ret, strerror(ret));
+    fail_unless(strcmp(has_all_allow_asterisk_expected, sanitized)==0,
+                "Expected [%s], got [%s]",
+                has_all_expected, sanitized);
+
     talloc_free(test_ctx);
 }
 END_TEST

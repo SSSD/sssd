@@ -485,6 +485,11 @@ errno_t sss_filter_sanitize(TALLOC_CTX *mem_ctx,
                             const char *input,
                             char **sanitized);
 
+errno_t sss_filter_sanitize_ex(TALLOC_CTX *mem_ctx,
+                               const char *input,
+                               char **sanitized,
+                               const char *ignore);
+
 errno_t sss_filter_sanitize_for_dom(TALLOC_CTX *mem_ctx,
                                     const char *input,
                                     struct sss_domain_info *dom,
