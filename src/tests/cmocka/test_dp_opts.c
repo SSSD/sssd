@@ -285,37 +285,63 @@ static int opt_test_getset_teardown(void **state)
     return 0;
 }
 
-void opt_test_getset_string(void **state)
+static void assert_nondefault_string_empty(struct dp_option *opts)
 {
-    struct dp_option *opts = talloc_get_type(*state, struct dp_option);
-    int ret;
     char *s;
 
     s = dp_opt_get_string(opts, OPT_STRING_NODEFAULT);
     assert_null(s);
+}
+
+static void set_nondefault_string(struct dp_option *opts)
+{
+    int ret;
 
     ret = dp_opt_set_string(opts, OPT_STRING_NODEFAULT, "str1");
     assert_int_equal(ret, EOK);
+}
+
+static void check_nondefault_string(struct dp_option *opts)
+{
+    char *s;
 
     s = dp_opt_get_string(opts, OPT_STRING_NODEFAULT);
     assert_non_null(s);
     assert_string_equal(s, "str1");
 }
 
-void opt_test_getset_blob(void **state)
+void opt_test_getset_string(void **state)
 {
     struct dp_option *opts = talloc_get_type(*state, struct dp_option);
-    int ret;
+
+    assert_nondefault_string_empty(opts);
+    set_nondefault_string(opts);
+    check_nondefault_string(opts);
+}
+
+static void assert_nondefault_blob_empty(struct dp_option *opts)
+{
     struct dp_opt_blob b;
 
     b = dp_opt_get_blob(opts, OPT_BLOB_NODEFAULT);
     assert_null(b.data);
     assert_int_equal(b.length, 0);
+}
+
+static void set_nondefault_blob(struct dp_option *opts)
+{
+    struct dp_opt_blob b;
+    int ret;
 
     b.data = discard_const_p(uint8_t, "blob2");
     b.length = strlen("blob2");
     ret = dp_opt_set_blob(opts, OPT_BLOB_NODEFAULT, b);
     assert_int_equal(ret, EOK);
+}
+
+static void check_nondefault_blob(struct dp_option *opts)
+{
+    struct dp_opt_blob b;
 
     b = dp_opt_get_blob(opts, OPT_BLOB_NODEFAULT);
     assert_non_null(b.data);
@@ -323,20 +349,43 @@ void opt_test_getset_blob(void **state)
     assert_memory_equal(b.data, "blob2", strlen("blob2"));
 }
 
+void opt_test_getset_blob(void **state)
+{
+    struct dp_option *opts = talloc_get_type(*state, struct dp_option);
+
+    assert_nondefault_blob_empty(opts);
+    set_nondefault_blob(opts);
+    check_nondefault_blob(opts);
+}
+
+static void assert_nondefault_int_notset(struct dp_option *opts)
+{
+    int i;
+    i = dp_opt_get_int(opts, OPT_INT_NODEFAULT);
+    assert_int_equal(i, 0);
+}
+
+static void set_nondefault_int(struct dp_option *opts)
+{
+    int ret;
+    ret = dp_opt_set_int(opts, OPT_INT_NODEFAULT, 456);
+    assert_int_equal(ret, EOK);
+}
+
+static void assert_nondefault_int_set(struct dp_option *opts)
+{
+    int i;
+    i = dp_opt_get_int(opts, OPT_INT_NODEFAULT);
+    assert_int_equal(i, 456);
+}
+
 void opt_test_getset_int(void **state)
 {
     struct dp_option *opts = talloc_get_type(*state, struct dp_option);
-    int ret;
-    int i;
 
-    i = dp_opt_get_int(opts, OPT_INT_NODEFAULT);
-    assert_int_equal(i, 0);
-
-    ret = dp_opt_set_int(opts, OPT_INT_NODEFAULT, 456);
-    assert_int_equal(ret, EOK);
-
-    i = dp_opt_get_int(opts, OPT_INT_NODEFAULT);
-    assert_int_equal(i, 456);
+    assert_nondefault_int_notset(opts);
+    set_nondefault_int(opts);
+    assert_nondefault_int_set(opts);
 }
 
 void opt_test_getset_bool(void **state)
@@ -353,6 +402,65 @@ void opt_test_getset_bool(void **state)
 
     b = dp_opt_get_bool(opts, OPT_BOOL_TRUE);
     assert_false(b == true);
+}
+
+void opt_test_inherit(void **state)
+{
+    struct dp_option *opts = talloc_get_type(*state, struct dp_option);
+    int ret;
+    struct dp_option *opts_copy;
+    const char *s;
+    const char *sd_inherit_match[] = { "string_nodefault",
+                                       "blob_nodefault",
+                                       "int_nodefault",
+                                       "bool_true",
+                                       NULL };
+
+    ret = dp_copy_defaults(opts, test_def_opts,
+                           OPT_NUM_OPTS, &opts_copy);
+    assert_int_equal(ret, EOK);
+    assert_defaults(opts);
+
+    dp_option_inherit(NULL, OPT_STRING_NODEFAULT,
+                      opts, opts_copy);
+    s = dp_opt_get_string(opts_copy, OPT_STRING_NODEFAULT);
+    assert_null(s);
+
+    /* string */
+    assert_nondefault_string_empty(opts_copy);
+    set_nondefault_string(opts);
+    dp_option_inherit(discard_const(sd_inherit_match),
+                      OPT_STRING_NODEFAULT,
+                      opts, opts_copy);
+    check_nondefault_string(opts_copy);
+
+    /* blob */
+    assert_nondefault_blob_empty(opts_copy);
+    set_nondefault_blob(opts);
+    dp_option_inherit(discard_const(sd_inherit_match),
+                      OPT_BLOB_NODEFAULT,
+                      opts, opts_copy);
+    check_nondefault_blob(opts_copy);
+
+    /* number */
+    assert_nondefault_int_notset(opts_copy);
+    set_nondefault_int(opts);
+    dp_option_inherit(discard_const(sd_inherit_match),
+                      OPT_INT_NODEFAULT,
+                      opts, opts_copy);
+    assert_nondefault_int_set(opts_copy);
+
+    /* bool */
+    assert_true(dp_opt_get_bool(opts_copy, OPT_BOOL_TRUE));
+
+    ret = dp_opt_set_bool(opts, OPT_BOOL_TRUE, false);
+    assert_int_equal(ret, EOK);
+
+    dp_option_inherit(discard_const(sd_inherit_match),
+                      OPT_BOOL_TRUE,
+                      opts, opts_copy);
+
+    assert_false(dp_opt_get_bool(opts_copy, OPT_BOOL_TRUE));
 }
 
 int main(int argc, const char *argv[])
@@ -379,6 +487,9 @@ int main(int argc, const char *argv[])
                                         opt_test_getset_setup,
                                         opt_test_getset_teardown),
         cmocka_unit_test_setup_teardown(opt_test_getset_blob,
+                                        opt_test_getset_setup,
+                                        opt_test_getset_teardown),
+        cmocka_unit_test_setup_teardown(opt_test_inherit,
                                         opt_test_getset_setup,
                                         opt_test_getset_teardown),
         cmocka_unit_test(opt_test_copy_default),

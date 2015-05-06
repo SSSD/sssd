@@ -277,6 +277,11 @@ struct dp_option {
 
 #define DP_OPTION_TERMINATOR { NULL, 0, NULL_STRING, NULL_STRING }
 
+void dp_option_inherit(char **inherit_opt_list,
+                       int option,
+                       struct dp_option *parent_opts,
+                       struct dp_option *subdom_opts);
+
 int dp_get_options(TALLOC_CTX *memctx,
                    struct confdb_ctx *cdb,
                    const char *conf_path,
