@@ -496,10 +496,9 @@ done:
         talloc_steal(item, iface);
         talloc_steal(table, item);
         *_path_known = path_known;
-    } else {
-        talloc_free(item);
     }
 
+    talloc_free(tmp_ctx);
     return ret;
 }
 
