@@ -70,8 +70,13 @@ static void sss_semanage_error_callback(void *varg,
 
 static void sss_semanage_close(semanage_handle_t *handle)
 {
-    /* Calling disconnect on a disconnected handle is safe */
-    semanage_disconnect(handle);
+    if (handle == NULL) {
+        return;     /* semanage uses asserts */
+    }
+
+    if (semanage_is_connected(handle)) {
+        semanage_disconnect(handle);
+    }
     semanage_handle_destroy(handle);
 }
 
