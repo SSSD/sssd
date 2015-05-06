@@ -21,6 +21,63 @@
 
 #include "data_provider.h"
 
+/* =Copy-Option-From-Subdomain-If-Allowed================================= */
+void dp_option_inherit(char **inherit_opt_list,
+                       int option,
+                       struct dp_option *parent_opts,
+                       struct dp_option *subdom_opts)
+{
+    errno_t ret;
+    bool inherit_option;
+
+    inherit_option = string_in_list(parent_opts[option].opt_name,
+                                    inherit_opt_list, false);
+    if (inherit_option == false) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Option %s is not set up to be inherited\n",
+              parent_opts[option].opt_name);
+        return;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS,
+          "Will inherit option %s\n", parent_opts[option].opt_name);
+    switch (parent_opts[option].type) {
+    case DP_OPT_NUMBER:
+        ret = dp_opt_set_int(subdom_opts,
+                             option,
+                             dp_opt_get_int(parent_opts,
+                                            option));
+        break;
+    case DP_OPT_STRING:
+        ret = dp_opt_set_string(subdom_opts,
+                                option,
+                                dp_opt_get_string(parent_opts,
+                                                  option));
+        break;
+    case DP_OPT_BLOB:
+        ret = dp_opt_set_blob(subdom_opts,
+                              option,
+                              dp_opt_get_blob(parent_opts,
+                                              option));
+        break;
+    case DP_OPT_BOOL:
+        ret = dp_opt_set_bool(subdom_opts,
+                              option,
+                              dp_opt_get_bool(parent_opts,
+                                              option));
+        break;
+    default:
+        ret = EINVAL;
+        break;
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to inherit option %s\n", parent_opts[option].opt_name);
+        /* Not fatal */
+    }
+}
+
 /* =Retrieve-Options====================================================== */
 
 int dp_get_options(TALLOC_CTX *memctx,
