@@ -92,13 +92,14 @@ errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     *_name = sss_mock_ptr_type(char *);
     *_domname = sss_mock_ptr_type(char *);
 
-    return test_request_recv(req);
+    return sss_mock_type(errno_t);
 }
 
-void mock_parse_inp(const char *name, const char *domname)
+void mock_parse_inp(const char *name, const char *domname, errno_t ret)
 {
     will_return(sss_parse_inp_recv, name);
     will_return(sss_parse_inp_recv, domname);
+    will_return(sss_parse_inp_recv, ret);
 }
 
 /* Mock subdomain requests */

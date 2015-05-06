@@ -446,6 +446,7 @@ struct sss_parse_inp_state {
 
     char *name;
     char *domname;
+    errno_t error;
 };
 
 static void sss_parse_inp_done(struct tevent_req *subreq);
@@ -527,14 +528,24 @@ static void sss_parse_inp_done(struct tevent_req *subreq)
         return;
     }
 
+    state->error = ERR_OK;
+
     ret = sss_parse_name_for_domains(state, state->rctx->domains,
                                      state->rctx->default_domain,
                                      state->rawinp,
                                      &state->domname, &state->name);
-    if (ret != EOK) {
+    if (ret == EAGAIN && state->domname != NULL && state->name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unknown domain in [%s]\n", state->rawinp);
+        state->error = ERR_DOMAIN_NOT_FOUND;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Invalid name received [%s]\n", state->rawinp);
-        tevent_req_error(req, ERR_INPUT_PARSE);
+        state->error = ERR_INPUT_PARSE;
+    }
+
+    if (state->error != ERR_OK) {
+        tevent_req_error(req, state->error);
         return;
     }
 
@@ -548,7 +559,9 @@ errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     struct sss_parse_inp_state *state = tevent_req_data(req,
                                                 struct sss_parse_inp_state);
 
-    TEVENT_REQ_RETURN_ON_ERROR(req);
+    if (state->error != ERR_DOMAIN_NOT_FOUND) {
+        TEVENT_REQ_RETURN_ON_ERROR(req);
+    }
 
     if (_name) {
         *_name = talloc_steal(mem_ctx, state->name);
@@ -558,5 +571,5 @@ errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
         *_domname = talloc_steal(mem_ctx, state->domname);
     }
 
-    return EOK;
+    return state->error;
 }

@@ -59,6 +59,6 @@ void mock_account_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
 
 void mock_account_recv_simple(void);
 
-void mock_parse_inp(const char *name, const char *domname);
+void mock_parse_inp(const char *name, const char *domname, errno_t ret);
 
 #endif /* __COMMON_MOCK_RESP_H_ */

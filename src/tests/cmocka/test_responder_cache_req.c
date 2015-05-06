@@ -34,6 +34,7 @@
 #define TEST_ID_PROVIDER "ldap"
 
 #define TEST_USER_NAME "test-user"
+#define TEST_UPN "upn@upndomain.com"
 #define TEST_USER_ID 1000
 #define TEST_GROUP_NAME "test-group"
 #define TEST_GROUP_ID 1000
@@ -89,6 +90,7 @@ __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
                                uint32_t opt_id,
                                const char *extra)
 {
+    struct sysdb_attrs *attrs = NULL;
     struct cache_req_test_ctx *ctx = NULL;
     errno_t ret;
 
@@ -96,9 +98,15 @@ __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     ctx->dp_called = true;
 
     if (ctx->create_user) {
+        attrs = sysdb_new_attrs(ctx);
+        assert_non_null(attrs);
+
+        ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, TEST_UPN);
+        assert_int_equal(ret, EOK);
+
         ret = sysdb_store_user(ctx->tctx->dom, TEST_USER_NAME, "pwd",
                                TEST_USER_ID, 1000, NULL, NULL, NULL,
-                               "cn=test-user,dc=test", NULL, NULL,
+                               "cn=test-user,dc=test", attrs, NULL,
                                1000, time(NULL));
         assert_int_equal(ret, EOK);
     }
@@ -257,7 +265,7 @@ void test_user_by_name_multiple_domains_found(void **state)
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
-    mock_parse_inp(name, NULL);
+    mock_parse_inp(name, NULL, ERR_OK);
 
     req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -300,7 +308,7 @@ void test_user_by_name_multiple_domains_notfound(void **state)
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
-    mock_parse_inp(name, NULL);
+    mock_parse_inp(name, NULL, ERR_OK);
 
     req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -360,7 +368,7 @@ void test_user_by_name_multiple_domains_parse(void **state)
     req_mem_ctx = talloc_new(global_talloc_context);
     check_leaks_push(req_mem_ctx);
 
-    mock_parse_inp(name, "responder_cache_req_test_d");
+    mock_parse_inp(name, "responder_cache_req_test_d", ERR_OK);
 
     req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                       test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -616,6 +624,363 @@ void test_user_by_name_missing_notfound(void **state)
     req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                       test_ctx->rctx, test_ctx->ncache, 100, 0,
                                       test_ctx->tctx->dom->name, name);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+}
+
+void test_user_by_upn_multiple_domains_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sysdb_attrs *attrs = NULL;
+    struct sss_domain_info *domain = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_USER_NAME;
+    const char *upn = TEST_UPN;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, upn);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_user(domain, name, "pwd", 1000, 1000,
+                           NULL, NULL, NULL, "cn=test-user,dc=test", attrs,
+                           NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+    mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
+
+    req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                      test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                      NULL, upn);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+
+    assert_non_null(test_ctx->domain);
+    assert_string_equal(domain->name, test_ctx->domain->name);
+}
+
+void test_user_by_upn_multiple_domains_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *upn = TEST_UPN;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+    mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
+
+    req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                      test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                      NULL, upn);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+}
+
+void test_user_by_upn_cache_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sysdb_attrs *attrs = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_USER_NAME;
+    const char *upn = TEST_UPN;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, upn);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_user(test_ctx->tctx->dom, name, "pwd", 1000, 1000,
+                           NULL, NULL, NULL, "cn=test-user,dc=test", attrs,
+                           NULL, 1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
+
+    req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                      test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                      NULL, upn);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+}
+
+void test_user_by_upn_cache_expired(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sysdb_attrs *attrs = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *name = TEST_USER_NAME;
+    const char *upn = TEST_UPN;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, upn);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_user(test_ctx->tctx->dom, name, "pwd", 1000, 1000,
+                           NULL, NULL, NULL, "cn=test-user,dc=test", attrs,
+                           NULL, -1000, time(NULL));
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* DP should be contacted */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+    mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
+
+    req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                      test_ctx->rctx, test_ctx->ncache, 10, 0,
+                                      NULL, upn);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+}
+
+void test_user_by_upn_cache_midpoint(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    struct sysdb_attrs *attrs = NULL;
+    const char *upn = TEST_UPN;
+    const char *name = TEST_USER_NAME;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, upn);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_user(test_ctx->tctx->dom, name, "pwd", 1000, 1000,
+                           NULL, NULL, NULL, "cn=test-user,dc=test", attrs,
+                           NULL, 50, time(NULL) - 26);
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* DP should be contacted without callback */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
+
+    req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                      test_ctx->rctx, test_ctx->ncache, 10, 50,
+                                      NULL, upn);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+}
+
+void test_user_by_upn_ncache(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *upn = TEST_UPN;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    ret = sss_ncache_set_user(test_ctx->ncache, false,
+                              test_ctx->tctx->dom, upn);
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
+
+    req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                      test_ctx->rctx, test_ctx->ncache, 100, 0,
+                                      NULL, upn);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ENOENT);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_false(test_ctx->dp_called);
+}
+
+void test_user_by_upn_missing_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *upn = TEST_UPN;
+    const char *name = TEST_USER_NAME;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+    mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
+
+    test_ctx->create_user = true;
+
+    req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                      test_ctx->rctx, test_ctx->ncache, 100, 0,
+                                      NULL, upn);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_true(test_ctx->dp_called);
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+    assert_non_null(test_ctx->result->msgs);
+    assert_non_null(test_ctx->result->msgs[0]);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, name);
+}
+
+void test_user_by_upn_missing_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *upn = TEST_UPN;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+    mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
+
+    req = cache_req_user_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
+                                      test_ctx->rctx, test_ctx->ncache, 100, 0,
+                                      NULL, upn);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_name_test_done, test_ctx);
 
@@ -994,7 +1359,7 @@ void test_group_by_name_multiple_domains_found(void **state)
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
-    mock_parse_inp(name, NULL);
+    mock_parse_inp(name, NULL, ERR_OK);
 
     req = cache_req_group_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                        test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -1037,7 +1402,7 @@ void test_group_by_name_multiple_domains_notfound(void **state)
 
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
-    mock_parse_inp(name, NULL);
+    mock_parse_inp(name, NULL, ERR_OK);
 
     req = cache_req_group_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                        test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -1095,7 +1460,7 @@ void test_group_by_name_multiple_domains_parse(void **state)
     req_mem_ctx = talloc_new(global_talloc_context);
     check_leaks_push(req_mem_ctx);
 
-    mock_parse_inp(name, "responder_cache_req_test_d");
+    mock_parse_inp(name, "responder_cache_req_test_d", ERR_OK);
 
     req = cache_req_group_by_name_send(req_mem_ctx, test_ctx->tctx->ev,
                                        test_ctx->rctx, test_ctx->ncache, 10, 0,
@@ -1909,6 +2274,15 @@ int main(int argc, const char *argv[])
         new_multi_domain_test(user_by_name_multiple_domains_found),
         new_multi_domain_test(user_by_name_multiple_domains_notfound),
         new_multi_domain_test(user_by_name_multiple_domains_parse),
+
+        new_single_domain_test(user_by_upn_cache_valid),
+        new_single_domain_test(user_by_upn_cache_expired),
+        new_single_domain_test(user_by_upn_cache_midpoint),
+        new_single_domain_test(user_by_upn_ncache),
+        new_single_domain_test(user_by_upn_missing_found),
+        new_single_domain_test(user_by_upn_missing_notfound),
+        new_multi_domain_test(user_by_upn_multiple_domains_found),
+        new_multi_domain_test(user_by_upn_multiple_domains_notfound),
 
         new_single_domain_test(user_by_id_cache_valid),
         new_single_domain_test(user_by_id_cache_expired),
