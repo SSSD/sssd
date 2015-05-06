@@ -295,6 +295,35 @@ static char *enum_filter(TALLOC_CTX *mem_ctx,
     return filter;
 }
 
+int sysdb_getpwupn(TALLOC_CTX *mem_ctx,
+                   struct sss_domain_info *domain,
+                   const char *upn,
+                   struct ldb_result **_res)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    static const char *attrs[] = SYSDB_PW_ATTRS;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_user_by_upn_res(tmp_ctx, domain, upn, attrs, &res);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_upn_res() failed.\n");
+        goto done;
+    }
+
+    *_res = talloc_steal(mem_ctx, res);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int sysdb_enumpwent_filter(TALLOC_CTX *mem_ctx,
                            struct sss_domain_info *domain,
                            const char *name_filter,
@@ -954,6 +983,70 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
 
 done:
     talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+int sysdb_initgroups_by_upn(TALLOC_CTX *mem_ctx,
+                             struct sss_domain_info *domain,
+                             const char *upn,
+                             struct ldb_result **_res)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    struct ldb_result *res;
+    const char *sysdb_name;
+    static const char *attrs[] = SYSDB_INITGR_ATTRS;
+    size_t i;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_user_by_upn(tmp_ctx, domain, upn, attrs, &msg);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_search_user_by_upn() failed.\n");
+        goto done;
+    }
+
+    res = talloc_zero(tmp_ctx, struct ldb_result);
+    if (res == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero() failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (ret == ENOENT) {
+        res->count = 0;
+        res->msgs = NULL;
+    } else {
+        sysdb_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        if (sysdb_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Sysdb entry does not have a name.\n");
+            return EINVAL;
+        }
+
+        ret = sysdb_initgroups(tmp_ctx, domain, sysdb_name, &res);
+        if (ret == EOK && DOM_HAS_VIEWS(domain)) {
+            for (i = 0; i < res->count; i++) {
+                ret = sysdb_add_overrides_to_object(domain, res->msgs[i],
+                                                    NULL, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                        "sysdb_add_overrides_to_object() failed.\n");
+                    return ret;
+                }
+            }
+        }
+    }
+
+    *_res = talloc_steal(mem_ctx, res);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 

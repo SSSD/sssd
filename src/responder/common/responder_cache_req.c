@@ -70,6 +70,7 @@ struct cache_req_input {
     enum cache_req_type type;
 
     /* Provided input. */
+    const char *raw_name;
     const char *orig_name;
     uint32_t id;
     const char *cert;
@@ -113,12 +114,19 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
     /* Check that input parameters match selected type. */
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_GROUP_BY_NAME:
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
+            goto fail;
+        }
+
+        input->raw_name = talloc_strdup(input, name);
+        if (input->raw_name == NULL) {
             goto fail;
         }
 
@@ -152,6 +160,7 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
     /* Resolve Data Provider request type. */
     switch (type) {
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_USER_BY_ID:
         input->dp_type = SSS_DP_USER;
         break;
@@ -162,6 +171,7 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
         break;
 
     case CACHE_REQ_INITGROUPS:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
         input->dp_type = SSS_DP_INITGROUPS;
         break;
 
@@ -222,10 +232,12 @@ cache_req_input_set_domain(struct cache_req_input *input,
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_GROUP_BY_NAME:
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
         name = sss_get_cased_name(tmp_ctx, input->orig_name,
                                   domain->case_sensitive);
         if (name == NULL) {
@@ -286,6 +298,56 @@ done:
     return ret;
 }
 
+static bool
+cache_req_input_is_upn(struct cache_req_input *input)
+{
+    switch (input->type) {
+    case CACHE_REQ_USER_BY_UPN:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool
+cache_req_input_assume_upn(struct cache_req_input *input)
+{
+    errno_t ret;
+    bool bret;
+
+    if (input->raw_name == NULL || strchr(input->raw_name, '@') == NULL) {
+        return false;
+    }
+
+    switch (input->type) {
+    case CACHE_REQ_USER_BY_NAME:
+        input->type = CACHE_REQ_USER_BY_UPN;
+        bret = true;
+        break;
+    case CACHE_REQ_INITGROUPS:
+        input->type = CACHE_REQ_INITGROUPS_BY_UPN;
+        bret = true;
+        break;
+    default:
+        bret = false;
+        break;
+    }
+
+    if (bret == true) {
+        ret = cache_req_input_set_orig_name(input, input->raw_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "cache_req_input_set_orig_name() failed\n");
+            return false;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Assuming UPN %s\n", input->raw_name);
+    }
+
+    return bret;
+}
+
 static errno_t cache_req_check_ncache(struct cache_req_input *input,
                                       struct sss_nc_ctx *ncache,
                                       int neg_timeout)
@@ -294,7 +356,9 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_INITGROUPS:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
         ret = sss_ncache_check_user(ncache, neg_timeout,
                                     input->domain, input->dom_objname);
         break;
@@ -332,7 +396,9 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_INITGROUPS:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
         ret = sss_ncache_set_user(ncache, false, input->domain,
                                   input->dom_objname);
         break;
@@ -375,8 +441,10 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
         /* Nothing to do, adding a wildcard request to ncache doesn't
          * make sense */
     case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_GROUP_BY_NAME:
     case CACHE_REQ_INITGROUPS:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
         /* Nothing to do. Those types are already in ncache for selected
          * domains. */
         ret = EOK;
@@ -418,6 +486,11 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         ret = sysdb_getpwnam_with_views(mem_ctx, input->domain,
                                         input->dom_objname, &result);
         break;
+    case CACHE_REQ_USER_BY_UPN:
+        one_item_only = true;
+        ret = sysdb_getpwupn(mem_ctx, input->domain,
+                             input->dom_objname, &result);
+        break;
     case CACHE_REQ_USER_BY_ID:
         one_item_only = true;
         ret = sysdb_getpwuid_with_views(mem_ctx, input->domain,
@@ -437,6 +510,11 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         one_item_only = false;
         ret = sysdb_initgroups_with_views(mem_ctx, input->domain,
                                           input->dom_objname, &result);
+        break;
+    case CACHE_REQ_INITGROUPS_BY_UPN:
+        one_item_only = false;
+        ret = sysdb_initgroups_by_upn(mem_ctx, input->domain,
+                                      input->dom_objname, &result);
         break;
     case CACHE_REQ_USER_BY_CERT:
         one_item_only = true;
@@ -618,6 +696,8 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
 
     if (DOM_HAS_VIEWS(state->input->domain)) {
         extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+    } else if (cache_req_input_is_upn(state->input)) {
+        extra_flag = EXTRA_NAME_IS_UPN;
     }
 
     switch (ret) {
@@ -821,23 +901,35 @@ static void cache_req_input_parsed(struct tevent_req *subreq)
     char *name;
     char *domain;
     errno_t ret;
+    bool maybe_upn;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct cache_req_state);
 
     ret = sss_parse_inp_recv(subreq, state, &name, &domain);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (strcmp(name, state->input->orig_name) != 0) {
-        /* The name has changed during input parse phase. */
-        ret = cache_req_input_set_orig_name(state->input, name);
-        if (ret != EOK) {
+    switch (ret) {
+    case EOK:
+        if (strcmp(name, state->input->orig_name) != 0) {
+            /* The name has changed during input parse phase. */
+            ret = cache_req_input_set_orig_name(state->input, name);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+                return;
+            }
+        }
+        break;
+    case ERR_DOMAIN_NOT_FOUND:
+        maybe_upn = cache_req_input_assume_upn(state->input);
+        if (!maybe_upn) {
             tevent_req_error(req, ret);
             return;
         }
+
+        domain = NULL;
+        break;
+    default:
+        tevent_req_error(req, ret);
+        return;
     }
 
     ret = cache_req_select_domains(req, domain);
@@ -943,6 +1035,12 @@ static void cache_req_done(struct tevent_req *subreq)
     }
 
     if (state->check_next == false) {
+        if (ret == ENOENT && cache_req_input_assume_upn(state->input)) {
+            /* search by upn now */
+            cache_req_select_domains(req, NULL);
+            return;
+        }
+
         tevent_req_error(req, ret);
         return;
     }
