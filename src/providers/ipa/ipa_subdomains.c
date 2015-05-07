@@ -1055,7 +1055,14 @@ static void ipa_get_view_name_done(struct tevent_req *req)
     ret = sdap_deref_search_with_filter_recv(req, ctx, &reply_count, &reply);
     talloc_zfree(req);
     if (ret != EOK) {
-        if (ret == EOPNOTSUPP) {
+        /* Depending on the version 389ds return a different error code if the
+         * search for the view name failed because our dereference attribute
+         * ipaAssignedIDView is not known. Newer version return
+         * LDAP_UNAVAILABLE_CRITICAL_EXTENSION(12) which is translated to
+         * EOPNOTSUPP and older versions return LDAP_PROTOCOL_ERROR(2) which
+         * is returned as EIO. In both cases we have to assume that the server
+         * is not view aware and keep the view name unset. */
+        if (ret == EOPNOTSUPP || ret == EIO) {
             DEBUG(SSSDBG_TRACE_FUNC, "get_view_name request failed, looks " \
                                      "like server does not support views.\n");
             ret = ipa_check_master(ctx);
