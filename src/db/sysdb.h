@@ -132,6 +132,7 @@
 #define SYSDB_SSH_PUBKEY "sshPublicKey"
 
 #define SYSDB_AUTH_TYPE "authType"
+#define SYSDB_USER_CERT "userCertificate"
 
 #define SYSDB_SUBDOMAIN_REALM "realmName"
 #define SYSDB_SUBDOMAIN_FLAT "flatName"

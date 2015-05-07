@@ -814,6 +814,20 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_certificate (string)</term>
+                    <listitem>
+                        <para>
+                            Name of the LDAP attribute containing the X509
+                            certificate of the user.
+                        </para>
+                        <para>
+                            Default: no set in the general case, userCertificate
+                            for IPA
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_group_object_class (string)</term>
                     <listitem>
                         <para>
