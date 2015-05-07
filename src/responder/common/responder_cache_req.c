@@ -615,6 +615,11 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
     if (state->input->type == CACHE_REQ_USER_BY_CERT) {
         search_str = state->input->cert;
     }
+
+    if (DOM_HAS_VIEWS(state->input->domain)) {
+        extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+    }
+
     switch (ret) {
     case EOK:
         DEBUG(SSSDBG_TRACE_FUNC, "Cached entry is valid, returning...\n");
@@ -629,7 +634,7 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
                                          state->input->domain, true,
                                          state->input->dp_type,
                                          search_str,
-                                         state->input->id, NULL);
+                                         state->input->id, extra_flag);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory sending out-of-band "
                                        "data provider request\n");
@@ -642,10 +647,6 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
     case ENOENT:
         /* Cache miss or the cache is expired. We need to get the updated
          * information before returning it. */
-
-        if (DOM_HAS_VIEWS(state->input->domain)) {
-            extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
-        }
 
         subreq = sss_dp_get_account_send(state, state->rctx,
                                          state->input->domain, true,
