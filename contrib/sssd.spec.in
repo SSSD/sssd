@@ -106,6 +106,7 @@ BuildRequires: dbus-libs
 BuildRequires: openldap-devel
 BuildRequires: pam-devel
 BuildRequires: nss-devel
+BuildRequires: openssl-devel
 BuildRequires: nspr-devel
 BuildRequires: pcre-devel
 BuildRequires: libxslt
@@ -691,6 +692,7 @@ rm -rf $RPM_BUILD_ROOT
 #Internal shared libraries
 %{_libdir}/%{name}/libsss_child.so
 %{_libdir}/%{name}/libsss_crypt.so
+%{_libdir}/%{name}/libsss_cert.so
 %{_libdir}/%{name}/libsss_debug.so
 %{_libdir}/%{name}/libsss_krb5_common.so
 %{_libdir}/%{name}/libsss_ldap_common.so

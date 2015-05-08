@@ -105,6 +105,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         systemd
         xml-core
         xsltproc
+        libssl-dev
     )
     DEPS_INTGCHECK_SATISFIED=false
 fi

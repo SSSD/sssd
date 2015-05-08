@@ -340,9 +340,8 @@ fi
 if test x$cryptolib = xnss; then
     AM_CHECK_NSS
 fi
-if test x$cryptolib = xlibcrypto; then
-    AM_CHECK_LIBCRYPTO
-fi
+
+AM_CHECK_LIBCRYPTO
 
 AM_CHECK_INOTIFY
 

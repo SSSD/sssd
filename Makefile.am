@@ -230,6 +230,7 @@ if HAVE_CMOCKA
         pam-srv-tests \
         test_ipa_subdom_util \
         test_ipa_subdom_server \
+        test_cert_utils \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -501,6 +502,7 @@ endif
 dist_noinst_HEADERS = \
     src/monitor/monitor.h \
     src/util/crypto/sss_crypto.h \
+    src/util/cert.h \
     src/util/dlinklist.h \
     src/util/util.h \
     src/util/io.h \
@@ -723,6 +725,25 @@ libsss_crypt_la_LIBADD = \
     $(NULL)
 libsss_crypt_la_LDFLAGS = \
     -avoid-version
+
+pkglib_LTLIBRARIES += libsss_cert.la
+
+libsss_cert_la_SOURCES = \
+    src/util/cert/cert_common.c \
+    src/util/cert/libcrypto/cert.c \
+    $(NULL)
+libsss_cert_la_CFLAGS = \
+    $(CRYPTO_CFLAGS) \
+    $(NULL)
+libsss_cert_la_LIBADD = \
+    $(CRYPTO_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_crypt.la \
+    libsss_debug.la \
+    $(NULL)
+libsss_cert_la_LDFLAGS = \
+    -avoid-version \
+    $(NULL)
 
 pkglib_LTLIBRARIES += libsss_util.la
 libsss_util_la_SOURCES = \
@@ -2490,6 +2511,23 @@ test_ipa_subdom_server_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
+test_cert_utils_SOURCES = \
+    src/tests/cmocka/test_cert_utils.c \
+    $(NULL)
+test_cert_utils_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CRYPTO_CFLAGS) \
+    $(NULL)
+test_cert_utils_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(CRYPTO_LIBS) \
+    libsss_debug.la \
+    libsss_test_common.la \
+    libsss_cert.la \
+    libsss_crypt.la \
+    $(NULL)
 endif # HAVE_CMOCKA
 
 noinst_PROGRAMS = pam_test_client
