@@ -1721,7 +1721,7 @@ struct sdap_get_groups_state {
     const char *base_filter;
     char *filter;
     int timeout;
-    bool enumeration;
+    enum sdap_entry_lookup_type lookup_type;
     bool no_members;
 
     char *higher_usn;
@@ -1752,7 +1752,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        const char **attrs,
                                        const char *filter,
                                        int timeout,
-                                       bool enumeration,
+                                       enum sdap_entry_lookup_type lookup_type,
                                        bool no_members)
 {
     errno_t ret;
@@ -1775,7 +1775,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     state->groups =  NULL;
     state->count = 0;
     state->timeout = timeout;
-    state->enumeration = enumeration;
+    state->lookup_type = lookup_type;
     state->no_members = no_members;
     state->base_filter = filter;
     state->base_iter = 0;
@@ -1855,6 +1855,7 @@ static errno_t sdap_get_groups_next_base(struct tevent_req *req)
 {
     struct tevent_req *subreq;
     struct sdap_get_groups_state *state;
+    bool need_paging = false;
 
     state = tevent_req_data(req, struct sdap_get_groups_state);
 
@@ -1870,6 +1871,19 @@ static errno_t sdap_get_groups_next_base(struct tevent_req *req)
           "Searching for groups with base [%s]\n",
            state->search_bases[state->base_iter]->basedn);
 
+    switch (state->lookup_type) {
+    case SDAP_LOOKUP_SINGLE:
+        need_paging = false;
+        break;
+    /* Only requests that can return multiple entries should require
+     * the paging control
+     */
+    case SDAP_LOOKUP_WILDCARD:
+    case SDAP_LOOKUP_ENUMERATE:
+        need_paging = true;
+        break;
+    }
+
     subreq = sdap_get_and_parse_generic_send(
             state, state->ev, state->opts,
             state->ldap_sh != NULL ? state->ldap_sh : state->sh,
@@ -1878,7 +1892,7 @@ static errno_t sdap_get_groups_next_base(struct tevent_req *req)
             state->filter, state->attrs,
             state->opts->group_map, SDAP_OPTS_GROUP,
             0, NULL, NULL, 0, state->timeout,
-            state->enumeration); /* If we're enumerating, we need paging */
+            need_paging);
     if (!subreq) {
         return ENOMEM;
     }
@@ -1914,14 +1928,17 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC,
           "Search for groups, returned %zu results.\n", count);
 
-    if (!state->enumeration && count > 1) {
+    if (state->lookup_type == SDAP_LOOKUP_SINGLE && count > 1) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Individual group search returned multiple results\n");
         tevent_req_error(req, EINVAL);
         return;
     }
 
-    if (state->enumeration || count == 0) {
+    if (state->lookup_type == SDAP_LOOKUP_WILDCARD || \
+            state->lookup_type == SDAP_LOOKUP_ENUMERATE || \
+        count == 0) {
+        /* No users found in this search or looking up multiple entries */
         next_base = true;
     }
 
@@ -2003,7 +2020,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
      * LDAP_MATCHING_RULE_IN_CHAIN available in
      * AD 2008 and later
      */
-    if (!state->enumeration) {
+    if (state->lookup_type == SDAP_LOOKUP_SINGLE) {
         if ((state->opts->schema_type != SDAP_SCHEMA_RFC2307)
                 && (dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0)
                 && !dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_GROUPS)) {
@@ -2026,7 +2043,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     /* If we're using LDAP_MATCHING_RULE_IN_CHAIN, start a subreq to
      * retrieve the members so we can save them in a single step.
      */
-    if (!state->enumeration
+    if (state->lookup_type == SDAP_LOOKUP_SINGLE
             && (state->opts->schema_type != SDAP_SCHEMA_RFC2307)
             && state->opts->support_matching_rule
             && dp_opt_get_bool(state->opts->basic, SDAP_AD_MATCHING_RULE_GROUPS)) {
@@ -2050,7 +2067,8 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         return;
     }
 
-    if (state->enumeration
+    if ((state->lookup_type == SDAP_LOOKUP_ENUMERATE
+                || state->lookup_type == SDAP_LOOKUP_WILDCARD)
             && state->opts->schema_type != SDAP_SCHEMA_RFC2307
             && dp_opt_get_int(state->opts->basic, SDAP_NESTING_LEVEL) != 0) {
         DEBUG(SSSDBG_TRACE_ALL, "Saving groups without members first "
@@ -2069,7 +2087,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         subreq = sdap_process_group_send(state, state->ev, state->dom,
                                          state->sysdb, state->opts,
                                          state->sh, state->groups[i],
-                                         state->enumeration);
+                                         state->lookup_type == SDAP_LOOKUP_ENUMERATE);
 
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
@@ -2116,7 +2134,7 @@ static void sdap_get_groups_done(struct tevent_req *subreq)
         ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
                                state->groups, state->count,
                                !state->dom->ignore_group_members, NULL,
-                               !state->enumeration,
+                               state->lookup_type == SDAP_LOOKUP_SINGLE,
                                &state->higher_usn);
         if (ret) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to store groups.\n");

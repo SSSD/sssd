@@ -396,12 +396,12 @@ static void users_get_search(struct tevent_req *req)
     struct users_get_state *state = tevent_req_data(req,
                                                      struct users_get_state);
     struct tevent_req *subreq;
-    bool multiple_results;
+    enum sdap_entry_lookup_type lookup_type;
 
     if (state->filter_type == BE_FILTER_WILDCARD) {
-        multiple_results = true;
+        lookup_type = SDAP_LOOKUP_WILDCARD;
     } else {
-        multiple_results = false;
+        lookup_type = SDAP_LOOKUP_SINGLE;
     }
 
     subreq = sdap_get_users_send(state, state->ev,
@@ -412,7 +412,7 @@ static void users_get_search(struct tevent_req *req)
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
                                                 SDAP_SEARCH_TIMEOUT),
-                                 multiple_results);
+                                 lookup_type);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -901,12 +901,12 @@ static void groups_get_search(struct tevent_req *req)
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
     struct tevent_req *subreq;
-    bool multiple_results;
+    enum sdap_entry_lookup_type lookup_type;
 
     if (state->filter_type == BE_FILTER_WILDCARD) {
-        multiple_results = true;
+        lookup_type = SDAP_LOOKUP_WILDCARD;
     } else {
-        multiple_results = false;
+        lookup_type = SDAP_LOOKUP_SINGLE;
     }
 
     subreq = sdap_get_groups_send(state, state->ev,
@@ -916,7 +916,7 @@ static void groups_get_search(struct tevent_req *req)
                                   state->attrs, state->filter,
                                   dp_opt_get_int(state->ctx->opts->basic,
                                                  SDAP_SEARCH_TIMEOUT),
-                                  multiple_results,
+                                  lookup_type,
                                   state->no_members);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);

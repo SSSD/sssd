@@ -418,7 +418,7 @@ static struct tevent_req *get_user_dn_send(TALLOC_CTX *memctx,
                                    sh, attrs, filter,
                                    dp_opt_get_int(opts->basic,
                                                   SDAP_SEARCH_TIMEOUT),
-                                   false);
+                                   SDAP_LOOKUP_SINGLE);
     if (!subreq) {
         ret = ENOMEM;
         goto done;

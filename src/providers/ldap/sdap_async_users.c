@@ -606,7 +606,7 @@ struct sdap_search_user_state {
     const char *base_filter;
     const char *filter;
     int timeout;
-    bool enumeration;
+    enum sdap_entry_lookup_type lookup_type;
 
     char *higher_usn;
     struct sysdb_attrs **users;
@@ -628,7 +628,7 @@ struct tevent_req *sdap_search_user_send(TALLOC_CTX *memctx,
                                          const char **attrs,
                                          const char *filter,
                                          int timeout,
-                                         bool enumeration)
+                                         enum sdap_entry_lookup_type lookup_type)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -649,7 +649,7 @@ struct tevent_req *sdap_search_user_send(TALLOC_CTX *memctx,
     state->base_filter = filter;
     state->base_iter = 0;
     state->search_bases = search_bases;
-    state->enumeration = enumeration;
+    state->lookup_type = lookup_type;
 
     if (!state->search_bases) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -673,6 +673,7 @@ static errno_t sdap_search_user_next_base(struct tevent_req *req)
 {
     struct tevent_req *subreq;
     struct sdap_search_user_state *state;
+    bool need_paging = false;
 
     state = tevent_req_data(req, struct sdap_search_user_state);
 
@@ -688,6 +689,19 @@ static errno_t sdap_search_user_next_base(struct tevent_req *req)
           "Searching for users with base [%s]\n",
            state->search_bases[state->base_iter]->basedn);
 
+    switch (state->lookup_type) {
+    case SDAP_LOOKUP_SINGLE:
+        need_paging = false;
+        break;
+    /* Only requests that can return multiple entries should require
+     * the paging control
+     */
+    case SDAP_LOOKUP_WILDCARD:
+    case SDAP_LOOKUP_ENUMERATE:
+        need_paging = true;
+        break;
+    }
+
     subreq = sdap_get_and_parse_generic_send(
             state, state->ev, state->opts, state->sh,
             state->search_bases[state->base_iter]->basedn,
@@ -695,7 +709,7 @@ static errno_t sdap_search_user_next_base(struct tevent_req *req)
             state->filter, state->attrs,
             state->opts->user_map, state->opts->user_map_cnt,
             0, NULL, NULL, 0, state->timeout,
-            state->enumeration); /* If we're enumerating, we need paging */
+            need_paging);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -726,8 +740,10 @@ static void sdap_search_user_process(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC,
           "Search for users, returned %zu results.\n", count);
 
-    if (state->enumeration || count == 0) {
-        /* No users found in this search or enumerating */
+    if (state->lookup_type == SDAP_LOOKUP_WILDCARD || \
+            state->lookup_type == SDAP_LOOKUP_ENUMERATE || \
+        count == 0) {
+        /* No users found in this search or looking up multiple entries */
         next_base = true;
     }
 
@@ -827,7 +843,7 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        const char **attrs,
                                        const char *filter,
                                        int timeout,
-                                       bool enumeration)
+                                       enum sdap_entry_lookup_type lookup_type)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -842,7 +858,7 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
     state->dom = dom;
 
     subreq = sdap_search_user_send(state, ev, dom, opts, search_bases,
-                                   sh, attrs, filter, timeout, enumeration);
+                                   sh, attrs, filter, timeout, lookup_type);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto done;
