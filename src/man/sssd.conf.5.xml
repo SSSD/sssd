@@ -1363,8 +1363,8 @@ pam_account_expired_message = Account expired, please call help desk.
                             refresh all expired or nearly expired records.
                         </para>
                         <para>
-                            Currently only refreshing expired netgroups is
-                            supported.
+                            The background refresh will process users,
+                            groups and netgroups in the cache.
                         </para>
                         <para>
                             You can consider setting this value to
