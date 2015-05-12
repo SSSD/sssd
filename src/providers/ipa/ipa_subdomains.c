@@ -647,8 +647,7 @@ done:
 
 static errno_t ipa_subdom_store(struct sss_domain_info *parent,
                                 struct sdap_idmap_ctx *sdap_idmap_ctx,
-                                struct sysdb_attrs *attrs,
-                                bool enumerate)
+                                struct sysdb_attrs *attrs)
 {
     TALLOC_CTX *tmp_ctx;
     const char *name;
@@ -658,6 +657,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     char *forest = NULL;
     int ret;
     bool mpg;
+    bool enumerate;
 
     tmp_ctx = talloc_new(parent);
     if (tmp_ctx == NULL) {
@@ -696,6 +696,11 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
         goto done;
     }
 
+    ret = ipa_subdom_enumerates(parent, attrs, &enumerate);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
                                 id, mpg, enumerate, forest, 0);
     if (ret) {
@@ -718,7 +723,6 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
     const char *value;
     int c, h;
     int ret;
-    bool enumerate;
 
     parent = ctx->be_ctx->domain;
     memset(handled, 0, sizeof(bool) * count);
@@ -754,13 +758,8 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             ipa_ad_subdom_remove(ctx, dom);
         } else {
             /* ok let's try to update it */
-            ret = ipa_subdom_enumerates(parent, reply[c], &enumerate);
-            if (ret != EOK) {
-                goto done;
-            }
-
             ret = ipa_subdom_store(parent, ctx->sdap_id_ctx->opts->idmap_ctx,
-                                   reply[c], enumerate);
+                                   reply[c]);
             if (ret) {
                 /* Nothing we can do about the errorr. Let's at least try
                  * to reuse the existing domain
@@ -786,16 +785,12 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
         if (handled[c]) {
             continue;
         }
+
         /* Nothing we can do about the errorr. Let's at least try
          * to reuse the existing domain.
          */
-        ret = ipa_subdom_enumerates(parent, reply[c], &enumerate);
-        if (ret != EOK) {
-            goto done;
-        }
-
         ret = ipa_subdom_store(parent, ctx->sdap_id_ctx->opts->idmap_ctx,
-                               reply[c], enumerate);
+                               reply[c]);
         if (ret) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
                   "will try to use cached subdomain\n");
