@@ -697,7 +697,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     }
 
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
-                                id, mpg, enumerate, forest);
+                                id, mpg, enumerate, forest, 0);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
         goto done;

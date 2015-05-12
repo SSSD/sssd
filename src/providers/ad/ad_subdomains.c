@@ -313,7 +313,7 @@ ad_subdom_store(struct ad_subdomains_ctx *ctx,
                                              sid_str);
 
     ret = sysdb_subdomain_store(domain->sysdb, name, realm, flat, sid_str,
-                                mpg, enumerate, domain->forest);
+                                mpg, enumerate, domain->forest, 0);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
         goto done;

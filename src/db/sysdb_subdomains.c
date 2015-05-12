@@ -36,6 +36,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                            SYSDB_SUBDOMAIN_MPG,
                            SYSDB_SUBDOMAIN_ENUM,
                            SYSDB_SUBDOMAIN_FOREST,
+                           SYSDB_SUBDOMAIN_TRUST_DIRECTION,
                            NULL};
     struct sss_domain_info *dom;
     struct ldb_dn *basedn;
@@ -46,6 +47,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
     const char *forest;
     bool mpg;
     bool enumerate;
+    uint32_t trust_direction;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -106,6 +108,10 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
         forest = ldb_msg_find_attr_as_string(res->msgs[i],
                                              SYSDB_SUBDOMAIN_FOREST, NULL);
 
+        trust_direction = ldb_msg_find_attr_as_int(res->msgs[i],
+                                             SYSDB_SUBDOMAIN_TRUST_DIRECTION,
+                                             0);
+
         /* explicitly use dom->next as we need to check 'disabled' domains */
         for (dom = domain->subdomains; dom; dom = dom->next) {
             if (strcasecmp(dom->name, name) == 0) {
@@ -155,7 +161,7 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
 
                 if (dom->enumerate != enumerate) {
                     DEBUG(SSSDBG_TRACE_INTERNAL,
-                          "MPG state change from [%s] to [%s]!\n",
+                          "enumerate state change from [%s] to [%s]!\n",
                            dom->enumerate ? "true" : "false",
                            enumerate ? "true" : "false");
                     dom->enumerate = enumerate;
@@ -204,13 +210,21 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                     }
                 }
 
+                if (dom->trust_direction != trust_direction) {
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "Trust direction change from [%d] to [%d]!\n",
+                           dom->trust_direction, trust_direction);
+                    dom->trust_direction = trust_direction;
+                }
+
                 break;
             }
         }
         /* If not found in loop it is a new subdomain */
         if (dom == NULL) {
             dom = new_subdomain(domain, domain, name, realm,
-                                flat, id, mpg, enumerate, forest);
+                                flat, id, mpg, enumerate, forest,
+                                trust_direction);
             if (dom == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -524,7 +538,8 @@ done:
 errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                               const char *name, const char *realm,
                               const char *flat_name, const char *domain_id,
-                              bool mpg, bool enumerate, const char *forest)
+                              bool mpg, bool enumerate, const char *forest,
+                              uint32_t trust_direction)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_message *msg;
@@ -537,6 +552,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                            SYSDB_SUBDOMAIN_MPG,
                            SYSDB_SUBDOMAIN_ENUM,
                            SYSDB_SUBDOMAIN_FOREST,
+                           SYSDB_SUBDOMAIN_TRUST_DIRECTION,
                            NULL};
     const char *tmp_str;
     bool tmp_bool;
@@ -547,6 +563,8 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
     int mpg_flags = 0;
     int enum_flags = 0;
     int forest_flags = 0;
+    int td_flags = 0;
+    uint32_t tmp_td;
     int ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -578,6 +596,7 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         mpg_flags = LDB_FLAG_MOD_ADD;
         enum_flags = LDB_FLAG_MOD_ADD;
         if (forest) forest_flags = LDB_FLAG_MOD_ADD;
+        if (trust_direction) td_flags = LDB_FLAG_MOD_ADD;
     } else if (res->count != 1) {
         ret = EINVAL;
         goto done;
@@ -622,10 +641,18 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
                 forest_flags = LDB_FLAG_MOD_REPLACE;
             }
         }
+
+        tmp_td = ldb_msg_find_attr_as_uint(res->msgs[0],
+                                           SYSDB_SUBDOMAIN_TRUST_DIRECTION,
+                                           0);
+        if (tmp_td != trust_direction) {
+            td_flags = LDB_FLAG_MOD_REPLACE;
+        }
     }
 
     if (!store && realm_flags == 0 && flat_flags == 0 && id_flags == 0
-            && mpg_flags == 0 && enum_flags == 0 && forest_flags == 0) {
+            && mpg_flags == 0 && enum_flags == 0 && forest_flags == 0
+            && td_flags == 0) {
         ret = EOK;
         goto done;
     }
@@ -732,6 +759,22 @@ errno_t sysdb_subdomain_store(struct sysdb_ctx *sysdb,
         }
 
         ret = ldb_msg_add_string(msg, SYSDB_SUBDOMAIN_FOREST, forest);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+    }
+
+    if (td_flags) {
+        ret = ldb_msg_add_empty(msg, SYSDB_SUBDOMAIN_TRUST_DIRECTION,
+                                td_flags, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        ret = ldb_msg_add_fmt(msg, SYSDB_SUBDOMAIN_TRUST_DIRECTION,
+                              "%u", trust_direction);
         if (ret != LDB_SUCCESS) {
             ret = sysdb_error_to_errno(ret);
             goto done;

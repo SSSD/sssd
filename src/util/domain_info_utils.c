@@ -203,7 +203,8 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
                                       const char *id,
                                       bool mpg,
                                       bool enumerate,
-                                      const char *forest)
+                                      const char *forest,
+                                      uint32_t trust_direction)
 {
     struct sss_domain_info *dom;
     bool inherit_option;
@@ -290,6 +291,7 @@ struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
         dom->ignore_group_members = parent->ignore_group_members;
     }
 
+    dom->trust_direction = trust_direction;
     /* If the parent domain explicitly limits ID ranges, the subdomain
      * should honour the limits as well.
      */

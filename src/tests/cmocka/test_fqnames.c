@@ -309,7 +309,7 @@ static int parse_name_test_setup(void **state)
      * discovered
      */
     test_ctx->subdom = new_subdomain(dom, dom, SUBDOMNAME, NULL, SUBFLATNAME,
-                                     NULL, false, false, NULL);
+                                     NULL, false, false, NULL, 0);
     assert_non_null(test_ctx->subdom);
 
     check_leaks_push(test_ctx);

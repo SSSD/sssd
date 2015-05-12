@@ -260,6 +260,7 @@ struct sss_domain_info {
     char *flat_name;
     char *domain_id;
     char *forest;
+    uint32_t trust_direction;
     struct timeval subdomains_last_checked;
 
     bool has_views;
