@@ -329,12 +329,21 @@ ipa_subdom_reinit(struct ipa_subdomains_ctx *ctx)
 {
     errno_t ret;
 
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Re-initializing domain %s\n", ctx->be_ctx->domain->name);
+
     ret = sss_write_krb5_conf_snippet(
                               dp_opt_get_string(ctx->id_ctx->ipa_options->basic,
                                                 IPA_KRB5_CONFD_PATH));
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "sss_write_krb5_conf_snippet failed.\n");
         /* Just continue */
+    }
+
+    ret = sysdb_master_domain_update(ctx->be_ctx->domain);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sysdb_master_domain_update failed.\n");
+        return ret;
     }
 
     ret = sysdb_update_subdomains(ctx->be_ctx->domain);
