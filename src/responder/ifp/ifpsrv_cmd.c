@@ -61,6 +61,9 @@ int ifp_user_get_attr(struct sbus_request *dbus_req, void *data)
     struct ifp_attr_req *attr_req;
     struct tevent_req *req;
 
+    DEBUG(SSSDBG_IMPORTANT_INFO, "GetUserAttr is deprecated, please consider "
+          "switching to org.freedesktop.sssd.infopipe.Users.User interface\n");
+
     ifp_ctx = talloc_get_type(data, struct ifp_ctx);
     if (ifp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
