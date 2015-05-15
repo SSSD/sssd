@@ -894,7 +894,9 @@ libwbclient_LTLIBRARIES = libwbclient.la
 pkgconfig_DATA += src/sss_client/libwbclient/wbclient_sssd.pc
 
 EXTRA_libwbclient_la_DEPENDENCIES = \
-    src/sss_client/libwbclient/wbclient.exports
+    src/sss_client/libwbclient/wbclient.exports \
+    $(NULL)
+
 libwbclient_la_SOURCES = \
     src/sss_client/libwbclient/wbc_guid.c \
     src/sss_client/libwbclient/wbc_idmap_common.c \
@@ -907,15 +909,21 @@ libwbclient_la_SOURCES = \
     src/sss_client/libwbclient/wbc_sid_sssd.c \
     src/sss_client/libwbclient/wbc_sssd_internal.h \
     src/sss_client/libwbclient/wbc_util_common.c \
-    src/sss_client/libwbclient/wbc_util_sssd.c
+    src/sss_client/libwbclient/wbc_util_sssd.c \
+    src/sss_client/libwbclient/wbc_ctx_sssd.c \
+    $(NULL)
 libwbclient_la_LIBADD = \
     libsss_nss_idmap.la \
-    $(CLIENT_LIBS)
+    $(CLIENT_LIBS) \
+    $(NULL)
+
 libwbclient_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/sss_client/libwbclient/wbclient.exports \
-    -version-info 11:0:11
+    -version-info @libwbclient_version_info@ \
+    $(NULL)
 
-dist_noinst_DATA += src/sss_client/libwbclient/wbclient.exports
+dist_noinst_DATA += src/sss_client/libwbclient/wbclient.exports \
+    $(NULL)
 
 include_HEADERS += src/sss_client/libwbclient/wbclient_sssd.h
 endif #BUILD_LIBWBCLIENT
