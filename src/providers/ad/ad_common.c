@@ -30,8 +30,8 @@ struct ad_server_data {
 };
 
 errno_t ad_set_search_bases(struct sdap_options *id_opts);
-static errno_t ad_set_ad_id_options(struct ad_options *ad_opts,
-                                    struct sdap_options *id_opts);
+static errno_t ad_set_sdap_options(struct ad_options *ad_opts,
+                                   struct sdap_options *id_opts);
 
 static struct sdap_options *
 ad_create_default_sdap_options(TALLOC_CTX *mem_ctx)
@@ -148,7 +148,7 @@ ad_create_default_options(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    ret = ad_set_ad_id_options(ad_options, ad_options->id);
+    ret = ad_set_sdap_options(ad_options, ad_options->id);
     if (ret != EOK) {
         talloc_free(ad_options);
         return NULL;
@@ -831,8 +831,8 @@ done:
 }
 
 static errno_t
-ad_set_ad_id_options(struct ad_options *ad_opts,
-                     struct sdap_options *id_opts)
+ad_set_sdap_options(struct ad_options *ad_opts,
+                    struct sdap_options *id_opts)
 {
     errno_t ret;
     char *krb5_realm;
@@ -910,7 +910,7 @@ ad_get_id_options(struct ad_options *ad_opts,
         return ENOMEM;
     }
 
-    ret = ad_set_ad_id_options(ad_opts, id_opts);
+    ret = ad_set_sdap_options(ad_opts, id_opts);
     if (ret != EOK) {
         talloc_free(id_opts);
         return ret;
