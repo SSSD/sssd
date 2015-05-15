@@ -2233,7 +2233,7 @@ void test_nss_initgroups(void **state)
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
 
-    ret = sysdb_attrs_add_uint32(attrs, SYSDB_INITGR_EXPIRE,
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
                                  time(NULL) + 300);
     assert_int_equal(ret, EOK);
 
@@ -2335,7 +2335,7 @@ static int test_nss_initgr_search_acct_cb(void *pvt)
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
 
-    ret = sysdb_attrs_add_uint32(attrs, SYSDB_INITGR_EXPIRE,
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
                                  time(NULL) + 300);
     assert_int_equal(ret, EOK);
 
@@ -2418,7 +2418,7 @@ static int test_nss_initgr_update_acct_cb(void *pvt)
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
 
-    ret = sysdb_attrs_add_uint32(attrs, SYSDB_INITGR_EXPIRE,
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
                                  time(NULL) + 300);
     assert_int_equal(ret, EOK);
 
@@ -2458,7 +2458,7 @@ void test_nss_initgr_update(void **state)
     attrs = sysdb_new_attrs(nss_test_ctx);
     assert_non_null(attrs);
 
-    ret = sysdb_attrs_add_uint32(attrs, SYSDB_INITGR_EXPIRE,
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
                                  time(NULL) - 1);
     assert_int_equal(ret, EOK);
 
