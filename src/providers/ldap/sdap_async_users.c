@@ -116,7 +116,6 @@ int sdap_save_user(TALLOC_CTX *memctx,
                    struct sdap_options *opts,
                    struct sss_domain_info *dom,
                    struct sysdb_attrs *attrs,
-                   bool is_initgr,
                    char **_usn_value,
                    time_t now)
 {
@@ -547,8 +546,7 @@ int sdap_save_users(TALLOC_CTX *memctx,
     for (i = 0; i < num_users; i++) {
         usn_value = NULL;
 
-        ret = sdap_save_user(tmpctx, opts, dom, users[i], false,
-                             &usn_value, now);
+        ret = sdap_save_user(tmpctx, opts, dom, users[i], &usn_value, now);
 
         /* Do not fail completely on errors.
          * Just report the failure to save and go on */

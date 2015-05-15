@@ -433,7 +433,7 @@ static void users_get_done(struct tevent_req *subreq)
                                            name, uid, &usr_attrs);
             if (ret == EOK) {
                 ret = sdap_save_user(state, state->ctx->opts, state->domain,
-                                     usr_attrs[0], false, NULL, 0);
+                                     usr_attrs[0], NULL, 0);
             }
         }
     }

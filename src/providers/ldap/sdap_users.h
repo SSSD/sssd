@@ -35,7 +35,6 @@ int sdap_save_user(TALLOC_CTX *memctx,
                    struct sdap_options *opts,
                    struct sss_domain_info *dom,
                    struct sysdb_attrs *attrs,
-                   bool is_initgr,
                    char **_usn_value,
                    time_t now);
 
