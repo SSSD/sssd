@@ -2495,6 +2495,104 @@ void test_nss_initgr_update(void **state)
     assert_int_equal(ret, EOK);
 }
 
+static int test_nss_initgr_update_acct_2expire_attributes_cb(void *pvt)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
+                                 time(NULL) + 300);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(nss_test_ctx->tctx->dom,
+                              "testinitgr_2attr",
+                              attrs, SYSDB_MOD_REP);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
+                          "testinitgr_2attr_gr12", 5222,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
+                                 "testinitgr_2attr_gr12",
+                                 "testinitgr_2attr",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    return EOK;
+}
+
+static int test_nss_initgr_update_2expire_attributes_check(uint32_t status,
+                                                           uint8_t *body,
+                                                           size_t blen)
+{
+    gid_t expected_gids[] = { 5221, 5222 };
+
+    assert_int_equal(status, EOK);
+    check_initgr_packet(body, blen, expected_gids, N_ELEMENTS(expected_gids));
+    return EOK;
+}
+
+/*
+ * SYSDB_INITGR_EXPIRE has default value 0 => initgroups was not finished.
+ * SYSDB_CACHE_EXPIRE has value from future => getpwnam finished successfully
+ *
+ * Test result: DP should be contacted for update.
+ */
+void test_nss_initgr_update_two_expire_attributes(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
+                                 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 time(NULL) + 100);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_user(nss_test_ctx->tctx->dom,
+                         "testinitgr_2attr", 522, 655, "test initgroups2",
+                         "/home/testinitgr_2attr", "/bin/sh", NULL,
+                         attrs, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group(nss_test_ctx->tctx->dom,
+                          "testinitgr_2attr_gr11", 5221,
+                          NULL, 300, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(nss_test_ctx->tctx->dom,
+                                 "testinitgr_2attr_gr11", "testinitgr_2attr",
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testinitgr_2attr");
+    mock_account_recv(0, 0, NULL,
+                      test_nss_initgr_update_acct_2expire_attributes_cb,
+                      nss_test_ctx);
+    will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
+    mock_fill_initgr_user();
+    set_cmd_cb(test_nss_initgr_update_2expire_attributes_check);
+
+    /* Query for that user, call a callback when command finishes */
+    ret = sss_cmd_execute(nss_test_ctx->cctx, SSS_NSS_INITGR,
+                          nss_test_ctx->nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 void test_nss_initgroups_upn(void **state)
 {
     errno_t ret;
@@ -2890,6 +2988,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_nss_initgr_search,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_initgr_update,
+                                        nss_test_setup, nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_nss_initgr_update_two_expire_attributes,
                                         nss_test_setup, nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_nss_initgroups_upn,
                                         nss_test_setup, nss_test_teardown),
