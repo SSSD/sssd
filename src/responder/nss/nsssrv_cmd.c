@@ -620,9 +620,8 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
             if (req_type == SSS_DP_INITGROUPS) {
                 cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                           SYSDB_INITGR_EXPIRE,
-                                                          1);
-            }
-            if (cacheExpire == 0) {
+                                                          0);
+            } else {
                 cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                           SYSDB_CACHE_EXPIRE,
                                                           0);
