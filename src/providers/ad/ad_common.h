@@ -103,6 +103,8 @@ ad_get_common_options(TALLOC_CTX *mem_ctx,
                       struct sss_domain_info *dom,
                       struct ad_options **_opts);
 
+struct ad_options *ad_create_default_options(TALLOC_CTX *mem_ctx);
+
 struct ad_options *ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
                                                 const char *realm,
                                                 const char *hostname);

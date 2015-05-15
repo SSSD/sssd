@@ -59,6 +59,22 @@ struct ad_common_test_ctx {
     struct sss_domain_info *subdom;
 };
 
+static void test_ad_create_default_options(void **state)
+{
+    struct ad_options *ad_options;
+    const char *s;
+
+    ad_options = ad_create_default_options(global_talloc_context);
+
+    assert_non_null(ad_options->basic);
+
+    /* Not too much to test here except some defaults */
+    s = dp_opt_get_string(ad_options->basic, AD_DOMAIN);
+    assert_null(s);
+
+    assert_non_null(ad_options->id);
+}
+
 static int test_ad_common_setup(void **state)
 {
     struct ad_common_test_ctx *test_ctx;
@@ -318,6 +334,7 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_ad_create_default_options),
         cmocka_unit_test_setup_teardown(test_ad_create_2way_trust_options,
                                         test_ad_common_setup,
                                         test_ad_common_teardown),
