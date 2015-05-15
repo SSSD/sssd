@@ -44,6 +44,13 @@
 #define KEYTAB_TEST_PRINC TEST_AUTHID"@"REALMNAME
 #define KEYTAB_PATH       TEST_DIR"/keytab_test.keytab"
 
+#define ONEWAY_DOMNAME     "ONEWAY"
+#define ONEWAY_HOST_NAME   "ad."ONEWAY_DOMNAME
+
+#define ONEWAY_KEYTAB_PATH       TEST_DIR"/oneway_test.keytab"
+#define ONEWAY_AUTHID            "host/"ONEWAY_HOST_NAME
+#define ONEWAY_TEST_PRINC        ONEWAY_AUTHID"@"ONEWAY_DOMNAME
+
 static bool call_real_sasl_options;
 
 krb5_error_code __wrap_krb5_kt_default(krb5_context context, krb5_keytab *id)
@@ -116,6 +123,70 @@ static int test_ad_common_teardown(void **state)
     return 0;
 }
 
+static void test_ad_create_1way_trust_options(void **state)
+{
+    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+                                                  struct ad_common_test_ctx);
+    const char *s;
+
+    call_real_sasl_options = true;
+    /* Make sure this is not the keytab that __wrap_krb5_kt_default uses */
+    mock_keytab_with_contents(test_ctx, ONEWAY_KEYTAB_PATH, ONEWAY_TEST_PRINC);
+
+    test_ctx->ad_ctx->ad_options = ad_create_1way_trust_options(
+                                                            test_ctx->ad_ctx,
+                                                            ONEWAY_DOMNAME,
+                                                            ONEWAY_HOST_NAME,
+                                                            ONEWAY_KEYTAB_PATH,
+                                                            ONEWAY_AUTHID);
+    assert_non_null(test_ctx->ad_ctx->ad_options);
+
+    assert_int_equal(test_ctx->ad_ctx->ad_options->id->schema_type,
+                     SDAP_SCHEMA_AD);
+
+    s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->basic,
+                          AD_KRB5_REALM);
+    assert_non_null(s);
+    assert_string_equal(s, ONEWAY_DOMNAME);
+
+    s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->basic,
+                          AD_DOMAIN);
+    assert_non_null(s);
+    assert_string_equal(s, ONEWAY_DOMNAME);
+
+    s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->basic,
+                          AD_HOSTNAME);
+    assert_non_null(s);
+    assert_string_equal(s, ONEWAY_HOST_NAME);
+
+    s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->basic,
+                          AD_KEYTAB);
+    assert_non_null(s);
+    assert_string_equal(s, ONEWAY_KEYTAB_PATH);
+
+    s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->id->basic,
+                          SDAP_KRB5_KEYTAB);
+    assert_non_null(s);
+
+    s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->id->basic,
+                          SDAP_SASL_REALM);
+    assert_non_null(s);
+    assert_string_equal(s, ONEWAY_DOMNAME);
+
+    s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->id->basic,
+                          SDAP_KRB5_REALM);
+    assert_non_null(s);
+    assert_string_equal(s, ONEWAY_DOMNAME);
+
+    s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->id->basic,
+                          SDAP_SASL_AUTHID);
+    assert_non_null(s);
+    assert_string_equal(s, ONEWAY_AUTHID);
+
+    talloc_free(test_ctx->ad_ctx->ad_options);
+
+    unlink(ONEWAY_KEYTAB_PATH);
+}
 static void test_ad_create_2way_trust_options(void **state)
 {
     struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
@@ -342,6 +413,9 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_ad_create_default_options),
+        cmocka_unit_test_setup_teardown(test_ad_create_1way_trust_options,
+                                        test_ad_common_setup,
+                                        test_ad_common_teardown),
         cmocka_unit_test_setup_teardown(test_ad_create_2way_trust_options,
                                         test_ad_common_setup,
                                         test_ad_common_teardown),

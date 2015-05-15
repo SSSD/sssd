@@ -110,6 +110,12 @@ struct ad_options *ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
                                                 const char *ad_domain,
                                                 const char *hostname);
 
+struct ad_options *ad_create_1way_trust_options(TALLOC_CTX *mem_ctx,
+                                                const char *ad_domain,
+                                                const char *hostname,
+                                                const char *keytab,
+                                                const char *sasl_authid);
+
 errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
                  const char *primary_servers,
