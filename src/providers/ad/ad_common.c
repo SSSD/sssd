@@ -138,6 +138,7 @@ ad_create_default_options(TALLOC_CTX *mem_ctx)
 struct ad_options *
 ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
                              const char *realm,
+                             const char *ad_domain,
                              const char *hostname)
 {
     struct ad_options *ad_options;
@@ -147,6 +148,13 @@ ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
     if (ad_options == NULL) return NULL;
 
     ret = dp_opt_set_string(ad_options->basic, AD_KRB5_REALM, realm);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD domain\n");
+        talloc_free(ad_options);
+        return NULL;
+    }
+
+    ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, ad_domain);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD domain\n");
         talloc_free(ad_options);

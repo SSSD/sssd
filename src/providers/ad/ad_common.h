@@ -107,6 +107,7 @@ struct ad_options *ad_create_default_options(TALLOC_CTX *mem_ctx);
 
 struct ad_options *ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
                                                 const char *realm,
+                                                const char *ad_domain,
                                                 const char *hostname);
 
 errno_t

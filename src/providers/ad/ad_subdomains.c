@@ -110,27 +110,21 @@ ad_subdom_ad_ctx_new(struct be_ctx *be_ctx,
 
     realm = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_KRB5_REALM);
     hostname = dp_opt_get_cstring(id_ctx->ad_options->basic, AD_HOSTNAME);
-    if (realm == NULL || hostname == NULL) {
+    ad_domain = subdom->name;
+    if (realm == NULL || hostname == NULL || ad_domain == NULL) {
         DEBUG(SSSDBG_CONF_SETTINGS, "Missing realm or hostname.\n");
         return EINVAL;
     }
 
-    ad_options = ad_create_2way_trust_options(id_ctx, realm, hostname);
+    ad_options = ad_create_2way_trust_options(id_ctx, realm,
+                                              ad_domain, hostname);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);
         return ENOMEM;
     }
 
-    ad_domain = subdom->name;
     ad_site_override = dp_opt_get_string(ad_options->basic, AD_SITE);
-
-    ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, ad_domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD domain\n");
-        talloc_free(ad_options);
-        return ret;
-    }
 
     gc_service_name = talloc_asprintf(ad_options, "%s%s", "gc_", subdom->name);
     if (gc_service_name == NULL) {

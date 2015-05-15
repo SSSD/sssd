@@ -128,6 +128,7 @@ static void test_ad_create_2way_trust_options(void **state)
     test_ctx->ad_ctx->ad_options = ad_create_2way_trust_options(
                                                             test_ctx->ad_ctx,
                                                             REALMNAME,
+                                                            DOMNAME,
                                                             HOST_NAME);
     assert_non_null(test_ctx->ad_ctx->ad_options);
 
@@ -138,6 +139,11 @@ static void test_ad_create_2way_trust_options(void **state)
                           AD_KRB5_REALM);
     assert_non_null(s);
     assert_string_equal(s, REALMNAME);
+
+    s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->basic,
+                          AD_DOMAIN);
+    assert_non_null(s);
+    assert_string_equal(s, DOMNAME);
 
     s = dp_opt_get_string(test_ctx->ad_ctx->ad_options->basic,
                           AD_HOSTNAME);
@@ -183,6 +189,7 @@ test_ldap_conn_setup(void **state)
 
     ad_ctx->ad_options = ad_create_2way_trust_options(ad_ctx,
                                                       REALMNAME,
+                                                      DOMNAME,
                                                       HOST_NAME);
     assert_non_null(ad_ctx->ad_options);
 

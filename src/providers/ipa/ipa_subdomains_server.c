@@ -138,27 +138,22 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     struct ad_id_ctx *ad_id_ctx;
     const char *gc_service_name;
     struct ad_srv_plugin_ctx *srv_ctx;
-    char *ad_domain;
+    const char *ad_domain;
     const char *ad_site_override;
     struct sdap_domain *sdom;
     errno_t ret;
     const char *extra_attrs;
 
+    ad_domain = subdom->name;
+    DEBUG(SSSDBG_TRACE_LIBS, "Setting up AD subdomain %s\n", subdom->name);
+
     ad_options = ad_create_2way_trust_options(id_ctx, id_ctx->server_mode->realm,
+                                              ad_domain,
                                               id_ctx->server_mode->hostname);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);
         return ENOMEM;
-    }
-
-    ad_domain = subdom->name;
-
-    ret = dp_opt_set_string(ad_options->basic, AD_DOMAIN, ad_domain);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD domain\n");
-        talloc_free(ad_options);
-        return ret;
     }
 
     ret = dp_opt_set_string(ad_options->basic, AD_KRB5_REALM,
