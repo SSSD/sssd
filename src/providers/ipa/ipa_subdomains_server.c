@@ -127,6 +127,71 @@ const char *ipa_trust_dir2str(uint32_t direction)
 #define IPA_GETKEYTAB_TIMEOUT 5
 #endif /* IPA_GETKEYTAB_TIMEOUT */
 
+static struct ad_options *
+ipa_create_1way_trust_ctx(struct ipa_id_ctx *id_ctx,
+                          const char *forest,
+                          const char *forest_realm,
+                          struct sss_domain_info *subdom)
+{
+    char *keytab;
+    char *principal;
+    struct ad_options *ad_options;
+    const char *ad_domain;
+
+    ad_domain = subdom->name;
+    keytab = forest_keytab(id_ctx, forest);
+    principal = subdomain_trust_princ(id_ctx, forest_realm, subdom);
+    if (keytab == NULL || principal == NULL) {
+        return NULL;
+    }
+
+    ad_options = ad_create_1way_trust_options(id_ctx,
+                                              ad_domain,
+                                              id_ctx->server_mode->hostname,
+                                              keytab,
+                                              principal);
+    if (ad_options == NULL) {
+        talloc_free(keytab);
+        talloc_free(principal);
+        return NULL;
+    }
+
+    return ad_options;
+}
+
+static struct ad_options *ipa_ad_options_new(struct ipa_id_ctx *id_ctx,
+                                             struct sss_domain_info *subdom)
+{
+    struct ad_options *ad_options = NULL;
+    uint32_t direction;
+    const char *forest;
+    const char *forest_realm;
+
+    /* Trusts are only established with forest roots */
+    direction = subdom->forest_root->trust_direction;
+    forest_realm = subdom->forest_root->realm;
+    forest = subdom->forest_root->forest;
+
+    if (direction & LSA_TRUST_DIRECTION_OUTBOUND) {
+        ad_options = ad_create_2way_trust_options(id_ctx,
+                                                  id_ctx->server_mode->realm,
+                                                  subdom->name,
+                                                  id_ctx->server_mode->hostname);
+    } else if (direction & LSA_TRUST_DIRECTION_INBOUND) {
+        ad_options = ipa_create_1way_trust_ctx(id_ctx, forest,
+                                               forest_realm, subdom);
+    } else {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported trust direction!\n");
+        ad_options = NULL;
+    }
+
+    if (ad_options == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
+        return NULL;
+    }
+    return ad_options;
+}
+
 
 static errno_t
 ipa_ad_ctx_new(struct be_ctx *be_ctx,
@@ -147,9 +212,7 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     ad_domain = subdom->name;
     DEBUG(SSSDBG_TRACE_LIBS, "Setting up AD subdomain %s\n", subdom->name);
 
-    ad_options = ad_create_2way_trust_options(id_ctx, id_ctx->server_mode->realm,
-                                              ad_domain,
-                                              id_ctx->server_mode->hostname);
+    ad_options = ipa_ad_options_new(id_ctx, subdom);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);
@@ -524,7 +587,7 @@ ipa_server_trust_add_send(TALLOC_CTX *mem_ctx,
     }
 
     state->direction = subdom->forest_root->trust_direction;
-    state->forest = subdom->forest_root->realm;
+    state->forest = subdom->forest_root->forest;
     state->forest_realm = subdom->forest_root->realm;
     state->ccache = talloc_asprintf(state, "%s/ccache_%s",
                                     DB_PATH, subdom->parent->realm);

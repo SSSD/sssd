@@ -63,7 +63,8 @@
 #define TEST_ID_PROVIDER "ipa"
 
 #define ONEWAY_KEYTAB   TEST_DIR"/"SUBDOM_REALM".keytab"
-#define ONEWAY_AUTHID   DOM_FLAT"$@"SUBDOM_REALM
+#define ONEWAY_PRINC    DOM_FLAT"$"
+#define ONEWAY_AUTHID   ONEWAY_PRINC"@"SUBDOM_REALM
 
 krb5_error_code __wrap_krb5_kt_default(krb5_context context, krb5_keytab *id)
 {
@@ -72,13 +73,11 @@ krb5_error_code __wrap_krb5_kt_default(krb5_context context, krb5_keytab *id)
 
 static void create_dummy_keytab(void)
 {
-    int fd;
     errno_t ret;
 
     assert_non_null(ONEWAY_KEYTAB);
-    fd = open(ONEWAY_KEYTAB,  O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    assert_int_not_equal(fd, -1);
-    close(fd);
+    mock_keytab_with_contents(global_talloc_context,
+                              ONEWAY_KEYTAB, ONEWAY_AUTHID);
 
     ret = access(ONEWAY_KEYTAB, R_OK);
     assert_int_equal(ret, 0);
@@ -641,8 +640,28 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
 
     /* Trust object should be around now */
     assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
+
+    assert_trust_object(
+        test_ctx->ipa_ctx->server_mode->trusts,
+        CHILD_NAME,    /* AD domain name */
+        CHILD_REALM,   /* AD realm can be child if SDAP realm is parent's */
+        CHILD_SID,
+        ONEWAY_KEYTAB,    /* Keytab shared with parent AD dom */
+        ONEWAY_PRINC,     /* Principal shared with parent AD dom */
+        SUBDOM_REALM); /* SDAP realm must be AD root domain */
+
     assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
 
+    /* Here all properties point to the AD domain */
+    assert_trust_object(test_ctx->ipa_ctx->server_mode->trusts->next,
+                        SUBDOM_NAME,
+                        SUBDOM_REALM,
+                        SUBDOM_SID,
+                        ONEWAY_KEYTAB,
+                        ONEWAY_PRINC,
+                        SUBDOM_REALM);
+
+    assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next);
     test_ipa_server_create_trusts_finish(test_ctx);
 }
 
