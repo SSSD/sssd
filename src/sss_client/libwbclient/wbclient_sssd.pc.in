@@ -5,7 +5,7 @@ includedir=@includedir@
 
 Name: wbclient
 Description: SSSD implementation of Samba wbclient API
-Version: 0.11
+Version: @libwbclient_version@
 Libs: -L${libdir} -lwbclient
 Cflags:
 URL: http://fedorahosted.org/sssd/, http://www.samba.org

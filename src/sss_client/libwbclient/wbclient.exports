@@ -83,8 +83,64 @@ WBCLIENT_0.10 {
 } WBCLIENT_0.9;
 
 WBCLIENT_0.11 {
-    global:
-        wbc*;
     local:
         *;
-};
+} WBCLIENT_0.10;
+
+WBCLIENT_0.12 {
+    global:
+        wbcCtxCreate;
+        wbcCtxFree;
+        wbcGetGlobalCtx;
+        wbcCtxPing;
+        wbcCtxInterfaceDetails;
+        wbcCtxLookupName;
+        wbcCtxLookupSid;
+        wbcCtxLookupSids;
+        wbcCtxLookupRids;
+        wbcCtxLookupUserSids;
+        wbcCtxGetSidAliases;
+        wbcCtxListUsers;
+        wbcCtxListGroups;
+        wbcCtxGetDisplayName;
+        wbcCtxSidToUid;
+        wbcCtxUidToSid;
+        wbcCtxSidToGid;
+        wbcCtxGidToSid;
+        wbcCtxSidsToUnixIds;
+        wbcCtxAllocateUid;
+        wbcCtxAllocateGid;
+        wbcCtxGetpwnam;
+        wbcCtxGetpwuid;
+        wbcCtxGetpwsid;
+        wbcCtxGetgrnam;
+        wbcCtxGetgrgid;
+        wbcCtxSetpwent;
+        wbcCtxEndpwent;
+        wbcCtxGetpwent;
+        wbcCtxSetgrent;
+        wbcCtxEndgrent;
+        wbcCtxGetgrent;
+        wbcCtxGetgrlist;
+        wbcCtxGetGroups;
+        wbcCtxDomainInfo;
+        wbcCtxDcInfo;
+        wbcCtxListTrusts;
+        wbcCtxLookupDomainController;
+        wbcCtxLookupDomainControllerEx;
+        wbcCtxAuthenticateUser;
+        wbcCtxAuthenticateUserEx;
+        wbcCtxLogonUser;
+        wbcCtxLogoffUser;
+        wbcCtxLogoffUserEx;
+        wbcCtxChangeUserPassword;
+        wbcCtxChangeUserPasswordEx;
+        wbcCtxCredentialCache;
+        wbcCtxCredentialSave;
+        wbcCtxResolveWinsByName;
+        wbcCtxResolveWinsByIP;
+        wbcCtxCheckTrustCredentials;
+        wbcCtxChangeTrustCredentials;
+        wbcCtxPingDc;
+        wbcCtxPingDc2;
+} WBCLIENT_0.11;
