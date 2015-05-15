@@ -156,14 +156,6 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
         return ENOMEM;
     }
 
-    ret = dp_opt_set_string(ad_options->basic, AD_KRB5_REALM,
-                            id_ctx->server_mode->realm);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot set AD realm\n");
-        talloc_free(ad_options);
-        return ret;
-    }
-
     extra_attrs = dp_opt_get_string(id_ctx->sdap_id_ctx->opts->basic,
                             SDAP_USER_EXTRA_ATTRS);
     if (extra_attrs != NULL) {
