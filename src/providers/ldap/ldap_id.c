@@ -977,6 +977,40 @@ static int groups_by_user_retry(struct tevent_req *req);
 static void groups_by_user_connect_done(struct tevent_req *subreq);
 static void groups_by_user_done(struct tevent_req *subreq);
 
+static errno_t set_initgroups_expire_attribute(struct sss_domain_info *domain,
+                                               const char *name)
+{
+    errno_t ret;
+    time_t cache_timeout;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(NULL);
+    if (attrs == NULL) {
+        return ENOMEM;
+    }
+
+    cache_timeout = domain->user_timeout
+                        ? time(NULL) + domain->user_timeout
+                        : 0;
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE, cache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up attrs\n");
+        goto done;
+    }
+
+    ret = sysdb_set_user_attr(domain, name, attrs, SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set initgroups expire attribute\n");
+        goto done;
+    }
+
+done:
+    talloc_zfree(attrs);
+    return ret;
+}
+
 static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
                                               struct sdap_id_ctx *ctx,
@@ -1119,6 +1153,14 @@ static void groups_by_user_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
+    }
+
+    ret = set_initgroups_expire_attribute(state->ctx->be->domain,
+                                          state->name);
+    if (ret != EOK) {
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ret);
+        return;
     }
 
     state->dp_error = DP_ERR_OK;
