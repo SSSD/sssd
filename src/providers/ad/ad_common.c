@@ -108,9 +108,9 @@ fail:
 }
 
 struct ad_options *
-ad_create_default_options(TALLOC_CTX *mem_ctx,
-                          const char *realm,
-                          const char *hostname)
+ad_create_2way_trust_options(TALLOC_CTX *mem_ctx,
+                             const char *realm,
+                             const char *hostname)
 {
     struct ad_options *ad_options;
     errno_t ret;

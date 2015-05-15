@@ -2126,23 +2126,30 @@ ad_gpo_tests_LDADD = \
 
 ad_common_tests_SOURCES = \
     $(sssd_be_SOURCES) \
-    src/tests/cmocka/test_ad_common.c
+    $(libsss_krb5_common_la_SOURCES) \
+    src/tests/cmocka/common_mock_krb5.c \
+    src/tests/cmocka/test_ad_common.c \
+    $(NULL)
 ad_common_tests_CFLAGS = \
     $(AM_CFLAGS) \
-    -DUNIT_TESTING
+    -DUNIT_TESTING \
+    $(NULL)
 ad_common_tests_LDFLAGS = \
-    -Wl,-wrap,sdap_set_sasl_options
+    -Wl,-wrap,sdap_set_sasl_options \
+    -Wl,-wrap,krb5_kt_default \
+    $(NULL)
 ad_common_tests_LDADD = \
     $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
+    $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
     libsss_idmap.la \
-    libsss_krb5_common.la \
-    libsss_test_common.la
+    libsss_test_common.la \
+    $(NULL)
 
 dp_opt_tests_SOURCES = \
     src/providers/data_provider_opts.c \

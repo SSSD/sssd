@@ -144,8 +144,8 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     errno_t ret;
     const char *extra_attrs;
 
-    ad_options = ad_create_default_options(id_ctx, id_ctx->server_mode->realm,
-                                           id_ctx->server_mode->hostname);
+    ad_options = ad_create_2way_trust_options(id_ctx, id_ctx->server_mode->realm,
+                                              id_ctx->server_mode->hostname);
     if (ad_options == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot initialize AD options\n");
         talloc_free(ad_options);
