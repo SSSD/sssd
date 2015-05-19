@@ -26,7 +26,7 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#include "util/authtok.h"
+#include "sss_client/sss_cli.h"
 
 struct pam_items {
     const char *pam_service;
