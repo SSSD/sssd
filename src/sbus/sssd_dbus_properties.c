@@ -332,7 +332,14 @@ static int sbus_properties_get_all(struct sbus_request *sbus_req, void *pvt)
         goto fail;
     }
 
-    iface->vtable->meta->invoker_get_all(sbus_subreq);
+    if (iface->vtable->meta->invoker_get_all == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "No get all invoker set,"
+              "using the default one\n");
+
+        sbus_invoke_get_all(sbus_req);
+    } else {
+        iface->vtable->meta->invoker_get_all(sbus_subreq);
+    }
 
     return EOK;
 
