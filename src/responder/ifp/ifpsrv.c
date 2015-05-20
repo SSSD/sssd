@@ -165,6 +165,8 @@ sysbus_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    ifp_register_nodes(pvt, system_bus->conn);
+
     *sysbus = system_bus;
     return EOK;
 

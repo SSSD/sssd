@@ -24,12 +24,18 @@
 #include "responder/common/responder.h"
 #include "responder/ifp/ifp_iface_generated.h"
 
-/* org.freedesktop-sssd-infopipe.Cache */
-
 enum ifp_cache_type {
     IFP_CACHE_USER,
     IFP_CACHE_GROUP
 };
+
+errno_t ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domains,
+                               enum ifp_cache_type type,
+                               const char ***_paths,
+                               int *_num_paths);
+
+/* org.freedesktop-sssd-infopipe.Cache */
 
 int ifp_cache_list(struct sbus_request *sbus_req,
                    void *data,

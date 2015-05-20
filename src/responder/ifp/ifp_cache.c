@@ -149,15 +149,71 @@ done:
     return ret;
 }
 
+errno_t ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
+                               struct sss_domain_info *domains,
+                               enum ifp_cache_type type,
+                               const char ***_paths,
+                               int *_num_paths)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sss_domain_info *domain;
+    const char **tmp_paths;
+    int num_tmp_paths;
+    const char **paths;
+    int num_paths;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    domain = domains;
+    num_paths = 0;
+    paths = NULL;
+    while (domain != NULL) {
+        ret = ifp_cache_get_cached_objects(tmp_ctx, type, domain,
+                                           &tmp_paths, &num_tmp_paths);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build object list "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
+        }
+
+        ret = add_strings_lists(tmp_ctx, paths, tmp_paths, true,
+                                discard_const(&paths));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build object list "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
+        }
+
+        num_paths += num_tmp_paths;
+
+        domain = get_next_domain(domain, true);
+    }
+
+    if (_paths != NULL) {
+        *_paths = talloc_steal(mem_ctx, paths);
+    }
+
+    if (_num_paths != NULL) {
+        *_num_paths = num_paths;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int ifp_cache_list(struct sbus_request *sbus_req,
                    void *data,
                    enum ifp_cache_type type)
 {
     DBusError *error;
-    struct sss_domain_info *domain;
     struct ifp_ctx *ifp_ctx;
-    const char **tmp_paths;
-    int num_tmp_paths;
     const char **paths;
     int num_paths;
     errno_t ret;
@@ -168,31 +224,13 @@ int ifp_cache_list(struct sbus_request *sbus_req,
         return ERR_INTERNAL;
     }
 
-    domain = ifp_ctx->rctx->domains;
-    num_paths = 0;
-    paths = NULL;
-    while (domain != NULL) {
-        ret = ifp_cache_get_cached_objects(sbus_req, type, domain,
-                                           &tmp_paths, &num_tmp_paths);
-        if (ret != EOK) {
-            error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
-                                   "Unable to build object list [%d]: %s\n",
-                                   ret, sss_strerror(ret));
-            return sbus_request_fail_and_finish(sbus_req, error);
-        }
-
-        ret = add_strings_lists(sbus_req, paths, tmp_paths, false,
-                                discard_const(&paths));
-        if (ret != EOK) {
-            error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
-                                   "Unable to build object list [%d]: %s\n",
-                                   ret, sss_strerror(ret));
-            return sbus_request_fail_and_finish(sbus_req, error);
-        }
-
-        num_paths += num_tmp_paths;
-
-        domain = get_next_domain(domain, true);
+    ret = ifp_cache_list_domains(sbus_req, ifp_ctx->rctx->domains, type,
+                                 &paths, &num_paths);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED,
+                               "Unable to build object list [%d]: %s\n",
+                               ret, sss_strerror(ret));
+        return sbus_request_fail_and_finish(sbus_req, error);
     }
 
     iface_ifp_cache_List_finish(sbus_req, paths, num_paths);

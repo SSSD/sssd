@@ -1102,6 +1102,7 @@ sssd_ifp_SOURCES = \
     src/responder/ifp/ifp_iface_generated.c \
     src/responder/ifp/ifp_iface_generated.h \
     src/responder/ifp/ifp_iface.c \
+    src/responder/ifp/ifp_iface_nodes.c \
     src/responder/ifp/ifpsrv_util.c \
     src/responder/ifp/ifp_domains.c \
     src/responder/ifp/ifp_components.c \
