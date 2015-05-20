@@ -80,6 +80,10 @@ typedef void (*sbus_conn_reconn_callback_fn)(struct sbus_connection *, int, void
  */
 typedef int (*sbus_server_conn_init_fn)(struct sbus_connection *, void *);
 
+typedef const char ** (* sbus_nodes_fn)(TALLOC_CTX *mem_ctx,
+                                        const char *path,
+                                        void *data);
+
 enum {
     SBUS_CONN_TYPE_PRIVATE = 1,
     SBUS_CONN_TYPE_SHARED,
@@ -176,6 +180,12 @@ int sbus_conn_register_iface(struct sbus_connection *conn,
                              struct sbus_vtable *iface_vtable,
                              const char *object_path,
                              void *handler_data);
+
+void
+sbus_conn_register_nodes(struct sbus_connection *conn,
+                         const char *path,
+                         sbus_nodes_fn nodes_fn,
+                         void *data);
 
 errno_t
 sbus_conn_reregister_paths(struct sbus_connection *conn);

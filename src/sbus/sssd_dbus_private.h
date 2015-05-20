@@ -48,6 +48,7 @@ struct sbus_connection {
     int disconnect;
 
     hash_table_t *managed_paths;
+    hash_table_t *nodes_fns;
 
     /* reconnect settings */
     int retries;
@@ -128,6 +129,16 @@ sbus_opath_hash_lookup_supported(TALLOC_CTX *mem_ctx,
                                  hash_table_t *table,
                                  const char *object_path,
                                  struct sbus_interface_list **_list);
+
+errno_t
+sbus_nodes_hash_init(TALLOC_CTX *mem_ctx,
+                     struct sbus_connection *conn,
+                     hash_table_t **_table);
+
+const char **
+sbus_nodes_hash_lookup(TALLOC_CTX *mem_ctx,
+                       hash_table_t *table,
+                       const char *object_path);
 
 void
 sbus_request_invoke_or_finish(struct sbus_request *dbus_req,

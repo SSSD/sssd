@@ -47,7 +47,7 @@
 #define PILOT_IFACE_INTROSPECT \
         "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n" \
         " \"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n" \
-        "<node>\n" \
+        "<node name=\"/test/leela\">\n" \
         "  <interface name=\"org.freedesktop.DBus.Introspectable\">\n" \
         "    <method name=\"Introspect\">\n" \
         "      <arg type=\"s\" name=\"data\" direction=\"out\" />\n" \

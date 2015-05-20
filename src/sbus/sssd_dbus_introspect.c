@@ -34,7 +34,7 @@
     "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n" \
     " \"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"
 
-#define FMT_NODE         "<node>\n"
+#define FMT_NODE         "<node name=\"%s\">\n"
 #define FMT_IFACE        "  <interface name=\"%s\">\n"
 #define FMT_METHOD       "    <method name=\"%s\">\n"
 #define FMT_METHOD_NOARG "    <method name=\"%s\" />\n"
@@ -46,6 +46,7 @@
 #define FMT_SIGNAL_CLOSE "    </signal>\n"
 #define FMT_PROPERTY     "    <property name=\"%s\" type=\"%s\" access=\"%s\" />\n"
 #define FMT_IFACE_CLOSE  "  </interface>\n"
+#define FMT_CHILD_NODE   "  <node name=\"%s\" />\n"
 #define FMT_NODE_CLOSE   "</node>\n"
 
 #define WRITE_OR_FAIL(file, ret, label, fmt, ...) do { \
@@ -294,8 +295,31 @@ done:
     return ret;
 }
 
+static int
+sbus_introspect_generate_nodes(FILE *file, const char **nodes)
+{
+    int ret;
+    int i;
+
+    if (nodes == NULL) {
+        return EOK;
+    }
+
+    for (i = 0; nodes[i] != NULL; i++) {
+        WRITE_OR_FAIL(file, ret, done, FMT_CHILD_NODE, nodes[i]);
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
 static char *
-sbus_introspect_generate(TALLOC_CTX *mem_ctx, struct sbus_interface_list *list)
+sbus_introspect_generate(TALLOC_CTX *mem_ctx,
+                         const char *node,
+                         const char **nodes,
+                         struct sbus_interface_list *list)
 {
     struct sbus_interface_list *item;
     char *introspect = NULL;
@@ -310,13 +334,18 @@ sbus_introspect_generate(TALLOC_CTX *mem_ctx, struct sbus_interface_list *list)
     }
 
     WRITE_OR_FAIL(memstream, ret, done, FMT_DOCTYPE);
-    WRITE_OR_FAIL(memstream, ret, done, FMT_NODE);
+    WRITE_OR_FAIL(memstream, ret, done, FMT_NODE, node);
 
     DLIST_FOR_EACH(item, list) {
         ret = sbus_introspect_generate_iface(memstream, item->interface);
         if (ret != EOK) {
             goto done;
         }
+    }
+
+    ret = sbus_introspect_generate_nodes(memstream, nodes);
+    if (ret != EOK) {
+        goto done;
     }
 
     WRITE_OR_FAIL(memstream, ret, done, FMT_NODE_CLOSE);
@@ -341,6 +370,7 @@ sbus_introspect(struct sbus_request *sbus_req, void *pvt)
     DBusError *error;
     struct sbus_interface_list *list;
     struct sbus_connection *conn;
+    const char **nodes;
     char *introspect;
     errno_t ret;
 
@@ -354,7 +384,10 @@ sbus_introspect(struct sbus_request *sbus_req, void *pvt)
         return sbus_request_fail_and_finish(sbus_req, error);
     }
 
-    introspect = sbus_introspect_generate(sbus_req, list);
+    nodes = sbus_nodes_hash_lookup(sbus_req, conn->nodes_fns, sbus_req->path);
+
+    introspect = sbus_introspect_generate(sbus_req, sbus_req->path,
+                                          nodes, list);
     if (introspect == NULL) {
         ret = ENOMEM;
         goto done;

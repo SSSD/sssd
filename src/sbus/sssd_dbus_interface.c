@@ -732,6 +732,106 @@ done:
     return ret;
 }
 
+errno_t
+sbus_nodes_hash_init(TALLOC_CTX *mem_ctx,
+                     struct sbus_connection *conn,
+                     hash_table_t **_table)
+{
+    return sss_hash_create_ex(mem_ctx, 10, _table, 0, 0, 0, 0,
+                              NULL, conn);
+}
+
+struct sbus_nodes_data {
+    sbus_nodes_fn nodes_fn;
+    void *handler_data;
+};
+
+static errno_t
+sbus_nodes_hash_add(hash_table_t *table,
+                    const char *object_path,
+                    sbus_nodes_fn nodes_fn,
+                    void *handler_data)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sbus_nodes_data *data;
+    hash_key_t key;
+    hash_value_t value;
+    errno_t ret;
+    bool has_key;
+    int hret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    key.type = HASH_KEY_STRING;
+    key.str = talloc_strdup(tmp_ctx, object_path);
+    if (key.str == NULL) {
+        return ENOMEM;
+    }
+
+    has_key = hash_has_key(table, &key);
+    if (has_key) {
+        ret = EEXIST;
+        goto done;
+    }
+
+    data = talloc_zero(tmp_ctx, struct sbus_nodes_data);
+    if (data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    data->handler_data = handler_data;
+    data->nodes_fn = nodes_fn;
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = data;
+
+    hret = hash_enter(table, &key, &value);
+    if (hret != HASH_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    talloc_steal(table, key.str);
+    talloc_steal(table, data);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+const char **
+sbus_nodes_hash_lookup(TALLOC_CTX *mem_ctx,
+                       hash_table_t *table,
+                       const char *object_path)
+{
+    struct sbus_nodes_data *data;
+    hash_key_t key;
+    hash_value_t value;
+    int hret;
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(object_path);
+
+    hret = hash_lookup(table, &key, &value);
+    if (hret == HASH_ERROR_KEY_NOT_FOUND) {
+        return NULL;
+    } else if (hret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to search hash table: hret=%d\n", hret);
+        return NULL;
+    }
+
+    data = talloc_get_type(value.ptr, struct sbus_nodes_data);
+
+    return data->nodes_fn(mem_ctx, object_path, data->handler_data);
+}
+
 static struct sbus_interface *
 sbus_new_interface(TALLOC_CTX *mem_ctx,
                    const char *object_path,
@@ -868,6 +968,21 @@ sbus_conn_register_iface(struct sbus_connection *conn,
     }
 
     return ret;
+}
+
+void
+sbus_conn_register_nodes(struct sbus_connection *conn,
+                         const char *path,
+                         sbus_nodes_fn nodes_fn,
+                         void *data)
+{
+    errno_t ret;
+
+    ret = sbus_nodes_hash_add(conn->nodes_fns, path, nodes_fn, data);
+    if (ret != EOK && ret != EEXIST) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to register node function with "
+              "%s. Introspection may not work correctly.\n", path);
+    }
 }
 
 errno_t

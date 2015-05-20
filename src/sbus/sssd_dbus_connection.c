@@ -168,6 +168,13 @@ int sbus_init_connection(TALLOC_CTX *ctx,
         return EIO;
     }
 
+    ret = sbus_nodes_hash_init(conn, conn, &conn->nodes_fns);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create node functions hash table\n");
+        talloc_free(conn);
+        return EIO;
+    }
+
     ret = sss_hash_create(conn, 32, &conn->clients);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create clients hash table\n");
