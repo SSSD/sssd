@@ -116,7 +116,7 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str, int ttl)
         goto done;
     }
 
-    if (timestamp + ttl > time(NULL)) {
+    if (timestamp + ttl >= time(NULL)) {
         /* still valid */
         ret = EEXIST;
         goto done;
