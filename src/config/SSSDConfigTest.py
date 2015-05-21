@@ -6,6 +6,8 @@ Created on Sep 18, 2009
 '''
 import unittest
 import os
+import shutil
+import tempfile
 from stat import *
 
 import sys
@@ -19,12 +21,17 @@ else:
 import SSSDConfig
 
 
+def create_temp_dir():
+    test_dir = os.environ.get('SSS_TEST_DIR') or "."
+    return tempfile.mkdtemp(dir=test_dir)
+
+
 class SSSDConfigTestValid(unittest.TestCase):
     def setUp(self):
-        pass
+        self.tmp_dir = create_temp_dir()
 
     def tearDown(self):
-        pass
+        shutil.rmtree(self.tmp_dir)
 
     def testServices(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -132,7 +139,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         local_domain.set_active(True)
         sssdconfig.save_domain(local_domain)
 
-        of = '/tmp/testCreateNewLocalConfig.conf'
+        of = self.tmp_dir + '/testCreateNewLocalConfig.conf'
 
         #Ensure the output file doesn't exist
         try:
@@ -166,7 +173,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         ldap_domain.set_active(True)
         sssdconfig.save_domain(ldap_domain)
 
-        of = '/tmp/testCreateNewLDAPConfig.conf'
+        of = self.tmp_dir + '/testCreateNewLDAPConfig.conf'
 
         #Ensure the output file doesn't exist
         try:
@@ -200,7 +207,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         ldap_domain.set_active(True)
         sssdconfig.save_domain(ldap_domain)
 
-        of = '/tmp/testModifyExistingConfig.conf'
+        of = self.tmp_dir + '/testModifyExistingConfig.conf'
 
         #Ensure the output file doesn't exist
         try:
@@ -1134,10 +1141,10 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
 class SSSDConfigTestSSSDConfig(unittest.TestCase):
     def setUp(self):
-        pass
+        self.tmp_dir = create_temp_dir()
 
     def tearDown(self):
-        pass
+        shutil.rmtree(self.tmp_dir)
 
     def testInit(self):
         # Positive test
@@ -1753,7 +1760,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         sssdconfig.save_domain(domain)
 
-        of = '/tmp/testSaveDomain.out'
+        of = self.tmp_dir + '/testSaveDomain.out'
 
         #Ensure the output file doesn't exist
         try:

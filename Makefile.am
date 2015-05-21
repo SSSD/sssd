@@ -1290,6 +1290,7 @@ endif
 # Feature Tests #
 #################
 TESTS_ENVIRONMENT = LDB_MODULES_PATH=$(abs_top_builddir)/ldb_mod_test_dir \
+                    SSS_TEST_DIR=$(TEST_DIR) \
                     $(AUX_TESTS_ENVIRONMENT)
 
 ldb_mod_test_dir: memberof.la
