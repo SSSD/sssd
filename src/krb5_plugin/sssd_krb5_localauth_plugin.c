@@ -139,6 +139,11 @@ static krb5_error_code sss_an2ln(krb5_context context,
         goto done;
     }
 
+    if (pwd.pw_name == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
     str = strdup(pwd.pw_name);
     if (str == NULL) {
         ret = ENOMEM;
