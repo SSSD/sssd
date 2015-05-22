@@ -467,6 +467,10 @@ struct sdap_deref_attrs {
     struct sysdb_attrs *attrs;
 };
 
+errno_t sdap_copy_map_entry(const struct sdap_attr_map *src_map,
+                            struct sdap_attr_map *dst_map,
+                            int entry_index);
+
 int sdap_copy_map(TALLOC_CTX *memctx,
                  struct sdap_attr_map *src_map,
                  int num_entries,

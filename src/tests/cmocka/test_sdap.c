@@ -720,6 +720,81 @@ void test_parse_no_dn(void **state)
     talloc_free(map);
 }
 
+struct copy_map_entry_test_ctx {
+    struct sdap_attr_map *src_map;
+    struct sdap_attr_map *dst_map;
+};
+
+static int copy_map_entry_test_setup(void **state)
+{
+    int ret;
+    struct copy_map_entry_test_ctx *test_ctx;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context,
+                           struct copy_map_entry_test_ctx);
+    assert_non_null(test_ctx);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map,
+                        SDAP_OPTS_USER, &test_ctx->src_map);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map,
+                        SDAP_OPTS_USER, &test_ctx->dst_map);
+    assert_int_equal(ret, ERR_OK);
+
+    check_leaks_push(test_ctx);
+    *state = test_ctx;
+    return 0;
+}
+
+static int copy_map_entry_test_teardown(void **state)
+{
+    struct copy_map_entry_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                               struct copy_map_entry_test_ctx);
+    assert_true(check_leaks_pop(test_ctx) == true);
+    talloc_free(test_ctx);
+    assert_true(leak_check_teardown());
+    return 0;
+}
+
+static const char *copy_uuid(struct copy_map_entry_test_ctx *test_ctx)
+{
+    errno_t ret;
+
+    assert_null(test_ctx->dst_map[SDAP_AT_USER_UUID].name);
+    ret = sdap_copy_map_entry(test_ctx->src_map, test_ctx->dst_map,
+                              SDAP_AT_USER_UUID);
+    assert_int_equal(ret, EOK);
+    return test_ctx->dst_map[SDAP_AT_USER_UUID].name;
+}
+
+static void test_sdap_copy_map_entry(void **state)
+{
+    struct copy_map_entry_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                               struct copy_map_entry_test_ctx);
+    const char *uuid_set_val = "test_uuid_val";
+    const char *uuid_val = NULL;
+
+    test_ctx->src_map[SDAP_AT_USER_UUID].name = discard_const(uuid_set_val);
+
+    uuid_val = copy_uuid(test_ctx);
+    assert_non_null(uuid_val);
+    assert_string_equal(uuid_val, uuid_set_val);
+    talloc_free(test_ctx->dst_map[SDAP_AT_USER_UUID].name);
+}
+
+static void test_sdap_copy_map_entry_null_name(void **state)
+{
+    struct copy_map_entry_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                               struct copy_map_entry_test_ctx);
+    const char *uuid_val = NULL;
+
+    uuid_val = copy_uuid(test_ctx);
+    assert_null(uuid_val);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -765,6 +840,14 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_parse_deref_map_mismatch,
                                         parse_entry_test_setup,
                                         parse_entry_test_teardown),
+
+        /* Map option tests */
+        cmocka_unit_test_setup_teardown(test_sdap_copy_map_entry,
+                                        copy_map_entry_test_setup,
+                                        copy_map_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sdap_copy_map_entry_null_name,
+                                        copy_map_entry_test_setup,
+                                        copy_map_entry_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
