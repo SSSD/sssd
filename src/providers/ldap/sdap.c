@@ -28,6 +28,23 @@
 
 /* =Retrieve-Options====================================================== */
 
+errno_t sdap_copy_map_entry(const struct sdap_attr_map *src_map,
+                            struct sdap_attr_map *dst_map,
+                            int entry_index)
+{
+    if (src_map[entry_index].name != NULL) {
+        dst_map[entry_index].name = talloc_strdup(dst_map,
+                                                  src_map[entry_index].name);
+        if (dst_map[entry_index].name == NULL) {
+            return ENOMEM;
+        }
+    } else {
+        dst_map->name = NULL;
+    }
+
+    return EOK;
+}
+
 int sdap_copy_map(TALLOC_CTX *memctx,
                  struct sdap_attr_map *src_map,
                  int num_entries,
