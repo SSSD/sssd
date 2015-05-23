@@ -2181,7 +2181,8 @@ pysss_murmur_la_LDFLAGS = \
     -module
 
 pysss_nss_idmap_la_SOURCES = \
-    src/python/pysss_nss_idmap.c
+    src/python/pysss_nss_idmap.c \
+    src/util/sss_python.c
 pysss_nss_idmap_la_CFLAGS = \
     $(AM_CFLAGS)  \
     $(PYTHON_CFLAGS)
