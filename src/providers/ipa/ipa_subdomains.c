@@ -769,6 +769,7 @@ ipa_subdomains_handler_get_cont(struct ipa_subdomains_req_ctx *ctx,
 }
 
 static void ipa_get_view_name_done(struct tevent_req *req);
+static void ipa_server_create_trusts_done(struct tevent_req *trust_req);
 static errno_t ipa_check_master(struct ipa_subdomains_req_ctx *ctx);
 
 static errno_t ipa_get_view_name(struct ipa_subdomains_req_ctx *ctx)
@@ -1003,6 +1004,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
     struct sss_domain_info *domain;
     bool refresh_has_changes = false;
     int dp_error = DP_ERR_FATAL;
+    struct tevent_req *trust_req;
 
     ctx = tevent_req_callback_data(req, struct ipa_subdomains_req_ctx);
     domain = ctx->sd_ctx->be_ctx->domain;
@@ -1047,12 +1049,17 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
             goto done;
         }
 
-        ret = ipa_ad_subdom_refresh(ctx->sd_ctx->be_ctx,
-                                    ctx->sd_ctx->id_ctx,
-                                    domain);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "ipa_ad_subdom_refresh failed.\n");
-            goto done;
+        if (ctx->sd_ctx->id_ctx->server_mode != NULL) {
+            trust_req = ipa_server_create_trusts_send(ctx, ctx->sd_ctx->be_ctx->ev,
+                                                      ctx->sd_ctx->be_ctx,
+                                                      ctx->sd_ctx->id_ctx,
+                                                      domain);
+            if (trust_req == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            tevent_req_set_callback(trust_req, ipa_server_create_trusts_done, ctx);
+            return;
         }
     }
 
@@ -1085,6 +1092,23 @@ done:
     if (ret == EOK) {
         dp_error = DP_ERR_OK;
     }
+    ipa_subdomains_done(ctx->sd_ctx, ctx->be_req, dp_error, ret, NULL);
+}
+
+static void ipa_server_create_trusts_done(struct tevent_req *trust_req)
+{
+    errno_t ret;
+    int dp_error = DP_ERR_FATAL;
+    struct ipa_subdomains_req_ctx *ctx;
+
+    ctx = tevent_req_callback_data(trust_req, struct ipa_subdomains_req_ctx);
+
+    ret = ipa_server_create_trusts_recv(trust_req);
+    talloc_zfree(trust_req);
+    if (ret == EOK) {
+        dp_error = DP_ERR_OK;
+    }
+
     ipa_subdomains_done(ctx->sd_ctx, ctx->be_req, dp_error, ret, NULL);
 }
 

@@ -48,9 +48,14 @@ struct ipa_ad_server_ctx {
 };
 
 /* To be used by ipa_subdomains.c only */
-errno_t ipa_ad_subdom_refresh(struct be_ctx *be_ctx,
+struct tevent_req *
+ipa_server_create_trusts_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct be_ctx *be_ctx,
                               struct ipa_id_ctx *id_ctx,
                               struct sss_domain_info *parent);
+
+errno_t ipa_server_create_trusts_recv(struct tevent_req *req);
 
 void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
                           struct ipa_id_ctx *id_ctx,
