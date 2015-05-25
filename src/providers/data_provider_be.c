@@ -1155,7 +1155,7 @@ static int be_get_account_info(struct sbus_request *dbus_req, void *user_data)
         goto done;
     }
 
-    req = talloc(be_req, struct be_acct_req);
+    req = talloc_zero(be_req, struct be_acct_req);
     if (!req) {
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
@@ -1202,6 +1202,7 @@ static int be_get_account_info(struct sbus_request *dbus_req, void *user_data)
         } else if (strcmp(filter, ENUM_INDICATOR) == 0) {
             req->filter_type = BE_FILTER_ENUM;
             req->filter_value = NULL;
+            req->extra_value = NULL;
         } else {
             err_maj = DP_ERR_FATAL;
             err_min = EINVAL;
