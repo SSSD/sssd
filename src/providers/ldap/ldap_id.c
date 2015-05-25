@@ -1359,6 +1359,20 @@ void sdap_account_info_handler(struct be_req *breq)
     return sdap_handle_account_info(breq, ctx, ctx->conn);
 }
 
+bool sdap_is_enum_request(struct be_acct_req *ar)
+{
+    switch (ar->entry_type & BE_REQ_TYPE_MASK) {
+    case BE_REQ_USER:
+    case BE_REQ_GROUP:
+    case BE_REQ_SERVICES:
+        if (ar->filter_type == BE_FILTER_ENUM) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /* A generic LDAP account info handler */
 struct sdap_handle_acct_req_state {
     struct be_acct_req *ar;
@@ -1399,16 +1413,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
-
-        /* skip enumerations on demand */
-        if (ar->filter_type == BE_FILTER_ENUM) {
-            DEBUG(SSSDBG_TRACE_LIBS,
-                  "Skipping user enumeration on demand\n");
-            state->err = "Success";
-            ret = EOK;
-            goto done;
-        }
-
         subreq = users_get_send(state, be_ctx->ev, id_ctx,
                                 sdom, conn,
                                 ar->filter_value,
@@ -1419,16 +1423,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         break;
 
     case BE_REQ_GROUP: /* group */
-
-        /* skip enumerations on demand */
-        if (ar->filter_type == BE_FILTER_ENUM) {
-            DEBUG(SSSDBG_TRACE_LIBS,
-                  "Skipping group enumeration on demand\n");
-            state->err = "Success";
-            ret = EOK;
-            goto done;
-        }
-
         subreq = groups_get_send(state, be_ctx->ev, id_ctx,
                                  sdom, conn,
                                  ar->filter_value,
@@ -1473,15 +1467,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         break;
 
     case BE_REQ_SERVICES:
-        /* skip enumerations on demand */
-        if (ar->filter_type == BE_FILTER_ENUM) {
-            DEBUG(SSSDBG_TRACE_LIBS,
-                  "Skipping service enumeration on demand\n");
-            state->err = "Success";
-            ret = EOK;
-            goto done;
-        }
-
         if (ar->filter_type == BE_FILTER_SECID
                 || ar->filter_type == BE_FILTER_UUID) {
             ret = EINVAL;
@@ -1665,6 +1650,11 @@ void sdap_handle_account_info(struct be_req *breq, struct sdap_id_ctx *ctx,
     if (ar == NULL) {
         return sdap_handler_done(breq, DP_ERR_FATAL,
                                  EINVAL, "Invalid private data");
+    }
+
+    if (sdap_is_enum_request(ar)) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Skipping enumeration on demand\n");
+        return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
     }
 
     req = sdap_handle_acct_req_send(breq, ctx->be, ar, ctx,

@@ -102,6 +102,9 @@ int sdap_id_setup_tasks(struct be_ctx *be_ctx,
                         be_ptask_recv_t recv_fn,
                         void *pvt);
 
+/* Allow shortcutting an enumeration request */
+bool sdap_is_enum_request(struct be_acct_req *ar);
+
 struct tevent_req *
 sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                           struct be_ctx *be_ctx,
