@@ -47,6 +47,18 @@ struct ipa_ad_server_ctx {
     struct ipa_ad_server_ctx *next, *prev;
 };
 
+/* To be used by ipa_subdomains.c only */
+errno_t ipa_ad_subdom_refresh(struct be_ctx *be_ctx,
+                              struct ipa_id_ctx *id_ctx,
+                              struct sss_domain_info *parent);
+
+void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
+                          struct ipa_id_ctx *id_ctx,
+                          struct sss_domain_info *subdom);
+
+int ipa_ad_subdom_init(struct be_ctx *be_ctx,
+                       struct ipa_id_ctx *id_ctx);
+
 /* struct for external group memberships, defined in
  * ipa_subdomains_ext_groups.c */
 struct ipa_ext_groups;

@@ -722,12 +722,6 @@ int sssm_ipa_subdomains_init(struct be_ctx *bectx,
         return ret;
     }
 
-    ret = ipa_ad_subdom_init(bectx, id_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ipa_ad_subdom_init failed.\n");
-        return ret;
-    }
-
     return EOK;
 }
 
