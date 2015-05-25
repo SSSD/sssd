@@ -1223,13 +1223,7 @@ static void ipa_get_view_name_done(struct tevent_req *req)
 
     }
 
-    ret = ipa_check_master(ctx);
-    if (ret == EAGAIN) {
-        return;
-    } else if (ret != EOK) {
-        goto done;
-    }
-
+    ret = EOK;
 done:
     if (ret == EOK) {
         dp_error = DP_ERR_OK;
@@ -1322,13 +1316,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         }
     }
 
-    ret = ipa_check_master(ctx);
-    if (ret == EAGAIN) {
-        return;
-    } else if (ret != EOK) {
-        goto done;
-    }
-
+    ret = EOK;
 done:
     if (ret == EOK) {
         dp_error = DP_ERR_OK;
@@ -1403,6 +1391,17 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
         goto done;
     }
 
+    ret = ipa_check_master(ctx);
+    if (ret == EAGAIN) {
+        DEBUG(SSSDBG_TRACE_ALL, "Checking master record..\n");
+        return;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_check_master failed.\n");
+        goto done;
+    }
+    /* Master domain is up-to-date. Continue checking subdomains */
+
+    DEBUG(SSSDBG_TRACE_ALL, "Master record up2date, checking subdomains\n");
     ret = ipa_subdomains_handler_get_start(ctx, ctx->sd_ctx->search_bases,
                                            IPA_SUBDOMAINS_SLAVE);
     if (ret == EAGAIN) {
@@ -1463,6 +1462,21 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
 
         ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
                                            realm, flat, id, NULL);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        /* There is only one master record. Don't bother checking other IPA
+         * search bases; move to checking subdomains instead
+         */
+        ret = ipa_subdomains_handler_get_start(ctx,
+                                               ctx->sd_ctx->search_bases,
+                                               IPA_SUBDOMAINS_SLAVE);
+        if (ret == EAGAIN) {
+            return;
+        }
+
+        /* Either no search bases or an error. End the request in both cases */
     } else {
         ret = ipa_subdomains_handler_get_cont(ctx, IPA_SUBDOMAINS_MASTER);
         if (ret == EAGAIN) {
