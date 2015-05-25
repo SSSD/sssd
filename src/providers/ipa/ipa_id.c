@@ -89,6 +89,11 @@ void ipa_account_info_handler(struct be_req *breq)
 
     ar = talloc_get_type(be_req_get_data(breq), struct be_acct_req);
 
+    if (sdap_is_enum_request(ar)) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Skipping enumeration on demand\n");
+        return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
+    }
+
     if (strcasecmp(ar->domain, be_ctx->domain->name) != 0) {
         /* if domain names do not match, this is a subdomain case
          * subdomain lookups are handled differently on the server

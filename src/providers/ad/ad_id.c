@@ -350,6 +350,11 @@ ad_account_info_handler(struct be_req *be_req)
         return be_req_terminate(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
     }
 
+    if (sdap_is_enum_request(ar)) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Skipping enumeration on demand\n");
+        return sdap_handler_done(be_req, DP_ERR_OK, EOK, "Success");
+    }
+
     /* Try to shortcut if this is ID or SID search and it belongs to
      * other domain range than is in ar->domain. */
     shortcut = ad_account_can_shortcut(be_ctx, sdap_id_ctx->opts->idmap_ctx,
