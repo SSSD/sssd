@@ -830,8 +830,12 @@ struct ipa_subdomains_req_ctx {
 
 static void ipa_subdomains_get_conn_done(struct tevent_req *req);
 static errno_t
-ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
-                           enum ipa_subdomains_req_type type);
+ipa_subdomains_handler_get_start(struct ipa_subdomains_req_ctx *ctx,
+                                 struct sdap_search_base **search_bases,
+                                 enum ipa_subdomains_req_type type);
+static errno_t
+ipa_subdomains_handler_get_cont(struct ipa_subdomains_req_ctx *ctx,
+                                enum ipa_subdomains_req_type type);
 static void ipa_subdomains_handler_done(struct tevent_req *req);
 static void ipa_subdomains_handler_master_done(struct tevent_req *req);
 static void ipa_subdomains_handler_ranges_done(struct tevent_req *req);
@@ -926,7 +930,9 @@ static void ipa_subdomains_get_conn_done(struct tevent_req *req)
         goto fail;
     }
 
-    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_RANGES);
+    ret = ipa_subdomains_handler_get_start(ctx,
+                                           ctx->sd_ctx->ranges_search_bases,
+                                           IPA_SUBDOMAINS_RANGES);
     if (ret != EOK && ret != EAGAIN) {
         goto fail;
     }
@@ -979,6 +985,24 @@ ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
     tevent_req_set_callback(req, params->cb, ctx);
 
     return EAGAIN;
+}
+
+static errno_t
+ipa_subdomains_handler_get_start(struct ipa_subdomains_req_ctx *ctx,
+                                 struct sdap_search_base **search_bases,
+                                 enum ipa_subdomains_req_type type)
+{
+    ctx->search_base_iter = 0;
+    ctx->search_bases = search_bases;
+    return ipa_subdomains_handler_get(ctx, type);
+}
+
+static errno_t
+ipa_subdomains_handler_get_cont(struct ipa_subdomains_req_ctx *ctx,
+                                enum ipa_subdomains_req_type type)
+{
+    ctx->search_base_iter++;
+    return ipa_subdomains_handler_get(ctx, type);
 }
 
 static void ipa_get_view_name_done(struct tevent_req *req);
@@ -1245,8 +1269,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *req)
         ctx->reply_count += reply_count;
     }
 
-    ctx->search_base_iter++;
-    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_SLAVE);
+    ret = ipa_subdomains_handler_get_cont(ctx, IPA_SUBDOMAINS_SLAVE);
     if (ret == EAGAIN) {
         return;
     } else if (ret != EOK) {
@@ -1329,9 +1352,9 @@ static errno_t ipa_check_master(struct ipa_subdomains_req_ctx *ctx)
         domain->domain_id == NULL ||
         domain->realm == NULL) {
 
-        ctx->search_base_iter = 0;
-        ctx->search_bases = ctx->sd_ctx->master_search_bases;
-        ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);
+        ret = ipa_subdomains_handler_get_start(ctx,
+                                               ctx->sd_ctx->master_search_bases,
+                                               IPA_SUBDOMAINS_MASTER);
         if (ret == EAGAIN) {
             return EAGAIN;
         } else if (ret != EOK) {
@@ -1380,9 +1403,8 @@ static void ipa_subdomains_handler_ranges_done(struct tevent_req *req)
         goto done;
     }
 
-    ctx->search_base_iter = 0;
-    ctx->search_bases = ctx->sd_ctx->search_bases;
-    ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_SLAVE);
+    ret = ipa_subdomains_handler_get_start(ctx, ctx->sd_ctx->search_bases,
+                                           IPA_SUBDOMAINS_SLAVE);
     if (ret == EAGAIN) {
         return;
     } else if (ret != EOK) {
@@ -1442,8 +1464,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
         ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
                                            realm, flat, id, NULL);
     } else {
-        ctx->search_base_iter++;
-        ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);
+        ret = ipa_subdomains_handler_get_cont(ctx, IPA_SUBDOMAINS_MASTER);
         if (ret == EAGAIN) {
             return;
         } else if (ret != EOK) {
