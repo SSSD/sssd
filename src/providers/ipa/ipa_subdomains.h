@@ -59,6 +59,15 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
 int ipa_ad_subdom_init(struct be_ctx *be_ctx,
                        struct ipa_id_ctx *id_ctx);
 
+errno_t ipa_server_get_trust_direction(struct sysdb_attrs *sd,
+                                       struct ldb_context *ldb_ctx,
+                                       uint32_t *_direction);
+
+const char *ipa_trust_dir2str(uint32_t direction);
+
+/* Utilities */
+#define IPA_TRUST_DIRECTION "ipaNTTrustDirection"
+
 struct ldb_dn *ipa_subdom_ldb_dn(TALLOC_CTX *mem_ctx,
                                  struct ldb_context *ldb_ctx,
                                  struct sysdb_attrs *attrs);

@@ -97,6 +97,7 @@ enum sssd_errors {
     ERR_UNEXPECTED_ENTRY_TYPE,
     ERR_SIMPLE_GROUPS_MISSING,
     ERR_HOMEDIR_IS_NULL,
+    ERR_TRUST_NOT_SUPPORTED,
     ERR_LAST            /* ALWAYS LAST */
 };
 

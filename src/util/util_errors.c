@@ -75,6 +75,7 @@ struct err_string error_to_str[] = {
     { "Unexpected cache entry type" }, /* ERR_UNEXPECTED_ENTRY_TYPE */
     { "Failed to resolve one of user groups" }, /* ERR_SIMPLE_GROUPS_MISSING */
     { "Home directory is NULL" }, /* ERR_HOMEDIR_IS_NULL */
+    { "Unsupported trust direction" }, /* ERR_TRUST_NOT_SUPPORTED */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

@@ -363,7 +363,24 @@ done:
     return ret;
 }
 
+static errno_t ipa_get_sd_trust_direction(struct sysdb_attrs *sd,
+                                          struct ipa_id_ctx *id_ctx,
+                                          struct ldb_context *ldb_ctx,
+                                          uint32_t *_direction)
+{
+    if (id_ctx->server_mode != NULL) {
+        return ipa_server_get_trust_direction(sd, ldb_ctx, _direction);
+    } else {
+        /* Clients do not have access to the trust objects's trust direction
+         * and don't generally care
+         */
+        *_direction = 0;
+        return EOK;
+    }
+}
+
 static errno_t ipa_subdom_store(struct sss_domain_info *parent,
+                                struct ipa_id_ctx *id_ctx,
                                 struct sdap_idmap_ctx *sdap_idmap_ctx,
                                 struct sysdb_attrs *attrs)
 {
@@ -376,6 +393,7 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
     int ret;
     bool mpg;
     bool enumerate;
+    uint32_t direction;
 
     tmp_ctx = talloc_new(parent);
     if (tmp_ctx == NULL) {
@@ -419,8 +437,20 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
         goto done;
     }
 
+    ret = ipa_get_sd_trust_direction(attrs, id_ctx,
+                                     sysdb_ctx_get_ldb(parent->sysdb),
+                                     &direction);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ipa_get_sd_trust_direction failed: %d\n", ret);
+        goto done;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA,
+          "Trust direction of %s is %s\n", name, ipa_trust_dir2str(direction));
     ret = sysdb_subdomain_store(parent->sysdb, name, realm, flat,
-                                id, mpg, enumerate, forest, 0);
+                                id, mpg, enumerate, forest,
+                                direction);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_subdomain_store failed.\n");
         goto done;
@@ -430,6 +460,23 @@ static errno_t ipa_subdom_store(struct sss_domain_info *parent,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+static void ipa_subdom_store_step(struct sss_domain_info *parent,
+                                  struct ipa_id_ctx *id_ctx,
+                                  struct sdap_idmap_ctx *sdap_idmap_ctx,
+                                  struct sysdb_attrs *attrs)
+{
+    int ret;
+
+    ret = ipa_subdom_store(parent, id_ctx, sdap_idmap_ctx, attrs);
+    if (ret == ERR_TRUST_NOT_SUPPORTED) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unsupported trust type, skipping\n");
+    } else if (ret) {
+        /* Nothing we can do about the error. */
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
+              "will try to use cached subdomain\n");
+    }
 }
 
 static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
@@ -476,15 +523,9 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             ipa_ad_subdom_remove(ctx->be_ctx, ctx->id_ctx, dom);
         } else {
             /* ok let's try to update it */
-            ret = ipa_subdom_store(parent, ctx->sdap_id_ctx->opts->idmap_ctx,
-                                   reply[c]);
-            if (ret) {
-                /* Nothing we can do about the errorr. Let's at least try
-                 * to reuse the existing domain
-                 */
-                DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
-                      "will try to use cached subdomain\n");
-            }
+            ipa_subdom_store_step(parent, ctx->id_ctx,
+                                  ctx->sdap_id_ctx->opts->idmap_ctx,
+                                  reply[c]);
             handled[c] = true;
             h++;
         }
@@ -504,19 +545,12 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
             continue;
         }
 
-        /* Nothing we can do about the errorr. Let's at least try
-         * to reuse the existing domain.
-         */
-        ret = ipa_subdom_store(parent, ctx->sdap_id_ctx->opts->idmap_ctx,
-                               reply[c]);
-        if (ret) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to parse subdom data, "
-                  "will try to use cached subdomain\n");
-        }
+        ipa_subdom_store_step(parent, ctx->id_ctx,
+                              ctx->sdap_id_ctx->opts->idmap_ctx,
+                              reply[c]);
     }
 
     ret = EOK;
-
 done:
     if (ret != EOK) {
         ctx->last_refreshed = 0;
@@ -560,7 +594,8 @@ static struct ipa_subdomains_req_params subdomain_requests[] = {
     },
     { SUBDOMAINS_FILTER,
       ipa_subdomains_handler_done,
-      { IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID, NULL }
+      { IPA_CN, IPA_FLATNAME, IPA_TRUSTED_DOMAIN_SID,
+        IPA_TRUST_DIRECTION, NULL }
     },
     { RANGE_FILTER,
       ipa_subdomains_handler_ranges_done,

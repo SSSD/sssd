@@ -28,6 +28,81 @@
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_id.h"
 
+/* These constants are defined in MS-ADTS 6.1.6.7.1
+ *  https://msdn.microsoft.com/en-us/library/cc223768.aspx
+ */
+#define LSA_TRUST_DIRECTION_INBOUND  0x00000001
+#define LSA_TRUST_DIRECTION_OUTBOUND 0x00000002
+
+static uint32_t default_direction(TALLOC_CTX *mem_ctx,
+                                  struct ldb_context *ldb_ctx,
+                                  struct sysdb_attrs *attrs)
+{
+    struct ldb_dn *dn = NULL;
+    uint32_t direction;
+
+    dn = ipa_subdom_ldb_dn(mem_ctx, ldb_ctx, attrs);
+    if (dn == NULL) {
+        /* Shouldn't happen, but let's try system keytab in this case */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot determine subdomain DN, falling back to two-way trust\n");
+        return (LSA_TRUST_DIRECTION_INBOUND|LSA_TRUST_DIRECTION_OUTBOUND);
+    }
+
+    if (ipa_subdom_is_member_dom(dn) == true) {
+        /* It's expected member domains do not have the direction */
+        direction = 0;
+    } else {
+        /* Old server? Default to 2way trust */
+        direction = (LSA_TRUST_DIRECTION_INBOUND|LSA_TRUST_DIRECTION_OUTBOUND);
+    }
+
+    talloc_free(dn);
+    return direction;
+}
+
+errno_t ipa_server_get_trust_direction(struct sysdb_attrs *sd,
+                                       struct ldb_context *ldb_ctx,
+                                       uint32_t *_direction)
+{
+    uint32_t ipa_trust_direction = 0;
+    uint32_t direction;
+    int ret;
+
+    ret = sysdb_attrs_get_uint32_t(sd, IPA_TRUST_DIRECTION,
+                                   &ipa_trust_direction);
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Raw %s value: %d\n", IPA_TRUST_DIRECTION, ipa_trust_direction);
+    if (ret == ENOENT) {
+        direction = default_direction(sd, ldb_ctx, sd);
+    } else if (ret == EOK) {
+        /* Just store the AD value in SYSDB, we will check it while we're
+         * trying to use the trust */
+        direction = ipa_trust_direction;
+    } else {
+        return ret;
+    }
+
+    *_direction = direction;
+    return EOK;
+}
+
+const char *ipa_trust_dir2str(uint32_t direction)
+{
+    if ((direction & LSA_TRUST_DIRECTION_OUTBOUND)
+            && (direction & LSA_TRUST_DIRECTION_INBOUND)) {
+        return "two-way trust";
+    } else if (direction & LSA_TRUST_DIRECTION_OUTBOUND) {
+        return "one-way outbound: local domain is trusted by remote domain";
+    } else if (direction & LSA_TRUST_DIRECTION_INBOUND) {
+        return "one-way inbound: local domain trusts the remote domain";
+    } else if (direction == 0) {
+        return "trust direction not set";
+    }
+
+    return "unknown";
+}
+
 static errno_t
 ipa_ad_ctx_new(struct be_ctx *be_ctx,
                struct ipa_id_ctx *id_ctx,
