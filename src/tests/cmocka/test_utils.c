@@ -454,6 +454,137 @@ void test_find_domain_by_sid_disabled(void **state)
     }
 }
 
+static struct sss_domain_info *named_domain(TALLOC_CTX *mem_ctx,
+                                            const char *name,
+                                            struct sss_domain_info *parent)
+{
+    struct sss_domain_info *dom = NULL;
+
+    dom = talloc_zero(mem_ctx, struct sss_domain_info);
+    assert_non_null(dom);
+
+    dom->name = talloc_strdup(dom, name);
+    assert_non_null(dom->name);
+
+    dom->parent = parent;
+
+    return dom;
+}
+
+/*
+ * dom1 -> sub1a
+ *  |
+ * dom2 -> sub2a -> sub2b
+ *
+ */
+static int setup_dom_tree(void **state)
+{
+    struct dom_list_test_ctx *test_ctx;
+    struct sss_domain_info *head = NULL;
+    struct sss_domain_info *dom = NULL;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context, struct dom_list_test_ctx);
+    assert_non_null(test_ctx);
+
+    dom = named_domain(test_ctx, "dom1", NULL);
+    assert_non_null(dom);
+    head = dom;
+
+    dom = named_domain(test_ctx, "sub1a", head);
+    assert_non_null(dom);
+    head->subdomains = dom;
+
+    dom = named_domain(test_ctx, "dom2", NULL);
+    assert_non_null(dom);
+    head->next = dom;
+
+    dom = named_domain(test_ctx, "sub2a", head->next);
+    assert_non_null(dom);
+    head->next->subdomains = dom;
+
+    dom = named_domain(test_ctx, "sub2b", head->next);
+    assert_non_null(dom);
+    head->next->subdomains->next = dom;
+
+    test_ctx->dom_count = 2;
+    test_ctx->dom_list = head;
+
+    check_leaks_push(test_ctx);
+    *state = test_ctx;
+    return 0;
+}
+
+static int teardown_dom_tree(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    if (test_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Type mismatch\n");
+        return 1;
+    }
+
+    assert_true(check_leaks_pop(test_ctx));
+    talloc_free(test_ctx);
+    assert_true(leak_check_teardown());
+    return 0;
+}
+
+static void test_get_next_domain(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom = NULL;
+
+    dom = get_next_domain(test_ctx->dom_list, false);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, false);
+    assert_null(dom);
+}
+
+static void test_get_next_domain_descend(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom = NULL;
+
+    dom = get_next_domain(test_ctx->dom_list, true);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub1a");
+
+    dom = get_next_domain(dom, true);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, true);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2a");
+
+    dom = get_next_domain(dom, true);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2b");
+
+    dom = get_next_domain(dom, false);
+    assert_null(dom);
+}
+
+static void test_get_next_domain_disabled(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom = NULL;
+
+    for (dom = test_ctx->dom_list; dom; dom = get_next_domain(dom, true)) {
+        dom->disabled = true;
+    }
+
+    dom = get_next_domain(test_ctx->dom_list, true);
+    assert_null(dom);
+}
+
 struct name_init_test_ctx {
     struct confdb_ctx *confdb;
 };
@@ -1113,6 +1244,13 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_names_init,
                                         confdb_test_setup,
                                         confdb_test_teardown),
+
+        cmocka_unit_test_setup_teardown(test_get_next_domain,
+                                        setup_dom_tree, teardown_dom_tree),
+        cmocka_unit_test_setup_teardown(test_get_next_domain_descend,
+                                        setup_dom_tree, teardown_dom_tree),
+        cmocka_unit_test_setup_teardown(test_get_next_domain_disabled,
+                                        setup_dom_tree, teardown_dom_tree),
 
         cmocka_unit_test(test_well_known_sid_to_name),
         cmocka_unit_test(test_name_to_well_known_sid),
