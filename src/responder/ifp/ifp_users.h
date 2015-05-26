@@ -43,6 +43,10 @@ int ifp_users_find_by_id(struct sbus_request *sbus_req,
                          void *data,
                          uint32_t id);
 
+int ifp_users_find_by_cert(struct sbus_request *sbus_req,
+                           void *data,
+                           const char *pem_cert);
+
 int ifp_users_list_by_name(struct sbus_request *sbus_req,
                            void *data,
                            const char *filter,

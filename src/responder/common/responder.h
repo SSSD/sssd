@@ -281,7 +281,8 @@ enum sss_dp_acct_type {
     SSS_DP_NETGR,
     SSS_DP_SERVICES,
     SSS_DP_SECID,
-    SSS_DP_USER_AND_GROUP
+    SSS_DP_USER_AND_GROUP,
+    SSS_DP_CERT
 };
 
 struct tevent_req *

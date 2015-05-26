@@ -1139,7 +1139,9 @@ sssd_ifp_CFLAGS = \
     $(AM_CFLAGS)
 sssd_ifp_LDADD = \
     $(SSSD_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_cert.la \
+    $(NULL)
 dist_dbuspolicy_DATA = \
     src/responder/ifp/org.freedesktop.sssd.infopipe.conf
 dist_dbusservice_DATA = \

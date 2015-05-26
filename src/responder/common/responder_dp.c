@@ -548,6 +548,9 @@ sss_dp_get_account_msg(void *pvt)
         case SSS_DP_USER_AND_GROUP:
             be_type = BE_REQ_USER_AND_GROUP;
             break;
+        case SSS_DP_CERT:
+            be_type = BE_REQ_BY_CERT;
+            break;
     }
 
     if (info->fast_reply) {
@@ -561,6 +564,14 @@ sss_dp_get_account_msg(void *pvt)
                                                info->opt_name, info->extra);
             } else {
                 filter = talloc_asprintf(info, "%s=%s", DP_SEC_ID,
+                                               info->opt_name);
+            }
+        } else if (info->type == SSS_DP_CERT) {
+            if (info->extra) {
+                filter = talloc_asprintf(info, "%s=%s:%s", DP_CERT,
+                                               info->opt_name, info->extra);
+            } else {
+                filter = talloc_asprintf(info, "%s=%s", DP_CERT,
                                                info->opt_name);
             }
         } else {

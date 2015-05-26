@@ -136,6 +136,10 @@
             <arg name="id" type="u" direction="in" />
             <arg name="result" type="o" direction="out" />
         </method>
+        <method name="FindByCertificate">
+            <arg name="pem_cert" type="s" direction="in" />
+            <arg name="result" type="o" direction="out" />
+        </method>
         <method name="ListByName">
             <arg name="name_filter" type="s" direction="in" />
             <arg name="limit" type="u" direction="in" />

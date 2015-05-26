@@ -34,6 +34,7 @@ struct cache_req_input {
     /* Provided input. */
     const char *orig_name;
     uint32_t id;
+    const char *cert;
 
     /* Data Provider request type resolved from @type.
      * FIXME: This is currently needed for data provider calls. We should
@@ -56,7 +57,8 @@ struct cache_req_input *
 cache_req_input_create(TALLOC_CTX *mem_ctx,
                        enum cache_req_type type,
                        const char *name,
-                       uint32_t id)
+                       uint32_t id,
+                       const char *cert)
 {
     struct cache_req_input *input;
 
@@ -79,6 +81,17 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
 
         input->orig_name = talloc_strdup(input, name);
         if (input->orig_name == NULL) {
+            goto fail;
+        }
+        break;
+    case CACHE_REQ_USER_BY_CERT:
+        if (cert == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: certificate cannot be NULL!\n");
+            goto fail;
+        }
+
+        input->cert = talloc_strdup(input, cert);
+        if (input->cert == NULL) {
             goto fail;
         }
         break;
@@ -107,6 +120,9 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
 
     case CACHE_REQ_INITGROUPS:
         input->dp_type = SSS_DP_INITGROUPS;
+        break;
+    case CACHE_REQ_USER_BY_CERT:
+        input->dp_type = SSS_DP_CERT;
         break;
     }
 
@@ -192,6 +208,17 @@ cache_req_input_set_domain(struct cache_req_input *input,
             goto done;
         }
         break;
+    case CACHE_REQ_USER_BY_CERT:
+        /* certificates might be quite long, only use the last 10 charcters
+         * for logging */
+        fqn = talloc_asprintf(tmp_ctx, "CERT:%s@%s",
+                              get_last_x_chars(input->cert, 10),
+                              domain->name);
+        if (fqn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        break;
     }
 
     input->domain = domain;
@@ -227,6 +254,9 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
     case CACHE_REQ_GROUP_BY_ID:
         ret = sss_ncache_check_gid(ncache, neg_timeout, input->id);
         break;
+    case CACHE_REQ_USER_BY_CERT:
+        ret = sss_ncache_check_cert(ncache, neg_timeout, input->cert);
+        break;
     }
 
     if (ret == EEXIST) {
@@ -254,6 +284,7 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
         break;
     case CACHE_REQ_USER_BY_ID:
     case CACHE_REQ_GROUP_BY_ID:
+    case CACHE_REQ_USER_BY_CERT:
         /* Nothing to do. Those types must be unique among all domains so
          * the don't contain domain part. Therefore they must be set only
          * if all domains are search and the entry is not found. */
@@ -289,6 +320,9 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
         break;
     case CACHE_REQ_GROUP_BY_ID:
         ret = sss_ncache_set_gid(ncache, false, input->id);
+        break;
+    case CACHE_REQ_USER_BY_CERT:
+        ret = sss_ncache_set_cert(ncache, false, input->cert);
         break;
     }
 
@@ -337,6 +371,11 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         one_item_only = false;
         ret = sysdb_initgroups_with_views(mem_ctx, input->domain,
                                           input->dom_objname, &result);
+        break;
+    case CACHE_REQ_USER_BY_CERT:
+        one_item_only = true;
+        ret = sysdb_search_user_by_cert(mem_ctx, input->domain,
+                                        input->cert, &result);
         break;
     }
 
@@ -461,6 +500,7 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
     const char *extra_flag = NULL;
     uint64_t cache_expire = 0;
     errno_t ret;
+    const char *search_str;
 
     state = tevent_req_data(req, struct cache_req_cache_state);
 
@@ -479,6 +519,10 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
                                   state->cache_refresh_percent, cache_expire);
     }
 
+    search_str = state->input->dom_objname;
+    if (state->input->type == CACHE_REQ_USER_BY_CERT) {
+        search_str = state->input->cert;
+    }
     switch (ret) {
     case EOK:
         DEBUG(SSSDBG_TRACE_FUNC, "Cached entry is valid, returning...\n");
@@ -492,7 +536,7 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
         subreq = sss_dp_get_account_send(state, state->rctx,
                                          state->input->domain, true,
                                          state->input->dp_type,
-                                         state->input->dom_objname,
+                                         search_str,
                                          state->input->id, NULL);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory sending out-of-band "
@@ -514,7 +558,7 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
         subreq = sss_dp_get_account_send(state, state->rctx,
                                          state->input->domain, true,
                                          state->input->dp_type,
-                                         state->input->dom_objname,
+                                         search_str,
                                          state->input->id, extra_flag);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -890,7 +934,8 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
 {
     struct cache_req_input *input;
 
-    input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_NAME, name, 0);
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_NAME, name, 0,
+                                   NULL);
     if (input == NULL) {
         return NULL;
     }
@@ -912,7 +957,31 @@ cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
 {
     struct cache_req_input *input;
 
-    input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_ID, NULL, uid);
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_ID, NULL, uid,
+                                   NULL);
+    if (input == NULL) {
+        return NULL;
+    }
+
+    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
+                                          neg_timeout, cache_refresh_percent,
+                                          domain, input);
+}
+
+struct tevent_req *
+cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct resp_ctx *rctx,
+                            struct sss_nc_ctx *ncache,
+                            int neg_timeout,
+                            int cache_refresh_percent,
+                            const char *domain,
+                            const char *pem_cert)
+{
+    struct cache_req_input *input;
+
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_USER_BY_CERT,
+                                   NULL, 0, pem_cert);
     if (input == NULL) {
         return NULL;
     }
@@ -934,7 +1003,8 @@ cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
 {
     struct cache_req_input *input;
 
-    input = cache_req_input_create(mem_ctx, CACHE_REQ_GROUP_BY_NAME, name, 0);
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_GROUP_BY_NAME, name, 0,
+                                   NULL);
     if (input == NULL) {
         return NULL;
     }
@@ -956,7 +1026,8 @@ cache_req_group_by_id_send(TALLOC_CTX *mem_ctx,
 {
     struct cache_req_input *input;
 
-    input = cache_req_input_create(mem_ctx, CACHE_REQ_GROUP_BY_ID, NULL, gid);
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_GROUP_BY_ID, NULL, gid,
+                                   NULL);
     if (input == NULL) {
         return NULL;
     }
@@ -978,7 +1049,8 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
 {
     struct cache_req_input *input;
 
-    input = cache_req_input_create(mem_ctx, CACHE_REQ_INITGROUPS, name, 0);
+    input = cache_req_input_create(mem_ctx, CACHE_REQ_INITGROUPS, name, 0,
+                                   NULL);
     if (input == NULL) {
         return NULL;
     }

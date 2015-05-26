@@ -25,6 +25,7 @@
 #include "db/sysdb.h"
 #include "util/util.h"
 #include "util/strtonum.h"
+#include "util/cert.h"
 #include "sbus/sssd_dbus_errors.h"
 #include "responder/common/responder.h"
 #include "responder/common/responder_cache_req.h"
@@ -219,6 +220,92 @@ done:
     }
 
     iface_ifp_users_FindByID_finish(sbus_req, object_path);
+    return;
+}
+
+static void ifp_users_find_by_cert_done(struct tevent_req *req);
+
+int ifp_users_find_by_cert(struct sbus_request *sbus_req, void *data,
+                           const char *pem_cert)
+{
+    struct ifp_ctx *ctx;
+    struct tevent_req *req;
+    int ret;
+    char *derb64;
+    DBusError *error;
+
+    ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return ERR_INTERNAL;
+    }
+
+    ret = sss_cert_pem_to_derb64(sbus_req, pem_cert, &derb64);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_pem_to_derb64 failed.\n");
+
+        if (ret == ENOMEM) {
+            return ret;
+        }
+
+        error = sbus_error_new(sbus_req, DBUS_ERROR_INVALID_ARGS,
+                               "Invalid certificate format");
+        sbus_request_fail_and_finish(sbus_req, error);
+        /* the connection is already terminated with an error message, hence
+         * we have to return EOK to not terminate the connection twice. */
+        return EOK;
+    }
+
+    req = cache_req_user_by_cert_send(sbus_req, ctx->rctx->ev, ctx->rctx,
+                                      ctx->ncache, ctx->neg_timeout, 0,
+                                      NULL, derb64);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, ifp_users_find_by_cert_done, sbus_req);
+
+    return EOK;
+}
+
+static void ifp_users_find_by_cert_done(struct tevent_req *req)
+{
+    DBusError *error;
+    struct sbus_request *sbus_req;
+    struct sss_domain_info *domain;
+    struct ldb_result *result;
+    char *object_path;
+    errno_t ret;
+
+    sbus_req = tevent_req_callback_data(req, struct sbus_request);
+
+    ret = cache_req_user_by_cert_recv(sbus_req, req, &result, &domain, NULL);
+    talloc_zfree(req);
+    if (ret == ENOENT) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
+                               "User not found");
+        goto done;
+    } else if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "user [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    object_path = ifp_users_build_path_from_msg(sbus_req, domain,
+                                                result->msgs[0]);
+    if (object_path == NULL) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                               "Failed to compose object path");
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    iface_ifp_users_FindByCertificate_finish(sbus_req, object_path);
     return;
 }
 

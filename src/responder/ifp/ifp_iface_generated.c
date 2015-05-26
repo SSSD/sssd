@@ -685,6 +685,25 @@ int iface_ifp_users_FindByID_finish(struct sbus_request *req, const char *arg_re
                                          DBUS_TYPE_INVALID);
 }
 
+/* arguments for org.freedesktop.sssd.infopipe.Users.FindByCertificate */
+const struct sbus_arg_meta iface_ifp_users_FindByCertificate__in[] = {
+    { "pem_cert", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Users.FindByCertificate */
+const struct sbus_arg_meta iface_ifp_users_FindByCertificate__out[] = {
+    { "result", "o" },
+    { NULL, }
+};
+
+int iface_ifp_users_FindByCertificate_finish(struct sbus_request *req, const char *arg_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_OBJECT_PATH, &arg_result,
+                                         DBUS_TYPE_INVALID);
+}
+
 /* arguments for org.freedesktop.sssd.infopipe.Users.ListByName */
 const struct sbus_arg_meta iface_ifp_users_ListByName__in[] = {
     { "name_filter", "s" },
@@ -741,6 +760,13 @@ const struct sbus_method_meta iface_ifp_users__methods[] = {
         iface_ifp_users_FindByID__out,
         offsetof(struct iface_ifp_users, FindByID),
         invoke_u_method,
+    },
+    {
+        "FindByCertificate", /* name */
+        iface_ifp_users_FindByCertificate__in,
+        iface_ifp_users_FindByCertificate__out,
+        offsetof(struct iface_ifp_users, FindByCertificate),
+        invoke_s_method,
     },
     {
         "ListByName", /* name */
