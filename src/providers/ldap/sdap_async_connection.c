@@ -1092,16 +1092,6 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
     state->lifetime = lifetime;
     state->krb_service_name = krb_service_name;
 
-    if (keytab) {
-        ret = setenv("KRB5_KTNAME", keytab, 1);
-        if (ret == -1) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to set KRB5_KTNAME to %s\n", keytab);
-            talloc_free(req);
-            return NULL;
-        }
-    }
-
     if (canonicalize) {
         ret = setenv("KRB5_CANONICALIZE", "true", 1);
     } else {
