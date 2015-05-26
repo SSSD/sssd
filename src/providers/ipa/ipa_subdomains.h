@@ -59,6 +59,12 @@ void ipa_ad_subdom_remove(struct be_ctx *be_ctx,
 int ipa_ad_subdom_init(struct be_ctx *be_ctx,
                        struct ipa_id_ctx *id_ctx);
 
+struct ldb_dn *ipa_subdom_ldb_dn(TALLOC_CTX *mem_ctx,
+                                 struct ldb_context *ldb_ctx,
+                                 struct sysdb_attrs *attrs);
+
+bool ipa_subdom_is_member_dom(struct ldb_dn *dn);
+
 /* struct for external group memberships, defined in
  * ipa_subdomains_ext_groups.c */
 struct ipa_ext_groups;

@@ -226,6 +226,7 @@ if HAVE_CMOCKA
         test_sbus_opath \
         test_fo_srv \
         pam-srv-tests \
+        test_ipa_subdom_util \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -2418,6 +2419,22 @@ test_fo_srv_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
+test_ipa_subdom_util_SOURCES = \
+    src/tests/cmocka/test_ipa_subdomains_utils.c \
+    src/providers/ipa/ipa_subdomains_utils.c \
+    $(NULL)
+test_ipa_subdom_util_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_ipa_subdom_util_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(LDB_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
 endif # HAVE_CMOCKA
 
 noinst_PROGRAMS = pam_test_client
@@ -2761,6 +2778,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_subdomains.c \
     src/providers/ipa/ipa_subdomains_id.c \
     src/providers/ipa/ipa_subdomains_server.c \
+    src/providers/ipa/ipa_subdomains_utils.c \
     src/providers/ipa/ipa_subdomains_ext_groups.c \
     src/providers/ipa/ipa_views.c \
     src/providers/ipa/ipa_utils.c \

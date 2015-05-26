@@ -328,56 +328,18 @@ static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
                                      char **_forest)
 {
     int ret;
-    const char *orig_dn;
     struct ldb_dn *dn = NULL;
     const struct ldb_val *val;
     char *forest = NULL;
 
-    ret = sysdb_attrs_get_string(attrs, SYSDB_ORIG_DN, &orig_dn);
-    if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
-        goto done;
-    }
-    DEBUG(SSSDBG_TRACE_ALL, "Checking if we need the forest name for [%s].\n",
-                             orig_dn);
-
-    dn = ldb_dn_new(mem_ctx, ldb_ctx, orig_dn);
+    dn = ipa_subdom_ldb_dn(mem_ctx, ldb_ctx, attrs);
     if (dn == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_subdom_ldb_dn failed.\n");
+        ret = EIO;
         goto done;
     }
 
-    if (!ldb_dn_validate(dn)) {
-        DEBUG(SSSDBG_OP_FAILURE, "Original DN [%s] is not a valid DN.\n",
-                                  orig_dn);
-        ret = EINVAL;
-        goto done;
-    }
-
-    if (ldb_dn_get_comp_num(dn) < 5) {
-        /* We are only interested in the member domain objects. In IPA the
-         * forest root object is stored as e.g.
-         * cn=AD.DOM,cn=ad,cn=trusts,dc=example,dc=com. Member domains in the
-         * forest are children of the forest root object e.g.
-         * cn=SUB.AD.DOM,cn=AD.DOM,cn=ad,cn=trusts,dc=example,dc=com. Since
-         * the forest name is not stored in the member objects we derive it
-         * from the RDN of the forest root object. */
-        ret = EOK;
-        goto done;
-    }
-
-    val = ldb_dn_get_component_val(dn, 3);
-    if (strncasecmp("trusts", (const char *) val->data, val->length) != 0) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "4th component is not 'trust', nothing to do.\n");
-        ret = EOK;
-        goto done;
-    }
-
-    val = ldb_dn_get_component_val(dn, 2);
-    if (strncasecmp("ad", (const char *) val->data, val->length) != 0) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "3rd component is not 'ad', nothing to do.\n");
+    if (ipa_subdom_is_member_dom(dn) == false) {
         ret = EOK;
         goto done;
     }
@@ -390,6 +352,7 @@ static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = EOK;
 done:
     talloc_free(dn);
 
