@@ -680,7 +680,7 @@ rm -rf $RPM_BUILD_ROOT
 %files proxy
 %defattr(-,root,root,-)
 %doc COPYING
-%{_libexecdir}/%{servicename}/proxy_child
+%attr(4750,root,sssd) %{_libexecdir}/%{servicename}/proxy_child
 %{_libdir}/%{name}/libsss_proxy.so
 
 %files dbus
