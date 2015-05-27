@@ -515,7 +515,7 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = sbus_new_server(ctx, bectx->ev, sbus_address, 0, 0,
+    ret = sbus_new_server(ctx, bectx->ev, sbus_address, 0, bectx->gid,
                           false, &ctx->sbus_srv, proxy_client_init, ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not set up sbus server.\n");
