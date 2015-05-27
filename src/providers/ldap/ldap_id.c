@@ -28,6 +28,7 @@
 
 #include "util/util.h"
 #include "util/strtonum.h"
+#include "util/cert.h"
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
@@ -78,12 +79,13 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     struct tevent_req *req;
     struct users_get_state *state;
     const char *attr_name = NULL;
-    char *clean_name;
+    char *clean_name = NULL;
     char *endptr;
     int ret;
     uid_t uid;
     enum idmap_error_code err;
     char *sid;
+    char *user_filter = NULL;
 
     req = tevent_req_create(memctx, &state, struct users_get_state);
     if (!req) return NULL;
@@ -194,6 +196,23 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             goto done;
         }
         break;
+    case BE_FILTER_CERT:
+        attr_name = ctx->opts->user_map[SDAP_AT_USER_CERT].name;
+        if (attr_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Certificate search not configured for this backend.\n");
+            ret = EINVAL;
+            goto done;
+        }
+
+        ret = sss_cert_derb64_to_ldap_filter(state, name, attr_name,
+                                             &user_filter);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sss_cert_derb64_to_ldap_filter failed.\n");
+            goto done;
+        }
+        break;
     default:
         ret = EINVAL;
         goto done;
@@ -205,29 +224,39 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         goto done;
     }
 
+    if (user_filter == NULL) {
+        user_filter = talloc_asprintf(state, "(%s=%s)", attr_name, clean_name);
+        talloc_free(clean_name);
+        if (user_filter == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     if (state->use_id_mapping || filter_type == BE_FILTER_SECID) {
         /* When mapping IDs or looking for SIDs, we don't want to limit
          * ourselves to users with a UID value. But there must be a SID to map
          * from.
          */
         state->filter = talloc_asprintf(state,
-                                        "(&(%s=%s)(objectclass=%s)(%s=*)(%s=*))",
-                                        attr_name, clean_name,
+                                        "(&%s(objectclass=%s)(%s=*)(%s=*))",
+                                        user_filter,
                                         ctx->opts->user_map[SDAP_OC_USER].name,
                                         ctx->opts->user_map[SDAP_AT_USER_NAME].name,
                                         ctx->opts->user_map[SDAP_AT_USER_OBJECTSID].name);
     } else {
         /* When not ID-mapping, make sure there is a non-NULL UID */
         state->filter = talloc_asprintf(state,
-                                        "(&(%s=%s)(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
-                                        attr_name, clean_name,
+                                        "(&%s(objectclass=%s)(%s=*)(&(%s=*)(!(%s=0))))",
+                                        user_filter,
                                         ctx->opts->user_map[SDAP_OC_USER].name,
                                         ctx->opts->user_map[SDAP_AT_USER_NAME].name,
                                         ctx->opts->user_map[SDAP_AT_USER_UID].name,
                                         ctx->opts->user_map[SDAP_AT_USER_UID].name);
     }
 
-    talloc_zfree(clean_name);
+    talloc_zfree(user_filter);
     if (!state->filter) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to build the base filter\n");
         ret = ENOMEM;
@@ -1537,6 +1566,16 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                                          noexist_delete);
         break;
 
+    case BE_REQ_BY_CERT:
+        subreq = users_get_send(state, be_ctx->ev, id_ctx,
+                                sdom, conn,
+                                ar->filter_value,
+                                ar->filter_type,
+                                ar->extra_value,
+                                ar->attr_type,
+                                noexist_delete);
+        break;
+
     default: /*fail*/
         ret = EINVAL;
         state->err = "Invalid request type";
@@ -1601,6 +1640,10 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
         err = "Lookup by SID failed";
         ret = sdap_get_user_and_group_recv(subreq, &state->dp_error,
                                            &state->sdap_ret);
+        break;
+    case BE_REQ_BY_CERT:
+        err = "User lookup by certificate failed";
+        ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
         break;
     default: /*fail*/
         ret = EINVAL;

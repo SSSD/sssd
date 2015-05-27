@@ -1199,6 +1199,11 @@ static int be_get_account_info(struct sbus_request *dbus_req, void *user_data)
             ret = split_name_extended(req, &filter[DP_SEC_ID_LEN + 1],
                                       &req->filter_value,
                                       &req->extra_value);
+        } else if (strncmp(filter, DP_CERT"=", DP_CERT_LEN + 1) == 0) {
+            req->filter_type = BE_FILTER_CERT;
+            ret = split_name_extended(req, &filter[DP_CERT_LEN + 1],
+                                      &req->filter_value,
+                                      &req->extra_value);
         } else if (strcmp(filter, ENUM_INDICATOR) == 0) {
             req->filter_type = BE_FILTER_ENUM;
             req->filter_value = NULL;

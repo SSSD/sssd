@@ -934,6 +934,20 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
 
         ret = EOK;
         goto done;
+    } else if (ar->filter_type == BE_FILTER_CERT) {
+        ret = sysdb_search_object_by_cert(mem_ctx, dom, ar->filter_value, attrs,
+                                          &res);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to make request to our cache: [%d]: [%s]\n",
+                   ret, sss_strerror(ret));
+            goto done;
+        }
+
+        *_msg = res->msgs[0];
+
+        ret = EOK;
+        goto done;
     } else if (ar->filter_type == BE_FILTER_IDNUM) {
         errno = 0;
         id = strtouint32(ar->filter_value, NULL, 10);

@@ -128,6 +128,7 @@
 #define BE_FILTER_ENUM 3
 #define BE_FILTER_SECID 4
 #define BE_FILTER_UUID 5
+#define BE_FILTER_CERT 6
 
 #define BE_REQ_USER          0x0001
 #define BE_REQ_GROUP         0x0002
@@ -140,14 +141,17 @@
 #define BE_REQ_HOST          0x0010
 #define BE_REQ_BY_SECID      0x0011
 #define BE_REQ_USER_AND_GROUP 0x0012
-#define BE_REQ_BY_UUID      0x0013
+#define BE_REQ_BY_UUID       0x0013
+#define BE_REQ_BY_CERT       0x0014
 #define BE_REQ_TYPE_MASK     0x00FF
 #define BE_REQ_FAST          0x1000
 
 #define DP_SEC_ID "secid"
+#define DP_CERT "cert"
 /* sizeof() counts the trailing \0 so we must substract 1 for the string
  * length */
 #define DP_SEC_ID_LEN (sizeof(DP_SEC_ID) - 1)
+#define DP_CERT_LEN (sizeof(DP_CERT) - 1)
 
 #define EXTRA_NAME_IS_UPN "U"
 #define EXTRA_INPUT_MAYBE_WITH_VIEW "V"
