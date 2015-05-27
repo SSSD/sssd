@@ -816,6 +816,7 @@ libsss_util_la_LIBADD = \
     libsss_debug.la \
     libsss_child.la \
     libsss_crypt.la \
+    libsss_cert.la \
     $(NULL)
 if BUILD_SUDO
     libsss_util_la_SOURCES += src/db/sysdb_sudo.c

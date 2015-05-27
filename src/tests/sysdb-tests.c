@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "util/util.h"
+#include "util/crypto/sss_crypto.h"
 #include "confdb/confdb_setup.h"
 #include "db/sysdb_private.h"
 #include "db/sysdb_services.h"
@@ -5201,6 +5202,56 @@ START_TEST(test_sysdb_search_object_by_uuid)
 }
 END_TEST
 
+/* For simple searches the content of the certificate does not matter */
+#define TEST_USER_CERT_DERB64 "gJznJT7L0aETU5CMk+n+1Q=="
+START_TEST(test_sysdb_search_user_by_cert)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_result *res;
+    struct sysdb_attrs *attrs = NULL;
+    struct ldb_val val;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not set up the test");
+
+    val.data = sss_base64_decode(test_ctx, TEST_USER_CERT_DERB64, &val.length);
+    fail_unless(val.data != NULL, "sss_base64_decode failed.");
+
+    attrs = sysdb_new_attrs(test_ctx);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_val(attrs, SYSDB_USER_CERT, &val);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_add_user(test_ctx->domain, "certuser",
+                         234567, 0, "cert user", "/home/certuser", "/bin/bash",
+                         NULL, attrs, 0, 0);
+    fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
+                ret, strerror(ret));
+
+    ret = sysdb_search_user_by_cert(test_ctx, test_ctx->domain, "ABC", &res);
+    fail_unless(ret == ENOENT,
+                "Unexpected return code from sysdb_search_user_by_cert for "
+                "missing object, expected [%d], got [%d].", ENOENT, ret);
+
+    ret = sysdb_search_user_by_cert(test_ctx, test_ctx->domain,
+                                    TEST_USER_CERT_DERB64, &res);
+    fail_unless(ret == EOK, "sysdb_search_user_by_cert failed with [%d][%s].",
+                ret, strerror(ret));
+    fail_unless(res->count == 1, "Unexpected number of results, " \
+                                 "expected [%u], get [%u].", 1, res->count);
+    fail_unless(strcmp(ldb_msg_find_attr_as_string(res->msgs[0],
+                                                   SYSDB_NAME, ""),
+                      "certuser") == 0, "Unexpected object found, " \
+                      "expected [%s], got [%s].", "certuser",
+                      ldb_msg_find_attr_as_string(res->msgs[0],SYSDB_NAME, ""));
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST(test_sysdb_delete_by_sid)
 {
     errno_t ret;
@@ -6317,6 +6368,9 @@ Suite *create_sysdb_suite(void)
 
     /* Test UUID string searches */
     tcase_add_test(tc_sysdb, test_sysdb_search_object_by_uuid);
+
+    /* Test user by certificate searches */
+    tcase_add_test(tc_sysdb, test_sysdb_search_user_by_cert);
 
     /* Test canonicalizing names */
     tcase_add_test(tc_sysdb, test_sysdb_get_real_name);

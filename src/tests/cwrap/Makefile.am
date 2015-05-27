@@ -110,6 +110,7 @@ server_tests_LDADD = \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_crypt.la \
     $(abs_top_builddir)/libsss_test_common.la \
+    $(abs_top_builddir)/libsss_cert.la \
     $(NULL)
 
 usertools_tests_SOURCES = \
@@ -144,6 +145,7 @@ usertools_tests_LDADD = \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_crypt.la \
     $(abs_top_builddir)/libsss_test_common.la \
+    $(abs_top_builddir)/libsss_cert.la \
     $(NULL)
 
 responder_common_tests_SOURCES =\

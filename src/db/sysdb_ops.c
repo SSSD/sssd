@@ -24,6 +24,7 @@
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/cert.h"
 #include <time.h>
 
 int add_string(struct ldb_message *msg, int flags,
@@ -3700,6 +3701,40 @@ errno_t sysdb_search_object_by_uuid(TALLOC_CTX *mem_ctx,
 {
     return sysdb_search_object_by_str_attr(mem_ctx, domain, SYSDB_UUID_FILTER,
                                            uuid_str, attrs, res);
+}
+
+errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char *cert,
+                                    const char **attrs,
+                                    struct ldb_result **res)
+{
+    int ret;
+    char *user_filter;
+
+    ret = sss_cert_derb64_to_ldap_filter(mem_ctx, cert, SYSDB_USER_CERT,
+                                         &user_filter);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_cert_derb64_to_ldap_filter failed.\n");
+        return ret;
+    }
+
+    ret = sysdb_search_object_by_str_attr(mem_ctx, domain,
+                                          SYSDB_USER_CERT_FILTER,
+                                          user_filter, attrs, res);
+    talloc_free(user_filter);
+
+    return ret;
+}
+
+errno_t sysdb_search_user_by_cert(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  const char *cert,
+                                  struct ldb_result **res)
+{
+    const char *user_attrs[] = SYSDB_PW_ATTRS;
+
+    return sysdb_search_object_by_cert(mem_ctx, domain, cert, user_attrs, res);
 }
 
 errno_t sysdb_get_sids_of_members(TALLOC_CTX *mem_ctx,

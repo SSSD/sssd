@@ -194,6 +194,7 @@
 
 #define SYSDB_SID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_SID_STR"=%s))"
 #define SYSDB_UUID_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_UUID"=%s))"
+#define SYSDB_USER_CERT_FILTER "(&("SYSDB_UC")%s)"
 
 #define SYSDB_HAS_ENUMERATED "has_enumerated"
 
@@ -1063,6 +1064,19 @@ errno_t sysdb_search_object_by_uuid(TALLOC_CTX *mem_ctx,
                                     const char *uuid_str,
                                     const char **attrs,
                                     struct ldb_result **res);
+
+errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
+                                    struct sss_domain_info *domain,
+                                    const char *cert,
+                                    const char **attrs,
+                                    struct ldb_result **res);
+
+errno_t sysdb_search_user_by_cert(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  const char *cert,
+                                  struct ldb_result **res);
+
+
 
 /* === Functions related to GPOs === */
 
