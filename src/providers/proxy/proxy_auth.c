@@ -285,7 +285,7 @@ static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
         talloc_set_destructor((TALLOC_CTX *)state, pc_init_destructor);
 
         state->sige = tevent_add_signal(auth_ctx->be->ev, req,
-                                        SIGCHLD, SA_SIGINFO,
+                                        SIGCHLD, 0,
                                         pc_init_sig_handler, req);
         if (state->sige == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_signal failed.\n");
@@ -466,7 +466,7 @@ static void proxy_child_init_done(struct tevent_req *subreq) {
 
     sige = tevent_add_signal(child_ctx->auth_ctx->be->ev,
                              child_ctx->auth_ctx,
-                             SIGCHLD, SA_SIGINFO,
+                             SIGCHLD, 0,
                              proxy_child_sig_handler,
                              sig_ctx);
     if (sige == NULL) {
