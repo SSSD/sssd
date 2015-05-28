@@ -683,7 +683,7 @@ ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
 static errno_t
 get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
                               const char *fqname, uint32_t uid,
-                              const char **_homedir)
+                              const char *original, const char **_homedir)
 {
     errno_t ret;
     const char *name;
@@ -697,12 +697,20 @@ get_subdomain_homedir_of_user(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
+    if (strstr(dom->subdomain_homedir, "%o") != NULL && original == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Original home directory for user: %s is empty.\n", fqname);
+        ret = ERR_HOMEDIR_IS_NULL;
+        goto done;
+    }
+
     ZERO_STRUCT(homedir_ctx);
 
     homedir_ctx.uid = uid;
     homedir_ctx.domain = dom->name;
     homedir_ctx.flatname = dom->flat_name;
     homedir_ctx.config_homedir_substr = dom->homedir_substr;
+    homedir_ctx.original = original;
     ret = sss_parse_name_const(tmp_ctx, dom->names, fqname,
                                NULL, &name);
     if (ret != EOK) {
@@ -809,6 +817,7 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
     errno_t ret;
     uint32_t uid;
     const char *fqname;
+    const char *original;
     const char *homedir = NULL;
     struct ldb_message_element *msg_el = NULL;
     size_t c;
@@ -833,10 +842,6 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
-    /*
-     * Homedir is always overriden by subdomain_homedir even if it was
-     * explicitly set by user.
-     */
     fqname = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
     if (fqname == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing user name.\n");
@@ -852,11 +857,21 @@ apply_subdomain_homedir(TALLOC_CTX *mem_ctx, struct sss_domain_info *dom,
         goto done;
     }
 
-    ret = get_subdomain_homedir_of_user(mem_ctx, dom, fqname, uid, &homedir);
+    original = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
+    if (original == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Missing homedir of %s.\n", fqname);
+    }
+
+    ret = get_subdomain_homedir_of_user(mem_ctx, dom, fqname, uid, original,
+                                        &homedir);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "get_subdomain_homedir_of_user failed: [%d]: [%s]\n",
-               ret, sss_strerror(ret));
+              ret, sss_strerror(ret));
+        if (ret == ERR_HOMEDIR_IS_NULL) {
+            /* This is not fatal, fallback_homedir will be used. */
+            ret = EOK;
+        }
         goto done;
     }
 
@@ -887,6 +902,7 @@ errno_t get_object_from_cache(TALLOC_CTX *mem_ctx,
                             SYSDB_OBJECTCLASS,
                             SYSDB_UUID,
                             SYSDB_GHOST,
+                            SYSDB_HOMEDIR,
                             NULL };
     char *name;
 

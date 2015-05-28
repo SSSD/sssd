@@ -74,6 +74,7 @@ struct err_string error_to_str[] = {
     { "Malformed cache entry" }, /* ERR_MALFORMED_ENTRY */
     { "Unexpected cache entry type" }, /* ERR_UNEXPECTED_ENTRY_TYPE */
     { "Failed to resolve one of user groups" }, /* ERR_SIMPLE_GROUPS_MISSING */
+    { "Home directory is NULL" }, /* ERR_HOMEDIR_IS_NULL */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

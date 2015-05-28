@@ -96,6 +96,7 @@ enum sssd_errors {
     ERR_MALFORMED_ENTRY,
     ERR_UNEXPECTED_ENTRY_TYPE,
     ERR_SIMPLE_GROUPS_MISSING,
+    ERR_HOMEDIR_IS_NULL,
     ERR_LAST            /* ALWAYS LAST */
 };
 
