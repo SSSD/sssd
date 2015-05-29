@@ -33,6 +33,7 @@
 #include "providers/dp_dyndns.c"
 
 #include "tests/cmocka/common_mock.h"
+#include "tests/cmocka/common_mock_be.h"
 #include "src/providers/dp_dyndns.h"
 
 #define TESTS_PATH "tests_dyndns"
@@ -412,12 +413,9 @@ static int dyndns_test_setup(void **state)
                                                 TEST_ID_PROVIDER, params);
     assert_non_null(dyndns_test_ctx->tctx);
 
-    dyndns_test_ctx->be_ctx = talloc_zero(dyndns_test_ctx, struct be_ctx);
+    dyndns_test_ctx->be_ctx = mock_be_ctx(dyndns_test_ctx, dyndns_test_ctx->tctx);
     assert_non_null(dyndns_test_ctx->be_ctx);
 
-    dyndns_test_ctx->be_ctx->cdb = dyndns_test_ctx->tctx->confdb;
-    dyndns_test_ctx->be_ctx->ev  = dyndns_test_ctx->tctx->ev;
-    dyndns_test_ctx->be_ctx->conf_path = dyndns_test_ctx->tctx->conf_dom_path;
     return 0;
 }
 

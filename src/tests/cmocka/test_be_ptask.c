@@ -28,6 +28,7 @@
 #include "providers/dp_ptask_private.h"
 #include "providers/dp_ptask.h"
 #include "tests/cmocka/common_mock.h"
+#include "tests/cmocka/common_mock_be.h"
 #include "tests/common.h"
 
 #define DELAY  2
@@ -37,6 +38,7 @@
     cmocka_unit_test_setup_teardown(test_ ## test, test_setup, test_teardown)
 
 struct test_ctx {
+    struct sss_test_ctx *tctx;
     struct be_ctx *be_ctx;
 
     time_t when;
@@ -274,8 +276,10 @@ static int test_setup(void **state)
     test_ctx = talloc_zero(global_talloc_context, struct test_ctx);
     assert_non_null(test_ctx);
 
-    /* create be_ctx, only ev and offline field should be used */
-    test_ctx->be_ctx = talloc_zero(test_ctx, struct be_ctx);
+    test_ctx->tctx = create_ev_test_ctx(test_ctx);
+    assert_non_null(test_ctx->tctx);
+
+    test_ctx->be_ctx = mock_be_ctx(test_ctx, test_ctx->tctx);
     assert_non_null(test_ctx->be_ctx);
 
     test_ctx->be_ctx->ev = tevent_context_init(test_ctx->be_ctx);

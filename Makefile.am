@@ -620,6 +620,7 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock_sdap.h \
     src/tests/cmocka/common_mock_sysdb_objects.h \
     src/tests/cmocka/common_mock_krb5.h \
+    src/tests/cmocka/common_mock_be.h \
     src/tests/cmocka/test_expire_common.h \
     src/sss_client/pam_message.h \
     src/sss_client/ssh/sss_ssh_client.h \
@@ -1935,6 +1936,7 @@ EXTRA_dyndns_tests_DEPENDENCIES = \
      $(ldblib_LTLIBRARIES)
 dyndns_tests_SOURCES = \
      $(SSSD_RESOLV_OBJ) \
+     src/tests/cmocka/common_mock_be.c \
      src/tests/cmocka/test_dyndns.c \
      src/providers/data_provider_opts.c
 dyndns_tests_CFLAGS = \
@@ -1966,6 +1968,7 @@ nestedgroups_tests_SOURCES = \
     $(TEST_MOCK_PROVIDER_OBJ) \
     src/providers/ldap/sdap_idmap.c \
     src/tests/cmocka/test_nested_groups.c \
+    src/tests/cmocka/common_mock_be.c \
     src/providers/ldap/sdap_async_nested_groups.c \
     src/providers/ldap/sdap_ad_groups.c \
     $(NULL)
@@ -2269,6 +2272,7 @@ test_sysdb_utils_LDADD = \
     $(NULL)
 
 test_be_ptask_SOURCES = \
+    src/tests/cmocka/common_mock_be.c \
     src/tests/cmocka/test_be_ptask.c \
     src/providers/dp_ptask.c \
     $(NULL)

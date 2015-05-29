@@ -25,6 +25,7 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_sdap.h"
+#include "tests/cmocka/common_mock_be.h"
 #include "tests/cmocka/common_mock_sysdb_objects.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
@@ -599,12 +600,10 @@ static int nested_groups_test_setup(void **state)
                                         struct sdap_id_ctx);
     assert_non_null(test_ctx->sdap_id_ctx);
 
-    test_ctx->sdap_id_ctx->be = talloc_zero(test_ctx->sdap_id_ctx,
-                                            struct be_ctx);
+    test_ctx->sdap_id_ctx->be = mock_be_ctx(test_ctx, test_ctx->tctx);
     assert_non_null(test_ctx->sdap_id_ctx->be);
 
     test_ctx->sdap_id_ctx->opts = test_ctx->sdap_opts;
-    test_ctx->sdap_id_ctx->be->domain = test_ctx->tctx->dom;
 
     ret = sdap_idmap_init(test_ctx, test_ctx->sdap_id_ctx, &test_ctx->idmap_ctx);
     assert_int_equal(ret, EOK);
