@@ -619,6 +619,7 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock_resp.h \
     src/tests/cmocka/common_mock_sdap.h \
     src/tests/cmocka/common_mock_sysdb_objects.h \
+    src/tests/cmocka/common_mock_krb5.h \
     src/tests/cmocka/test_expire_common.h \
     src/sss_client/pam_message.h \
     src/sss_client/ssh/sss_ssh_client.h \
@@ -2300,6 +2301,7 @@ test_copy_ccache_LDADD = \
     $(NULL)
 
 test_copy_keytab_SOURCES = \
+    src/tests/cmocka/common_mock_krb5.c \
     src/tests/cmocka/test_copy_keytab.c \
     src/providers/krb5/krb5_keytab.c \
     src/util/sss_krb5.c \

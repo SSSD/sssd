@@ -26,6 +26,7 @@
 #include "util/sss_krb5.h"
 #include "providers/krb5/krb5_common.h"
 #include "tests/cmocka/common_mock.h"
+#include "tests/cmocka/common_mock_krb5.h"
 
 #define KEYTAB_TEST_PRINC "test/keytab@TEST.KEYTAB"
 #define KEYTAB_PATH TEST_DIR "/keytab_test.keytab"
@@ -41,8 +42,8 @@ static int setup_keytab(void **state)
 {
     struct keytab_test_ctx *test_ctx;
     krb5_error_code kerr;
-    krb5_keytab keytab;
-    krb5_keytab_entry kent;
+    size_t nkeys = 4;
+    krb5_keytab_entry keys[nkeys];
 
     assert_true(leak_check_setup());
 
@@ -54,46 +55,18 @@ static int setup_keytab(void **state)
 
     test_ctx->keytab_file_name = "FILE:" KEYTAB_PATH;
 
-    kerr = krb5_kt_resolve(test_ctx->kctx, test_ctx->keytab_file_name, &keytab);
-    assert_int_equal(kerr, 0);
-
     kerr = krb5_parse_name(test_ctx->kctx, KEYTAB_TEST_PRINC,
                            &test_ctx->principal);
     assert_int_equal(kerr, 0);
 
-    memset(&kent, 0, sizeof(kent));
-    kent.magic = KV5M_KEYTAB_ENTRY;
-    kent.principal = test_ctx->principal;
-    kent.timestamp = 12345;
-    kent.vno = 1;
-    kent.key.magic = KV5M_KEYBLOCK;
-    kent.key.enctype = 1;
-    kent.key.length = 2;
-    kent.key.contents = (krb5_octet *) discard_const("11");
+    memset(&keys, nkeys, nkeys * sizeof(krb5_keytab_entry));
 
-    kerr = krb5_kt_add_entry(test_ctx->kctx, keytab, &kent);
-    assert_int_equal(kerr, 0);
+    mock_krb5_keytab_entry(&keys[0], test_ctx->principal, 12345, 1, 1, "11");
+    mock_krb5_keytab_entry(&keys[1], test_ctx->principal, 12345, 1, 2, "12");
+    mock_krb5_keytab_entry(&keys[2], test_ctx->principal, 12345, 2, 1, "21");
+    mock_krb5_keytab_entry(&keys[3], test_ctx->principal, 12345, 2, 2, "22");
 
-    kent.key.enctype = 2;
-    kent.key.contents = (krb5_octet *) discard_const("12");
-
-    kerr = krb5_kt_add_entry(test_ctx->kctx, keytab, &kent);
-    assert_int_equal(kerr, 0);
-
-    kent.vno = 2;
-    kent.key.enctype = 1;
-    kent.key.contents = (krb5_octet *) discard_const("21");
-
-    kerr = krb5_kt_add_entry(test_ctx->kctx, keytab, &kent);
-    assert_int_equal(kerr, 0);
-
-    kent.key.enctype = 2;
-    kent.key.contents = (krb5_octet *) discard_const("22");
-
-    kerr = krb5_kt_add_entry(test_ctx->kctx, keytab, &kent);
-    assert_int_equal(kerr, 0);
-
-    kerr = krb5_kt_close(test_ctx->kctx, keytab);
+    kerr = mock_keytab(test_ctx->kctx, test_ctx->keytab_file_name, keys, nkeys);
     assert_int_equal(kerr, 0);
 
     check_leaks_push(test_ctx);
