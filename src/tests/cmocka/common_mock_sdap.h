@@ -38,6 +38,10 @@ struct sdap_options *mock_sdap_options_ldap(TALLOC_CTX *mem_ctx,
                                             struct confdb_ctx *confdb_ctx,
                                             const char *conf_path);
 
+struct sdap_id_ctx *mock_sdap_id_ctx(TALLOC_CTX *mem_ctx,
+                                     struct be_ctx *be_ctx,
+                                     struct sdap_options *sdap_opts);
+
 struct sdap_handle *mock_sdap_handle(TALLOC_CTX *mem_ctx);
 
 #endif /* COMMON_MOCK_SDAP_H_ */

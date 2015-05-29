@@ -54,6 +54,7 @@
 struct nested_groups_test_ctx {
     struct sss_test_ctx *tctx;
 
+    struct be_ctx *be_ctx;
     struct sdap_options *sdap_opts;
     struct sdap_handle *sdap_handle;
     struct sdap_domain *sdap_domain;
@@ -596,14 +597,13 @@ static int nested_groups_test_setup(void **state)
     test_ctx->sdap_handle = mock_sdap_handle(test_ctx);
     assert_non_null(test_ctx->sdap_handle);
 
-    test_ctx->sdap_id_ctx = talloc_zero(test_ctx,
-                                        struct sdap_id_ctx);
+    test_ctx->be_ctx = mock_be_ctx(test_ctx, test_ctx->tctx);
+    assert_non_null(test_ctx->be_ctx);
+
+    test_ctx->sdap_id_ctx = mock_sdap_id_ctx(test_ctx,
+                                             test_ctx->be_ctx,
+                                             test_ctx->sdap_opts);
     assert_non_null(test_ctx->sdap_id_ctx);
-
-    test_ctx->sdap_id_ctx->be = mock_be_ctx(test_ctx, test_ctx->tctx);
-    assert_non_null(test_ctx->sdap_id_ctx->be);
-
-    test_ctx->sdap_id_ctx->opts = test_ctx->sdap_opts;
 
     ret = sdap_idmap_init(test_ctx, test_ctx->sdap_id_ctx, &test_ctx->idmap_ctx);
     assert_int_equal(ret, EOK);

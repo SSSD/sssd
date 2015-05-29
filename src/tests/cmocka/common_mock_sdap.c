@@ -33,6 +33,21 @@ errno_t krb5_try_kdcip(struct confdb_ctx *cdb,
     return EOK;
 }
 
+struct sdap_id_ctx *mock_sdap_id_ctx(TALLOC_CTX *mem_ctx,
+                                     struct be_ctx *be_ctx,
+                                     struct sdap_options *sdap_opts)
+{
+    struct sdap_id_ctx *sdap_id_ctx;
+
+    sdap_id_ctx = talloc_zero(mem_ctx, struct sdap_id_ctx);
+    assert_non_null(sdap_id_ctx);
+
+    sdap_id_ctx->be = be_ctx;
+    sdap_id_ctx->opts = sdap_opts;
+
+    return sdap_id_ctx;
+}
+
 struct sdap_options *mock_sdap_options_ldap(TALLOC_CTX *mem_ctx,
                                             struct sss_domain_info *domain,
                                             struct confdb_ctx *confdb_ctx,
