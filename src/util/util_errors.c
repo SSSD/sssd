@@ -48,7 +48,7 @@ struct err_string error_to_str[] = {
     { "Host Access Denied" }, /* ERR_ACCESS_DENIED */
     { "SRV record not found" }, /* ERR_SRV_NOT_FOUND */
     { "SRV lookup error" }, /* ERR_SRV_LOOKUP_ERROR */
-    { "SRV lookup did not return any new server "}, /* ERR_SRV_DUPLICATES */
+    { "SRV lookup did not return any new server" }, /* ERR_SRV_DUPLICATES */
     { "Dynamic DNS update failed" }, /* ERR_DYNDNS_FAILED */
     { "Dynamic DNS update timed out" }, /* ERR_DYNDNS_TIMEOUT */
     { "Dynamic DNS update not possible while offline" }, /* ERR_DYNDNS_OFFLINE */
@@ -62,7 +62,7 @@ struct err_string error_to_str[] = {
     { "Malformed extra attribute" }, /* ERR_INVALID_EXTRA_ATTR */
     { "Cannot get bus message sender" }, /* ERR_SBUS_GET_SENDER_ERROR */
     { "Bus message has no sender" }, /* ERR_SBUS_NO_SENDER */
-    { "Invalid SBUS path provided." }, /* ERR_SBUS_INVALID_PATH */
+    { "Invalid SBUS path provided" }, /* ERR_SBUS_INVALID_PATH */
     { "User/Group SIDs not found" }, /* ERR_NO_SIDS */
     { "Bus method not supported" }, /* ERR_SBUS_NOSUP */
     { "Cannot connect to system bus" }, /* ERR_NO_SYSBUS */
@@ -70,10 +70,10 @@ struct err_string error_to_str[] = {
     { "Error setting SELinux user context" }, /* ERR_SELINUX_CONTEXT */
     { "Username format not allowed by re_expression" }, /* ERR_REGEX_NOMATCH */
     { "Time specification not supported" }, /* ERR_TIMESPEC_NOT_SUPPORTED */
-    { "Invalid SSSD configuration detected." }, /* ERR_INVALID_CONFIG */
+    { "Invalid SSSD configuration detected" }, /* ERR_INVALID_CONFIG */
     { "Malformed cache entry" }, /* ERR_MALFORMED_ENTRY */
     { "Unexpected cache entry type" }, /* ERR_UNEXPECTED_ENTRY_TYPE */
-    { "Failed to resolve one of user groups." }, /* ERR_SIMPLE_GROUPS_MISSING */
+    { "Failed to resolve one of user groups" }, /* ERR_SIMPLE_GROUPS_MISSING */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

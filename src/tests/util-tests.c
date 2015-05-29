@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "util/util.h"
 #include "util/sss_utf8.h"
@@ -1076,6 +1077,28 @@ START_TEST(test_sss_strerror_err_last)
 }
 END_TEST
 
+START_TEST(test_sss_strerror_string_validation)
+{
+    enum sssd_errors idx;
+    const char *error;
+    size_t len;
+    char last_character;
+
+    for (idx = ERR_BASE; idx < ERR_LAST; ++idx) {
+        error = sss_strerror(idx);
+        fail_if(error == NULL, "sss_strerror returned NULL for valid index");
+
+        len = strlen(error);
+        fail_if(len == 0, "sss_strerror returned empty string");
+
+        last_character = error[len - 1];
+        fail_if(isalpha(last_character) == 0 && last_character != ')',
+                "Error string [%s] must finish with alphabetic character\n",
+                error);
+    }
+}
+END_TEST
+
 Suite *util_suite(void)
 {
     Suite *s = suite_create("util");
@@ -1131,6 +1154,7 @@ Suite *util_suite(void)
 
     TCase *tc_sss_strerror = tcase_create("sss_strerror");
     tcase_add_test(tc_sss_strerror, test_sss_strerror_err_last);
+    tcase_add_test(tc_sss_strerror, test_sss_strerror_string_validation);
 
     suite_add_tcase (s, tc_util);
     suite_add_tcase (s, tc_utf8);
