@@ -16,7 +16,7 @@ AC_DEFUN([AM_CHECK_WRAPPER],
                         AC_MSG_WARN([cwrap library $1 not found, some tests will not run])
                      ])
 
-    AM_CONDITIONAL($2, [ test x$2 = xyes])
+    AM_CONDITIONAL($2, [ test x$$2 = xyes])
 ])
 
 AC_DEFUN([AM_CHECK_UID_WRAPPER],
