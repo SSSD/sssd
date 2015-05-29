@@ -25,14 +25,6 @@
 #include "providers/ldap/sdap.h"
 #include "tests/cmocka/common_mock.h"
 
-errno_t krb5_try_kdcip(struct confdb_ctx *cdb,
-                       const char *conf_path,
-                       struct dp_option *opts,
-                       int opt_id)
-{
-    return EOK;
-}
-
 struct sdap_id_ctx *mock_sdap_id_ctx(TALLOC_CTX *mem_ctx,
                                      struct be_ctx *be_ctx,
                                      struct sdap_options *sdap_opts)

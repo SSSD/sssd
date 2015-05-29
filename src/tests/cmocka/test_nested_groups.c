@@ -67,6 +67,14 @@ struct nested_groups_test_ctx {
     unsigned long num_groups;
 };
 
+errno_t krb5_try_kdcip(struct confdb_ctx *cdb,
+                       const char *conf_path,
+                       struct dp_option *opts,
+                       int opt_id)
+{
+    return EOK;
+}
+
 /* Both arrays must have the same length! */
 static void compare_sysdb_string_array_noorder(struct sysdb_attrs **sysdb_array,
                                                const char **string_array,

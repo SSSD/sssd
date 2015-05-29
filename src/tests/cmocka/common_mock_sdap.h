@@ -26,13 +26,6 @@
 #include "util/util.h"
 #include "providers/ldap/sdap.h"
 
-/* We don't want to load KRB5 provider sources just for one
- * deprecated option. */
-errno_t krb5_try_kdcip(struct confdb_ctx *cdb,
-                       const char *conf_path,
-                       struct dp_option *opts,
-                       int opt_id);
-
 struct sdap_options *mock_sdap_options_ldap(TALLOC_CTX *mem_ctx,
                                             struct sss_domain_info *domain,
                                             struct confdb_ctx *confdb_ctx,
