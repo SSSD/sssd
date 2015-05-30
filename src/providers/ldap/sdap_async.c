@@ -1623,6 +1623,14 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
 
     ret = sdap_get_generic_ext_recv(subreq, req, &ref_count, &refs);
     talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sdap_get_generic_ext_recv failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
     if (ref_count > 0) {
         if (dp_opt_get_bool(opts->basic, SDAP_REFERRALS)) {
             /* We got back referrals here, but they should have
@@ -1643,12 +1651,6 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
                       "    Ref: %s\n", refs[i]);
             }
         }
-    } else if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sdap_get_generic_ext_recv failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
     }
 
     tevent_req_done(req);
