@@ -6561,28 +6561,28 @@ Suite *create_sysdb_suite(void)
 #ifdef BUILD_AUTOFS
     TCase *tc_autofs = tcase_create("SYSDB autofs Tests");
 
-    tcase_add_loop_test(tc_subdomain, test_autofs_create_map,
+    tcase_add_loop_test(tc_autofs, test_autofs_create_map,
                         TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
 
-    tcase_add_loop_test(tc_subdomain, test_autofs_retrieve_map,
+    tcase_add_loop_test(tc_autofs, test_autofs_retrieve_map,
                         TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
 
-    tcase_add_loop_test(tc_subdomain, test_autofs_store_entry_in_map,
+    tcase_add_loop_test(tc_autofs, test_autofs_store_entry_in_map,
                         TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
 
-    tcase_add_loop_test(tc_subdomain, test_autofs_retrieve_keys_by_map,
+    tcase_add_loop_test(tc_autofs, test_autofs_retrieve_keys_by_map,
                         TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
 
-    tcase_add_loop_test(tc_subdomain, test_autofs_delete_map,
+    tcase_add_loop_test(tc_autofs, test_autofs_delete_map,
                         TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
 
-    tcase_add_loop_test(tc_subdomain, test_autofs_retrieve_map_neg,
+    tcase_add_loop_test(tc_autofs, test_autofs_retrieve_map_neg,
                         TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
 
-    tcase_add_loop_test(tc_subdomain, test_autofs_key_duplicate,
+    tcase_add_loop_test(tc_autofs, test_autofs_key_duplicate,
                         TEST_AUTOFS_MAP_BASE, TEST_AUTOFS_MAP_BASE+10);
 
-    tcase_add_test(tc_subdomain, test_autofs_get_duplicate_keys);
+    tcase_add_test(tc_autofs, test_autofs_get_duplicate_keys);
 
     suite_add_tcase(s, tc_autofs);
 #endif
