@@ -329,6 +329,7 @@ static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
 {
     int ret;
     struct ldb_dn *dn = NULL;
+    const char *name;
     const struct ldb_val *val;
     char *forest = NULL;
 
@@ -340,6 +341,20 @@ static errno_t ipa_subdom_get_forest(TALLOC_CTX *mem_ctx,
     }
 
     if (ipa_subdom_is_member_dom(dn) == false) {
+        ret = sysdb_attrs_get_string(attrs, IPA_CN, &name);
+        if (ret) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
+            goto done;
+        }
+
+        forest = talloc_strdup(mem_ctx, name);
+        if (forest == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strndup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        DEBUG(SSSDBG_TRACE_INTERNAL, "The forest name is %s\n", forest);
         ret = EOK;
         goto done;
     }
