@@ -32,6 +32,7 @@
 #include "responder/nss/nsssrv_private.h"
 #include "sss_client/idmap/sss_nss_idmap.h"
 #include "util/util_sss_idmap.h"
+#include "db/sysdb_private.h"   /* new_subdomain() */
 
 #define TESTS_PATH "tests_nss"
 #define TEST_CONF_DB "test_nss_conf.ldb"

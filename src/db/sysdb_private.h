@@ -125,4 +125,21 @@ int add_string(struct ldb_message *msg, int flags,
                const char *attr, const char *value);
 int add_ulong(struct ldb_message *msg, int flags,
               const char *attr, unsigned long value);
+
+/* The utility function to create a subdomain sss_domain_info object is handy
+ * for unit tests, so it should be available in a header, but not a public util
+ * one, because the only interface for the deamon itself should be adding
+ * the sysdb domain object and calling sysdb_update_subdomains()
+ */
+struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *parent,
+                                      const char *name,
+                                      const char *realm,
+                                      const char *flat_name,
+                                      const char *id,
+                                      bool mpg,
+                                      bool enumerate,
+                                      const char *forest,
+                                      uint32_t trust_direction);
+
 #endif /* __INT_SYS_DB_H__ */

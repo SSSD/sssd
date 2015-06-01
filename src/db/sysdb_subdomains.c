@@ -23,6 +23,139 @@
 #include "util/util.h"
 #include "db/sysdb_private.h"
 
+struct sss_domain_info *new_subdomain(TALLOC_CTX *mem_ctx,
+                                      struct sss_domain_info *parent,
+                                      const char *name,
+                                      const char *realm,
+                                      const char *flat_name,
+                                      const char *id,
+                                      bool mpg,
+                                      bool enumerate,
+                                      const char *forest,
+                                      uint32_t trust_direction)
+{
+    struct sss_domain_info *dom;
+    bool inherit_option;
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Creating [%s] as subdomain of [%s]!\n", name, parent->name);
+
+    dom = talloc_zero(mem_ctx, struct sss_domain_info);
+    if (dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_zero failed.\n");
+        return NULL;
+    }
+
+    dom->parent = parent;
+
+    /* Sub-domains always have the same view as the parent */
+    dom->has_views = parent->has_views;
+    if (parent->view_name != NULL) {
+        dom->view_name = talloc_strdup(dom, parent->view_name);
+        if (dom->view_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy parent's view name.\n");
+            goto fail;
+        }
+    }
+
+    dom->name = talloc_strdup(dom, name);
+    if (dom->name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy domain name.\n");
+        goto fail;
+    }
+
+    dom->provider = talloc_strdup(dom, parent->provider);
+    if (dom->provider == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy provider name.\n");
+        goto fail;
+    }
+
+    dom->conn_name = talloc_strdup(dom, parent->conn_name);
+    if (dom->conn_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy connection name.\n");
+        goto fail;
+    }
+
+    if (realm != NULL) {
+        dom->realm = talloc_strdup(dom, realm);
+        if (dom->realm == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy realm name.\n");
+            goto fail;
+        }
+    }
+
+    if (flat_name != NULL) {
+        dom->flat_name = talloc_strdup(dom, flat_name);
+        if (dom->flat_name == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy flat name.\n");
+            goto fail;
+        }
+    }
+
+    if (id != NULL) {
+        dom->domain_id = talloc_strdup(dom, id);
+        if (dom->domain_id == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy id.\n");
+            goto fail;
+        }
+    }
+
+    if (forest != NULL) {
+        dom->forest = talloc_strdup(dom, forest);
+        if (dom->forest == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy forest.\n");
+            goto fail;
+        }
+    }
+
+    dom->enumerate = enumerate;
+    dom->fqnames = true;
+    dom->mpg = mpg;
+    /* If the parent domain filters out group members, the subdomain should
+     * as well if configured */
+    inherit_option = string_in_list(CONFDB_DOMAIN_IGNORE_GROUP_MEMBERS,
+                                    parent->sd_inherit, false);
+    if (inherit_option) {
+        dom->ignore_group_members = parent->ignore_group_members;
+    }
+
+    dom->trust_direction = trust_direction;
+    /* If the parent domain explicitly limits ID ranges, the subdomain
+     * should honour the limits as well.
+     */
+    dom->id_min = parent->id_min ? parent->id_min : 0;
+    dom->id_max = parent->id_max ? parent->id_max : 0xffffffff;
+    dom->pwd_expiration_warning = parent->pwd_expiration_warning;
+    dom->cache_credentials = parent->cache_credentials;
+    dom->cache_credentials_min_ff_length =
+                                        parent->cache_credentials_min_ff_length;
+    dom->case_sensitive = false;
+    dom->user_timeout = parent->user_timeout;
+    dom->group_timeout = parent->group_timeout;
+    dom->netgroup_timeout = parent->netgroup_timeout;
+    dom->service_timeout = parent->service_timeout;
+    dom->names = parent->names;
+
+    dom->override_homedir = parent->override_homedir;
+    dom->fallback_homedir = parent->fallback_homedir;
+    dom->subdomain_homedir = parent->subdomain_homedir;
+    dom->override_shell = parent->override_shell;
+    dom->default_shell = parent->default_shell;
+    dom->homedir_substr = parent->homedir_substr;
+
+    if (parent->sysdb == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing sysdb context in parent domain.\n");
+        goto fail;
+    }
+    dom->sysdb = parent->sysdb;
+
+    return dom;
+
+fail:
+    talloc_free(dom);
+    return NULL;
+}
+
 errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
 {
     int i;
