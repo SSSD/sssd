@@ -31,7 +31,4 @@ void ipa_dyndns_timer(void *pvt);
 errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
                         struct ipa_options *ctx);
 
-void ipa_dyndns_update(void *pvt);
-
-
 #endif /* IPA_DYNDNS_H_ */
