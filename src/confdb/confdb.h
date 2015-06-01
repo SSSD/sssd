@@ -259,7 +259,6 @@ struct sss_domain_info {
     char *realm;
     char *flat_name;
     char *domain_id;
-    char *forest;
     uint32_t trust_direction;
     struct timeval subdomains_last_checked;
 
@@ -271,6 +270,12 @@ struct sss_domain_info {
 
     bool disabled;
     char **sd_inherit;
+
+    /* Do not use the forest pointer directly in new code, but rather the
+     * forest_root pointer. sss_domain_info will be more opaque in the future
+     */
+    char *forest;
+    struct sss_domain_info *forest_root;
 };
 
 /**

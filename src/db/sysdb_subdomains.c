@@ -156,6 +156,70 @@ fail:
     return NULL;
 }
 
+static bool is_forest_root(struct sss_domain_info *d)
+{
+    if (d->forest == NULL) {
+        /* IPA subdomain provider saves/saved trusted forest root domains
+         * without the forest attribute. Those are automatically forest
+         * roots
+         */
+        return true;
+    }
+
+    if (d->realm && (strcasecmp(d->forest, d->realm) == 0)) {
+        return true;
+    }
+
+    return false;
+}
+
+static bool is_same_forest(struct sss_domain_info *root,
+                           struct sss_domain_info *member)
+{
+    if (member->forest != NULL
+            && root->realm != NULL
+            && strcasecmp(member->forest, root->realm) == 0) {
+        return true;
+    }
+
+    return false;
+}
+
+static void link_forest_roots(struct sss_domain_info *domain)
+{
+    struct sss_domain_info *d;
+    struct sss_domain_info *dd;
+
+    for (d = domain; d; d = get_next_domain(d, true)) {
+        d->forest_root = NULL;
+    }
+
+    for (d = domain; d; d = get_next_domain(d, true)) {
+        if (d->forest_root != NULL) {
+            continue;
+        }
+
+        if (is_forest_root(d) == true) {
+            d->forest_root = d;
+            DEBUG(SSSDBG_TRACE_INTERNAL, "[%s] is a forest root\n", d->name);
+
+            for (dd = domain; dd; dd = get_next_domain(dd, true)) {
+                if (dd->forest_root != NULL) {
+                    continue;
+                }
+
+                if (is_same_forest(d, dd) == true) {
+                    dd->forest_root = d;
+                    DEBUG(SSSDBG_TRACE_INTERNAL,
+                          "[%s] is a forest root of [%s]\n",
+                          d->forest_root->name,
+                          dd->name);
+                }
+            }
+        }
+    }
+}
+
 errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
 {
     int i;
@@ -365,6 +429,8 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
             DLIST_ADD_END(domain->subdomains, dom, struct sss_domain_info *);
         }
     }
+
+    link_forest_roots(domain);
 
     ret = EOK;
 

@@ -32,10 +32,26 @@
 #include "tests/common.h"
 #include "db/sysdb_private.h" /* for sysdb->ldb member */
 
-#define TESTS_PATH "test_sysdb_subdomains"
+#define TESTS_PATH "test_sysdb_subdomains_dir"
 #define TEST_CONF_DB "test_sysdb_subdomains.ldb"
-#define TEST_DOM_NAME "test_sysdb_subdomains"
-#define TEST_ID_PROVIDER "local"
+
+#define TEST_DOM1_NAME "test_sysdb_subdomains_1"
+
+#define TEST_FLAT_NAME "TEST_1"
+#define TEST_SID    "S-1"
+#define TEST_REALM "TEST_SYSDB_SUBDOMAINS"
+#define TEST_FOREST TEST_REALM
+#define TEST_ID_PROVIDER "ldap"
+
+#define TEST_DOM2_NAME "child2.test_sysdb_subdomains_2"
+#define TEST_FLAT_NAME2 "CHILD2"
+#define TEST_SID2    "S-2"
+#define TEST_REALM2 "TEST_SYSDB_SUBDOMAINS2"
+#define TEST_FOREST2 TEST_REALM2
+
+const char *domains[] = { TEST_DOM1_NAME,
+                          TEST_DOM2_NAME,
+                          NULL };
 
 struct subdom_test_ctx {
     struct sss_test_ctx *tctx;
@@ -54,9 +70,11 @@ static int test_sysdb_subdom_setup(void **state)
                            struct subdom_test_ctx);
     assert_non_null(test_ctx);
 
-    test_ctx->tctx = create_dom_test_ctx(test_ctx, TESTS_PATH,
-                                         TEST_CONF_DB, TEST_DOM_NAME,
-                                         TEST_ID_PROVIDER, params);
+    test_dom_suite_setup(TESTS_PATH);
+
+    test_ctx->tctx = create_multidom_test_ctx(test_ctx, TESTS_PATH,
+                                              TEST_CONF_DB, domains,
+                                              TEST_ID_PROVIDER, params);
     assert_non_null(test_ctx->tctx);
 
     *state = test_ctx;
@@ -68,6 +86,7 @@ static int test_sysdb_subdom_teardown(void **state)
     struct subdom_test_ctx *test_ctx =
         talloc_get_type(*state, struct subdom_test_ctx);
 
+    test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
     return 0;
@@ -141,7 +160,6 @@ static void test_sysdb_master_domain_ops(void **state)
     struct subdom_test_ctx *test_ctx =
         talloc_get_type(*state, struct subdom_test_ctx);
 
-
     ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
                                        "realm1", "flat1", "id1", "forest1");
     assert_int_equal(ret, EOK);
@@ -167,6 +185,326 @@ static void test_sysdb_master_domain_ops(void **state)
     assert_string_equal(test_ctx->tctx->dom->forest, "forest2");
 }
 
+/* Parent domain totally separate from subdomains that imitate
+ * IPA domain and two forests
+ */
+static void test_sysdb_link_forest_root_ipa(void **state)
+{
+    errno_t ret;
+    struct subdom_test_ctx *test_ctx =
+        talloc_get_type(*state, struct subdom_test_ctx);
+    struct sss_domain_info *main_dom;
+    struct sss_domain_info *sub;
+    struct sss_domain_info *child;
+
+    /* name, realm, flat, SID, forest */
+    const char *const dom1[5] = { "dom1.sub", "DOM1.SUB",
+                                  "DOM1", "S-1", "DOM1.SUB" };
+    const char *const child_dom1[5] = { "child1.dom1.sub", "CHILD1.DOM1.SUB",
+                                        "CHILD1.DOM1", "S-1-2", "DOM1.SUB" };
+    const char *const dom2[5] = { "dom2.sub", "DOM2.SUB",
+                                  "DOM2", "S-2", "DOM2.SUB" };
+    const char *const child_dom2[5] = { "child2.dom2.sub", "CHILD2.DOM1.SUB",
+                                        "CHILD2.DOM1", "S-2-2", "DOM2.SUB" };
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                dom1[0], dom1[1], dom1[2], dom1[3],
+                                false, false, dom1[4], 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                child_dom1[0], child_dom1[1],
+                                child_dom1[2], child_dom1[3],
+                                false, false, child_dom1[4],
+                                0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                dom2[0], dom2[1], dom2[2], dom2[3],
+                                false, false, dom2[4],
+                                0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                child_dom2[0], child_dom2[1],
+                                child_dom2[2], child_dom2[3],
+                                false, false, child_dom2[4],
+                                0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    assert_int_equal(ret, EOK);
+
+    /* Also update dom2 */
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom->next);
+    assert_int_equal(ret, EOK);
+
+    sub = find_domain_by_name(test_ctx->tctx->dom, dom1[0], true);
+    assert_non_null(sub->forest_root);
+    assert_true(sub->forest_root = sub);
+
+    child = find_domain_by_name(test_ctx->tctx->dom, child_dom1[0], true);
+    assert_non_null(child->forest_root);
+    assert_true(child->forest_root = sub);
+
+    sub = find_domain_by_name(test_ctx->tctx->dom, dom2[0], true);
+    assert_non_null(sub->forest_root);
+    assert_true(sub->forest_root = sub);
+
+    child = find_domain_by_name(test_ctx->tctx->dom, child_dom2[0], true);
+    assert_non_null(child->forest_root);
+    assert_true(child->forest_root = sub);
+
+    main_dom = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM1_NAME, true);
+    assert_non_null(main_dom);
+    assert_non_null(main_dom->forest_root);
+    assert_true(main_dom->forest_root == main_dom);
+
+    main_dom = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM2_NAME, true);
+    assert_non_null(main_dom);
+    assert_non_null(main_dom->forest_root);
+    assert_true(main_dom->forest_root == main_dom);
+}
+
+/* Parent domain is an AD forest root and there are two subdomains
+ * child and parallel
+ */
+static void test_sysdb_link_forest_root_ad(void **state)
+{
+    errno_t ret;
+    struct subdom_test_ctx *test_ctx =
+        talloc_get_type(*state, struct subdom_test_ctx);
+    struct sss_domain_info *main_dom;
+    struct sss_domain_info *sub;
+    struct sss_domain_info *child;
+
+    const char *const child_dom[5] = { "child.test_sysdb_subdomains",/* name  */
+                                       "CHILD.TEST_SYSDB_SUBDOMAINS",/* realm */
+                                       "CHILD",                      /* flat  */
+                                       "S-1-2",                      /* sid   */
+                                       TEST_FOREST };               /* forest */
+
+    const char *const sub_dom[5] = { "another.subdomain",         /* name   */
+                                     "ANOTHER.SUBDOMAIN",         /* realm  */
+                                     "ANOTHER",                   /* flat   */
+                                     "S-1-3",                     /* sid    */
+                                     TEST_FOREST };               /* forest */
+
+    ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
+                                       TEST_REALM,
+                                       TEST_FLAT_NAME,
+                                       TEST_SID,
+                                       TEST_FOREST);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                child_dom[0], child_dom[1],
+                                child_dom[2], child_dom[3],
+                                false, false, child_dom[4],
+                                0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                sub_dom[0], sub_dom[1],
+                                sub_dom[2], sub_dom[3],
+                                false, false, sub_dom[4],
+                                0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    assert_int_equal(ret, EOK);
+
+    /* Also update dom2 */
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom->next);
+    assert_int_equal(ret, EOK);
+
+    assert_non_null(test_ctx->tctx->dom->forest_root);
+    assert_true(test_ctx->tctx->dom->forest_root == test_ctx->tctx->dom);
+    assert_string_equal(test_ctx->tctx->dom->name, TEST_DOM1_NAME);
+
+    child = find_domain_by_name(test_ctx->tctx->dom, child_dom[0], true);
+    assert_non_null(child->forest_root);
+    assert_true(child->forest_root = test_ctx->tctx->dom);
+
+    sub = find_domain_by_name(test_ctx->tctx->dom, sub_dom[0], true);
+    assert_non_null(sub->forest_root);
+    assert_true(sub->forest_root = test_ctx->tctx->dom);
+
+    /* Another separate domain is a forest of its own */
+    main_dom = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM2_NAME, true);
+    assert_non_null(main_dom);
+    assert_non_null(main_dom->forest_root);
+    assert_true(main_dom->forest_root == main_dom);
+}
+
+/* Parent domain is an AD member domain connected to a root domain
+ */
+static void test_sysdb_link_forest_member_ad(void **state)
+{
+    errno_t ret;
+    struct subdom_test_ctx *test_ctx =
+        talloc_get_type(*state, struct subdom_test_ctx);
+    struct sss_domain_info *main_dom;
+    struct sss_domain_info *sub;
+    struct sss_domain_info *root;
+
+    const char *const forest_root[5] = { test_ctx->tctx->dom->name, /* name  */
+                                         TEST_FOREST,               /* realm */
+                                         TEST_FLAT_NAME,            /* flat  */
+                                         TEST_SID,                  /* sid   */
+                                         TEST_FOREST };               /* forest */
+
+    const char *const child_dom[5] = { "child.test_sysdb_subdomains",/* name  */
+                                       "CHILD.TEST_SYSDB_SUBDOMAINS",/* realm */
+                                       "CHILD",                      /* flat  */
+                                       "S-1-2",                      /* sid   */
+                                       TEST_FOREST };               /* forest */
+
+    const char *const sub_dom[5] = { "another.subdomain",         /* name   */
+                                     "ANOTHER.SUBDOMAIN",         /* realm  */
+                                     "ANOTHER",                   /* flat   */
+                                     "S-1-3",                     /* sid    */
+                                     TEST_FOREST };               /* forest */
+
+    ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
+                                       child_dom[1],
+                                       child_dom[2],
+                                       child_dom[3],
+                                       TEST_FOREST);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                sub_dom[0], sub_dom[1],
+                                sub_dom[2], sub_dom[3],
+                                false, false, sub_dom[4],
+                                0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
+                                forest_root[0], forest_root[1],
+                                forest_root[2], forest_root[3],
+                                false, false, forest_root[4],
+                                0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_master_domain_update(test_ctx->tctx->dom);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom);
+    assert_int_equal(ret, EOK);
+
+    /* Also update dom2 */
+    ret = sysdb_master_domain_update(test_ctx->tctx->dom->next);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(test_ctx->tctx->dom->next);
+    assert_int_equal(ret, EOK);
+
+    /* Checks */
+    root = find_domain_by_name(test_ctx->tctx->dom, forest_root[0], true);
+    assert_non_null(root->forest_root);
+    assert_true(root->forest_root = root);
+
+    assert_non_null(test_ctx->tctx->dom->forest_root);
+    assert_true(test_ctx->tctx->dom->forest_root == root);
+
+    sub = find_domain_by_name(test_ctx->tctx->dom, sub_dom[0], true);
+    assert_non_null(sub->forest_root);
+    assert_true(sub->forest_root = root);
+
+    /* Another separate domain is a forest of its own */
+    main_dom = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM2_NAME, true);
+    assert_non_null(main_dom);
+    assert_non_null(main_dom->forest_root);
+    assert_true(main_dom->forest_root == main_dom);
+}
+
+
+/* Each parent domain has a subdomain. One parent domain is a root domain,
+ * the other is not.
+ */
+static void test_sysdb_link_ad_multidom(void **state)
+{
+    errno_t ret;
+    struct subdom_test_ctx *test_ctx =
+        talloc_get_type(*state, struct subdom_test_ctx);
+    struct sss_domain_info *main_dom1;
+    struct sss_domain_info *main_dom2;
+    struct sss_domain_info *root;
+
+    const char *const child_dom[5] = { "child.test_sysdb_subdomains",/* name  */
+                                       "CHILD.TEST_SYSDB_SUBDOMAINS",/* realm */
+                                       "CHILD",                      /* flat  */
+                                       "S-1-2",                      /* sid   */
+                                       TEST_FOREST };               /* forest */
+
+    const char *const dom2_forest_root[5] = \
+                                  { "test_sysdb_subdomains_2", /* name  */
+                                     TEST_FOREST2,             /* realm */
+                                     "TEST2",                  /* flat  */
+                                     TEST_SID2,                /* sid   */
+                                     TEST_FOREST2 };           /* forest */
+
+
+    main_dom1 = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM1_NAME, true);
+    main_dom2 = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM2_NAME, true);
+
+    ret = sysdb_master_domain_add_info(main_dom1,
+                                       TEST_REALM,
+                                       TEST_FLAT_NAME,
+                                       TEST_SID,
+                                       TEST_FOREST);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(main_dom1->sysdb,
+                                child_dom[0], child_dom[1],
+                                child_dom[2], child_dom[3],
+                                false, false, child_dom[4],
+                                0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_master_domain_update(main_dom1);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(main_dom1);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_master_domain_add_info(main_dom2,
+                                       TEST_REALM2,
+                                       TEST_FLAT_NAME2,
+                                       TEST_SID2,
+                                       TEST_FOREST2);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_subdomain_store(main_dom2->sysdb,
+                                dom2_forest_root[0], dom2_forest_root[1],
+                                dom2_forest_root[2], dom2_forest_root[3],
+                                false, false, dom2_forest_root[4], 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_master_domain_update(main_dom2);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(main_dom2);
+    assert_int_equal(ret, EOK);
+
+    main_dom1 = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM1_NAME, true);
+    assert_non_null(main_dom1);
+    assert_non_null(main_dom1->forest_root);
+    assert_true(main_dom1->forest_root == main_dom1);
+
+    main_dom2 = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM2_NAME, true);
+    assert_non_null(main_dom1);
+    assert_non_null(main_dom1->forest_root);
+    assert_true(main_dom1->forest_root == main_dom1);
+
+    root = find_domain_by_name(test_ctx->tctx->dom, dom2_forest_root[0], true);
+    assert_non_null(root);
+    assert_non_null(root->forest_root);
+    assert_true(root->forest_root = main_dom2);
+
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -186,6 +524,18 @@ int main(int argc, const char *argv[])
                                         test_sysdb_subdom_setup,
                                         test_sysdb_subdom_teardown),
         cmocka_unit_test_setup_teardown(test_sysdb_subdomain_create,
+                                        test_sysdb_subdom_setup,
+                                        test_sysdb_subdom_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_link_forest_root_ipa,
+                                        test_sysdb_subdom_setup,
+                                        test_sysdb_subdom_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_link_forest_root_ad,
+                                        test_sysdb_subdom_setup,
+                                        test_sysdb_subdom_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_link_forest_member_ad,
+                                        test_sysdb_subdom_setup,
+                                        test_sysdb_subdom_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_link_ad_multidom,
                                         test_sysdb_subdom_setup,
                                         test_sysdb_subdom_teardown),
     };
