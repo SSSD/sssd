@@ -5223,78 +5223,6 @@ START_TEST(test_sysdb_delete_by_sid)
 }
 END_TEST
 
-START_TEST(test_sysdb_subdomain_create)
-{
-    struct sysdb_test_ctx *test_ctx;
-    errno_t ret;
-    const char *const dom1[4] = { "dom1.sub", "DOM1.SUB", "dom1", "S-1" };
-    const char *const dom2[4] = { "dom2.sub", "DOM2.SUB", "dom2", "S-2" };
-
-    ret = setup_sysdb_tests(&test_ctx);
-    fail_if(ret != EOK, "Could not set up the test");
-
-    ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                dom1[0], dom1[1], dom1[2], dom1[3],
-                                false, false, NULL, 0);
-    fail_if(ret != EOK, "Could not set up the test (dom1)");
-
-    ret = sysdb_update_subdomains(test_ctx->domain);
-    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
-                            ret, strerror(ret));
-
-    fail_if(test_ctx->domain->subdomains == NULL, "Empty sub-domain list.");
-    fail_if(strcmp(test_ctx->domain->subdomains->name, dom1[0]) != 0,
-            "Unexpected sub-domain found, expected [%s], got [%s]",
-            dom1[0], test_ctx->domain->subdomains->name);
-    fail_unless(test_ctx->domain->subdomains->trust_direction == 0);
-
-    ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                dom2[0], dom2[1], dom2[2], dom2[3],
-                                false, false, NULL, 1);
-    fail_if(ret != EOK, "Could not set up the test (dom2)");
-
-    ret = sysdb_update_subdomains(test_ctx->domain);
-    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
-                            ret, strerror(ret));
-
-    fail_if(test_ctx->domain->subdomains->next == NULL, "Missing sub-domain");
-    fail_if(strcmp(test_ctx->domain->subdomains->next->name, dom2[0]) != 0,
-            "Unexpected sub-domain found, expected [%s], got [%s]",
-            dom2[0], test_ctx->domain->subdomains->next->name);
-    fail_unless(test_ctx->domain->subdomains->next->trust_direction == 1);
-
-    /* Reverse the trust directions */
-    ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                dom1[0], dom1[1], dom1[2], dom1[3],
-                                false, false, NULL, 1);
-    fail_if(ret != EOK, "Could not set up the test (dom1)");
-
-    ret = sysdb_subdomain_store(test_ctx->sysdb,
-                                dom2[0], dom2[1], dom2[2], dom2[3],
-                                false, false, NULL, 0);
-    fail_if(ret != EOK, "Could not set up the test (dom2)");
-
-    ret = sysdb_update_subdomains(test_ctx->domain);
-    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
-                            ret, strerror(ret));
-
-    fail_unless(test_ctx->domain->subdomains->trust_direction == 1);
-    fail_unless(test_ctx->domain->subdomains->next->trust_direction == 0);
-
-    ret = sysdb_subdomain_delete(test_ctx->sysdb, dom2[0]);
-    fail_if(ret != EOK, "Could not delete subdomain");
-
-    ret = sysdb_subdomain_delete(test_ctx->sysdb, dom1[0]);
-    fail_if(ret != EOK, "Could not delete subdomain");
-
-    ret = sysdb_update_subdomains(test_ctx->domain);
-    fail_unless(ret == EOK, "sysdb_update_subdomains failed with [%d][%s]",
-                            ret, strerror(ret));
-
-    fail_unless(test_ctx->domain->subdomains->disabled, "Subdomain not disabled.");
-}
-END_TEST
-
 const char *const testdom[4] = { "test.sub", "TEST.SUB", "test", "S-3" };
 
 START_TEST(test_sysdb_subdomain_store_user)
@@ -6571,7 +6499,6 @@ Suite *create_sysdb_suite(void)
 
     TCase *tc_subdomain = tcase_create("SYSDB sub-domain Tests");
 
-    tcase_add_test(tc_subdomain, test_sysdb_subdomain_create);
     tcase_add_test(tc_subdomain, test_sysdb_subdomain_store_user);
     tcase_add_test(tc_subdomain, test_sysdb_subdomain_user_ops);
     tcase_add_test(tc_subdomain, test_sysdb_subdomain_group_ops);
