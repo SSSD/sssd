@@ -531,6 +531,122 @@ const struct sbus_interface_meta iface_ifp_domains_meta = {
     sbus_invoke_get_all, /* GetAll invoker */
 };
 
+/* arguments for org.freedesktop.sssd.infopipe.Cache.List */
+const struct sbus_arg_meta iface_ifp_cache_List__out[] = {
+    { "result", "ao" },
+    { NULL, }
+};
+
+int iface_ifp_cache_List_finish(struct sbus_request *req, const char *arg_result[], int len_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_result, len_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Cache.ListByDomain */
+const struct sbus_arg_meta iface_ifp_cache_ListByDomain__in[] = {
+    { "domain_name", "s" },
+    { NULL, }
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Cache.ListByDomain */
+const struct sbus_arg_meta iface_ifp_cache_ListByDomain__out[] = {
+    { "result", "ao" },
+    { NULL, }
+};
+
+int iface_ifp_cache_ListByDomain_finish(struct sbus_request *req, const char *arg_result[], int len_result)
+{
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_ARRAY, DBUS_TYPE_OBJECT_PATH, &arg_result, len_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.infopipe.Cache */
+const struct sbus_method_meta iface_ifp_cache__methods[] = {
+    {
+        "List", /* name */
+        NULL, /* no in_args */
+        iface_ifp_cache_List__out,
+        offsetof(struct iface_ifp_cache, List),
+        NULL, /* no invoker */
+    },
+    {
+        "ListByDomain", /* name */
+        iface_ifp_cache_ListByDomain__in,
+        iface_ifp_cache_ListByDomain__out,
+        offsetof(struct iface_ifp_cache, ListByDomain),
+        invoke_s_method,
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.infopipe.Cache */
+const struct sbus_interface_meta iface_ifp_cache_meta = {
+    "org.freedesktop.sssd.infopipe.Cache", /* name */
+    iface_ifp_cache__methods,
+    NULL, /* no signals */
+    NULL, /* no properties */
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
+/* arguments for org.freedesktop.sssd.infopipe.Cache.Object.Store */
+const struct sbus_arg_meta iface_ifp_cache_object_Store__out[] = {
+    { "result", "b" },
+    { NULL, }
+};
+
+int iface_ifp_cache_object_Store_finish(struct sbus_request *req, bool arg_result)
+{
+    dbus_bool_t cast_result = arg_result;
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_BOOLEAN, &cast_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* arguments for org.freedesktop.sssd.infopipe.Cache.Object.Remove */
+const struct sbus_arg_meta iface_ifp_cache_object_Remove__out[] = {
+    { "result", "b" },
+    { NULL, }
+};
+
+int iface_ifp_cache_object_Remove_finish(struct sbus_request *req, bool arg_result)
+{
+    dbus_bool_t cast_result = arg_result;
+   return sbus_request_return_and_finish(req,
+                                         DBUS_TYPE_BOOLEAN, &cast_result,
+                                         DBUS_TYPE_INVALID);
+}
+
+/* methods for org.freedesktop.sssd.infopipe.Cache.Object */
+const struct sbus_method_meta iface_ifp_cache_object__methods[] = {
+    {
+        "Store", /* name */
+        NULL, /* no in_args */
+        iface_ifp_cache_object_Store__out,
+        offsetof(struct iface_ifp_cache_object, Store),
+        NULL, /* no invoker */
+    },
+    {
+        "Remove", /* name */
+        NULL, /* no in_args */
+        iface_ifp_cache_object_Remove__out,
+        offsetof(struct iface_ifp_cache_object, Remove),
+        NULL, /* no invoker */
+    },
+    { NULL, }
+};
+
+/* interface info for org.freedesktop.sssd.infopipe.Cache.Object */
+const struct sbus_interface_meta iface_ifp_cache_object_meta = {
+    "org.freedesktop.sssd.infopipe.Cache.Object", /* name */
+    iface_ifp_cache_object__methods,
+    NULL, /* no signals */
+    NULL, /* no properties */
+    sbus_invoke_get_all, /* GetAll invoker */
+};
+
 /* arguments for org.freedesktop.sssd.infopipe.Users.FindByName */
 const struct sbus_arg_meta iface_ifp_users_FindByName__in[] = {
     { "name", "s" },

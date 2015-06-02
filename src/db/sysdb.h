@@ -91,6 +91,7 @@
 #define SYSDB_LAST_UPDATE "lastUpdate"
 #define SYSDB_CACHE_EXPIRE "dataExpireTimestamp"
 #define SYSDB_INITGR_EXPIRE "initgrExpireTimestamp"
+#define SYSDB_IFP_CACHED "ifpCached"
 
 #define SYSDB_AUTHORIZED_SERVICE "authorizedService"
 #define SYSDB_AUTHORIZED_HOST "authorizedHost"

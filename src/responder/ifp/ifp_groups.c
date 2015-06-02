@@ -29,6 +29,7 @@
 #include "responder/common/responder_cache_req.h"
 #include "responder/ifp/ifp_groups.h"
 #include "responder/ifp/ifp_users.h"
+#include "responder/ifp/ifp_cache.h"
 
 char * ifp_groups_build_path_from_msg(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *domain,
@@ -719,4 +720,55 @@ void ifp_groups_group_get_groups(struct sbus_request *sbus_req,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to acquire groups members\n");
     }
+}
+
+int ifp_cache_list_group(struct sbus_request *sbus_req,
+                         void *data)
+{
+    return ifp_cache_list(sbus_req, data, IFP_CACHE_GROUP);
+}
+
+int ifp_cache_list_by_domain_group(struct sbus_request *sbus_req,
+                                   void *data,
+                                   const char *domain)
+{
+    return ifp_cache_list_by_domain(sbus_req, data, domain, IFP_CACHE_GROUP);
+}
+
+int ifp_cache_object_store_group(struct sbus_request *sbus_req,
+                                 void *data)
+{
+    DBusError *error;
+    struct sss_domain_info *domain;
+    struct ldb_message *group;
+    errno_t ret;
+
+    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &group);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "group [%d]: %s\n", ret, sss_strerror(ret));
+        return sbus_request_fail_and_finish(sbus_req, error);
+    }
+
+    /* The request is finished inside. */
+    return ifp_cache_object_store(sbus_req, domain, group->dn);
+}
+
+int ifp_cache_object_remove_group(struct sbus_request *sbus_req,
+                                  void *data)
+{
+    DBusError *error;
+    struct sss_domain_info *domain;
+    struct ldb_message *group;
+    errno_t ret;
+
+    ret = ifp_groups_group_get(sbus_req, data, NULL, &domain, &group);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "group [%d]: %s\n", ret, sss_strerror(ret));
+        return sbus_request_fail_and_finish(sbus_req, error);
+    }
+
+    /* The request is finished inside. */
+    return ifp_cache_object_remove(sbus_req, domain, group->dn);
 }

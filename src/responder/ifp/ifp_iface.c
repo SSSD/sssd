@@ -116,6 +116,30 @@ struct iface_ifp_groups_group iface_ifp_groups_group = {
     .get_groups = ifp_groups_group_get_groups
 };
 
+struct iface_ifp_cache iface_ifp_cache_user = {
+    { &iface_ifp_cache_meta, 0 },
+    .List = ifp_cache_list_user,
+    .ListByDomain = ifp_cache_list_by_domain_user
+};
+
+struct iface_ifp_cache_object iface_ifp_cache_object_user = {
+    { &iface_ifp_cache_object_meta, 0 },
+    .Store = ifp_cache_object_store_user,
+    .Remove = ifp_cache_object_remove_user
+};
+
+struct iface_ifp_cache iface_ifp_cache_group = {
+    { &iface_ifp_cache_meta, 0 },
+    .List = ifp_cache_list_group,
+    .ListByDomain = ifp_cache_list_by_domain_group
+};
+
+struct iface_ifp_cache_object iface_ifp_cache_object_group = {
+    { &iface_ifp_cache_object_meta, 0 },
+    .Store = ifp_cache_object_store_group,
+    .Remove = ifp_cache_object_remove_group
+};
+
 struct iface_map {
     const char *path;
     struct sbus_vtable *vtable;
@@ -126,9 +150,13 @@ static struct iface_map iface_map[] = {
     { IFP_PATH_DOMAINS_TREE, &iface_ifp_domains.vtable },
     { IFP_PATH_COMPONENTS_TREE, &iface_ifp_components.vtable },
     { IFP_PATH_USERS, &iface_ifp_users.vtable },
+    { IFP_PATH_USERS, &iface_ifp_cache_user.vtable },
     { IFP_PATH_USERS_TREE, &iface_ifp_users_user.vtable },
+    { IFP_PATH_USERS_TREE, &iface_ifp_cache_object_user.vtable },
     { IFP_PATH_GROUPS, &iface_ifp_groups.vtable },
+    { IFP_PATH_GROUPS, &iface_ifp_cache_group.vtable },
     { IFP_PATH_GROUPS_TREE, &iface_ifp_groups_group.vtable },
+    { IFP_PATH_GROUPS_TREE, &iface_ifp_cache_object_group.vtable },
     { NULL, NULL },
 };
 

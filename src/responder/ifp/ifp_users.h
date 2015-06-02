@@ -92,4 +92,21 @@ void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
                                          void *data,
                                          hash_table_t **_out);
 
+/* org.freedesktop.sssd.infopipe.Cache */
+
+int ifp_cache_list_user(struct sbus_request *sbus_req,
+                        void *data);
+
+int ifp_cache_list_by_domain_user(struct sbus_request *sbus_req,
+                                  void *data,
+                                  const char *domain);
+
+/* org.freedesktop.sssd.infopipe.Cache.Object */
+
+int ifp_cache_object_store_user(struct sbus_request *sbus_req,
+                                void *data);
+
+int ifp_cache_object_remove_user(struct sbus_request *sbus_req,
+                                 void *data);
+
 #endif /* IFP_USERS_H_ */

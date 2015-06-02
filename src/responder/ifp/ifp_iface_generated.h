@@ -54,6 +54,16 @@
 #define IFACE_IFP_DOMAINS_SUBDOMAIN "subdomain"
 #define IFACE_IFP_DOMAINS_PARENT_DOMAIN "parent_domain"
 
+/* constants for org.freedesktop.sssd.infopipe.Cache */
+#define IFACE_IFP_CACHE "org.freedesktop.sssd.infopipe.Cache"
+#define IFACE_IFP_CACHE_LIST "List"
+#define IFACE_IFP_CACHE_LISTBYDOMAIN "ListByDomain"
+
+/* constants for org.freedesktop.sssd.infopipe.Cache.Object */
+#define IFACE_IFP_CACHE_OBJECT "org.freedesktop.sssd.infopipe.Cache.Object"
+#define IFACE_IFP_CACHE_OBJECT_STORE "Store"
+#define IFACE_IFP_CACHE_OBJECT_REMOVE "Remove"
+
 /* constants for org.freedesktop.sssd.infopipe.Users */
 #define IFACE_IFP_USERS "org.freedesktop.sssd.infopipe.Users"
 #define IFACE_IFP_USERS_FINDBYNAME "FindByName"
@@ -194,6 +204,32 @@ struct iface_ifp_domains {
     void (*get_parent_domain)(struct sbus_request *, void *data, const char **);
 };
 
+/* vtable for org.freedesktop.sssd.infopipe.Cache */
+struct iface_ifp_cache {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*List)(struct sbus_request *req, void *data);
+    int (*ListByDomain)(struct sbus_request *req, void *data, const char *arg_domain_name);
+};
+
+/* finish function for List */
+int iface_ifp_cache_List_finish(struct sbus_request *req, const char *arg_result[], int len_result);
+
+/* finish function for ListByDomain */
+int iface_ifp_cache_ListByDomain_finish(struct sbus_request *req, const char *arg_result[], int len_result);
+
+/* vtable for org.freedesktop.sssd.infopipe.Cache.Object */
+struct iface_ifp_cache_object {
+    struct sbus_vtable vtable; /* derive from sbus_vtable */
+    int (*Store)(struct sbus_request *req, void *data);
+    int (*Remove)(struct sbus_request *req, void *data);
+};
+
+/* finish function for Store */
+int iface_ifp_cache_object_Store_finish(struct sbus_request *req, bool arg_result);
+
+/* finish function for Remove */
+int iface_ifp_cache_object_Remove_finish(struct sbus_request *req, bool arg_result);
+
 /* vtable for org.freedesktop.sssd.infopipe.Users */
 struct iface_ifp_users {
     struct sbus_vtable vtable; /* derive from sbus_vtable */
@@ -284,6 +320,12 @@ extern const struct sbus_interface_meta iface_ifp_components_meta;
 
 /* interface info for org.freedesktop.sssd.infopipe.Domains */
 extern const struct sbus_interface_meta iface_ifp_domains_meta;
+
+/* interface info for org.freedesktop.sssd.infopipe.Cache */
+extern const struct sbus_interface_meta iface_ifp_cache_meta;
+
+/* interface info for org.freedesktop.sssd.infopipe.Cache.Object */
+extern const struct sbus_interface_meta iface_ifp_cache_object_meta;
 
 /* interface info for org.freedesktop.sssd.infopipe.Users */
 extern const struct sbus_interface_meta iface_ifp_users_meta;

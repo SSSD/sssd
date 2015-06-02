@@ -102,6 +102,29 @@
         <property name="parent_domain" type="o" access="read"/>
     </interface>
 
+    <interface name="org.freedesktop.sssd.infopipe.Cache">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_cache"/>
+
+        <method name="List">
+            <arg name="result" type="ao" direction="out" />
+        </method>
+        <method name="ListByDomain">
+            <arg name="domain_name" type="s" direction="in" />
+            <arg name="result" type="ao" direction="out"/>
+        </method>
+    </interface>
+
+    <interface name="org.freedesktop.sssd.infopipe.Cache.Object">
+        <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_cache_object"/>
+
+        <method name="Store">
+            <arg name="result" type="b" direction="out" />
+        </method>
+        <method name="Remove">
+            <arg name="result" type="b" direction="out" />
+        </method>
+    </interface>
+
     <interface name="org.freedesktop.sssd.infopipe.Users">
         <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="iface_ifp_users"/>
 

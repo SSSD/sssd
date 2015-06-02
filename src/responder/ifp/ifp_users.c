@@ -30,6 +30,7 @@
 #include "responder/common/responder_cache_req.h"
 #include "responder/ifp/ifp_users.h"
 #include "responder/ifp/ifp_groups.h"
+#include "responder/ifp/ifp_cache.h"
 
 char * ifp_users_build_path_from_msg(TALLOC_CTX *mem_ctx,
                                      struct sss_domain_info *domain,
@@ -658,4 +659,55 @@ void ifp_users_user_get_extra_attributes(struct sbus_request *sbus_req,
     }
 
     *_out = table;
+}
+
+int ifp_cache_list_user(struct sbus_request *sbus_req,
+                        void *data)
+{
+    return ifp_cache_list(sbus_req, data, IFP_CACHE_USER);
+}
+
+int ifp_cache_list_by_domain_user(struct sbus_request *sbus_req,
+                                  void *data,
+                                  const char *domain)
+{
+    return ifp_cache_list_by_domain(sbus_req, data, domain, IFP_CACHE_USER);
+}
+
+int ifp_cache_object_store_user(struct sbus_request *sbus_req,
+                                void *data)
+{
+    DBusError *error;
+    struct sss_domain_info *domain;
+    struct ldb_message *user;
+    errno_t ret;
+
+    ret = ifp_users_user_get(sbus_req, data, NULL, &domain, &user);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "user [%d]: %s\n", ret, sss_strerror(ret));
+        return sbus_request_fail_and_finish(sbus_req, error);
+    }
+
+    /* The request is finished inside. */
+    return ifp_cache_object_store(sbus_req, domain, user->dn);
+}
+
+int ifp_cache_object_remove_user(struct sbus_request *sbus_req,
+                                 void *data)
+{
+    DBusError *error;
+    struct sss_domain_info *domain;
+    struct ldb_message *user;
+    errno_t ret;
+
+    ret = ifp_users_user_get(sbus_req, data, NULL, &domain, &user);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "user [%d]: %s\n", ret, sss_strerror(ret));
+        return sbus_request_fail_and_finish(sbus_req, error);
+    }
+
+    /* The request is finished inside. */
+    return ifp_cache_object_remove(sbus_req, domain, user->dn);
 }

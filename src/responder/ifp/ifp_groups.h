@@ -77,4 +77,21 @@ void ifp_groups_group_get_groups(struct sbus_request *sbus_req,
                                 const char ***_out,
                                 int *_size);
 
+/* org.freedesktop.sssd.infopipe.Cache */
+
+int ifp_cache_list_group(struct sbus_request *sbus_req,
+                         void *data);
+
+int ifp_cache_list_by_domain_group(struct sbus_request *sbus_req,
+                                   void *data,
+                                   const char *domain);
+
+/* org.freedesktop.sssd.infopipe.Cache.Object */
+
+int ifp_cache_object_store_group(struct sbus_request *sbus_req,
+                                 void *data);
+
+int ifp_cache_object_remove_group(struct sbus_request *sbus_req,
+                                  void *data);
+
 #endif /* IFP_GROUPS_H_ */
