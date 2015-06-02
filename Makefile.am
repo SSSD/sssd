@@ -674,10 +674,6 @@ SSSD_DOCS = \
     idmap_doc \
     nss_idmap_doc
 
-if BUILD_SUDO
-    SSSD_DOCS += libsss_sudo_doc
-endif
-
 if BUILD_IFP
     SSSD_DOCS += sss_simpleifp_doc
 endif
