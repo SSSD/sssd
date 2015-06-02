@@ -135,6 +135,38 @@ static void test_sysdb_subdomain_create(void **state)
     assert_true(test_ctx->tctx->dom->subdomains->disabled);
 }
 
+static void test_sysdb_master_domain_ops(void **state)
+{
+    errno_t ret;
+    struct subdom_test_ctx *test_ctx =
+        talloc_get_type(*state, struct subdom_test_ctx);
+
+
+    ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
+                                       "realm1", "flat1", "id1", "forest1");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_master_domain_update(test_ctx->tctx->dom);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(test_ctx->tctx->dom->realm, "realm1");
+    assert_string_equal(test_ctx->tctx->dom->flat_name, "flat1");
+    assert_string_equal(test_ctx->tctx->dom->domain_id, "id1");
+    assert_string_equal(test_ctx->tctx->dom->forest, "forest1");
+
+    ret = sysdb_master_domain_add_info(test_ctx->tctx->dom,
+                                       "realm2", "flat2", "id2", "forest2");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_master_domain_update(test_ctx->tctx->dom);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(test_ctx->tctx->dom->realm, "realm2");
+    assert_string_equal(test_ctx->tctx->dom->flat_name, "flat2");
+    assert_string_equal(test_ctx->tctx->dom->domain_id, "id2");
+    assert_string_equal(test_ctx->tctx->dom->forest, "forest2");
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -150,6 +182,9 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_sysdb_master_domain_ops,
+                                        test_sysdb_subdom_setup,
+                                        test_sysdb_subdom_teardown),
         cmocka_unit_test_setup_teardown(test_sysdb_subdomain_create,
                                         test_sysdb_subdom_setup,
                                         test_sysdb_subdom_teardown),

@@ -1419,6 +1419,7 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
     if (reply_count) {
         const char *flat = NULL;
         const char *id = NULL;
+        const char *realm;
 
         ret = sysdb_attrs_get_string(reply[0], IPA_FLATNAME, &flat);
         if (ret != EOK) {
@@ -1430,8 +1431,16 @@ static void ipa_subdomains_handler_master_done(struct tevent_req *req)
             goto done;
         }
 
+        realm = dp_opt_get_string(ctx->sd_ctx->id_ctx->ipa_options->basic,
+                                  IPA_KRB5_REALM);
+        if (realm == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "No Kerberos realm for IPA?\n");
+            ret = EINVAL;
+            goto done;
+        }
+
         ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
-                                           flat, id, NULL);
+                                           realm, flat, id, NULL);
     } else {
         ctx->search_base_iter++;
         ret = ipa_subdomains_handler_get(ctx, IPA_SUBDOMAINS_MASTER);

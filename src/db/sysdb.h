@@ -439,7 +439,9 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain);
 errno_t sysdb_master_domain_update(struct sss_domain_info *domain);
 
 errno_t sysdb_master_domain_add_info(struct sss_domain_info *domain,
-                                     const char *flat, const char *id,
+                                     const char *realm,
+                                     const char *flat,
+                                     const char *id,
                                      const char* forest);
 
 errno_t sysdb_subdomain_delete(struct sysdb_ctx *sysdb, const char *name);

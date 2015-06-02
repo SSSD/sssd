@@ -598,6 +598,7 @@ static void ad_subdomains_master_dom_done(struct tevent_req *req)
 {
     struct ad_subdomains_req_ctx *ctx;
     errno_t ret;
+    const char *realm;
 
     ctx = tevent_req_callback_data(req, struct ad_subdomains_req_ctx);
 
@@ -610,7 +611,16 @@ static void ad_subdomains_master_dom_done(struct tevent_req *req)
         goto done;
     }
 
+    realm = dp_opt_get_cstring(ctx->sd_ctx->ad_id_ctx->ad_options->basic,
+                               AD_KRB5_REALM);
+    if (realm == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Missing realm.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     ret = sysdb_master_domain_add_info(ctx->sd_ctx->be_ctx->domain,
+                                       realm,
                                        ctx->flat_name, ctx->master_sid,
                                        ctx->forest);
     if (ret != EOK) {

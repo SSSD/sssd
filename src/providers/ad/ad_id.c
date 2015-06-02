@@ -454,6 +454,7 @@ struct ad_enumeration_state {
     struct sdap_id_op *sdap_op;
     struct tevent_context *ev;
 
+    const char *realm;
     struct sdap_domain *sdom;
     struct sdap_domain *sditer;
 };
@@ -492,6 +493,14 @@ ad_enumeration_send(TALLOC_CTX *mem_ctx,
     state->sdom = ectx->sdom;
     state->sditer = state->sdom;
     state->id_ctx = talloc_get_type(ectx->pvt, struct ad_id_ctx);
+
+    state->realm = dp_opt_get_cstring(state->id_ctx->ad_options->basic,
+                                      AD_KRB5_REALM);
+    if (state->realm == NULL) {
+        DEBUG(SSSDBG_CONF_SETTINGS, "Missing realm\n");
+        ret = EINVAL;
+        goto fail;
+    }
 
     state->sdap_op = sdap_id_op_create(state,
                                        state->id_ctx->ldap_ctx->conn_cache);
@@ -575,7 +584,7 @@ ad_enumeration_master_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sysdb_master_domain_add_info(state->sdom->dom,
+    ret = sysdb_master_domain_add_info(state->sdom->dom, state->realm,
                                        flat_name, master_sid, forest);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot save master domain info\n");
