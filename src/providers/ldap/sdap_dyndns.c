@@ -61,6 +61,7 @@ struct sdap_dyndns_update_state {
     enum be_nsupdate_auth auth_type;
     bool use_server_with_nsupdate;
     char *update_msg;
+    size_t pass_num;
 };
 
 static void sdap_dyndns_update_addrs_done(struct tevent_req *subreq);
@@ -108,6 +109,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->opts = opts;
     state->auth_type = auth_type;
+    state->pass_num = 0;
 
     if (ifname) {
        /* Unless one family is restricted, just replace all
@@ -308,6 +310,7 @@ sdap_dyndns_update_step(struct tevent_req *req)
     struct sdap_dyndns_update_state *state;
     const char *servername;
     struct tevent_req *subreq;
+    const char *dns_zone = NULL;
 
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
@@ -317,7 +320,11 @@ sdap_dyndns_update_step(struct tevent_req *req)
         servername = state->servername;
     }
 
-    ret = be_nsupdate_create_fwd_msg(state, state->realm, state->dns_zone,
+    if (state->pass_num > 0) {
+        dns_zone = state->dns_zone;
+    }
+
+    ret = be_nsupdate_create_fwd_msg(state, state->realm, dns_zone,
                                      servername, state->hostname,
                                      state->ttl, state->remove_af,
                                      state->addresses,
@@ -326,6 +333,7 @@ sdap_dyndns_update_step(struct tevent_req *req)
         DEBUG(SSSDBG_OP_FAILURE, "Can't get addresses for DNS update\n");
         return ret;
     }
+    state->pass_num++;
 
     /* Fork a child process to perform the DNS update */
     subreq = be_nsupdate_send(state, state->ev, state->auth_type,
