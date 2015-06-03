@@ -37,6 +37,7 @@ int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
 int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid);
 int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl, gid_t gid);
 int sss_ncache_check_sid(struct sss_nc_ctx *ctx, int ttl, const char *sid);
+int sss_ncache_check_cert(struct sss_nc_ctx *ctx, int ttl, const char *cert);
 
 int sss_ncache_check_service(struct sss_nc_ctx *ctx, int ttl,
                              struct sss_domain_info *dom,
@@ -60,6 +61,8 @@ int sss_ncache_set_netgr(struct sss_nc_ctx *ctx, bool permanent,
 int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent, uid_t uid);
 int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent, gid_t gid);
 int sss_ncache_set_sid(struct sss_nc_ctx *ctx, bool permanent, const char *sid);
+int sss_ncache_set_cert(struct sss_nc_ctx *ctx, bool permanent,
+                        const char *cert);
 int sss_ncache_set_service_name(struct sss_nc_ctx *ctx, bool permanent,
                                 struct sss_domain_info *dom,
                                 const char *name, const char *proto);

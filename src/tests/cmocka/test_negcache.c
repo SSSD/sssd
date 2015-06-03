@@ -45,6 +45,7 @@
 
 #define PORT 21
 #define SID "S-1-2-3-4-5"
+#define CERT "MIIECTCCAvGgAwIBAgIBCTANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEuREVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNTA0MjgxMDIxMTFaFw0xNzA0MjgxMDIxMTFaMDIxEjAQBgNVBAoMCUlQQS5ERVZFTDEcMBoGA1UEAwwTaXBhLWRldmVsLmlwYS5kZXZlbDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALIykqtHuAwTVEofHikG/9BQy/dfeZFlsTkBg2qtnnc78w3XufbcnkpJp9Bmcsy/d9beqf5nlsxJ8TcjLsRQ9Ou6YtQjTfM3OILuOz8s0ICbF6qb66bd9hX/BrLO/9+KnpWFSR+E/YEmzgYyDTbKfBWBaGuPPrOi/K6vwkRYFZVA/FYZkYDtQhFmBO884HYzS4P6frRH3PvtRqWNCmaHpe97dGKsvnM2ybT+IMSB8/54GajQr3+BciRh2XaT4wvSTxkXM1fUgrDxqAP2AZmpuIyDyboZh+rWOwbrTPfx5SipELZG3uHhP8HMcr4qQ8b20LWgxCRuT73sIooHET350xUCAwEAAaOCASYwggEiMB8GA1UdIwQYMBaAFPKdQk4PxEglWC8czg+hPyLIVciRMDsGCCsGAQUFBwEBBC8wLTArBggrBgEFBQcwAYYfaHR0cDovL2lwYS1jYS5pcGEuZGV2ZWwvY2Evb2NzcDAOBgNVHQ8BAf8EBAMCBPAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMHQGA1UdHwRtMGswaaAxoC+GLWh0dHA6Ly9pcGEtY2EuaXBhLmRldmVsL2lwYS9jcmwvTWFzdGVyQ1JMLmJpbqI0pDIwMDEOMAwGA1UECgwFaXBhY2ExHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAdBgNVHQ4EFgQULSs/y/Wy/zIsqMIc3b2MgB7dMYIwDQYJKoZIhvcNAQELBQADggEBAJpHLlCnTR1TD8lxQgzl2n1JZOeryN/fAsGH0Vve2m8r5PC+ugnfAoULiuabBn1pOGxy/0x7Kg0/Iy8WRv8Fk7DqJCjXEqFXuFkZJfNDCtP9DzeNuMoV50iKoMfHS38BPFjXN+X/fSsBrA2fUWrlQCTmXlUN97gvQqxt5Slrxgukvxm9OSfu/sWz22LUvtJHupYwWv1iALgnXS86lAuVNYVALLxn34r58XsZlj5CSBMjBJWpaxEzgUdag3L2IPqOQXuPd0d8x11G9E/9gQquOSe2aiZjsdO/VYOCmzZsM2QPUMBVlBPDhfTVcWXQwN385uycW/ARtSzzSME2jKKWSIQ="
 #define PROTO "TCP"
 #define LIFETIME 200
 #define SHORTSPAN 1
@@ -314,6 +315,46 @@ static void test_sss_ncache_sid(void **state)
     /* test when ttl is -1 with sid present in database*/
     ttl = -1;
     ret = sss_ncache_check_sid(ts->ctx, ttl, sid);
+    assert_int_equal(ret, EEXIST);
+}
+
+/* @test_sss_ncache_cert : test following functions
+ * sss_ncache_set_cert
+ * sss_ncache_check_cert_
+ */
+static void test_sss_ncache_cert(void **state)
+{
+    int ret, ttl;
+    bool permanent;
+    const char *cert = NULL;
+    struct test_state *ts;
+
+    ttl = LIFETIME;
+    cert = CERT;
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    /*test when cert in not present in database */
+    ret = sss_ncache_check_cert(ts->ctx, ttl, cert);
+    assert_int_equal(ret, ENOENT);
+
+    /* test when cert is present in database */
+    permanent = true;
+    ret = sss_ncache_set_cert(ts->ctx, permanent, cert);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_cert(ts->ctx, ttl, cert);
+    assert_int_equal(ret, EEXIST);
+
+    permanent = false;
+    ret = sss_ncache_set_cert(ts->ctx, permanent, cert);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_cert(ts->ctx, ttl, cert);
+    assert_int_equal(ret, EEXIST);
+
+    /* test when ttl is -1 with cert present in database*/
+    ttl = -1;
+    ret = sss_ncache_check_cert(ts->ctx, ttl, cert);
     assert_int_equal(ret, EEXIST);
 }
 
@@ -809,6 +850,7 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_ncache_uid, setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_gid, setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_sid, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_cert, setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_user, setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_group, setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_netgr, setup, teardown),
