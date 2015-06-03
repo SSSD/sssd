@@ -754,6 +754,7 @@ libsss_util_la_SOURCES = \
     src/sbus/sssd_dbus_request.c \
     src/sbus/sssd_dbus_server.c \
     src/sbus/sssd_dbus_signals.c \
+    src/sbus/sssd_dbus_common_signals.c \
     src/util/util.c \
     src/util/memory.c \
     src/util/safe-format-string.c \

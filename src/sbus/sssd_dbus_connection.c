@@ -206,6 +206,8 @@ int sbus_init_connection(TALLOC_CTX *ctx,
         return EIO;
     }
 
+    sbus_register_common_signals(conn, conn);
+
     *_conn = conn;
     return ret;
 }

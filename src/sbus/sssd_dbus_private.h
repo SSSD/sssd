@@ -181,4 +181,6 @@ errno_t
 sbus_incoming_signal_hash_init(TALLOC_CTX *mem_ctx,
                                hash_table_t **_table);
 
+void sbus_register_common_signals(struct sbus_connection *conn, void *pvt);
+
 #endif /* _SSSD_DBUS_PRIVATE_H_ */
