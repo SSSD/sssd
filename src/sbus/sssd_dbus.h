@@ -404,4 +404,24 @@ bool sbus_request_parse_or_finish(struct sbus_request *request,
                                   int first_arg_type,
                                   ...);
 
+struct sbus_incoming_signal {
+    struct sbus_connection *conn;
+    DBusMessage *message;
+    int64_t client;
+    const char *interface;
+    const char *signal;
+    const char *path;
+};
+
+typedef void
+(*sbus_incoming_signal_fn)(struct sbus_incoming_signal *sbus_signal,
+                           void *handler_data);
+
+errno_t
+sbus_signal_listen(struct sbus_connection *conn,
+                   const char *iface,
+                   const char *signal,
+                   sbus_incoming_signal_fn handler_fn,
+                   void *handler_data);
+
 #endif /* _SSSD_DBUS_H_*/

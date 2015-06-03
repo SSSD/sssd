@@ -151,6 +151,7 @@ int sbus_init_connection(TALLOC_CTX *ctx,
                          struct sbus_connection **_conn)
 {
     struct sbus_connection *conn;
+    dbus_bool_t dbret;
     int ret;
 
     DEBUG(SSSDBG_TRACE_FUNC,"Adding connection %p\n", dbus_conn);
@@ -175,6 +176,14 @@ int sbus_init_connection(TALLOC_CTX *ctx,
         return EIO;
     }
 
+    ret = sbus_incoming_signal_hash_init(conn, &conn->incoming_signals);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create incoming singals "
+              "hash table\n");
+        talloc_free(conn);
+        return EIO;
+    }
+
     ret = sss_hash_create(conn, 32, &conn->clients);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create clients hash table\n");
@@ -186,6 +195,15 @@ int sbus_init_connection(TALLOC_CTX *ctx,
     if (ret != EOK) {
         talloc_free(conn);
         return ret;
+    }
+
+    /* Set up signal handler. */
+    dbret = dbus_connection_add_filter(dbus_conn, sbus_signal_handler, conn,
+                                       NULL);
+    if (dbret == false) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot register signal handler\n");
+        talloc_free(conn);
+        return EIO;
     }
 
     *_conn = conn;

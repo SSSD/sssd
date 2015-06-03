@@ -49,6 +49,7 @@ struct sbus_connection {
 
     hash_table_t *managed_paths;
     hash_table_t *nodes_fns;
+    hash_table_t *incoming_signals;
 
     /* reconnect settings */
     int retries;
@@ -168,5 +169,16 @@ int sbus_get_sender_id_recv(struct tevent_req *req, int64_t *_uid);
 /* =Properties============================================================ */
 
 int sbus_properties_dispatch(struct sbus_request *dbus_req);
+
+/* =Signals=============================================================== */
+
+DBusHandlerResult
+sbus_signal_handler(DBusConnection *conn,
+                    DBusMessage *message,
+                    void *handler_data);
+
+errno_t
+sbus_incoming_signal_hash_init(TALLOC_CTX *mem_ctx,
+                               hash_table_t **_table);
 
 #endif /* _SSSD_DBUS_PRIVATE_H_ */
