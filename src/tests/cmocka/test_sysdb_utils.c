@@ -45,7 +45,7 @@ static void test_sysdb_handle_original_uuid(void **state)
     struct ldb_val guid_val = {bin_guid, 16};
 
     ret = sysdb_handle_original_uuid(NULL, NULL, NULL, NULL, NULL);
-    assert_int_equal(ret, EINVAL);
+    assert_int_equal(ret, ENOENT);
 
     src_attrs = sysdb_new_attrs(NULL);
     assert_non_null(src_attrs);
@@ -62,6 +62,14 @@ static void test_sysdb_handle_original_uuid(void **state)
 
     ret = sysdb_attrs_add_string(src_attrs, "UUID", IPA_UUID);
     assert_int_equal(ret, EOK);
+
+    ret = sysdb_handle_original_uuid(NULL, src_attrs, "GUID",
+                                     dest_attrs, "def");
+    assert_int_equal(ret, ENOENT);
+
+    ret = sysdb_handle_original_uuid("objectGUID", NULL, "GUID",
+                                     dest_attrs, "def");
+    assert_int_equal(ret, EINVAL);
 
     ret = sysdb_handle_original_uuid("objectGUID", src_attrs, "GUID",
                                      dest_attrs, "def");

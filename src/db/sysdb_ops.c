@@ -3795,7 +3795,12 @@ errno_t sysdb_handle_original_uuid(const char *orig_name,
     struct ldb_message_element *el;
     char guid_str_buf[GUID_STR_BUF_SIZE];
 
-    if (orig_name == NULL || src_attrs == NULL || src_name == NULL
+    if (orig_name == NULL) {
+        /* This provider doesn't handle UUIDs */
+        return ENOENT;
+    }
+
+    if (src_attrs == NULL || src_name == NULL
             || dest_attrs == NULL || dest_name == NULL) {
         return EINVAL;
     }
