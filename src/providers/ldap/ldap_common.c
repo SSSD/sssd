@@ -399,6 +399,18 @@ done:
     return realm;
 }
 
+const char *sdap_gssapi_realm(struct dp_option *opts)
+{
+    const char *realm;
+
+    realm = dp_opt_get_cstring(opts, SDAP_SASL_REALM);
+    if (!realm) {
+        realm = dp_opt_get_cstring(opts, SDAP_KRB5_REALM);
+    }
+
+    return realm;
+}
+
 int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
                      struct dp_option *opts,
                      struct be_ctx *bectx,
@@ -419,7 +431,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
     krb5_servers = dp_opt_get_string(opts, SDAP_KRB5_KDC);
     krb5_backup_servers = dp_opt_get_string(opts, SDAP_KRB5_BACKUP_KDC);
 
-    krb5_opt_realm = dp_opt_get_string(opts, SDAP_KRB5_REALM);
+    krb5_opt_realm = sdap_gssapi_realm(opts);
     if (krb5_opt_realm == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Missing krb5_realm option, will use libkrb default\n");

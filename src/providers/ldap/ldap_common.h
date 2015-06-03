@@ -138,6 +138,8 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *urls, const char *backup_urls,
                       struct sdap_service **_service);
 
+const char *sdap_gssapi_realm(struct dp_option *opts);
+
 int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
                      struct dp_option *opts,
                      struct be_ctx *bectx,
