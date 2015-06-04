@@ -227,6 +227,7 @@ if HAVE_CMOCKA
         test_fo_srv \
         pam-srv-tests \
         test_ipa_subdom_util \
+        test_ipa_subdom_server \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -2438,6 +2439,36 @@ test_ipa_subdom_util_LDADD = \
     $(TALLOC_LIBS) \
     $(LDB_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_ipa_subdom_server_SOURCES = \
+    $(sssd_be_SOURCES) \
+    $(libsss_krb5_common_la_SOURCES) \
+    src/tests/cmocka/common_mock_sdap.c \
+    src/tests/cmocka/common_mock_be.c \
+    src/tests/cmocka/common_mock_krb5.c \
+    src/tests/cmocka/test_ipa_subdomains_server.c \
+    src/providers/ipa/ipa_subdomains_server.c \
+    src/providers/ipa/ipa_subdomains_utils.c \
+    $(NULL)
+test_ipa_subdom_server_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DUNIT_TESTING \
+    $(NULL)
+test_ipa_subdom_server_LDFLAGS = \
+    -Wl,-wrap,krb5_kt_default \
+    $(NULL)
+test_ipa_subdom_server_LDADD = \
+    $(PAM_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    libsss_idmap.la \
+    libsss_ad_common.la \
     libsss_test_common.la \
     $(NULL)
 
