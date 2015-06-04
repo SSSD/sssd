@@ -202,6 +202,12 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                    ldap_groups[ai],
                                    opts->group_map[SDAP_AT_GROUP_UUID].sys_name,
                                    ldap_groups[ai], "uniqueIDstr");
+                if (ret != EOK) {
+                    DEBUG((ret == ENOENT) ? SSSDBG_TRACE_ALL : SSSDBG_MINOR_FAILURE,
+                          "Failed to retrieve UUID [%d][%s].\n",
+                          ret, sss_strerror(ret));
+                }
+
                 ret = sysdb_attrs_get_string(ldap_groups[ai],
                                              "uniqueIDstr",
                                              &uuid);
