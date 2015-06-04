@@ -151,3 +151,21 @@
     fun:poptGetNextOpt
     fun:main
 }
+
+# Some tests initialize c-ares context, then fork a child that just exits
+# without a proper teardown, which means the ares destructor is not called.
+# Suppress those errors.
+{
+   c-ares-suppress-leak-from-init
+   Memcheck:Leak
+   ...
+   fun:ares_init_options
+   fun:recreate_ares_channel
+   fun:resolv_init
+   fun:be_res_init
+   fun:be_init_failover
+   fun:test_ipa_server_create_trusts_setup
+   ...
+   fun:_cmocka_run_group_tests
+   fun:main
+}

@@ -76,6 +76,8 @@ struct err_string error_to_str[] = {
     { "Failed to resolve one of user groups" }, /* ERR_SIMPLE_GROUPS_MISSING */
     { "Home directory is NULL" }, /* ERR_HOMEDIR_IS_NULL */
     { "Unsupported trust direction" }, /* ERR_TRUST_NOT_SUPPORTED */
+    { "Retrieving keytab failed" }, /* ERR_IPA_GETKEYTAB_FAILED */
+    { "Trusted forest root unknown" }, /* ERR_TRUST_FOREST_UNKNOWN */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

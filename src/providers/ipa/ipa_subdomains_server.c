@@ -34,6 +34,26 @@
 #define LSA_TRUST_DIRECTION_INBOUND  0x00000001
 #define LSA_TRUST_DIRECTION_OUTBOUND 0x00000002
 
+static char *forest_keytab(TALLOC_CTX *mem_ctx, const char *forest)
+{
+    return talloc_asprintf(mem_ctx,
+                           "%s/%s.keytab", IPA_TRUST_KEYTAB_DIR, forest);
+}
+
+static char *subdomain_trust_princ(TALLOC_CTX *mem_ctx,
+                                   const char *forest_realm,
+                                   struct sss_domain_info *sd)
+{
+    if (sd->parent->flat_name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unknown flat name for parent %s\n", sd->parent->name);
+        return NULL;
+    }
+
+    return talloc_asprintf(mem_ctx, "%s$@%s",
+                           sd->parent->flat_name, forest_realm);
+}
+
 static uint32_t default_direction(TALLOC_CTX *mem_ctx,
                                   struct ldb_context *ldb_ctx,
                                   struct sysdb_attrs *attrs)
@@ -102,6 +122,11 @@ const char *ipa_trust_dir2str(uint32_t direction)
 
     return "unknown";
 }
+
+#ifndef IPA_GETKEYTAB_TIMEOUT
+#define IPA_GETKEYTAB_TIMEOUT 5
+#endif /* IPA_GETKEYTAB_TIMEOUT */
+
 
 static errno_t
 ipa_ad_ctx_new(struct be_ctx *be_ctx,
@@ -255,8 +280,233 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     return EOK;
 }
 
-struct ipa_server_trust_add_state {
+struct ipa_getkeytab_state {
+    int child_status;
+    struct sss_child_ctx_old *child_ctx;
+    struct tevent_timer *timeout_handler;
 };
+
+static void ipa_getkeytab_exec(const char *ccache,
+                               const char *server,
+                               const char *principal,
+                               const char *keytab_path);
+static void ipa_getkeytab_done(int child_status,
+                               struct tevent_signal *sige,
+                               void *pvt);
+static void ipa_getkeytab_timeout(struct tevent_context *ev,
+                                  struct tevent_timer *te,
+                                  struct timeval tv, void *pvt);
+
+static struct tevent_req *ipa_getkeytab_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             const char *ccache,
+                                             const char *server,
+                                             const char *principal,
+                                             const char *keytab)
+
+
+{
+    errno_t ret;
+    struct tevent_req *req = NULL;
+    struct ipa_getkeytab_state *state;
+    pid_t child_pid;
+    struct timeval tv;
+
+    req = tevent_req_create(mem_ctx, &state, struct ipa_getkeytab_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->child_status = EFAULT;
+
+    if (server == NULL || principal == NULL || keytab == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Retrieving keytab for %s from %s into %s using ccache %s\n",
+          principal, server, keytab, ccache);
+
+    child_pid = fork();
+    if (child_pid == 0) { /* child */
+        ipa_getkeytab_exec(ccache, server, principal, keytab);
+    } else if (child_pid > 0) { /* parent */
+        /* Set up SIGCHLD handler */
+        ret = child_handler_setup(ev, child_pid, ipa_getkeytab_done, req,
+                                  &state->child_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not set up child handlers [%d]: %s\n",
+                ret, sss_strerror(ret));
+            ret = ERR_IPA_GETKEYTAB_FAILED;
+            goto done;
+        }
+
+        /* Set up timeout handler */
+        tv = tevent_timeval_current_ofs(IPA_GETKEYTAB_TIMEOUT, 0);
+        state->timeout_handler = tevent_add_timer(ev, req, tv,
+                                                  ipa_getkeytab_timeout, req);
+        if(state->timeout_handler == NULL) {
+            ret = ERR_IPA_GETKEYTAB_FAILED;
+            goto done;
+        }
+
+        /* Now either wait for the timeout to fire or the child
+         * to finish
+         */
+    } else { /* error */
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fork failed [%d][%s].\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+    return req;
+}
+
+static void ipa_getkeytab_exec(const char *ccache,
+                               const char *server,
+                               const char *principal,
+                               const char *keytab_path)
+{
+    errno_t ret;
+    int debug_fd;
+    const char *gkt_env[2] = { NULL, NULL };
+
+    if (debug_level >= SSSDBG_TRACE_LIBS) {
+        debug_fd = get_fd_from_debug_file();
+        ret = dup2(debug_fd, STDERR_FILENO);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                "dup2 failed [%d][%s].\n", ret, sss_strerror(ret));
+            /* stderr is not fatal */
+        }
+    }
+
+    gkt_env[0] = talloc_asprintf(NULL, "KRB5CCNAME=%s", ccache);
+    if (gkt_env[0] == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to format KRB5CCNAME\n");
+        exit(1);
+    }
+
+    errno = 0;
+    ret = execle(IPA_GETKEYTAB_PATH, IPA_GETKEYTAB_PATH,
+                 "-r", "-s", server, "-p", principal, "-k", keytab_path, NULL,
+                 gkt_env);
+
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          "execle returned %d, this shouldn't happen!\n", ret);
+
+    /* The child should never end up here */
+    ret = errno;
+    DEBUG(SSSDBG_CRIT_FAILURE,
+          "execle failed [%d][%s].\n", ret, sss_strerror(ret));
+    exit(1);
+}
+
+static void ipa_getkeytab_done(int child_status,
+                               struct tevent_signal *sige,
+                               void *pvt)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct ipa_getkeytab_state *state =
+            tevent_req_data(req, struct ipa_getkeytab_state);
+
+    state->child_status = child_status;
+
+    if (WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ipa-getkeytab failed with status [%d]\n", child_status);
+        tevent_req_error(req, ERR_IPA_GETKEYTAB_FAILED);
+        return;
+    }
+
+    if (WIFSIGNALED(child_status)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ipa-getkeytab was terminated by signal [%d]\n",
+               WTERMSIG(child_status));
+        tevent_req_error(req, ERR_IPA_GETKEYTAB_FAILED);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static void ipa_getkeytab_timeout(struct tevent_context *ev,
+                                  struct tevent_timer *te,
+                                  struct timeval tv, void *pvt)
+{
+    struct tevent_req *req =
+            talloc_get_type(pvt, struct tevent_req);
+    struct ipa_getkeytab_state *state =
+            tevent_req_data(req, struct ipa_getkeytab_state);
+
+    DEBUG(SSSDBG_CRIT_FAILURE, "Timeout reached for retrieving keytab from IPA server\n");
+    child_handler_destroy(state->child_ctx);
+    state->child_ctx = NULL;
+    state->child_status = ETIMEDOUT;
+    tevent_req_error(req, ERR_IPA_GETKEYTAB_FAILED);
+}
+
+static errno_t ipa_getkeytab_recv(struct tevent_req *req, int *child_status)
+{
+    struct ipa_getkeytab_state *state =
+            tevent_req_data(req, struct ipa_getkeytab_state);
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "ipa-getkeytab status %d\n", state->child_status);
+    if (child_status) {
+        *child_status = state->child_status;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+static errno_t ipa_check_keytab(const char *keytab)
+{
+    errno_t ret;
+
+    ret = check_file(keytab, getuid(), getgid(), S_IFREG|0600, 0, NULL, false);
+    if (ret != EOK) {
+        if (ret != ENOENT) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to check for %s\n", keytab);
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC, "Keytab %s is not present\n", keytab);
+        }
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "keytab %s already exists\n", keytab);
+    ret = EOK;
+done:
+    return ret;
+}
+
+struct ipa_server_trust_add_state {
+    struct tevent_context *ev;
+    struct be_ctx *be_ctx;
+    struct ipa_id_ctx *id_ctx;
+    struct sss_domain_info *subdom;
+
+    uint32_t direction;
+    const char *forest;
+    const char *keytab;
+    const char *principal;
+    const char *forest_realm;
+    const char *ccache;
+};
+
+static errno_t ipa_server_trust_add_1way(struct tevent_req *req);
+static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq);
+static errno_t ipa_server_trust_add_step(struct tevent_req *req);
 
 static struct tevent_req *
 ipa_server_trust_add_send(TALLOC_CTX *mem_ctx,
@@ -267,42 +517,59 @@ ipa_server_trust_add_send(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req = NULL;
     struct ipa_server_trust_add_state *state = NULL;
-    struct ipa_ad_server_ctx *trust_ctx;
-    struct ad_id_ctx *ad_id_ctx;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_server_trust_add_state);
     if (req == NULL) {
         return NULL;
     }
+    state->ev = ev;
+    state->be_ctx = be_ctx;
+    state->id_ctx = id_ctx;
+    state->subdom = subdom;
 
-    ret = ipa_ad_ctx_new(be_ctx, id_ctx, subdom, &ad_id_ctx);
-    if (ret != EOK) {
+    /* Trusts are only established with forest roots */
+    if (subdom->forest_root == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot create ad_id_ctx for subdomain %s\n", subdom->name);
+              "Subdomain %s has no forest root?\n", subdom->name);
+        ret = ERR_TRUST_FOREST_UNKNOWN;
         goto immediate;
     }
 
-    trust_ctx = talloc(id_ctx->server_mode, struct ipa_ad_server_ctx);
-    if (trust_ctx == NULL) {
+    state->direction = subdom->forest_root->trust_direction;
+    state->forest = subdom->forest_root->realm;
+    state->forest_realm = subdom->forest_root->realm;
+    state->ccache = talloc_asprintf(state, "%s/ccache_%s",
+                                    DB_PATH, subdom->parent->realm);
+    if (state->ccache == NULL) {
         ret = ENOMEM;
         goto immediate;
     }
-    trust_ctx->dom = subdom;
-    trust_ctx->ad_id_ctx = ad_id_ctx;
 
-    DLIST_ADD(id_ctx->server_mode->trusts, trust_ctx);
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Trust direction of subdom %s from forest %s is: %s\n",
+          subdom->name, state->forest,
+          ipa_trust_dir2str(state->direction));
 
-    /* In this particular patch, we just want to fake the async interface
-     * for an otherwise synchronous operation of creating two-way trusts,
-     * so currently the request is just marked as done and terminated. We
-     * will convert the request to fully async in a subsequent patch that
-     * adds support for one-way trusts.
-     */
-    ret = EOK;
-    goto immediate;
-
-    return req;
+    if (state->direction & LSA_TRUST_DIRECTION_OUTBOUND) {
+        /* Use system keytab */
+        ret = ipa_server_trust_add_step(req);
+    } else if (state->direction & LSA_TRUST_DIRECTION_INBOUND) {
+        /* Need special keytab */
+        ret = ipa_server_trust_add_1way(req);
+        if (ret == EAGAIN) {
+            /* In progress.. */
+            return req;
+        } else if (ret == EOK) {
+            ret = ipa_server_trust_add_step(req);
+        }
+    } else {
+        /* Even unset is an error at this point */
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Subdomain %s has trust direction %d\n",
+              subdom->name, subdom->trust_direction);
+        ret = ERR_TRUST_NOT_SUPPORTED;
+    }
 
 immediate:
     if (ret != EOK) {
@@ -312,6 +579,122 @@ immediate:
     }
     tevent_req_post(req, ev);
     return req;
+}
+
+static errno_t ipa_server_trust_add_1way(struct tevent_req *req)
+{
+    errno_t ret;
+    struct tevent_req *subreq = NULL;
+    struct ipa_server_trust_add_state *state =
+            tevent_req_data(req, struct ipa_server_trust_add_state);
+    const char *hostname;
+
+    state->keytab = forest_keytab(state, state->forest);
+    if (state->keytab == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set up ipa_get_keytab\n");
+        return EIO;
+    }
+
+    ret = ipa_check_keytab(state->keytab);
+    if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Keytab already present, can add the trust\n");
+        return EOK;
+    } else if (ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to check for keytab: %d\n", ret);
+        return ret;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "No keytab for %s\n", state->subdom->name);
+
+    hostname = dp_opt_get_string(state->id_ctx->ipa_options->basic,
+                                 IPA_HOSTNAME);
+
+    state->principal = subdomain_trust_princ(state,
+                                             state->forest_realm,
+                                             state->subdom);
+    if (state->principal == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set up ipa_get_keytab\n");
+        return EIO;
+    }
+
+    subreq = ipa_getkeytab_send(state->be_ctx, state->be_ctx->ev,
+                                state->ccache,
+                                hostname,
+                                state->principal,
+                                state->keytab);
+    if (subreq == NULL) {
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq, ipa_server_trust_1way_kt_done, req);
+    return EAGAIN;
+}
+
+static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_server_trust_add_state *state =
+            tevent_req_data(req, struct ipa_server_trust_add_state);
+
+    ret = ipa_getkeytab_recv(subreq, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_getkeytab_recv failed: %d\n", ret);
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Keytab successfully retrieved to %s\n", state->keytab);
+
+    ret = ipa_check_keytab(state->keytab);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_check_keytab failed: %d\n", ret);
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = ipa_server_trust_add_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "ipa_server_trust_add_step failed: %d\n", ret);
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Established trust context for %s\n", state->subdom->name);
+    tevent_req_done(req);
+}
+
+static errno_t ipa_server_trust_add_step(struct tevent_req *req)
+{
+    struct ipa_ad_server_ctx *trust_ctx;
+    struct ad_id_ctx *ad_id_ctx;
+    errno_t ret;
+    struct ipa_server_trust_add_state *state =
+            tevent_req_data(req, struct ipa_server_trust_add_state);
+
+    ret = ipa_ad_ctx_new(state->be_ctx, state->id_ctx, state->subdom, &ad_id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot create ad_id_ctx for subdomain %s\n", state->subdom->name);
+        return ret;
+    }
+
+    trust_ctx = talloc(state->id_ctx->server_mode, struct ipa_ad_server_ctx);
+    if (trust_ctx == NULL) {
+        return ENOMEM;
+    }
+    trust_ctx->dom = state->subdom;
+    trust_ctx->ad_id_ctx = ad_id_ctx;
+
+    DLIST_ADD(state->id_ctx->server_mode->trusts, trust_ctx);
+    return EOK;
 }
 
 static errno_t ipa_server_trust_add_recv(struct tevent_req *req)

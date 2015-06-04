@@ -2455,15 +2455,18 @@ test_ipa_subdom_server_SOURCES = \
 test_ipa_subdom_server_CFLAGS = \
     $(AM_CFLAGS) \
     -DUNIT_TESTING \
+    -DIPA_TRUST_KEYTAB_DIR=TEST_DIR \
     $(NULL)
 test_ipa_subdom_server_LDFLAGS = \
     -Wl,-wrap,krb5_kt_default \
+    -Wl,-wrap,execle \
     $(NULL)
 test_ipa_subdom_server_LDADD = \
     $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(CARES_LIBS) \
+    $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
@@ -3283,6 +3286,7 @@ src/sysv/systemd/journal.conf: src/sysv/systemd/journal.conf.in Makefile
 
 SSSD_USER_DIRS = \
     $(DESTDIR)$(dbpath) \
+    $(DESTDIR)$(dbpath)/keytabs \
     $(DESTDIR)$(mcpath) \
     $(DESTDIR)$(pipepath) \
     $(DESTDIR)$(pipepath)/private \

@@ -41,6 +41,7 @@
 
 #define DOM_REALM       "DOM.MAIN"
 #define HOSTNAME        "ipaserver.dom.main"
+#define DOM_FLAT        "DOM"
 
 #define TEST_AUTHID       "host/"HOSTNAME
 #define KEYTAB_TEST_PRINC TEST_AUTHID"@"DOM_REALM
@@ -61,9 +62,32 @@
 #define TEST_DOM_NAME "ipa_subdom_server_test"
 #define TEST_ID_PROVIDER "ipa"
 
+#define ONEWAY_KEYTAB   TEST_DIR"/"SUBDOM_REALM".keytab"
+#define ONEWAY_AUTHID   DOM_FLAT"$@"SUBDOM_REALM
+
 krb5_error_code __wrap_krb5_kt_default(krb5_context context, krb5_keytab *id)
 {
     return krb5_kt_resolve(context, KEYTAB_PATH, id);
+}
+
+static void create_dummy_keytab(void)
+{
+    int fd;
+    errno_t ret;
+
+    assert_non_null(ONEWAY_KEYTAB);
+    fd = open(ONEWAY_KEYTAB,  O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    assert_int_not_equal(fd, -1);
+    close(fd);
+
+    ret = access(ONEWAY_KEYTAB, R_OK);
+    assert_int_equal(ret, 0);
+}
+
+int __wrap_execle(const char *path, const char *arg, ...)
+{
+    create_dummy_keytab();
+    _exit(0);
 }
 
 struct trust_test_ctx {
@@ -146,7 +170,8 @@ static struct ipa_server_mode_ctx *mock_server_mode(TALLOC_CTX *mem_ctx)
     return server_mode;
 }
 
-static void add_test_subdomains(struct trust_test_ctx *test_ctx)
+static void add_test_subdomains(struct trust_test_ctx *test_ctx,
+                                uint32_t direction)
 {
     errno_t
 
@@ -155,19 +180,29 @@ static void add_test_subdomains(struct trust_test_ctx *test_ctx)
                                 SUBDOM_NAME, SUBDOM_REALM,
                                 NULL, SUBDOM_SID,
                                 true, false, SUBDOM_REALM,
-                                0);
+                                direction);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_subdomain_store(test_ctx->tctx->sysdb,
                                 CHILD_NAME, CHILD_REALM,
                                 CHILD_FLAT, CHILD_SID,
                                 true, false, SUBDOM_REALM,
-                                0);
+                                direction);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_update_subdomains(test_ctx->tctx->dom);
     assert_int_equal(ret, EOK);
 
+}
+
+static void add_test_2way_subdomains(struct trust_test_ctx *test_ctx)
+{
+    return add_test_subdomains(test_ctx, 0x1 | 0x2);
+}
+
+static void add_test_1way_subdomains(struct trust_test_ctx *test_ctx)
+{
+    return add_test_subdomains(test_ctx, 0x1);
 }
 
 static int test_ipa_server_create_trusts_setup(void **state)
@@ -186,6 +221,8 @@ static int test_ipa_server_create_trusts_setup(void **state)
                                          TEST_CONF_DB, TEST_DOM_NAME,
                                          TEST_ID_PROVIDER, params);
     assert_non_null(test_ctx->tctx);
+    test_ctx->tctx->dom->flat_name = discard_const(DOM_FLAT);
+    test_ctx->tctx->dom->realm = discard_const(DOM_REALM);
 
     test_ctx->be_ctx = mock_be_ctx(test_ctx, test_ctx->tctx);
     assert_non_null(test_ctx->be_ctx);
@@ -214,6 +251,9 @@ static int test_ipa_server_create_trusts_teardown(void **state)
 
     ret = unlink(KEYTAB_PATH);
     assert_int_equal(ret, 0);
+
+    unlink(ONEWAY_KEYTAB);
+    /* Ignore failures */
 
     talloc_free(test_ctx);
     return 0;
@@ -254,7 +294,7 @@ static void test_ipa_server_create_trusts_none(struct tevent_req *req)
     assert_int_equal(ret, EOK);
 
     /* Add two subdomains */
-    add_test_subdomains(test_ctx);
+    add_test_2way_subdomains(test_ctx);
 
     req = ipa_server_create_trusts_send(test_ctx,
                                         test_ctx->tctx->ev,
@@ -410,7 +450,7 @@ static void test_ipa_server_trust_init(void **state)
     struct tevent_timer *timeout_handler;
     struct timeval tv;
 
-    add_test_subdomains(test_ctx);
+    add_test_2way_subdomains(test_ctx);
 
     ret = ipa_ad_subdom_init(test_ctx->be_ctx, test_ctx->ipa_ctx);
     assert_int_equal(ret, EOK);
@@ -557,6 +597,116 @@ static void test_get_trust_direction_notset_member(void **state)
     assert_int_equal(dir, 0);
 }
 
+static void test_ipa_server_create_trusts_oneway(struct tevent_req *req);
+
+static void test_ipa_server_create_oneway(void **state)
+{
+    struct trust_test_ctx *test_ctx =
+        talloc_get_type(*state, struct trust_test_ctx);
+    struct tevent_req *req;
+    errno_t ret;
+
+    add_test_1way_subdomains(test_ctx);
+
+    ret = access(ONEWAY_KEYTAB, R_OK);
+    assert_int_not_equal(ret, 0);
+
+    assert_null(test_ctx->ipa_ctx->server_mode->trusts);
+
+    req = ipa_server_create_trusts_send(test_ctx,
+                                        test_ctx->tctx->ev,
+                                        test_ctx->be_ctx,
+                                        test_ctx->ipa_ctx,
+                                        test_ctx->be_ctx->domain);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, test_ipa_server_create_trusts_oneway, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+}
+
+static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
+{
+    struct trust_test_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct trust_test_ctx);
+    errno_t ret;
+
+    ret = ipa_server_create_trusts_recv(req);
+    talloc_zfree(req);
+    assert_int_equal(ret, EOK);
+
+    ret = access(ONEWAY_KEYTAB, R_OK);
+    assert_int_equal(ret, 0);
+
+    /* Trust object should be around now */
+    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
+    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts->next);
+
+    test_ipa_server_create_trusts_finish(test_ctx);
+}
+
+static void test_ipa_server_create_oneway_kt_exists(void **state)
+{
+    struct trust_test_ctx *test_ctx =
+        talloc_get_type(*state, struct trust_test_ctx);
+    struct tevent_req *req;
+    errno_t ret;
+
+    add_test_1way_subdomains(test_ctx);
+
+    create_dummy_keytab();
+    ret = access(ONEWAY_KEYTAB, R_OK);
+    assert_int_equal(ret, 0);
+
+    assert_null(test_ctx->ipa_ctx->server_mode->trusts);
+
+    req = ipa_server_create_trusts_send(test_ctx,
+                                        test_ctx->tctx->ev,
+                                        test_ctx->be_ctx,
+                                        test_ctx->ipa_ctx,
+                                        test_ctx->be_ctx->domain);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, test_ipa_server_create_trusts_oneway, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+}
+
+static void test_ipa_server_trust_oneway_init(void **state)
+{
+    struct trust_test_ctx *test_ctx =
+        talloc_get_type(*state, struct trust_test_ctx);
+    errno_t ret;
+    struct tevent_timer *timeout_handler;
+    struct timeval tv;
+
+    add_test_1way_subdomains(test_ctx);
+
+    ret = ipa_ad_subdom_init(test_ctx->be_ctx, test_ctx->ipa_ctx);
+    assert_int_equal(ret, EOK);
+
+    tv = tevent_timeval_current_ofs(1, 0);
+    timeout_handler = tevent_add_timer(test_ctx->tctx->ev, test_ctx, tv,
+                                       ipa_server_init_done, test_ctx);
+    assert_non_null(timeout_handler);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_non_null(test_ctx->ipa_ctx->server_mode->trusts);
+}
+
+static void test_ipa_trust_dir2str(void **state)
+{
+    /* Just make sure the caller can rely on getting a valid string.. */
+    assert_non_null(ipa_trust_dir2str(0x00));
+    assert_non_null(ipa_trust_dir2str(0x01));
+    assert_non_null(ipa_trust_dir2str(0x02));
+    assert_non_null(ipa_trust_dir2str(0x80));
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -569,6 +719,18 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_ipa_trust_dir2str),
+
+        cmocka_unit_test_setup_teardown(test_ipa_server_create_oneway,
+                                        test_ipa_server_create_trusts_setup,
+                                        test_ipa_server_create_trusts_teardown),
+        cmocka_unit_test_setup_teardown(test_ipa_server_create_oneway_kt_exists,
+                                        test_ipa_server_create_trusts_setup,
+                                        test_ipa_server_create_trusts_teardown),
+        cmocka_unit_test_setup_teardown(test_ipa_server_trust_oneway_init,
+                                        test_ipa_server_create_trusts_setup,
+                                        test_ipa_server_create_trusts_teardown),
+
         cmocka_unit_test_setup_teardown(test_ipa_server_trust_init,
                                         test_ipa_server_create_trusts_setup,
                                         test_ipa_server_create_trusts_teardown),

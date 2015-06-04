@@ -424,6 +424,20 @@ AC_DEFUN([WITH_TEST_DIR],
     AC_DEFINE_UNQUOTED(TEST_DIR, "$TEST_DIR", [Directory used for 'make check' temporary files])
   ])
 
+AC_DEFUN([WITH_IPA_GETKEYTAB],
+  [ AC_ARG_WITH([ipa_getkeytab],
+                [AC_HELP_STRING([--with-ipa-getkeytab=PATH],
+                                [Path to ipa_getkeytab binary to retrieve keytabs from FreeIPA server [/usr/sbin/ipa-getkeytab]]
+                               )
+                ]
+               )
+    IPA_GETKEYTAB_PATH="/usr/sbin/ipa-getkeytab"
+    if test x"$with_ipa_getkeytab" != x; then
+        IPA_GETKEYTAB_PATH=$with_ipa_getkeytab
+    fi
+    AC_DEFINE_UNQUOTED(IPA_GETKEYTAB_PATH, "$IPA_GETKEYTAB_PATH", [The path to the ipa-getkeytab utility])
+  ])
+
 AC_DEFUN([WITH_NSCD],
   [ AC_ARG_WITH([nscd],
                 [AC_HELP_STRING([--with-nscd=PATH],

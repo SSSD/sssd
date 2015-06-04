@@ -27,6 +27,11 @@
 
 #include "providers/dp_backend.h"
 #include "providers/ipa/ipa_common.h"
+#include "config.h"
+
+#ifndef IPA_TRUST_KEYTAB_DIR
+#define IPA_TRUST_KEYTAB_DIR         DB_PATH"/keytabs"
+#endif /* IPA_TRUST_KEYTAB_DIR */
 
 /* ==Sid2Name Extended Operation============================================= */
 #define EXOP_SID2NAME_OID "2.16.840.1.113730.3.8.10.4"
