@@ -59,7 +59,7 @@ int flush_nscd_cache(enum nscd_db flush_db)
     nscd_pid = fork();
     switch (nscd_pid) {
     case 0:
-        execl(NSCD_PATH, "nscd", NSCD_RELOAD_ARG, service, NULL);
+        execl(NSCD_PATH, NSCD_PATH, NSCD_RELOAD_ARG, service, NULL);
         /* if this returns it is an error */
         DEBUG(SSSDBG_CRIT_FAILURE,
               "execl(3) failed: %d(%s)\n", errno, strerror(errno));
