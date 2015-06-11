@@ -1149,7 +1149,7 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
             if (ret != EOK && ret != ENOENT) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "ad_gpo_extract_policy_setting failed for %s [%d][%s]\n",
-                      allow_key, ret, strerror(ret));
+                      allow_key, ret, sss_strerror(ret));
                 goto done;
             } else if (ret != ENOENT) {
                 ret = sysdb_gpo_store_gpo_result_setting(domain,
@@ -1175,7 +1175,7 @@ ad_gpo_store_policy_settings(struct sss_domain_info *domain,
             if (ret != EOK && ret != ENOENT) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "ad_gpo_extract_policy_setting failed for %s [%d][%s]\n",
-                      deny_key, ret, strerror(ret));
+                      deny_key, ret, sss_strerror(ret));
                 goto done;
             } else if (ret != ENOENT) {
                 ret = sysdb_gpo_store_gpo_result_setting(domain,
@@ -1448,7 +1448,7 @@ ad_gpo_perform_hbac_processing(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "GPO access check failed: [%d](%s)\n",
-              ret, strerror(ret));
+              ret, sss_strerror(ret));
         goto done;
     }
 
@@ -1670,7 +1670,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
         if (dp_error != DP_ERR_OFFLINE) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to connect to AD server: [%d](%s)\n",
-                  ret, strerror(ret));
+                  ret, sss_strerror(ret));
             goto done;
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
@@ -1992,7 +1992,7 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to filter GPO list by CSE_GUID: [%d](%s)\n",
-               ret, strerror(ret));
+               ret, sss_strerror(ret));
         goto done;
     }
 
@@ -2041,7 +2041,7 @@ ad_gpo_process_gpo_done(struct tevent_req *subreq)
         default:
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Could not delete GPO Result from cache: [%s]\n",
-                  strerror(ret));
+                  sss_strerror(ret));
             goto done;
         }
     }
@@ -2133,7 +2133,7 @@ ad_gpo_cse_step(struct tevent_req *req)
         cached_gpt_version = -1;
     } else {
         DEBUG(SSSDBG_FATAL_FAILURE, "Could not read GPO from cache: [%s]\n",
-               strerror(ret));
+              sss_strerror(ret));
         return ret;
     }
 
@@ -4034,7 +4034,7 @@ static void gpo_cse_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "ad_gpo_parse_gpo_child_response failed: [%d][%s]\n",
-              ret, strerror(ret));
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     } else if (child_result != 0){
