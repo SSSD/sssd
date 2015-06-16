@@ -30,5 +30,6 @@ void test_textual_public_key(void **state);
 void test_replace_whitespaces(void **state);
 void test_reverse_replace_whitespaces(void **state);
 void test_guid_blob_to_string_buf(void **state);
+void test_get_last_x_chars(void **state);
 
 #endif /* __TESTS__CMOCKA__TEST_UTILS_H__ */

@@ -108,3 +108,20 @@ errno_t guid_blob_to_string_buf(const uint8_t *blob, char *str_buf,
 
     return EOK;
 }
+
+const char *get_last_x_chars(const char *str, size_t x)
+{
+    size_t len;
+
+    if (str == NULL) {
+        return NULL;
+    }
+
+    len = strlen(str);
+
+    if (len < x) {
+        return str;
+    }
+
+    return (str + len - x);
+}

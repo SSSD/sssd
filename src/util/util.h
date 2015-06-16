@@ -628,6 +628,8 @@ char * sss_reverse_replace_space(TALLOC_CTX *mem_ctx,
 errno_t guid_blob_to_string_buf(const uint8_t *blob, char *str_buf,
                                 size_t buf_size);
 
+const char *get_last_x_chars(const char *str, size_t x);
+
 /* from become_user.c */
 errno_t become_user(uid_t uid, gid_t gid);
 struct sss_creds;

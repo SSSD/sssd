@@ -192,3 +192,31 @@ void test_guid_blob_to_string_buf(void **state)
         assert_string_equal(test_data[c].guid_str, str_buf);
     }
 }
+
+void test_get_last_x_chars(void **state)
+{
+    const char *s;
+
+    s = get_last_x_chars(NULL, 0);
+    assert_null(s);
+
+    s = get_last_x_chars("abc", 0);
+    assert_non_null(s);
+    assert_string_equal(s, "");
+
+    s = get_last_x_chars("abc", 1);
+    assert_non_null(s);
+    assert_string_equal(s, "c");
+
+    s = get_last_x_chars("abc", 2);
+    assert_non_null(s);
+    assert_string_equal(s, "bc");
+
+    s = get_last_x_chars("abc", 3);
+    assert_non_null(s);
+    assert_string_equal(s, "abc");
+
+    s = get_last_x_chars("abc", 4);
+    assert_non_null(s);
+    assert_string_equal(s, "abc");
+}
