@@ -81,6 +81,7 @@ Requires: python-sssdconfig = %{version}-%{release}
 %global servicename sssd
 %global sssdstatedir %{_localstatedir}/lib/sss
 %global dbpath %{sssdstatedir}/db
+%global keytabdir %{sssdstatedir}/keytabs
 %global pipepath %{sssdstatedir}/pipes
 %global mcpath %{sssdstatedir}/mc
 %global pubconfpath %{sssdstatedir}/pubconf
@@ -765,7 +766,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc COPYING
 %attr(755,root,root) %dir %{pubconfpath}/krb5.include.d
-%attr(700,sssd,sssd) %dir %{dbpath}/keytabs
+%attr(700,sssd,sssd) %dir %{keytabdir}
 %{_libdir}/%{name}/libsss_ipa.so
 %attr(4750,root,sssd) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*

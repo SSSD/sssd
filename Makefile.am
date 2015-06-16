@@ -72,6 +72,7 @@ systemdconfdir = @systemdconfdir@
 logpath = @logpath@
 pubconfpath = @pubconfpath@
 gpocachepath = @gpocachepath@
+keytabdir = $(sss_statedir)/keytabs
 pkgconfigdir = $(libdir)/pkgconfig
 krb5rcachedir = @krb5rcachedir@
 sudolibdir = @sudolibpath@
@@ -3295,7 +3296,7 @@ src/sysv/systemd/journal.conf: src/sysv/systemd/journal.conf.in Makefile
 
 SSSD_USER_DIRS = \
     $(DESTDIR)$(dbpath) \
-    $(DESTDIR)$(dbpath)/keytabs \
+    $(DESTDIR)$(keytabdir) \
     $(DESTDIR)$(mcpath) \
     $(DESTDIR)$(pipepath) \
     $(DESTDIR)$(pipepath)/private \
@@ -3330,7 +3331,9 @@ if SSSD_USER
 	$(SSSD_USER_DIRS)
 endif
 	$(INSTALL) -d -m 0700 $(DESTDIR)$(dbpath) $(DESTDIR)$(logpath) \
-            $(DESTDIR)$(pipepath)/private
+            $(DESTDIR)$(pipepath)/private \
+	    $(DESTDIR)$(keytabdir) \
+	    $(NULL)
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(mcpath) $(DESTDIR)$(pipepath) \
             $(DESTDIR)$(pubconfpath) \
             $(DESTDIR)$(pubconfpath)/krb5.include.d $(DESTDIR)$(gpocachepath)

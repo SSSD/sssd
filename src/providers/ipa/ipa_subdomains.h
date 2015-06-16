@@ -30,7 +30,7 @@
 #include "config.h"
 
 #ifndef IPA_TRUST_KEYTAB_DIR
-#define IPA_TRUST_KEYTAB_DIR         DB_PATH"/keytabs"
+#define IPA_TRUST_KEYTAB_DIR         SSS_STATEDIR"/keytabs"
 #endif /* IPA_TRUST_KEYTAB_DIR */
 
 /* ==Sid2Name Extended Operation============================================= */
