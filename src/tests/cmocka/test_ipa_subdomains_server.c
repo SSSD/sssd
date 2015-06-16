@@ -729,11 +729,14 @@ static void test_ipa_trust_dir2str(void **state)
 int main(int argc, const char *argv[])
 {
     int rv;
+    int no_cleanup = 0;
     poptContext pc;
     int opt;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
+        { "no-cleanup", 'n', POPT_ARG_NONE, &no_cleanup, 0,
+          _("Do not delete the test database after a test run"), NULL },
         POPT_TABLEEND
     };
 
@@ -798,5 +801,9 @@ int main(int argc, const char *argv[])
     test_dom_suite_setup(TESTS_PATH);
 
     rv = cmocka_run_group_tests(tests, NULL, NULL);
+    if (rv == 0 && !no_cleanup) {
+        test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
+    }
+
     return rv;
 }
