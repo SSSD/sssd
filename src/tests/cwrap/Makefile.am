@@ -6,6 +6,7 @@ AM_CPPFLAGS = \
     -DLOCALEDIR=\"$(localedir)\" \
     -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
+    -DSSS_STATEDIR=\"$(localstatedir)/lib/sss\" \
     -DSYSCONFDIR=\"$(sysconfdir)\" \
     $(DBUS_CFLAGS) \
     $(GLIB2_CFLAGS) \

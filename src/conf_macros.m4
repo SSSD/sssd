@@ -5,7 +5,7 @@ AC_DEFUN([WITH_DB_PATH],
                                )
                 ]
                )
-    config_dbpath="\"VARDIR\"/lib/sss/db"
+    config_dbpath="\"SSS_STATEDIR\"/db"
     dbpath="${localstatedir}/lib/sss/db"
     if test x"$with_db_path" != x; then
         config_dbpath=$with_db_path
@@ -73,7 +73,7 @@ AC_DEFUN([WITH_PUBCONF_PATH],
                                )
                 ]
                )
-    config_pubconfpath="\"VARDIR\"/lib/sss/pubconf"
+    config_pubconfpath="\"SSS_STATEDIR\"/pubconf"
     pubconfpath="${localstatedir}/lib/sss/pubconf"
     if test x"$with_pubconf_path" != x; then
         config_pubconfpath=$with_pubconf_path
@@ -90,7 +90,7 @@ AC_DEFUN([WITH_PIPE_PATH],
                                )
                 ]
                )
-    config_pipepath="\"VARDIR\"/lib/sss/pipes"
+    config_pipepath="\"SSS_STATEDIR\"/pipes"
     pipepath="${localstatedir}/lib/sss/pipes"
     if test x"$with_pipe_path" != x; then
         config_pipepath=$with_pipe_path
@@ -107,7 +107,7 @@ AC_DEFUN([WITH_MCACHE_PATH],
                                )
                 ]
                )
-    config_mcpath="\"VARDIR\"/lib/sss/mc"
+    config_mcpath="\"SSS_STATEDIR\"/mc"
     mcpath="${localstatedir}/lib/sss/mc"
     if test x"$with_mcache_path" != x; then
         config_mcpath=$with_mcache_path
@@ -491,7 +491,7 @@ AC_DEFUN([WITH_GPO_CACHE_PATH],
                                )
                 ]
                )
-    config_gpocachepath="\"VARDIR\"/lib/sss/gpo_cache"
+    config_gpocachepath="\"SSS_STATEDIR\"/gpo_cache"
     gpocachepath="${localstatedir}/lib/sss/gpo_cache"
     if test x"$with_gpo_cache_path" != x; then
         config_gpocachepath=$with_gpo_cache_path

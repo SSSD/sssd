@@ -54,6 +54,7 @@ sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 dbusservicedir = $(datadir)/dbus-1/system-services
+sss_statedir = $(localstatedir)/lib/sss
 localedir = @localedir@
 nsslibdir = @nsslibdir@
 pamlibdir = @pammoddir@
@@ -405,6 +406,7 @@ AM_CPPFLAGS = \
     $(JOURNALD_CFLAGS) \
     -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
+    -DSSS_STATEDIR=\"$(sss_statedir)\" \
     -DSYSCONFDIR=\"$(sysconfdir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
     -DSSSD_LIBEXEC_PATH=\"$(sssdlibexecdir)\" \
