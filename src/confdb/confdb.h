@@ -140,6 +140,7 @@
 /* InfoPipe */
 #define CONFDB_IFP_CONF_ENTRY "config/ifp"
 #define CONFDB_IFP_USER_ATTR_LIST "user_attributes"
+#define CONFDB_IFP_WILDCARD_LIMIT "wildcard_limit"
 
 /* Domains */
 #define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"

@@ -131,6 +131,21 @@ user_attributes = +telephoneNumber, -loginShell
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>wildcart_limit (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies an upper limit on the number of entries
+                            that are downloaded during a wildcard lookup that
+                            overrides caller-supplied limit.
+                        </para>
+                        <para>
+                            Default: 0 (let the caller set an upper limit)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
     </refsect1>
 

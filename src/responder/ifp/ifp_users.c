@@ -309,13 +309,122 @@ done:
     return;
 }
 
+static int ifp_users_list_copy(struct ifp_list_ctx *list_ctx,
+                               struct ldb_result *result)
+{
+    size_t copy_count, i;
+
+    copy_count = ifp_list_ctx_remaining_capacity(list_ctx, result->count);
+
+    for (i = 0; i < copy_count; i++) {
+        list_ctx->paths[list_ctx->path_count + i] = \
+                             ifp_users_build_path_from_msg(list_ctx->paths,
+                                                           list_ctx->dom,
+                                                           result->msgs[i]);
+        if (list_ctx->paths[list_ctx->path_count + i] == NULL) {
+            return ENOMEM;
+        }
+    }
+
+    list_ctx->path_count += copy_count;
+    return EOK;
+}
+
+static int ifp_users_list_by_name_step(struct ifp_list_ctx *list_ctx);
+static void ifp_users_list_by_name_done(struct tevent_req *req);
+static void ifp_users_list_by_name_reply(struct ifp_list_ctx *list_ctx);
+
 int ifp_users_list_by_name(struct sbus_request *sbus_req,
                            void *data,
                            const char *filter,
                            uint32_t limit)
 {
+    struct ifp_ctx *ctx;
+    struct ifp_list_ctx *list_ctx;
+
+    ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return ERR_INTERNAL;
+    }
+
+    list_ctx = ifp_list_ctx_new(sbus_req, ctx, filter, limit);
+    if (list_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    return ifp_users_list_by_name_step(list_ctx);
+}
+
+static int ifp_users_list_by_name_step(struct ifp_list_ctx *list_ctx)
+{
+    struct tevent_req *req;
+
+    req = cache_req_user_by_filter_send(list_ctx,
+                                        list_ctx->ctx->rctx->ev,
+                                        list_ctx->ctx->rctx,
+                                        list_ctx->dom->name,
+                                        list_ctx->filter);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+    tevent_req_set_callback(req,
+                            ifp_users_list_by_name_done, list_ctx);
+
     return EOK;
 }
+
+static void ifp_users_list_by_name_done(struct tevent_req *req)
+{
+    DBusError *error;
+    struct ifp_list_ctx *list_ctx;
+    struct sbus_request *sbus_req;
+    struct ldb_result *result;
+    struct sss_domain_info *domain;
+    errno_t ret;
+
+    list_ctx = tevent_req_callback_data(req, struct ifp_list_ctx);
+    sbus_req = list_ctx->sbus_req;
+
+    ret = cache_req_user_by_name_recv(sbus_req, req, &result, &domain, NULL);
+    talloc_zfree(req);
+    if (ret != EOK && ret != ENOENT) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "users by filter [%d]: %s\n", ret, sss_strerror(ret));
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    ret = ifp_users_list_copy(list_ctx, result);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                               "Failed to copy domain result");
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    list_ctx->dom = get_next_domain(list_ctx->dom, true);
+    if (list_ctx->dom == NULL) {
+        return ifp_users_list_by_name_reply(list_ctx);
+    }
+
+    ret = ifp_users_list_by_name_step(list_ctx);
+    if (ret != EOK) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                               "Failed to start next-domain search");
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+}
+
+static void ifp_users_list_by_name_reply(struct ifp_list_ctx *list_ctx)
+{
+    iface_ifp_users_ListByName_finish(list_ctx->sbus_req,
+                                      list_ctx->paths,
+                                      list_ctx->path_count);
+}
+
+static void ifp_users_list_by_domain_and_name_done(struct tevent_req *req);
 
 int ifp_users_list_by_domain_and_name(struct sbus_request *sbus_req,
                                       void *data,
@@ -323,7 +432,82 @@ int ifp_users_list_by_domain_and_name(struct sbus_request *sbus_req,
                                       const char *filter,
                                       uint32_t limit)
 {
+    struct tevent_req *req;
+    struct ifp_ctx *ctx;
+    struct ifp_list_ctx *list_ctx;
+
+    ctx = talloc_get_type(data, struct ifp_ctx);
+    if (ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid pointer!\n");
+        return ERR_INTERNAL;
+    }
+
+    list_ctx = ifp_list_ctx_new(sbus_req, ctx, filter, limit);
+    if (list_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    req = cache_req_user_by_filter_send(list_ctx, ctx->rctx->ev, ctx->rctx,
+                                        domain, filter);
+    if (req == NULL) {
+        return ENOMEM;
+    }
+    tevent_req_set_callback(req,
+                            ifp_users_list_by_domain_and_name_done, list_ctx);
+
     return EOK;
+}
+
+static void ifp_users_list_by_domain_and_name_done(struct tevent_req *req)
+{
+    DBusError *error;
+    struct ifp_list_ctx *list_ctx;
+    struct sbus_request *sbus_req;
+    struct ldb_result *result;
+    struct sss_domain_info *domain;
+    errno_t ret;
+    size_t copy_count, i;
+
+    list_ctx = tevent_req_callback_data(req, struct ifp_list_ctx);
+    sbus_req = list_ctx->sbus_req;
+
+    ret = cache_req_user_by_name_recv(sbus_req, req, &result, &domain, NULL);
+    talloc_zfree(req);
+    if (ret == ENOENT) {
+        error = sbus_error_new(sbus_req, SBUS_ERROR_NOT_FOUND,
+                               "User not found by filter");
+        goto done;
+    } else if (ret != EOK) {
+        error = sbus_error_new(sbus_req, DBUS_ERROR_FAILED, "Failed to fetch "
+                               "users by filter [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    copy_count = ifp_list_ctx_remaining_capacity(list_ctx, result->count);
+
+    for (i = 0; i < copy_count; i++) {
+        list_ctx->paths[i] = ifp_users_build_path_from_msg(list_ctx->paths,
+                                                           list_ctx->dom,
+                                                           result->msgs[i]);
+        if (list_ctx->paths[i] == NULL) {
+            error = sbus_error_new(sbus_req, SBUS_ERROR_INTERNAL,
+                                   "Failed to compose object path");
+            goto done;
+        }
+    }
+
+    list_ctx->path_count += copy_count;
+
+done:
+    if (ret != EOK) {
+        sbus_request_fail_and_finish(sbus_req, error);
+        return;
+    }
+
+    iface_ifp_users_ListByDomainAndName_finish(sbus_req,
+                                               list_ctx->paths,
+                                               list_ctx->path_count);
+    return;
 }
 
 static errno_t

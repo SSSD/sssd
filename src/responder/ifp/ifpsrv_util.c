@@ -21,6 +21,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/param.h>
+
 #include "db/sysdb.h"
 #include "responder/ifp/ifp_private.h"
 
@@ -268,4 +270,54 @@ bool
 ifp_is_user_attr_allowed(struct ifp_ctx *ifp_ctx, const char *attr)
 {
     return ifp_attr_allowed(ifp_ctx->user_whitelist, attr);
+}
+
+static uint32_t ifp_list_limit(struct ifp_ctx *ctx, uint32_t limit)
+{
+    if (ctx->wildcard_limit) {
+        return MIN(ctx->wildcard_limit, limit);
+    } else {
+        return limit;
+    }
+}
+
+struct ifp_list_ctx *ifp_list_ctx_new(struct sbus_request *sbus_req,
+                                      struct ifp_ctx *ctx,
+                                      const char *filter,
+                                      uint32_t limit)
+{
+    struct ifp_list_ctx *list_ctx;
+
+    list_ctx = talloc_zero(sbus_req, struct ifp_list_ctx);
+    if (list_ctx == NULL) {
+        return NULL;
+    }
+
+    list_ctx->sbus_req = sbus_req;
+    list_ctx->limit = ifp_list_limit(ctx, limit);
+    list_ctx->ctx = ctx;
+    list_ctx->dom = ctx->rctx->domains;
+    list_ctx->filter = filter;
+    list_ctx->paths = talloc_zero_array(list_ctx, const char *, limit);
+    if (list_ctx->paths == NULL) {
+        talloc_free(list_ctx);
+        return NULL;
+    }
+
+    return list_ctx;
+}
+
+size_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
+                                       size_t entries)
+{
+    size_t capacity = list_ctx->limit - list_ctx->path_count;
+
+    if (capacity < entries) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "IFP list request has limit of %"PRIu32" entries but back end "
+              "returned %zu entries\n", list_ctx->limit, entries);
+        return capacity;
+    } else {
+        return entries;
+    }
 }

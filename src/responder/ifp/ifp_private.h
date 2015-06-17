@@ -44,6 +44,7 @@ struct ifp_ctx {
 
     struct sysbus_ctx *sysbus;
     const char **user_whitelist;
+    uint32_t wildcard_limit;
 };
 
 errno_t ifp_register_sbus_interface(struct sbus_connection *conn,
@@ -83,5 +84,26 @@ ifp_get_user_extra_attributes(TALLOC_CTX *mem_ctx, struct ifp_ctx *ifp_ctx);
 
 bool ifp_attr_allowed(const char *whitelist[], const char *attr);
 bool ifp_is_user_attr_allowed(struct ifp_ctx *ifp_ctx, const char *attr);
+
+/* Used for list calls */
+struct ifp_list_ctx {
+    struct sbus_request *sbus_req;
+    const char *filter;
+    uint32_t limit;
+
+    struct sss_domain_info *dom;
+    struct ifp_ctx *ctx;
+
+    const char **paths;
+    size_t path_count;
+};
+
+struct ifp_list_ctx *ifp_list_ctx_new(struct sbus_request *sbus_req,
+                                      struct ifp_ctx *ctx,
+                                      const char *filter,
+                                      uint32_t limit);
+
+size_t ifp_list_ctx_remaining_capacity(struct ifp_list_ctx *list_ctx,
+                                       size_t entries);
 
 #endif /* _IFPSRV_PRIVATE_H_ */

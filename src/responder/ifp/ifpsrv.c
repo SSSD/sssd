@@ -34,6 +34,7 @@
 #include <dbus/dbus.h>
 
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "sbus/sssd_dbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "confdb/confdb.h"
@@ -228,6 +229,7 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
     int max_retries;
     char *uid_str;
     char *attr_list_str;
+    char *wildcard_limit_str;
 
     ifp_cmds = get_ifp_cmds();
     ret = sss_process_init(mem_ctx, ev, cdb,
@@ -319,6 +321,27 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Failed to set up automatic reconnection\n");
         goto fail;
+    }
+
+    /* A bit convoluted way until we have a confdb_get_uint32 */
+    ret = confdb_get_string(ifp_ctx->rctx->cdb,
+                            ifp_ctx->rctx,
+                            CONFDB_IFP_CONF_ENTRY,
+                            CONFDB_IFP_WILDCARD_LIMIT,
+                            NULL, /* no limit by default */
+                            &wildcard_limit_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to retrieve limit for a wildcard search\n");
+        goto fail;
+    }
+
+    if (wildcard_limit_str) {
+        ifp_ctx->wildcard_limit = strtouint32(wildcard_limit_str, NULL, 10);
+        if (errno != 0) {
+            ret = errno;
+            goto fail;
+        }
     }
 
     for (iter = ifp_ctx->rctx->be_conns; iter; iter = iter->next) {
