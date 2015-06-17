@@ -2499,6 +2499,7 @@ test_ipa_subdom_server_CFLAGS = \
 test_ipa_subdom_server_LDFLAGS = \
     -Wl,-wrap,krb5_kt_default \
     -Wl,-wrap,execle \
+    -Wl,-wrap,execve \
     $(NULL)
 test_ipa_subdom_server_LDADD = \
     $(PAM_LIBS) \

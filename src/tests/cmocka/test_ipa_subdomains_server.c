@@ -89,6 +89,12 @@ int __wrap_execle(const char *path, const char *arg, ...)
     _exit(0);
 }
 
+int __wrap_execve(const char *path, const char *arg, ...)
+{
+    create_dummy_keytab();
+    _exit(0);
+}
+
 struct trust_test_ctx {
     struct sss_test_ctx *tctx;
     struct be_ctx *be_ctx;
