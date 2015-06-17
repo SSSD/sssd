@@ -1103,33 +1103,39 @@ static void groups_by_user_done(struct tevent_req *subreq)
     }
     state->sdap_ret = ret;
 
-    if (ret && ret != ENOENT) {
-        state->dp_error = dp_error;
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    /* state->name is still the name used for the original request. The cached
-     * object might have a different name, e.g. a fully-qualified name. */
-    ret = sysdb_get_real_name(state, state->domain->sysdb, state->domain,
-                              state->name, &cname);
-    if (ret != EOK) {
-        cname = state->name;
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to canonicalize name, using [%s].\n",
-                                 cname);
-    }
-
-    if (ret == ENOENT && state->noexist_delete == true) {
-        ret = sysdb_delete_user(state->domain->sysdb, state->domain, cname, 0);
-        if (ret != EOK && ret != ENOENT) {
-            tevent_req_error(req, ret);
-            return;
+    if (ret == EOK || ret == ENOENT) {
+        /* state->name is still the name used for the original req. The cached
+         * object might have a different name, e.g. a fully-qualified name. */
+        ret = sysdb_get_real_name(state, state->domain->sysdb, state->domain,
+                                  state->name, &cname);
+        if (ret != EOK) {
+            cname = state->name;
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to canonicalize name, using [%s].\n", cname);
         }
     }
 
-    ret = set_initgroups_expire_attribute(state->domain, cname);
-    if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
+    switch (state->sdap_ret) {
+    case ENOENT:
+        if (state->noexist_delete == true) {
+            ret = sysdb_delete_user(state->domain->sysdb, state->domain,
+                                    cname, 0);
+            if (ret != EOK && ret != ENOENT) {
+                tevent_req_error(req, ret);
+                return;
+            }
+        }
+        break;
+    case EOK:
+        ret = set_initgroups_expire_attribute(state->domain, cname);
+        if (ret != EOK) {
+            state->dp_error = DP_ERR_FATAL;
+            tevent_req_error(req, ret);
+            return;
+        }
+        break;
+    default:
+        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
