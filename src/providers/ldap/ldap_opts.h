@@ -122,6 +122,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_min_id", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER},
     { "ldap_max_id", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER},
     { "ldap_pwdlockout_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "wildcard_limit", DP_OPT_NUMBER, { .number = 1000 }, NULL_NUMBER},
     DP_OPTION_TERMINATOR
 };
 

@@ -2135,6 +2135,23 @@ ldap_access_filter = (employeeType=admin)
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>wildcart_limit (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies an upper limit on the number of entries
+                            that are downloaded during a wildcard lookup.
+                        </para>
+                        <para>
+                            At the moment, only the InfoPipe responder supports
+                            wildcard lookups.
+                        </para>
+                        <para>
+                            Default: 1000 (often the size of one page)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

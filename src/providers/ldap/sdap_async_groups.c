@@ -1856,6 +1856,7 @@ static errno_t sdap_get_groups_next_base(struct tevent_req *req)
     struct tevent_req *subreq;
     struct sdap_get_groups_state *state;
     bool need_paging = false;
+    int sizelimit = 0;
 
     state = tevent_req_data(req, struct sdap_get_groups_state);
 
@@ -1873,13 +1874,18 @@ static errno_t sdap_get_groups_next_base(struct tevent_req *req)
 
     switch (state->lookup_type) {
     case SDAP_LOOKUP_SINGLE:
+        sizelimit = 1;
         need_paging = false;
         break;
     /* Only requests that can return multiple entries should require
      * the paging control
      */
     case SDAP_LOOKUP_WILDCARD:
+        sizelimit = dp_opt_get_int(state->opts->basic, SDAP_WILDCARD_LIMIT);
+        need_paging = true;
+        break;
     case SDAP_LOOKUP_ENUMERATE:
+        sizelimit = 0;  /* unlimited */
         need_paging = true;
         break;
     }
@@ -1891,7 +1897,7 @@ static errno_t sdap_get_groups_next_base(struct tevent_req *req)
             state->search_bases[state->base_iter]->scope,
             state->filter, state->attrs,
             state->opts->group_map, SDAP_OPTS_GROUP,
-            0, NULL, NULL, 0, state->timeout,
+            0, NULL, NULL, sizelimit, state->timeout,
             need_paging);
     if (!subreq) {
         return ENOMEM;
