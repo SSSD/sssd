@@ -259,6 +259,7 @@ function build_coverage()
     declare -r coverage_report_dir="ci-report-coverage"
     declare extra_CFLAGS=""
     declare test_dir
+    declare status
 
     if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ||
           "$DISTRO_BRANCH" == -redhat-centos-6.*- ]]; then
@@ -284,8 +285,10 @@ function build_coverage()
                                  --base-directory "$BASE_DIR" \
                                  --output-file ci-base.info
     # Run tests
-    stage make-check        make -j $CPU_NUM check || true
+    status=$?
+    stage make-check        make -j $CPU_NUM check || status=$?
     mv "$test_dir" ci-test-dir
+    ((status == 0))
 
     stage lcov-post         lcov --capture --directory . \
                                  --base-directory "$BASE_DIR" \
