@@ -2259,11 +2259,39 @@ static errno_t monitor_config_file_fallback(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+#define MISSING_RESOLV_CONF_POLL_TIME 10
+
+static void missing_resolv_conf(struct tevent_context *ev,
+                                struct tevent_timer *te,
+                                struct timeval tv, void *data)
+{
+    int ret;
+    struct mt_ctx *ctx = talloc_get_type(data, struct mt_ctx);
+
+    ret = monitor_config_file(ctx, ctx, RESOLV_CONF_PATH,
+                              monitor_update_resolv, false);
+    if (ret == EOK) {
+        signal_res_init(ctx);
+    } else if (ret == ENOENT) {
+        tv = tevent_timeval_current_ofs(MISSING_RESOLV_CONF_POLL_TIME, 0);
+        te = tevent_add_timer(ctx->ev, ctx, tv, missing_resolv_conf, ctx);
+        if (te == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "tevent_add_timer failed. resolv.conf will be ignored.\n");
+        }
+    } else {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Monitor_config_file failed. resolv.conf will be ignored.\n");
+    }
+}
+
 static int monitor_process_init(struct mt_ctx *ctx,
                                 const char *config_file)
 {
     TALLOC_CTX *tmp_ctx;
     struct tevent_signal *tes;
+    struct timeval tv;
+    struct tevent_timer *te;
     struct sss_domain_info *dom;
     char *rcachedir;
     int num_providers;
@@ -2351,8 +2379,14 @@ static int monitor_process_init(struct mt_ctx *ctx,
 #endif
     /* Watch for changes to the DNS resolv.conf */
     ret = monitor_config_file(ctx, ctx, RESOLV_CONF_PATH,
-                             monitor_update_resolv,true);
-    if (ret != EOK) {
+                              monitor_update_resolv, false);
+    if (ret == ENOENT) {
+        tv = tevent_timeval_current_ofs(MISSING_RESOLV_CONF_POLL_TIME, 0);
+        te = tevent_add_timer(ctx->ev, ctx, tv, missing_resolv_conf, ctx);
+        if (te == NULL) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "resolv.conf will be ignored\n");
+        }
+    } else if (ret != EOK) {
         return ret;
     }
 
