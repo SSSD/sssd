@@ -558,7 +558,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     attrs[6] = SYSDB_AUTH_TYPE;
     attrs[7] = NULL;
 
-    ret = krb5_setup(state, pd, krb5_ctx, be_ctx->domain->case_sensitive,
+    ret = krb5_setup(state, pd, krb5_ctx, state->domain->case_sensitive,
                      &state->kr);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_setup failed.\n");
