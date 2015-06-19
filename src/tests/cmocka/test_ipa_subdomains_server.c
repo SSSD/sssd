@@ -533,6 +533,7 @@ static void test_trust_dir_getset(struct dir_test_ctx *test_ctx,
     assert_int_equal(ret, EOK);
 
     ret = ipa_server_get_trust_direction(test_ctx->tdo, test_ctx->ldb, &dir);
+    assert_int_equal(ret, EOK);
     assert_int_equal(dir, dir_in);
 }
 
