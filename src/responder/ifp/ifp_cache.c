@@ -34,7 +34,7 @@ ifp_cache_build_base_dn(TALLOC_CTX *mem_ctx,
                         enum ifp_cache_type type,
                         struct sss_domain_info *domain)
 {
-    struct ldb_dn *base_dn;
+    struct ldb_dn *base_dn = NULL;
 
     switch (type) {
     case IFP_CACHE_USER:
@@ -54,7 +54,7 @@ ifp_cache_build_path(TALLOC_CTX *mem_ctx,
                      struct sss_domain_info *domain,
                      struct ldb_message *msg)
 {
-    char *path;
+    char *path = NULL;
 
     switch (type) {
     case IFP_CACHE_USER:
