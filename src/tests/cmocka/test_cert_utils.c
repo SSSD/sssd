@@ -23,7 +23,9 @@
 */
 
 #include <popt.h>
+#ifdef HAVE_LIBCRYPTO
 #include <openssl/objects.h>
+#endif
 
 #include "util/cert.h"
 #include "tests/cmocka/common_mock.h"
@@ -349,7 +351,9 @@ int main(int argc, const char *argv[])
 
     ret = cmocka_run_group_tests(tests, NULL, NULL);
 
+#ifdef HAVE_LIBCRYPTO
     CRYPTO_cleanup_all_ex_data(); /* to make valgrind happy */
+#endif
 
 #ifdef HAVE_NSS
     /* Cleanup NSS and NSPR to make valgrind happy. */

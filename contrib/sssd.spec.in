@@ -107,7 +107,6 @@ BuildRequires: dbus-libs
 BuildRequires: openldap-devel
 BuildRequires: pam-devel
 BuildRequires: nss-devel
-BuildRequires: openssl-devel
 BuildRequires: nspr-devel
 BuildRequires: pcre-devel
 BuildRequires: libxslt

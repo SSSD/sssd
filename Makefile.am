@@ -709,6 +709,17 @@ if HAVE_NSS
                         src/util/crypto/nss/nss_util.c
     SSS_CRYPT_CFLAGS = $(NSS_CFLAGS)
     SSS_CRYPT_LIBS = $(NSS_LIBS)
+
+    SSS_CERT_SOURCES = \
+        src/util/cert/cert_common.c \
+        src/util/cert/nss/cert.c \
+        $(NULL)
+    SSS_CERT_CFLAGS = \
+        $(NSS_CFLAGS) \
+        $(NULL)
+    SSS_CERT_LIBS = \
+        $(NSS_LIBS) \
+        $(NULL)
 else
     SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_base64.c \
                         src/util/crypto/libcrypto/crypto_hmac_sha1.c \
@@ -716,6 +727,17 @@ else
                         src/util/crypto/libcrypto/crypto_obfuscate.c
     SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
     SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
+
+    SSS_CERT_SOURCES = \
+        src/util/cert/cert_common.c \
+        src/util/cert/libcrypto/cert.c \
+        $(NULL)
+    SSS_CERT_CFLAGS = \
+        $(CRYPTO_CFLAGS) \
+        $(NULL)
+    SSS_CERT_LIBS = \
+        $(CRYPTO_LIBS) \
+        $(NULL)
 endif
 
 libsss_crypt_la_SOURCES = \
@@ -735,14 +757,13 @@ libsss_crypt_la_LDFLAGS = \
 pkglib_LTLIBRARIES += libsss_cert.la
 
 libsss_cert_la_SOURCES = \
-    src/util/cert/cert_common.c \
-    src/util/cert/libcrypto/cert.c \
+    $(SSS_CERT_SOURCES) \
     $(NULL)
 libsss_cert_la_CFLAGS = \
-    $(CRYPTO_CFLAGS) \
+    $(SSS_CERT_CFLAGS) \
     $(NULL)
 libsss_cert_la_LIBADD = \
-    $(CRYPTO_LIBS) \
+    $(SSS_CERT_LIBS) \
     $(TALLOC_LIBS) \
     libsss_crypt.la \
     libsss_debug.la \
