@@ -2157,13 +2157,13 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
         err = errno;
         if (err == ENOENT && ignore_missing) {
             DEBUG(SSSDBG_MINOR_FAILURE,
-                    "file [%s] is missing. Will not update online status "
-                     "based on watching the file\n", file);
+                  "file [%s] is missing. Will not update online status "
+                  "based on watching the file\n", file);
             return EOK;
         } else {
-            DEBUG(SSSDBG_FATAL_FAILURE,
-                 "Could not stat file [%s]. Error [%d:%s]\n",
-                 file, err, strerror(err));
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not stat file [%s]. Error [%d:%s]\n",
+                  file, err, strerror(err));
 
             return err;
         }
