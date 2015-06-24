@@ -552,8 +552,7 @@ errno_t sysdb_master_domain_update(struct sss_domain_info *domain)
      * Currently changing the view is not supported hence we have to check for
      * changes and error out accordingly.
      */
-    if (ret == ENOENT || view_name == NULL
-            || strcmp(view_name, SYSDB_DEFAULT_VIEW_NAME) == 0) {
+    if (ret == ENOENT || is_default_view(view_name)) {
         /* handle default view */
         if (domain->has_views) {
             DEBUG(SSSDBG_CRIT_FAILURE,

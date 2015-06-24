@@ -277,7 +277,7 @@ struct tevent_req *ipa_get_ad_override_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (strcmp(view_name, SYSDB_DEFAULT_VIEW_NAME) == 0) {
+    if (is_default_view(view_name)) {
         state->ipa_view_name = IPA_DEFAULT_VIEW_NAME;
     } else {
         state->ipa_view_name = view_name;

@@ -1034,8 +1034,7 @@ static void ipa_s2n_get_fqlist_next(struct tevent_req *subreq)
         goto fail;
     }
 
-    if (state->ipa_ctx->view_name == NULL ||
-            strcmp(state->ipa_ctx->view_name, SYSDB_DEFAULT_VIEW_NAME) == 0) {
+    if (is_default_view(state->ipa_ctx->view_name)) {
         ret = ipa_s2n_get_fqlist_save_step(req);
         if (ret == EOK) {
             tevent_req_done(req);
@@ -1613,10 +1612,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
         ret = ENOENT;
     }
 
-    if (ret == ENOENT
-            || state->ipa_ctx->view_name == NULL
-            || strcmp(state->ipa_ctx->view_name,
-                      SYSDB_DEFAULT_VIEW_NAME) == 0) {
+    if (ret == ENOENT || is_default_view(state->ipa_ctx->view_name)) {
         ret = ipa_s2n_save_objects(state->dom, state->req_input, state->attrs,
                                    state->simple_attrs, NULL, NULL, true);
         if (ret != EOK) {
@@ -2167,7 +2163,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
         goto done;
     }
 
-    if (view_name != NULL && strcmp(view_name, SYSDB_DEFAULT_VIEW_NAME) != 0) {
+    if (!is_default_view(view_name)) {
         /* For the default view the data return by the extdom plugin already
          * contains all needed data and it is not expected to have a separate
          * override object. */
@@ -2233,9 +2229,7 @@ static void ipa_s2n_get_fqlist_done(struct tevent_req  *subreq)
     }
 
     if (state->override_attrs == NULL
-            && state->ipa_ctx->view_name != NULL
-            && strcmp(state->ipa_ctx->view_name,
-                      SYSDB_DEFAULT_VIEW_NAME) != 0) {
+            && !is_default_view(state->ipa_ctx->view_name)) {
         subreq = ipa_get_ad_override_send(state, state->ev,
                            state->ipa_ctx->sdap_id_ctx,
                            state->ipa_ctx->ipa_options,

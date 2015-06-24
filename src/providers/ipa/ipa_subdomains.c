@@ -875,7 +875,7 @@ static void ipa_get_view_name_done(struct tevent_req *req)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Found view name [%s].\n", view_name);
-    if (strcmp(view_name, IPA_DEFAULT_VIEW_NAME) == 0) {
+    if (is_default_view(view_name)) {
         DEBUG(SSSDBG_TRACE_ALL,
               "Found IPA default view name, replacing with sysdb default.\n");
         view_name = SYSDB_DEFAULT_VIEW_NAME;
@@ -905,8 +905,7 @@ static void ipa_get_view_name_done(struct tevent_req *req)
                     goto done;
                 }
 
-                if (strcmp(ctx->sd_ctx->id_ctx->view_name,
-                           SYSDB_DEFAULT_VIEW_NAME) != 0) {
+                if (!is_default_view(ctx->sd_ctx->id_ctx->view_name)) {
                     /* Old view was not the default view, delete view tree */
                     ret = sysdb_delete_view_tree(
                                              ctx->sd_ctx->be_ctx->domain->sysdb,

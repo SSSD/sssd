@@ -445,7 +445,7 @@ static void ipa_initgr_get_overrides_override_done(struct tevent_req *subreq)
         return;
     }
 
-    if (strcmp(state->ipa_ctx->view_name, SYSDB_DEFAULT_VIEW_NAME) == 0) {
+    if (is_default_view(state->ipa_ctx->view_name)) {
         ret = sysdb_apply_default_override(state->user_dom, override_attrs,
                                        state->groups[state->group_idx]->dn);
     } else {
@@ -634,10 +634,8 @@ ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
      * - there is no view set of it is the default view
      * - if the EXTRA_INPUT_MAYBE_WITH_VIEW flag is not set
      */
-    if (state->ipa_ctx->view_name == NULL
+    if (is_default_view(state->ipa_ctx->view_name)
             || state->ar->filter_type == BE_FILTER_SECID
-            || strcmp(state->ipa_ctx->view_name,
-                      SYSDB_DEFAULT_VIEW_NAME) == 0
             || state->ar->extra_value == NULL
             || strcmp(state->ar->extra_value,
                       EXTRA_INPUT_MAYBE_WITH_VIEW) != 0 ) {
@@ -842,8 +840,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
     }
 
 
-    if (state->ipa_ctx->view_name != NULL &&
-            strcmp(state->ipa_ctx->view_name, SYSDB_DEFAULT_VIEW_NAME) != 0) {
+    if (!is_default_view(state->ipa_ctx->view_name)) {
 
         if ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_GROUP
                 || ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_BY_UUID
