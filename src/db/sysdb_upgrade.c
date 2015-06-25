@@ -1587,6 +1587,56 @@ done:
     return ret;
 }
 
+int sysdb_upgrade_16(struct sysdb_ctx *sysdb, const char **ver)
+{
+    struct ldb_message *msg;
+    struct upgrade_ctx *ctx;
+    errno_t ret;
+
+    ret = commence_upgrade(sysdb, sysdb->ldb, SYSDB_VERSION_0_17, &ctx);
+    if (ret) {
+        return ret;
+    }
+
+    msg = ldb_msg_new(ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = ldb_dn_new(msg, sysdb->ldb, "@INDEXLIST");
+    if (msg->dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* add index for objectSIDString */
+    ret = ldb_msg_add_empty(msg, "@IDXATTR", LDB_FLAG_MOD_ADD, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, "@IDXATTR", "objectSIDString");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    /* conversion done, update version number */
+    ret = update_version(ctx);
+
+done:
+    ret = finish_upgrade(ret, &ctx, ver);
+    return ret;
+}
+
 /*
  * Example template for future upgrades.
  * Copy and change version numbers as appropriate.
