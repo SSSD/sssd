@@ -107,9 +107,10 @@ int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer)
     uint8_t *buf;
     size_t rp;
 
-    len = sizeof(uint32_t) +
-          2*sizeof(uint32_t) + pi->pam_user_size +
-          sizeof(uint32_t);
+    len = sizeof(uint32_t) + sizeof(uint32_t);
+
+    len +=  *pi->pam_user != '\0' ?
+                2*sizeof(uint32_t) + pi->pam_user_size : 0;
     len += *pi->pam_service != '\0' ?
                 2*sizeof(uint32_t) + pi->pam_service_size : 0;
     len += *pi->pam_tty != '\0' ?
