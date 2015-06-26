@@ -223,4 +223,45 @@ errno_t sss_authtok_set_2fa(struct sss_auth_token *tok,
 errno_t sss_authtok_get_2fa(struct sss_auth_token *tok,
                             const char **fa1, size_t *fa1_len,
                             const char **fa2, size_t *fa2_len);
+
+/**
+ * @brief Set a Smart Card pin into a an auth token, replacing any previous data
+ *
+ * @param tok        A pointer to a sss_auth_token structure to change, also
+ *                   used as a memory context to allocate the internal data.
+ * @param pin        A string
+ * @param len        The length of the string or, if 0 is passed,
+ *                   then strlen(password) will be used internally.
+ *
+ * @return       EOK on success
+ *               ENOMEM on error
+ */
+errno_t sss_authtok_set_sc_pin(struct sss_auth_token *tok, const char *pin,
+                               size_t len);
+
+/**
+ * @brief Returns a Smart Card pin as const string if the auth token is of
+ *        type SSS_AUTHTOK_TYPE_SC_PIN, otherwise it returns an error
+ *
+ * @param tok    A pointer to an sss_auth_token
+ * @param pin    A pointer to a const char *, that will point to a null
+ *               terminated string
+ * @param len    The length of the pin string
+ *
+ * @return       EOK on success
+ *               ENOENT if the token is empty
+ *               EACCESS if the token is not a Smart Card pin token
+ */
+errno_t sss_authtok_get_sc_pin(struct sss_auth_token *tok, const char **pin,
+                               size_t *len);
+
+/**
+ * @brief Sets an auth token to type SSS_AUTHTOK_TYPE_SC_KEYPAD, replacing any
+ *        previous data
+ *
+ * @param tok        A pointer to a sss_auth_token structure to change, also
+ *                   used as a memory context to allocate the internal data.
+ */
+void sss_authtok_set_sc_keypad(struct sss_auth_token *tok);
+
 #endif /*  __AUTHTOK_H__ */

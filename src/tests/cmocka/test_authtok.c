@@ -488,6 +488,77 @@ void test_sss_authtok_2fa_blobs_missing_null(void **state)
     MISSING_NULL_CHECK;
 }
 
+void test_sss_authtok_sc_keypad(void **state)
+{
+    struct test_state *ts;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    sss_authtok_set_sc_keypad(NULL);
+
+    sss_authtok_set_sc_keypad(ts->authtoken);
+    assert_int_equal(sss_authtok_get_type(ts->authtoken),
+                     SSS_AUTHTOK_TYPE_SC_KEYPAD);
+    assert_int_equal(sss_authtok_get_size(ts->authtoken), 0);
+    assert_null(sss_authtok_get_data(ts->authtoken));
+}
+
+void test_sss_authtok_sc_pin(void **state)
+{
+    struct test_state *ts;
+    int ret;
+    size_t size;
+    const char *pin;
+    size_t len;
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    ret = sss_authtok_set_sc_pin(NULL, NULL, 0);
+    assert_int_equal(ret, EFAULT);
+
+    ret = sss_authtok_set_sc_pin(ts->authtoken, NULL, 0);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sss_authtok_set_sc_pin(ts->authtoken, "12345678", 0);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(sss_authtok_get_type(ts->authtoken),
+                     SSS_AUTHTOK_TYPE_SC_PIN);
+    size = sss_authtok_get_size(ts->authtoken);
+    assert_int_equal(size, 9);
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken), "12345678\0",
+                                             size);
+
+    ret = sss_authtok_set_sc_pin(ts->authtoken, "12345678", 5);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(sss_authtok_get_type(ts->authtoken),
+                     SSS_AUTHTOK_TYPE_SC_PIN);
+    size = sss_authtok_get_size(ts->authtoken);
+    assert_int_equal(size, 6);
+    assert_memory_equal(sss_authtok_get_data(ts->authtoken), "12345\0",
+                                             size);
+
+    ret = sss_authtok_get_sc_pin(ts->authtoken, &pin, &len);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(len, 5);
+    assert_string_equal(pin, "12345");
+
+    sss_authtok_set_empty(ts->authtoken);
+
+    ret = sss_authtok_get_sc_pin(ts->authtoken, &pin, &len);
+    assert_int_equal(ret, ENOENT);
+
+    ret = sss_authtok_set_password(ts->authtoken, "12345", 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_authtok_get_sc_pin(ts->authtoken, &pin, &len);
+    assert_int_equal(ret, EACCES);
+
+    sss_authtok_set_empty(ts->authtoken);
+
+    ret = sss_authtok_get_sc_pin(NULL, &pin, &len);
+    assert_int_equal(ret, EFAULT);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -516,6 +587,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_authtok_2fa_blobs,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_authtok_2fa_blobs_missing_null,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_sc_keypad,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_authtok_sc_pin,
                                         setup, teardown),
     };
 
