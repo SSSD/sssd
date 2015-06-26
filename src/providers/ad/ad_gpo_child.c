@@ -585,7 +585,7 @@ copy_smb_file_to_gpo_cache(SMBCCTX *smbc_ctx,
  * than the cached_gpt_version, thereby triggering a fresh download.
  *
  * Note that the backend will later do the following:
- * - backend will save the the sysvol_gpt_version to sysdb cache
+ * - backend will save the sysvol_gpt_version to sysdb cache
  * - backend will read the policy file from the GPO_CACHE
  */
 static errno_t

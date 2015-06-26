@@ -756,7 +756,7 @@ fallback_homedir = /home/%u
                             Some of the additional NSS responder requests can
                             return more attributes than just the POSIX ones
                             defined by the NSS interface. The list of attributes
-                            is controlled by this option. It is handle the same
+                            is controlled by this option. It is handled the same
                             way as the <quote>user_attributes</quote> option of
                             the InfoPipe responder (see
                             <citerefentry>
@@ -1430,7 +1430,7 @@ pam_account_expired_message = Account expired, please call help desk.
                         <para>
                             If 2-Factor-Authentication (2FA) is used and
                             credentials should be saved this value determines
-                            the minimal lenght the first authentication factor
+                            the minimal length the first authentication factor
                             (long term password) must have to be saved as SHA512
                             hash into the cache.
                         </para>

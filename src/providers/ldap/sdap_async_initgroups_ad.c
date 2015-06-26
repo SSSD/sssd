@@ -1445,7 +1445,7 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
     state->use_id_mapping = use_id_mapping;
     state->domain = domain;
 
-    /* We can compute the the gidNumber attribute from SIDs obtained from
+    /* We can compute the gidNumber attribute from SIDs obtained from
      * the tokenGroups lookup in case ID mapping is used for a user from the
      * parent domain. For trusted domains, we need to know the group type
      * to be able to filter out domain-local groups. Additionally, as a

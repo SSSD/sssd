@@ -198,7 +198,7 @@ static enum sss_status sss_cli_recv_rep(enum sss_cli_command cmd,
     int len;
     int ret;
 
-    header[0] = SSS_NSS_HEADER_SIZE; /* unitl we know the real lenght */
+    header[0] = SSS_NSS_HEADER_SIZE; /* unitl we know the real length */
     header[1] = 0;
     header[2] = 0;
     header[3] = 0;

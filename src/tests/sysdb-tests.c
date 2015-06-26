@@ -1835,7 +1835,7 @@ START_TEST (test_sysdb_cache_password_ex)
 
     val = ldb_msg_find_attr_as_int(res->msgs[0], SYSDB_CACHEDPWD_TYPE, 0);
     fail_unless(val == SSS_AUTHTOK_TYPE_PASSWORD,
-                "Unexptected authtok type, found [%d], expected [%d].",
+                "Unexpected authtok type, found [%d], expected [%d].",
                 val, SSS_AUTHTOK_TYPE_PASSWORD);
 
     ret = sysdb_cache_password_ex(test_ctx->domain, data->username,
@@ -1849,12 +1849,12 @@ START_TEST (test_sysdb_cache_password_ex)
 
     val = ldb_msg_find_attr_as_int(res->msgs[0], SYSDB_CACHEDPWD_TYPE, 0);
     fail_unless(val == SSS_AUTHTOK_TYPE_2FA,
-                "Unexptected authtok type, found [%d], expected [%d].",
+                "Unexpected authtok type, found [%d], expected [%d].",
                 val, SSS_AUTHTOK_TYPE_2FA);
 
     val = ldb_msg_find_attr_as_int(res->msgs[0], SYSDB_CACHEDPWD_FA2_LEN, 0);
     fail_unless(val == 12,
-                "Unexptected second factor lenght, found [%d], expected [%d].",
+                "Unexpected second factor length, found [%d], expected [%d].",
                 val, 12);
 
     talloc_free(test_ctx);
