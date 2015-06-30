@@ -753,7 +753,8 @@ static void nsssrv_dp_send_acct_req_done(struct tevent_req *req)
 }
 
 static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
-                                      struct sss_mc_ctx *mc_ctx)
+                                      struct sss_mc_ctx *mc_ctx,
+                                      enum sss_mc_type type)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct sized_string delete_name;
@@ -778,11 +779,27 @@ static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
         to_sized_string(&delete_name, name);
     }
 
-    ret = sss_mmap_cache_pw_invalidate(mc_ctx, &delete_name);
-    if (ret != EOK && ret != ENOENT) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Internal failure in memory cache code: %d [%s]\n",
-               ret, strerror(ret));
+    switch (type) {
+    case SSS_MC_PASSWD:
+        ret = sss_mmap_cache_pw_invalidate(mc_ctx, &delete_name);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Internal failure in memory cache code: %d [%s]\n",
+                  ret, strerror(ret));
+            goto done;
+        }
+        break;
+    case SSS_MC_GROUP:
+        ret = sss_mmap_cache_gr_invalidate(mc_ctx, &delete_name);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Internal failure in memory cache code: %d [%s]\n",
+                  ret, strerror(ret));
+            goto done;
+        }
+        break;
+    default:
+        ret = EINVAL;
         goto done;
     }
 
@@ -944,7 +961,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
             /* User not found in ldb -> delete user from memory cache. */
             ret = delete_entry_from_memcache(dctx->domain, name,
-                                             nctx->pwd_mc_ctx);
+                                             nctx->pwd_mc_ctx, SSS_MC_PASSWD);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Deleting user from memcache failed.\n");
@@ -3064,7 +3081,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
             /* Group not found in ldb -> delete group from memory cache. */
             ret = delete_entry_from_memcache(dctx->domain, name,
-                                             nctx->grp_mc_ctx);
+                                             nctx->grp_mc_ctx, SSS_MC_GROUP);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Deleting group from memcache failed.\n");
