@@ -147,6 +147,16 @@ static int clear_fastcache(bool *sssd_nss_is_off)
         }
     }
 
+    ret = sss_memcache_invalidate(SSS_NSS_MCACHE_DIR"/initgroups");
+    if (ret != EOK) {
+        if (ret == EACCES) {
+            *sssd_nss_is_off = false;
+            return EOK;
+        } else {
+            return ret;
+        }
+    }
+
     *sssd_nss_is_off = true;
     return EOK;
 }
