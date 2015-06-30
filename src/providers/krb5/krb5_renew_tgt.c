@@ -66,8 +66,8 @@ static void renew_tgt(struct tevent_context *ev, struct tevent_timer *te,
                                                   struct auth_data);
     struct tevent_req *req;
 
-    req = krb5_auth_send(auth_data, ev, auth_data->be_ctx, auth_data->pd,
-                         auth_data->krb5_ctx);
+    req = krb5_auth_queue_send(auth_data, ev, auth_data->be_ctx, auth_data->pd,
+                               auth_data->krb5_ctx);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth_send failed.\n");
 /* Give back the pam data to the renewal item to be able to retry at the next
@@ -90,7 +90,7 @@ static void renew_tgt_done(struct tevent_req *req)
     int dp_err;
     hash_value_t value;
 
-    ret = krb5_auth_recv(req, &pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
     talloc_free(req);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth request failed.\n");

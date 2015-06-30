@@ -103,8 +103,8 @@ static void authenticate_user(struct tevent_context *ev,
     }
 #endif
 
-    req = krb5_auth_send(auth_data, ev, auth_data->be_ctx, auth_data->pd,
-                         auth_data->krb5_ctx);
+    req = krb5_auth_queue_send(auth_data, ev, auth_data->be_ctx,
+                               auth_data->pd, auth_data->krb5_ctx);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth_send failed.\n");
         talloc_free(auth_data);
@@ -114,14 +114,15 @@ static void authenticate_user(struct tevent_context *ev,
     tevent_req_set_callback(req, authenticate_user_done, auth_data);
 }
 
-static void authenticate_user_done(struct tevent_req *req) {
+static void authenticate_user_done(struct tevent_req *req)
+{
     struct auth_data *auth_data = tevent_req_callback_data(req,
                                                            struct auth_data);
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
-    int dp_err;
+    int dp_err = DP_ERR_OK;
 
-    ret = krb5_auth_recv(req, &pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
     talloc_free(req);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth request failed.\n");

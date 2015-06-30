@@ -66,6 +66,11 @@ errno_t krb5_setup(TALLOC_CTX *mem_ctx, struct pam_data *pd,
 void krb5_pam_handler(struct be_req *be_req);
 void krb5_pam_handler_auth_done(struct tevent_req *req);
 
+/* Please use krb5_auth_send/recv *only* if you're certain there can't
+ * be concurrent logins happening. With some ccache back ends, the ccache
+ * files might clobber one another. Please use krb5_auth_queue_send()
+ * instead that queues the requests
+ */
 struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
                                   struct be_ctx *be_ctx,
@@ -114,7 +119,14 @@ struct tevent_req *krb5_access_send(TALLOC_CTX *mem_ctx,
 int krb5_access_recv(struct tevent_req *req, bool *access_allowed);
 
 /* krb5_wait_queue.c */
-errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
-                          struct krb5_ctx *krb5_ctx);
-void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username);
+struct tevent_req *krb5_auth_queue_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        struct be_ctx *be_ctx,
+                                        struct pam_data *pd,
+                                        struct krb5_ctx *krb5_ctx);
+
+int krb5_auth_queue_recv(struct tevent_req *req,
+                         int *_pam_status,
+                         int *_dp_err);
+
 #endif /* __KRB5_AUTH_H__ */

@@ -25,6 +25,8 @@
 #include <tevent.h>
 #include <dhash.h>
 
+#include <security/pam_modules.h>
+
 #include "src/providers/krb5/krb5_auth.h"
 
 #define INIT_HASH_SIZE 5
@@ -33,26 +35,51 @@ struct queue_entry {
     struct queue_entry *prev;
     struct queue_entry *next;
 
+    struct be_ctx *be_ctx;
     struct be_req *be_req;
+    struct tevent_req *parent_req;
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
 };
 
+static void wait_queue_auth_done(struct tevent_req *req);
+
+static void krb5_auth_queue_finish(struct tevent_req *req, errno_t ret,
+                                   int pam_status, int dp_err);
+
 static void wait_queue_auth(struct tevent_context *ev, struct tevent_timer *te,
-                             struct timeval current_time, void *private_data)
+                            struct timeval current_time, void *private_data)
 {
     struct queue_entry *qe = talloc_get_type(private_data, struct queue_entry);
-    struct be_ctx *be_ctx = be_req_get_be_ctx(qe->be_req);
     struct tevent_req *req;
 
-    req = krb5_auth_send(qe->be_req, be_ctx->ev, be_ctx, qe->pd, qe->krb5_ctx);
+    req = krb5_auth_send(qe->parent_req, qe->be_ctx->ev,
+                         qe->be_ctx, qe->pd, qe->krb5_ctx);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth_send failed.\n");
     } else {
-        tevent_req_set_callback(req, krb5_pam_handler_auth_done, qe->be_req);
+        tevent_req_set_callback(req, wait_queue_auth_done,
+                                qe->parent_req);
     }
 
     talloc_zfree(qe);
+}
+
+static void wait_queue_auth_done(struct tevent_req *req)
+{
+    struct tevent_req *parent_req = \
+                tevent_req_callback_data(req, struct tevent_req);
+    int pam_status;
+    int dp_err;
+    errno_t ret;
+
+    ret = krb5_auth_recv(req, &pam_status, &dp_err);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv failed: %d\n", ret);
+    }
+
+    krb5_auth_queue_finish(parent_req, ret, pam_status, dp_err);
 }
 
 static void wait_queue_del_cb(hash_entry_t *entry, hash_destroy_enum type,
@@ -70,8 +97,10 @@ static void wait_queue_del_cb(hash_entry_t *entry, hash_destroy_enum type,
           "Unexpected value type [%d].\n", entry->value.type);
 }
 
-errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
-                          struct krb5_ctx *krb5_ctx)
+static errno_t add_to_wait_queue(struct be_ctx *be_ctx,
+                                 struct tevent_req *parent_req,
+                                 struct pam_data *pd,
+                                 struct krb5_ctx *krb5_ctx)
 {
     int ret;
     hash_key_t key;
@@ -108,7 +137,8 @@ errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
                 return ENOMEM;
             }
 
-            queue_entry->be_req = be_req;
+            queue_entry->be_ctx = be_ctx;
+            queue_entry->parent_req = parent_req;
             queue_entry->pd = pd;
             queue_entry->krb5_ctx = krb5_ctx;
 
@@ -144,7 +174,7 @@ errno_t add_to_wait_queue(struct be_req *be_req, struct pam_data *pd,
     }
 }
 
-void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
+static void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
 {
     int ret;
     hash_key_t key;
@@ -152,7 +182,6 @@ void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
     struct queue_entry *head;
     struct queue_entry *queue_entry;
     struct tevent_timer *te;
-    struct be_ctx *be_ctx;
 
     if (krb5_ctx->wait_queue_hash == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No wait queue available.\n");
@@ -181,8 +210,7 @@ void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
 
                 DLIST_REMOVE(head, queue_entry);
 
-                be_ctx = be_req_get_be_ctx(queue_entry->be_req);
-                te = tevent_add_timer(be_ctx->ev, krb5_ctx,
+                te = tevent_add_timer(queue_entry->be_ctx->ev, krb5_ctx,
                                       tevent_timeval_current(), wait_queue_auth,
                                       queue_entry);
                 if (te == NULL) {
@@ -211,3 +239,137 @@ void check_wait_queue(struct krb5_ctx *krb5_ctx, char *username)
     return;
 }
 
+struct krb5_auth_queue_state {
+    struct krb5_ctx *krb5_ctx;
+    struct pam_data *pd;
+
+    int pam_status;
+    int dp_err;
+};
+
+static void krb5_auth_queue_done(struct tevent_req *subreq);
+
+struct tevent_req *krb5_auth_queue_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        struct be_ctx *be_ctx,
+                                        struct pam_data *pd,
+                                        struct krb5_ctx *krb5_ctx)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct krb5_auth_queue_state *state;
+
+    req = tevent_req_create(mem_ctx, &state, struct krb5_auth_queue_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
+        return NULL;
+    }
+    state->krb5_ctx = krb5_ctx;
+    state->pd = pd;
+
+    ret = add_to_wait_queue(be_ctx, req, pd, krb5_ctx);
+    if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Request [%p] successfully added to wait queue "
+              "of user [%s].\n", req, pd->user);
+        ret = EOK;
+        goto immediate;
+    } else if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_LIBS, "Wait queue of user [%s] is empty, "
+              "running request [%p] immediately.\n", pd->user, req);
+    } else {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Failed to add request to wait queue of user [%s], "
+              "running request [%p] immediately.\n", pd->user, req);
+    }
+
+    subreq = krb5_auth_send(req, ev, be_ctx, pd, krb5_ctx);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_auth_send failed.\n");
+        ret = ENOMEM;
+        goto immediate;
+    }
+
+    tevent_req_set_callback(subreq, krb5_auth_queue_done, req);
+
+    ret = EOK;
+
+immediate:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+    return req;
+}
+
+static void krb5_auth_queue_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = \
+                tevent_req_callback_data(subreq, struct tevent_req);
+    struct krb5_auth_queue_state *state = \
+                tevent_req_data(req, struct krb5_auth_queue_state);
+    errno_t ret;
+
+    ret = krb5_auth_recv(subreq, &state->pam_status, &state->dp_err);
+    talloc_zfree(subreq);
+
+    check_wait_queue(state->krb5_ctx, state->pd->user);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv failed with: %d\n", ret);
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_LIBS, "krb5_auth_queue request [%p] done.\n", req);
+    tevent_req_done(req);
+}
+
+/* This is a violation of the tevent_req style. Ideally, the wait queue would
+ * be rewritten to the tevent_req style in the future, expose per-request recv
+ * and not hide the request underneath. But this function allows us to expose
+ * a tevent_req API for users of this module
+ */
+static void krb5_auth_queue_finish(struct tevent_req *req,
+                                   errno_t ret,
+                                   int pam_status,
+                                   int dp_err)
+{
+    struct krb5_auth_queue_state *state = \
+                tevent_req_data(req, struct krb5_auth_queue_state);
+
+    check_wait_queue(state->krb5_ctx, state->pd->user);
+
+    state->pam_status = pam_status;
+    state->dp_err = dp_err;
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        DEBUG(SSSDBG_TRACE_LIBS, "krb5_auth_queue request [%p] done.\n", req);
+        tevent_req_done(req);
+    }
+}
+
+int krb5_auth_queue_recv(struct tevent_req *req,
+                         int *_pam_status,
+                         int *_dp_err)
+{
+    struct krb5_auth_queue_state *state = \
+                tevent_req_data(req, struct krb5_auth_queue_state);
+
+    /* Returning values even on failure is not typical, but IPA password migration
+     * relies on receiving PAM_CRED_ERR even if the request fails..
+     */
+    if (_pam_status) {
+        *_pam_status = state->pam_status;
+    }
+
+    if (_dp_err) {
+        *_dp_err = state->pam_status;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}

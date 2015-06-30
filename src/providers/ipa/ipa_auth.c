@@ -224,8 +224,8 @@ void ipa_auth(struct be_req *be_req)
             goto fail;
     }
 
-    req = krb5_auth_send(state, state->ev, be_ctx, state->pd,
-                         state->ipa_auth_ctx->krb5_auth_ctx);
+    req = krb5_auth_queue_send(state, state->ev, be_ctx, state->pd,
+                               state->ipa_auth_ctx->krb5_auth_ctx);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_send failed.\n");
         goto fail;
@@ -248,7 +248,7 @@ static void ipa_auth_handler_done(struct tevent_req *req)
     int pam_status = PAM_SYSTEM_ERR;
     int dp_err;
 
-    ret = krb5_auth_recv(req, &pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
     talloc_zfree(req);
     state->pd->pam_status = pam_status;
     if (ret != EOK && pam_status != PAM_CRED_ERR) {
@@ -423,8 +423,8 @@ static void ipa_auth_ldap_done(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, "LDAP authentication succeded, "
                               "trying Kerberos authentication again.\n");
 
-    req = krb5_auth_send(state, state->ev, be_ctx, state->pd,
-                         state->ipa_auth_ctx->krb5_auth_ctx);
+    req = krb5_auth_queue_send(state, state->ev, be_ctx, state->pd,
+                               state->ipa_auth_ctx->krb5_auth_ctx);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_send failed.\n");
         goto done;
@@ -445,7 +445,7 @@ static void ipa_auth_handler_retry_done(struct tevent_req *req)
     int pam_status;
     int dp_err;
 
-    ret = krb5_auth_recv(req, &pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(req, &pam_status, &dp_err);
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv request failed.\n");
