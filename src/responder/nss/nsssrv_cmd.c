@@ -168,6 +168,13 @@ void nss_update_pw_memcache(struct nss_ctx *nctx)
                       "Internal failure in memory cache code: %d [%s]\n",
                        ret, strerror(ret));
             }
+
+            ret = sss_mmap_cache_pw_invalidate(nctx->initgr_mc_ctx, &key);
+            if (ret != EOK && ret != ENOENT) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Internal failure in memory cache code: %d [%s]\n",
+                      ret, strerror(ret));
+            }
         }
 
         talloc_zfree(res);
@@ -798,6 +805,15 @@ static int delete_entry_from_memcache(struct sss_domain_info *dom, char *name,
             goto done;
         }
         break;
+    case SSS_MC_INITGROUPS:
+        ret = sss_mmap_cache_initgr_invalidate(mc_ctx, &delete_name);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Internal failure in memory cache code: %d [%s]\n",
+                  ret, strerror(ret));
+            goto done;
+        }
+        break;
     default:
         ret = EINVAL;
         goto done;
@@ -962,6 +978,14 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             /* User not found in ldb -> delete user from memory cache. */
             ret = delete_entry_from_memcache(dctx->domain, name,
                                              nctx->pwd_mc_ctx, SSS_MC_PASSWD);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Deleting user from memcache failed.\n");
+            }
+
+            ret = delete_entry_from_memcache(dctx->domain, name,
+                                             nctx->initgr_mc_ctx,
+                                             SSS_MC_INITGROUPS);
             if (ret != EOK) {
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Deleting user from memcache failed.\n");
@@ -3865,6 +3889,14 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
         /* The user is gone. Invalidate the mc record */
         to_sized_string(&delete_name, name);
         ret = sss_mmap_cache_pw_invalidate(nctx->pwd_mc_ctx, &delete_name);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Internal failure in memory cache code: %d [%s]\n",
+                  ret, strerror(ret));
+        }
+
+        ret = sss_mmap_cache_initgr_invalidate(nctx->initgr_mc_ctx,
+                                               &delete_name);
         if (ret != EOK && ret != ENOENT) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Internal failure in memory cache code: %d [%s]\n",
