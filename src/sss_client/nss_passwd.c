@@ -178,6 +178,27 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
 
     sss_nss_lock();
 
+    /* previous thread might already initialize entry in mmap cache */
+    ret = sss_nss_mc_getpwnam(name, name_len, result, buffer, buflen);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        nret = NSS_STATUS_SUCCESS;
+        goto out;
+    case ERANGE:
+        *errnop = ERANGE;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    default:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    }
+
     nret = sss_nss_make_request(SSS_NSS_GETPWNAM, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
@@ -260,6 +281,27 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
     rd.data = &user_uid;
 
     sss_nss_lock();
+
+    /* previous thread might already initialize entry in mmap cache */
+    ret = sss_nss_mc_getpwuid(uid, result, buffer, buflen);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        nret = NSS_STATUS_SUCCESS;
+        goto out;
+    case ERANGE:
+        *errnop = ERANGE;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    default:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    }
 
     nret = sss_nss_make_request(SSS_NSS_GETPWUID, &rd,
                                 &repbuf, &replen, errnop);

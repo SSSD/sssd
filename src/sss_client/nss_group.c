@@ -316,6 +316,28 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
 
     sss_nss_lock();
 
+    /* previous thread might already initialize entry in mmap cache */
+    ret = sss_nss_mc_initgroups_dyn(user, user_len, group, start, size,
+                                    groups, limit);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        nret = NSS_STATUS_SUCCESS;
+        goto out;
+    case ERANGE:
+        *errnop = ERANGE;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    default:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    }
+
     nret = sss_nss_make_request(SSS_NSS_INITGR, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
@@ -418,6 +440,27 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
 
     sss_nss_lock();
 
+    /* previous thread might already initialize entry in mmap cache */
+    ret = sss_nss_mc_getgrnam(name, name_len, result, buffer, buflen);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        nret = NSS_STATUS_SUCCESS;
+        goto out;
+    case ERANGE:
+        *errnop = ERANGE;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    default:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    }
+
     nret = sss_nss_get_getgr_cache(name, 0, GETGR_NAME,
                                    &repbuf, &replen, errnop);
     if (nret == NSS_STATUS_NOTFOUND) {
@@ -508,6 +551,27 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     rd.data = &group_gid;
 
     sss_nss_lock();
+
+    /* previous thread might already initialize entry in mmap cache */
+    ret = sss_nss_mc_getgrgid(gid, result, buffer, buflen);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        nret = NSS_STATUS_SUCCESS;
+        goto out;
+    case ERANGE:
+        *errnop = ERANGE;
+        nret = NSS_STATUS_TRYAGAIN;
+        goto out;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    default:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    }
 
     nret = sss_nss_get_getgr_cache(NULL, gid, GETGR_GID,
                                    &repbuf, &replen, errnop);
