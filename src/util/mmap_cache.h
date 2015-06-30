@@ -136,6 +136,14 @@ struct sss_mc_grp_data {
                              * string is zero terminated ordered as follows:
                              * name, passwd, member1, member2, ... */
 };
+
+struct sss_mc_initgr_data {
+    rel_ptr_t name;         /* ptr to name string, rel. to struct base addr */
+    uint32_t members;       /* number of members in groups */
+    uint32_t gids[0];       /* array of all groups
+                             * string with name is stored after gids */
+};
+
 #pragma pack()
 
 

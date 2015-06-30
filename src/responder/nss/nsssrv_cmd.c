@@ -3909,17 +3909,23 @@ done:
 
 /* FIXME: what about mpg, should we return the user's GID ? */
 /* FIXME: should we filter out GIDs ? */
-static int fill_initgr(struct sss_packet *packet, struct sss_domain_info *dom,
-                       struct ldb_result *res)
+static int fill_initgr(struct sss_packet *packet,
+                       struct sss_domain_info *dom,
+                       struct ldb_result *res,
+                       struct nss_ctx *nctx,
+                       const char *name)
 {
     uint8_t *body;
     size_t blen;
     gid_t gid;
-    int ret, i, num;
+    int ret, i;
+    uint32_t num;
     size_t bindex;
     int skipped = 0;
     const char *posix;
     gid_t orig_primary_gid;
+    struct sized_string rawname;
+    uint8_t *gids;
 
     if (res->count == 0) {
         return ENOENT;
@@ -3952,6 +3958,7 @@ static int fill_initgr(struct sss_packet *packet, struct sss_domain_info *dom,
     /* 0-3: 32bit unsigned number of results
      * 4-7: 32bit unsigned (reserved/padding) */
     bindex = 2 * sizeof(uint32_t);
+    gids = body + bindex;
 
     /* skip first entry, it's the user entry */
     for (i = 0; i < num; i++) {
@@ -3993,6 +4000,17 @@ static int fill_initgr(struct sss_packet *packet, struct sss_domain_info *dom,
         return ret;
     }
 
+    if (nctx->initgr_mc_ctx) {
+        to_sized_string(&rawname, name);
+        ret = sss_mmap_cache_initgr_store(&nctx->initgr_mc_ctx, &rawname,
+                                          num - skipped, gids);
+        if (ret != EOK && ret != ENOMEM) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to store user %s(%s) in mmap cache!\n",
+                  rawname.str, dom->name);
+        }
+    }
+
     return EOK;
 }
 
@@ -4000,7 +4018,10 @@ static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct nss_ctx *nctx;
     int ret;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     ret = sss_packet_new(cctx->creq, 0,
                          sss_packet_get_cmd(cctx->creq->in),
@@ -4009,7 +4030,8 @@ static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
         return EFAULT;
     }
 
-    ret = fill_initgr(cctx->creq->out, dctx->domain, dctx->res);
+    ret = fill_initgr(cctx->creq->out, dctx->domain, dctx->res, nctx,
+                      dctx->rawname);
     if (ret) {
         return ret;
     }

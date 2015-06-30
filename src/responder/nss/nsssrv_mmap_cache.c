@@ -31,6 +31,8 @@
 #define SSS_AVG_PASSWD_PAYLOAD (MC_SLOT_SIZE * 4)
 /* short group name and no gids (private user group */
 #define SSS_AVG_GROUP_PAYLOAD (MC_SLOT_SIZE * 3)
+/* average place for 40 supplementary groups */
+#define SSS_AVG_INITGROUP_PAYLOAD (MC_SLOT_SIZE * 4)
 
 #define MC_NEXT_BARRIER(val) ((((val) + 1) & 0x00ffffff) | 0xf0000000)
 
@@ -955,6 +957,65 @@ done:
     return ret;
 }
 
+errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
+                                    struct sized_string *name,
+                                    uint32_t memnum,
+                                    uint8_t *membuf)
+{
+    struct sss_mc_ctx *mcc = *_mcc;
+    struct sss_mc_rec *rec;
+    struct sss_mc_initgr_data *data;
+    size_t data_len;
+    size_t rec_len;
+    int ret;
+
+    if (mcc == NULL) {
+        /* cache not initialized ? */
+        return EINVAL;
+    }
+
+    /* memnum + reserved + array of members + name*/
+    data_len = (2 + memnum) * sizeof(uint32_t) + name->len;
+    rec_len = sizeof(struct sss_mc_rec) + sizeof(struct sss_mc_initgr_data)
+              + data_len;
+    if (rec_len > mcc->dt_size) {
+        return ENOMEM;
+    }
+
+    ret = sss_mc_get_record(_mcc, rec_len, name, &rec);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    data = (struct sss_mc_initgr_data *)rec->data;
+
+    MC_RAISE_BARRIER(rec);
+
+    /* We cannot use two keys for searching in intgroups cache.
+     * Use the first key twice.
+     */
+    sss_mmap_set_rec_header(mcc, rec, rec_len, mcc->valid_time_slot,
+                            name->str, name->len, name->str, name->len);
+
+    /* initgroups struct */
+    data->members = memnum;
+    memcpy(data->gids, membuf, memnum * sizeof(uint32_t));
+    memcpy(&data->gids[memnum], name->str, name->len);
+    data->name = MC_PTR_DIFF(&data->gids[memnum], data);
+
+    MC_LOWER_BARRIER(rec);
+
+    /* finally chain the rec in the hash table */
+    sss_mmap_chain_in_rec(mcc, rec);
+
+    return EOK;
+}
+
+errno_t sss_mmap_cache_initgr_invalidate(struct sss_mc_ctx *mcc,
+                                         struct sized_string *name)
+{
+    return sss_mmap_cache_invalidate(mcc, name);
+}
 
 /***************************************************************************
  * initialization
@@ -1144,6 +1205,9 @@ errno_t sss_mmap_cache_init(TALLOC_CTX *mem_ctx, const char *name,
         break;
     case SSS_MC_GROUP:
         payload = SSS_AVG_GROUP_PAYLOAD;
+        break;
+    case SSS_MC_INITGROUPS:
+        payload = SSS_AVG_INITGROUP_PAYLOAD;
         break;
     default:
         return EINVAL;

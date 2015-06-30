@@ -124,6 +124,15 @@ static int nss_clear_memcache(struct sbus_request *dbus_req, void *data)
         return ret;
     }
 
+    ret = sss_mmap_cache_reinit(nctx, SSS_MC_CACHE_ELEMENTS,
+                                (time_t)memcache_timeout,
+                                &nctx->initgr_mc_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "initgroups mmap cache invalidation failed\n");
+        return ret;
+    }
+
 done:
     return sbus_request_return_and_finish(dbus_req, DBUS_TYPE_INVALID);
 }
@@ -515,6 +524,13 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                               &nctx->grp_mc_ctx);
     if (ret) {
         DEBUG(SSSDBG_CRIT_FAILURE, "group mmap cache is DISABLED\n");
+    }
+
+    ret = sss_mmap_cache_init(nctx, "initgroups", SSS_MC_INITGROUPS,
+                              SSS_MC_CACHE_ELEMENTS, (time_t)memcache_timeout,
+                              &nctx->initgr_mc_ctx);
+    if (ret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "inigroups mmap cache is DISABLED\n");
     }
 
     /* Set up file descriptor limits */
