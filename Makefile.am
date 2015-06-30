@@ -2598,6 +2598,7 @@ libnss_sss_la_SOURCES = \
     src/util/murmurhash3.c \
     src/sss_client/nss_mc_passwd.c \
     src/sss_client/nss_mc_group.c \
+    src/sss_client/nss_mc_initgr.c \
     src/sss_client/nss_mc.h
 libnss_sss_la_LIBADD = \
     $(CLIENT_LIBS)

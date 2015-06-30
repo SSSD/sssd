@@ -85,4 +85,9 @@ errno_t sss_nss_mc_getgrgid(gid_t gid,
                             struct group *result,
                             char *buffer, size_t buflen);
 
+/* initgroups db */
+errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
+                                  gid_t group, long int *start, long int *size,
+                                  gid_t **groups, long int limit);
+
 #endif /* _NSS_MC_H_ */

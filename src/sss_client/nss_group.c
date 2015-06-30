@@ -281,10 +281,37 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
     size_t replen;
     enum nss_status nret;
     size_t buf_index = 0;
+    size_t user_len;
     uint32_t num_ret;
     long int l, max_ret;
+    int ret;
 
-    rd.len = strlen(user) +1;
+    ret = sss_strnlen(user, SSS_NAME_MAX, &user_len);
+    if (ret != 0) {
+        *errnop = EINVAL;
+        return NSS_STATUS_NOTFOUND;
+    }
+
+    ret = sss_nss_mc_initgroups_dyn(user, user_len, group, start, size,
+                                    groups, limit);
+    switch (ret) {
+    case 0:
+        *errnop = 0;
+        return NSS_STATUS_SUCCESS;
+    case ERANGE:
+        *errnop = ERANGE;
+        return NSS_STATUS_TRYAGAIN;
+    case ENOENT:
+        /* fall through, we need to actively ask the parent
+         * if no entry is found */
+        break;
+    default:
+        /* if using the mmaped cache failed,
+         * fall back to socket based comms */
+        break;
+    }
+
+    rd.len = user_len + 1;
     rd.data = user;
 
     sss_nss_lock();
