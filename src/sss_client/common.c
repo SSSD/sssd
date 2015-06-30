@@ -1032,6 +1032,7 @@ struct sss_mutex {
 
 static void sss_nss_mt_init(void);
 static void sss_pam_mt_init(void);
+static void sss_nss_mc_mt_init(void);
 
 static struct sss_mutex sss_nss_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER,
                                         .once = PTHREAD_ONCE_INIT,
@@ -1041,6 +1042,9 @@ static struct sss_mutex sss_pam_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER,
                                         .once = PTHREAD_ONCE_INIT,
                                         .init = sss_pam_mt_init };
 
+static struct sss_mutex sss_nss_mc_mtx = { .mtx  = PTHREAD_MUTEX_INITIALIZER,
+                                           .once = PTHREAD_ONCE_INIT,
+                                           .init = sss_nss_mc_mt_init };
 
 /* Wrappers for robust mutex support */
 static int sss_mutexattr_setrobust (pthread_mutexattr_t *attr)
@@ -1125,6 +1129,20 @@ void sss_pam_unlock(void)
     sss_mt_unlock(&sss_pam_mtx);
 }
 
+/* NSS mutex wrappers */
+static void sss_nss_mc_mt_init(void)
+{
+    sss_mt_init(&sss_nss_mc_mtx);
+}
+void sss_nss_mc_lock(void)
+{
+    sss_mt_lock(&sss_nss_mc_mtx);
+}
+void sss_nss_mc_unlock(void)
+{
+    sss_mt_unlock(&sss_nss_mc_mtx);
+}
+
 #else
 
 /* sorry no mutexes available */
@@ -1132,6 +1150,8 @@ void sss_nss_lock(void) { return; }
 void sss_nss_unlock(void) { return; }
 void sss_pam_lock(void) { return; }
 void sss_pam_unlock(void) { return; }
+void sss_nss_mc_lock(void) { return; }
+void sss_nss_mc_unlock(void) { return; }
 #endif
 
 

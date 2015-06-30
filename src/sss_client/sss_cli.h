@@ -594,6 +594,8 @@ void sss_nss_lock(void);
 void sss_nss_unlock(void);
 void sss_pam_lock(void);
 void sss_pam_unlock(void);
+void sss_nss_mc_lock(void);
+void sss_nss_mc_unlock(void);
 
 errno_t sss_readrep_copy_string(const char *in,
                                 size_t *offset,
