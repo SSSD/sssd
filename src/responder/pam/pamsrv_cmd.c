@@ -42,6 +42,9 @@ enum pam_verbosity {
 
 #define DEFAULT_PAM_VERBOSITY PAM_VERBOSITY_IMPORTANT
 
+static errno_t
+pam_null_last_online_auth_with_curr_token(struct sss_domain_info *domain,
+                                          const char *username);
 static void pam_reply(struct pam_auth_req *preq);
 
 static errno_t pack_user_info_account_expired(TALLOC_CTX *mem_ctx,
@@ -426,6 +429,13 @@ static errno_t set_last_login(struct pam_auth_req *preq)
         goto fail;
     }
 
+    ret = sysdb_attrs_add_time_t(attrs,
+                                 SYSDB_LAST_ONLINE_AUTH_WITH_CURR_TOKEN,
+                                 time(NULL));
+    if (ret != EOK) {
+        goto fail;
+    }
+
     ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_LOGIN, time(NULL));
     if (ret != EOK) {
         goto fail;
@@ -658,6 +668,17 @@ static void pam_reply(struct pam_auth_req *preq)
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Unknown PAM call [%d].\n", pd->cmd);
             pd->pam_status = PAM_MODULE_UNKNOWN;
+        }
+    }
+
+    if (pd->pam_status == PAM_SUCCESS && pd->cmd == SSS_PAM_CHAUTHTOK) {
+        ret = pam_null_last_online_auth_with_curr_token(preq->domain,
+                                                        pd->user);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sysdb_null_last_online_auth_with_curr_token failed: "
+                  "%s [%d].\n", sss_strerror(ret), ret);
+            goto done;
         }
     }
 
@@ -1518,4 +1539,49 @@ struct sss_cmd_table *get_pam_cmds(void)
     };
 
     return sss_cmds;
+}
+
+static errno_t
+pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,
+                                         const char *username,
+                                         uint64_t value)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_attrs *attrs;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    attrs = sysdb_new_attrs(tmp_ctx);
+    if (attrs == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs,
+                                 SYSDB_LAST_ONLINE_AUTH_WITH_CURR_TOKEN,
+                                 value);
+    if (ret != EOK) { goto done; }
+
+    ret = sysdb_set_user_attr(domain, username, attrs, SYSDB_MOD_REP);
+    if (ret != EOK) { goto done; }
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Error: %d (%s)\n", ret, sss_strerror(ret));
+    }
+
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+pam_null_last_online_auth_with_curr_token(struct sss_domain_info *domain,
+                                          const char *username)
+{
+    return pam_set_last_online_auth_with_curr_token(domain, username, 0);
 }

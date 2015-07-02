@@ -87,6 +87,7 @@
 #define SYSDB_LAST_ONLINE_AUTH "lastOnlineAuth"
 #define SYSDB_LAST_FAILED_LOGIN "lastFailedLogin"
 #define SYSDB_FAILED_LOGIN_ATTEMPTS "failedLoginAttempts"
+#define SYSDB_LAST_ONLINE_AUTH_WITH_CURR_TOKEN "lastOnlineAuthWithCurrentToken"
 
 #define SYSDB_LAST_UPDATE "lastUpdate"
 #define SYSDB_CACHE_EXPIRE "dataExpireTimestamp"
