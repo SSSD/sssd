@@ -3376,7 +3376,6 @@ int sysdb_cache_auth(struct sss_domain_info *domain,
             goto done;
         }
 
-
     } else {
         DEBUG(SSSDBG_CONF_SETTINGS, "Authentication failed.\n");
         authentication_successful = false;

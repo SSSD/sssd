@@ -859,7 +859,6 @@ void test_pam_offline_chauthtok(void **state)
     assert_int_equal(ret, EOK);
 }
 
-
 int main(int argc, const char *argv[])
 {
     int rv;

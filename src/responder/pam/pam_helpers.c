@@ -21,7 +21,6 @@
 */
 
 
-#include "util/util.h"
 #include "src/responder/pam/pam_helpers.h"
 
 struct pam_initgr_table_ctx {

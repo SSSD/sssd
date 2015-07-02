@@ -23,6 +23,8 @@
 #ifndef PAM_HELPERS_H_
 #define PAM_HELPERS_H_
 
+#include "util/util.h"
+
 errno_t pam_initgr_cache_set(struct tevent_context *ev,
                              hash_table_t *id_table,
                              char *name,
@@ -33,6 +35,6 @@ errno_t pam_initgr_cache_set(struct tevent_context *ev,
  * May report other errors if the hash lookup fails.
  */
 errno_t pam_initgr_check_timeout(hash_table_t *id_table,
-                              char *name);
+                                 char *name);
 
 #endif /* PAM_HELPERS_H_ */
