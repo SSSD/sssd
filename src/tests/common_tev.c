@@ -83,3 +83,9 @@ int test_ev_loop(struct sss_test_ctx *tctx)
 
     return tctx->error;
 }
+
+void test_ev_done(struct sss_test_ctx *tctx, errno_t ret)
+{
+    tctx->error = ret;
+    tctx->done = true;
+}

@@ -293,8 +293,7 @@ void test_resolv_fake_srv_done(struct tevent_req *req)
     assert_int_equal(ttl, 500);
 
     talloc_free(tmp_ctx);
-    test_ctx->ctx->error = EOK;
-    test_ctx->ctx->done = true;
+    test_ev_done(test_ctx->ctx, EOK);
 }
 
 void test_resolv_fake_srv(void **state)

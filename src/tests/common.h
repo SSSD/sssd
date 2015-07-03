@@ -112,6 +112,9 @@ errno_t test_request_recv(struct tevent_req *req);
 
 int test_ev_loop(struct sss_test_ctx *tctx);
 
+/* Mark the test as done with an error code */
+void test_ev_done(struct sss_test_ctx *tctx, errno_t ret);
+
 bool ldb_modules_path_is_set(void);
 
 DBusConnection *

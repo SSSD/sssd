@@ -266,7 +266,6 @@ static int test_ipa_server_create_trusts_teardown(void **state)
 
 static void test_ipa_server_create_trusts_none(struct tevent_req *req);
 static void test_ipa_server_create_trusts_twoway(struct tevent_req *req);
-static void test_ipa_server_create_trusts_finish(struct trust_test_ctx *test_ctx);
 
 static void test_ipa_server_create_trusts(void **state)
 {
@@ -427,13 +426,7 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
                         DOM_REALM);
     assert_null(test_ctx->ipa_ctx->server_mode->trusts->next);
 
-    test_ipa_server_create_trusts_finish(test_ctx);
-}
-
-static void test_ipa_server_create_trusts_finish(struct trust_test_ctx *test_ctx)
-{
-    test_ctx->tctx->error = EOK;
-    test_ctx->tctx->done = true;
+    test_ev_done(test_ctx->tctx, EOK);
 }
 
 static void
@@ -669,7 +662,7 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
                         SUBDOM_REALM);
 
     assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next);
-    test_ipa_server_create_trusts_finish(test_ctx);
+    test_ev_done(test_ctx->tctx, EOK);
 }
 
 static void test_ipa_server_create_oneway_kt_exists(void **state)

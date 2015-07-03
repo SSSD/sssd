@@ -161,8 +161,9 @@ void parse_inp_simple_done(struct tevent_req *req)
     char *domname = NULL;
 
     ret = sss_parse_inp_recv(req, parse_inp_ctx, &name, &domname);
-    parse_inp_ctx->tctx->done = true;
     assert_int_equal(ret, EOK);
+
+    test_ev_done(parse_inp_ctx->tctx, EOK);
     talloc_free(req);
 
     assert_string_equal(name, NAME);
@@ -239,8 +240,8 @@ void parse_inp_neg_done(struct tevent_req *req)
     char *domname = NULL;
 
     ret = sss_parse_inp_recv(req, parse_inp_ctx, &name, &domname);
-    parse_inp_ctx->tctx->done = true;
     assert_int_equal(ret, ERR_INPUT_PARSE);
+    test_ev_done(parse_inp_ctx->tctx, EOK);
     talloc_free(req);
 
     assert_null(name);
@@ -273,8 +274,7 @@ struct sss_nc_ctx {
 errno_t sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
                                               struct sss_nc_ctx *dummy_ncache_ptr)
 {
-    dummy_ncache_ptr->pctx->tctx->error = EOK;
-    dummy_ncache_ptr->pctx->tctx->done = true;
+    test_ev_done(dummy_ncache_ptr->pctx->tctx, EOK);
     return EOK;
 }
 
