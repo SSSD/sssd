@@ -155,6 +155,12 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
 
     free(pi->otp_challenge);
     pi->otp_challenge = NULL;
+
+    free(pi->cert_user);
+    pi->cert_user = NULL;
+
+    free(pi->token_name);
+    pi->token_name = NULL;
 }
 
 static int null_strcmp(const char *s1, const char *s2) {
@@ -922,7 +928,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 break;
             case SSS_PAM_OTP_INFO:
                 if (buf[p + (len - 1)] != '\0') {
-                    D(("system info does not end with \\0."));
+                    D(("otp info does not end with \\0."));
                     break;
                 }
 
@@ -958,6 +964,33 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
 
+                break;
+            case SSS_PAM_CERT_INFO:
+                if (buf[p + (len - 1)] != '\0') {
+                    D(("cert info does not end with \\0."));
+                    break;
+                }
+
+                pi->cert_user = strdup((char *) &buf[p]);
+                if (pi->cert_user == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+
+                offset = strlen(pi->cert_user) + 1;
+                if (offset >= len) {
+                    D(("Cert message size mismatch"));
+                    free(pi->cert_user);
+                    pi->cert_user = NULL;
+                    break;
+                }
+                pi->token_name = strdup((char *) &buf[p + offset]);
+                if (pi->token_name == NULL) {
+                    D(("strdup failed"));
+                    break;
+                }
+                D(("cert user: [%s] token name: [%s]", pi->cert_user,
+                                                       pi->token_name));
                 break;
             default:
                 D(("Unknown response type [%d]", type));
@@ -1038,6 +1071,9 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     pi->otp_vendor = NULL;
     pi->otp_token_id = NULL;
     pi->otp_challenge = NULL;
+
+    pi->cert_user = NULL;
+    pi->token_name = NULL;
 
     return PAM_SUCCESS;
 }
@@ -1345,6 +1381,60 @@ done:
     return ret;
 }
 
+#define SC_PROMPT_FMT "PIN for %s for user %s"
+static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
+{
+    int ret;
+    char *answer = NULL;
+    char *prompt;
+    size_t size;
+
+    if (pi->token_name == NULL || *pi->token_name == '\0'
+            || pi->cert_user == NULL || *pi->cert_user == '\0') {
+        return EINVAL;
+    }
+
+    size = sizeof(SC_PROMPT_FMT) + strlen(pi->token_name) +
+           strlen(pi->cert_user);
+    prompt = malloc(size);
+    if (prompt == NULL) {
+        D(("malloc failed."));
+        return ENOMEM;
+    }
+
+    ret = snprintf(prompt, size, SC_PROMPT_FMT, pi->token_name, pi->cert_user);
+    if (ret < 0 || ret >= size) {
+        D(("snprintf failed."));
+        free(prompt);
+        return EFAULT;
+    }
+
+    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt, NULL, &answer);
+    free(prompt);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return ret;
+    }
+
+    if (answer == NULL) {
+        pi->pam_authtok = NULL;
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+        pi->pam_authtok_size=0;
+    } else {
+        pi->pam_authtok = strdup(answer);
+        _pam_overwrite((void *)answer);
+        free(answer);
+        answer=NULL;
+        if (pi->pam_authtok == NULL) {
+            return PAM_BUF_ERR;
+        }
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_SC_PIN;
+        pi->pam_authtok_size=strlen(pi->pam_authtok);
+    }
+
+    return PAM_SUCCESS;
+}
+
 static int prompt_new_password(pam_handle_t *pamh, struct pam_items *pi)
 {
     int ret;
@@ -1458,6 +1548,8 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                         && pi->otp_challenge != NULL)) {
             ret = prompt_2fa(pamh, pi, _("First Factor: "),
                              _("Second Factor: "));
+        } else if (pi->cert_user != NULL) {
+            ret = prompt_sc_pin(pamh, pi);
         } else {
             ret = prompt_password(pamh, pi, _("Password: "));
         }

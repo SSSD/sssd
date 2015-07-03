@@ -56,6 +56,9 @@ struct pam_items {
     char *otp_token_id;
     char *otp_challenge;
     char *first_factor;
+
+    char *cert_user;
+    char *token_name;
 };
 
 int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer);
