@@ -1492,9 +1492,26 @@ static bool pam_is_cmd_cachable(int cmd)
     return is_cachable;
 }
 
+static bool pam_is_authtok_cachable(struct sss_auth_token *authtok)
+{
+    enum sss_authtok_type type;
+    bool cachable = false;
+
+    type = sss_authtok_get_type(authtok);
+    if (type == SSS_AUTHTOK_TYPE_PASSWORD) {
+        cachable = true;
+    } else {
+        DEBUG(SSSDBG_TRACE_LIBS, "Authentication token can't be cached\n");
+    }
+
+    return cachable;
+}
+
 static bool pam_can_user_cache_auth(struct confdb_ctx *cdb,
                                     struct sss_domain_info *domain,
-                                    int pam_cmd, const char* user,
+                                    int pam_cmd,
+                                    struct sss_auth_token *authtok,
+                                    const char* user,
                                     bool cached_auth_failed)
 {
     errno_t ret;
@@ -1503,6 +1520,7 @@ static bool pam_can_user_cache_auth(struct confdb_ctx *cdb,
     if (!cached_auth_failed /* don't try cached auth again */
             && domain->cache_credentials
             && domain->cached_auth_timeout > 0
+            && pam_is_authtok_cachable(authtok)
             && pam_is_cmd_cachable(pam_cmd)) {
 
         ret = pam_is_last_online_login_fresh(domain, user, cdb,
@@ -1553,6 +1571,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     if (pam_can_user_cache_auth(pctx->rctx->cdb,
                                 preq->domain,
                                 preq->pd->cmd,
+                                preq->pd->authtok,
                                 preq->pd->user,
                                 preq->cached_auth_failed)) {
         preq->use_cached_auth = true;
