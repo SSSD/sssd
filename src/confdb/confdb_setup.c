@@ -224,30 +224,30 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
 
     ret = sss_ini_check_config_obj(init_data);
     if (ret != EOK) {
-        /* No known version. Assumed to be version 1 */
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Config file is an old version. "
-               "Please run configuration upgrade script.\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    version = sss_ini_get_int_config_value(init_data, 1, -1, &ret);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-                "Config file version could not be determined\n");
-        goto done;
-    } else if (version < CONFDB_VERSION_INT) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-                "Config file is an old version. "
-                 "Please run configuration upgrade script.\n");
-        ret = EINVAL;
-        goto done;
-    } else if (version > CONFDB_VERSION_INT) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-                "Config file version is newer than confdb\n");
-        ret = EINVAL;
-        goto done;
+        /* No known version. Use default. */
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "Value of config_file_version option not found. "
+              "Assumed to be version %d.\n", CONFDB_DEFAULT_CFG_FILE_VER);
+    } else {
+        version = sss_ini_get_int_config_value(init_data,
+                                               CONFDB_DEFAULT_CFG_FILE_VER,
+                                               -1, &ret);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Config file version could not be determined\n");
+            goto done;
+        } else if (version < CONFDB_VERSION_INT) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Config file is an old version. "
+                  "Please run configuration upgrade script.\n");
+            ret = EINVAL;
+            goto done;
+        } else if (version > CONFDB_VERSION_INT) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Config file version is newer than confdb\n");
+            ret = EINVAL;
+            goto done;
+        }
     }
 
     /* Set up a transaction to replace the configuration */

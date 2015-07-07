@@ -47,7 +47,8 @@ class SSSDConfigFile(SSSDChangeConf):
     def get_version(self):
         ver = self.get_option_index('sssd', 'config_file_version')[1]
         if not ver:
-            return 1
+            # config_file_version not found -> default to version 2
+            return 2
         try:
             return int(ver['value'])
         except ValueError:

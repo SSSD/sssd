@@ -136,7 +136,6 @@ def sanity_rfc2307(request, ldap_conn):
 
     conf = unindent("""\
         [sssd]
-        config_file_version = 2
         domains             = LDAP
         services            = nss
 
@@ -162,7 +161,6 @@ def fqname_rfc2307(request, ldap_conn):
 
     conf = unindent("""\
         [sssd]
-        config_file_version = 2
         domains             = LDAP
         services            = nss
 
@@ -189,7 +187,6 @@ def fqname_case_insensitive_rfc2307(request, ldap_conn):
 
     conf = unindent("""\
         [sssd]
-        config_file_version = 2
         domains             = LDAP
         services            = nss
 

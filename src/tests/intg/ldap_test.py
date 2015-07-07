@@ -116,7 +116,6 @@ def sanity_rfc2307(request, ldap_conn):
     conf = unindent("""\
         [sssd]
         debug_level         = 0xffff
-        config_file_version = 2
         domains             = LDAP
         services            = nss, pam
 
@@ -206,7 +205,6 @@ def sanity_rfc2307_bis(request, ldap_conn):
     conf = unindent("""\
         [sssd]
         debug_level             = 0xffff
-        config_file_version     = 2
         domains                 = LDAP
         services                = nss, pam
 
