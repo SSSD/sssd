@@ -731,11 +731,6 @@ class SSSDService(SSSDConfigObject):
         # Set up default options for this service
         self.options.update(self.schema.get_defaults(self.name))
 
-        # For the [sssd] service, force the config file version
-        if servicename == 'sssd':
-            self.options['config_file_version'] = 2
-            self.hidden_options.append('config_file_version')
-
     def list_options_with_mandatory(self):
         """
         List options for the service, including the mandatory flag.
