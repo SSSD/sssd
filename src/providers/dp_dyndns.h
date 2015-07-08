@@ -128,4 +128,8 @@ nsupdate_get_addrs_recv(struct tevent_req *req,
                         struct sss_iface_addr **_addrlist,
                         size_t *_count);
 
+void
+sss_iface_addr_concatenate(struct sss_iface_addr **list,
+                           struct sss_iface_addr *list2);
+
 #endif /* DP_DYNDNS_H_ */

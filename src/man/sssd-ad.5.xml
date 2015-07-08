@@ -754,14 +754,15 @@ ad_gpo_map_deny = +my_pam_service
                     <listitem>
                         <para>
                             Optional. Applicable only when dyndns_update
-                            is true. Choose the interface whose IP address
-                            should be used for dynamic DNS updates.
-                        </para>
-                        <para>
-                            NOTE: This option currently supports only one interface.
+                            is true. Choose the interface or a list of interfaces
+                            whose IP addresses should be used for dynamic DNS
+                            updates.
                         </para>
                         <para>
                             Default: Use the IP address of the AD LDAP connection
+                        </para>
+                        <para>
+                            Example: dyndns_iface = em1, vnet1, vnet2
                         </para>
                     </listitem>
                 </varlistentry>

@@ -482,6 +482,65 @@ static void sdap_dyndns_get_addrs_done(struct tevent_req *subreq);
 static errno_t sdap_dyndns_add_ldap_conn(struct sdap_dyndns_get_addrs_state *state,
                                          struct sdap_handle *sh);
 
+static errno_t get_ifaces_addrs(TALLOC_CTX *mem_ctx,
+                                const char *iface,
+                                struct sss_iface_addr **_result)
+{
+    struct sss_iface_addr *result_addrs = NULL;
+    struct sss_iface_addr *intf_addrs;
+    TALLOC_CTX *tmp_ctx;
+    char **list_of_intfs;
+    int num_of_intfs;
+    errno_t ret;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = split_on_separator(tmp_ctx, iface, ',', true, true, &list_of_intfs,
+                             &num_of_intfs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Parsing names of interfaces failed - %d:[%s].\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    for (i = 0; i < num_of_intfs; i++) {
+        ret = sss_iface_addr_list_get(tmp_ctx, list_of_intfs[i], &intf_addrs);
+        if (ret == EOK) {
+            if (result_addrs != NULL) {
+                /* If there is already an existing list, head of this existing
+                 * list will be considered as parent talloc context for the
+                 * new list.
+                 */
+                talloc_steal(result_addrs, intf_addrs);
+            }
+            sss_iface_addr_concatenate(&result_addrs, intf_addrs);
+        } else if (ret == ENOENT) {
+            /* non-critical failure */
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Cannot get interface %s or there are no addresses "
+                  "bind to it.\n", list_of_intfs[i]);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot get list of addresses from interface %s - %d:[%s]\n",
+                  list_of_intfs[i], ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+    *_result = talloc_steal(mem_ctx, result_addrs);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static struct tevent_req *
 sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
                            struct tevent_context *ev,
@@ -500,14 +559,11 @@ sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
     }
 
     if (iface) {
-        ret = sss_iface_addr_list_get(state, iface, &state->addresses);
-        if (ret != EOK) {
-            DEBUG(ret == ENOENT ? SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
-                  "Cannot get list of addresses from interface %s\n", iface);
-            /* non critical failure */
-            if (ret == ENOENT) {
-                ret = EOK;
-            }
+        ret = get_ifaces_addrs(state, iface, &state->addresses);
+        if (ret != EOK || state->addresses == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "get_ifaces_addrs() failed: %d:[%s]\n",
+                  ret, sss_strerror(ret));
         }
         /* We're done. Just fake an async request completion */
         goto done;

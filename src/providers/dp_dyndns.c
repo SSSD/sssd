@@ -49,6 +49,12 @@ struct sss_iface_addr {
     struct sockaddr_storage *addr;
 };
 
+void sss_iface_addr_concatenate(struct sss_iface_addr **list,
+                                struct sss_iface_addr *list2)
+{
+    DLIST_CONCATENATE((*list), list2, struct sss_iface_addr*);
+}
+
 struct sss_iface_addr *
 sss_iface_addr_add(TALLOC_CTX *mem_ctx, struct sss_iface_addr **list,
                    struct sockaddr_storage *ss)
