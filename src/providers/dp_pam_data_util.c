@@ -23,32 +23,9 @@
 */
 
 #include "providers/data_provider.h"
-
+#include "util/sss_cli_cmd.h"
 
 #define PAM_SAFE_ITEM(item) item ? item : "not set"
-
-static const char *pamcmd2str(int cmd) {
-    switch (cmd) {
-    case SSS_PAM_AUTHENTICATE:
-        return "PAM_AUTHENTICATE";
-    case SSS_PAM_SETCRED:
-        return "PAM_SETCRED";
-    case SSS_PAM_ACCT_MGMT:
-        return "PAM_ACCT_MGMT";
-    case SSS_PAM_OPEN_SESSION:
-        return "PAM_OPEN_SESSION";
-    case SSS_PAM_CLOSE_SESSION:
-        return "PAM_CLOSE_SESSION";
-    case SSS_PAM_CHAUTHTOK:
-        return "PAM_CHAUTHTOK";
-    case SSS_PAM_CHAUTHTOK_PRELIM:
-        return "PAM_CHAUTHTOK_PRELIM";
-    case SSS_PAM_PREAUTH:
-        return "SSS_PAM_PREAUTH";
-    default:
-        return "UNKNOWN";
-    }
-}
 
 int pam_data_destructor(void *ptr)
 {
@@ -183,7 +160,7 @@ failed:
 
 void pam_print_data(int l, struct pam_data *pd)
 {
-    DEBUG(l, "command: %s\n", pamcmd2str(pd->cmd));
+    DEBUG(l, "command: %s\n", sss_cmd2str(pd->cmd));
     DEBUG(l, "domain: %s\n", PAM_SAFE_ITEM(pd->domain));
     DEBUG(l, "user: %s\n", PAM_SAFE_ITEM(pd->user));
     DEBUG(l, "service: %s\n", PAM_SAFE_ITEM(pd->service));

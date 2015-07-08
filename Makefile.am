@@ -690,7 +690,9 @@ endif
 pkglib_LTLIBRARIES += libsss_debug.la
 libsss_debug_la_SOURCES = \
     src/util/debug.c \
-    src/util/sss_log.c
+    src/util/sss_log.c \
+    src/util/sss_cli_cmd.c \
+    $(NULL)
 libsss_debug_la_LIBADD = \
     $(SYSLOG_LIBS)
 libsss_debug_la_LDFLAGS = \

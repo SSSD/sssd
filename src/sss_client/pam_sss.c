@@ -1209,7 +1209,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
         case SSS_PAM_PREAUTH:
             break;
         default:
-            D(("Illegal task [%d]", task));
+            D(("Illegal task [%#x]", task));
             return PAM_SYSTEM_ERR;
     }
 
@@ -1672,7 +1672,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
     bindtextdomain(PACKAGE, LOCALEDIR);
 
-    D(("Hello pam_sssd: %d", task));
+    D(("Hello pam_sssd: %#x", task));
 
     eval_argv(pamh, argc, argv, &flags, &retries, &quiet_mode, &domains);
 
@@ -1748,7 +1748,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
             case SSS_PAM_CLOSE_SESSION:
                 break;
             default:
-                D(("Illegal task [%d]", task));
+                D(("Illegal task [%#x]", task));
                 return PAM_SYSTEM_ERR;
         }
 

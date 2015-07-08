@@ -21,6 +21,7 @@
 
 #include "util/util.h"
 #include "util/sss_nss.h"
+#include "util/sss_cli_cmd.h"
 #include "responder/nss/nsssrv.h"
 #include "responder/nss/nsssrv_private.h"
 #include "responder/nss/nsssrv_netgroup.h"
@@ -1071,8 +1072,8 @@ static int nss_cmd_assume_upn(struct nss_dom_ctx *dctx)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d].\n",
-                                    dctx->cmdctx->cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d][%s].\n",
+              dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 
@@ -1123,8 +1124,8 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
                 ret = nss_cmd_getbysid_send_reply(dctx);
                 break;
             default:
-                DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d].\n",
-                                            dctx->cmdctx->cmd);
+                DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d][%s].\n",
+                      dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd));
                 ret = EINVAL;
             }
             goto done;
@@ -1246,8 +1247,8 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d].\n",
-                                    dctx->cmdctx->cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d][%s].\n",
+              dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 
@@ -1353,7 +1354,8 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
     case SSS_NSS_GETORIGBYNAME:
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command type [%d].\n", cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command type [%d][%s].\n",
+              cmd, sss_cmd2str(cmd));
         return EINVAL;
     }
 
@@ -1389,8 +1391,8 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
     rawname = (const char *)body;
     dctx->mc_name = rawname;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Running command [%d] with input [%s].\n",
-                               dctx->cmdctx->cmd, rawname);
+    DEBUG(SSSDBG_TRACE_FUNC, "Running command [%d][%s] with input [%s].\n",
+          cmd, sss_cmd2str(dctx->cmdctx->cmd), rawname);
 
     if (dctx->cmdctx->cmd == SSS_NSS_GETSIDBYNAME) {
         ret = nss_check_name_of_well_known_sid(cmdctx, rawname);
@@ -1509,8 +1511,8 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d].\n",
-                                    dctx->cmdctx->cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d][%s].\n",
+              dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 
@@ -1611,8 +1613,8 @@ static void nss_cmd_getbynam_done(struct tevent_req *req)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d].\n",
-                                     dctx->cmdctx->cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d][%s].\n",
+              dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 
@@ -1779,7 +1781,8 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     case SSS_NSS_GETSIDBYID:
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command type [%d].\n", cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command type [%d][%s].\n",
+              cmd, sss_cmd2str(cmd));
         return EINVAL;
     }
 
@@ -1808,8 +1811,8 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     }
     SAFEALIGN_COPY_UINT32(&cmdctx->id, body, NULL);
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Running command [%d] with id [%"PRIu32"].\n",
-                              dctx->cmdctx->cmd, cmdctx->id);
+    DEBUG(SSSDBG_TRACE_FUNC, "Running command [%d][%s] with id [%"PRIu32"].\n",
+          dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd), cmdctx->id);
 
     switch(dctx->cmdctx->cmd) {
     case SSS_NSS_GETPWUID:
@@ -1850,8 +1853,8 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d].\n",
-                                    dctx->cmdctx->cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d][%s].\n",
+              dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd));
         ret = EINVAL;
         goto done;
     }
@@ -1896,8 +1899,8 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d].\n",
-                                    dctx->cmdctx->cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d][%s].\n",
+              dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 
@@ -1964,8 +1967,8 @@ static void nss_cmd_getbyid_done(struct tevent_req *req)
         }
         break;
     default:
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d].\n",
-                                    dctx->cmdctx->cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command [%d][%s].\n",
+              dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd));
         ret = EINVAL;
     }
 
@@ -5259,7 +5262,8 @@ static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     size_t bin_sid_length;
 
     if (cmd != SSS_NSS_GETNAMEBYSID && cmd != SSS_NSS_GETIDBYSID) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command type [%d].\n", cmd);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command type [%d][%s].\n",
+              cmd, sss_cmd2str(cmd));
         return EINVAL;
     }
 
@@ -5301,8 +5305,8 @@ static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Running command [%d] with SID [%s].\n",
-                               dctx->cmdctx->cmd, sid_str);
+    DEBUG(SSSDBG_TRACE_FUNC, "Running command [%d][%s] with SID [%s].\n",
+          dctx->cmdctx->cmd, sss_cmd2str(dctx->cmdctx->cmd), sid_str);
 
     cmdctx->secid = talloc_strdup(cmdctx, sid_str);
     if (cmdctx->secid == NULL) {

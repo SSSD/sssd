@@ -27,6 +27,7 @@
 #include "util/util.h"
 #include "tools/tools_util.h"
 #include "util/mmap_cache.h"
+#include "util/sss_cli_cmd.h"
 #include "sss_client/sss_cli.h"
 
 /* This is a copy of sss_mc_set_recycled present in
@@ -260,7 +261,8 @@ static errno_t sss_mc_refresh_ent(const char *name, enum sss_tools_ent ent)
     }
 
     if (cmd == SSS_CLI_NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unknown object %d to refresh\n", cmd);
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown object [%d][%s] to refresh\n",
+              cmd, sss_cmd2str(cmd));
         return EINVAL;
     }
 
