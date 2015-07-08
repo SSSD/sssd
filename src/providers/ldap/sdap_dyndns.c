@@ -502,8 +502,12 @@ sdap_dyndns_get_addrs_send(TALLOC_CTX *mem_ctx,
     if (iface) {
         ret = sss_iface_addr_list_get(state, iface, &state->addresses);
         if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
+            DEBUG(ret == ENOENT ? SSSDBG_MINOR_FAILURE : SSSDBG_OP_FAILURE,
                   "Cannot get list of addresses from interface %s\n", iface);
+            /* non critical failure */
+            if (ret == ENOENT) {
+                ret = EOK;
+            }
         }
         /* We're done. Just fake an async request completion */
         goto done;

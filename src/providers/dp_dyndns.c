@@ -222,8 +222,17 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
         }
     }
 
-    ret = EOK;
-    *_addrlist = addrlist;
+    if (addrlist != NULL) {
+        /* OK, some result was found */
+        ret = EOK;
+        *_addrlist = addrlist;
+    } else {
+        /* No result was found */
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "No IPs usable for DNS was found for interface: %s.\n", ifname);
+        ret = ENOENT;
+    }
+
 done:
     freeifaddrs(ifaces);
     return ret;

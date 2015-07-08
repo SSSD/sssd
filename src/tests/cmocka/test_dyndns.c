@@ -247,6 +247,23 @@ void dyndns_test_get_multi_ifaddr(void **state)
     assert_true(check_leaks_pop(dyndns_test_ctx) == true);
 }
 
+void dyndns_test_get_ifaddr_enoent(void **state)
+{
+    errno_t ret;
+    struct sss_iface_addr *addrlist = NULL;
+
+    check_leaks_push(dyndns_test_ctx);
+    will_return_getifaddrs("eth0", "192.168.0.1");
+    will_return_getifaddrs("eth1", "192.168.0.2");
+    will_return_getifaddrs(NULL, NULL); /* sentinel */
+    ret = sss_iface_addr_list_get(dyndns_test_ctx, "non_existing_interface",
+                                  &addrlist);
+    assert_int_equal(ret, ENOENT);
+    talloc_free(addrlist);
+
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
 void dyndns_test_ok(void **state)
 {
     struct tevent_req *req;
@@ -458,6 +475,9 @@ int main(int argc, const char *argv[])
                                         dyndns_test_simple_setup,
                                         dyndns_test_teardown),
         cmocka_unit_test_setup_teardown(dyndns_test_get_multi_ifaddr,
+                                        dyndns_test_simple_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_get_ifaddr_enoent,
                                         dyndns_test_simple_setup,
                                         dyndns_test_teardown),
 
