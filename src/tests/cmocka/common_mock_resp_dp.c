@@ -51,7 +51,7 @@ sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
 
     *dp_err = sss_mock_type(dbus_uint16_t);
     *dp_ret = sss_mock_type(dbus_uint32_t);
-    *dp_ret = sss_mock_type(dbus_uint32_t);
+    *err_msg = sss_mock_ptr_type(char *);
 
     cb = sss_mock_ptr_type(acct_cb_t);
     if (cb) {
