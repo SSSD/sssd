@@ -417,6 +417,7 @@ enum response_type {
                           * @param Three zero terminated strings, if one of the
                           * strings is missing the message will contain only
                           * an empty string (\0) for that component. */
+    SSS_PAM_CERT_INFO,
     SSS_OTP,             /**< Indicates that the autotok was a OTP, so don't
                           * cache it. There is no message.
                           * @param None. */

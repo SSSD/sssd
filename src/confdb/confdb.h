@@ -115,6 +115,8 @@
 #define CONFDB_PAM_TRUSTED_USERS "pam_trusted_users"
 #define CONFDB_PAM_PUBLIC_DOMAINS "pam_public_domains"
 #define CONFDB_PAM_ACCOUNT_EXPIRED_MESSAGE "pam_account_expired_message"
+#define CONFDB_PAM_CERT_AUTH "pam_cert_auth"
+#define CONFDB_PAM_CERT_DB_PATH "pam_cert_db_path"
 
 /* SUDO */
 #define CONFDB_SUDO_CONF_ENTRY "config/sudo"

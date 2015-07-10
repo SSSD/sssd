@@ -50,6 +50,8 @@
 #define ALL_DOMAIMS_ARE_PUBLIC "all"
 #define NO_DOMAIMS_ARE_PUBLIC "none"
 #define DEFAULT_ALLOWED_UIDS ALL_UIDS_ALLOWED
+#define DEFAULT_PAM_CERT_AUTH false
+#define DEFAULT_PAM_CERT_DB_PATH SYSCONFDIR"/pki/nssdb"
 
 struct mon_cli_iface monitor_pam_methods = {
     { &mon_cli_iface_meta, 0 },
@@ -300,6 +302,38 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");
         goto done;
+    }
+
+    /* Check if certificate based authentication is enabled */
+    ret = confdb_get_bool(pctx->rctx->cdb,
+                          CONFDB_PAM_CONF_ENTRY,
+                          CONFDB_PAM_CERT_AUTH,
+                          DEFAULT_PAM_CERT_AUTH,
+                          &pctx->cert_auth);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to determine get cert db path.\n");
+        goto done;
+    }
+
+    pctx->p11_child_debug_fd = -1;
+    if (pctx->cert_auth) {
+        ret = p11_child_init(pctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "p11_child_init failed.\n");
+            goto done;
+        }
+
+        ret = confdb_get_string(pctx->rctx->cdb, pctx,
+                                CONFDB_PAM_CONF_ENTRY,
+                                CONFDB_PAM_CERT_DB_PATH,
+                                DEFAULT_PAM_CERT_DB_PATH,
+                                &pctx->nss_db);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to determine if certificate based authentication is " \
+                  "enabled or not.\n");
+            goto done;
+        }
     }
 
     ret = EOK;

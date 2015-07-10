@@ -31,6 +31,7 @@
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
 #include "responder/pam/pam_helpers.h"
+#include "responder/common/responder_cache_req.h"
 #include "db/sysdb.h"
 
 enum pam_verbosity {
@@ -49,6 +50,7 @@ static errno_t
 pam_get_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                          const char *name,
                                          uint64_t *_value);
+
 static void pam_reply(struct pam_auth_req *preq);
 
 static errno_t pack_user_info_account_expired(TALLOC_CTX *mem_ctx,
@@ -153,6 +155,13 @@ static int extract_authtok_v2(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_2FA:
         ret = sss_authtok_set(tok, SSS_AUTHTOK_TYPE_2FA,
                               auth_token_data, auth_token_length);
+        break;
+    case SSS_AUTHTOK_TYPE_SC_PIN:
+        ret = sss_authtok_set_sc_pin(tok, (const char *) auth_token_data,
+                                     auth_token_length);
+        break;
+    case SSS_AUTHTOK_TYPE_SC_KEYPAD:
+        sss_authtok_set_sc_keypad(tok);
         break;
     default:
         return EINVAL;
@@ -892,6 +901,7 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
 }
 
 static void pam_forwarder_cb(struct tevent_req *req);
+static void pam_forwarder_cert_cb(struct tevent_req *req);
 static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                                        const char *err_msg, void *ptr);
 static int pam_check_user_search(struct pam_auth_req *preq);
@@ -939,9 +949,22 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
         goto done;
     }
 
-    ret = sss_parse_name_for_domains(pd, cctx->rctx->domains,
-                                     cctx->rctx->default_domain, pd->logon_name,
-                                     &pd->domain, &pd->user);
+    if (pd->logon_name != NULL) {
+        ret = sss_parse_name_for_domains(pd, cctx->rctx->domains,
+                                         cctx->rctx->default_domain,
+                                         pd->logon_name,
+                                         &pd->domain, &pd->user);
+    } else {
+        /* Only SSS_PAM_PREAUTH request may have a missing name, e.g. if the
+         * name is determined with the help of a certificate */
+        if (pd->cmd == SSS_PAM_PREAUTH) {
+            ret = EOK;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Missing logon name in PAM request.\n");
+            ret = EINVAL;
+            goto done;
+        }
+    }
 
     DEBUG_PAM_DATA(SSSDBG_CONF_SETTINGS, pd);
 
@@ -1052,48 +1075,65 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         goto done;
     }
 
-    /* now check user is valid */
-    if (pd->domain) {
-        preq->domain = responder_get_domain(cctx->rctx, pd->domain);
-        if (!preq->domain) {
-            ret = ENOENT;
-            goto done;
-        }
-
-        ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
-                                      preq->domain, pd->user);
-        if (ncret == EEXIST) {
-            /* User found in the negative cache */
-            ret = ENOENT;
-            goto done;
-        }
-    } else {
-        for (dom = preq->cctx->rctx->domains;
-             dom;
-             dom = get_next_domain(dom, false)) {
-            if (dom->fqnames) continue;
-
-            ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
-                                          dom, pd->user);
-            if (ncret == ENOENT) {
-                /* User not found in the negative cache
-                 * Proceed with PAM actions
-                 */
-                break;
+    if (pd->user != NULL) {
+        /* now check user is valid */
+        if (pd->domain) {
+            preq->domain = responder_get_domain(cctx->rctx, pd->domain);
+            if (!preq->domain) {
+                ret = ENOENT;
+                goto done;
             }
 
-            /* Try the next domain */
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "User [%s@%s] filtered out (negative cache). "
-                   "Trying next domain.\n", pd->user, dom->name);
+            ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
+                                          preq->domain, pd->user);
+            if (ncret == EEXIST) {
+                /* User found in the negative cache */
+                ret = ENOENT;
+                goto done;
+            }
+        } else {
+            for (dom = preq->cctx->rctx->domains;
+                 dom;
+                 dom = get_next_domain(dom, false)) {
+                if (dom->fqnames) continue;
+
+                ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
+                                              dom, pd->user);
+                if (ncret == ENOENT) {
+                    /* User not found in the negative cache
+                     * Proceed with PAM actions
+                     */
+                    break;
+                }
+
+                /* Try the next domain */
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "User [%s@%s] filtered out (negative cache). "
+                       "Trying next domain.\n", pd->user, dom->name);
+            }
+
+            if (!dom) {
+                ret = ENOENT;
+                goto done;
+            }
+            preq->domain = dom;
+        }
+    }
+
+    if (may_do_cert_auth(pctx, pd)) {
+        req = pam_check_cert_send(cctx, cctx->ev, pctx->p11_child_debug_fd,
+                                  pctx->nss_db, 10, pd);
+        if (req == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
+            ret = ENOMEM;
+        } else {
+            tevent_req_set_callback(req, pam_forwarder_cert_cb, preq);
+            ret = EAGAIN;
         }
 
-        if (!dom) {
-            ret = ENOENT;
-            goto done;
-        }
-        preq->domain = dom;
+        goto done;
     }
+
 
     if (preq->domain->provider == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1113,6 +1153,142 @@ done:
     return pam_check_user_done(preq, ret);
 }
 
+static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req);
+static void pam_forwarder_cert_cb(struct tevent_req *req)
+{
+    struct pam_auth_req *preq = tevent_req_callback_data(req,
+                                                         struct pam_auth_req);
+    struct cli_ctx *cctx = preq->cctx;
+    struct pam_data *pd;
+    errno_t ret = EOK;
+    char *cert;
+    struct pam_ctx *pctx =
+            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+
+    ret = pam_check_cert_recv(req, preq, &cert, &preq->token_name);
+    talloc_free(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "get_cert request failed.\n");
+        goto done;
+    }
+
+    pd = preq->pd;
+
+    if (cert == NULL) {
+        if (pd->logon_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "No certificate found and no logon name given, " \
+                  "authentication not possible.\n");;
+            ret = ENOENT;
+        } else {
+            if (pd->cmd == SSS_PAM_AUTHENTICATE) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "No certificate returned, authentication failed.\n");
+                ret = ENOENT;
+            } else {
+                ret = pam_check_user_search(preq);
+                if (ret == EOK) {
+                    pam_dom_forwarder(preq);
+                }
+            }
+
+        }
+        goto done;
+    }
+
+
+    req = cache_req_user_by_cert_send(preq, cctx->ev, cctx->rctx,
+                                      pctx->ncache, pctx->neg_timeout,
+                                      0, NULL, cert);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert_send failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(req, pam_forwarder_lookup_by_cert_done, preq);
+    return;
+
+done:
+    pam_check_user_done(preq, ret);
+}
+
+static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
+{
+    int ret;
+    struct ldb_result *res;
+    struct sss_domain_info *domain;
+    struct pam_auth_req *preq = tevent_req_callback_data(req,
+                                                         struct pam_auth_req);
+    const char *cert_user;
+
+
+    ret = cache_req_user_by_cert_recv(preq, req, &res, &domain, NULL);
+    talloc_zfree(req);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(SSSDBG_OP_FAILURE, "cache_req_user_by_cert request failed.\n");
+        goto done;
+    }
+
+    if (ret == EOK && res->count > 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Search by certificate returned more than one result.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (ret == EOK) {
+        if (preq->domain == NULL) {
+            preq->domain = domain;
+        }
+
+        preq->cert_user_obj = talloc_steal(preq, res->msgs[0]);
+
+        if (preq->pd->logon_name == NULL) {
+            cert_user = ldb_msg_find_attr_as_string(preq->cert_user_obj,
+                                                    SYSDB_NAME, NULL);
+            if (cert_user == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Certificate user object has not name.\n");
+                ret = ENOENT;
+                goto done;
+            }
+
+            DEBUG(SSSDBG_FUNC_DATA, "Found certificate user [%s].\n",
+                                    cert_user);
+
+            ret = add_pam_cert_response(preq->pd, cert_user, preq->token_name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
+            }
+
+            preq->pd->domain = talloc_strdup(preq->pd, domain->name);
+            if (preq->pd->domain == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            preq->pd->pam_status = PAM_SUCCESS;
+            pam_reply(preq);
+            return;
+        }
+    } else {
+        if (preq->pd->logon_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Missing logon name and no certificate user found.\n");
+            ret = ENOENT;
+            goto done;
+        }
+    }
+
+    ret = pam_check_user_search(preq);
+    if (ret == EOK) {
+        pam_dom_forwarder(preq);
+    }
+
+done:
+    pam_check_user_done(preq, ret);
+}
+
 static void pam_forwarder_cb(struct tevent_req *req)
 {
     struct pam_auth_req *preq = tevent_req_callback_data(req,
@@ -1120,6 +1296,8 @@ static void pam_forwarder_cb(struct tevent_req *req)
     struct cli_ctx *cctx = preq->cctx;
     struct pam_data *pd;
     errno_t ret = EOK;
+    struct pam_ctx *pctx =
+            talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
 
     ret = sss_dp_get_domains_recv(req);
     talloc_free(req);
@@ -1156,6 +1334,20 @@ static void pam_forwarder_cb(struct tevent_req *req)
             ret = ENOENT;
             goto done;
         }
+    }
+
+    if (may_do_cert_auth(pctx, pd)) {
+        req = pam_check_cert_send(cctx, cctx->ev, pctx->p11_child_debug_fd,
+                                  pctx->nss_db, 10, pd);
+        if (req == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
+            ret = ENOMEM;
+        } else {
+            tevent_req_set_callback(req, pam_forwarder_cert_cb, preq);
+            ret = EAGAIN;
+        }
+
+        goto done;
     }
 
     ret = pam_check_user_search(preq);
@@ -1542,6 +1734,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     int ret;
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+    const char *cert_user;
 
     if (!preq->pd->domain) {
         preq->pd->domain = preq->domain->name;
@@ -1577,6 +1770,51 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         preq->use_cached_auth = true;
         pam_reply(preq);
         return;
+    }
+
+    if (may_do_cert_auth(pctx, preq->pd) && preq->cert_user_obj != NULL) {
+        /* Check if user matches certificate user */
+        cert_user = ldb_msg_find_attr_as_string(preq->cert_user_obj, SYSDB_NAME,
+                                                NULL);
+        if (cert_user == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Certificate user object has not name.\n");
+            preq->pd->pam_status = PAM_USER_UNKNOWN;
+            pam_reply(preq);
+            return;
+        }
+
+        /* pam_check_user_search() calls pd_set_primary_name() is the search
+         * was successful, so pd->user contains the canonical name as well */
+        if (strcmp(cert_user, preq->pd->user) == 0) {
+
+            preq->pd->pam_status = PAM_SUCCESS;
+
+            if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+                ret = add_pam_cert_response(preq->pd, cert_user,
+                                            preq->token_name);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
+                    preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+                }
+            }
+
+            preq->callback = pam_reply;
+            pam_reply(preq);
+            return;
+        } else {
+            if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+                DEBUG(SSSDBG_TRACE_FUNC,
+                      "User and certificate user do not match, " \
+                      "continue with other authentication methods.\n");
+            } else {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "User and certificate user do not match.\n");
+                preq->pd->pam_status = PAM_AUTH_ERR;
+                pam_reply(preq);
+                return;
+            }
+        }
     }
 
     if (!NEED_CHECK_PROVIDER(preq->domain->provider) ) {

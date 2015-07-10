@@ -382,6 +382,8 @@ dist_noinst_DATA = \
     contrib/ci/distro.sh \
     contrib/ci/misc.sh \
     contrib/ci/sssd.supp \
+    src/tests/cmocka/p11_nssdb/cert9.db \
+    src/tests/cmocka/p11_nssdb/key4.db \
     $(NULL)
 
 ###############################
@@ -1086,6 +1088,7 @@ sssd_pam_SOURCES = \
     src/responder/pam/pam_LOCAL_domain.c \
     src/responder/pam/pamsrv.c \
     src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pam_helpers.c \
     $(SSSD_RESPONDER_OBJ)
@@ -1877,11 +1880,13 @@ pam_srv_tests_SOURCES = \
     src/tests/cmocka/test_pam_srv.c \
     src/sss_client/pam_message.c \
     src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pam_helpers.c \
     src/responder/pam/pamsrv_dp.c \
     src/responder/pam/pam_LOCAL_domain.c \
     $(NULL)
 pam_srv_tests_CFLAGS = \
+    -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     $(AM_CFLAGS) \
     $(NULL)
 pam_srv_tests_LDFLAGS = \

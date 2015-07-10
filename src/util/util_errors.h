@@ -100,6 +100,7 @@ enum sssd_errors {
     ERR_TRUST_NOT_SUPPORTED,
     ERR_IPA_GETKEYTAB_FAILED,
     ERR_TRUST_FOREST_UNKNOWN,
+    ERR_P11_CHILD,
     ERR_LAST            /* ALWAYS LAST */
 };
 

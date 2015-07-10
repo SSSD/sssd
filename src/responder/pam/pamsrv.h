@@ -43,6 +43,10 @@ struct pam_ctx {
     /* List of domains that are accessible even for untrusted users. */
     char **public_domains;
     int public_domains_count;
+
+    bool cert_auth;
+    int p11_child_debug_fd;
+    char *nss_db;
 };
 
 struct pam_auth_dp_req {
@@ -65,6 +69,9 @@ struct pam_auth_req {
     bool cached_auth_failed;
 
     struct pam_auth_dp_req *dpreq_spy;
+
+    struct ldb_message *cert_user_obj;
+    char *token_name;
 };
 
 struct sss_cmd_table *get_pam_cmds(void);
@@ -73,4 +80,19 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout);
 
 int LOCAL_pam_handler(struct pam_auth_req *preq);
 
+errno_t p11_child_init(struct pam_ctx *pctx);
+
+struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       int child_debug_fd,
+                                       const char *nss_db,
+                                       time_t timeout,
+                                       struct pam_data *pd);
+errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                            char **cert, char **token_name);
+
+errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
+                              const char *token_name);
+
+bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd);
 #endif /* __PAMSRV_H__ */
