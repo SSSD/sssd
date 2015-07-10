@@ -681,6 +681,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/sssd_autofs
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
+%attr(4750,root,sssd) %{_libexecdir}/%{servicename}/p11_child
 
 %dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_simple.so

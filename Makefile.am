@@ -148,7 +148,9 @@ endif
 if BUILD_SEMANAGE
 sssdlibexec_PROGRAMS += selinux_child
 endif
-
+if HAVE_NSS
+sssdlibexec_PROGRAMS += p11_child
+endif
 
 if BUILD_PAC_RESPONDER
     sssdlibexec_PROGRAMS += sssd_pac
@@ -3146,6 +3148,23 @@ proxy_child_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 
+p11_child_SOURCES = \
+    src/p11_child/p11_child_nss.c \
+    src/util/atomic_io.c \
+    $(NULL)
+p11_child_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(NSS_CFLAGS) \
+    $(NULL)
+p11_child_LDADD = \
+    libsss_debug.la \
+    $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
+    $(NSS_LIBS) \
+    libsss_crypt.la \
+    $(NULL)
+
 memberof_la_SOURCES = \
     src/ldb_modules/memberof.c \
     src/util/util.c
@@ -3540,6 +3559,10 @@ if SSSD_USER
 if BUILD_SEMANAGE
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
+endif
+if HAVE_NSS
+	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/p11_child
+	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/p11_child
 endif
 endif
 
