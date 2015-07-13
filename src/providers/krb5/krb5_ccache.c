@@ -354,6 +354,11 @@ errno_t sss_krb5_cc_destroy(const char *ccname, uid_t uid, gid_t gid)
     TALLOC_CTX *tmp_ctx;
     errno_t ret;
 
+    if (ccname == NULL) {
+        /* nothing to remove */
+        return EOK;
+    }
+
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
