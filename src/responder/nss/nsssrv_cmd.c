@@ -1387,6 +1387,7 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
     }
 
     rawname = (const char *)body;
+    dctx->mc_name = rawname;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Running command [%d] with input [%s].\n",
                                dctx->cmdctx->cmd, rawname);
@@ -3976,6 +3977,13 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
     }
 
     if (changed) {
+        char *fq_name = sss_tc_fqname(tmp_ctx, dom->names, dom, name);
+        if (!fq_name) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not create fq name\n");
+            goto done;
+        }
+
         for (i = 0; i < gnum; i++) {
             id = groups[i];
 
@@ -3987,7 +3995,7 @@ void nss_update_initgr_memcache(struct nss_ctx *nctx,
             }
         }
 
-        to_sized_string(&delete_name, name);
+        to_sized_string(&delete_name, fq_name);
         ret = sss_mmap_cache_initgr_invalidate(nctx->initgr_mc_ctx,
                                                &delete_name);
         if (ret != EOK && ret != ENOENT) {
@@ -4007,6 +4015,7 @@ static int fill_initgr(struct sss_packet *packet,
                        struct sss_domain_info *dom,
                        struct ldb_result *res,
                        struct nss_ctx *nctx,
+                       const char *mc_name,
                        const char *name)
 {
     uint8_t *body;
@@ -4095,9 +4104,18 @@ static int fill_initgr(struct sss_packet *packet,
     }
 
     if (nctx->initgr_mc_ctx) {
-        to_sized_string(&rawname, name);
+        struct sized_string unique_name;
+        char *fq_name = sss_tc_fqname(packet, dom->names, dom, name);
+        if (!fq_name) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not create fq name\n");
+            return ENOMEM;
+        }
+
+        to_sized_string(&rawname, mc_name);
+        to_sized_string(&unique_name, fq_name);
         ret = sss_mmap_cache_initgr_store(&nctx->initgr_mc_ctx, &rawname,
-                                          num - skipped, gids);
+                                          &unique_name, num - skipped, gids);
         if (ret != EOK && ret != ENOMEM) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to store user %s(%s) in mmap cache!\n",
@@ -4125,7 +4143,7 @@ static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
     }
 
     ret = fill_initgr(cctx->creq->out, dctx->domain, dctx->res, nctx,
-                      dctx->rawname);
+                      dctx->mc_name, cmdctx->name);
     if (ret) {
         return ret;
     }
@@ -4173,8 +4191,10 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
-        name = sss_reverse_replace_space(dctx, name,
+        name = sss_reverse_replace_space(cmdctx, name,
                                          nctx->rctx->override_space);
+        /* save name so it can be used in initgr reply */
+        cmdctx->name = name;
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_reverse_replace_space failed\n");

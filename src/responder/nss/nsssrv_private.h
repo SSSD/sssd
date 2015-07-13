@@ -79,6 +79,8 @@ struct nss_dom_ctx {
 
     /* Service-specific */
     const char *protocol;
+
+    const char *mc_name;
 };
 
 struct setent_step_ctx {
