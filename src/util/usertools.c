@@ -249,8 +249,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
     }
 
     if (!re_pattern) {
-        re_pattern = talloc_strdup(tmpctx,
-                                   "(?P<name>[^@]+)@?(?P<domain>[^@]*$)");
+        re_pattern = talloc_strdup(tmpctx, IPA_AD_DEFAULT_RE);
         if (!re_pattern) {
             ret = ENOMEM;
             goto done;

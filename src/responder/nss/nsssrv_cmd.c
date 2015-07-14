@@ -1255,6 +1255,14 @@ static int nss_check_name_of_well_known_sid(struct nss_cmd_ctx *cmdctx,
         return ret;
     }
 
+    if (wk_dom_name == NULL || wk_name == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to split [%s] in name and domain part. " \
+              "Skipping check for well-known name.\n", full_name);
+
+        return ENOENT;
+    }
+
     ret = name_to_well_known_sid(wk_dom_name, wk_name, &wk_sid);
     talloc_free(wk_dom_name);
     talloc_free(wk_name);
