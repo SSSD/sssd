@@ -42,6 +42,9 @@
 #define DYNDNS_TIMEOUT 15
 #endif /* DYNDNS_TIMEOUT */
 
+/* MASK represents special value for matching all interfaces */
+#define MASK "*"
+
 struct sss_iface_addr {
     struct sss_iface_addr *next;
     struct sss_iface_addr *prev;
@@ -171,6 +174,16 @@ ok_for_dns(struct sockaddr *sa)
     return true;
 }
 
+static bool supported_address_family(sa_family_t sa_family)
+{
+    return sa_family == AF_INET || sa_family == AF_INET6;
+}
+
+static bool matching_name(const char *ifname, const char *ifname2)
+{
+    return (strcmp(MASK, ifname) == 0) || (strcasecmp(ifname, ifname2) == 0);
+}
+
 /* Collect IP addresses associated with an interface */
 errno_t
 sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
@@ -200,10 +213,9 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
         if (!ifa->ifa_addr) continue;
 
         /* Add IP addresses to the list */
-        if ((ifa->ifa_addr->sa_family == AF_INET ||
-             ifa->ifa_addr->sa_family == AF_INET6) &&
-             strcasecmp(ifa->ifa_name, ifname) == 0 &&
-             ok_for_dns(ifa->ifa_addr)) {
+        if (supported_address_family(ifa->ifa_addr->sa_family)
+                && matching_name(ifname, ifa->ifa_name)
+                && ok_for_dns(ifa->ifa_addr)) {
 
             /* Add this address to the IP address list */
             address = talloc_zero(mem_ctx, struct sss_iface_addr);
