@@ -81,10 +81,6 @@ errno_t
 sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
                         struct sss_iface_addr **_addrlist);
 
-struct sss_iface_addr *
-sss_iface_addr_add(TALLOC_CTX *mem_ctx, struct sss_iface_addr **list,
-                   struct sockaddr_storage *ss);
-
 errno_t
 sss_iface_addr_list_as_str_list(TALLOC_CTX *mem_ctx,
                                 struct sss_iface_addr *ifaddr_list,
@@ -132,4 +128,8 @@ void
 sss_iface_addr_concatenate(struct sss_iface_addr **list,
                            struct sss_iface_addr *list2);
 
+errno_t
+sss_get_dualstack_addresses(TALLOC_CTX *mem_ctx,
+                            struct sockaddr *ss,
+                            struct sss_iface_addr **_iface_addrs);
 #endif /* DP_DYNDNS_H_ */

@@ -58,31 +58,6 @@ void sss_iface_addr_concatenate(struct sss_iface_addr **list,
     DLIST_CONCATENATE((*list), list2, struct sss_iface_addr*);
 }
 
-struct sss_iface_addr *
-sss_iface_addr_add(TALLOC_CTX *mem_ctx, struct sss_iface_addr **list,
-                   struct sockaddr_storage *ss)
-{
-    struct sss_iface_addr *address;
-
-    address = talloc(mem_ctx, struct sss_iface_addr);
-    if (address == NULL) {
-        return NULL;
-    }
-
-    address->addr = talloc_memdup(address, ss,
-                                  sizeof(struct sockaddr_storage));
-    if(address->addr == NULL) {
-        talloc_zfree(address);
-        return NULL;
-    }
-
-    /* steal old dlist to the new head */
-    talloc_steal(address, *list);
-    DLIST_ADD(*list, address);
-
-    return address;
-}
-
 errno_t
 sss_iface_addr_list_as_str_list(TALLOC_CTX *mem_ctx,
                                 struct sss_iface_addr *ifaddr_list,
@@ -1257,4 +1232,114 @@ errno_t be_nsupdate_init_timer(struct be_nsupdate_ctx *ctx,
     be_nsupdate_timer_schedule(ev, ctx);
 
     return ERR_OK;
+}
+
+static bool match_ip(const struct sockaddr *sa,
+                     const struct sockaddr *sb)
+{
+    size_t addrsize;
+    bool res;
+    const void *addr_a;
+    const void *addr_b;
+
+    if (sa->sa_family == AF_INET) {
+        addrsize = sizeof(struct in_addr);
+        addr_a = (const void *) &((const struct sockaddr_in *) sa)->sin_addr;
+        addr_b = (const void *) &((const struct sockaddr_in *) sb)->sin_addr;
+    } else if (sa->sa_family == AF_INET6) {
+        addrsize = sizeof(struct in6_addr);
+        addr_a = (const void *) &((const struct sockaddr_in6 *) sa)->sin6_addr;
+        addr_b = (const void *) &((const struct sockaddr_in6 *) sb)->sin6_addr;
+    } else {
+        res = false;
+        goto done;
+    }
+
+    if (sa->sa_family != sb->sa_family) {
+        res = false;
+        goto done;
+    }
+
+    res = memcmp(addr_a, addr_b, addrsize) == 0;
+
+done:
+    return res;
+}
+
+static errno_t find_iface_by_addr(TALLOC_CTX *mem_ctx,
+                                  const struct sockaddr *ss,
+                                  const char **_iface_name)
+{
+    struct ifaddrs *ifaces = NULL;
+    struct ifaddrs *ifa;
+    errno_t ret;
+
+    ret = getifaddrs(&ifaces);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not read interfaces [%d][%s]\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    for (ifa = ifaces; ifa != NULL; ifa = ifa->ifa_next) {
+
+        /* Some interfaces don't have an ifa_addr */
+        if (!ifa->ifa_addr) continue;
+
+        if (match_ip(ss, ifa->ifa_addr)) {
+            const char *iface_name;
+            iface_name = talloc_strdup(mem_ctx, ifa->ifa_name);
+            if (iface_name == NULL) {
+                ret = ENOMEM;
+            } else {
+                *_iface_name = iface_name;
+                ret = EOK;
+            }
+            goto done;
+        }
+    }
+    ret = ENOENT;
+
+done:
+    freeifaddrs(ifaces);
+    return ret;
+}
+
+errno_t sss_get_dualstack_addresses(TALLOC_CTX *mem_ctx,
+                                    struct sockaddr *ss,
+                                    struct sss_iface_addr **_iface_addrs)
+{
+    struct sss_iface_addr *iface_addrs;
+    const char *iface_name = NULL;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = find_iface_by_addr(tmp_ctx, ss, &iface_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "find_iface_by_addr failed: %d:[%s]\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sss_iface_addr_list_get(tmp_ctx, iface_name, &iface_addrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sss_iface_addr_list_get failed: %d:[%s]\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+    *_iface_addrs = talloc_steal(mem_ctx, iface_addrs);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }

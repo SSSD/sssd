@@ -644,7 +644,6 @@ sdap_dyndns_add_ldap_conn(struct sdap_dyndns_get_addrs_state *state,
 {
     int ret;
     int fd;
-    struct sss_iface_addr *address;
     struct sockaddr_storage ss;
     socklen_t ss_len = sizeof(ss);
 
@@ -666,18 +665,19 @@ sdap_dyndns_add_ldap_conn(struct sdap_dyndns_get_addrs_state *state,
         return ret;
     }
 
-    switch(ss.ss_family) {
-    case AF_INET:
-    case AF_INET6:
-        address = sss_iface_addr_add(state, &state->addresses, &ss);
-        if (address == NULL) {
-            return ENOMEM;
-        }
-        break;
-    default:
+    if (ss.ss_family != AF_INET && ss.ss_family != AF_INET6) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Connection to LDAP is neither IPv4 nor IPv6\n");
         return EIO;
+    }
+
+    ret = sss_get_dualstack_addresses(state, (struct sockaddr *) &ss,
+                                      &state->addresses);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sss_get_dualstack_addresses failed: %d:[%s]\n",
+              ret, sss_strerror(ret));
+        return ret;
     }
 
     return EOK;

@@ -289,6 +289,173 @@ void dyndns_test_get_ifaddr_enoent(void **state)
     assert_true(check_leaks_pop(dyndns_test_ctx) == true);
 }
 
+void dyndns_test_dualstack(void **state)
+{
+    errno_t ret;
+    struct sss_iface_addr *addrlist;
+    struct sss_iface_addr *sss_if_addrs;
+    char straddr[128];
+    int i;
+
+    check_leaks_push(dyndns_test_ctx);
+
+    /* getifaddrs is called twice in sss_get_dualstack_addresses() */
+    for (i = 0; i < 2; i++) {
+        will_return_getifaddrs("eth0", "192.168.0.2", AF_INET);
+        will_return_getifaddrs("eth1", "192.168.0.1", AF_INET);
+        will_return_getifaddrs("eth0", "2001:cdba::555", AF_INET6);
+        will_return_getifaddrs("eth1", "2001:cdba::444", AF_INET6);
+        will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+    }
+
+    struct sockaddr_in sin;
+    memset (&sin, 0, sizeof (sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = inet_addr ("192.168.0.2");
+    ret = sss_get_dualstack_addresses(dyndns_test_ctx,
+                                      (struct sockaddr *) &sin,
+                                      &addrlist);
+    assert_int_equal(ret, EOK);
+
+    sss_if_addrs = addrlist;
+    assert_non_null(sss_if_addrs);
+    assert_non_null(sss_if_addrs->addr);
+    assert_non_null(sss_if_addrs->next);
+    assert_null(sss_if_addrs->prev);
+
+    assert_non_null(inet_ntop(AF_INET6,
+                              &((struct sockaddr_in6 *) sss_if_addrs->addr)->sin6_addr,
+                              straddr, INET6_ADDRSTRLEN));
+    /* ip addresses are returned in different order */
+    assert_string_equal(straddr, "2001:cdba::555");
+
+    sss_if_addrs = addrlist->next;
+    assert_non_null(sss_if_addrs);
+    assert_non_null(sss_if_addrs->addr);
+    assert_null(sss_if_addrs->next);
+    assert_non_null(sss_if_addrs->prev);
+
+    assert_non_null(inet_ntop(AF_INET,
+                              &((struct sockaddr_in *) sss_if_addrs->addr)->sin_addr,
+                              straddr, INET_ADDRSTRLEN));
+    /* ip addresses are returned in different order */
+    assert_string_equal(straddr, "192.168.0.2");
+
+    talloc_free(addrlist);
+
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
+void dyndns_test_dualstack_multiple_addresses(void **state)
+{
+    errno_t ret;
+    struct sss_iface_addr *addrlist;
+    struct sss_iface_addr *sss_if_addrs;
+    char straddr[128];
+    int i;
+
+    check_leaks_push(dyndns_test_ctx);
+
+    /* getifaddrs is called twice in sss_get_dualstack_addresses() */
+    for (i = 0; i < 2; i++) {
+        will_return_getifaddrs("eth0", "192.168.0.2", AF_INET);
+        will_return_getifaddrs("eth0", "192.168.0.1", AF_INET);
+        /* loopback - invalid for dns (should be skipped) */
+        will_return_getifaddrs("eth0", "::1", AF_INET6);
+        /* linklocal - invalid for dns (should be skipped) */
+        will_return_getifaddrs("eth0", "fe80::5054:ff:fe4a:65ae", AF_INET6);
+        will_return_getifaddrs("eth0", "2001:cdba::555", AF_INET6);
+        will_return_getifaddrs("eth0", "2001:cdba::444", AF_INET6);
+        will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+    }
+
+    struct sockaddr_in sin;
+    memset (&sin, 0, sizeof (sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = inet_addr ("192.168.0.2");
+    ret = sss_get_dualstack_addresses(dyndns_test_ctx,
+                                      (struct sockaddr *) &sin,
+                                      &addrlist);
+    assert_int_equal(ret, EOK);
+
+    sss_if_addrs = addrlist;
+    assert_non_null(sss_if_addrs);
+    assert_non_null(sss_if_addrs->addr);
+    assert_non_null(sss_if_addrs->next);
+    assert_null(sss_if_addrs->prev);
+
+    assert_non_null(inet_ntop(AF_INET6,
+                              &((struct sockaddr_in6 *) sss_if_addrs->addr)->sin6_addr,
+                              straddr, INET6_ADDRSTRLEN));
+    /* ip addresses are returned in different order */
+    assert_string_equal(straddr, "2001:cdba::444");
+
+    sss_if_addrs = sss_if_addrs->next;
+    assert_non_null(sss_if_addrs);
+    assert_non_null(sss_if_addrs->addr);
+    assert_non_null(sss_if_addrs->prev);
+    assert_non_null(sss_if_addrs->next);
+
+    assert_non_null(inet_ntop(AF_INET6,
+                              &((struct sockaddr_in6 *) sss_if_addrs->addr)->sin6_addr,
+                              straddr, INET6_ADDRSTRLEN));
+    /* ip addresses are returned in different order */
+    assert_string_equal(straddr, "2001:cdba::555");
+
+    sss_if_addrs = sss_if_addrs->next;
+    assert_non_null(sss_if_addrs);
+    assert_non_null(sss_if_addrs->addr);
+    assert_non_null(sss_if_addrs->next);
+    assert_non_null(sss_if_addrs->prev);
+
+    assert_non_null(inet_ntop(AF_INET,
+                              &((struct sockaddr_in *) sss_if_addrs->addr)->sin_addr,
+                              straddr, INET_ADDRSTRLEN));
+    /* ip addresses are returned in different order */
+    assert_string_equal(straddr, "192.168.0.1");
+
+    sss_if_addrs = sss_if_addrs->next;
+    assert_non_null(sss_if_addrs);
+    assert_non_null(sss_if_addrs->addr);
+    assert_null(sss_if_addrs->next);
+    assert_non_null(sss_if_addrs->prev);
+
+    assert_non_null(inet_ntop(AF_INET,
+                              &((struct sockaddr_in *) sss_if_addrs->addr)->sin_addr,
+                              straddr, INET_ADDRSTRLEN));
+    /* ip addresses are returned in different order */
+    assert_string_equal(straddr, "192.168.0.2");
+
+    talloc_free(addrlist);
+
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
+void dyndns_test_dualstack_no_iface(void **state)
+{
+    errno_t ret;
+    struct sss_iface_addr *addrlist;
+
+    check_leaks_push(dyndns_test_ctx);
+
+    will_return_getifaddrs("eth0", "192.168.0.2", AF_INET);
+    will_return_getifaddrs("eth1", "192.168.0.1", AF_INET);
+    will_return_getifaddrs("eth0", "2001:cdba::555", AF_INET6);
+    will_return_getifaddrs("eth1", "2001:cdba::444", AF_INET6);
+    will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+
+    struct sockaddr_in sin;
+    memset (&sin, 0, sizeof (sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = inet_addr ("192.168.0.3");
+    ret = sss_get_dualstack_addresses(dyndns_test_ctx,
+                                      (struct sockaddr *) &sin,
+                                      &addrlist);
+    assert_int_equal(ret, ENOENT);
+
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
 void dyndns_test_ok(void **state)
 {
     struct tevent_req *req;
@@ -518,6 +685,17 @@ int main(int argc, const char *argv[])
                                         dyndns_test_teardown),
         cmocka_unit_test_setup_teardown(dyndns_test_interval,
                                         dyndns_test_setup,
+                                        dyndns_test_teardown),
+
+        /* Dynamic DNS dualstack unit tests*/
+        cmocka_unit_test_setup_teardown(dyndns_test_dualstack,
+                                        dyndns_test_simple_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_dualstack_multiple_addresses,
+                                        dyndns_test_simple_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_dualstack_no_iface,
+                                        dyndns_test_simple_setup,
                                         dyndns_test_teardown),
     };
 
