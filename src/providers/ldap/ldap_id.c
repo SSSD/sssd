@@ -1224,8 +1224,9 @@ static void groups_by_user_done(struct tevent_req *subreq)
         ret = sysdb_get_real_name(state, state->domain, state->name, &cname);
         if (ret != EOK) {
             cname = state->name;
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to canonicalize name, using [%s].\n", cname);
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Failed to canonicalize name, using [%s] [%d]: %s.\n",
+                  cname, ret, sss_strerror(ret));
         }
     }
 

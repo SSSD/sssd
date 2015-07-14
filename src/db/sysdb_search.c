@@ -1707,10 +1707,11 @@ errno_t sysdb_get_real_name(TALLOC_CTX *mem_ctx,
                                                   &res);
                 if (ret == EOK && res->count == 1) {
                     msg = res->msgs[0];
-                } else {
+                } else if (ret != ENOENT) {
                     DEBUG(SSSDBG_OP_FAILURE,
-                          "sysdb_search_object_by_uuid did not return a " \
-                          "single result.\n");
+                          "sysdb_search_object_by_uuid failed or returned "
+                          "more than one result [%d][%s].\n",
+                          ret, sss_strerror(ret));
                     ret = ENOENT;
                     goto done;
                 }
