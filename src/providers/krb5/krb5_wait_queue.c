@@ -366,7 +366,7 @@ int krb5_auth_queue_recv(struct tevent_req *req,
     }
 
     if (_dp_err) {
-        *_dp_err = state->pam_status;
+        *_dp_err = state->dp_err;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
