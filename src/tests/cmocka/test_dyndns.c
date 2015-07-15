@@ -97,7 +97,9 @@ int __wrap_getifaddrs(struct ifaddrs **_ifap)
     struct ifaddrs *ifap_head = NULL;
     char *name;
     char *straddr;
+    int ad_family;
     struct sockaddr_in *sa;
+    void *dst;
 
     while ((name = sss_mock_ptr_type(char *)) != NULL) {
         straddr = sss_mock_ptr_type(char *);
@@ -105,6 +107,7 @@ int __wrap_getifaddrs(struct ifaddrs **_ifap)
             errno = EINVAL;
             goto fail;
         }
+        ad_family = sss_mock_type(int);
 
         ifap = talloc_zero(global_mock_context, struct ifaddrs);
         if (ifap == NULL) {
@@ -127,15 +130,33 @@ int __wrap_getifaddrs(struct ifaddrs **_ifap)
 
         /* Do not alocate directly on ifap->ifa_addr to
          * avoid alignment warnings */
-        sa = talloc(ifap, struct sockaddr_in);
+        if (ad_family == AF_INET) {
+            sa = talloc(ifap, struct sockaddr_in);
+        } else if (ad_family == AF_INET6) {
+            sa = (struct sockaddr_in *) talloc(ifap, struct sockaddr_in6);
+        } else {
+            errno = EINVAL;
+            goto fail;
+        }
+
         if (sa == NULL) {
             errno = ENOMEM;
             goto fail;
         }
-        sa->sin_family = AF_INET;
+
+        sa->sin_family = ad_family;
+
+        if (ad_family == AF_INET) {
+            dst = &sa->sin_addr;
+        } else if (ad_family == AF_INET6) {
+            dst = &((struct sockaddr_in6 *)sa)->sin6_addr;
+        } else {
+            errno = EINVAL;
+            goto fail;
+        }
 
         /* convert straddr into ifa_addr */
-        if (inet_pton(AF_INET, straddr, &sa->sin_addr) != 1) {
+        if (inet_pton(ad_family, straddr, dst) != 1) {
             goto fail;
         }
 
@@ -167,11 +188,15 @@ static void dyndns_test_done(struct tevent_req *req)
     ctx->tctx->done = true;
 }
 
-void will_return_getifaddrs(const char *ifname, const char *straddr)
+void will_return_getifaddrs(const char *ifname, const char *straddr,
+                            int af_family)
 {
     will_return(__wrap_getifaddrs, ifname);
     if (ifname) {
         will_return(__wrap_getifaddrs, straddr);
+    }
+    if (straddr) {
+        will_return(__wrap_getifaddrs, af_family);
     }
 }
 
@@ -182,9 +207,9 @@ void dyndns_test_get_ifaddr(void **state)
     char straddr[128];
 
     check_leaks_push(dyndns_test_ctx);
-    will_return_getifaddrs("eth0", "192.168.0.1");
-    will_return_getifaddrs("eth1", "192.168.0.2");
-    will_return_getifaddrs(NULL, NULL); /* sentinel */
+    will_return_getifaddrs("eth0", "192.168.0.1", AF_INET);
+    will_return_getifaddrs("eth1", "192.168.0.2", AF_INET);
+    will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
     ret = sss_iface_addr_list_get(dyndns_test_ctx, "eth0", &addrlist);
     assert_int_equal(ret, EOK);
 
@@ -212,9 +237,9 @@ void dyndns_test_get_multi_ifaddr(void **state)
     char straddr[128];
 
     check_leaks_push(dyndns_test_ctx);
-    will_return_getifaddrs("eth0", "192.168.0.2");
-    will_return_getifaddrs("eth0", "192.168.0.1");
-    will_return_getifaddrs(NULL, NULL); /* sentinel */
+    will_return_getifaddrs("eth0", "192.168.0.2", AF_INET);
+    will_return_getifaddrs("eth0", "192.168.0.1", AF_INET);
+    will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
     ret = sss_iface_addr_list_get(dyndns_test_ctx, "eth0", &addrlist);
     assert_int_equal(ret, EOK);
 
@@ -253,9 +278,9 @@ void dyndns_test_get_ifaddr_enoent(void **state)
     struct sss_iface_addr *addrlist = NULL;
 
     check_leaks_push(dyndns_test_ctx);
-    will_return_getifaddrs("eth0", "192.168.0.1");
-    will_return_getifaddrs("eth1", "192.168.0.2");
-    will_return_getifaddrs(NULL, NULL); /* sentinel */
+    will_return_getifaddrs("eth0", "192.168.0.1", AF_INET);
+    will_return_getifaddrs("eth1", "192.168.0.2", AF_INET);
+    will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
     ret = sss_iface_addr_list_get(dyndns_test_ctx, "non_existing_interface",
                                   &addrlist);
     assert_int_equal(ret, ENOENT);
