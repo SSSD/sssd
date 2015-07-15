@@ -32,6 +32,7 @@ struct ssh_ctx {
 
     bool hash_known_hosts;
     int known_hosts_timeout;
+    char *ca_db;
 };
 
 struct ssh_cmd_ctx {

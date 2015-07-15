@@ -1082,6 +1082,19 @@ pam_account_expired_message = Account expired, please call help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>ca_db (string)</term>
+                    <listitem>
+                        <para>
+                            Path to a storage of trusted CA certificates. The
+                            option is used to validate user certificates before
+                            deriving public ssh keys from them.
+                        </para>
+                        <para>
+                            Default: /etc/pki/nssdb
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

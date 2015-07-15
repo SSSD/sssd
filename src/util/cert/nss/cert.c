@@ -20,9 +20,13 @@
 
 #include "util/util.h"
 
+#include <nss.h>
 #include <cert.h>
 #include <base64.h>
+#include <key.h>
+#include <prerror.h>
 
+#include "util/crypto/sss_crypto.h"
 #include "util/crypto/nss/nss_util.h"
 
 #define NS_CERT_HEADER "-----BEGIN CERTIFICATE-----"
@@ -207,6 +211,132 @@ done:
     PORT_Free(der_blob);
     talloc_free(b64);
     CERT_DestroyCertificate(cert);
+
+    return ret;
+}
+
+#define SSH_RSA_HEADER "ssh-rsa"
+#define SSH_RSA_HEADER_LEN (sizeof(SSH_RSA_HEADER) - 1)
+
+errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
+                        const uint8_t *der_blob, size_t der_size,
+                        uint8_t **key, size_t *key_size)
+{
+    CERTCertDBHandle *handle;
+    CERTCertificate *cert = NULL;
+    SECItem der_item;
+    SECKEYPublicKey *cert_pub_key = NULL;
+    int ret;
+    size_t size;
+    uint8_t *buf = NULL;
+    size_t c;
+    NSSInitContext *nss_ctx;
+    NSSInitParameters parameters = { 0 };
+    parameters.length =  sizeof (parameters);
+    SECStatus rv;
+
+    if (der_blob == NULL || der_size == 0) {
+        return EINVAL;
+    }
+
+    /* initialize NSS with context, we might have already called
+     * NSS_NoDB_Init() but for validation we need to have access to a DB with
+     * the trusted issuer cert. Only NSS_InitContext will really open the DB
+     * in this case. I'm not sure about how long validation might need e.g. if
+     * CRLs or OSCP is enabled, maybe it would be better to run validation in
+     * p11_child ? */
+    nss_ctx = NSS_InitContext(ca_db, "", "", SECMOD_DB, &parameters,
+                              NSS_INIT_READONLY);
+    if (nss_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "NSS_InitContext failed [%d].\n",
+                                 PR_GetError());
+        return EIO;
+    }
+
+    handle = CERT_GetDefaultCertDB();
+
+    der_item.len = der_size;
+    der_item.data = discard_const(der_blob);
+
+    cert = CERT_NewTempCertificate(handle, &der_item, NULL, PR_FALSE, PR_TRUE);
+    if (cert == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_NewTempCertificate failed.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    rv = CERT_VerifyCertificateNow(handle, cert, PR_TRUE,
+                                   certificateUsageSSLClient, NULL, NULL);
+    if (rv != SECSuccess) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "CERT_VerifyCertificateNow failed [%d].\n",
+                                   PR_GetError());
+        ret = EACCES;
+        goto done;
+    }
+
+    cert_pub_key = CERT_ExtractPublicKey(cert);
+    if (cert_pub_key == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "CERT_ExtractPublicKey failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    if (cert_pub_key->keyType != rsaKey) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected RSA public key, found unsupported [%d].\n",
+              cert_pub_key->keyType);
+        ret = EINVAL;
+        goto done;
+    }
+
+    size = SSH_RSA_HEADER_LEN + 3 * sizeof(uint32_t)
+                + cert_pub_key->u.rsa.modulus.len
+                + cert_pub_key->u.rsa.publicExponent.len
+                + 1; /* see comment about missing 00 below */
+
+    buf = talloc_size(mem_ctx, size);
+    if (buf == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    c = 0;
+
+    SAFEALIGN_SET_UINT32(buf, htobe32(SSH_RSA_HEADER_LEN), &c);
+    safealign_memcpy(&buf[c], SSH_RSA_HEADER, SSH_RSA_HEADER_LEN, &c);
+    SAFEALIGN_SET_UINT32(&buf[c],
+                         htobe32(cert_pub_key->u.rsa.publicExponent.len), &c);
+    safealign_memcpy(&buf[c], cert_pub_key->u.rsa.publicExponent.data,
+                     cert_pub_key->u.rsa.publicExponent.len, &c);
+
+    /* Looks like nss drops the leading 00 which afaik is added to make sure
+     * the bigint is handled as positive number */
+    /* TODO: make a better check if 00 must be added or not, e.g. ... & 0x80)
+     */
+    SAFEALIGN_SET_UINT32(&buf[c],
+                         htobe32(cert_pub_key->u.rsa.modulus.len + 1 ), &c);
+    SAFEALIGN_SETMEM_VALUE(&buf[c], '\0', unsigned char, &c);
+    safealign_memcpy(&buf[c], cert_pub_key->u.rsa.modulus.data,
+                     cert_pub_key->u.rsa.modulus.len, &c);
+
+    *key = buf;
+    *key_size = size;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK)  {
+        talloc_free(buf);
+    }
+    SECKEY_DestroyPublicKey(cert_pub_key);
+    CERT_DestroyCertificate(cert);
+
+    rv = NSS_ShutdownContext(nss_ctx);
+    if (rv != SECSuccess) {
+        DEBUG(SSSDBG_OP_FAILURE, "NSS_ShutdownContext failed [%d].\n",
+                                 PR_GetError());
+    }
 
     return ret;
 }

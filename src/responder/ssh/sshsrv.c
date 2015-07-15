@@ -163,6 +163,15 @@ int ssh_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    ret = confdb_get_string(ssh_ctx->rctx->cdb, ssh_ctx,
+                            CONFDB_SSH_CONF_ENTRY, CONFDB_SSH_CA_DB,
+                            CONFDB_DEFAULT_SSH_CA_DB, &ssh_ctx->ca_db);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading CA DB from confdb (%d) [%s]\n",
+              ret, strerror(ret));
+        goto fail;
+    }
+
     ret = schedule_get_domains_task(rctx, rctx->ev, rctx, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "schedule_get_domains_tasks failed.\n");

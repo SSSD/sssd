@@ -99,6 +99,7 @@ option_strings = {
     # [ssh]
     'ssh_hash_known_hosts': _('Whether to hash host names and addresses in the known_hosts file'),
     'ssh_known_hosts_timeout': _('How many seconds to keep a host in the known_hosts file after its host keys were requested'),
+    'ca_db': _('Path to storage of trusted CA certificates'),
 
     # [pac]
     'allowed_uids': _('List of UIDs or user names allowed to access the PAC responder'),

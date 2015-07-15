@@ -21,15 +21,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include "config.h"
 
 #include <popt.h>
 #ifdef HAVE_LIBCRYPTO
 #include <openssl/objects.h>
+#include <openssl/crypto.h>
 #endif
 
 #include "util/cert.h"
 #include "tests/cmocka/common_mock.h"
 #include "util/crypto/nss/nss_util.h"
+#include "util/crypto/sss_crypto.h"
 
 
 /* TODO: create a certificate for this test */
@@ -306,6 +309,63 @@ void test_sss_cert_derb64_to_ldap_filter(void **state)
     talloc_free(filter);
 }
 
+
+#define SSH_TEST_CERT \
+"MIIECTCCAvGgAwIBAgIBCDANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEu" \
+"REVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNTA2MjMx" \
+"NjMyMDdaFw0xNzA2MjMxNjMyMDdaMDIxEjAQBgNVBAoMCUlQQS5ERVZFTDEcMBoG" \
+"A1UEAwwTaXBhLWRldmVsLmlwYS5kZXZlbDCCASIwDQYJKoZIhvcNAQEBBQADggEP" \
+"ADCCAQoCggEBALXUq56VlY+Z0aWLLpFAjFfbElPBXGQsbZb85J3cGyPjaMHC9wS+" \
+"wjB6Ve4HmQyPLx8hbINdDmbawMHYQvTScLYfsqLtj0Lqw20sUUmedk+Es5Oh9VHo" \
+"nd8MavYx25Du2u+T0iSgNIDikXguiwCmtAj8VC49ebbgITcjJGzMmiiuJkV3o93Y" \
+"vvYF0VjLGDQbQWOy7IxzYJeNVJnZWKo67CHdok6qOrm9rxQt81rzwV/mGLbCMUbr" \
+"+N4M8URtd7EmzaYZQmNm//s2owFrCYMxpLiURPj+URZVuB72504/Ix7X0HCbA/AV" \
+"26J27fPY5nc8DMwfhUDCbTqPH/JEjd3mvY8CAwEAAaOCASYwggEiMB8GA1UdIwQY" \
+"MBaAFJOq+KAQmPEnNp8Wok23eGTdE7aDMDsGCCsGAQUFBwEBBC8wLTArBggrBgEF" \
+"BQcwAYYfaHR0cDovL2lwYS1jYS5pcGEuZGV2ZWwvY2Evb2NzcDAOBgNVHQ8BAf8E" \
+"BAMCBPAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMHQGA1UdHwRtMGsw" \
+"aaAxoC+GLWh0dHA6Ly9pcGEtY2EuaXBhLmRldmVsL2lwYS9jcmwvTWFzdGVyQ1JM" \
+"LmJpbqI0pDIwMDEOMAwGA1UECgwFaXBhY2ExHjAcBgNVBAMMFUNlcnRpZmljYXRl" \
+"IEF1dGhvcml0eTAdBgNVHQ4EFgQUFaDNd5a53QGpaw5m63hnwXicMQ8wDQYJKoZI" \
+"hvcNAQELBQADggEBADH7Nj00qqGhGJeXJQAsepqSskz/wooqXh8vgVyb8SS4N0/c" \
+"0aQtVmY81xamlXE12ZFpwDX43d+EufBkwCUKFX/+8JFDd2doAyeJxv1xM22kKRpc" \
+"AqITPgMsa9ToGMWxjbVpc/X/5YfZixWPF0/eZUTotBj9oaR039UrhGfyN7OguF/G" \
+"rzmxtB5y4ZrMpcD/Oe90mkd9HY7sA/fB8OWOUgeRfQoh97HNS0UiDWsPtfxmjQG5" \
+"zotpoBIZmdH+ipYsu58HohHVlM9Wi5H4QmiiXl+Soldkq7eXYlafcmT7wv8+cKwz" \
+"Nz0Tm3+eYpFqRo3skr6QzXi525Jkg3r6r+kkhxU="
+
+#define SSH_PUB_KEY "AAAAB3NzaC1yc2EAAAADAQABAAABAQC11KuelZWPmdGliy6RQIxX2xJTwVxkLG2W/OSd3Bsj42jBwvcEvsIwelXuB5kMjy8fIWyDXQ5m2sDB2EL00nC2H7Ki7Y9C6sNtLFFJnnZPhLOTofVR6J3fDGr2MduQ7trvk9IkoDSA4pF4LosAprQI/FQuPXm24CE3IyRszJooriZFd6Pd2L72BdFYyxg0G0FjsuyMc2CXjVSZ2ViqOuwh3aJOqjq5va8ULfNa88Ff5hi2wjFG6/jeDPFEbXexJs2mGUJjZv/7NqMBawmDMaS4lET4/lEWVbge9udOPyMe19BwmwPwFduidu3z2OZ3PAzMH4VAwm06jx/yRI3d5r2P"
+
+void test_cert_to_ssh_key(void **state)
+{
+    int ret;
+    uint8_t *key;
+    size_t key_size;
+    uint8_t *exp_key;
+    size_t exp_key_size;
+    uint8_t *der;
+    size_t der_size;
+
+    struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
+    assert_non_null(ts);
+
+    der = sss_base64_decode(ts, SSH_TEST_CERT, &der_size);
+    assert_non_null(der);
+
+    exp_key = sss_base64_decode(ts, SSH_PUB_KEY, &exp_key_size);
+    assert_non_null(exp_key);
+
+    ret = cert_to_ssh_key(ts, "sql:" ABS_SRC_DIR "/src/tests/cmocka/p11_nssdb",
+                          der, der_size, &key, &key_size);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(key_size, exp_key_size);
+    assert_memory_equal(key, exp_key, exp_key_size);
+
+    talloc_free(der);
+    talloc_free(key);
+    talloc_free(exp_key);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -329,6 +389,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_bin_to_ldap_filter_value,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_cert_derb64_to_ldap_filter,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_cert_to_ssh_key,
                                         setup, teardown),
     };
 

@@ -135,6 +135,8 @@
 #define CONFDB_DEFAULT_SSH_HASH_KNOWN_HOSTS true
 #define CONFDB_SSH_KNOWN_HOSTS_TIMEOUT "ssh_known_hosts_timeout"
 #define CONFDB_DEFAULT_SSH_KNOWN_HOSTS_TIMEOUT 180
+#define CONFDB_SSH_CA_DB "ca_db"
+#define CONFDB_DEFAULT_SSH_CA_DB SYSCONFDIR"/pki/nssdb"
 
 /* PAC */
 #define CONFDB_PAC_CONF_ENTRY "config/pac"

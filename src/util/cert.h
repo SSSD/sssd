@@ -44,4 +44,8 @@ errno_t sss_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx, const char *derb64,
 errno_t bin_to_ldap_filter_value(TALLOC_CTX *mem_ctx,
                                  const uint8_t *blob, size_t blob_size,
                                  char **_str);
+
+errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
+                        const uint8_t *der_blob, size_t der_size,
+                        uint8_t **key, size_t *key_size);
 #endif /* __CERT_H__ */

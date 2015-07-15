@@ -1129,10 +1129,13 @@ sssd_ssh_SOURCES = \
     src/responder/ssh/sshsrv.c \
     src/responder/ssh/sshsrv_dp.c \
     src/responder/ssh/sshsrv_cmd.c \
-    $(SSSD_RESPONDER_OBJ)
+    $(SSSD_RESPONDER_OBJ) \
+    $(NULL)
 sssd_ssh_LDADD = \
     $(SSSD_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS)
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_cert.la \
+    $(NULL)
 endif
 
 sssd_pac_SOURCES = \
