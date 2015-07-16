@@ -93,6 +93,7 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
     uint32_t hash;
     uint32_t slot;
     int ret;
+    const size_t data_offset = offsetof(struct sss_mc_initgr_data, gids);
     uint8_t *max_addr;
 
     ret = sss_nss_mc_get_ctx("initgroups", &initgr_mc_ctx);
@@ -128,16 +129,21 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
         }
 
         data = (struct sss_mc_initgr_data *)rec->data;
+        rec_name = (char *)data + data->name;
         /* Integrity check
-         * - array with gids must be within data_table
-         * - string must be within data_table */
-        if ((uint8_t *)data->gids > max_addr
-                || (uint8_t *)data + data->name + name_len > max_addr) {
+         * - name_len cannot be longer than all strings or data
+         * - data->name cannot point outside strings
+         * - all data must be within data_table
+         * - name must be within data_table */
+        if (name_len > data->data_len
+            || name_len > data->strs_len
+            || (data->strs + name_len) > (data_offset + data->data_len)
+            || (uint8_t *)data->gids + data->data_len > max_addr
+            || (uint8_t *)rec_name + name_len > max_addr) {
             ret = ENOENT;
             goto done;
         }
 
-        rec_name = (char *)data + data->name;
         if (strcmp(name, rec_name) == 0) {
             break;
         }

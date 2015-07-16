@@ -79,7 +79,7 @@ typedef uint32_t rel_ptr_t;
 
 
 #define SSS_MC_MAJOR_VNO    1
-#define SSS_MC_MINOR_VNO    0
+#define SSS_MC_MINOR_VNO    1
 
 #define SSS_MC_HEADER_UNINIT    0   /* after ftruncate or before reset */
 #define SSS_MC_HEADER_ALIVE     1   /* current and in use */
@@ -139,6 +139,10 @@ struct sss_mc_grp_data {
 
 struct sss_mc_initgr_data {
     rel_ptr_t name;         /* ptr to name string, rel. to struct base addr */
+    rel_ptr_t strs;         /* ptr to concatenation of all strings */
+    uint32_t reserved;
+    uint32_t strs_len;      /* length of strs */
+    uint32_t data_len;      /* all initgroups data len */
     uint32_t num_groups;    /* number of groups */
     uint32_t gids[0];       /* array of all groups
                              * string with name is stored after gids */

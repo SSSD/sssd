@@ -475,6 +475,9 @@ static errno_t sss_mc_get_strs_offset(struct sss_mc_ctx *mcc,
     case SSS_MC_GROUP:
         *_offset = offsetof(struct sss_mc_grp_data, strs);
         return EOK;
+    case SSS_MC_INITGROUPS:
+        *_offset = offsetof(struct sss_mc_initgr_data, gids);
+        return EOK;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE, "Unknown memory cache type.\n");
         return EINVAL;
@@ -491,6 +494,9 @@ static errno_t sss_mc_get_strs_len(struct sss_mc_ctx *mcc,
         return EOK;
     case SSS_MC_GROUP:
         *_len = ((struct sss_mc_grp_data *)&rec->data)->strs_len;
+        return EOK;
+    case SSS_MC_INITGROUPS:
+        *_len = ((struct sss_mc_initgr_data *)&rec->data)->data_len;
         return EOK;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE, "Unknown memory cache type.\n");
@@ -974,8 +980,8 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
         return EINVAL;
     }
 
-    /* num_groups + reserved + array of gids + name*/
-    data_len = (2 + num_groups) * sizeof(uint32_t) + name->len;
+    /* array of gids + name */
+    data_len = num_groups * sizeof(uint32_t) + name->len;
     rec_len = sizeof(struct sss_mc_rec) + sizeof(struct sss_mc_initgr_data)
               + data_len;
     if (rec_len > mcc->dt_size) {
@@ -998,10 +1004,13 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
                             name->str, name->len, name->str, name->len);
 
     /* initgroups struct */
+    data->strs_len = name->len;
+    data->data_len = data_len;
+    data->reserved = MC_INVALID_VAL32;
     data->num_groups = num_groups;
     memcpy(data->gids, gids_buf, num_groups * sizeof(uint32_t));
     memcpy(&data->gids[num_groups], name->str, name->len);
-    data->name = MC_PTR_DIFF(&data->gids[num_groups], data);
+    data->strs = data->name = MC_PTR_DIFF(&data->gids[num_groups], data);
 
     MC_LOWER_BARRIER(rec);
 
