@@ -139,7 +139,7 @@ struct sss_mc_grp_data {
 
 struct sss_mc_initgr_data {
     rel_ptr_t name;         /* ptr to name string, rel. to struct base addr */
-    uint32_t members;       /* number of members in groups */
+    uint32_t num_groups;    /* number of groups */
     uint32_t gids[0];       /* array of all groups
                              * string with name is stored after gids */
 };

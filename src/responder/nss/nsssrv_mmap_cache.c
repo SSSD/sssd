@@ -959,8 +959,8 @@ done:
 
 errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
                                     struct sized_string *name,
-                                    uint32_t memnum,
-                                    uint8_t *membuf)
+                                    uint32_t num_groups,
+                                    uint8_t *gids_buf)
 {
     struct sss_mc_ctx *mcc = *_mcc;
     struct sss_mc_rec *rec;
@@ -974,8 +974,8 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
         return EINVAL;
     }
 
-    /* memnum + reserved + array of members + name*/
-    data_len = (2 + memnum) * sizeof(uint32_t) + name->len;
+    /* num_groups + reserved + array of gids + name*/
+    data_len = (2 + num_groups) * sizeof(uint32_t) + name->len;
     rec_len = sizeof(struct sss_mc_rec) + sizeof(struct sss_mc_initgr_data)
               + data_len;
     if (rec_len > mcc->dt_size) {
@@ -998,10 +998,10 @@ errno_t sss_mmap_cache_initgr_store(struct sss_mc_ctx **_mcc,
                             name->str, name->len, name->str, name->len);
 
     /* initgroups struct */
-    data->members = memnum;
-    memcpy(data->gids, membuf, memnum * sizeof(uint32_t));
-    memcpy(&data->gids[memnum], name->str, name->len);
-    data->name = MC_PTR_DIFF(&data->gids[memnum], data);
+    data->num_groups = num_groups;
+    memcpy(data->gids, gids_buf, num_groups * sizeof(uint32_t));
+    memcpy(&data->gids[num_groups], name->str, name->len);
+    data->name = MC_PTR_DIFF(&data->gids[num_groups], data);
 
     MC_LOWER_BARRIER(rec);
 

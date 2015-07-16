@@ -42,7 +42,7 @@ static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
     struct sss_mc_initgr_data *data;
     time_t expire;
     long int i;
-    uint32_t gid_count;
+    uint32_t num_groups;
     long int max_ret;
 
     /* additional checks before filling result*/
@@ -53,15 +53,15 @@ static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
     }
 
     data = (struct sss_mc_initgr_data *)rec->data;
-    gid_count = data->members;
-    max_ret = gid_count;
+    num_groups = data->num_groups;
+    max_ret = num_groups;
 
     /* check we have enough space in the buffer */
-    if ((*size - *start) < gid_count) {
+    if ((*size - *start) < num_groups) {
         long int newsize;
         gid_t *newgroups;
 
-        newsize = *size + gid_count;
+        newsize = *size + num_groups;
         if ((limit > 0) && (newsize > limit)) {
             newsize = limit;
             max_ret = newsize - *start;
