@@ -142,6 +142,38 @@ def sanity_rfc2307(request, ldap_conn):
     create_sssd_fixture(request)
     return None
 
+
+@pytest.fixture
+def simple_rfc2307(request, ldap_conn):
+    ent_list = ldap_ent.List(LDAP_BASE_DN)
+    ent_list.add_user('usr\\\\001', 181818, 181818)
+    ent_list.add_group("group1", 181818)
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    conf = unindent("""\
+        [sssd]
+        config_file_version = 2
+        domains             = LDAP
+        services            = nss, pam
+
+        [nss]
+
+        [pam]
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        ldap_schema         = rfc2307
+        id_provider         = ldap
+        auth_provider       = ldap
+        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
 @pytest.fixture
 def sanity_rfc2307_bis(request, ldap_conn):
     ent_list = ldap_ent.List(LDAP_BASE_DN)
@@ -200,6 +232,14 @@ def sanity_rfc2307_bis(request, ldap_conn):
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
+
+
+def test_regression_ticket2163(ldap_conn, simple_rfc2307):
+    ent.assert_passwd_by_name(
+        'usr\\001',
+        dict(name='usr\\001', passwd='*', uid=181818, gid=181818,
+             gecos='181818', shell='/bin/bash'))
+
 
 def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
     passwd_pattern = ent.contains_only(
