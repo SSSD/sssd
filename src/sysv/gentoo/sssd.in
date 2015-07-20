@@ -7,7 +7,7 @@ depend(){
 
 start(){
     ebegin "Starting sssd"
-    start-stop-daemon --start --exec @sbindir@/sssd -- -Df
+    start-stop-daemon --start --exec @sbindir@/sssd -- -Df ${SSSD_OPTIONS}
     eend ${?}
 }
 
