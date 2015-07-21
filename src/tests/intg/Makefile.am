@@ -8,6 +8,7 @@ dist_noinst_DATA = \
     ldap_ent.py \
     ldap_test.py \
     util.py \
+    test_memory_cache.py \
     $(NULL)
 
 config.py: config.py.m4
