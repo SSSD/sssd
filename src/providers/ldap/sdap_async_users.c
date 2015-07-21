@@ -692,8 +692,6 @@ static errno_t sdap_search_user_next_base(struct tevent_req *req)
 
     switch (state->lookup_type) {
     case SDAP_LOOKUP_SINGLE:
-        sizelimit = 1;
-        need_paging = false;
         break;
     /* Only requests that can return multiple entries should require
      * the paging control
@@ -703,7 +701,6 @@ static errno_t sdap_search_user_next_base(struct tevent_req *req)
         need_paging = true;
         break;
     case SDAP_LOOKUP_ENUMERATE:
-        sizelimit = 0;  /* unlimited */
         need_paging = true;
         break;
     }
