@@ -1764,6 +1764,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     int tret;
     struct sysdb_attrs *gid_override_attrs = NULL;
     char ** exop_grouplist;
+    struct ldb_message *msg;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -2005,8 +2006,44 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                    attrs->a.user.pw_dir, attrs->a.user.pw_shell,
                                    NULL, attrs->sysdb_attrs, NULL,
                                    timeout, now);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_user failed.\n");
+            if (ret == EEXIST && dom->mpg == true) {
+                /* This handles the case where getgrgid() was called for
+                 * this user, so a group was created in the cache
+                 */
+                ret = sysdb_search_group_by_name(tmp_ctx, dom, name, NULL, &msg);
+                if (ret != EOK) {
+                    /* Fail even on ENOENT, the group must be around */
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Could not delete MPG group [%d]: %s\n",
+                          ret, sss_strerror(ret));
+                    goto done;
+                }
+
+                ret = sysdb_delete_group(dom, NULL, attrs->a.user.pw_uid);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_delete_group failed for MPG group [%d]: %s\n",
+                          ret, sss_strerror(ret));
+                    goto done;
+                }
+
+                ret = sysdb_store_user(dom, name, NULL,
+                                       attrs->a.user.pw_uid,
+                                       gid, attrs->a.user.pw_gecos,
+                                       attrs->a.user.pw_dir,
+                                       attrs->a.user.pw_shell,
+                                       NULL, attrs->sysdb_attrs, NULL,
+                                       timeout, now);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "sysdb_store_user failed for MPG user [%d]: %s\n",
+                          ret, sss_strerror(ret));
+                    goto done;
+                }
+            } else if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sysdb_store_user failed [%d]: %s\n",
+                      ret, sss_strerror(ret));
                 goto done;
             }
 
