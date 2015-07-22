@@ -520,16 +520,28 @@ static errno_t ipa_getkeytab_recv(struct tevent_req *req, int *child_status)
     return EOK;
 }
 
-static errno_t ipa_check_keytab(const char *keytab)
+static errno_t ipa_check_keytab(const char *keytab,
+                                uid_t kt_owner_uid,
+                                gid_t kt_owner_gid)
 {
     errno_t ret;
 
     ret = check_file(keytab, getuid(), getgid(), S_IFREG|0600, 0, NULL, false);
-    if (ret != EOK) {
-        if (ret != ENOENT) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to check for %s\n", keytab);
-        } else {
-            DEBUG(SSSDBG_TRACE_FUNC, "Keytab %s is not present\n", keytab);
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Keytab %s is not present\n", keytab);
+        goto done;
+    } else if (ret != EOK) {
+        if (kt_owner_uid) {
+            ret = check_file(keytab, kt_owner_uid, kt_owner_gid,
+                             S_IFREG|0600, 0, NULL, false);
+        }
+
+        if (ret != EOK) {
+            if (ret != ENOENT) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to check for %s\n", keytab);
+            } else {
+                DEBUG(SSSDBG_TRACE_FUNC, "Keytab %s is not present\n", keytab);
+            }
         }
         goto done;
     }
@@ -648,7 +660,9 @@ static errno_t ipa_server_trust_add_1way(struct tevent_req *req)
         return EIO;
     }
 
-    ret = ipa_check_keytab(state->keytab);
+    ret = ipa_check_keytab(state->keytab,
+                           state->id_ctx->server_mode->kt_owner_uid,
+                           state->id_ctx->server_mode->kt_owner_gid);
     if (ret == EOK) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "Keytab already present, can add the trust\n");
@@ -704,7 +718,9 @@ static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC,
           "Keytab successfully retrieved to %s\n", state->keytab);
 
-    ret = ipa_check_keytab(state->keytab);
+    ret = ipa_check_keytab(state->keytab,
+                           state->id_ctx->server_mode->kt_owner_uid,
+                           state->id_ctx->server_mode->kt_owner_gid);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_check_keytab failed: %d\n", ret);
         tevent_req_error(req, ret);
@@ -1029,6 +1045,20 @@ int ipa_ad_subdom_init(struct be_ctx *be_ctx,
     id_ctx->server_mode->hostname = hostname;
     id_ctx->server_mode->trusts = NULL;
     id_ctx->server_mode->ext_groups = NULL;
+    id_ctx->server_mode->kt_owner_uid = 0;
+    id_ctx->server_mode->kt_owner_gid = 0;
+
+    if (getuid() == 0) {
+        /* We need to handle keytabs created by IPA oddjob script gracefully
+         * even if we're running as root and IPA creates them as the SSSD user
+         */
+        ret = sss_user_by_name_or_uid(SSSD_USER,
+                                      &id_ctx->server_mode->kt_owner_uid,
+                                      &id_ctx->server_mode->kt_owner_gid);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get ID of %s\n", SSSD_USER);
+        }
+    }
 
     ret = ipa_ad_subdom_reinit(be_ctx, be_ctx->ev,
                                be_ctx, id_ctx, be_ctx->domain);
