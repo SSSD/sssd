@@ -1087,6 +1087,7 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct cli_ctx *cctx = cmdctx->cctx;
     int ret;
     bool check_subdomains;
+    struct nss_ctx *nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     if (err_maj) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1135,8 +1136,40 @@ static void nss_cmd_getby_dp_callback(uint16_t err_maj, uint32_t err_min,
          * here. */
         switch (dctx->cmdctx->cmd) {
         case SSS_NSS_GETPWUID:
+            ret = sss_ncache_set_uid(nctx->ncache, false, dctx->domain,
+                                     cmdctx->id);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Cannot set negative cache for UID %"PRIu32"\n",
+                      cmdctx->id);
+            }
+            check_subdomains = true;
+            break;
         case SSS_NSS_GETGRGID:
+            ret = sss_ncache_set_gid(nctx->ncache, false, dctx->domain,
+                                     cmdctx->id);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Cannot set negative cache for GID %"PRIu32"\n",
+                      cmdctx->id);
+            }
+            check_subdomains = true;
+            break;
         case SSS_NSS_GETSIDBYID:
+            ret = sss_ncache_set_uid(nctx->ncache, false, dctx->domain,
+                                     cmdctx->id);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Cannot set negative cache for UID %"PRIu32"\n",
+                       cmdctx->id);
+            }
+            ret = sss_ncache_set_gid(nctx->ncache, false, dctx->domain,
+                                     cmdctx->id);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Cannot set negative cache for GID %"PRIu32"\n",
+                      cmdctx->id);
+            }
             check_subdomains = true;
             break;
         default:
@@ -4358,6 +4391,28 @@ static errno_t nss_cmd_getsidby_search(struct nss_dom_ctx *dctx)
         if (cmdctx->cmd == SSS_NSS_GETSIDBYID) {
             DEBUG(SSSDBG_TRACE_FUNC, "Requesting info for [%"PRIu32"@%s]\n",
                                       cmdctx->id, dom->name);
+
+            ret = sss_ncache_check_uid(nctx->ncache, nctx->neg_timeout, dom,
+                                       cmdctx->id);
+            if (ret == EEXIST) {
+                ret = sss_ncache_check_gid(nctx->ncache, nctx->neg_timeout, dom,
+                                           cmdctx->id);
+                if (ret == EEXIST) {
+                    DEBUG(SSSDBG_TRACE_FUNC,
+                          "ID [%"PRIu32"] does not exist in [%s]! (negative cache)\n",
+                           cmdctx->id, dom->name);
+                    /* if a multidomain search, try with next, including
+                     * sub-domains */
+                    if (cmdctx->check_next) {
+                        dom = get_next_domain(dom, true);
+                        continue;
+                    }
+                    /* There are no further domains. */
+                    ret = ENOENT;
+                    goto done;
+                }
+            }
+
         } else {
             talloc_free(name);
             talloc_zfree(sysdb_name);
