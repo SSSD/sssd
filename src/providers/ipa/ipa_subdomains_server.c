@@ -623,6 +623,9 @@ ipa_server_trust_add_send(TALLOC_CTX *mem_ctx,
 
 immediate:
     if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not add trusted subdomain %s from forest %s\n",
+              subdom->name, state->forest);
         tevent_req_error(req, ret);
     } else {
         tevent_req_done(req);
