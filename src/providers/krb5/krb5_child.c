@@ -1808,7 +1808,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     SAFEALIGN_COPY_UINT32_CHECK(&use_enterprise_princ, buf + p, size, &p);
     kr->use_enterprise_princ = (use_enterprise_princ == 0) ? false : true;
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-    if ((p + len ) > size) return EINVAL;
+    if (len > size - p) return EINVAL;
     kr->upn = talloc_strndup(pd, (char *)(buf + p), len);
     if (kr->upn == NULL) return ENOMEM;
     p += len;
@@ -1825,13 +1825,13 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
         pd->cmd == SSS_CMD_RENEW ||
         pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM || pd->cmd == SSS_PAM_CHAUTHTOK) {
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         kr->ccname = talloc_strndup(pd, (char *)(buf + p), len);
         if (kr->ccname == NULL) return ENOMEM;
         p += len;
 
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
 
         if (len > 0) {
             kr->old_ccname = talloc_strndup(pd, (char *)(buf + p), len);
@@ -1842,7 +1842,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
         }
 
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         kr->keytab = talloc_strndup(pd, (char *)(buf + p), len);
         if (kr->keytab == NULL) return ENOMEM;
         p += len;
@@ -1875,7 +1875,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
     if (pd->cmd == SSS_PAM_ACCT_MGMT) {
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         pd->user = talloc_strndup(pd, (char *)(buf + p), len);
         if (pd->user == NULL) return ENOMEM;
         p += len;

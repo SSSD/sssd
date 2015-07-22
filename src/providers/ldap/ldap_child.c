@@ -66,7 +66,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
     DEBUG(SSSDBG_TRACE_LIBS, "realm_str size: %d\n", len);
     if (len) {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->realm_str = talloc_strndup(ibuf, (char *)(buf + p), len);
         DEBUG(SSSDBG_TRACE_LIBS, "got realm_str: %s\n", ibuf->realm_str);
         if (ibuf->realm_str == NULL) return ENOMEM;
@@ -78,7 +78,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
     DEBUG(SSSDBG_TRACE_LIBS, "princ_str size: %d\n", len);
     if (len) {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->princ_str = talloc_strndup(ibuf, (char *)(buf + p), len);
         DEBUG(SSSDBG_TRACE_LIBS, "got princ_str: %s\n", ibuf->princ_str);
         if (ibuf->princ_str == NULL) return ENOMEM;
@@ -90,7 +90,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
     DEBUG(SSSDBG_TRACE_LIBS, "keytab_name size: %d\n", len);
     if (len) {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->keytab_name = talloc_strndup(ibuf, (char *)(buf + p), len);
         DEBUG(SSSDBG_TRACE_LIBS, "got keytab_name: %s\n", ibuf->keytab_name);
         if (ibuf->keytab_name == NULL) return ENOMEM;

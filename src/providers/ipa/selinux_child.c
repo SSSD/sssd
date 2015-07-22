@@ -53,7 +53,7 @@ static errno_t unpack_buffer(uint8_t *buf,
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "Empty SELinux user, will delete the mapping\n");
     } else {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->seuser = talloc_strndup(ibuf, (char *)(buf + p), len);
         if (ibuf->seuser == NULL) return ENOMEM;
         DEBUG(SSSDBG_TRACE_INTERNAL, "seuser: %s\n", ibuf->seuser);
@@ -69,7 +69,7 @@ static errno_t unpack_buffer(uint8_t *buf,
             return EINVAL;
         }
     } else {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->mls_range = talloc_strndup(ibuf, (char *)(buf + p), len);
         if (ibuf->mls_range == NULL) return ENOMEM;
         DEBUG(SSSDBG_TRACE_INTERNAL, "mls_range: %s\n", ibuf->mls_range);
@@ -83,7 +83,7 @@ static errno_t unpack_buffer(uint8_t *buf,
         DEBUG(SSSDBG_CRIT_FAILURE, "No username set!\n");
         return EINVAL;
     } else {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->username = talloc_strndup(ibuf, (char *)(buf + p), len);
         if (ibuf->username == NULL) return ENOMEM;
         DEBUG(SSSDBG_TRACE_INTERNAL, "username: %s\n", ibuf->username);

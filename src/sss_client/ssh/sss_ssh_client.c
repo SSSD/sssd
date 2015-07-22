@@ -171,7 +171,7 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
 
     /* parse reply */
     c = 0;
-    if (rep_len-c < 2*sizeof(uint32_t)) {
+    if (rep_len < c + 2*sizeof(uint32_t)) {
         ret = EINVAL;
         goto done;
     }
@@ -214,7 +214,7 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
 
         SAFEALIGN_COPY_UINT32(&len, rep+c, &c);
 
-        if (rep_len-c < len + sizeof(uint32_t)) {
+        if (len > rep_len - c - sizeof(uint32_t)) {
             ret = EINVAL;
             goto done;
         }
@@ -237,7 +237,7 @@ sss_ssh_get_ent(TALLOC_CTX *mem_ctx,
 
         SAFEALIGN_COPY_UINT32(&len, rep+c, &c);
 
-        if (rep_len-c < len) {
+        if (len > rep_len - c) {
             ret = EINVAL;
             goto done;
         }

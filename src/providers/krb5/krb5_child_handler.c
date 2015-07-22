@@ -532,9 +532,9 @@ parse_krb5_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf, ssize_t len,
         DEBUG(SSSDBG_TRACE_LIBS, "child response [%d][%d][%d].\n",
               msg_status, msg_type, msg_len);
 
-        if ((p + msg_len) > len) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "message format error [%zu] > [%zd].\n",
-                  p+msg_len, len);
+        if (msg_len > len - p) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "message format error [%d] > [%zu].\n",
+                  msg_len, len - p);
             return EINVAL;
         }
 

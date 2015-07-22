@@ -222,7 +222,7 @@ static int parse_child_response(TALLOC_CTX *mem_ctx,
     /* ccache name size */
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
-    if ((p + len ) > size) return EINVAL;
+    if (len > size - p) return EINVAL;
 
     ccn = talloc_size(mem_ctx, sizeof(char) * (len + 1));
     if (ccn == NULL) {

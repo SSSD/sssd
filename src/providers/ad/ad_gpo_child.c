@@ -69,7 +69,7 @@ unpack_buffer(uint8_t *buf,
     if (len == 0) {
         return EINVAL;
     } else {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->smb_server = talloc_strndup(ibuf, (char *)(buf + p), len);
         if (ibuf->smb_server == NULL) return ENOMEM;
         DEBUG(SSSDBG_TRACE_ALL, "smb_server: %s\n", ibuf->smb_server);
@@ -82,7 +82,7 @@ unpack_buffer(uint8_t *buf,
     if (len == 0) {
         return EINVAL;
     } else {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->smb_share = talloc_strndup(ibuf, (char *)(buf + p), len);
         if (ibuf->smb_share == NULL) return ENOMEM;
         DEBUG(SSSDBG_TRACE_ALL, "smb_share: %s\n", ibuf->smb_share);
@@ -95,7 +95,7 @@ unpack_buffer(uint8_t *buf,
     if (len == 0) {
         return EINVAL;
     } else {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->smb_path = talloc_strndup(ibuf, (char *)(buf + p), len);
         if (ibuf->smb_path == NULL) return ENOMEM;
         DEBUG(SSSDBG_TRACE_ALL, "smb_path: %s\n", ibuf->smb_path);
@@ -108,7 +108,7 @@ unpack_buffer(uint8_t *buf,
     if (len == 0) {
         return EINVAL;
     } else {
-        if ((p + len ) > size) return EINVAL;
+        if (len > size - p) return EINVAL;
         ibuf->smb_cse_suffix = talloc_strndup(ibuf, (char *)(buf + p), len);
         if (ibuf->smb_cse_suffix == NULL) return ENOMEM;
         DEBUG(SSSDBG_TRACE_ALL, "smb_cse_suffix: %s\n", ibuf->smb_cse_suffix);
