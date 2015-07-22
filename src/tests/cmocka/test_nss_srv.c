@@ -166,13 +166,15 @@ int __wrap_sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
     return ret;
 }
 
-int __real_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid);
+int __real_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl,
+                                struct sss_domain_info *dom, uid_t uid);
 
-int __wrap_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
+int __wrap_sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl,
+                                struct sss_domain_info *dom, uid_t uid)
 {
     int ret;
 
-    ret = __real_sss_ncache_check_uid(ctx, ttl, uid);
+    ret = __real_sss_ncache_check_uid(ctx, ttl, dom, uid);
     if (ret == EEXIST) {
         nss_test_ctx->ncache_hits++;
     }

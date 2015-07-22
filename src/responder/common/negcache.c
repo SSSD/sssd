@@ -376,12 +376,18 @@ int sss_ncache_check_service_port(struct sss_nc_ctx *ctx, int ttl,
 
 
 
-int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
+int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl,
+                         struct sss_domain_info *dom, uid_t uid)
 {
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%"SPRIuid, NC_UID_PREFIX, uid);
+    if (dom != NULL) {
+        str = talloc_asprintf(ctx, "%s/%s/%"SPRIuid, NC_UID_PREFIX, dom->name,
+                              uid);
+    } else {
+        str = talloc_asprintf(ctx, "%s/%"SPRIuid, NC_UID_PREFIX, uid);
+    }
     if (!str) return ENOMEM;
 
     ret = sss_ncache_check_str(ctx, str, ttl);
@@ -390,12 +396,18 @@ int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
     return ret;
 }
 
-int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl, gid_t gid)
+int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl,
+                         struct sss_domain_info *dom, gid_t gid)
 {
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%"SPRIgid, NC_GID_PREFIX, gid);
+    if (dom != NULL) {
+        str = talloc_asprintf(ctx, "%s/%s/%"SPRIgid, NC_GID_PREFIX, dom->name,
+                              gid);
+    } else {
+        str = talloc_asprintf(ctx, "%s/%"SPRIgid, NC_GID_PREFIX, gid);
+    }
     if (!str) return ENOMEM;
 
     ret = sss_ncache_check_str(ctx, str, ttl);
@@ -522,12 +534,18 @@ int sss_ncache_set_netgr(struct sss_nc_ctx *ctx, bool permanent,
     return sss_ncache_set_ent(ctx, permanent, dom, name, sss_ncache_set_netgr_int);
 }
 
-int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent, uid_t uid)
+int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent,
+                       struct sss_domain_info *dom, uid_t uid)
 {
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%"SPRIuid, NC_UID_PREFIX, uid);
+    if (dom != NULL) {
+        str = talloc_asprintf(ctx, "%s/%s/%"SPRIuid, NC_UID_PREFIX, dom->name,
+                              uid);
+    } else {
+        str = talloc_asprintf(ctx, "%s/%"SPRIuid, NC_UID_PREFIX, uid);
+    }
     if (!str) return ENOMEM;
 
     ret = sss_ncache_set_str(ctx, str, permanent);
@@ -536,12 +554,18 @@ int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent, uid_t uid)
     return ret;
 }
 
-int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent, gid_t gid)
+int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent,
+                       struct sss_domain_info *dom, gid_t gid)
 {
     char *str;
     int ret;
 
-    str = talloc_asprintf(ctx, "%s/%"SPRIgid, NC_GID_PREFIX, gid);
+    if (dom != NULL) {
+        str = talloc_asprintf(ctx, "%s/%s/%"SPRIgid, NC_GID_PREFIX, dom->name,
+                              gid);
+    } else {
+        str = talloc_asprintf(ctx, "%s/%"SPRIgid, NC_GID_PREFIX, gid);
+    }
     if (!str) return ENOMEM;
 
     ret = sss_ncache_set_str(ctx, str, permanent);

@@ -303,10 +303,10 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
                                      input->domain, input->dom_objname);
         break;
     case CACHE_REQ_USER_BY_ID:
-        ret = sss_ncache_check_uid(ncache, neg_timeout, input->id);
+        ret = sss_ncache_check_uid(ncache, neg_timeout, NULL, input->id);
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        ret = sss_ncache_check_gid(ncache, neg_timeout, input->id);
+        ret = sss_ncache_check_gid(ncache, neg_timeout, NULL, input->id);
         break;
     case CACHE_REQ_USER_BY_CERT:
         ret = sss_ncache_check_cert(ncache, neg_timeout, input->cert);
@@ -382,10 +382,10 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
         ret = EOK;
         break;
     case CACHE_REQ_USER_BY_ID:
-        ret = sss_ncache_set_uid(ncache, false, input->id);
+        ret = sss_ncache_set_uid(ncache, false, NULL, input->id);
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        ret = sss_ncache_set_gid(ncache, false, input->id);
+        ret = sss_ncache_set_gid(ncache, false, NULL, input->id);
         break;
     case CACHE_REQ_USER_BY_CERT:
         ret = sss_ncache_set_cert(ncache, false, input->cert);

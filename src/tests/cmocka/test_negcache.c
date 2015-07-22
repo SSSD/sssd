@@ -188,7 +188,7 @@ static void test_sss_ncache_uid(void **state)
     ts = talloc_get_type_abort(*state, struct test_state);
 
     /* test when uid not present in database */
-    ret = sss_ncache_check_uid(ts->ctx, ttl, uid);
+    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, uid);
     assert_int_equal(ret, ENOENT);
 
     /* test when uid is present in database */
@@ -197,43 +197,43 @@ static void test_sss_ncache_uid(void **state)
     ret = sss_ncache_reset_permanent(ts->ctx);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_set_uid(ts->ctx, permanent, uid);
+    ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, uid);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_uid(ts->ctx, ttl, uid);
+    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, uid);
     assert_int_equal(ret, EEXIST);
 
     ttl = SHORTSPAN;
-    ret = sss_ncache_set_uid(ts->ctx, permanent, uid);
+    ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, uid);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_uid(ts->ctx, ttl, uid);
+    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, uid);
     assert_int_equal(ret, EEXIST);
 
     sleep(SHORTSPAN + 1);
 
-    ret = sss_ncache_check_uid(ts->ctx, ttl, uid);
+    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, uid);
     assert_int_equal(ret, EEXIST);
 
     permanent = false;
 
-    ret = sss_ncache_set_uid(ts->ctx, permanent, uid);
+    ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, uid);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_uid(ts->ctx, ttl, uid);
+    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, uid);
     assert_int_equal(ret, EEXIST);
 
     sleep(SHORTSPAN + 1);
 
-    ret = sss_ncache_check_uid(ts->ctx, ttl, uid);
+    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, uid);
     assert_int_equal(ret, ENOENT);
 
-    ret = sss_ncache_set_uid(ts->ctx, permanent, uid);
+    ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, uid);
     assert_int_equal(ret, EOK);
 
     /* test when ttl is -1 with uid present in database*/
     ttl = -1;
-    ret = sss_ncache_check_uid(ts->ctx, ttl, uid);
+    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, uid);
     assert_int_equal(ret, EEXIST);
 }
 
@@ -253,27 +253,27 @@ static void test_sss_ncache_gid(void **state)
     ts = talloc_get_type_abort(*state, struct test_state);
 
     /* test when gid is not present in database */
-    ret = sss_ncache_check_gid(ts->ctx, ttl, gid);
+    ret = sss_ncache_check_gid(ts->ctx, ttl, NULL, gid);
     assert_int_equal(ret, ENOENT);
 
     /* test when gid is present in database */
     permanent = true;
-    ret = sss_ncache_set_gid(ts->ctx, permanent, gid);
+    ret = sss_ncache_set_gid(ts->ctx, permanent, NULL, gid);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_gid(ts->ctx, ttl, gid);
+    ret = sss_ncache_check_gid(ts->ctx, ttl, NULL, gid);
     assert_int_equal(ret, EEXIST);
 
     permanent = false;
-    ret = sss_ncache_set_uid(ts->ctx, permanent, gid);
+    ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, gid);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_uid(ts->ctx, ttl, gid);
+    ret = sss_ncache_check_uid(ts->ctx, ttl, NULL, gid);
     assert_int_equal(ret, EEXIST);
 
     /* test when ttl is -1 with gid present in database*/
     ttl = -1;
-    ret = sss_ncache_check_gid(ts->ctx, ttl, gid);
+    ret = sss_ncache_check_gid(ts->ctx, ttl, NULL, gid);
     assert_int_equal(ret, EEXIST);
 }
 
@@ -608,16 +608,16 @@ static void test_sss_ncache_reset_permanent(void **state)
 
     ts = talloc_get_type_abort(*state, struct test_state);
 
-    ret = sss_ncache_set_uid(ts->ctx, permanent, 0);
+    ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, 0);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_uid(ts->ctx, 0, 0);
+    ret = sss_ncache_check_uid(ts->ctx, 0, NULL, 0);
     assert_int_equal(ret, EEXIST);
 
     ret = sss_ncache_reset_permanent(ts->ctx);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_uid(ts->ctx, 0, 0);
+    ret = sss_ncache_check_uid(ts->ctx, 0, NULL, 0);
     assert_int_equal(ret, ENOENT);
 }
 

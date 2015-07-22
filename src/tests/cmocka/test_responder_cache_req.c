@@ -873,7 +873,7 @@ void test_user_by_id_ncache(void **state)
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
-    ret = sss_ncache_set_uid(test_ctx->ncache, false, uid);
+    ret = sss_ncache_set_uid(test_ctx->ncache, false, NULL, uid);
     assert_int_equal(ret, EOK);
 
     req_mem_ctx = talloc_new(global_talloc_context);
@@ -1601,7 +1601,7 @@ void test_group_by_id_ncache(void **state)
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
-    ret = sss_ncache_set_gid(test_ctx->ncache, false, gid);
+    ret = sss_ncache_set_gid(test_ctx->ncache, false, NULL, gid);
     assert_int_equal(ret, EOK);
 
     req_mem_ctx = talloc_new(global_talloc_context);
