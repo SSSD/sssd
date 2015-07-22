@@ -445,7 +445,9 @@ SSSD_TOOLS_OBJ = \
     src/tools/tools_util.c \
     src/tools/files.c \
     src/tools/selinux.c \
-    src/util/nscd.c
+    src/tools/common/sss_tools.c \
+    src/util/nscd.c \
+    $(NULL)
 
 SSSD_LCL_TOOLS_OBJ = \
     src/sss_client/common.c \
@@ -641,6 +643,7 @@ dist_noinst_HEADERS = \
     src/lib/idmap/sss_idmap_private.h \
     src/lib/sifp/sss_sifp_private.h \
     src/tests/cmocka/test_utils.h \
+    src/tools/common/sss_tools.h \
     $(NULL)
 
 
