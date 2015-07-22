@@ -99,12 +99,12 @@ static errno_t perform_checks(struct stat *stat_buf,
     }
 
     if ((mode & S_IFMT) != (st_mode & S_IFMT)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "File is not the right type.\n");
+        DEBUG(SSSDBG_TRACE_LIBS, "File is not the right type.\n");
         return EINVAL;
     }
 
     if ((st_mode & ALLPERMS) != (mode & ALLPERMS)) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
+        DEBUG(SSSDBG_TRACE_LIBS,
               "File has the wrong (bit masked) mode [%.7o], "
               "expected [%.7o].\n",
               (st_mode & ALLPERMS), (mode & ALLPERMS));
@@ -112,12 +112,12 @@ static errno_t perform_checks(struct stat *stat_buf,
     }
 
     if (uid != (uid_t)(-1) && stat_buf->st_uid != uid) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "File must be owned by uid [%d].\n", uid);
+        DEBUG(SSSDBG_TRACE_LIBS, "File must be owned by uid [%d].\n", uid);
         return EINVAL;
     }
 
     if (gid != (gid_t)(-1) && stat_buf->st_gid != gid) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "File must be owned by gid [%d].\n", gid);
+        DEBUG(SSSDBG_TRACE_LIBS, "File must be owned by gid [%d].\n", gid);
         return EINVAL;
     }
 
