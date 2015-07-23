@@ -525,7 +525,8 @@ be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
           update_msg);
 
     ret = ERR_OK;
-    *_update_msg = talloc_steal(mem_ctx, update_msg);
+    *_update_msg = update_msg;
+
 done:
     return ret;
 }
