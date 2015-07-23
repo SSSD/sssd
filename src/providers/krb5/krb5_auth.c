@@ -1091,7 +1091,12 @@ static void krb5_auth_done(struct tevent_req *subreq)
         krb5_auth_store_creds(state->domain, pd);
     }
 
-    if (res->otp == true && pd->cmd == SSS_PAM_AUTHENTICATE) {
+    /* The SSS_OTP message will prevent pam_sss from putting the entered
+     * password on the PAM stack for other modules to use. This is not needed
+     * when both factors were entered separately because here the first factor
+     * (long term password) can be passed to the other modules. */
+    if (res->otp == true && pd->cmd == SSS_PAM_AUTHENTICATE
+            && sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_2FA) {
         uint32_t otp_flag = 1;
         ret = pam_add_response(pd, SSS_OTP, sizeof(uint32_t),
                                (const uint8_t *) &otp_flag);
