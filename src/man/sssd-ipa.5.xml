@@ -276,6 +276,11 @@
                             server.
                         </para>
                         <para>
+                            Please note that this option will be only used in
+                            fallback attempt when previous attempt using
+                            autodetected settings failed.
+                        </para>
+                        <para>
                             Default: None (let nsupdate choose the server)
                         </para>
                     </listitem>

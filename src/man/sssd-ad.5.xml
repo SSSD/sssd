@@ -826,11 +826,15 @@ ad_gpo_map_deny = +my_pam_service
                             server.
                         </para>
                         <para>
+                            Please note that this option will be only used in
+                            fallback attempt when previous attempt using
+                            autodetected settings failed.
+                        </para>
+                        <para>
                             Default: None (let nsupdate choose the server)
                         </para>
                     </listitem>
                 </varlistentry>
-
 
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/override_homedir.xml" />
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/homedir_substring.xml" />
