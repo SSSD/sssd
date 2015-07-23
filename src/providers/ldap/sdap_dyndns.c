@@ -89,7 +89,6 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         const char *ifname,
                         const char *hostname,
                         const char *realm,
-                        const char *servername,
                         const int ttl,
                         bool check_diff)
 {
@@ -107,7 +106,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->update_ptr = dp_opt_get_bool(opts, DP_OPT_DYNDNS_UPDATE_PTR);
     state->hostname = hostname;
     state->realm = realm;
-    state->servername = servername;
+    state->servername = NULL;
     state->fallback_mode = false;
     state->ttl = ttl;
     state->be_res = be_ctx->be_res;
@@ -321,18 +320,20 @@ sdap_dyndns_update_step(struct tevent_req *req)
     errno_t ret;
     struct sdap_dyndns_update_state *state;
     const char *servername;
+    const char *realm;
     struct tevent_req *subreq;
 
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
     servername = NULL;
-    if (state->fallback_mode == true &&
-        state->servername) {
+    realm = NULL;
+    if (state->fallback_mode) {
         servername = state->servername;
+        realm = state->realm;
     }
 
-    ret = be_nsupdate_create_fwd_msg(state, state->realm,
-                                     servername, state->hostname,
+    ret = be_nsupdate_create_fwd_msg(state, realm, servername,
+                                     state->hostname,
                                      state->ttl, state->remove_af,
                                      state->addresses,
                                      &state->update_msg);
@@ -369,11 +370,12 @@ sdap_dyndns_update_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         /* If the update didn't succeed, we can retry using the server name */
-        if (state->fallback_mode == false && state->servername &&
-            WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
+        if (state->fallback_mode == false
+                && WIFEXITED(child_status)
+                && WEXITSTATUS(child_status) != 0) {
             state->fallback_mode = true;
             DEBUG(SSSDBG_MINOR_FAILURE,
-                   "nsupdate failed, retrying with server name\n");
+                  "nsupdate failed, retrying.\n");
             ret = sdap_dyndns_update_step(req);
             if (ret == EOK) {
                 return;
@@ -459,15 +461,17 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
     errno_t ret;
     struct sdap_dyndns_update_state *state;
     const char *servername;
+    const char *realm;
     struct tevent_req *subreq;
     struct sockaddr_storage *address;
 
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
     servername = NULL;
-    if (state->fallback_mode == true &&
-        state->servername) {
+    realm = NULL;
+    if (state->fallback_mode == true) {
         servername = state->servername;
+        realm = state->realm;
     }
 
     address = sss_iface_addr_get_address(state->ptr_addr_iter);
@@ -475,9 +479,10 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
         return EIO;
     }
 
-    ret = be_nsupdate_create_ptr_msg(state, state->realm, servername,
-                                     state->hostname, state->ttl, address,
-                                     state->del_phase, &state->update_msg);
+    ret = be_nsupdate_create_ptr_msg(state, realm, servername, state->hostname,
+                                     state->ttl, address, state->del_phase,
+                                     &state->update_msg);
+
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Can't get addresses for DNS update\n");
         return ret;
@@ -511,11 +516,11 @@ sdap_dyndns_update_ptr_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         /* If the update didn't succeed, we can retry using the server name */
-        if (state->fallback_mode == false && state->servername &&
-            WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
+        if (state->fallback_mode == false
+                && WIFEXITED(child_status)
+                && WEXITSTATUS(child_status) != 0) {
             state->fallback_mode = true;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                   "nsupdate failed, retrying with server name\n");
+            DEBUG(SSSDBG_MINOR_FAILURE, "nsupdate failed, retrying\n");
             ret = sdap_dyndns_update_ptr_step(req);
             if (ret == EOK) {
                 return;

@@ -153,7 +153,6 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
     struct ipa_dyndns_update_state *state;
     struct tevent_req *req, *subreq;
     struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
-    const char *servername;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Performing update\n");
 
@@ -179,11 +178,6 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
         ret = EIO;
         goto done;
     }
-    servername = ctx->service->sdap->uri + 7;
-    if (servername[0] == '\0') {
-        ret = EIO;
-        goto done;
-    }
 
     subreq = sdap_dyndns_update_send(state, sdap_ctx->be->ev,
                                      sdap_ctx->be,
@@ -196,7 +190,6 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
                                                        IPA_HOSTNAME),
                                      dp_opt_get_string(ctx->basic,
                                                        IPA_KRB5_REALM),
-                                     servername,
                                      dp_opt_get_int(ctx->dyndns_ctx->opts,
                                                     DP_OPT_DYNDNS_TTL),
                                      true);

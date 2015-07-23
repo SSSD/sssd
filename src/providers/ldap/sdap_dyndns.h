@@ -40,7 +40,6 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         const char *ifname,
                         const char *hostname,
                         const char *realm,
-                        const char *servername,
                         const int ttl,
                         bool check_diff);
 

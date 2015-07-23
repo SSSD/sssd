@@ -376,6 +376,17 @@ static char *nsupdate_msg_add_ptr(char *update_msg,
 }
 
 static char *
+nsupdate_msg_add_realm_cmd(TALLOC_CTX *mem_ctx, const char *realm)
+{
+#ifdef HAVE_NSUPDATE_REALM
+    if (realm != NULL) {
+        return talloc_asprintf(mem_ctx, "realm %s\n", realm);
+    }
+#endif
+    return talloc_asprintf(mem_ctx, "\n");
+}
+
+static char *
 nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
                            const char *servername)
 {
@@ -386,11 +397,7 @@ nsupdate_msg_create_common(TALLOC_CTX *mem_ctx, const char *realm,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) return NULL;
 
-#ifdef HAVE_NSUPDATE_REALM
-    realm_directive = talloc_asprintf(tmp_ctx, "realm %s\n", realm);
-#else
-    realm_directive = talloc_asprintf(tmp_ctx, "\n");
-#endif
+    realm_directive = nsupdate_msg_add_realm_cmd(tmp_ctx, realm);
     if (!realm_directive) {
         goto fail;
     }

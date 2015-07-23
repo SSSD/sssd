@@ -159,7 +159,6 @@ static void ad_dyndns_nsupdate_done(struct tevent_req *req)
 
 struct ad_dyndns_update_state {
     struct ad_options *ad_ctx;
-    const char *servername;
 };
 
 static void ad_dyndns_sdap_update_done(struct tevent_req *subreq);
@@ -217,13 +216,6 @@ ad_dyndns_update_send(struct ad_options *ctx)
         goto done;
     }
 
-    state->servername = talloc_strdup(state, lud->lud_host);
-    ldap_free_urldesc(lud);
-    if (!state->servername) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     subreq = sdap_dyndns_update_send(state, sdap_ctx->be->ev,
                                      sdap_ctx->be,
                                      ctx->dyndns_ctx->opts,
@@ -235,7 +227,6 @@ ad_dyndns_update_send(struct ad_options *ctx)
                                                        AD_HOSTNAME),
                                      dp_opt_get_string(ctx->basic,
                                                        AD_KRB5_REALM),
-                                     state->servername,
                                      dp_opt_get_int(ctx->dyndns_ctx->opts,
                                                     DP_OPT_DYNDNS_TTL),
                                      false);
