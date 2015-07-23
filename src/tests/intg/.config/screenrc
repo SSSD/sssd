@@ -1,0 +1,23 @@
+autodetach on
+defscrollback 1024
+startup_message off
+nethack on
+vbell off
+vbell_msg "   -- Bell,Bell!! --   "
+multiuser off
+msgminwait 0
+msgwait 10
+
+defutf8 on
+defencoding utf8
+
+hardstatus string '%{gk}[ %{G}%H %{g}][%= %{wk}%?%-Lw%?%{=b kR}(%{W}%n*%f %t%?(%u)%?%{=b kR})%{= kw}%?%+Lw%?%?%= %{g}]%{=b C}[ %d/%m %c ]%{W}'
+hardstatus alwayslastline
+
+setenv LD_LIBRARY_PATH "$_LD_LIBRARY_PATH"
+setenv LD_PRELOAD "$_LD_PRELOAD"
+
+screen -t / 0 sh -c 'cd $ROOT_DIR; exec "${SHELL:-sh}"'
+screen -t /etc 1 sh -c 'cd $ROOT_DIR/etc; exec "${SHELL:-sh}"'
+screen -t sssd_cache 3 sh -c 'cd $ROOT_DIR/var/lib/sss/db; exec "${SHELL:-sh}"'
+screen -t sssd_log 2 sh -c 'cd $ROOT_DIR/var/log/sssd; exec "${SHELL:-sh}"'
