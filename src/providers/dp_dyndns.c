@@ -436,7 +436,7 @@ fail:
 
 errno_t
 be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *zone, const char *servername,
+                           const char *servername,
                            const char *hostname, const unsigned int ttl,
                            uint8_t remove_af, struct sss_iface_addr *addresses,
                            char **_update_msg)
@@ -457,16 +457,6 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
-    }
-
-    if (zone) {
-        DEBUG(SSSDBG_FUNC_DATA,
-              "Setting the zone explicitly to [%s].\n", zone);
-        update_msg = talloc_asprintf_append(update_msg, "zone %s.\n", zone);
-        if (update_msg == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
     update_msg = nsupdate_msg_add_fwd(update_msg, addresses, hostname,

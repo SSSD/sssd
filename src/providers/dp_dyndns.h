@@ -89,7 +89,7 @@ sss_iface_addr_list_as_str_list(TALLOC_CTX *mem_ctx,
 
 errno_t
 be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
-                           const char *zone, const char *servername,
+                           const char *servername,
                            const char *hostname, const unsigned int ttl,
                            uint8_t remove_af, struct sss_iface_addr *addresses,
                            char **_update_msg);

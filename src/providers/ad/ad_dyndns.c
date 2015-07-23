@@ -233,7 +233,6 @@ ad_dyndns_update_send(struct ad_options *ctx)
                                                        DP_OPT_DYNDNS_IFACE),
                                      dp_opt_get_string(ctx->basic,
                                                        AD_HOSTNAME),
-                                     NULL,
                                      dp_opt_get_string(ctx->basic,
                                                        AD_KRB5_REALM),
                                      state->servername,

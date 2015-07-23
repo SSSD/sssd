@@ -153,9 +153,7 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
     struct ipa_dyndns_update_state *state;
     struct tevent_req *req, *subreq;
     struct sdap_id_ctx *sdap_ctx = ctx->id_ctx->sdap_id_ctx;
-    char *dns_zone;
     const char *servername;
-    int i;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Performing update\n");
 
@@ -174,19 +172,6 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
         return req;
     }
     state->ipa_ctx->dyndns_ctx->last_refresh = time(NULL);
-
-    dns_zone = dp_opt_get_string(ctx->basic, IPA_DOMAIN);
-    if (!dns_zone) {
-        ret = EIO;
-        goto done;
-    }
-
-    /* The DNS zone for IPA is the lower-case
-     * version of the IPA domain
-     */
-    for (i = 0; dns_zone[i] != '\0'; i++) {
-        dns_zone[i] = tolower(dns_zone[i]);
-    }
 
     if (strncmp(ctx->service->sdap->uri,
                 "ldap://", 7) != 0) {
@@ -209,7 +194,6 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
                                                        DP_OPT_DYNDNS_IFACE),
                                      dp_opt_get_string(ctx->basic,
                                                        IPA_HOSTNAME),
-                                     dns_zone,
                                      dp_opt_get_string(ctx->basic,
                                                        IPA_KRB5_REALM),
                                      servername,

@@ -47,7 +47,6 @@ struct sdap_dyndns_update_state {
     struct dp_option *opts;
 
     const char *hostname;
-    const char *dns_zone;
     const char *realm;
     const char *servername;
     int ttl;
@@ -61,7 +60,6 @@ struct sdap_dyndns_update_state {
     enum be_nsupdate_auth auth_type;
     bool use_server_with_nsupdate;
     char *update_msg;
-    size_t pass_num;
 };
 
 static void sdap_dyndns_update_addrs_done(struct tevent_req *subreq);
@@ -82,7 +80,6 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
                         enum be_nsupdate_auth auth_type,
                         const char *ifname,
                         const char *hostname,
-                        const char *dns_zone,
                         const char *realm,
                         const char *servername,
                         const int ttl,
@@ -101,7 +98,6 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->check_diff = check_diff;
     state->update_ptr = dp_opt_get_bool(opts, DP_OPT_DYNDNS_UPDATE_PTR);
     state->hostname = hostname;
-    state->dns_zone = dns_zone;
     state->realm = realm;
     state->servername = servername;
     state->use_server_with_nsupdate = false;
@@ -110,7 +106,6 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->opts = opts;
     state->auth_type = auth_type;
-    state->pass_num = 0;
 
     /* fallback servername is overriden by user option */
     conf_servername = dp_opt_get_string(opts, DP_OPT_DYNDNS_SERVER);
@@ -317,7 +312,6 @@ sdap_dyndns_update_step(struct tevent_req *req)
     struct sdap_dyndns_update_state *state;
     const char *servername;
     struct tevent_req *subreq;
-    const char *dns_zone = NULL;
 
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
@@ -327,11 +321,7 @@ sdap_dyndns_update_step(struct tevent_req *req)
         servername = state->servername;
     }
 
-    if (state->pass_num > 0) {
-        dns_zone = state->dns_zone;
-    }
-
-    ret = be_nsupdate_create_fwd_msg(state, state->realm, dns_zone,
+    ret = be_nsupdate_create_fwd_msg(state, state->realm,
                                      servername, state->hostname,
                                      state->ttl, state->remove_af,
                                      state->addresses,
@@ -340,7 +330,6 @@ sdap_dyndns_update_step(struct tevent_req *req)
         DEBUG(SSSDBG_OP_FAILURE, "Can't get addresses for DNS update\n");
         return ret;
     }
-    state->pass_num++;
 
     /* Fork a child process to perform the DNS update */
     subreq = be_nsupdate_send(state, state->ev, state->auth_type,
