@@ -58,7 +58,7 @@ struct sdap_dyndns_update_state {
     bool update_ptr;
     bool check_diff;
     enum be_nsupdate_auth auth_type;
-    bool use_server_with_nsupdate;
+    bool fallback_mode;
     char *update_msg;
 };
 
@@ -100,7 +100,7 @@ sdap_dyndns_update_send(TALLOC_CTX *mem_ctx,
     state->hostname = hostname;
     state->realm = realm;
     state->servername = servername;
-    state->use_server_with_nsupdate = false;
+    state->fallback_mode = false;
     state->ttl = ttl;
     state->be_res = be_ctx->be_res;
     state->ev = ev;
@@ -316,7 +316,7 @@ sdap_dyndns_update_step(struct tevent_req *req)
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
     servername = NULL;
-    if (state->use_server_with_nsupdate == true &&
+    if (state->fallback_mode == true &&
         state->servername) {
         servername = state->servername;
     }
@@ -359,9 +359,9 @@ sdap_dyndns_update_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         /* If the update didn't succeed, we can retry using the server name */
-        if (state->use_server_with_nsupdate == false && state->servername &&
+        if (state->fallback_mode == false && state->servername &&
             WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
-            state->use_server_with_nsupdate = true;
+            state->fallback_mode = true;
             DEBUG(SSSDBG_MINOR_FAILURE,
                    "nsupdate failed, retrying with server name\n");
             ret = sdap_dyndns_update_step(req);
@@ -400,7 +400,7 @@ sdap_dyndns_update_ptr_step(struct tevent_req *req)
     state = tevent_req_data(req, struct sdap_dyndns_update_state);
 
     servername = NULL;
-    if (state->use_server_with_nsupdate == true &&
+    if (state->fallback_mode == true &&
         state->servername) {
         servername = state->servername;
     }
@@ -443,9 +443,9 @@ sdap_dyndns_update_ptr_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         /* If the update didn't succeed, we can retry using the server name */
-        if (state->use_server_with_nsupdate == false && state->servername &&
+        if (state->fallback_mode == false && state->servername &&
             WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
-            state->use_server_with_nsupdate = true;
+            state->fallback_mode = true;
             DEBUG(SSSDBG_MINOR_FAILURE,
                    "nsupdate failed, retrying with server name\n");
             ret = sdap_dyndns_update_ptr_step(req);
