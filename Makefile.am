@@ -117,7 +117,9 @@ sbin_PROGRAMS = \
     sss_groupshow \
     sss_cache \
     sss_debuglevel \
-    sss_seed
+    sss_override \
+    sss_seed \
+    $(NULL)
 
 sssdlibexec_PROGRAMS = \
     sssd_nss \
@@ -1295,6 +1297,18 @@ sss_signal_SOURCES = \
 sss_signal_LDADD = \
     $(TOOLS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
+
+sss_override_SOURCES = \
+    src/tools/sss_override.c \
+    $(SSSD_TOOLS_OBJ) \
+    $(NULL)
+sss_override_LDADD = \
+    $(TOOLS_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
+sss_override_CFLAGS = \
+    $(AM_CFLAGS) \
     $(NULL)
 
 if BUILD_SUDO

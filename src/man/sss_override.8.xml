@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_override</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_override</refname>
+        <refpurpose>create local overrides of user and group attributes</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_override</command>
+            <arg choice='plain'><replaceable>COMMAND</replaceable></arg>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_override</command> enables to create a client-side
+            view and allows to change selected values of specific user
+            and groups. This change takes effect only on local machine.
+        </para>
+        <para>
+            Overrides data are stored in SSSD cache. If the cache is deleted
+            all local overrides are lost.
+        </para>
+    </refsect1>
+
+    <refsect1 id='commands'>
+        <title>AVAILABLE COMMANDS</title>
+        <para>
+            Argument <emphasis>NAME</emphasis> is the name of original object
+            in all commands. It is not possible to override
+            <emphasis>uid</emphasis> or <emphasis>gid</emphasis> to 0.
+        </para>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>user-add</option>
+                    <emphasis>NAME</emphasis>
+                    <optional><option>-n,--name</option> NAME</optional>
+                    <optional><option>-u,--uid</option> UID</optional>
+                    <optional><option>-g,--gid</option> GID</optional>
+                    <optional><option>-h,--home</option> HOME</optional>
+                    <optional><option>-s,--shell</option> SHELL</optional>
+                    <optional><option>-c,--gecos</option> GECOS</optional>
+                </term>
+                <listitem>
+                    <para>
+                        Override attributes of an user.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>user-del</option>
+                    <emphasis>NAME</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Remove user overrides.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-add</option>
+                    <emphasis>NAME</emphasis>
+                    <optional><option>-n,--name</option> NAME</optional>
+                    <optional><option>-g,--gid</option> GID</optional>
+                </term>
+                <listitem>
+                    <para>
+                        Override attributes of a group.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-del</option>
+                    <emphasis>NAME</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Remove group overrides.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>
