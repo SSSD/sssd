@@ -58,6 +58,39 @@ void sss_iface_addr_concatenate(struct sss_iface_addr **list,
     DLIST_CONCATENATE((*list), list2, struct sss_iface_addr*);
 }
 
+static errno_t addr_to_str(struct sockaddr_storage *addr,
+                           char *dst, size_t size)
+{
+    const void *src;
+    const char *res;
+    errno_t ret;
+
+    switch(addr->ss_family) {
+    case AF_INET:
+        src = &(((struct sockaddr_in *)addr)->sin_addr);
+        break;
+    case AF_INET6:
+        src = &(((struct sockaddr_in6 *)addr)->sin6_addr);
+        break;
+    default:
+        ret = ERR_ADDR_FAMILY_NOT_SUPPORTED;
+        goto done;
+    }
+
+    res = inet_ntop(addr->ss_family, src, dst, size);
+    if (res == NULL) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE, "inet_ntop failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    return ret;
+}
+
 errno_t
 sss_iface_addr_list_as_str_list(TALLOC_CTX *mem_ctx,
                                 struct sss_iface_addr *ifaddr_list,
@@ -67,7 +100,6 @@ sss_iface_addr_list_as_str_list(TALLOC_CTX *mem_ctx,
     size_t count;
     int ai;
     char **straddrs;
-    const char *ip;
     char ip_addr[INET6_ADDRSTRLEN];
     errno_t ret;
 
@@ -83,35 +115,17 @@ sss_iface_addr_list_as_str_list(TALLOC_CTX *mem_ctx,
 
     ai = 0;
     DLIST_FOR_EACH(ifaddr, ifaddr_list) {
-        switch(ifaddr->addr->ss_family) {
-        case AF_INET:
-            errno = 0;
-            ip = inet_ntop(ifaddr->addr->ss_family,
-                           &(((struct sockaddr_in *)ifaddr->addr)->sin_addr),
-                           ip_addr, INET6_ADDRSTRLEN);
-            if (ip == NULL) {
-                ret = errno;
-                goto fail;
-            }
-            break;
 
-        case AF_INET6:
-            errno = 0;
-            ip = inet_ntop(ifaddr->addr->ss_family,
-                           &(((struct sockaddr_in6 *)ifaddr->addr)->sin6_addr),
-                           ip_addr, INET6_ADDRSTRLEN);
-            if (ip == NULL) {
-                ret = errno;
-                goto fail;
-            }
-            break;
-
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
+        ret = addr_to_str(ifaddr->addr, ip_addr, INET6_ADDRSTRLEN);
+        if (ret == ERR_ADDR_FAMILY_NOT_SUPPORTED) {
             continue;
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "addr_to_str failed: %d:[%s],\n",
+                  ret, sss_strerror(ret));
+            goto fail;
         }
 
-        straddrs[ai] = talloc_strdup(straddrs, ip);
+        straddrs[ai] = talloc_strdup(straddrs, ip_addr);
         if (straddrs[ai] == NULL) {
             ret = ENOMEM;
             goto fail;
@@ -237,7 +251,6 @@ nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
 {
     struct sss_iface_addr *new_record;
     char ip_addr[INET6_ADDRSTRLEN];
-    const char *ip;
     errno_t ret;
 
     /* Remove existing entries as needed */
@@ -259,33 +272,10 @@ nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
     }
 
     DLIST_FOR_EACH(new_record, addresses) {
-        switch(new_record->addr->ss_family) {
-        case AF_INET:
-            ip = inet_ntop(new_record->addr->ss_family,
-                           &(((struct sockaddr_in *)new_record->addr)->sin_addr),
-                           ip_addr, INET6_ADDRSTRLEN);
-            if (ip == NULL) {
-                ret = errno;
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "inet_ntop failed [%d]: %s\n", ret, strerror(ret));
-                return NULL;
-            }
-            break;
-
-        case AF_INET6:
-            ip = inet_ntop(new_record->addr->ss_family,
-                           &(((struct sockaddr_in6 *)new_record->addr)->sin6_addr),
-                           ip_addr, INET6_ADDRSTRLEN);
-            if (ip == NULL) {
-                ret = errno;
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "inet_ntop failed [%d]: %s\n", ret, strerror(ret));
-                return NULL;
-            }
-            break;
-
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
+        ret = addr_to_str(new_record->addr, ip_addr, INET6_ADDRSTRLEN);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "addr_to_str failed: %d:[%s],\n",
+                  ret, sss_strerror(ret));
             return NULL;
         }
 
@@ -298,7 +288,6 @@ nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
         if (update_msg == NULL) {
             return NULL;
         }
-
     }
 
     return talloc_asprintf_append(update_msg, "send\n");
