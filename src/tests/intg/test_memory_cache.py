@@ -106,8 +106,7 @@ def create_sssd_fixture(request):
     request.addfinalizer(teardown)
 
 
-@pytest.fixture
-def sanity_rfc2307(request, ldap_conn):
+def load_data_to_ldap(request, ldap_conn):
     ent_list = ldap_ent.List(LDAP_BASE_DN)
     ent_list.add_user("user1", 1001, 2001)
     ent_list.add_user("user2", 1002, 2002)
@@ -128,6 +127,11 @@ def sanity_rfc2307(request, ldap_conn):
     ent_list.add_group("group2x", 2020, ["user21", "user22", "user23"])
     create_ldap_fixture(request, ldap_conn, ent_list)
 
+
+@pytest.fixture
+def sanity_rfc2307(request, ldap_conn):
+    load_data_to_ldap(request, ldap_conn)
+
     conf = unindent("""\
         [sssd]
         config_file_version = 2
@@ -144,6 +148,61 @@ def sanity_rfc2307(request, ldap_conn):
         sudo_provider       = ldap
         ldap_uri            = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def fqname_rfc2307(request, ldap_conn):
+    load_data_to_ldap(request, ldap_conn)
+
+    conf = unindent("""\
+        [sssd]
+        config_file_version = 2
+        domains             = LDAP
+        services            = nss
+
+        [nss]
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        ldap_schema         = rfc2307
+        id_provider         = ldap
+        auth_provider       = ldap
+        sudo_provider       = ldap
+        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+        use_fully_qualified_names = true
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def fqname_case_insensitive_rfc2307(request, ldap_conn):
+    load_data_to_ldap(request, ldap_conn)
+
+    conf = unindent("""\
+        [sssd]
+        config_file_version = 2
+        domains             = LDAP
+        services            = nss
+
+        [nss]
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        ldap_schema         = rfc2307
+        id_provider         = ldap
+        auth_provider       = ldap
+        sudo_provider       = ldap
+        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+        use_fully_qualified_names = true
+        case_sensitive = false
     """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
@@ -345,3 +404,80 @@ def test_initgroups_with_mc(ldap_conn, sanity_rfc2307):
     test_initgroups(ldap_conn, sanity_rfc2307)
     stop_sssd()
     test_initgroups(ldap_conn, sanity_rfc2307)
+
+
+def test_initgroups_fqname_with_mc(ldap_conn, fqname_rfc2307):
+    assert_user_gids_equal('user1@LDAP', [2000, 2001])
+    stop_sssd()
+    assert_user_gids_equal('user1@LDAP', [2000, 2001])
+
+
+def assert_initgroups_equal(user, primary_gid, expected_gids):
+    (res, errno, gids) = sssd_id.call_sssd_initgroups(user, primary_gid)
+    assert res == sssd_id.NssReturnCode.SUCCESS, \
+        "Could not find groups for user %s, %d" % (user, errno)
+
+    assert sorted(gids) == sorted(expected_gids), \
+        "result: %s\n expected %s" % (
+            ", ".join(["%s" % s for s in sorted(gids)]),
+            ", ".join(["%s" % s for s in sorted(expected_gids)])
+        )
+
+
+def assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
+                                  primary_gid, expected_gids):
+
+    assert_initgroups_equal(user1_case1, primary_gid, expected_gids)
+    assert_initgroups_equal(user1_case2, primary_gid, expected_gids)
+    assert_initgroups_equal(user1_case_last, primary_gid, expected_gids)
+    stop_sssd()
+
+    user = user1_case1
+    (res, errno, gids) = sssd_id.call_sssd_initgroups(user, primary_gid)
+    assert res == sssd_id.NssReturnCode.UNAVAIL, \
+        "Initgroups for user shoudl fail user %s, %d" % (user, res)
+
+    user = user1_case2
+    (res, errno, gids) = sssd_id.call_sssd_initgroups(user, primary_gid)
+    assert res == sssd_id.NssReturnCode.UNAVAIL, \
+        "Initgroups for user shoudl fail user %s, %d" % (user, res)
+
+    # Just last invocation of initgroups shoudl PASS
+    # Otherwise, we would not be able to invalidate it
+    assert_initgroups_equal(user1_case_last, primary_gid, expected_gids)
+
+
+def test_initgroups_case_insensitive_with_mc1(ldap_conn,
+                                              fqname_case_insensitive_rfc2307):
+    user1_case1 = 'User1@LDAP'
+    user1_case2 = 'uSer1@LDAP'
+    user1_case_last = 'usEr1@LDAP'
+    primary_gid = 2001
+    expected_gids = [2000, 2001]
+
+    assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
+                                  primary_gid, expected_gids)
+
+
+def test_initgroups_case_insensitive_with_mc2(ldap_conn,
+                                              fqname_case_insensitive_rfc2307):
+    user1_case1 = 'usEr1@LDAP'
+    user1_case2 = 'User1@LDAP'
+    user1_case_last = 'uSer1@LDAP'
+    primary_gid = 2001
+    expected_gids = [2000, 2001]
+
+    assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
+                                  primary_gid, expected_gids)
+
+
+def test_initgroups_case_insensitive_with_mc3(ldap_conn,
+                                              fqname_case_insensitive_rfc2307):
+    user1_case1 = 'uSer1@LDAP'
+    user1_case2 = 'usEr1@LDAP'
+    user1_case_last = 'User1@LDAP'
+    primary_gid = 2001
+    expected_gids = [2000, 2001]
+
+    assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
+                                  primary_gid, expected_gids)
