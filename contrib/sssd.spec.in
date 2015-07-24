@@ -1,3 +1,4 @@
+%global rhel6_minor %(%{__grep} -o "6.[0-9]*" /etc/redhat-release |%{__sed} -s 's/6.//')
 %global rhel7_minor %(%{__grep} -o "7.[0-9]*" /etc/redhat-release |%{__sed} -s 's/7.//')
 
 # Fedora and RHEL 6+
@@ -37,7 +38,7 @@
     %global with_cifs_utils_plugin_option --disable-cifs-idmap-plugin
 %endif
 
-%if (0%{?fedora} >= 21 || (0%{?rhel} == 7 &&  0%{?rhel7_minor} >= 1))
+%if (0%{?fedora} || (0%{?rhel} == 7 &&  0%{?rhel7_minor} >= 1) || (0%{?rhel} == 6 &&  0%{?rhel6_minor} >= 7))
     %global with_krb5_localauth_plugin 1
 %endif
 
@@ -96,11 +97,7 @@ BuildRequires: pcre-devel
 BuildRequires: libxslt
 BuildRequires: libxml2
 BuildRequires: docbook-style-xsl
-%if (0%{?with_krb5_localauth_plugin} == 1)
-BuildRequires: krb5-devel >= 1.12
-%else
 BuildRequires: krb5-devel
-%endif
 BuildRequires: c-ares-devel
 BuildRequires: python-devel
 BuildRequires: check-devel
