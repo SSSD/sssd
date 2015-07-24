@@ -157,9 +157,10 @@
 #define SYSDB_AD_ACCOUNT_EXPIRES "adAccountExpires"
 #define SYSDB_AD_USER_ACCOUNT_CONTROL "adUserAccountControl"
 
+#define SYSDB_DEFAULT_VIEW_NAME "default"
+#define SYSDB_LOCAL_VIEW_NAME "LOCAL" /* reserved for client-side overrides */
 #define SYSDB_VIEW_CLASS "view"
 #define SYSDB_VIEW_NAME "viewName"
-#define SYSDB_DEFAULT_VIEW_NAME "default"
 #define SYSDB_OVERRIDE_CLASS "overrride"
 #define SYSDB_OVERRIDE_ANCHOR_UUID "overrideAnchorUUID"
 #define SYSDB_OVERRIDE_USER_CLASS "userOverride"
@@ -467,6 +468,17 @@ static inline bool is_default_view(const char *view_name)
     /* NULL is treated as default */
     if (view_name == NULL
             || strcmp(view_name, SYSDB_DEFAULT_VIEW_NAME) == 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+static inline bool is_local_view(const char *view_name)
+{
+    /* NULL is treated as default */
+    if (view_name != NULL
+            && strcmp(view_name, SYSDB_LOCAL_VIEW_NAME) == 0) {
         return true;
     } else {
         return false;

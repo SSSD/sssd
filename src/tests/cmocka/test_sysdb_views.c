@@ -281,6 +281,68 @@ void test_sysdb_add_overrides_to_object(void **state)
     assert_int_equal(ldb_val_string_cmp(&el->values[1], "OVERRIDEKEY2"), 0);
 }
 
+void test_sysdb_add_overrides_to_object_local(void **state)
+{
+    int ret;
+    struct ldb_message *orig;
+    struct ldb_message_element *el;
+    char *tmp_str;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                         struct sysdb_test_ctx);
+
+    orig = ldb_msg_new(test_ctx);
+    assert_non_null(orig);
+
+    tmp_str = talloc_strdup(orig,  "ORIGNAME");
+    assert_non_null(tmp_str);
+    ret = ldb_msg_add_string(orig, SYSDB_NAME, tmp_str);
+    assert_int_equal(ret, EOK);
+
+    tmp_str = talloc_strdup(orig,  "ORIGGECOS");
+    assert_non_null(tmp_str);
+    ret = ldb_msg_add_string(orig, SYSDB_GECOS, tmp_str);
+    assert_int_equal(ret, EOK);
+
+    test_ctx->domain->has_views = true;
+    test_ctx->domain->view_name = "LOCAL";
+
+    ret = sysdb_add_overrides_to_object(test_ctx->domain, orig, NULL, NULL);
+    assert_int_equal(ret, EOK);
+}
+
+void test_sysdb_add_overrides_to_object_missing_overridedn(void **state)
+{
+    int ret;
+    struct ldb_message *orig;
+    struct ldb_message_element *el;
+    char *tmp_str;
+    struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                         struct sysdb_test_ctx);
+
+    orig = ldb_msg_new(test_ctx);
+    assert_non_null(orig);
+
+    orig->dn = ldb_dn_new(orig, test_ctx->domain->sysdb->ldb,
+                          "cn=somedn,dc=example,dc=com");
+    assert_non_null(orig->dn);
+
+    tmp_str = talloc_strdup(orig,  "ORIGNAME");
+    assert_non_null(tmp_str);
+    ret = ldb_msg_add_string(orig, SYSDB_NAME, tmp_str);
+    assert_int_equal(ret, EOK);
+
+    tmp_str = talloc_strdup(orig,  "ORIGGECOS");
+    assert_non_null(tmp_str);
+    ret = ldb_msg_add_string(orig, SYSDB_GECOS, tmp_str);
+    assert_int_equal(ret, EOK);
+
+    test_ctx->domain->has_views = true;
+    test_ctx->domain->view_name = "NON-LOCAL";
+
+    ret = sysdb_add_overrides_to_object(test_ctx->domain, orig, NULL, NULL);
+    assert_int_equal(ret, ENOENT);
+}
+
 void test_split_ipa_anchor(void **state)
 {
     int ret;
@@ -922,6 +984,10 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sysdb_store_override,
                                         test_sysdb_setup, test_sysdb_teardown),
         cmocka_unit_test_setup_teardown(test_sysdb_add_overrides_to_object,
+                                        test_sysdb_setup, test_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_add_overrides_to_object_local,
+                                        test_sysdb_setup, test_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_sysdb_add_overrides_to_object_missing_overridedn,
                                         test_sysdb_setup, test_sysdb_teardown),
         cmocka_unit_test_setup_teardown(test_split_ipa_anchor,
                                         test_sysdb_setup, test_sysdb_teardown),

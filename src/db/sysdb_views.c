@@ -1186,9 +1186,16 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
         override_dn_str = ldb_msg_find_attr_as_string(obj,
                                                       SYSDB_OVERRIDE_DN, NULL);
         if (override_dn_str == NULL) {
+            if (is_local_view(domain->view_name)) {
+                /* LOCAL view doesn't have to have overrideDN specified. */
+                ret = EOK;
+                goto done;
+            }
+
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Missing override DN for objext [%s].\n",
                   ldb_dn_get_linearized(obj->dn));
+
             ret = ENOENT;
             goto done;
         }

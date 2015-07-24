@@ -905,7 +905,8 @@ static void ipa_get_view_name_done(struct tevent_req *req)
                     goto done;
                 }
 
-                if (!is_default_view(ctx->sd_ctx->id_ctx->view_name)) {
+                if (!is_default_view(ctx->sd_ctx->id_ctx->view_name)
+                        && !is_local_view(ctx->sd_ctx->id_ctx->view_name)) {
                     /* Old view was not the default view, delete view tree */
                     ret = sysdb_delete_view_tree(
                                              ctx->sd_ctx->be_ctx->domain->sysdb,
