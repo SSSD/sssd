@@ -289,6 +289,45 @@ void dyndns_test_get_ifaddr_enoent(void **state)
     assert_true(check_leaks_pop(dyndns_test_ctx) == true);
 }
 
+void dyndns_test_addr_list_as_str_list(void **state)
+{
+    int i;
+    char **output;
+    errno_t ret;
+    struct sss_iface_addr *addrlist;
+    struct {
+        const char* addr;
+        int af;
+    } input[] = {
+        {"2001:cdba::555", AF_INET6},
+        {"192.168.0.1", AF_INET},
+        {"192.168.0.2", AF_INET},
+        {"2001:cdba::444", AF_INET6}
+    };
+    int size = 4;
+
+    check_leaks_push(dyndns_test_ctx);
+
+    for (i = 0; i < size; i++) {
+        will_return_getifaddrs("eth0", input[i].addr, input[i].af);
+    }
+    will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+
+    ret = sss_iface_addr_list_get(dyndns_test_ctx, "eth0", &addrlist);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_iface_addr_list_as_str_list(dyndns_test_ctx, addrlist, &output);
+    assert_int_equal(ret, EOK);
+    for (i = 0; i < size; i++) {
+        /* addresses are returned in reversed order */
+        assert_int_equal(strcmp(input[i].addr, output[size - 1 - i]), 0);
+    }
+
+    talloc_free(addrlist);
+    talloc_free(output);
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
 void dyndns_test_dualstack(void **state)
 {
     errno_t ret;
@@ -670,6 +709,9 @@ int main(int argc, const char *argv[])
                                         dyndns_test_simple_setup,
                                         dyndns_test_teardown),
         cmocka_unit_test_setup_teardown(dyndns_test_get_ifaddr_enoent,
+                                        dyndns_test_simple_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_addr_list_as_str_list,
                                         dyndns_test_simple_setup,
                                         dyndns_test_teardown),
 
