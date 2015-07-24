@@ -445,6 +445,17 @@ static void ipa_getkeytab_exec(const char *ccache,
         exit(1);
     }
 
+    /* ipa-getkeytab cannot add keys to an empty file, let's unlink it and only
+     * use the filename */
+    ret = unlink(keytab_path);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to unlink the temporary ccname [%d][%s]\n",
+              ret, sss_strerror(ret));
+        exit(1);
+    }
+
     errno = 0;
     ret = execle(IPA_GETKEYTAB_PATH, IPA_GETKEYTAB_PATH,
                  "-r", "-s", server, "-p", principal, "-k", keytab_path, NULL,
@@ -561,6 +572,7 @@ struct ipa_server_trust_add_state {
     uint32_t direction;
     const char *forest;
     const char *keytab;
+    char *new_keytab;
     const char *principal;
     const char *forest_realm;
     const char *ccache;
@@ -660,21 +672,20 @@ static errno_t ipa_server_trust_add_1way(struct tevent_req *req)
         return EIO;
     }
 
-    ret = ipa_check_keytab(state->keytab,
-                           state->id_ctx->server_mode->kt_owner_uid,
-                           state->id_ctx->server_mode->kt_owner_gid);
-    if (ret == EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC,
-              "Keytab already present, can add the trust\n");
-        return EOK;
-    } else if (ret != ENOENT) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Failed to check for keytab: %d\n", ret);
+    state->new_keytab = talloc_asprintf(state, "%sXXXXXX", state->keytab);
+    if (state->new_keytab == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot set up ipa_get_keytab\n");
+        return ENOMEM;
+    }
+
+    ret = sss_unique_filename(state, state->new_keytab);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create temporary keytab name\n");
         return ret;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "No keytab for %s\n", state->subdom->name);
+          "Will re-fetch keytab for %s\n", state->subdom->name);
 
     hostname = dp_opt_get_string(state->id_ctx->ipa_options->basic,
                                  IPA_HOSTNAME);
@@ -691,7 +702,7 @@ static errno_t ipa_server_trust_add_1way(struct tevent_req *req)
                                 state->ccache,
                                 hostname,
                                 state->principal,
-                                state->keytab);
+                                state->new_keytab);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -710,22 +721,48 @@ static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq)
     ret = ipa_getkeytab_recv(subreq, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_getkeytab_recv failed: %d\n", ret);
-        tevent_req_error(req, ret);
-        return;
+        /* Do not fail here, but try to check and use the previous keytab,
+         * if any */
+        DEBUG(SSSDBG_MINOR_FAILURE, "ipa_getkeytab_recv failed: %d\n", ret);
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Keytab successfully retrieved to %s\n", state->new_keytab);
+    }
+
+    ret = ipa_check_keytab(state->new_keytab,
+                           state->id_ctx->server_mode->kt_owner_uid,
+                           state->id_ctx->server_mode->kt_owner_gid);
+    if (ret == EOK) {
+        ret = rename(state->new_keytab, state->keytab);
+        if (ret == -1) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "rename failed [%d][%s].\n", ret, strerror(ret));
+            tevent_req_error(req, ret);
+            return;
+        }
+        DEBUG(SSSDBG_TRACE_INTERNAL, "Keytab renamed to %s\n", state->keytab);
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Trying to recover and use the previous keytab, if available\n");
+        ret = ipa_check_keytab(state->keytab,
+                               state->id_ctx->server_mode->kt_owner_uid,
+                               state->id_ctx->server_mode->kt_owner_gid);
+        if (ret == EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "The previous keytab %s contains the expected principal\n",
+                  state->keytab);
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Cannot use the old keytab: %d\n", ret);
+            /* Nothing we can do now */
+            tevent_req_error(req, ret);
+            return;
+        }
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Keytab successfully retrieved to %s\n", state->keytab);
-
-    ret = ipa_check_keytab(state->keytab,
-                           state->id_ctx->server_mode->kt_owner_uid,
-                           state->id_ctx->server_mode->kt_owner_gid);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_check_keytab failed: %d\n", ret);
-        tevent_req_error(req, ret);
-        return;
-    }
+          "Keytab %s contains the expected principals\n", state->new_keytab);
 
     ret = ipa_server_trust_add_step(req);
     if (ret != EOK) {

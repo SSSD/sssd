@@ -66,33 +66,79 @@
 #define ONEWAY_PRINC    DOM_FLAT"$"
 #define ONEWAY_AUTHID   ONEWAY_PRINC"@"SUBDOM_REALM
 
+static bool global_rename_called;
+
 krb5_error_code __wrap_krb5_kt_default(krb5_context context, krb5_keytab *id)
 {
     return krb5_kt_resolve(context, KEYTAB_PATH, id);
 }
 
-static void create_dummy_keytab(void)
+static void create_dummy_keytab(const char *dummy_kt)
 {
     errno_t ret;
 
-    assert_non_null(ONEWAY_KEYTAB);
+    assert_non_null(dummy_kt);
     mock_keytab_with_contents(global_talloc_context,
-                              ONEWAY_KEYTAB, ONEWAY_AUTHID);
+                              dummy_kt, ONEWAY_AUTHID);
 
-    ret = access(ONEWAY_KEYTAB, R_OK);
+    ret = access(dummy_kt, R_OK);
     assert_int_equal(ret, 0);
+}
+
+static int wrap_exec(void)
+{
+    const char *test_kt;
+    const char *fail_creating_kt;
+
+    test_kt = getenv("TEST_KT_ENV");
+    if (test_kt == NULL) {
+        _exit(1);
+    }
+    unsetenv("TEST_KT_ENV");
+
+    fail_creating_kt = getenv("KT_CREATE_FAIL");
+    if (fail_creating_kt != NULL) {
+        _exit(1);
+    }
+
+    create_dummy_keytab(test_kt);
+    _exit(0);
+
+    return 1;   /* Should not happen */
 }
 
 int __wrap_execle(const char *path, const char *arg, ...)
 {
-    create_dummy_keytab();
-    _exit(0);
+    return wrap_exec();
 }
 
 int __wrap_execve(const char *path, const char *arg, ...)
 {
-    create_dummy_keytab();
-    _exit(0);
+    return wrap_exec();
+}
+
+errno_t __real_sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl);
+
+errno_t __wrap_sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl)
+{
+    int ret;
+    int sret;
+
+    ret = __real_sss_unique_filename(owner, path_tmpl);
+    if (ret == EOK) {
+
+        sret = setenv("TEST_KT_ENV", path_tmpl, 1);
+        assert_int_equal(sret, 0);
+    }
+    return ret;
+}
+
+int __real_rename(const char *old, const char *new);
+
+int __wrap_rename(const char *old, const char *new)
+{
+    global_rename_called = true;
+    return __real_rename(old, new);
 }
 
 struct trust_test_ctx {
@@ -100,6 +146,7 @@ struct trust_test_ctx {
     struct be_ctx *be_ctx;
 
     struct ipa_id_ctx *ipa_ctx;
+    bool expect_rename;
 };
 
 static struct ipa_id_ctx *mock_ipa_ctx(TALLOC_CTX *mem_ctx,
@@ -244,6 +291,8 @@ static int test_ipa_server_create_trusts_setup(void **state)
 
     mock_keytab_with_contents(test_ctx, KEYTAB_PATH, KEYTAB_TEST_PRINC);
 
+    global_rename_called = false;
+
     *state = test_ctx;
     return 0;
 }
@@ -259,6 +308,11 @@ static int test_ipa_server_create_trusts_teardown(void **state)
 
     unlink(ONEWAY_KEYTAB);
     /* Ignore failures */
+
+    /* If a test needs this variable, it should be set again in
+     * each test
+     */
+    unsetenv("KT_CREATE_FAIL");
 
     talloc_free(test_ctx);
     return 0;
@@ -612,6 +666,8 @@ static void test_ipa_server_create_oneway(void **state)
 
     assert_null(test_ctx->ipa_ctx->server_mode->trusts);
 
+    test_ctx->expect_rename = true;
+
     req = ipa_server_create_trusts_send(test_ctx,
                                         test_ctx->tctx->ev,
                                         test_ctx->be_ctx,
@@ -634,6 +690,8 @@ static void test_ipa_server_create_trusts_oneway(struct tevent_req *req)
     ret = ipa_server_create_trusts_recv(req);
     talloc_zfree(req);
     assert_int_equal(ret, EOK);
+
+    assert_true(test_ctx->expect_rename == global_rename_called);
 
     ret = access(ONEWAY_KEYTAB, R_OK);
     assert_int_equal(ret, 0);
@@ -674,9 +732,11 @@ static void test_ipa_server_create_oneway_kt_exists(void **state)
 
     add_test_1way_subdomains(test_ctx);
 
-    create_dummy_keytab();
+    create_dummy_keytab(ONEWAY_KEYTAB);
     ret = access(ONEWAY_KEYTAB, R_OK);
     assert_int_equal(ret, 0);
+
+    test_ctx->expect_rename = true;
 
     assert_null(test_ctx->ipa_ctx->server_mode->trusts);
 
@@ -691,6 +751,88 @@ static void test_ipa_server_create_oneway_kt_exists(void **state)
 
     ret = test_ev_loop(test_ctx->tctx);
     assert_int_equal(ret, ERR_OK);
+}
+
+/* Test scenario where a keytab already exists, but refresh fails. In this case,
+ * sssd should attempt to reuse the previous keytab
+ */
+static void test_ipa_server_create_oneway_kt_refresh_fallback(void **state)
+{
+    struct trust_test_ctx *test_ctx =
+        talloc_get_type(*state, struct trust_test_ctx);
+    struct tevent_req *req;
+    errno_t ret;
+
+    add_test_1way_subdomains(test_ctx);
+
+    create_dummy_keytab(ONEWAY_KEYTAB);
+    ret = access(ONEWAY_KEYTAB, R_OK);
+    assert_int_equal(ret, 0);
+
+    setenv("KT_CREATE_FAIL", "1", 1);
+    test_ctx->expect_rename = false;
+
+    assert_null(test_ctx->ipa_ctx->server_mode->trusts);
+
+    req = ipa_server_create_trusts_send(test_ctx,
+                                        test_ctx->tctx->ev,
+                                        test_ctx->be_ctx,
+                                        test_ctx->ipa_ctx,
+                                        test_ctx->be_ctx->domain);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, test_ipa_server_create_trusts_oneway, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+}
+
+/* Tests case where there's no keytab and retrieving fails. Just fail the
+ * request in that case
+ */
+static void test_ipa_server_create_trusts_oneway_fail(struct tevent_req *req);
+
+static void test_ipa_server_create_oneway_kt_refresh_fail(void **state)
+{
+    struct trust_test_ctx *test_ctx =
+        talloc_get_type(*state, struct trust_test_ctx);
+    struct tevent_req *req;
+    errno_t ret;
+
+    add_test_1way_subdomains(test_ctx);
+
+    setenv("KT_CREATE_FAIL", "1", 1);
+    test_ctx->expect_rename = false;
+
+    assert_null(test_ctx->ipa_ctx->server_mode->trusts);
+
+    req = ipa_server_create_trusts_send(test_ctx,
+                                        test_ctx->tctx->ev,
+                                        test_ctx->be_ctx,
+                                        test_ctx->ipa_ctx,
+                                        test_ctx->be_ctx->domain);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req,
+                            test_ipa_server_create_trusts_oneway_fail,
+                            test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+}
+
+static void test_ipa_server_create_trusts_oneway_fail(struct tevent_req *req)
+{
+    struct trust_test_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct trust_test_ctx);
+    errno_t ret;
+
+    ret = ipa_server_create_trusts_recv(req);
+    assert_int_not_equal(ret, EOK);
+
+    assert_true(test_ctx->expect_rename == global_rename_called);
+
+    test_ev_done(test_ctx->tctx, EOK);
 }
 
 static void test_ipa_server_trust_oneway_init(void **state)
@@ -747,6 +889,12 @@ int main(int argc, const char *argv[])
                                         test_ipa_server_create_trusts_setup,
                                         test_ipa_server_create_trusts_teardown),
         cmocka_unit_test_setup_teardown(test_ipa_server_create_oneway_kt_exists,
+                                        test_ipa_server_create_trusts_setup,
+                                        test_ipa_server_create_trusts_teardown),
+        cmocka_unit_test_setup_teardown(test_ipa_server_create_oneway_kt_refresh_fallback,
+                                        test_ipa_server_create_trusts_setup,
+                                        test_ipa_server_create_trusts_teardown),
+        cmocka_unit_test_setup_teardown(test_ipa_server_create_oneway_kt_refresh_fail,
                                         test_ipa_server_create_trusts_setup,
                                         test_ipa_server_create_trusts_teardown),
         cmocka_unit_test_setup_teardown(test_ipa_server_trust_oneway_init,
