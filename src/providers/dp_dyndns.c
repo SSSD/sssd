@@ -273,40 +273,62 @@ nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
     char ip_addr[INET6_ADDRSTRLEN];
     errno_t ret;
 
+    /* A addresses first */
     /* Remove existing entries as needed */
     if (remove_af & DYNDNS_REMOVE_A) {
         update_msg = talloc_asprintf_append(update_msg,
-                                            "update delete %s. in A\nsend\n",
+                                            "update delete %s. in A\n",
                                             hostname);
         if (update_msg == NULL) {
             return NULL;
         }
     }
+    DLIST_FOR_EACH(new_record, addresses) {
+        if (new_record->addr->ss_family == AF_INET) {
+            ret = addr_to_str(new_record->addr, ip_addr, INET6_ADDRSTRLEN);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE, "addr_to_str failed: %d:[%s],\n",
+                      ret, sss_strerror(ret));
+                return NULL;
+            }
+
+            /* Format the record update */
+            update_msg = talloc_asprintf_append(update_msg,
+                                                "update add %s. %d in %s %s\n",
+                                                hostname, ttl, "A", ip_addr);
+            if (update_msg == NULL) {
+                return NULL;
+            }
+        }
+    }
+    update_msg = talloc_asprintf_append(update_msg, "send\n");
+
+    /* AAAA addresses next */
+    /* Remove existing entries as needed */
     if (remove_af & DYNDNS_REMOVE_AAAA) {
         update_msg = talloc_asprintf_append(update_msg,
-                                            "update delete %s. in AAAA\nsend\n",
+                                            "update delete %s. in AAAA\n",
                                             hostname);
         if (update_msg == NULL) {
             return NULL;
         }
     }
-
     DLIST_FOR_EACH(new_record, addresses) {
-        ret = addr_to_str(new_record->addr, ip_addr, INET6_ADDRSTRLEN);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "addr_to_str failed: %d:[%s],\n",
-                  ret, sss_strerror(ret));
-            return NULL;
-        }
+        if (new_record->addr->ss_family == AF_INET6) {
+            ret = addr_to_str(new_record->addr, ip_addr, INET6_ADDRSTRLEN);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE, "addr_to_str failed: %d:[%s],\n",
+                      ret, sss_strerror(ret));
+                return NULL;
+            }
 
-        /* Format the record update */
-        update_msg = talloc_asprintf_append(update_msg,
-                "update add %s. %d in %s %s\n",
-                hostname, ttl,
-                new_record->addr->ss_family == AF_INET ? "A" : "AAAA",
-                ip_addr);
-        if (update_msg == NULL) {
-            return NULL;
+            /* Format the record update */
+            update_msg = talloc_asprintf_append(update_msg,
+                                                "update add %s. %d in %s %s\n",
+                                                hostname, ttl, "AAAA", ip_addr);
+            if (update_msg == NULL) {
+                return NULL;
+            }
         }
     }
 

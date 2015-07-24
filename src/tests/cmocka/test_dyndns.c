@@ -355,6 +355,266 @@ void dyndns_test_addr_list_as_str_list(void **state)
     assert_true(check_leaks_pop(dyndns_test_ctx) == true);
 }
 
+void dyndns_test_create_fwd_msg(void **state)
+{
+    errno_t ret;
+    char *msg;
+    struct sss_iface_addr *addrlist;
+    int i;
+
+    check_leaks_push(dyndns_test_ctx);
+
+    /* getifaddrs is called twice in sss_get_dualstack_addresses() */
+    for (i = 0; i < 2; i++) {
+        will_return_getifaddrs("eth0", "192.168.0.2", AF_INET);
+        will_return_getifaddrs("eth1", "192.168.0.1", AF_INET);
+        will_return_getifaddrs("eth0", "2001:cdba::555", AF_INET6);
+        will_return_getifaddrs("eth1", "2001:cdba::444", AF_INET6);
+        will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+    }
+
+    struct sockaddr_in sin;
+    memset(&sin, 0, sizeof (sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = inet_addr ("192.168.0.2");
+    ret = sss_get_dualstack_addresses(dyndns_test_ctx,
+                                      (struct sockaddr *) &sin,
+                                      &addrlist);
+    assert_int_equal(ret, EOK);
+
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "\nupdate delete bran_stark. in A\n"
+                        "update add bran_stark. 1234 in A 192.168.0.2\n"
+                        "send\n"
+                        "update delete bran_stark. in AAAA\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    /* fallback case realm and server */
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, "North", "Winterfell",
+                                     "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "server Winterfell\n"
+                        "realm North\n"
+                        "update delete bran_stark. in A\n"
+                        "update add bran_stark. 1234 in A 192.168.0.2\n"
+                        "send\n"
+                        "update delete bran_stark. in AAAA\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    /* just realm */
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, "North", NULL,
+                                     "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "realm North\n"
+                        "update delete bran_stark. in A\n"
+                        "update add bran_stark. 1234 in A 192.168.0.2\n"
+                        "send\n"
+                        "update delete bran_stark. in AAAA\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    /* just server */
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, "Winterfell",
+                                     "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "server Winterfell\n"
+                        "\n"
+                        "update delete bran_stark. in A\n"
+                        "update add bran_stark. 1234 in A 192.168.0.2\n"
+                        "send\n"
+                        "update delete bran_stark. in AAAA\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    /* remove just A */
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
+                                     1234, DYNDNS_REMOVE_A,
+                                     addrlist, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "\nupdate delete bran_stark. in A\n"
+                        "update add bran_stark. 1234 in A 192.168.0.2\n"
+                        "send\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    /* remove just AAAA */
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
+                                     1234, DYNDNS_REMOVE_AAAA,
+                                     addrlist, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "\nupdate add bran_stark. 1234 in A 192.168.0.2\n"
+                        "send\n"
+                        "update delete bran_stark. in AAAA\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    talloc_free(addrlist);
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
+void dyndns_test_create_fwd_msg_mult(void **state)
+{
+    errno_t ret;
+    char *msg;
+    struct sss_iface_addr *addrlist;
+    int i;
+
+    check_leaks_push(dyndns_test_ctx);
+
+    /* getifaddrs is called twice in sss_get_dualstack_addresses() */
+    for (i = 0; i < 2; i++) {
+        will_return_getifaddrs("eth0", "192.168.0.2", AF_INET);
+        will_return_getifaddrs("eth0", "192.168.0.1", AF_INET);
+        will_return_getifaddrs("eth0", "2001:cdba::555", AF_INET6);
+        will_return_getifaddrs("eth0", "2001:cdba::444", AF_INET6);
+        will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+    }
+
+    struct sockaddr_in sin;
+    memset(&sin, 0, sizeof (sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = inet_addr ("192.168.0.2");
+    ret = sss_get_dualstack_addresses(dyndns_test_ctx,
+                                      (struct sockaddr *) &sin,
+                                      &addrlist);
+    assert_int_equal(ret, EOK);
+
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "\nupdate delete bran_stark. in A\n"
+                        "update add bran_stark. 1234 in A 192.168.0.1\n"
+                        "update add bran_stark. 1234 in A 192.168.0.2\n"
+                        "send\n"
+                        "update delete bran_stark. in AAAA\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::444\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    talloc_free(addrlist);
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
+void dyndns_test_create_fwd_msg_A(void **state)
+{
+    errno_t ret;
+    char *msg;
+    struct sss_iface_addr *addrlist;
+    int i;
+
+    check_leaks_push(dyndns_test_ctx);
+
+    /* getifaddrs is called twice in sss_get_dualstack_addresses() */
+    for (i = 0; i < 2; i++) {
+        will_return_getifaddrs("eth0", "192.168.0.2", AF_INET);
+        will_return_getifaddrs("eth0", "192.168.0.1", AF_INET);
+        will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+    }
+
+    struct sockaddr_in sin;
+    memset(&sin, 0, sizeof (sin));
+    sin.sin_family = AF_INET;
+    sin.sin_addr.s_addr = inet_addr ("192.168.0.2");
+    ret = sss_get_dualstack_addresses(dyndns_test_ctx,
+                                      (struct sockaddr *) &sin,
+                                      &addrlist);
+    assert_int_equal(ret, EOK);
+
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "\nupdate delete bran_stark. in A\n"
+                        "update add bran_stark. 1234 in A 192.168.0.1\n"
+                        "update add bran_stark. 1234 in A 192.168.0.2\n"
+                        "send\n"
+                        "update delete bran_stark. in AAAA\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    talloc_free(addrlist);
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
+void dyndns_test_create_fwd_msg_AAAA(void **state)
+{
+    errno_t ret;
+    char *msg;
+    struct sss_iface_addr *addrlist;
+    int i;
+
+    check_leaks_push(dyndns_test_ctx);
+
+    /* getifaddrs is called twice in sss_get_dualstack_addresses() */
+    for (i = 0; i < 2; i++) {
+        will_return_getifaddrs("eth0", "2001:cdba::555", AF_INET6);
+        will_return_getifaddrs("eth0", "2001:cdba::444", AF_INET6);
+        will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
+    }
+
+    struct sockaddr_in6 sin;
+    memset(&sin, 0, sizeof (sin));
+    sin.sin6_family = AF_INET6;
+    ret = inet_pton(AF_INET6, "2001:cdba::555", &sin.sin6_addr.s6_addr);
+    assert_int_equal(ret, 1);
+    ret = sss_get_dualstack_addresses(dyndns_test_ctx,
+                                      (struct sockaddr *) &sin,
+                                      &addrlist);
+    assert_int_equal(ret, EOK);
+
+    ret = be_nsupdate_create_fwd_msg(dyndns_test_ctx, NULL, NULL, "bran_stark",
+                                     1234, DYNDNS_REMOVE_A | DYNDNS_REMOVE_AAAA,
+                                     addrlist, &msg);
+    assert_int_equal(ret, EOK);
+
+    assert_string_equal(msg,
+                        "\nupdate delete bran_stark. in A\n"
+                        "send\n"
+                        "update delete bran_stark. in AAAA\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::444\n"
+                        "update add bran_stark. 1234 in AAAA 2001:cdba::555\n"
+                        "send\n");
+    talloc_zfree(msg);
+
+    talloc_free(addrlist);
+    assert_true(check_leaks_pop(dyndns_test_ctx) == true);
+}
+
 void dyndns_test_dualstack(void **state)
 {
     errno_t ret;
@@ -375,7 +635,7 @@ void dyndns_test_dualstack(void **state)
     }
 
     struct sockaddr_in sin;
-    memset (&sin, 0, sizeof (sin));
+    memset(&sin, 0, sizeof (sin));
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = inet_addr ("192.168.0.2");
     ret = sss_get_dualstack_addresses(dyndns_test_ctx,
@@ -436,7 +696,7 @@ void dyndns_test_dualstack_multiple_addresses(void **state)
     }
 
     struct sockaddr_in sin;
-    memset (&sin, 0, sizeof (sin));
+    memset(&sin, 0, sizeof (sin));
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = inet_addr ("192.168.0.2");
     ret = sss_get_dualstack_addresses(dyndns_test_ctx,
@@ -511,7 +771,7 @@ void dyndns_test_dualstack_no_iface(void **state)
     will_return_getifaddrs(NULL, NULL, 0); /* sentinel */
 
     struct sockaddr_in sin;
-    memset (&sin, 0, sizeof (sin));
+    memset(&sin, 0, sizeof (sin));
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = inet_addr ("192.168.0.3");
     ret = sss_get_dualstack_addresses(dyndns_test_ctx,
@@ -768,6 +1028,20 @@ int main(int argc, const char *argv[])
                                         dyndns_test_teardown),
         cmocka_unit_test_setup_teardown(dyndns_test_dualstack_no_iface,
                                         dyndns_test_simple_setup,
+                                        dyndns_test_teardown),
+
+        /* Messages for nsupdate */
+        cmocka_unit_test_setup_teardown(dyndns_test_create_fwd_msg,
+                                        dyndns_test_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_create_fwd_msg_mult,
+                                        dyndns_test_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_create_fwd_msg_A,
+                                        dyndns_test_setup,
+                                        dyndns_test_teardown),
+        cmocka_unit_test_setup_teardown(dyndns_test_create_fwd_msg_AAAA,
+                                        dyndns_test_setup,
                                         dyndns_test_teardown),
     };
 
