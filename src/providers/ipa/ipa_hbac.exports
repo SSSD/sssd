@@ -13,3 +13,8 @@ IPA_HBAC_0.0.1 {
     local:
         *;
 };
+
+IPA_HBAC_0.1.0 {
+    global:
+        hbac_enable_debug;
+} IPA_HBAC_0.0.1;

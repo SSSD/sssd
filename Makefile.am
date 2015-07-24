@@ -933,7 +933,7 @@ libipa_hbac_la_LIBADD = \
     $(UNICODE_LIBS)
 libipa_hbac_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/ipa/ipa_hbac.exports \
-    -version-info 0:1:0
+    -version-info 1:0:1
 
 dist_noinst_DATA += src/providers/ipa/ipa_hbac.exports
 

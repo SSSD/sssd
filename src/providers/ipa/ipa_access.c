@@ -35,6 +35,54 @@
 #include "providers/ipa/ipa_hbac_private.h"
 #include "providers/ipa/ipa_hbac_rules.h"
 
+/* External logging function for HBAC. */
+void hbac_debug_messages(const char *file, int line,
+                         enum hbac_debug_level level,
+                         const char *fmt, ...)
+{
+    int loglevel;
+
+    switch(level) {
+    case HBAC_DBG_FATAL:
+        loglevel = SSSDBG_FATAL_FAILURE;
+        break;
+    case HBAC_DBG_ERROR:
+        loglevel = SSSDBG_OP_FAILURE;
+        break;
+    case HBAC_DBG_WARNING:
+        loglevel = SSSDBG_MINOR_FAILURE;
+        break;
+    case HBAC_DBG_INFO:
+        loglevel = SSSDBG_CONF_SETTINGS;
+        break;
+    case HBAC_DBG_TRACE:
+        loglevel = SSSDBG_TRACE_INTERNAL;
+        break;
+    default:
+        loglevel = SSSDBG_UNRESOLVED;
+        break;
+    }
+
+    if (DEBUG_IS_SET(loglevel)) {
+        va_list ap;
+        char *message = NULL;
+        int ret;
+
+        va_start(ap, fmt);
+        ret = vasprintf(&message, fmt, ap);
+        va_end(ap);
+        if (ret < 0) {
+            /* ENOMEM */
+            free(message);
+            return;
+        }
+
+        debug_fn(__FILE__, __LINE__, "hbac", loglevel, "[%s:%i] %s",
+                 file, line, message);
+        free(message);
+    }
+}
+
 static void ipa_access_reply(struct hbac_ctx *hbac_ctx, int pam_status)
 {
     struct be_req *be_req = hbac_ctx->be_req;
@@ -634,6 +682,8 @@ void ipa_hbac_evaluate_rules(struct hbac_ctx *hbac_ctx)
         ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
         return;
     }
+
+    hbac_enable_debug(hbac_debug_messages);
 
     result = hbac_evaluate(hbac_rules, eval_req, &info);
     if (result == HBAC_EVAL_ALLOW) {

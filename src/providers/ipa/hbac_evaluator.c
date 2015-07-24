@@ -38,6 +38,39 @@ typedef int errno_t;
 #define EOK 0
 #endif
 
+/* HBAC logging system */
+
+/* debug macro */
+#define HBAC_DEBUG(level, format, ...) do { \
+    if (hbac_debug_fn != NULL) { \
+        hbac_debug_fn(__FILE__, __LINE__, level, format, ##__VA_ARGS__); \
+    } \
+} while (0)
+
+/* static pointer to external logging function */
+static hbac_debug_fn_t hbac_debug_fn = NULL;
+
+/* setup function for external logging function */
+void hbac_enable_debug(hbac_debug_fn_t external_debug_fn)
+{
+    hbac_debug_fn = external_debug_fn;
+}
+
+/* auxiliary function for hbac_request_element logging */
+static void hbac_request_element_debug_print(struct hbac_request_element *el,
+                                             const char *label);
+
+/* auxiliary function for hbac_eval_req logging */
+static void hbac_req_debug_print(struct hbac_eval_req *req);
+
+/* auxiliary function for hbac_rule_element logging */
+static void hbac_rule_element_debug_print(struct hbac_rule_element *el,
+                                          const char *label);
+
+/* auxiliary function for hbac_rule logging */
+static void hbac_rule_debug_print(struct hbac_rule *rule);
+
+
 /* Placeholder structure for future HBAC time-based
  * evaluation rules
  */
@@ -114,31 +147,39 @@ enum hbac_eval_result hbac_evaluate(struct hbac_rule **rules,
     enum hbac_eval_result result = HBAC_EVAL_DENY;
     enum hbac_eval_result_int intermediate_result;
 
+    HBAC_DEBUG(HBAC_DBG_INFO, "[< hbac_evaluate()\n");
+    hbac_req_debug_print(hbac_req);
+
     if (info) {
         *info = malloc(sizeof(struct hbac_info));
         if (!*info) {
+            HBAC_DEBUG(HBAC_DBG_ERROR, "Out of memory.\n");
             return HBAC_EVAL_OOM;
         }
         (*info)->code = HBAC_ERROR_UNKNOWN;
         (*info)->rule_name = NULL;
     }
-    uint32_t i;
 
-    for (i = 0; rules[i]; i++) {
+    for (uint32_t i = 0; rules[i]; i++) {
+        hbac_rule_debug_print(rules[i]);
         intermediate_result = hbac_evaluate_rule(rules[i], hbac_req, &ret);
         if (intermediate_result == HBAC_EVAL_UNMATCHED) {
             /* This rule did not match at all. Skip it */
+            HBAC_DEBUG(HBAC_DBG_INFO, "The rule [%s] did not match.\n",
+                       rules[i]->name);
             continue;
         } else if (intermediate_result == HBAC_EVAL_MATCHED) {
             /* This request matched an ALLOW rule
              * Set the result to ALLOW but continue checking
              * the other rules in case a DENY rule trumps it.
              */
+            HBAC_DEBUG(HBAC_DBG_INFO, "ALLOWED by rule [%s].\n", rules[i]->name);
             result = HBAC_EVAL_ALLOW;
             if (info) {
                 (*info)->code = HBAC_SUCCESS;
                 (*info)->rule_name = strdup(rules[i]->name);
                 if (!(*info)->rule_name) {
+                    HBAC_DEBUG(HBAC_DBG_ERROR, "Out of memory.\n");
                     result = HBAC_EVAL_ERROR;
                     (*info)->code = HBAC_ERROR_OUT_OF_MEMORY;
                 }
@@ -146,6 +187,9 @@ enum hbac_eval_result hbac_evaluate(struct hbac_rule **rules,
             break;
         } else {
             /* An error occurred processing this rule */
+            HBAC_DEBUG(HBAC_DBG_ERROR,
+                       "Error occurred during evaluating of rule [%s].\n",
+                       rules[i]->name);
             result = HBAC_EVAL_ERROR;
             if (info) {
                 (*info)->code = ret;
@@ -163,6 +207,7 @@ enum hbac_eval_result hbac_evaluate(struct hbac_rule **rules,
      */
 done:
 
+    HBAC_DEBUG(HBAC_DBG_INFO, "hbac_evaluate() >]\n");
     return result;
 }
 
@@ -331,5 +376,124 @@ const char *hbac_error_string(enum hbac_error_code code)
     case HBAC_ERROR_UNKNOWN:
     default:
         return "Unknown error code";
+    }
+}
+
+static void hbac_request_element_debug_print(struct hbac_request_element *el,
+                                             const char *label)
+{
+    if (el) {
+        if (el->name) {
+            HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s [%s]\n", label, el->name);
+        }
+
+        if (el->groups) {
+            if (el->groups[0]) {
+                HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s_group:\n", label);
+                for (int i = 0; el->groups[i]; i++) {
+                    HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t\t[%s]\n", el->groups[i]);
+                }
+            } else {
+                HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s_group (none)\n", label);
+            }
+        }
+    } else {
+        HBAC_DEBUG(HBAC_DBG_TRACE, "\t%s (none)\n", label);
+    }
+}
+
+static void hbac_req_debug_print(struct hbac_eval_req *req)
+{
+    HBAC_DEBUG(HBAC_DBG_TRACE, "\tREQUEST:\n");
+    if (req) {
+        struct tm *local_time = NULL;
+        size_t ret;
+        const size_t buff_size = 100;
+        char time_buff[buff_size];
+
+        hbac_request_element_debug_print(req->service, "service");
+        hbac_request_element_debug_print(req->user, "user");
+        hbac_request_element_debug_print(req->targethost, "targethost");
+        hbac_request_element_debug_print(req->srchost, "srchost");
+
+        local_time = localtime(&req->request_time);
+        if (local_time == NULL) {
+            return;
+        }
+
+        ret = strftime(time_buff, buff_size, "%Y-%m-%d %H:%M:%S", local_time);
+        if (ret <= 0) {
+            return;
+        }
+
+        HBAC_DEBUG(HBAC_DBG_TRACE, "\t\trequest time %s\n", time_buff);
+    } else {
+        HBAC_DEBUG(HBAC_DBG_TRACE, "\tRequest is EMPTY.\n");
+    }
+}
+
+static void hbac_rule_element_debug_print(struct hbac_rule_element *el,
+                                          const char *label)
+{
+    if (el) {
+        HBAC_DEBUG(HBAC_DBG_TRACE, "\t\tcategory [%#x] [%s]\n", el->category,
+                   (el->category == HBAC_CATEGORY_ALL) ? "ALL" : "NONE");
+
+        if (el->names) {
+            if (el->names[0]) {
+                HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s_names:\n", label);
+                for (int i = 0; el->names[i]; i++) {
+                    HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t\t[%s]\n", el->names[i]);
+                }
+            } else {
+                HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s_names (none)\n", label);
+            }
+        }
+
+        if (el->groups) {
+            if (el->groups[0]) {
+                HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s_groups:\n", label);
+                for (int i = 0; el->groups[i]; i++) {
+                    HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t\t[%s]\n", el->groups[i]);
+                }
+            } else {
+                HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s_groups (none)\n", label);
+            }
+        }
+    }
+}
+
+static void hbac_rule_debug_print(struct hbac_rule *rule)
+{
+    if (rule) {
+        HBAC_DEBUG(HBAC_DBG_TRACE, "\tRULE [%s] [%s]:\n",
+                   rule->name, (rule->enabled) ? "ENABLED" : "DISABLED");
+        if (rule->services) {
+            HBAC_DEBUG(HBAC_DBG_TRACE, "\tservices:\n");
+            hbac_rule_element_debug_print(rule->services, "services");
+        } else {
+            HBAC_DEBUG(HBAC_DBG_TRACE, "\tservices (none)\n");
+        }
+
+        if (rule->users) {
+            HBAC_DEBUG(HBAC_DBG_TRACE, "\tusers:\n");
+            hbac_rule_element_debug_print(rule->users, "users");
+        } else {
+            HBAC_DEBUG(HBAC_DBG_TRACE, "\tusers (none)\n");
+        }
+
+        if (rule->targethosts) {
+            HBAC_DEBUG(HBAC_DBG_TRACE, "\ttargethosts:\n");
+            hbac_rule_element_debug_print(rule->targethosts, "targethosts");
+        } else {
+            HBAC_DEBUG(HBAC_DBG_TRACE, "\ttargethosts (none)\n");
+        }
+
+        if (rule->srchosts) {
+            HBAC_DEBUG(HBAC_DBG_TRACE, "\tsrchosts:\n");
+            hbac_rule_element_debug_print(rule->srchosts, "srchosts");
+        } else {
+            HBAC_DEBUG(HBAC_DBG_TRACE, "\tsrchosts (none)\n");
+        }
     }
 }

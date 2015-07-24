@@ -41,6 +41,28 @@
 #include <stdbool.h>
 #include <time.h>
 
+/** Debug levels for HBAC. */
+enum hbac_debug_level {
+    HBAC_DBG_FATAL,     /** Fatal failure (not used). */
+    HBAC_DBG_ERROR,     /** Serious failure (out of memory, for example). */
+    HBAC_DBG_WARNING,   /** Warnings (not used). */
+    HBAC_DBG_INFO,      /** HBAC allow/disallow info. */
+    HBAC_DBG_TRACE      /** Verbose description of rules. */
+};
+
+/**
+ * Function pointer to HBAC external debugging function.
+ */
+typedef void (*hbac_debug_fn_t)(const char *file, int line,
+                                enum hbac_debug_level, const char *format,
+                                ...);
+
+/**
+ *  HBAC uses external_debug_fn for logging messages.
+ *  @param[in|out] external_debug_void Pointer to external logging function.
+ */
+void hbac_enable_debug(hbac_debug_fn_t external_debug_fn);
+
 /** Result of HBAC evaluation */
 enum hbac_eval_result {
     /** An error occurred
