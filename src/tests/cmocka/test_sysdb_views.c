@@ -225,10 +225,12 @@ void test_sysdb_add_overrides_to_object(void **state)
     assert_non_null(orig);
 
     tmp_str = talloc_strdup(orig,  "ORIGNAME");
+    assert_non_null(tmp_str);
     ret = ldb_msg_add_string(orig, SYSDB_NAME, tmp_str);
     assert_int_equal(ret, EOK);
 
     tmp_str = talloc_strdup(orig,  "ORIGGECOS");
+    assert_non_null(tmp_str);
     ret = ldb_msg_add_string(orig, SYSDB_GECOS, tmp_str);
     assert_int_equal(ret, EOK);
 
@@ -236,18 +238,22 @@ void test_sysdb_add_overrides_to_object(void **state)
     assert_non_null(override);
 
     tmp_str = talloc_strdup(override, "OVERRIDENAME");
+    assert_non_null(tmp_str);
     ret = ldb_msg_add_string(override, SYSDB_NAME, tmp_str);
     assert_int_equal(ret, EOK);
 
     tmp_str = talloc_strdup(override, "OVERRIDEGECOS");
+    assert_non_null(tmp_str);
     ret = ldb_msg_add_string(override, SYSDB_GECOS, tmp_str);
     assert_int_equal(ret, EOK);
 
     tmp_str = talloc_strdup(override, "OVERRIDEKEY1");
+    assert_non_null(tmp_str);
     ret = ldb_msg_add_string(override, SYSDB_SSH_PUBKEY, tmp_str);
     assert_int_equal(ret, EOK);
 
     tmp_str = talloc_strdup(override, "OVERRIDEKEY2");
+    assert_non_null(tmp_str);
     ret = ldb_msg_add_string(override, SYSDB_SSH_PUBKEY, tmp_str);
     assert_int_equal(ret, EOK);
 
