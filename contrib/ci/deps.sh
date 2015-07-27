@@ -92,7 +92,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libselinux1-dev
         libsemanage1-dev
         libsmbclient-dev
-        libsystemd-journal-dev
+        libsystemd-dev
         libtalloc-dev
         libtdb-dev
         libtevent-dev
