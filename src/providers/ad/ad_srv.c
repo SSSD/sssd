@@ -541,7 +541,7 @@ done:
 int ad_get_client_site_recv(TALLOC_CTX *mem_ctx,
                             struct tevent_req *req,
                             const char **_site,
-                            char **_forest)
+                            const char **_forest)
 {
     struct ad_get_client_site_state *state = NULL;
     state = tevent_req_data(req, struct ad_get_client_site_state);
@@ -617,7 +617,7 @@ struct ad_srv_plugin_state {
     const char *site;
     char *dns_domain;
     uint32_t ttl;
-    char *forest;
+    const char *forest;
     struct fo_server_info *primary_servers;
     size_t num_primary_servers;
     struct fo_server_info *backup_servers;
@@ -774,6 +774,14 @@ static void ad_srv_plugin_site_done(struct tevent_req *subreq)
               "using configured value: '%s' instead.\n",
               state->site, state->ctx->ad_site_override);
         state->site = state->ctx->ad_site_override;
+
+        if (state->forest == NULL) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Missing forest information, using %s\n",
+                  state->discovery_domain);
+            state->forest = state->discovery_domain;
+        }
+
+        ret = EOK;
     }
     if (ret == EOK) {
         if (strcmp(state->service, "gc") == 0) {
