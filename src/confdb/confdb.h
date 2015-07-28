@@ -266,7 +266,7 @@ struct sss_domain_info {
     struct timeval subdomains_last_checked;
 
     bool has_views;
-    char *view_name;
+    const char *view_name;
 
     struct sss_domain_info *prev;
     struct sss_domain_info *next;

@@ -285,7 +285,6 @@ void test_sysdb_add_overrides_to_object_local(void **state)
 {
     int ret;
     struct ldb_message *orig;
-    struct ldb_message_element *el;
     char *tmp_str;
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
@@ -314,7 +313,6 @@ void test_sysdb_add_overrides_to_object_missing_overridedn(void **state)
 {
     int ret;
     struct ldb_message *orig;
-    struct ldb_message_element *el;
     char *tmp_str;
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                          struct sysdb_test_ctx);
