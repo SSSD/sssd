@@ -319,6 +319,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  const char *username,
                                                  uid_t uid,
                                                  char **groupnames,
+                                                 bool inverse_order,
                                                  struct sysdb_attrs ***_rules,
                                                  uint32_t *_count);
 
@@ -380,6 +381,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
                                             cmd_ctx->domain, attrs, flags,
                                             cmd_ctx->orig_username,
                                             cmd_ctx->uid, groupnames,
+                                            cmd_ctx->sudo_ctx->inverse_order,
                                             &expired_rules, &expired_rules_num);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve expired sudo rules "
@@ -591,6 +593,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
                                             cmd_ctx->domain, attrs, flags,
                                             cmd_ctx->orig_username,
                                             cmd_ctx->uid, groupnames,
+                                            cmd_ctx->sudo_ctx->inverse_order,
                                             &rules, &num_rules);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -616,7 +619,7 @@ done:
 }
 
 static errno_t
-sort_sudo_rules(struct sysdb_attrs **rules, size_t count);
+sort_sudo_rules(struct sysdb_attrs **rules, size_t count, bool higher_wins);
 
 static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  struct sysdb_ctx *sysdb,
@@ -626,6 +629,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
                                                  const char *username,
                                                  uid_t uid,
                                                  char **groupnames,
+                                                 bool inverse_order,
                                                  struct sysdb_attrs ***_rules,
                                                  uint32_t *_count)
 {
@@ -675,7 +679,7 @@ static errno_t sudosrv_get_sudorules_query_cache(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sort_sudo_rules(rules, count);
+    ret = sort_sudo_rules(rules, count, inverse_order);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not sort rules by sudoOrder\n");
@@ -692,7 +696,7 @@ done:
 }
 
 static int
-sudo_order_cmp_fn(const void *a, const void *b)
+sudo_order_cmp(const void *a, const void *b, bool lower_wins)
 {
     struct sysdb_attrs *r1, *r2;
     uint32_t o1, o2;
@@ -725,19 +729,49 @@ sudo_order_cmp_fn(const void *a, const void *b)
         return 0;
     }
 
-    if (o1 > o2) {
-        return 1;
-    } else if (o1 < o2) {
-        return -1;
+    if (lower_wins) {
+        /* The lowest value takes priority. Original wrong SSSD behaviour. */
+        if (o1 > o2) {
+            return 1;
+        } else if (o1 < o2) {
+            return -1;
+        }
+    } else {
+        /* The higher value takes priority. Standard LDAP behaviour. */
+        if (o1 < o2) {
+            return 1;
+        } else if (o1 > o2) {
+            return -1;
+        }
     }
 
     return 0;
 }
 
-static errno_t
-sort_sudo_rules(struct sysdb_attrs **rules, size_t count)
+static int
+sudo_order_low_cmp_fn(const void *a, const void *b)
 {
-    qsort(rules, count, sizeof(struct sysdb_attrs *),
-          sudo_order_cmp_fn);
+    return sudo_order_cmp(a, b, true);
+}
+
+static int
+sudo_order_high_cmp_fn(const void *a, const void *b)
+{
+    return sudo_order_cmp(a, b, false);
+}
+
+static errno_t
+sort_sudo_rules(struct sysdb_attrs **rules, size_t count, bool lower_wins)
+{
+    if (lower_wins) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Sorting rules with lower-wins logic\n");
+        qsort(rules, count, sizeof(struct sysdb_attrs *),
+              sudo_order_low_cmp_fn);
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "Sorting rules with higher-wins logic\n");
+        qsort(rules, count, sizeof(struct sysdb_attrs *),
+              sudo_order_high_cmp_fn);
+    }
+
     return EOK;
 }

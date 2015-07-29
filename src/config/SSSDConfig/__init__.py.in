@@ -84,6 +84,7 @@ option_strings = {
 
     # [sudo]
     'sudo_timed' : _('Whether to evaluate the time-based attributes in sudo rules'),
+    'sudo_inverse_order' : _('If true, SSSD will switch back to lower-wins ordering logic'),
 
     # [autofs]
     'autofs_negative_timeout' : _('Negative cache timeout length (seconds)'),

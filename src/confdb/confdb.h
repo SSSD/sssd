@@ -117,6 +117,8 @@
 #define CONFDB_DEFAULT_SUDO_CACHE_TIMEOUT 180
 #define CONFDB_SUDO_TIMED "sudo_timed"
 #define CONFDB_DEFAULT_SUDO_TIMED false
+#define CONFDB_SUDO_INVERSE_ORDER "sudo_inverse_order"
+#define CONFDB_DEFAULT_SUDO_INVERSE_ORDER false
 
 /* autofs */
 #define CONFDB_AUTOFS_CONF_ENTRY "config/autofs"
