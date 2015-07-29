@@ -59,7 +59,7 @@ errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
     struct ldap_id_cleanup_ctx *cleanup_ctx = NULL;
     char *name = NULL;
 
-    period = dp_opt_get_int(id_ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
+    period = dp_opt_get_int(id_ctx->opts->basic, SDAP_PURGE_CACHE_TIMEOUT);
     if (period == 0) {
         /* Cleanup has been explicitly disabled, so we won't
          * create any cleanup tasks. */

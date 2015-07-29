@@ -248,7 +248,7 @@ static void sdap_inherit_basic_options(char **inherit_opt_list,
                                        struct dp_option *subdom_opts)
 {
     int inherit_options[] = {
-        SDAP_CACHE_PURGE_TIMEOUT,
+        SDAP_PURGE_CACHE_TIMEOUT,
         SDAP_AD_USE_TOKENGROUPS,
         SDAP_OPTS_BASIC     /* sentinel */
     };

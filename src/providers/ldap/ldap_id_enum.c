@@ -67,13 +67,13 @@ errno_t ldap_setup_enumeration(struct be_ctx *be_ctx,
         first_delay = 0;
     }
 
-    cleanup = dp_opt_get_int(opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
+    cleanup = dp_opt_get_int(opts->basic, SDAP_PURGE_CACHE_TIMEOUT);
     if (cleanup == 0) {
         /* We need to cleanup the cache once in a while when enumerating, otherwise
          * enumeration would only download deltas since the previous lastUSN and would
          * not detect removed entries
          */
-        ret = dp_opt_set_int(opts->basic, SDAP_CACHE_PURGE_TIMEOUT,
+        ret = dp_opt_set_int(opts->basic, SDAP_PURGE_CACHE_TIMEOUT,
                              LDAP_ENUM_PURGE_TIMEOUT);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,

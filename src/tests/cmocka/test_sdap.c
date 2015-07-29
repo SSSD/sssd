@@ -841,7 +841,7 @@ static int test_sdap_inherit_option_setup(void **state)
                                                   discard_const("test_princ");
 
     ret = dp_opt_set_int(test_ctx->parent_sdap_opts->basic,
-                         SDAP_CACHE_PURGE_TIMEOUT, 123);
+                         SDAP_PURGE_CACHE_TIMEOUT, 123);
     assert_int_equal(ret, EOK);
 
     *state = test_ctx;
@@ -865,7 +865,7 @@ static void test_sdap_inherit_option_null(void **state)
     int val;
 
     val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
-                         SDAP_CACHE_PURGE_TIMEOUT);
+                         SDAP_PURGE_CACHE_TIMEOUT);
     assert_int_equal(val, 0);
 
     sdap_inherit_options(NULL,
@@ -873,7 +873,7 @@ static void test_sdap_inherit_option_null(void **state)
                          test_ctx->child_sdap_opts);
 
     val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
-                         SDAP_CACHE_PURGE_TIMEOUT);
+                         SDAP_PURGE_CACHE_TIMEOUT);
     assert_int_equal(val, 0);
 }
 
@@ -885,7 +885,7 @@ static void test_sdap_inherit_option_notset(void **state)
     const char *inherit_options[] = { "ldap_use_tokengroups", NULL };
 
     val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
-                         SDAP_CACHE_PURGE_TIMEOUT);
+                         SDAP_PURGE_CACHE_TIMEOUT);
     assert_int_equal(val, 0);
 
     /* parent has nondefault, but it's not supposed to be inherited */
@@ -894,7 +894,7 @@ static void test_sdap_inherit_option_notset(void **state)
                          test_ctx->child_sdap_opts);
 
     val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
-                         SDAP_CACHE_PURGE_TIMEOUT);
+                         SDAP_PURGE_CACHE_TIMEOUT);
     assert_int_equal(val, 0);
 }
 
@@ -906,7 +906,7 @@ static void test_sdap_inherit_option_basic(void **state)
     const char *inherit_options[] = { "ldap_purge_cache_timeout", NULL };
 
     val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
-                         SDAP_CACHE_PURGE_TIMEOUT);
+                         SDAP_PURGE_CACHE_TIMEOUT);
     assert_int_equal(val, 0);
 
     /* parent has nondefault, but it's not supposed to be inherited */
@@ -915,7 +915,7 @@ static void test_sdap_inherit_option_basic(void **state)
                          test_ctx->child_sdap_opts);
 
     val = dp_opt_get_int(test_ctx->child_sdap_opts->basic,
-                         SDAP_CACHE_PURGE_TIMEOUT);
+                         SDAP_PURGE_CACHE_TIMEOUT);
     assert_int_equal(val, 123);
 }
 

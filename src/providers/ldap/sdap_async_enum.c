@@ -102,7 +102,7 @@ sdap_dom_enum_ex_send(TALLOC_CTX *memctx,
     state->svc_conn = svc_conn;
     sdom->last_enum = tevent_timeval_current();
 
-    t = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
+    t = dp_opt_get_int(ctx->opts->basic, SDAP_PURGE_CACHE_TIMEOUT);
     if ((sdom->last_purge.tv_sec + t) < sdom->last_enum.tv_sec) {
         state->purge = true;
     }
