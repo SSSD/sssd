@@ -1,5 +1,6 @@
 dist_noinst_DATA = \
     config.py.m4 \
+    sssd_id.py \
     ds.py \
     ds_openldap.py \
     ent.py \
