@@ -175,11 +175,14 @@ done:
 static int cleanup_users_logged_in(hash_table_t *table,
                                    const struct ldb_message *msg);
 
+static errno_t expire_memberof_target_groups(struct sss_domain_info *dom,
+                                             struct ldb_message *user);
+
 static int cleanup_users(struct sdap_options *opts,
                          struct sss_domain_info *dom)
 {
     TALLOC_CTX *tmpctx;
-    const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
+    const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, SYSDB_MEMBEROF, NULL };
     time_t now = time(NULL);
     char *subfilter = NULL;
     int account_cache_expiration;
@@ -277,10 +280,58 @@ static int cleanup_users(struct sdap_options *opts,
             DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_delete_user failed: %d\n", ret);
             goto done;
         }
+
+        /* Mark all groups of which user was a member as expired in cache,
+         * so that its ghost/member attributes are refreshed on next
+         * request. */
+        ret = expire_memberof_target_groups(dom, msgs[i]);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "expire_memberof_target_groups failed: [%d]:%s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
     }
 
 done:
     talloc_zfree(tmpctx);
+    return ret;
+}
+
+static errno_t expire_memberof_target_groups(struct sss_domain_info *dom,
+                                             struct ldb_message *user)
+{
+    struct ldb_message_element *memberof_el = NULL;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    memberof_el = ldb_msg_find_element(user, SYSDB_MEMBEROF);
+    if (memberof_el == NULL) {
+        /* User has no cached groups. Nothing to be marked as expired. */
+        ret = EOK;
+        goto done;
+    }
+
+    for (unsigned int i = 0; i < memberof_el->num_values; i++) {
+        ret = sysdb_mark_entry_as_expired_ldb_val(dom,
+                                                  &memberof_el->values[i]);
+        if (ret != EOK && ret != ENOENT) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "sysdb_mark_entry_as_expired_ldb_val failed: [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 
