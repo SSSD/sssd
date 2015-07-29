@@ -50,6 +50,7 @@ struct sudo_ctx {
      * options
      */
     bool timed;
+    bool inverse_order;
 };
 
 struct sudo_cmd_ctx {
