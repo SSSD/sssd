@@ -189,4 +189,6 @@ sss_krb5_get_primary(TALLOC_CTX *mem_ctx,
 
 krb5_error_code sss_krb5_kt_have_content(krb5_context context,
                                          krb5_keytab keytab);
+
+bool sss_krb5_realm_has_proxy(const char *realm);
 #endif /* __SSS_KRB5_H__ */

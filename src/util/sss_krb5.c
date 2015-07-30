@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <talloc.h>
+#include <profile.h>
 
 #include "config.h"
 
@@ -1068,4 +1069,60 @@ krb5_error_code sss_krb5_kt_have_content(krb5_context context,
 
     return 0;
 #endif
+}
+
+#define KDC_PROXY_INDICATOR "https://"
+#define KDC_PROXY_INDICATOR_LEN (sizeof(KDC_PROXY_INDICATOR) - 1)
+
+bool sss_krb5_realm_has_proxy(const char *realm)
+{
+    krb5_context context = NULL;
+    krb5_error_code kerr;
+    struct _profile_t *profile = NULL;
+    const char  *profile_path[4] = {"realms", NULL, "kdc", NULL};
+    char **list = NULL;
+    bool res = false;
+    size_t c;
+
+    if (realm == NULL) {
+        return false;
+    }
+
+    kerr = krb5_init_context(&context);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_init_context failed.\n");
+        return false;
+    }
+
+    kerr = krb5_get_profile(context, &profile);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "krb5_get_profile failed.\n");
+        goto done;
+    }
+
+    profile_path[1] = realm;
+
+    kerr = profile_get_values(profile, profile_path, &list);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "profile_get_values failed.\n");
+        goto done;
+    }
+
+    for (c = 0; list[c] != NULL; c++) {
+        if (strncasecmp(KDC_PROXY_INDICATOR, list[c],
+                        KDC_PROXY_INDICATOR_LEN) == 0) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Found KDC Proxy indicator [%s] in [%s].\n",
+                  KDC_PROXY_INDICATOR, list[c]);
+            res = true;
+            break;
+        }
+    }
+
+done:
+    profile_free_list(list);
+    profile_release(profile);
+    krb5_free_context(context);
+
+    return res;
 }

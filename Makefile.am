@@ -366,6 +366,7 @@ dist_noinst_SCRIPTS = \
     src/tests/pysss_murmur-test.py2.sh \
     src/tests/pysss_murmur-test.py3.sh \
     src/tests/python-test.py \
+    src/tests/krb5_proxy_check_test_data.conf \
     $(NULL)
 
 dist_noinst_DATA = \
