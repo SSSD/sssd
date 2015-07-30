@@ -105,16 +105,16 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
     uint32_t hash;
     uint32_t slot;
     int ret;
-    size_t strs_offset;
-    uint8_t *max_addr;
+    const size_t strs_offset = offsetof(struct sss_mc_pwd_data, strs);
+    size_t data_size;
 
     ret = sss_nss_mc_get_ctx("passwd", &pw_mc_ctx);
     if (ret) {
         return ret;
     }
 
-    /* Get max address of data table. */
-    max_addr = pw_mc_ctx.data_table + pw_mc_ctx.dt_size;
+    /* Get max size of data table. */
+    data_size = pw_mc_ctx.dt_size;
 
     /* hashes are calculated including the NULL terminator */
     hash = sss_nss_mc_hash(&pw_mc_ctx, name, name_len + 1);
@@ -123,7 +123,7 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
     /* If slot is not within the bounds of mmaped region and
      * it's value is not MC_INVALID_VAL, then the cache is
      * probbably corrupted. */
-    while (MC_SLOT_WITHIN_BOUNDS(slot, pw_mc_ctx.dt_size)) {
+    while (MC_SLOT_WITHIN_BOUNDS(slot, data_size)) {
         /* free record from previous iteration */
         free(rec);
         rec = NULL;
@@ -140,16 +140,16 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
             continue;
         }
 
-        strs_offset = offsetof(struct sss_mc_pwd_data, strs);
-
         data = (struct sss_mc_pwd_data *)rec->data;
         /* Integrity check
          * - name_len cannot be longer than all strings
          * - data->name cannot point outside strings
-         * - all strings must be within data_table */
+         * - all strings must be within copy of record
+         * - size of record must be lower that data table size */
         if (name_len > data->strs_len
             || (data->name + name_len) > (strs_offset + data->strs_len)
-            || (uint8_t *)data->strs + data->strs_len > max_addr) {
+            || data->strs_len > rec->len
+            || rec->len > data_size) {
             ret = ENOENT;
             goto done;
         }
@@ -162,7 +162,7 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
         slot = sss_nss_mc_next_slot_with_hash(rec, hash);
     }
 
-    if (!MC_SLOT_WITHIN_BOUNDS(slot, pw_mc_ctx.dt_size)) {
+    if (!MC_SLOT_WITHIN_BOUNDS(slot, data_size)) {
         ret = ENOENT;
         goto done;
     }

@@ -94,15 +94,15 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
     uint32_t slot;
     int ret;
     const size_t data_offset = offsetof(struct sss_mc_initgr_data, gids);
-    uint8_t *max_addr;
+    size_t data_size;
 
     ret = sss_nss_mc_get_ctx("initgroups", &initgr_mc_ctx);
     if (ret) {
         return ret;
     }
 
-    /* Get max address of data table. */
-    max_addr = initgr_mc_ctx.data_table + initgr_mc_ctx.dt_size;
+    /* Get max size of data table. */
+    data_size = initgr_mc_ctx.dt_size;
 
     /* hashes are calculated including the NULL terminator */
     hash = sss_nss_mc_hash(&initgr_mc_ctx, name, name_len + 1);
@@ -111,7 +111,7 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
     /* If slot is not within the bounds of mmaped region and
      * it's value is not MC_INVALID_VAL, then the cache is
      * probbably corrupted. */
-    while (MC_SLOT_WITHIN_BOUNDS(slot, initgr_mc_ctx.dt_size)) {
+    while (MC_SLOT_WITHIN_BOUNDS(slot, data_size)) {
         /* free record from previous iteration */
         free(rec);
         rec = NULL;
@@ -132,14 +132,14 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
         rec_name = (char *)data + data->name;
         /* Integrity check
          * - name_len cannot be longer than all strings or data
-         * - data->name cannot point outside strings
-         * - all data must be within data_table
-         * - name must be within data_table */
-        if (name_len > data->data_len
-            || name_len > data->strs_len
-            || (data->strs + name_len) > (data_offset + data->data_len)
-            || (uint8_t *)data->gids + data->data_len > max_addr
-            || (uint8_t *)rec_name + name_len > max_addr) {
+         * - all data must be within copy of record
+         * - size of record must be lower that data table size
+         * - data->strs cannot point outside strings */
+        if (name_len > data->strs_len
+            || data->strs_len > data->data_len
+            || data->data_len > rec->len
+            || rec->len > data_size
+            || (data->strs + name_len) > (data_offset + data->data_len)) {
             ret = ENOENT;
             goto done;
         }
@@ -151,7 +151,7 @@ errno_t sss_nss_mc_initgroups_dyn(const char *name, size_t name_len,
         slot = sss_nss_mc_next_slot_with_hash(rec, hash);
     }
 
-    if (!MC_SLOT_WITHIN_BOUNDS(slot, initgr_mc_ctx.dt_size)) {
+    if (!MC_SLOT_WITHIN_BOUNDS(slot, data_size)) {
         ret = ENOENT;
         goto done;
     }
