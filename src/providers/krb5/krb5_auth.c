@@ -754,6 +754,12 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
         kr->is_offline = be_is_offline(state->be_ctx);
     }
 
+    if (kr->is_offline
+            && sss_krb5_realm_has_proxy(dp_opt_get_cstring(kr->krb5_ctx->opts,
+                                        KRB5_REALM))) {
+        kr->is_offline = false;
+    }
+
     subreq = handle_child_send(state, state->ev, kr);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "handle_child_send failed.\n");
