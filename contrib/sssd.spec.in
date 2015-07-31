@@ -4,6 +4,9 @@
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python_sitearch}/.*\.so$
 
+# workaround for rpm 4.13
+%define _empty_manifest_terminate_build 0
+
 %if (0%{?fedora} || 0%{?rhel} >= 7)
     %global use_systemd 1
 %endif
