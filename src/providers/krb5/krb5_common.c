@@ -428,6 +428,13 @@ errno_t write_krb5info_file(const char *realm, const char *server,
         return EINVAL;
     }
 
+    if (sss_krb5_realm_has_proxy(realm)) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "KDC Proxy available for realm [%s], no kdcinfo file created.\n",
+              realm);
+        return EOK;
+    }
+
     if (strcmp(service, SSS_KRB5KDC_FO_SRV) == 0) {
         name_tmpl = KDCINFO_TMPL;
     } else if (strcmp(service, SSS_KRB5KPASSWD_FO_SRV) == 0) {
