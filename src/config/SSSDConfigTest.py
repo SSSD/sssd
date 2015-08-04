@@ -1299,6 +1299,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'nss',
             'pam']
         active_services = sssdconfig.list_active_services()
+        self.assertTrue(isinstance(active_services, list))
 
         for service in control_list:
             self.assertTrue(service in active_services,
@@ -1521,6 +1522,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'IPA',
             'LOCAL']
         active_domains = sssdconfig.list_active_domains()
+        self.assertTrue(isinstance(active_domains, list))
 
         for domain in control_list:
             self.assertTrue(domain in active_domains,
