@@ -436,10 +436,10 @@ static int cleanup_groups(TALLOC_CTX *memctx,
                           ret, strerror(ret));
                 goto done;
             }
-        }
-        if (ret != EOK) {
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to search sysdb using %s: %d\n", subfilter, ret);
+                  "Failed to search sysdb using %s: [%d] %s\n",
+                  subfilter, ret, sss_strerror(ret));
             goto done;
         }
         talloc_zfree(u_msgs);

@@ -487,7 +487,8 @@ static void sdap_dom_enum_ex_svcs_done(struct tevent_req *subreq)
             /* Not fatal, worst case we'll have stale entries that would be
              * removed on a subsequent online lookup
              */
-            DEBUG(SSSDBG_MINOR_FAILURE, "Cleanup failed: %d\n", ret);
+            DEBUG(SSSDBG_MINOR_FAILURE, "Cleanup failed: [%d]: %s\n",
+                  ret, sss_strerror(ret));
         }
     }
 
