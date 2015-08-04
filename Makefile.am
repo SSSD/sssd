@@ -212,6 +212,7 @@ if HAVE_CMOCKA
         sbus-internal-tests \
         sss_sifp-tests \
         test_search_bases \
+        test_ldap_id_cleanup \
         sdap-tests \
         test_sysdb_views \
         test_sysdb_utils \
@@ -1968,6 +1969,27 @@ test_search_bases_LDADD = \
     libsss_idmap.la \
     libsss_krb5_common.la \
     libsss_test_common.la
+
+test_ldap_id_cleanup_SOURCES = \
+    $(sssd_be_SOURCES) \
+    src/tests/cmocka/test_ldap_id_cleanup.c \
+    src/providers/ldap/ldap_id_cleanup.c \
+    $(NULL)
+test_ldap_id_cleanup_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DUNIT_TESTING
+    $(NULL)
+test_ldap_id_cleanup_LDADD = \
+    $(PAM_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    libsss_test_common.la \
+    $(NULL)
 
 ad_access_filter_tests_SOURCES = \
     $(sssd_be_SOURCES) \
