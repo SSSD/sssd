@@ -32,6 +32,12 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 
+static errno_t
+get_group_dn_with_filter_sanitized_name(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *domain,
+                                        const char *group_name,
+                                        const char **_group_dn);
+
 /* ==Cleanup-Task========================================================= */
 struct ldap_id_cleanup_ctx {
     struct sdap_id_ctx *ctx;
@@ -318,7 +324,6 @@ static int cleanup_groups(TALLOC_CTX *memctx,
     const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter;
-    const char *dn;
     gid_t gid;
     struct ldb_message **msgs;
     size_t count;
@@ -359,10 +364,25 @@ static int cleanup_groups(TALLOC_CTX *memctx,
     }
 
     for (i = 0; i < count; i++) {
-        dn = ldb_dn_get_linearized(msgs[i]->dn);
-        if (!dn) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot linearize DN!\n");
-            ret = EFAULT;
+        const char *dn;
+        const char *group_name;
+
+        group_name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
+        if (group_name == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "No '%s' attribute.\n", SYSDB_NAME);
+            ret = EINVAL;
+            goto done;
+        }
+
+        /* DN might contain characters that need not to be sanitized in DN,
+         * but need to be sanitized in filter - e.g. '(', ')'
+         */
+        ret = get_group_dn_with_filter_sanitized_name(tmpctx, domain, group_name,
+                                                      &dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "get_group_dn_with_filter_sanitized_name failed: %s:[%d].\n",
+                  sss_strerror(ret), ret);
             goto done;
         }
 
@@ -427,5 +447,63 @@ static int cleanup_groups(TALLOC_CTX *memctx,
 
 done:
     talloc_zfree(tmpctx);
+    return ret;
+}
+
+static errno_t
+get_group_dn_with_filter_sanitized_name(TALLOC_CTX *mem_ctx,
+                                        struct sss_domain_info *domain,
+                                        const char *group_name,
+                                        const char **_group_dn)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    const char *dn;
+    const char *sanitized_dn;
+    char *sanitized_group_name;
+    struct ldb_dn *group_base_dn;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+    }
+
+    /* sanitize group name */
+    ret = sss_filter_sanitize(tmp_ctx, group_name, &sanitized_group_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "sss_filter_sanitize failed: %s:[%d]\n",
+              sss_strerror(ret), ret);
+        goto done;
+    }
+
+    /* group base dn */
+    group_base_dn = sysdb_group_base_dn(tmp_ctx, domain);
+    if (group_base_dn == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot get group base DN!\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    dn = ldb_dn_get_linearized(group_base_dn);
+    if (dn == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Cannot linearize DN!\n");
+        ret = EFAULT;
+        goto done;
+    }
+
+    /* complete group DN with filter sanitized name */
+    sanitized_dn = talloc_asprintf(tmp_ctx, "%s=%s,%s",
+                                   SYSDB_NAME, sanitized_group_name, dn);
+    if (sanitized_dn == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to build DN\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+    *_group_dn = talloc_steal(mem_ctx, sanitized_dn);
+
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }

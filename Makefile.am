@@ -219,6 +219,7 @@ if HAVE_CMOCKA
         sss_sifp-tests \
         test_search_bases \
         test_ldap_auth \
+        test_ldap_id_cleanup \
         test_sdap_access \
         sdap-tests \
         test_sysdb_views \
@@ -2134,6 +2135,27 @@ test_ldap_auth_CFLAGS = \
     -DUNIT_TESTING
     $(NULL)
 test_ldap_auth_LDADD = \
+    $(PAM_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_LIBS) \
+    $(CARES_LIBS) \
+    $(KRB5_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    libsss_test_common.la \
+    $(NULL)
+
+test_ldap_id_cleanup_SOURCES = \
+    $(sssd_be_SOURCES) \
+    src/tests/cmocka/test_ldap_id_cleanup.c \
+    src/providers/ldap/ldap_id_cleanup.c \
+    $(NULL)
+test_ldap_id_cleanup_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DUNIT_TESTING
+    $(NULL)
+test_ldap_id_cleanup_LDADD = \
     $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
