@@ -271,7 +271,7 @@ class DSOpenLDAP(DS):
                 if ++attempt > 30:
                     raise Exception("Failed to stop slapd")
                 time.sleep(1)
-        except IOError, e:
+        except IOError as e:
             if e.errno != errno.ENOENT:
                 raise
 

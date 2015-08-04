@@ -206,7 +206,7 @@ def assert_passwd_by_name(name, pattern):
     """Assert a passwd entry, retrieved by name, matches a pattern."""
     try:
         ent = get_passwd_by_name(name)
-    except KeyError, err:
+    except KeyError as err:
         assert False, err
     d = _diff(ent, pattern)
     assert not d, d
@@ -215,7 +215,7 @@ def assert_passwd_by_uid(uid, pattern):
     """Assert a passwd entry, retrieved by UID, matches a pattern."""
     try:
         ent = get_passwd_by_uid(uid)
-    except KeyError, err:
+    except KeyError as err:
         assert False, err
     d = _diff(ent, pattern)
     assert not d, d
@@ -241,7 +241,7 @@ def _diff_each_passwd_by_name(pattern_dict):
     """
     try:
         ent = dict((k, get_passwd_by_name(k)) for k in pattern_dict.keys())
-    except KeyError, err:
+    except KeyError as err:
         return str(err)
     return _diff(ent, pattern_dict, _PASSWD_LIST_DESC)
 
@@ -252,7 +252,7 @@ def _diff_each_passwd_by_uid(pattern_dict):
     """
     try:
         ent = dict((k, get_passwd_by_uid(k)) for k in pattern_dict.keys())
-    except KeyError, err:
+    except KeyError as err:
         return str(err)
     return _diff(ent, pattern_dict, _PASSWD_LIST_DESC)
 
@@ -349,7 +349,7 @@ def assert_group_by_name(name, pattern):
     """Assert a group entry, retrieved by name, matches a pattern."""
     try:
         ent = get_group_by_name(name)
-    except KeyError, err:
+    except KeyError as err:
         assert False, err
     d = _diff(ent, pattern, _GROUP_DESC)
     assert not d, d
@@ -358,7 +358,7 @@ def assert_group_by_gid(gid, pattern):
     """Assert a group entry, retrieved by GID, matches a pattern."""
     try:
         ent = get_group_by_gid(gid)
-    except KeyError, err:
+    except KeyError as err:
         assert False, err
     d = _diff(ent, pattern, _GROUP_DESC)
     assert not d, d
@@ -384,7 +384,7 @@ def _diff_each_group_by_name(pattern_dict):
     """
     try:
         ent = dict((k, get_group_by_name(k)) for k in pattern_dict.keys())
-    except KeyError, err:
+    except KeyError as err:
         return str(err)
     return _diff(ent, pattern_dict, _GROUP_LIST_DESC)
 
@@ -395,7 +395,7 @@ def _diff_each_group_by_gid(pattern_dict):
     """
     try:
         ent = dict((k, get_group_by_gid(k)) for k in pattern_dict.keys())
-    except KeyError, err:
+    except KeyError as err:
         return str(err)
     return _diff(ent, pattern_dict, _GROUP_LIST_DESC)
 
