@@ -19,6 +19,7 @@
 import os
 import stat
 import ent
+import grp
 import config
 import signal
 import subprocess
@@ -481,3 +482,91 @@ def test_initgroups_case_insensitive_with_mc3(ldap_conn,
 
     assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
                                   primary_gid, expected_gids)
+
+
+def run_simple_test_with_initgroups():
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+    ent.assert_passwd_by_uid(
+        1001,
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    ent.assert_group_by_name(
+        "group1",
+        dict(mem=ent.contains_only("user1", "user11", "user21")))
+    ent.assert_group_by_gid(
+        2001,
+        dict(mem=ent.contains_only("user1", "user11", "user21")))
+
+    # unrelated group to user1
+    ent.assert_group_by_name(
+        "group2",
+        dict(mem=ent.contains_only("user2", "user12", "user22")))
+    ent.assert_group_by_gid(
+        2002,
+        dict(mem=ent.contains_only("user2", "user12", "user22")))
+
+    assert_initgroups_equal("user1", 2001, [2000, 2001])
+
+
+def test_invalidation_of_gids_after_initgroups(ldap_conn, sanity_rfc2307):
+
+    # the sssd cache was empty and not all user's group were
+    # resolved with getgr{nm,gid}. Therefore there is a change in
+    # group membership => user groups should be invalidated
+    run_simple_test_with_initgroups()
+    assert_initgroups_equal("user1", 2001, [2000, 2001])
+
+    stop_sssd()
+
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+    ent.assert_passwd_by_uid(
+        1001,
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    # unrelated group to user1 must be returned
+    ent.assert_group_by_name(
+        "group2",
+        dict(mem=ent.contains_only("user2", "user12", "user22")))
+    ent.assert_group_by_gid(
+        2002,
+        dict(mem=ent.contains_only("user2", "user12", "user22")))
+
+    assert_initgroups_equal("user1", 2001, [2000, 2001])
+
+    # user groups must be invalidated
+    for group in ["group1", "group0x"]:
+        with pytest.raises(KeyError):
+            grp.getgrnam(group)
+
+    for gid in [2000, 2001]:
+        with pytest.raises(KeyError):
+            grp.getgrgid(gid)
+
+
+def test_initgroups_without_change_in_membership(ldap_conn, sanity_rfc2307):
+
+    # the sssd cache was empty and not all user's group were
+    # resolved with getgr{nm,gid}. Therefore there is a change in
+    # group membership => user groups should be invalidated
+    run_simple_test_with_initgroups()
+
+    # invalidate cache
+    subprocess.call(["sss_cache", "-E"])
+
+    # all users and groups will be just refreshed from LDAP
+    # but there will not be a change in group membership
+    # user groups should not be invlaidated
+    run_simple_test_with_initgroups()
+
+    stop_sssd()
+
+    # everything should be in memory cache
+    run_simple_test_with_initgroups()
