@@ -297,7 +297,8 @@ static void ipa_subdomain_account_done(struct tevent_req *subreq)
     }
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_*_acct request failed: %d\n", ret);
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_*_acct request failed: [%d]: %s.\n",
+              ret, sss_strerror(ret));
         state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;

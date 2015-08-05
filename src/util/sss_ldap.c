@@ -423,7 +423,9 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
     ret = sdap_async_sys_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_async_sys_connect request failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_async_sys_connect request failed: [%d]: %s.\n",
+              ret, sss_strerror(ret));
         goto fail;
     }
     /* Initialize LDAP handler */

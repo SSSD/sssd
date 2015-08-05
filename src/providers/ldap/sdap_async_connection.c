@@ -146,14 +146,18 @@ static void sdap_sys_connect_done(struct tevent_req *subreq)
     ret = sss_ldap_init_recv(subreq, &state->sh->ldap, &sd);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_async_connect_call request failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_async_connect_call request failed: [%d]: %s.\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
 
     ret = setup_ldap_connection_callbacks(state->sh, state->ev);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "setup_ldap_connection_callbacks failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "setup_ldap_connection_callbacks failed: [%d]: %s.\n",
+              ret, sss_strerror(ret));
         goto fail;
     }
 
