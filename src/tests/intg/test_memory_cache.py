@@ -435,14 +435,14 @@ def assert_stored_last_initgroups(user1_case1, user1_case2, user1_case_last,
     stop_sssd()
 
     user = user1_case1
-    (res, errno, gids) = sssd_id.call_sssd_initgroups(user, primary_gid)
+    (res, errno, _) = sssd_id.call_sssd_initgroups(user, primary_gid)
     assert res == sssd_id.NssReturnCode.UNAVAIL, \
-        "Initgroups for user shoudl fail user %s, %d" % (user, res)
+        "Initgroups for user shoudl fail user %s, %d, %d" % (user, res, errno)
 
     user = user1_case2
-    (res, errno, gids) = sssd_id.call_sssd_initgroups(user, primary_gid)
+    (res, errno, _) = sssd_id.call_sssd_initgroups(user, primary_gid)
     assert res == sssd_id.NssReturnCode.UNAVAIL, \
-        "Initgroups for user shoudl fail user %s, %d" % (user, res)
+        "Initgroups for user shoudl fail user %s, %d, %d" % (user, res, errno)
 
     # Just last invocation of initgroups shoudl PASS
     # Otherwise, we would not be able to invalidate it
@@ -615,7 +615,7 @@ def assert_missing_mc_records_for_user1():
     (res, err, _) = sssd_id.call_sssd_initgroups("user1", 2001)
     assert res == sssd_id.NssReturnCode.UNAVAIL, \
         "Initgroups should not find anything after invalidation of mc.\n" \
-        "User %s, errno:%d" % (user, err)
+        "User user1, errno:%d" % err
 
 
 def test_invalidate_user_before_stop(ldap_conn, sanity_rfc2307):
