@@ -298,3 +298,64 @@ def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
         grp.getgrnam("non_existent_group")
     with pytest.raises(KeyError):
         grp.getgrgid(1)
+
+
+@pytest.fixture
+def refresh_after_cleanup_task(request, ldap_conn):
+    ent_list = ldap_ent.List(LDAP_BASE_DN)
+    ent_list.add_user("user1", 1001, 2001)
+
+    ent_list.add_group_bis("group1", 2001, ["user1"])
+    ent_list.add_group_bis("group2", 2002, [], ["group1"])
+
+    create_ldap_fixture(request, ldap_conn, ent_list)
+
+    conf = unindent("""\
+        [sssd]
+        config_file_version     = 2
+        domains                 = LDAP
+        services                = nss
+
+        [nss]
+        memcache_timeout        = 0
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        debug_level             = 0xffff
+        ldap_schema             = rfc2307bis
+        ldap_group_object_class = groupOfNames
+        id_provider             = ldap
+        auth_provider           = ldap
+        sudo_provider           = ldap
+        ldap_uri                = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base        = {ldap_conn.ds_inst.base_dn}
+
+        entry_cache_user_timeout = 1
+        entry_cache_group_timeout = 5000
+        ldap_purge_cache_timeout = 3
+
+    """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+    return None
+
+
+def test_refresh_after_cleanup_task(ldap_conn, refresh_after_cleanup_task):
+    """
+    Regression test for ticket:
+    https://fedorahosted.org/sssd/ticket/2676
+    """
+    ent.assert_group_by_name(
+        "group2",
+        dict(mem=ent.contains_only("user1")))
+
+    ent.assert_passwd_by_name(
+        'user1',
+        dict(name='user1', passwd='*', uid=1001, gid=2001,
+             gecos='1001', shell='/bin/bash'))
+
+    time.sleep(15)
+
+    ent.assert_group_by_name(
+        "group2",
+        dict(mem=ent.contains_only("user1")))
