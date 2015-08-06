@@ -717,10 +717,15 @@ int sysdb_delete_entry(struct sysdb_ctx *sysdb,
                        struct ldb_dn *dn,
                        bool ignore_not_found);
 
-
 int sysdb_delete_recursive(struct sysdb_ctx *sysdb,
                            struct ldb_dn *dn,
                            bool ignore_not_found);
+
+/* Mark entry as expired */
+errno_t sysdb_mark_entry_as_expired_ldb_dn(struct sss_domain_info *dom,
+                                           struct ldb_dn *ldbdn);
+errno_t sysdb_mark_entry_as_expired_ldb_val(struct sss_domain_info *dom,
+                                            struct ldb_val *dn_val);
 
 /* Search Entry */
 int sysdb_search_entry(TALLOC_CTX *mem_ctx,

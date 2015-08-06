@@ -3875,3 +3875,75 @@ errno_t sysdb_handle_original_uuid(const char *orig_name,
 
     return EOK;
 }
+
+/* Mark entry as expired */
+errno_t sysdb_mark_entry_as_expired_ldb_dn(struct sss_domain_info *dom,
+                                           struct ldb_dn *ldbdn)
+{
+    struct ldb_message *msg;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    msg->dn = ldbdn;
+
+    ret = ldb_msg_add_empty(msg, SYSDB_CACHE_EXPIRE,
+                            LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(msg, SYSDB_CACHE_EXPIRE, "1");
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = ldb_modify(dom->sysdb->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_mark_entry_as_expired_ldb_val(struct sss_domain_info *dom,
+                                            struct ldb_val *dn_val)
+{
+    struct ldb_dn *ldbdn;
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ldbdn = ldb_dn_from_ldb_val(tmp_ctx, dom->sysdb->ldb, dn_val);
+    if (ldbdn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_mark_entry_as_expired_ldb_dn(dom, ldbdn);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
