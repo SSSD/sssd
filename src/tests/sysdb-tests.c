@@ -6235,6 +6235,74 @@ START_TEST(test_confdb_list_all_domain_names_multi_dom)
 }
 END_TEST
 
+START_TEST(test_sysdb_mark_entry_as_expired_ldb_dn)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *attrs[] = { SYSDB_CACHE_EXPIRE, NULL };
+    size_t count;
+    struct ldb_message **msgs;
+    uint64_t expire;
+    struct ldb_dn *userdn;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_if(ret != EOK, "Could not setup the test");
+
+    /* Add something to database to test against */
+
+    ret = sysdb_transaction_start(test_ctx->sysdb);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = sysdb_add_user(test_ctx->domain, "testuser",
+                         2000, 0, "Test User", "/home/testuser",
+                         "/bin/bash",
+                         NULL, NULL, 500, 0);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = sysdb_transaction_commit(test_ctx->sysdb);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = sysdb_search_users(test_ctx, test_ctx->domain,
+                             "("SYSDB_UIDNUM"=2000)", attrs, &count, &msgs);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert_int_eq(count, 1);
+
+    expire = ldb_msg_find_attr_as_uint64(msgs[0], SYSDB_CACHE_EXPIRE, 0);
+    ck_assert(expire != 1);
+
+    userdn = sysdb_user_dn(test_ctx, test_ctx->domain, "testuser");
+    ck_assert(userdn != NULL);
+
+    ret = sysdb_transaction_start(test_ctx->sysdb);
+    ck_assert_int_eq(ret, EOK);
+
+    /* Expire entry */
+    ret = sysdb_mark_entry_as_expired_ldb_dn(test_ctx->domain, userdn);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = sysdb_transaction_commit(test_ctx->sysdb);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = sysdb_search_users(test_ctx, test_ctx->domain,
+                             "("SYSDB_UIDNUM"=2000)", attrs, &count, &msgs);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert_int_eq(count, 1);
+
+    expire = ldb_msg_find_attr_as_uint64(msgs[0], SYSDB_CACHE_EXPIRE, 0);
+    ck_assert_int_eq(expire, 1);
+
+    /* Try to expire already expired entry. Should return EOK. */
+    ret = sysdb_transaction_start(test_ctx->sysdb);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = sysdb_mark_entry_as_expired_ldb_dn(test_ctx->domain, userdn);
+    ck_assert_int_eq(ret, EOK);
+
+    ret = sysdb_transaction_commit(test_ctx->sysdb);
+    ck_assert_int_eq(ret, EOK);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -6443,6 +6511,7 @@ Suite *create_sysdb_suite(void)
 
 /* ===== Misc ===== */
     tcase_add_test(tc_sysdb, test_sysdb_set_get_bool);
+    tcase_add_test(tc_sysdb, test_sysdb_mark_entry_as_expired_ldb_dn);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
