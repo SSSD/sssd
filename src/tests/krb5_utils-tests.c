@@ -686,9 +686,6 @@ END_TEST
 
 START_TEST(test_sss_krb5_realm_has_proxy)
 {
-    krb5_error_code kerr;
-    long perr;
-
     fail_unless(sss_krb5_realm_has_proxy(NULL) == false);
 
     setenv("KRB5_CONFIG", "/dev/null", 1);
