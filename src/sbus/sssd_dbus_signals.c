@@ -267,7 +267,9 @@ sbus_signal_handler_got_caller_id(struct tevent_req *req)
     signal = tevent_req_callback_data(req, struct sbus_incoming_signal);
 
     ret = sbus_get_sender_id_recv(req, &signal->client);
-    if (ret != EOK) {
+    if (ret == ERR_SBUS_SENDER_BUS) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Got a signal from the bus..\n");
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to resolve caller's ID: %s\n", sss_strerror(ret));
         goto done;

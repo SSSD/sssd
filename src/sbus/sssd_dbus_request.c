@@ -327,6 +327,11 @@ struct tevent_req *sbus_get_sender_id_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
+    if (strcmp(sender, "org.freedesktop.DBus") == 0) {
+        ret = ERR_SBUS_SENDER_BUS;
+        goto immediate;
+    }
+
     state->sender = talloc_strdup(state, sender);
     if (state->sender == NULL) {
         ret = ENOMEM;
