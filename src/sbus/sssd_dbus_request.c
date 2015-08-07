@@ -333,6 +333,9 @@ struct tevent_req *sbus_get_sender_id_send(TALLOC_CTX *mem_ctx,
         goto immediate;
     }
 
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Looking for identity of sender [%s]\n", sender);
+
     key.type = HASH_KEY_STRING;
     key.str = discard_const(sender);
     ret = hash_lookup(conn->clients, &key, &value);
@@ -379,6 +382,7 @@ struct tevent_req *sbus_get_sender_id_send(TALLOC_CTX *mem_ctx,
                                      DBUS_TYPE_STRING, &sender,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
+        ret = ERR_INTERNAL;
         goto immediate;
     }
 
@@ -445,6 +449,7 @@ static void sbus_get_sender_id_done(DBusPendingCall *pending, void *ptr)
                                   DBUS_TYPE_UINT32, &uid,
                                   DBUS_TYPE_INVALID);
     if (!dbret) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not parse reply!\n");
         ret = EIO;
         goto done;
     }
@@ -457,6 +462,7 @@ static void sbus_get_sender_id_done(DBusPendingCall *pending, void *ptr)
     value.ul = state->uid;
     ret = hash_enter(state->conn->clients, &key, &value);
     if (ret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not add key to hash table!\n");
         ret = EIO;
         goto done;
     }
