@@ -4143,7 +4143,7 @@ static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
     }
 
     ret = fill_initgr(cctx->creq->out, dctx->domain, dctx->res, nctx,
-                      dctx->mc_name, cmdctx->name);
+                      dctx->mc_name, cmdctx->normalized_name);
     if (ret) {
         return ret;
     }
@@ -4187,14 +4187,14 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        talloc_free(name);
+        talloc_zfree(cmdctx->normalized_name);
         name = sss_get_cased_name(dctx, cmdctx->name, dom->case_sensitive);
         if (!name) return ENOMEM;
 
         name = sss_reverse_replace_space(cmdctx, name,
                                          nctx->rctx->override_space);
         /* save name so it can be used in initgr reply */
-        cmdctx->name = name;
+        cmdctx->normalized_name = name;
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sss_reverse_replace_space failed\n");

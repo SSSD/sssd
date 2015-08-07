@@ -31,6 +31,7 @@ struct nss_cmd_ctx {
     struct cli_ctx *cctx;
     enum sss_cli_command cmd;
     char *name;
+    const char *normalized_name;
     bool name_is_upn;
     uint32_t id;
     char *secid;
