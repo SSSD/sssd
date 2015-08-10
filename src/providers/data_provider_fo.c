@@ -743,12 +743,34 @@ void reset_fo(struct be_ctx *be_ctx)
     fo_reset_services(be_ctx->be_fo->fo_ctx);
 }
 
-void be_fo_set_port_status(struct be_ctx *ctx,
-                           const char *service_name,
-                           struct fo_server *server,
-                           enum port_status status)
+void _be_fo_set_port_status(struct be_ctx *ctx,
+                            const char *service_name,
+                            struct fo_server *server,
+                            enum port_status status,
+                            int line,
+                            const char *file,
+                            const char *function)
 {
     struct be_svc_data *be_svc;
+
+    /* Print debug info */
+    switch (status) {
+    case PORT_NEUTRAL:
+        DEBUG(SSSDBG_BE_FO,
+              "Setting status: PORT_NEUTRAL. Called from: %s: %s: %d\n",
+              file, function, line);
+        break;
+    case PORT_WORKING:
+        DEBUG(SSSDBG_BE_FO,
+              "Setting status: PORT_WORKING. Called from: %s: %s: %d\n",
+              file, function, line);
+        break;
+    case PORT_NOT_WORKING:
+        DEBUG(SSSDBG_BE_FO,
+              "Setting status: PORT_NOT_WORKING. Called from: %s: %s: %d\n",
+              file, function, line);
+        break;
+    }
 
     be_svc = be_fo_find_svc_data(ctx, service_name);
     if (be_svc == NULL) {

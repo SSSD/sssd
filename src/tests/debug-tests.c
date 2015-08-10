@@ -48,7 +48,7 @@ START_TEST(test_debug_convert_old_level_old_format)
         SSSDBG_TRACE_FUNC,
         SSSDBG_TRACE_LIBS,
         SSSDBG_TRACE_INTERNAL,
-        SSSDBG_TRACE_ALL
+        SSSDBG_TRACE_ALL | SSSDBG_BE_FO
     };
 
     for (old_level = 0; old_level <= 9; old_level++) {

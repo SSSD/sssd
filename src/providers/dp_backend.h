@@ -259,10 +259,17 @@ struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
                                           bool first_try);
 int be_resolve_server_recv(struct tevent_req *req, struct fo_server **srv);
 
-void be_fo_set_port_status(struct be_ctx *ctx,
-                           const char *service_name,
-                           struct fo_server *server,
-                           enum port_status status);
+#define be_fo_set_port_status(ctx, service_name, server, status) \
+    _be_fo_set_port_status(ctx, service_name, server, status, \
+                           __LINE__, __FILE__, __FUNCTION__)
+
+void _be_fo_set_port_status(struct be_ctx *ctx,
+                            const char *service_name,
+                            struct fo_server *server,
+                            enum port_status status,
+                            int line,
+                            const char *file,
+                            const char *function);
 
 /*
  * Instruct fail-over to try next server on the next connect attempt.

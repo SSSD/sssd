@@ -114,7 +114,7 @@ int debug_convert_old_level(int old_level)
         new_level |= SSSDBG_TRACE_INTERNAL;
 
     if (old_level >= 9)
-        new_level |= SSSDBG_TRACE_ALL;
+        new_level |= SSSDBG_TRACE_ALL | SSSDBG_BE_FO;
 
     return new_level;
 }
