@@ -284,7 +284,9 @@ TEST_EXTENSIONS = .sh
 TESTS = \
     $(PYTHON_TESTS) \
     $(non_interactive_cmocka_based_tests) \
-    $(non_interactive_check_based_tests)
+    $(non_interactive_check_based_tests) \
+    src/tests/whitespace_test \
+    $(NULL)
 
 sssdlib_LTLIBRARIES = \
     libsss_ldap.la \
@@ -367,6 +369,7 @@ dist_noinst_SCRIPTS = \
     src/tests/pysss_murmur-test.py2.sh \
     src/tests/pysss_murmur-test.py3.sh \
     src/tests/python-test.py \
+    src/tests/whitespace_test \
     src/tests/krb5_proxy_check_test_data.conf \
     $(NULL)
 
@@ -1382,6 +1385,7 @@ endif
 #################
 TESTS_ENVIRONMENT = LDB_MODULES_PATH=$(abs_top_builddir)/ldb_mod_test_dir \
                     SSS_TEST_DIR=$(TEST_DIR) \
+                    ABS_TOP_SRCDIR=$(abs_top_srcdir) \
                     $(AUX_TESTS_ENVIRONMENT)
 
 ldb_mod_test_dir: memberof.la
