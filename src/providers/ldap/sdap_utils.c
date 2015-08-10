@@ -35,6 +35,7 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
     const char *objname = name ?: "object";
     const char *desc = attr_desc ?: attr_name;
     unsigned int num_values, i;
+    char *printable;
 
     ret = sysdb_attrs_get_el(ldap_attrs, attr_name, &el);
     if (ret) {
@@ -50,8 +51,16 @@ sdap_attrs_add_ldap_attr(struct sysdb_attrs *ldap_attrs,
     } else {
         num_values = multivalued ? el->num_values : 1;
         for (i = 0; i < num_values; i++) {
+            printable = ldb_binary_encode(ldap_attrs, el->values[i]);
+            if (printable == NULL) {
+                DEBUG(SSSDBG_MINOR_FAILURE, "ldb_binary_encode failed..\n");
+                continue;
+            }
+
             DEBUG(SSSDBG_TRACE_INTERNAL, "Adding %s [%s] to attributes "
-                  "of [%s].\n", desc, el->values[i].data, objname);
+                  "of [%s].\n", desc, printable, objname);
+
+            talloc_zfree(printable);
 
             ret = sysdb_attrs_add_mem(attrs, attr_name, el->values[i].data,
                                       el->values[i].length);
