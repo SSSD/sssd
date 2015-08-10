@@ -204,7 +204,7 @@ struct sdap_attr_map ipa_user_map[] = {
     { "ldap_user_nds_login_allowed_time_map", "loginAllowedTimeMap", SYSDB_NDS_LOGIN_ALLOWED_TIME_MAP, NULL },
     { "ldap_user_ssh_public_key", "ipaSshPubKey", SYSDB_SSH_PUBKEY, NULL },
     { "ldap_user_auth_type", "ipaUserAuthType", SYSDB_AUTH_TYPE, NULL },
-    { "ldap_user_certificate", "userCertificate", SYSDB_USER_CERT, NULL },
+    { "ldap_user_certificate", "userCertificate;binary", SYSDB_USER_CERT, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
