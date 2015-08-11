@@ -1304,7 +1304,7 @@ pam_account_expired_message = Account expired, please call help desk.
                         </para>
                     </listitem>
                 </varlistentry>
-                
+
                 <varlistentry>
                     <term>entry_cache_user_timeout (integer)</term>
                     <listitem>
@@ -1317,7 +1317,7 @@ pam_account_expired_message = Account expired, please call help desk.
                         </para>
                     </listitem>
                 </varlistentry>
-                
+
                 <varlistentry>
                     <term>entry_cache_group_timeout (integer)</term>
                     <listitem>
@@ -1330,7 +1330,7 @@ pam_account_expired_message = Account expired, please call help desk.
                         </para>
                     </listitem>
                 </varlistentry>
-                
+
                 <varlistentry>
                     <term>entry_cache_netgroup_timeout (integer)</term>
                     <listitem>
@@ -1343,7 +1343,7 @@ pam_account_expired_message = Account expired, please call help desk.
                         </para>
                     </listitem>
                 </varlistentry>
-                
+
                 <varlistentry>
                     <term>entry_cache_service_timeout (integer)</term>
                     <listitem>

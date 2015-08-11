@@ -9,7 +9,7 @@
   an NSS and PAM interface toward the system and a pluggable backend system
   to connect to multiple different account sources.
 
-  More information about SSSD can be found on its project page - 
+  More information about SSSD can be found on its project page -
   <http://fedorahosted.org/sssd/>
 
   Building and installation

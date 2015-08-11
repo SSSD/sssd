@@ -137,7 +137,6 @@ class PyHbacRuleElementTest(unittest.TestCase):
         el.names = ['foo']
         el.groups = ['bar, baz']
         self.assertEquals(el.__repr__(), u'<category 1 names [foo] groups [bar, baz]>')
-        
 
 class PyHbacRuleTest(unittest.TestCase):
     def testRuleGetSetName(self):

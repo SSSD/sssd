@@ -69,7 +69,7 @@ int set_locale(void)
 }
 
 /* SSH public key request:
- * 
+ *
  * header:
  *   0..3: flags (unsigned int, must be combination of SSS_SSH_REQ_* flags)
  *   4..7: name length (unsigned int)
@@ -80,9 +80,9 @@ int set_locale(void)
  * domain (ony included if flags & SSS_SSH_REQ_DOMAIN):
  *   0..3: domain length (unsigned int, 0 means default domain)
  *   4..X: domain (null-terminated UTF-8 string)
- * 
+ *
  * SSH public key reply:
- * 
+ *
  * header:
  *   0..3: number of results (unsigned int)
  *   4..7: reserved (unsigned int, must be 0)
