@@ -254,7 +254,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                                                const char **ccname_out,
                                                time_t *expire_time_out)
 {
-    int fd;
     char *ccname;
     char *ccname_dummy;
     char *realm_name = NULL;
@@ -274,7 +273,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     TALLOC_CTX *tmp_ctx;
     char *ccname_file_dummy = NULL;
     char *ccname_file;
-    mode_t old_umask;
 
     tmp_ctx = talloc_new(memctx);
     if (tmp_ctx == NULL) {
@@ -408,21 +406,14 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         goto done;
     }
 
-    old_umask = umask(077);
-    fd = mkstemp(ccname_file_dummy);
-    umask(old_umask);
-    if (fd == -1) {
-        ret = errno;
+    ret = sss_unique_filename(tmp_ctx, ccname_file_dummy);
+    if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "mkstemp failed: %s:[%d].\n",
+              "sss_unique_filename failed: %s:[%d].\n",
               strerror(ret), ret);
         krberr = KRB5KRB_ERR_GENERIC;
         goto done;
     }
-    /* We only care about creating a unique file name here, we don't
-     * need the fd
-     */
-    close(fd);
 
     krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
                                         keytab, 0, NULL, &options);
@@ -499,7 +490,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
               "rename failed [%d][%s].\n", ret, strerror(ret));
         goto done;
     }
-    ccname_file_dummy = NULL;
 
     krberr = 0;
     *ccname_out = talloc_steal(memctx, ccname);
@@ -509,15 +499,6 @@ done:
     if (krberr != 0) KRB5_SYSLOG(krberr);
     if (keytab) krb5_kt_close(context, keytab);
     if (context) krb5_free_context(context);
-    if (ccname_file_dummy) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Unlinking [%s]\n", ccname_file_dummy);
-        ret = unlink(ccname_file_dummy);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Unlink failed [%d][%s].\n", ret, strerror(ret));
-        }
-    }
     talloc_free(tmp_ctx);
     return krberr;
 }
