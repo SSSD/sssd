@@ -538,7 +538,7 @@ static errno_t
 ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
 {
     TALLOC_CTX *tmp_ctx;
-    errno_t ret, tmp_ret;
+    errno_t ret;
     const char *attrs[] = {
         SYSDB_NAME,
         SYSDB_NAME_ALIAS,
@@ -557,7 +557,6 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     char *filename = NULL;
     char *entstr;
     ssize_t wret;
-    mode_t old_mask;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -580,12 +579,9 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
         goto done;
     }
 
-    old_mask = umask(0133);
-    fd = mkstemp(filename);
-    umask(old_mask);
+    fd = sss_unique_file_ex(tmp_ctx, filename, 0133, &ret);
     if (fd == -1) {
         filename = NULL;
-        ret = errno;
         goto done;
     }
 
@@ -655,18 +651,9 @@ ssh_host_pubkeys_update_known_hosts(struct ssh_cmd_ctx *cmd_ctx)
     ret = EOK;
 
 done:
-    if (fd != -1) close(fd);
-    if (ret != EOK && filename) {
-        tmp_ret = unlink(filename);
-        /* non-fatal failure */
-        if (tmp_ret != EOK) {
-            tmp_ret = errno;
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Failed to remove file: %s - %d : [%s]!\n",
-                  filename, tmp_ret, sss_strerror(tmp_ret));
-        }
+    if (fd != -1) {
+        close(fd);
     }
-
     talloc_free(tmp_ctx);
 
     return ret;
