@@ -1212,6 +1212,168 @@ void test_fix_domain_in_name_list(void **state)
     talloc_free(dom);
 }
 
+struct unique_file_test_ctx {
+    char *filename;
+};
+
+static int unique_file_test_setup(void **state)
+{
+    struct unique_file_test_ctx *test_ctx;
+
+    assert_true(leak_check_setup());
+    check_leaks_push(global_talloc_context);
+
+    test_ctx = talloc_zero(global_talloc_context, struct unique_file_test_ctx);
+    assert_non_null(test_ctx);
+
+    test_ctx->filename = talloc_strdup(test_ctx, "test_unique_file_XXXXXX");
+    assert_non_null(test_ctx);
+
+    *state = test_ctx;
+    return 0;
+}
+
+static int unique_file_test_teardown(void **state)
+{
+    struct unique_file_test_ctx *test_ctx;
+    errno_t ret;
+
+    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+
+    errno = 0;
+    ret = unlink(test_ctx->filename);
+    if (ret != 0 && errno != ENOENT) {
+        fail();
+    }
+
+    talloc_free(test_ctx);
+    assert_true(check_leaks_pop(global_talloc_context) == true);
+    assert_true(leak_check_teardown());
+    return 0;
+}
+
+static void assert_destructor(TALLOC_CTX *owner,
+                              struct unique_file_test_ctx *test_ctx)
+{
+    int fd;
+    errno_t ret;
+    char *check_filename;
+
+    /* Test that the destructor works */
+    if (owner == NULL) {
+        return;
+    }
+
+    check_filename = talloc_strdup(test_ctx, test_ctx->filename);
+    assert_non_null(check_filename);
+
+    talloc_free(owner);
+
+    ret = check_and_open_readonly(test_ctx->filename, &fd,
+                                  geteuid(), getegid(),
+                                  (S_IRUSR | S_IWUSR | S_IFREG), 0);
+    close(fd);
+    assert_int_not_equal(ret, EOK);
+}
+
+static void sss_unique_file_test(struct unique_file_test_ctx *test_ctx,
+                                 bool test_destructor)
+{
+    int fd;
+    errno_t ret;
+    struct stat sb;
+    TALLOC_CTX *owner = NULL;
+
+    if (test_destructor) {
+        owner = talloc_new(test_ctx);
+        assert_non_null(owner);
+    }
+
+    fd = sss_unique_file(owner, test_ctx->filename, &ret);
+    assert_int_not_equal(fd, -1);
+    assert_int_equal(ret, EOK);
+
+    ret = check_fd(fd, geteuid(), getegid(),
+                   (S_IRUSR | S_IWUSR | S_IFREG), 0, &sb);
+    close(fd);
+    assert_int_equal(ret, EOK);
+
+    assert_destructor(owner, test_ctx);
+}
+
+static void test_sss_unique_file(void **state)
+{
+    struct unique_file_test_ctx *test_ctx;
+    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+    sss_unique_file_test(test_ctx, false);
+}
+
+static void test_sss_unique_file_destruct(void **state)
+{
+    struct unique_file_test_ctx *test_ctx;
+    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+    sss_unique_file_test(test_ctx, true);
+}
+
+static void test_sss_unique_file_neg(void **state)
+{
+    int fd;
+    errno_t ret;
+
+    fd = sss_unique_file(NULL, discard_const("badpattern"), &ret);
+    assert_int_equal(fd, -1);
+    assert_int_equal(ret, EINVAL);
+}
+
+static void sss_unique_filename_test(struct unique_file_test_ctx *test_ctx,
+                                     bool test_destructor)
+{
+    int fd;
+    errno_t ret;
+    char *tmp_filename;
+    TALLOC_CTX *owner = NULL;
+
+    tmp_filename = talloc_strdup(test_ctx, test_ctx->filename);
+    assert_non_null(tmp_filename);
+
+    if (test_destructor) {
+        owner = talloc_new(test_ctx);
+        assert_non_null(owner);
+    }
+
+    ret = sss_unique_filename(owner, test_ctx->filename);
+    assert_int_equal(ret, EOK);
+
+    assert_int_equal(strncmp(test_ctx->filename,
+                             tmp_filename,
+                             strlen(tmp_filename) - sizeof("XXXXXX")),
+                     0);
+
+    ret = check_and_open_readonly(test_ctx->filename, &fd,
+                                  geteuid(), getegid(),
+                                  (S_IRUSR | S_IWUSR | S_IFREG), 0);
+    close(fd);
+    assert_int_equal(ret, EOK);
+
+    assert_destructor(owner, test_ctx);
+}
+
+static void test_sss_unique_filename(void **state)
+{
+    struct unique_file_test_ctx *test_ctx;
+
+    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+    sss_unique_filename_test(test_ctx, false);
+}
+
+static void test_sss_unique_filename_destruct(void **state)
+{
+    struct unique_file_test_ctx *test_ctx;
+
+    test_ctx = talloc_get_type(*state, struct unique_file_test_ctx);
+    sss_unique_filename_test(test_ctx, true);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1275,6 +1437,19 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_fix_domain_in_name_list,
                                         confdb_test_setup,
                                         confdb_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_unique_file,
+                                        unique_file_test_setup,
+                                        unique_file_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_unique_file_destruct,
+                                        unique_file_test_setup,
+                                        unique_file_test_teardown),
+        cmocka_unit_test(test_sss_unique_file_neg),
+        cmocka_unit_test_setup_teardown(test_sss_unique_filename,
+                                        unique_file_test_setup,
+                                        unique_file_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_unique_filename_destruct,
+                                        unique_file_test_setup,
+                                        unique_file_test_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

@@ -659,4 +659,25 @@ int get_seuser(TALLOC_CTX *mem_ctx, const char *login_name,
 /* convert time from generalized form to unix time */
 errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *unix_time);
 
+/* Creates a unique file using mkstemp with provided umask. The template
+ * must end with XXXXXX. Returns the fd, sets _err to an errno value on error.
+ *
+ * Prefer using sss_unique_file() as it uses a secure umask internally.
+ */
+int sss_unique_file_ex(TALLOC_CTX *mem_ctx,
+                       char *path_tmpl,
+                       mode_t file_umask,
+                       errno_t *_err);
+int sss_unique_file(TALLOC_CTX *owner,
+                    char *path_tmpl,
+                    errno_t *_err);
+
+/* Creates a unique filename using mkstemp with secure umask. The template
+ * must end with XXXXXX
+ *
+ * path_tmpl must be a talloc context. Destructor would be set on the filename
+ * so that it's guaranteed the file is removed.
+ */
+int sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl);
+
 #endif /* __SSSD_UTIL_H__ */

@@ -979,3 +979,130 @@ errno_t sss_utc_to_time_t(const char *str, const char *format, time_t *_unix_tim
     *_unix_time = ut;
     return EOK;
 }
+
+struct tmpfile_watch {
+    const char *filename;
+};
+
+static int unlink_dbg(const char *filename)
+{
+    errno_t ret;
+
+    ret = unlink(filename);
+    if (ret != 0) {
+        if (errno == 2) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "File already removed: [%s]\n", filename);
+            return 0;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot remove temporary file [%s]\n", filename);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static int unique_filename_destructor(void *memptr)
+{
+    struct tmpfile_watch *tw = talloc_get_type(memptr, struct tmpfile_watch);
+
+    if (tw == NULL || tw->filename == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Wrong private pointer\n");
+        return -1;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Unlinking [%s]\n", tw->filename);
+
+    return unlink_dbg(tw->filename);
+}
+
+static struct tmpfile_watch *tmpfile_watch_set(TALLOC_CTX *owner,
+                                               const char *filename)
+{
+    struct tmpfile_watch *tw = NULL;
+
+    tw = talloc_zero(owner, struct tmpfile_watch);
+    if (tw == NULL) {
+        return NULL;
+    }
+
+    tw->filename = talloc_strdup(tw, filename);
+    if (tw->filename == NULL) {
+        talloc_free(tw);
+        return NULL;
+    }
+
+    talloc_set_destructor((TALLOC_CTX *) tw,
+                          unique_filename_destructor);
+    return tw;
+}
+
+int sss_unique_file_ex(TALLOC_CTX *owner,
+                       char *path_tmpl,
+                       mode_t file_umask,
+                       errno_t *_err)
+{
+    size_t tmpl_len;
+    errno_t ret;
+    int fd = -1;
+    mode_t old_umask;
+    struct tmpfile_watch *tw = NULL;
+
+    tmpl_len = strlen(path_tmpl);
+    if (tmpl_len < 6 || strcmp(path_tmpl + (tmpl_len - 6), "XXXXXX") != 0) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Template too short or doesn't end with XXXXXX!\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    old_umask = umask(file_umask);
+    fd = mkstemp(path_tmpl);
+    umask(old_umask);
+    if (fd == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_OP_FAILURE,
+              "mkstemp(\"%s\") failed [%d]: %s!\n",
+              path_tmpl, ret, strerror(ret));
+        goto done;
+    }
+
+    if (owner != NULL) {
+        tw = tmpfile_watch_set(owner, path_tmpl);
+        if (tw == NULL) {
+            unlink_dbg(path_tmpl);
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = EOK;
+done:
+    if (_err) {
+        *_err = ret;
+    }
+    return fd;
+}
+
+int sss_unique_file(TALLOC_CTX *owner,
+                    char *path_tmpl,
+                    errno_t *_err)
+{
+    return sss_unique_file_ex(owner, path_tmpl, 077, _err);
+}
+
+errno_t sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl)
+{
+    int fd;
+    errno_t ret;
+
+    fd = sss_unique_file(owner, path_tmpl, &ret);
+    /* We only care about a unique file name */
+    if (fd >= 0) {
+        close(fd);
+    }
+
+    return ret;
+}
