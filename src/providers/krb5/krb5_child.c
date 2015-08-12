@@ -671,8 +671,6 @@ static errno_t handle_randomized(char *in)
     size_t ccname_len;
     char *ccname = NULL;
     int ret;
-    int fd;
-    mode_t old_umask;
 
     /* We only treat the FILE type case in a special way due to the history
      * of storing FILE type ccache in /tmp and associated security issues */
@@ -687,21 +685,18 @@ static errno_t handle_randomized(char *in)
     ccname_len = strlen(ccname);
     if (ccname_len >= 6 && strcmp(ccname + (ccname_len - 6), "XXXXXX") == 0) {
         /* NOTE: this call is only used to create a unique name, as later
-         * krb5_cc_initialize() will unlink and recreate the file.
-         * This is ok because this part of the code is called with
-         * privileges already dropped when handling user ccache, or the ccache
-         * is stored in a private directory. So we do not have huge issues if
-         * something races, we mostly care only about not accidentally use
-         * an existing name and thus failing in the process of saving the
-         * cache. Malicious races can only be avoided by libkrb5 itself. */
-        old_umask = umask(077);
-        fd = mkstemp(ccname);
-        umask(old_umask);
-        if (fd == -1) {
-            ret = errno;
+        * krb5_cc_initialize() will unlink and recreate the file.
+        * This is ok because this part of the code is called with
+        * privileges already dropped when handling user ccache, or the ccache
+        * is stored in a private directory. So we do not have huge issues if
+        * something races, we mostly care only about not accidentally use
+        * an existing name and thus failing in the process of saving the
+        * cache. Malicious races can only be avoided by libkrb5 itself. */
+        ret = sss_unique_filename(NULL, ccname);
+        if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "mkstemp(\"%s\") failed [%d]: %s!\n",
-                  ccname, ret, strerror(ret));
+                    "mkstemp(\"%s\") failed [%d]: %s!\n",
+                    ccname, ret, strerror(ret));
             return ret;
         }
     }
