@@ -1892,6 +1892,7 @@ pam_srv_tests_SOURCES = \
 pam_srv_tests_CFLAGS = \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     $(AM_CFLAGS) \
+    -DSSS_P11_CHILD_TIMEOUT=30 \
     $(NULL)
 pam_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_packet_get_body \

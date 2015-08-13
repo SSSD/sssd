@@ -43,6 +43,11 @@ enum pam_verbosity {
 
 #define DEFAULT_PAM_VERBOSITY PAM_VERBOSITY_IMPORTANT
 
+/* TODO: Should we make this configurable? */
+#ifndef SSS_P11_CHILD_TIMEOUT
+#define SSS_P11_CHILD_TIMEOUT 10
+#endif
+
 static errno_t
 pam_null_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                           const char *username);
@@ -1122,7 +1127,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     if (may_do_cert_auth(pctx, pd)) {
         req = pam_check_cert_send(cctx, cctx->ev, pctx->p11_child_debug_fd,
-                                  pctx->nss_db, 10, pd);
+                                  pctx->nss_db, SSS_P11_CHILD_TIMEOUT, pd);
         if (req == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
             ret = ENOMEM;
@@ -1338,7 +1343,7 @@ static void pam_forwarder_cb(struct tevent_req *req)
 
     if (may_do_cert_auth(pctx, pd)) {
         req = pam_check_cert_send(cctx, cctx->ev, pctx->p11_child_debug_fd,
-                                  pctx->nss_db, 10, pd);
+                                  pctx->nss_db, SSS_P11_CHILD_TIMEOUT, pd);
         if (req == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
             ret = ENOMEM;
