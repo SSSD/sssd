@@ -274,7 +274,9 @@ ifp_is_user_attr_allowed(struct ifp_ctx *ifp_ctx, const char *attr)
 
 static uint32_t ifp_list_limit(struct ifp_ctx *ctx, uint32_t limit)
 {
-    if (ctx->wildcard_limit) {
+    if (limit == 0) {
+        return ctx->wildcard_limit;
+    } else if (ctx->wildcard_limit) {
         return MIN(ctx->wildcard_limit, limit);
     } else {
         return limit;
