@@ -74,7 +74,7 @@ static int parse_cmdline(struct sss_cmdline *cmdline,
     ret = sss_tool_parse_name(tool_ctx, tool_ctx, input_name,
                               &orig_name, &domain);
     if (ret != EOK) {
-        fprintf(stderr, _("Unable to parse name.\n"));
+        fprintf(stderr, _("Unable to parse name %s.\n"), input_name);
         return ret;
     }
 
