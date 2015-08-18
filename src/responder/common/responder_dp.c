@@ -620,8 +620,8 @@ sss_dp_get_account_msg(void *pvt)
 
     /* create the message */
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Creating request for [%s][%u][%d][%s]\n",
-           info->dom->name, be_type, attrs, filter);
+          "Creating request for [%s][%#x][%s][%d][%s]\n",
+           info->dom->name, be_type, be_req2str(be_type), attrs, filter);
 
     dbret = dbus_message_append_args(msg,
                                      DBUS_TYPE_UINT32, &be_type,

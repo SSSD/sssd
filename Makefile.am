@@ -449,7 +449,8 @@ SSSD_RESPONDER_OBJ = \
     src/monitor/monitor_iface_generated.c \
     src/monitor/monitor_iface_generated.h \
     src/providers/data_provider_iface_generated.c \
-    src/providers/data_provider_iface_generated.h
+    src/providers/data_provider_iface_generated.h \
+    src/providers/data_provider_req.c
 
 SSSD_TOOLS_OBJ = \
     src/tools/sss_sync_ops.c \
@@ -587,6 +588,7 @@ dist_noinst_HEADERS = \
     src/confdb/confdb_private.h \
     src/confdb/confdb_setup.h \
     src/providers/data_provider.h \
+    src/providers/data_provider_req.h \
     src/providers/dp_backend.h \
     src/providers/dp_dyndns.h \
     src/providers/dp_ptask_private.h \
@@ -1201,6 +1203,7 @@ endif
 
 sssd_be_SOURCES = \
     src/providers/data_provider_be.c \
+    src/providers/data_provider_req.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \

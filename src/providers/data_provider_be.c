@@ -1104,7 +1104,8 @@ static int be_get_account_info(struct sbus_request *dbus_req, void *user_data)
         return EOK; /* handled */
 
     DEBUG(SSSDBG_FUNC_DATA,
-          "Got request for [%#x][%d][%s]\n", type, attr_type, filter);
+          "Got request for [%#x][%s][%d][%s]\n", type, be_req2str(type),
+          attr_type, filter);
 
     /* If we are offline and fast reply was requested
      * return offline immediately
