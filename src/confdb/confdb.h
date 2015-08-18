@@ -216,6 +216,23 @@
 struct confdb_ctx;
 struct config_file_ctx;
 
+/** sssd domain state */
+enum sss_domain_state {
+    /** Domain is usable by both responders and providers. This
+     * is the default state after creating a new domain
+     */
+    DOM_ACTIVE,
+    /** Domain was removed, should not be used be neither responders
+     * not providers.
+     */
+    DOM_DISABLED,
+    /** Domain cannot be contacted. Providers return an offline error code
+     * when receiving request for inactive domain, but responders should
+     * return cached data
+     */
+    DOM_INACTIVE,
+};
+
 /**
  * Data structure storing all of the basic features
  * of a domain.
@@ -278,7 +295,7 @@ struct sss_domain_info {
     struct sss_domain_info *prev;
     struct sss_domain_info *next;
 
-    bool disabled;
+    enum sss_domain_state state;
     char **sd_inherit;
 
     /* Do not use the forest pointer directly in new code, but rather the

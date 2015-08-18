@@ -50,7 +50,10 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
         } else {
             dom = NULL;
         }
-        if (dom && !dom->disabled) break;
+
+        if (dom && sss_domain_get_state(dom) != DOM_DISABLED) {
+            break;
+        }
     }
 
     return dom;
@@ -91,7 +94,7 @@ struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
         return NULL;
     }
 
-    while (dom && dom->disabled) {
+    while (dom && sss_domain_get_state(dom) == DOM_DISABLED) {
         dom = get_next_domain(dom, true);
     }
     while (dom) {
@@ -119,7 +122,7 @@ struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
 
     sid_len = strlen(sid);
 
-    while (dom && dom->disabled) {
+    while (dom && sss_domain_get_state(dom) == DOM_DISABLED) {
         dom = get_next_domain(dom, true);
     }
 
@@ -729,4 +732,15 @@ done:
     talloc_free(tmp_ctx);
 
     return ret;
+}
+
+enum sss_domain_state sss_domain_get_state(struct sss_domain_info *dom)
+{
+    return dom->state;
+}
+
+void sss_domain_set_state(struct sss_domain_info *dom,
+                          enum sss_domain_state state)
+{
+    dom->state = state;
 }

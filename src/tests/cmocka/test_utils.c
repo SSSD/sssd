@@ -259,7 +259,7 @@ void test_find_domain_by_name_disabled(void **state)
         dom = dom->next;
     }
     assert_non_null(dom);
-    dom->disabled = true;
+    sss_domain_set_state(dom, DOM_DISABLED);
 
     for (c = 0; c < test_ctx->dom_count; c++) {
         name = talloc_asprintf(global_talloc_context, DOMNAME_TMPL, c);
@@ -426,7 +426,7 @@ void test_find_domain_by_sid_disabled(void **state)
         dom = dom->next;
     }
     assert_non_null(dom);
-    dom->disabled = true;
+    sss_domain_set_state(dom, DOM_DISABLED);
 
     for (c = 0; c < test_ctx->dom_count; c++) {
         name = talloc_asprintf(global_talloc_context, DOMNAME_TMPL, c);
@@ -578,7 +578,7 @@ static void test_get_next_domain_disabled(void **state)
     struct sss_domain_info *dom = NULL;
 
     for (dom = test_ctx->dom_list; dom; dom = get_next_domain(dom, true)) {
-        dom->disabled = true;
+        sss_domain_set_state(dom, DOM_DISABLED);
     }
 
     dom = get_next_domain(test_ctx->dom_list, true);

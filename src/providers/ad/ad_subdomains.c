@@ -376,7 +376,7 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
 
         if (c >= count) {
             /* ok this subdomain does not exist anymore, let's clean up */
-            dom->disabled = true;
+            sss_domain_set_state(dom, DOM_DISABLED);
             ret = sysdb_subdomain_delete(dom->sysdb, dom->name);
             if (ret != EOK) {
                 goto done;

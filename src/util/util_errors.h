@@ -103,6 +103,7 @@ enum sssd_errors {
     ERR_P11_CHILD,
     ERR_ADDR_FAMILY_NOT_SUPPORTED,
     ERR_SBUS_SENDER_BUS,
+    ERR_SUBDOM_INACTIVE,
     ERR_LAST            /* ALWAYS LAST */
 };
 

@@ -1342,6 +1342,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     domain->has_views = false;
     domain->view_name = NULL;
 
+    domain->state = DOM_ACTIVE;
+
     *_domain = domain;
     ret = EOK;
 done:

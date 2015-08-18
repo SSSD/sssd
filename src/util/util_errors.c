@@ -81,6 +81,7 @@ struct err_string error_to_str[] = {
     { "p11_child failed" }, /* ERR_P11_CHILD */
     { "Address family not supported" }, /* ERR_ADDR_FAMILY_NOT_SUPPORTED */
     { "Message sender is the bus" }, /* ERR_SBUS_SENDER_BUS */
+    { "Subdomain is inactive" }, /* ERR_SUBDOM_INACTIVE */
     { "ERR_LAST" } /* ERR_LAST */
 };
 

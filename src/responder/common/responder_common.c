@@ -923,7 +923,7 @@ responder_get_domain(struct resp_ctx *rctx, const char *name)
     struct sss_domain_info *ret_dom = NULL;
 
     for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
-        if (dom->disabled) {
+        if (sss_domain_get_state(dom) == DOM_DISABLED) {
             continue;
         }
 
@@ -958,7 +958,8 @@ errno_t responder_get_domain_by_id(struct resp_ctx *rctx, const char *id,
     id_len = strlen(id);
 
     for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
-        if (dom->disabled || dom->domain_id == NULL) {
+        if (sss_domain_get_state(dom) == DOM_DISABLED ||
+                dom->domain_id == NULL) {
             continue;
         }
 

@@ -566,6 +566,9 @@ struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
                                             bool match_any);
 struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
                                            const char *sid);
+enum sss_domain_state sss_domain_get_state(struct sss_domain_info *dom);
+void sss_domain_set_state(struct sss_domain_info *dom,
+                          enum sss_domain_state state);
 
 struct sss_domain_info*
 sss_get_domain_by_sid_ldap_fallback(struct sss_domain_info *domain,
