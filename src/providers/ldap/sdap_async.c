@@ -648,8 +648,14 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
         ret = EOK;
         break;
     case LDAP_CONSTRAINT_VIOLATION:
-        state->user_error_message = talloc_strdup(state,
-            "Please make sure the password meets the complexity constraints.");
+        if (errmsg && strlen(errmsg) != 0) {
+            state->user_error_message = talloc_strdup(state, errmsg);
+        } else {
+            state->user_error_message = talloc_strdup(state,
+                "Please make sure the password meets the "
+                "complexity constraints.");
+        }
+
         if (state->user_error_message == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed\n");
             ret = ENOMEM;
