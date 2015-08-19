@@ -171,6 +171,22 @@ done:
     return ret;
 }
 
+errno_t prepare_view_msg(struct sss_domain_info *domain)
+{
+    errno_t ret;
+
+    ret = prepare_view(domain);
+    if (ret == EEXIST) {
+        fprintf(stderr, _("Other than " LOCALVIEW " view already exist "
+                "in domain %s.\n"), domain->name);
+    } else if (ret != EOK) {
+        fprintf(stderr, _("Unable to prepare " LOCALVIEW
+                " view in domain %s.\n"), domain->name);
+    }
+
+    return ret;
+}
+
 static char *build_anchor(TALLOC_CTX *mem_ctx, const char *obj_dn)
 {
     char *anchor;
@@ -320,17 +336,15 @@ static char *get_sysname(TALLOC_CTX *mem_ctx,
     return get_fqname(mem_ctx, domain, name);
 }
 
-static const char *get_object_dn_and_domain(TALLOC_CTX *mem_ctx,
-                                         enum sysdb_member_type type,
-                                         const char *name,
-                                         struct sss_domain_info *domain,
-                                         struct sss_domain_info *domains,
-                                         struct sss_domain_info **_new_domain)
+static struct sss_domain_info *
+get_object_domain(enum sysdb_member_type type,
+                  const char *name,
+                  struct sss_domain_info *domain,
+                  struct sss_domain_info *domains)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *dom;
     struct ldb_result *res;
-    const char *dn;
     const char *strtype;
     char *sysname;
     bool check_next;
@@ -427,18 +441,6 @@ static const char *get_object_dn_and_domain(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Domain of %s %s is %s\n",
           strtype, name, dom->name);
 
-    dn = ldb_dn_get_linearized(res->msgs[0]->dn);
-    if (dn == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ldb_dn_get_linearized() failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    talloc_steal(mem_ctx, dn);
-    *_new_domain = dom;
-
-    ret = EOK;
-
 done:
     talloc_free(tmp_ctx);
 
@@ -446,35 +448,94 @@ done:
         return NULL;
     }
 
-    return dn;
+    return dom;
 }
 
-static const char * get_user_dn_and_domain(TALLOC_CTX *mem_ctx,
-                                           struct sss_domain_info *domains,
-                                           struct override_user *user)
+static errno_t get_user_domain_msg(struct sss_tool_ctx *tool_ctx,
+                                   struct override_user *user)
 {
-    return get_object_dn_and_domain(mem_ctx, SYSDB_MEMBER_USER,
-                         user->orig_name, user->domain, domains,
-                         &user->domain);
+    struct sss_domain_info *newdom;
+    const char *domname;
+
+    newdom = get_object_domain(SYSDB_MEMBER_USER, user->orig_name,
+                               user->domain, tool_ctx->domains);
+    if (newdom == NULL) {
+        domname = user->domain == NULL ? "[unknown]" : user->domain->name;
+        fprintf(stderr, _("Unable to find user %s@%s.\n"),
+                user->orig_name, domname);
+        return ENOENT;
+    }
+
+    user->domain = newdom;
+    return EOK;
 }
 
-static const char * get_group_dn_and_domain(TALLOC_CTX *mem_ctx,
-                                            struct sss_domain_info *domains,
-                                            struct override_group *group)
+static errno_t get_group_domain_msg(struct sss_tool_ctx *tool_ctx,
+                                    struct override_group *group)
 {
-    return get_object_dn_and_domain(mem_ctx, SYSDB_MEMBER_GROUP,
-                         group->orig_name, group->domain, domains,
-                         &group->domain);
+    struct sss_domain_info *newdom;
+    const char *domname;
+
+    newdom = get_object_domain(SYSDB_MEMBER_GROUP, group->orig_name,
+                               group->domain, tool_ctx->domains);
+    if (newdom == NULL) {
+        domname = group->domain == NULL ? "[unknown]" : group->domain->name;
+        fprintf(stderr, _("Unable to find group %s@%s.\n"),
+                group->orig_name, domname);
+        return ENOENT;
+    }
+
+    group->domain = newdom;
+    return EOK;
+}
+
+static errno_t get_object_dn(TALLOC_CTX *mem_ctx,
+                             struct sss_domain_info *domain,
+                             enum sysdb_member_type type,
+                             const char *name,
+                             struct ldb_dn **_ldb_dn,
+                             const char **_str_dn)
+{
+    struct ldb_dn *ldb_dn;
+
+    switch (type) {
+    case SYSDB_MEMBER_USER:
+       ldb_dn = sysdb_user_dn(mem_ctx, domain, name);
+       break;
+    case SYSDB_MEMBER_GROUP:
+       ldb_dn = sysdb_group_dn(mem_ctx, domain, name);
+       break;
+    default:
+       DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported member type %d\n", type);
+       return ERR_INTERNAL;
+    }
+
+    if (ldb_dn == NULL) {
+        return ENOMEM;
+    }
+
+    if (_str_dn != NULL) {
+        *_str_dn = ldb_dn_get_linearized(ldb_dn);
+    }
+
+    if (_ldb_dn != NULL) {
+        *_ldb_dn = ldb_dn;
+    } else {
+        talloc_free(ldb_dn);
+    }
+
+    return EOK;
 }
 
 static errno_t override_object_add(struct sss_domain_info *domain,
                                    enum sysdb_member_type type,
                                    struct sysdb_attrs *attrs,
-                                   const char *obj_dn)
+                                   const char *name)
 {
     TALLOC_CTX *tmp_ctx;
     const char *anchor;
     struct ldb_dn *ldb_dn;
+    const char *str_dn;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -482,13 +543,12 @@ static errno_t override_object_add(struct sss_domain_info *domain,
         return ENOMEM;
     }
 
-    ldb_dn = ldb_dn_new(tmp_ctx, sysdb_ctx_get_ldb(domain->sysdb), obj_dn);
-    if (ldb_dn == NULL) {
-        ret = ENOMEM;
+    ret = get_object_dn(tmp_ctx, domain, type, name, &ldb_dn, &str_dn);
+    if (ret != EOK) {
         goto done;
     }
 
-    anchor = build_anchor(tmp_ctx, obj_dn);
+    anchor = build_anchor(tmp_ctx, str_dn);
     if (anchor == NULL) {
         ret = ENOMEM;
         goto done;
@@ -499,7 +559,7 @@ static errno_t override_object_add(struct sss_domain_info *domain,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Creating override for %s\n", obj_dn);
+    DEBUG(SSSDBG_TRACE_FUNC, "Creating override for %s\n", str_dn);
 
     ret = sysdb_store_override(domain, LOCALVIEW, type, attrs, ldb_dn);
 
@@ -508,13 +568,70 @@ done:
     return ret;
 }
 
+static errno_t override_user(struct sss_tool_ctx *tool_ctx,
+                             struct override_user *user)
+{
+    struct sysdb_attrs *attrs;
+    errno_t ret;
+
+    ret = prepare_view_msg(user->domain);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    attrs = build_user_attrs(tool_ctx, user);
+    if (attrs == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build sysdb attrs.\n");
+        return ENOMEM;
+    }
+
+    ret = override_object_add(user->domain, SYSDB_MEMBER_USER, attrs,
+                              user->orig_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t override_group(struct sss_tool_ctx *tool_ctx,
+                              struct override_group *group)
+{
+    struct sysdb_attrs *attrs;
+    errno_t ret;
+
+    ret = prepare_view_msg(group->domain);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    attrs = build_group_attrs(tool_ctx, group);
+    if (attrs == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build sysdb attrs.\n");
+        return ENOMEM;
+    }
+
+    ret = override_object_add(group->domain, SYSDB_MEMBER_GROUP, attrs,
+                              group->orig_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
+        return ret;
+    }
+
+    return EOK;
+}
+
 static errno_t override_object_del(struct sss_domain_info *domain,
-                                   const char *obj_dn)
+                                   enum sysdb_member_type type,
+                                   const char *name)
 {
     TALLOC_CTX *tmp_ctx;
-    const char *anchor;
-    struct ldb_dn *override_dn;
     struct ldb_message *msg;
+    struct ldb_dn *override_dn;
+    struct ldb_dn *ldb_dn;
+    const char *str_dn;
+    const char *anchor;
     errno_t ret;
     int sret;
     bool in_transaction = false;
@@ -525,7 +642,12 @@ static errno_t override_object_del(struct sss_domain_info *domain,
         return ENOMEM;
     }
 
-    anchor = build_anchor(tmp_ctx, obj_dn);
+    ret = get_object_dn(tmp_ctx, domain, type, name, &ldb_dn, &str_dn);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    anchor = build_anchor(tmp_ctx, str_dn);
     if (anchor == NULL) {
         ret = ENOMEM;
         goto done;
@@ -538,7 +660,7 @@ static errno_t override_object_del(struct sss_domain_info *domain,
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Removing override for %s\n", obj_dn);
+    DEBUG(SSSDBG_TRACE_FUNC, "Removing override for %s\n", str_dn);
 
     ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
@@ -559,7 +681,7 @@ static errno_t override_object_del(struct sss_domain_info *domain,
         goto done;
     }
 
-    msg->dn = ldb_dn_new(msg, ldb, obj_dn);
+    msg->dn = talloc_steal(msg, ldb_dn);
     if (msg->dn == NULL) {
         ret = ENOMEM;
         goto done;
@@ -607,8 +729,6 @@ static int override_user_add(struct sss_cmdline *cmdline,
                              void *pvt)
 {
     struct override_user user = {NULL};
-    struct sysdb_attrs *attrs;
-    const char *dn;
     int ret;
 
     ret = parse_cmdline_user_add(cmdline, tool_ctx, &user);
@@ -617,34 +737,13 @@ static int override_user_add(struct sss_cmdline *cmdline,
         return EXIT_FAILURE;
     }
 
-    dn = get_user_dn_and_domain(tool_ctx, tool_ctx->domains, &user);
-    if (dn == NULL) {
-        fprintf(stderr, _("Unable to find user %s@%s.\n"),
-                user.orig_name,
-                user.domain == NULL ? "[unknown]" : user.domain->name);
-        return EXIT_FAILURE;
-    }
-
-    ret = prepare_view(user.domain);
-    if (ret == EEXIST) {
-        fprintf(stderr, _("Other than LOCAL view already exist in "
-                "domain %s.\n"), user.domain->name);
-        return EXIT_FAILURE;
-    } else if (ret != EOK) {
-        fprintf(stderr, _("Unable to prepare view [%d]: %s.\n"),
-                ret, sss_strerror(ret));
-        return EXIT_FAILURE;
-    }
-
-    attrs = build_user_attrs(tool_ctx, &user);
-    if (attrs == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build sysdb attrs.\n");
-        return EXIT_FAILURE;
-    }
-
-    ret = override_object_add(user.domain, SYSDB_MEMBER_USER, attrs, dn);
+    ret = get_user_domain_msg(tool_ctx, &user);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
+        return EXIT_FAILURE;
+    }
+
+    ret = override_user(tool_ctx, &user);
+    if (ret != EOK) {
         return EXIT_FAILURE;
     }
 
@@ -656,7 +755,6 @@ static int override_user_del(struct sss_cmdline *cmdline,
                              void *pvt)
 {
     struct override_user user = {NULL};
-    const char *dn;
     int ret;
 
     ret = parse_cmdline_user_del(cmdline, tool_ctx, &user);
@@ -665,16 +763,14 @@ static int override_user_del(struct sss_cmdline *cmdline,
         return EXIT_FAILURE;
     }
 
-    dn = get_user_dn_and_domain(tool_ctx, tool_ctx->domains, &user);
-    if (dn == NULL) {
-        fprintf(stderr, _("Unable to find user %s@%s.\n"),
-                user.orig_name, user.domain->name);
+    ret = get_user_domain_msg(tool_ctx, &user);
+    if (ret != EOK) {
         return EXIT_FAILURE;
     }
 
-    ret = override_object_del(user.domain, dn);
+    ret = override_object_del(user.domain, SYSDB_MEMBER_USER, user.orig_name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to delete override object.\n");
         return EXIT_FAILURE;
     }
 
@@ -686,8 +782,6 @@ static int override_group_add(struct sss_cmdline *cmdline,
                               void *pvt)
 {
     struct override_group group = {NULL};
-    struct sysdb_attrs *attrs;
-    const char *dn;
     int ret;
 
     ret = parse_cmdline_group_add(cmdline, tool_ctx, &group);
@@ -696,33 +790,13 @@ static int override_group_add(struct sss_cmdline *cmdline,
         return EXIT_FAILURE;
     }
 
-    dn = get_group_dn_and_domain(tool_ctx, tool_ctx->domains, &group);
-    if (dn == NULL) {
-        fprintf(stderr, _("Unable to find group %s@%s.\n"),
-                group.orig_name, group.domain->name);
-        return EXIT_FAILURE;
-    }
-
-    ret = prepare_view(group.domain);
-    if (ret == EEXIST) {
-        fprintf(stderr, _("Other than LOCAL view already exist in "
-                "domain %s.\n"), group.domain->name);
-        return EXIT_FAILURE;
-    } else if (ret != EOK) {
-        fprintf(stderr, _("Unable to prepare view [%d]: %s.\n"),
-                ret, sss_strerror(ret));
-        return EXIT_FAILURE;
-    }
-
-    attrs = build_group_attrs(tool_ctx, &group);
-    if (attrs == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build sysdb attrs.\n");
-        return EXIT_FAILURE;
-    }
-
-    ret = override_object_add(group.domain, SYSDB_MEMBER_GROUP, attrs, dn);
+    ret = get_group_domain_msg(tool_ctx, &group);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
+        return EXIT_FAILURE;
+    }
+
+    ret = override_group(tool_ctx, &group);
+    if (ret != EOK) {
         return EXIT_FAILURE;
     }
 
@@ -734,7 +808,6 @@ static int override_group_del(struct sss_cmdline *cmdline,
                               void *pvt)
 {
     struct override_group group = {NULL};
-    const char *dn;
     int ret;
 
     ret = parse_cmdline_group_del(cmdline, tool_ctx, &group);
@@ -743,16 +816,15 @@ static int override_group_del(struct sss_cmdline *cmdline,
         return EXIT_FAILURE;
     }
 
-    dn = get_group_dn_and_domain(tool_ctx, tool_ctx->domains, &group);
-    if (dn == NULL) {
-        fprintf(stderr, _("Unable to find group %s@%s.\n"),
-                group.orig_name, group.domain->name);
+    ret = get_group_domain_msg(tool_ctx, &group);
+    if (ret != EOK) {
         return EXIT_FAILURE;
     }
 
-    ret = override_object_del(group.domain, dn);
+    ret = override_object_del(group.domain, SYSDB_MEMBER_GROUP,
+                              group.orig_name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to delete override object.\n");
         return EXIT_FAILURE;
     }
 
