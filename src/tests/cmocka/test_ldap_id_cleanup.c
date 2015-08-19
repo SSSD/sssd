@@ -186,23 +186,26 @@ static void test_id_cleanup_exp_group(void **state)
     const char *empty_special_grp = "empty_gr*o/u\\p(2016)";
     const char *empty_grp = "empty_grp";
     const char *grp = "grp";
+    /* This timeout can be bigger because we will call invalidate_group
+     * to expire entries without waiting. */
+    const uint64_t CACHE_TIMEOUT = 30;
     struct sysdb_test_ctx *test_ctx = talloc_get_type_abort(*state,
                                                             struct sysdb_test_ctx);
 
     ret = sysdb_store_group(test_ctx->domain, special_grp,
-                            10002, NULL, 1, 0);
+                            10002, NULL, CACHE_TIMEOUT, 0);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_store_group(test_ctx->domain, empty_special_grp,
-                            10003, NULL, 1, 0);
+                            10003, NULL, CACHE_TIMEOUT, 0);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_store_group(test_ctx->domain, grp,
-                            10004, NULL, 1, 0);
+                            10004, NULL, CACHE_TIMEOUT, 0);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_store_group(test_ctx->domain, empty_grp,
-                            10005, NULL, 1, 0);
+                            10005, NULL, CACHE_TIMEOUT, 0);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_store_user(test_ctx->domain, "test_user", NULL,
