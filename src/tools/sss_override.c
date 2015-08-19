@@ -272,6 +272,54 @@ static struct sysdb_attrs *build_group_attrs(TALLOC_CTX *mem_ctx,
     return build_attrs(mem_ctx, group->name, 0, group->gid, 0, NULL, NULL);
 }
 
+static char *get_fqname(TALLOC_CTX *mem_ctx,
+                        struct sss_domain_info *domain,
+                        const char *name)
+{
+    char *fqname;
+    size_t fqlen;
+    size_t check;
+
+    if (domain == NULL) {
+        return NULL;
+    }
+
+    /* Get length. */
+    fqlen = sss_fqname(NULL, 0, domain->names, domain, name);
+    if (fqlen > 0) {
+        fqlen++; /* \0 */
+    } else {
+        return NULL;
+    }
+
+    fqname = talloc_zero_array(mem_ctx, char, fqlen);
+    if (fqname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero_array() failed\n");
+        return NULL;
+    }
+
+    check = sss_fqname(fqname, fqlen, domain->names, domain, name);
+    if (check != fqlen - 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to generate a fully qualified name "
+              "for user [%s] in [%s]! Skipping user.\n", name, domain->name);
+        talloc_free(fqname);
+        return NULL;
+    }
+
+    return fqname;
+}
+
+static char *get_sysname(TALLOC_CTX *mem_ctx,
+                         struct sss_domain_info *domain,
+                         const char *name)
+{
+    if (domain == NULL || !domain->fqnames) {
+        return talloc_strdup(mem_ctx, name);
+    }
+
+    return get_fqname(mem_ctx, domain, name);
+}
+
 static const char *get_object_dn_and_domain(TALLOC_CTX *mem_ctx,
                                          enum sysdb_member_type type,
                                          const char *name,
@@ -284,6 +332,7 @@ static const char *get_object_dn_and_domain(TALLOC_CTX *mem_ctx,
     struct ldb_result *res;
     const char *dn;
     const char *strtype;
+    char *sysname;
     bool check_next;
     errno_t ret;
 
@@ -292,16 +341,22 @@ static const char *get_object_dn_and_domain(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    sysname = get_sysname(tmp_ctx, domain, name);
+    if (sysname == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     /* Ensure that the object is in cache. */
     switch (type) {
     case SYSDB_MEMBER_USER:
-        if (getpwnam(name) == NULL) {
+        if (getpwnam(sysname) == NULL) {
             ret = ENOENT;
             goto done;
         }
         break;
     case SYSDB_MEMBER_GROUP:
-        if (getgrnam(name) == NULL) {
+        if (getgrnam(sysname) == NULL) {
             ret = ENOENT;
             goto done;
         }
