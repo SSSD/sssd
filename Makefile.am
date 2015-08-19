@@ -652,6 +652,7 @@ dist_noinst_HEADERS = \
     src/lib/sifp/sss_sifp_private.h \
     src/tests/cmocka/test_utils.h \
     src/tools/common/sss_tools.h \
+    src/tools/common/sss_colondb.h \
     $(NULL)
 
 
@@ -1332,6 +1333,7 @@ sss_signal_LDADD = \
 
 sss_override_SOURCES = \
     src/tools/sss_override.c \
+    src/tools/common/sss_colondb.c \
     $(SSSD_TOOLS_OBJ) \
     $(NULL)
 sss_override_LDADD = \

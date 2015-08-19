@@ -77,6 +77,50 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>user-import</option>
+                    <emphasis>FILE</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Import user overrides from <emphasis>FILE</emphasis>.
+                        Data format is similar to standard passwd file.
+                        The format is:
+                    </para>
+                    <para>
+                        original_name:name:uid:gid:gecos:home:shell
+                    </para>
+                    <para>
+                        where original_name is original name of the user whose
+                        attributes should be overridden. The rest of fields
+                        correspond to new values. You can omit a value simply
+                        by leaving corresponding field empty.
+                    </para>
+                    <para>
+                        Examples:
+                    </para>
+                    <para>
+                        ckent:superman::::::
+                    </para>
+                    <para>
+                        ckent@krypton.com::501:501:Superman:/home/earth:/bin/bash
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>user-export</option>
+                    <emphasis>FILE</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Export all overridden attributes and store them in
+                        <emphasis>FILE</emphasis>. See
+                        <emphasis>user-import</emphasis> for data format.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>group-add</option>
                     <emphasis>NAME</emphasis>
                     <optional><option>-n,--name</option> NAME</optional>
@@ -96,6 +140,50 @@
                 <listitem>
                     <para>
                         Remove group overrides.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-import</option>
+                    <emphasis>FILE</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Import group overrides from <emphasis>FILE</emphasis>.
+                        Data format is similar to standard group file.
+                        The format is:
+                    </para>
+                    <para>
+                        original_name:name:gid
+                    </para>
+                    <para>
+                        where original_name is original name of the group whose
+                        attributes should be overridden. The rest of fields
+                        correspond to new values. You can omit a value simply
+                        by leaving corresponding field empty.
+                    </para>
+                    <para>
+                        Examples:
+                    </para>
+                    <para>
+                        admins:administrators:
+                    </para>
+                    <para>
+                        Domain Users:Users:501
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-export</option>
+                    <emphasis>FILE</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Export all overridden attributes and store them in
+                        <emphasis>FILE</emphasis>. See
+                        <emphasis>group-import</emphasis> for data format.
                     </para>
                 </listitem>
             </varlistentry>

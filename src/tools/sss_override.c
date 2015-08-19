@@ -23,8 +23,10 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/common/sss_tools.h"
+#include "tools/common/sss_colondb.h"
 
 #define LOCALVIEW SYSDB_LOCAL_VIEW_NAME
+#define ORIGNAME "originalName"
 
 struct override_user {
     const char *input_name;
@@ -133,6 +135,40 @@ static int parse_cmdline_group_del(struct sss_cmdline *cmdline,
 {
     return parse_cmdline(cmdline, tool_ctx, NULL, &group->input_name,
                          &group->orig_name, &group->domain);
+}
+
+static int parse_cmdline_import(struct sss_cmdline *cmdline,
+                                struct sss_tool_ctx *tool_ctx,
+                                const char **_file)
+{
+    int ret;
+
+    ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL,
+                           NULL, NULL, "FILE", "File to import the data from.",
+                           _file);
+    if (ret != EXIT_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
+        return ret;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+static int parse_cmdline_export(struct sss_cmdline *cmdline,
+                                struct sss_tool_ctx *tool_ctx,
+                                const char **_file)
+{
+    int ret;
+
+    ret = sss_tool_popt_ex(cmdline, NULL, SSS_TOOL_OPT_OPTIONAL,
+                           NULL, NULL, "FILE", "File to export the data to.",
+                           _file);
+    if (ret != EXIT_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
+        return ret;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 static errno_t prepare_view(struct sss_domain_info *domain)
@@ -293,8 +329,8 @@ static char *get_fqname(TALLOC_CTX *mem_ctx,
                         const char *name)
 {
     char *fqname;
-    size_t fqlen;
-    size_t check;
+    int fqlen;
+    int check;
 
     if (domain == NULL) {
         return NULL;
@@ -315,7 +351,7 @@ static char *get_fqname(TALLOC_CTX *mem_ctx,
     }
 
     check = sss_fqname(fqname, fqlen, domain->names, domain, name);
-    if (check != fqlen - 1) {
+    if (check < 0 || check != fqlen - 1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to generate a fully qualified name "
               "for user [%s] in [%s]! Skipping user.\n", name, domain->name);
         talloc_free(fqname);
@@ -724,6 +760,246 @@ done:
     return ret;
 }
 
+static errno_t append_name(struct sss_domain_info *domain,
+                           struct ldb_message *override)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_context *ldb = sysdb_ctx_get_ldb(domain->sysdb);
+    struct ldb_dn *dn;
+    struct ldb_message **msgs;
+    const char *attrs[] = {SYSDB_NAME, NULL};
+    const char *name;
+    const char *fqname;
+    size_t count;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        return ENOMEM;
+    }
+
+    dn = ldb_msg_find_attr_as_dn(ldb, tmp_ctx, override,
+                                 SYSDB_OVERRIDE_OBJECT_DN);
+    if (dn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing overrideObjectDN?\n");
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, dn, LDB_SCOPE_BASE,
+                             NULL, attrs, &count, &msgs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_entry() failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    } else if (count != 1) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "More than one user found?\n");
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    name = ldb_msg_find_attr_as_string(msgs[0], SYSDB_NAME, NULL);
+    if (name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Object with no name?\n");
+        ret = ERR_INTERNAL;
+        goto done;
+    }
+
+    fqname = get_fqname(tmp_ctx, domain, name);
+    if (fqname == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get fqname\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_string(override, ORIGNAME, fqname);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add attribute to msg\n");
+        goto done;
+    }
+
+    talloc_steal(override, fqname);
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t list_overrides(TALLOC_CTX *mem_ctx,
+                              const char *filter,
+                              const char **attrs,
+                              struct sss_domain_info *domain,
+                              size_t *_count,
+                              struct ldb_message ***_msgs)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    struct ldb_context *ldb = sysdb_ctx_get_ldb(domain->sysdb);
+    size_t count;
+    struct ldb_message **msgs;
+    size_t i;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        return ENOMEM;
+    }
+
+    /* Acquire list of override objects. */
+    dn = ldb_dn_new_fmt(tmp_ctx, ldb, SYSDB_TMPL_VIEW_SEARCH_BASE, LOCALVIEW);
+    if (dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ldb_dn_new_fmt() failed.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, dn, LDB_SCOPE_SUBTREE,
+                             filter, attrs, &count, &msgs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sysdb_search_entry() failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Amend messages with original name. */
+    for (i = 0; i < count; i++) {
+        ret = append_name(domain, msgs[i]);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to append name [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
+    *_msgs = talloc_steal(mem_ctx, msgs);
+    *_count = count;
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static struct override_user *
+list_user_overrides(TALLOC_CTX *mem_ctx,
+                    struct sss_domain_info *domain)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct override_user *objs;
+    struct ldb_message **msgs;
+    size_t count;
+    size_t i;
+    errno_t ret;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        return NULL;
+    }
+
+    ret = list_overrides(tmp_ctx, "(objectClass=" SYSDB_OVERRIDE_USER_CLASS ")",
+                         attrs, domain, &count, &msgs);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    objs = talloc_zero_array(tmp_ctx, struct override_user, count + 1);
+    if (objs == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < count; i++) {
+        objs[i].orig_name = ldb_msg_find_attr_as_string(msgs[i], ORIGNAME,
+                                                        NULL);
+        if (objs[i].orig_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Missing name?!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        objs[i].name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
+        objs[i].uid = ldb_msg_find_attr_as_uint(msgs[i], SYSDB_UIDNUM, 0);
+        objs[i].gid = ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
+        objs[i].home = ldb_msg_find_attr_as_string(msgs[i], SYSDB_HOMEDIR, NULL);
+        objs[i].shell = ldb_msg_find_attr_as_string(msgs[i], SYSDB_SHELL, NULL);
+        objs[i].gecos = ldb_msg_find_attr_as_string(msgs[i], SYSDB_GECOS, NULL);
+    }
+
+    talloc_steal(mem_ctx, objs);
+
+done:
+    talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    return objs;
+}
+
+static struct override_group *
+list_group_overrides(TALLOC_CTX *mem_ctx,
+                     struct sss_domain_info *domain)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct override_group *objs;
+    struct ldb_message **msgs;
+    size_t count;
+    size_t i;
+    errno_t ret;
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        return NULL;
+    }
+
+    ret = list_overrides(tmp_ctx, "(objectClass=" SYSDB_OVERRIDE_GROUP_CLASS ")",
+                         attrs, domain, &count, &msgs);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    objs = talloc_zero_array(tmp_ctx, struct override_group, count + 1);
+    if (objs == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < count; i++) {
+        objs[i].orig_name = ldb_msg_find_attr_as_string(msgs[i], ORIGNAME,
+                                                        NULL);
+        if (objs[i].orig_name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Missing name?!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        objs[i].name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
+        objs[i].gid = ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
+    }
+
+    talloc_steal(mem_ctx, objs);
+
+done:
+    talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
+        return NULL;
+    }
+
+    return objs;
+}
+
 static int override_user_add(struct sss_cmdline *cmdline,
                              struct sss_tool_ctx *tool_ctx,
                              void *pvt)
@@ -775,6 +1051,161 @@ static int override_user_del(struct sss_cmdline *cmdline,
     }
 
     return EXIT_SUCCESS;
+}
+
+static int override_user_import(struct sss_cmdline *cmdline,
+                                struct sss_tool_ctx *tool_ctx,
+                                void *pvt)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sss_colondb *db;
+    const char *filename;
+    struct override_user obj;
+    int linenum = 1;
+    errno_t ret;
+    int exit;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        return EXIT_FAILURE;
+    }
+
+    /**
+     * Format: orig_name:name:uid:gid:gecos:home:shell
+     */
+    struct sss_colondb_read_field table[] = {
+        {SSS_COLONDB_STRING, {.str = &obj.input_name}},
+        {SSS_COLONDB_STRING, {.str = &obj.name}},
+        {SSS_COLONDB_UINT32, {.uint32 = &obj.uid}},
+        {SSS_COLONDB_UINT32, {.uint32 = &obj.gid}},
+        {SSS_COLONDB_STRING, {.str = &obj.gecos}},
+        {SSS_COLONDB_STRING, {.str = &obj.home}},
+        {SSS_COLONDB_STRING, {.str = &obj.shell}},
+        {SSS_COLONDB_SENTINEL, {0}}
+    };
+
+    ret = parse_cmdline_import(cmdline, tool_ctx, &filename);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    db = sss_colondb_open(tool_ctx, SSS_COLONDB_READ, filename);
+    if (db == NULL) {
+        fprintf(stderr, _("Unable to open %s.\n"), filename);
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    while ((ret = sss_colondb_readline(tmp_ctx, db, table)) == EOK) {
+        linenum++;
+
+        ret = sss_tool_parse_name(tool_ctx, tool_ctx, obj.input_name,
+                                  &obj.orig_name, &obj.domain);
+        if (ret != EOK) {
+            fprintf(stderr, _("Unable to parse name %s.\n"), obj.input_name);
+            exit = EXIT_FAILURE;
+            goto done;
+        }
+
+        ret = get_user_domain_msg(tool_ctx, &obj);
+        if (ret != EOK) {
+            exit = EXIT_FAILURE;
+            goto done;
+        }
+
+        ret = override_user(tool_ctx, &obj);
+        if (ret != EOK) {
+            exit = EXIT_FAILURE;
+            goto done;
+        }
+
+        talloc_free_children(tmp_ctx);
+    }
+
+    if (ret != EOF) {
+        fprintf(stderr, _("Invalid format on line %d. "
+                "Use --debug option for more information.\n"), linenum);
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    exit = EXIT_SUCCESS;
+
+done:
+    talloc_free(tmp_ctx);
+    return exit;
+}
+
+static int override_user_export(struct sss_cmdline *cmdline,
+                                struct sss_tool_ctx *tool_ctx,
+                                void *pvt)
+{
+    struct sss_colondb *db;
+    const char *filename;
+    struct override_user *objs;
+    struct sss_domain_info *dom;
+    errno_t ret;
+    int exit;
+    int i;
+
+    ret = parse_cmdline_export(cmdline, tool_ctx, &filename);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    db = sss_colondb_open(tool_ctx, SSS_COLONDB_WRITE, filename);
+    if (db == NULL) {
+        fprintf(stderr, _("Unable to open %s.\n"), filename);
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    dom = tool_ctx->domains;
+    do {
+        objs = list_user_overrides(tool_ctx, tool_ctx->domains);
+        if (objs == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get override objects\n");
+            exit = EXIT_FAILURE;
+            goto done;
+        }
+
+        for (i = 0; objs[i].orig_name != NULL; i++) {
+            /**
+             * Format: orig_name:name:uid:gid:gecos:home:shell
+             */
+            struct sss_colondb_write_field table[] = {
+                {SSS_COLONDB_STRING, {.str = objs[i].orig_name}},
+                {SSS_COLONDB_STRING, {.str = objs[i].name}},
+                {SSS_COLONDB_UINT32, {.uint32 = objs[i].uid}},
+                {SSS_COLONDB_UINT32, {.uint32 = objs[i].gid}},
+                {SSS_COLONDB_STRING, {.str = objs[i].gecos}},
+                {SSS_COLONDB_STRING, {.str = objs[i].home}},
+                {SSS_COLONDB_STRING, {.str = objs[i].shell}},
+                {SSS_COLONDB_SENTINEL, {0}}
+            };
+
+            ret = sss_colondb_writeline(db, table);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Unable to write line to db\n");
+                exit = EXIT_FAILURE;
+                goto done;
+            }
+        }
+
+        /* All overrides are under the same subtree, so we don't want to
+         * descent into subdomains. */
+        dom = get_next_domain(dom, false);
+    } while (dom != NULL);
+
+    exit = EXIT_SUCCESS;
+
+done:
+    return exit;
 }
 
 static int override_group_add(struct sss_cmdline *cmdline,
@@ -831,13 +1262,164 @@ static int override_group_del(struct sss_cmdline *cmdline,
     return EXIT_SUCCESS;
 }
 
+static int override_group_import(struct sss_cmdline *cmdline,
+                                 struct sss_tool_ctx *tool_ctx,
+                                 void *pvt)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sss_colondb *db;
+    const char *filename;
+    struct override_group obj;
+    int linenum = 1;
+    errno_t ret;
+    int exit;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        return EXIT_FAILURE;
+    }
+
+    /**
+     * Format: orig_name:name:gid
+     */
+    struct sss_colondb_read_field table[] = {
+        {SSS_COLONDB_STRING, {.str = &obj.input_name}},
+        {SSS_COLONDB_STRING, {.str = &obj.name}},
+        {SSS_COLONDB_UINT32, {.uint32 = &obj.gid}},
+        {SSS_COLONDB_SENTINEL, {0}}
+    };
+
+    ret = parse_cmdline_import(cmdline, tool_ctx, &filename);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    db = sss_colondb_open(tool_ctx, SSS_COLONDB_READ, filename);
+    if (db == NULL) {
+        fprintf(stderr, _("Unable to open %s.\n"), filename);
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    while ((ret = sss_colondb_readline(tmp_ctx, db, table)) == EOK) {
+        linenum++;
+
+        ret = sss_tool_parse_name(tool_ctx, tool_ctx, obj.input_name,
+                                  &obj.orig_name, &obj.domain);
+        if (ret != EOK) {
+            fprintf(stderr, _("Unable to parse name %s.\n"), obj.input_name);
+            exit = EXIT_FAILURE;
+            goto done;
+        }
+
+        ret = get_group_domain_msg(tool_ctx, &obj);
+        if (ret != EOK) {
+            exit = EXIT_FAILURE;
+            goto done;
+        }
+
+        ret = override_group(tool_ctx, &obj);
+        if (ret != EOK) {
+            exit = EXIT_FAILURE;
+            goto done;
+        }
+
+        talloc_free_children(tmp_ctx);
+    }
+
+    if (ret != EOF) {
+        fprintf(stderr, _("Invalid format on line %d. "
+                "Use --debug option for more information.\n"), linenum);
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    exit = EXIT_SUCCESS;
+
+done:
+    talloc_free(tmp_ctx);
+    return exit;
+}
+
+static int override_group_export(struct sss_cmdline *cmdline,
+                                 struct sss_tool_ctx *tool_ctx,
+                                 void *pvt)
+{
+    struct sss_colondb *db;
+    const char *filename;
+    struct override_group *objs;
+    struct sss_domain_info *dom;
+    errno_t ret;
+    int exit;
+    int i;
+
+    ret = parse_cmdline_export(cmdline, tool_ctx, &filename);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    db = sss_colondb_open(tool_ctx, SSS_COLONDB_WRITE, filename);
+    if (db == NULL) {
+        fprintf(stderr, _("Unable to open %s.\n"), filename);
+        exit = EXIT_FAILURE;
+        goto done;
+    }
+
+    dom = tool_ctx->domains;
+    do {
+        objs = list_group_overrides(tool_ctx, tool_ctx->domains);
+        if (objs == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get override objects\n");
+            exit = EXIT_FAILURE;
+            goto done;
+        }
+
+        for (i = 0; objs[i].orig_name != NULL; i++) {
+            /**
+             * Format: orig_name:name:uid:gid:gecos:home:shell
+             */
+            struct sss_colondb_write_field table[] = {
+                {SSS_COLONDB_STRING, {.str = objs[i].orig_name}},
+                {SSS_COLONDB_STRING, {.str = objs[i].name}},
+                {SSS_COLONDB_UINT32, {.uint32 = objs[i].gid}},
+                {SSS_COLONDB_SENTINEL, {0}}
+            };
+
+            ret = sss_colondb_writeline(db, table);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Unable to write line to db\n");
+                exit = EXIT_FAILURE;
+                goto done;
+            }
+        }
+
+        /* All overrides are under the same subtree, so we don't want to
+         * descent into subdomains. */
+        dom = get_next_domain(dom, false);
+    } while (dom != NULL);
+
+    exit = EXIT_SUCCESS;
+
+done:
+    return exit;
+}
+
 int main(int argc, const char **argv)
 {
     struct sss_route_cmd commands[] = {
         {"user-add", override_user_add},
         {"user-del", override_user_del},
+        {"user-import", override_user_import},
+        {"user-export", override_user_export},
         {"group-add", override_group_add},
         {"group-del", override_group_del},
+        {"group-import", override_group_import},
+        {"group-export", override_group_export},
         {NULL, NULL}
     };
 
