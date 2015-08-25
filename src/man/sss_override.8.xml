@@ -190,6 +190,22 @@
         </variablelist>
     </refsect1>
 
+    <refsect1 id='options'>
+        <title>COMMON OPTIONS</title>
+        <para>
+            Those options are available with all commands.
+        </para>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--debug</option>
+                    <replaceable>LEVEL</replaceable>
+                </term>
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
 
 </refentry>

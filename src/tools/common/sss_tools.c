@@ -36,6 +36,13 @@ struct sss_cmdline {
     const char **argv;
 };
 
+static void sss_tool_print_common_opts(void)
+{
+    fprintf(stderr, _("Common options:\n"));
+    fprintf(stderr, "  --debug=INT            %s\n",
+                    _("Enable debug at level"));
+}
+
 static void sss_tool_common_opts(struct sss_tool_ctx *tool_ctx,
                                  int *argc, const char **argv)
 {
@@ -201,6 +208,9 @@ int sss_tool_usage(const char *tool_name,
         fprintf(stderr, "* %s\n", commands[i].command);
     }
 
+    fprintf(stderr, _("\n"));
+    sss_tool_print_common_opts();
+
     return EXIT_FAILURE;
 }
 
@@ -235,6 +245,13 @@ int sss_tool_route(int argc, const char **argv,
     }
 
     return sss_tool_usage(argv[0], commands);
+}
+
+static void sss_tool_popt_print_help(poptContext pc)
+{
+    poptPrintHelp(pc, stderr, 0);
+    fprintf(stderr, "\n");
+    sss_tool_print_common_opts();
 }
 
 int sss_tool_popt_ex(struct sss_cmdline *cmdline,
@@ -286,7 +303,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         } else {
             fprintf(stderr, _("Invalid option %s: %s\n\n"),
                     poptBadOption(pc, 0), poptStrerror(ret));
-            poptPrintHelp(pc, stderr, 0);
+            sss_tool_popt_print_help(pc);
             ret = EXIT_FAILURE;
             goto done;
         }
@@ -297,7 +314,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         *_fopt = poptGetArg(pc);
         if (*_fopt == NULL) {
             fprintf(stderr, _("Missing option: %s\n\n"), fopt_help);
-            poptPrintHelp(pc, stderr, 0);
+            sss_tool_popt_print_help(pc);
             ret = EXIT_FAILURE;
             goto done;
         }
@@ -305,7 +322,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         /* No more arguments expected. If something follows it is an error. */
         if (poptGetArg(pc)) {
             fprintf(stderr, _("Only one free argument is expected!\n\n"));
-            poptPrintHelp(pc, stderr, 0);
+            sss_tool_popt_print_help(pc);
             ret = EXIT_FAILURE;
             goto done;
         }
@@ -315,7 +332,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
     if (require_option == SSS_TOOL_OPT_REQUIRED
             && ((_fopt != NULL && cmdline->argc < 2) || cmdline->argc < 1)) {
         fprintf(stderr, _("At least one option is required!\n\n"));
-        poptPrintHelp(pc, stderr, 0);
+        sss_tool_popt_print_help(pc);
         ret = EXIT_FAILURE;
         goto done;
     }
