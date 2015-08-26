@@ -367,7 +367,7 @@ START_TEST(ipa_hbac_test_allow_utf8)
     fail_if(rules[0]->services->names == NULL);
 
     rules[0]->srchosts->names[0] = (const char *) &srchost_utf8_upcase;
-    rules[0]->services->names[1] = NULL;
+    rules[0]->srchosts->names[1] = NULL;
 
     rules[1] = NULL;
 
