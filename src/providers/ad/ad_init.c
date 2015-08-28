@@ -91,8 +91,50 @@ static int ad_sasl_getopt(void *context, const char *plugin_name,
 
 typedef int (*sss_sasl_gen_cb_fn)(void);
 
+static int map_sasl2sssd_log_level(int sasl_level)
+{
+    int sssd_level;
+
+    switch(sasl_level) {
+    case SASL_LOG_ERR:       /* log unusual errors (default) */
+        sssd_level = SSSDBG_CRIT_FAILURE;
+        break;
+    case SASL_LOG_FAIL:      /* log all authentication failures */
+        sssd_level = SSSDBG_OP_FAILURE;
+        break;
+    case SASL_LOG_WARN:      /* log non-fatal warnings */
+        sssd_level = SSSDBG_MINOR_FAILURE;
+        break;
+    case SASL_LOG_NOTE:      /* more verbose than LOG_WARN */
+    case SASL_LOG_DEBUG:     /* more verbose than LOG_NOTE */
+    case SASL_LOG_TRACE:     /* traces of internal protocols */
+    case SASL_LOG_PASS:      /* traces of internal protocols, including */
+        sssd_level = SSSDBG_TRACE_ALL;
+        break;
+    default:
+        sssd_level = SSSDBG_TRACE_ALL;
+        break;
+    }
+
+    return sssd_level;
+}
+
+int ad_sasl_log(void *context, int level, const char *message)
+{
+    int sssd_level;
+
+    if (level == SASL_LOG_ERR || level == SASL_LOG_FAIL) {
+        sss_log(SSS_LOG_ERR, "%s\n", message);
+    }
+
+    sssd_level = map_sasl2sssd_log_level(level);
+    DEBUG(sssd_level, "SASL: %s\n", message);
+    return SASL_OK;
+}
+
 static const sasl_callback_t ad_sasl_callbacks[] = {
     { SASL_CB_GETOPT, (sss_sasl_gen_cb_fn)ad_sasl_getopt, NULL },
+    { SASL_CB_LOG, (sss_sasl_gen_cb_fn)ad_sasl_log, NULL },
     { SASL_CB_LIST_END, NULL, NULL }
 };
 /* This is quite a hack, we *try* to fool openldap libraries by initializing
