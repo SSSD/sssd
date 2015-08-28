@@ -299,6 +299,9 @@ int sss_names_init(TALLOC_CTX *mem_ctx,
                    const char *domain,
                    struct sss_names_ctx **out);
 
+int sss_ad_default_names_ctx(TALLOC_CTX *mem_ctx,
+                             struct sss_names_ctx **_out);
+
 int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **_domain, char **_name);

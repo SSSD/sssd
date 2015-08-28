@@ -1045,8 +1045,8 @@ void test_nss_setup(struct sss_test_conf_param params[],
     nss_test_ctx->nctx = mock_nctx(nss_test_ctx);
     assert_non_null(nss_test_ctx->nctx);
 
-    ret = sss_names_init(nss_test_ctx->nctx, nss_test_ctx->tctx->confdb,
-                         NULL, &nss_test_ctx->nctx->global_names);
+    ret = sss_ad_default_names_ctx(nss_test_ctx->nctx,
+                                   &nss_test_ctx->nctx->global_names);
     assert_int_equal(ret, EOK);
     assert_non_null(nss_test_ctx->nctx->global_names);
 
