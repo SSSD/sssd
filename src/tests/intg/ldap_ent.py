@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+
 def user(base_dn, uid, uidNumber, gidNumber):
     """
     Generate an RFC2307(bis) user add-modlist for passing to ldap.add*
@@ -37,6 +38,7 @@ def user(base_dn, uid, uidNumber, gidNumber):
         ]
     )
 
+
 def group(base_dn, cn, gidNumber, member_uids=[]):
     """
     Generate an RFC2307 group add-modlist for passing to ldap.add*.
@@ -49,6 +51,7 @@ def group(base_dn, cn, gidNumber, member_uids=[]):
     if len(member_uids) > 0:
         attr_list.append(('memberUid', member_uids))
     return ("cn=" + cn + ",ou=Groups," + base_dn, attr_list)
+
 
 def group_bis(base_dn, cn, gidNumber, member_uids=[], member_gids=[]):
     """
@@ -74,6 +77,7 @@ def group_bis(base_dn, cn, gidNumber, member_uids=[], member_gids=[]):
             ])
         )
     return ("cn=" + cn + ",ou=Groups," + base_dn, attr_list)
+
 
 class List(list):
     """LDAP add-modlist list"""

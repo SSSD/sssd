@@ -19,6 +19,7 @@
 
 import ldap
 
+
 class DS:
     """Abstract directory server instance."""
 

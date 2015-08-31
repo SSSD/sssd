@@ -34,6 +34,7 @@ from util import *
 
 LDAP_BASE_DN="dc=example,dc=com"
 
+
 @pytest.fixture(scope="module")
 def ds_inst(request):
     """LDAP server instance fixture"""
@@ -48,6 +49,7 @@ def ds_inst(request):
     request.addfinalizer(lambda: ds_inst.teardown())
     return ds_inst
 
+
 @pytest.fixture(scope="module")
 def ldap_conn(request, ds_inst):
     """LDAP server connection fixture"""
@@ -55,6 +57,7 @@ def ldap_conn(request, ds_inst):
     ldap_conn.ds_inst = ds_inst
     request.addfinalizer(lambda: ldap_conn.unbind_s())
     return ldap_conn
+
 
 def create_ldap_fixture(request, ldap_conn, ent_list):
     """Add LDAP entries and add teardown for removing them"""
@@ -65,6 +68,7 @@ def create_ldap_fixture(request, ldap_conn, ent_list):
             ldap_conn.delete_s(entry[0])
     request.addfinalizer(teardown)
 
+
 def create_conf_fixture(request, contents):
     """Generate sssd.conf and add teardown for removing it"""
     conf = open(config.CONF_PATH, "w")
@@ -72,6 +76,7 @@ def create_conf_fixture(request, contents):
     conf.close()
     os.chmod(config.CONF_PATH, stat.S_IRUSR | stat.S_IWUSR)
     request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
+
 
 def create_sssd_fixture(request):
     """Start sssd and add teardown for stopping it and removing state"""
@@ -96,6 +101,7 @@ def create_sssd_fixture(request):
         for path in os.listdir(config.MCACHE_PATH):
             os.unlink(config.MCACHE_PATH + "/" + path)
     request.addfinalizer(teardown)
+
 
 @pytest.fixture
 def sanity_rfc2307(request, ldap_conn):
@@ -264,6 +270,7 @@ def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
         grp.getgrnam("non_existent_group")
     with pytest.raises(KeyError):
         grp.getgrgid(1)
+
 
 def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
     passwd_pattern = ent.contains_only(

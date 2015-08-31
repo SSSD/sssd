@@ -23,6 +23,7 @@ import subprocess
 
 UNINDENT_RE = re.compile("^ +", re.MULTILINE)
 
+
 def unindent(text):
     """
         Unindent text by removing at most the number of spaces present in
@@ -34,6 +35,7 @@ def unindent(text):
             indent_ref[0] = len(match.group())
         return match.group()[indent_ref[0]:]
     return UNINDENT_RE.sub(replace, text)
+
 
 def run_shell():
     """
@@ -47,6 +49,7 @@ def run_shell():
         "LD_PRELOAD='" + os.getenv("LD_PRELOAD", "") + "' " +
         "bash -i"
     ])
+
 
 def first_dir(*args):
     """Return first argument that points to an existing directory."""

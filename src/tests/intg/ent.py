@@ -25,6 +25,7 @@ _PASSWD_LIST_DESC   = {None: ("user", {})}
 _GROUP_DESC         = {"mem": ("member list", {None: ("member", {})})}
 _GROUP_LIST_DESC    = {None: ("group", _GROUP_DESC)}
 
+
 def _get_desc(desc_map, key):
     """
     Get an item description from a container description map.
@@ -45,6 +46,7 @@ def _get_desc(desc_map, key):
         return ("item", {})
     else:
         return (pformat(key), {})
+
 
 def _diff(ent, pattern, desc_map={}):
     """
@@ -166,6 +168,7 @@ def _diff(ent, pattern, desc_map={}):
 
     return None
 
+
 def contains_only(*args):
     """
     Produce a pattern matching all list items against arguments.
@@ -173,12 +176,14 @@ def contains_only(*args):
     """
     return list(args)
 
+
 def contains(*args):
     """
     Produce a pattern matching a subset of list items against arguments.
     Use this function instead of constructing bare tuples, for readability.
     """
     return args
+
 
 def _convert_passwd(passwd):
     """
@@ -194,13 +199,16 @@ def _convert_passwd(passwd):
             shell   = passwd.pw_shell
     )
 
+
 def get_passwd_by_name(name):
     """Get a passwd database entry by name."""
     return _convert_passwd(pwd.getpwnam(name))
 
+
 def get_passwd_by_uid(uid):
     """Get a passwd database entry by UID."""
     return _convert_passwd(pwd.getpwuid(uid))
+
 
 def assert_passwd_by_name(name, pattern):
     """Assert a passwd entry, retrieved by name, matches a pattern."""
@@ -211,6 +219,7 @@ def assert_passwd_by_name(name, pattern):
     d = _diff(ent, pattern)
     assert not d, d
 
+
 def assert_passwd_by_uid(uid, pattern):
     """Assert a passwd entry, retrieved by UID, matches a pattern."""
     try:
@@ -219,6 +228,7 @@ def assert_passwd_by_uid(uid, pattern):
         assert False, err
     d = _diff(ent, pattern)
     assert not d, d
+
 
 def get_passwd_list():
     """Get passwd database entry list with root user removed."""
@@ -229,10 +239,12 @@ def get_passwd_list():
             return map(_convert_passwd, passwd_list)
     raise Exception("no root user found")
 
+
 def assert_passwd_list(pattern):
     """Assert retrieved passwd list matches a pattern."""
     d = _diff(get_passwd_list(), pattern, _PASSWD_LIST_DESC)
     assert not d, d
+
 
 def _diff_each_passwd_by_name(pattern_dict):
     """
@@ -245,6 +257,7 @@ def _diff_each_passwd_by_name(pattern_dict):
         return str(err)
     return _diff(ent, pattern_dict, _PASSWD_LIST_DESC)
 
+
 def _diff_each_passwd_by_uid(pattern_dict):
     """
     Describe difference between each pattern_dict value and a passwd entry
@@ -256,6 +269,7 @@ def _diff_each_passwd_by_uid(pattern_dict):
         return str(err)
     return _diff(ent, pattern_dict, _PASSWD_LIST_DESC)
 
+
 def _diff_each_passwd_with_name(pattern_seq):
     """
     Describe difference between each pattern in pattern_seq sequence and a
@@ -263,12 +277,14 @@ def _diff_each_passwd_with_name(pattern_seq):
     """
     return _diff_each_passwd_by_name(dict((p["name"], p) for p in pattern_seq))
 
+
 def _diff_each_passwd_with_uid(pattern_seq):
     """
     Describe difference between each pattern in pattern_seq sequence and a
     passwd entry retrieved by UID being the pattern's "uid" value.
     """
     return _diff_each_passwd_by_uid(dict((p["uid"], p) for p in pattern_seq))
+
 
 def assert_each_passwd_by_name(pattern_dict):
     """
@@ -278,6 +294,7 @@ def assert_each_passwd_by_name(pattern_dict):
     d = _diff_each_passwd_by_name(pattern_dict)
     assert not d, d
 
+
 def assert_each_passwd_by_uid(pattern_dict):
     """
     Assert each pattern_dict value matches a passwd entry retrieved by
@@ -285,6 +302,7 @@ def assert_each_passwd_by_uid(pattern_dict):
     """
     d = _diff_each_passwd_by_uid(pattern_dict)
     assert not d, d
+
 
 def assert_each_passwd_with_name(pattern_seq):
     """
@@ -294,6 +312,7 @@ def assert_each_passwd_with_name(pattern_seq):
     d = _diff_each_passwd_with_name(pattern_seq)
     assert not d, d
 
+
 def assert_each_passwd_with_uid(pattern_seq):
     """
     Assert each pattern in pattern_seq sequence matches a passwd entry
@@ -301,6 +320,7 @@ def assert_each_passwd_with_uid(pattern_seq):
     """
     d = _diff_each_passwd_with_uid(pattern_seq)
     assert not d, d
+
 
 def _diff_passwd(pattern):
     """
@@ -318,6 +338,7 @@ def _diff_passwd(pattern):
         return "UID retrieval mismatch: " + d
     return None
 
+
 def assert_passwd(pattern):
     """
     Assert passwd database matches a pattern.
@@ -325,6 +346,7 @@ def assert_passwd(pattern):
     """
     d = _diff_passwd(pattern)
     assert not d, d
+
 
 def _convert_group(group):
     """
@@ -337,13 +359,16 @@ def _convert_group(group):
             mem     = group.gr_mem
     )
 
+
 def get_group_by_name(name):
     """Get a group database entry by name."""
     return _convert_group(grp.getgrnam(name))
 
+
 def get_group_by_gid(gid):
     """Get a group database entry by GID."""
     return _convert_group(grp.getgrgid(gid))
+
 
 def assert_group_by_name(name, pattern):
     """Assert a group entry, retrieved by name, matches a pattern."""
@@ -354,6 +379,7 @@ def assert_group_by_name(name, pattern):
     d = _diff(ent, pattern, _GROUP_DESC)
     assert not d, d
 
+
 def assert_group_by_gid(gid, pattern):
     """Assert a group entry, retrieved by GID, matches a pattern."""
     try:
@@ -362,6 +388,7 @@ def assert_group_by_gid(gid, pattern):
         assert False, err
     d = _diff(ent, pattern, _GROUP_DESC)
     assert not d, d
+
 
 def get_group_list():
     """Get group database entry list with root group removed."""
@@ -372,10 +399,12 @@ def get_group_list():
             return map(_convert_group, group_list)
     raise Exception("no root group found")
 
+
 def assert_group_list(pattern):
     """Assert retrieved group list matches a pattern."""
     d = _diff(get_group_list(), pattern, _GROUP_LIST_DESC)
     assert not d, d
+
 
 def _diff_each_group_by_name(pattern_dict):
     """
@@ -388,6 +417,7 @@ def _diff_each_group_by_name(pattern_dict):
         return str(err)
     return _diff(ent, pattern_dict, _GROUP_LIST_DESC)
 
+
 def _diff_each_group_by_gid(pattern_dict):
     """
     Describe difference between each pattern_dict value and a group entry
@@ -399,6 +429,7 @@ def _diff_each_group_by_gid(pattern_dict):
         return str(err)
     return _diff(ent, pattern_dict, _GROUP_LIST_DESC)
 
+
 def _diff_each_group_with_name(pattern_seq):
     """
     Describe difference between each pattern in pattern_seq sequence and a
@@ -406,12 +437,14 @@ def _diff_each_group_with_name(pattern_seq):
     """
     return _diff_each_group_by_name(dict((p["name"], p) for p in pattern_seq))
 
+
 def _diff_each_group_with_gid(pattern_seq):
     """
     Describe difference between each pattern in pattern_seq sequence and a
     group entry retrieved by GID being the pattern's "gid" value.
     """
     return _diff_each_group_by_gid(dict((p["gid"], p) for p in pattern_seq))
+
 
 def assert_each_group_by_name(pattern_dict):
     """
@@ -421,6 +454,7 @@ def assert_each_group_by_name(pattern_dict):
     d = _diff_each_group_by_name(pattern_dict)
     assert not d, d
 
+
 def assert_each_group_by_gid(pattern_dict):
     """
     Assert each pattern_dict value matches a group entry retrieved by
@@ -428,6 +462,7 @@ def assert_each_group_by_gid(pattern_dict):
     """
     d = _diff_each_group_by_gid(pattern_dict)
     assert not d, d
+
 
 def assert_each_group_with_name(pattern_seq):
     """
@@ -437,6 +472,7 @@ def assert_each_group_with_name(pattern_seq):
     d = _diff_each_group_with_name(pattern_seq)
     assert not d, d
 
+
 def assert_each_group_with_gid(pattern_seq):
     """
     Assert each pattern in pattern_seq sequence matches a group entry
@@ -444,6 +480,7 @@ def assert_each_group_with_gid(pattern_seq):
     """
     d = _diff_each_group_with_gid(pattern_seq)
     assert not d, d
+
 
 def _diff_group(pattern):
     """
@@ -460,6 +497,7 @@ def _diff_group(pattern):
     if d:
         return "GID retrieval mismatch: " + d
     return None
+
 
 def assert_group(pattern):
     """
