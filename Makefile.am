@@ -682,6 +682,7 @@ endif
 libsss_crypt_la_SOURCES = \
     $(SSS_CRYPT_SOURCES)
 libsss_crypt_la_CFLAGS = \
+    $(AM_CFLAGS) \
     $(SSS_CRYPT_CFLAGS) \
     $(DHASH_CFLAGS)
 libsss_crypt_la_LIBADD = \
@@ -2465,6 +2466,7 @@ libsss_ldap_common_la_SOURCES = \
     src/util/sss_ldap.c \
     $(NULL)
 libsss_ldap_common_la_CFLAGS = \
+    $(AM_CFLAGS) \
     $(KRB5_CFLAGS) \
     $(NULL)
 libsss_ldap_common_la_LIBADD = \
@@ -2501,6 +2503,7 @@ libsss_ad_common_la_SOURCES = \
 libsss_ad_common_la_LDFLAGS = \
     -avoid-version
 libsss_ad_common_la_CFLAGS = \
+    $(AM_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
     $(SMBCLIENT_CFLAGS)
 libsss_ad_common_la_LIBADD = \
@@ -2522,6 +2525,7 @@ libsss_krb5_common_la_SOURCES = \
     src/util/become_user.c \
     $(NULL)
 libsss_krb5_common_la_CFLAGS = \
+    $(AM_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_krb5_common_la_LIBADD = \
     $(KEYUTILS_LIBS) \
