@@ -1651,7 +1651,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     struct tevent_req *req;
     struct ad_gpo_access_state *state;
     char *filter;
-    char *sam_account_name;
+    const char *sam_account_name;
     char *domain_dn;
     int dp_error;
     errno_t ret;
@@ -1721,7 +1721,9 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_ALL, "server_hostname from uri: %s\n",
           state->server_hostname);
 
-    sam_account_name = sss_krb5_get_primary(state, "%S$", state->ad_hostname);
+    /* SDAP_SASL_AUTHID contains the name used for kinit and SASL bind which
+     * in the AD case is the NetBIOS name. */
+    sam_account_name = dp_opt_get_string(state->opts->basic, SDAP_SASL_AUTHID);
     if (sam_account_name == NULL) {
         ret = ENOMEM;
         goto done;
@@ -1744,7 +1746,6 @@ ad_gpo_connect_done(struct tevent_req *subreq)
                              state->opts->user_map[SDAP_OC_USER].name,
                              state->opts->user_map[SDAP_AT_USER_NAME].name,
                              sam_account_name);
-    talloc_zfree(sam_account_name);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;
