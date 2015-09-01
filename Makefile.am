@@ -219,7 +219,6 @@ if HAVE_CMOCKA
         sss_sifp-tests \
         test_search_bases \
         test_ldap_auth \
-        test_ldap_id_cleanup \
         test_sdap_access \
         sdap-tests \
         test_sysdb_views \
