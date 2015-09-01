@@ -520,6 +520,7 @@ dist_noinst_HEADERS = \
     src/util/util_errors.h \
     src/util/safe-format-string.h \
     src/util/strtonum.h \
+    src/util/sss_cli_cmd.h \
     src/util/sss_endian.h \
     src/util/sss_nss.h \
     src/util/sss_ldap.h \
