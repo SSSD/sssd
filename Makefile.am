@@ -236,6 +236,7 @@ if HAVE_CMOCKA
         test_ipa_subdom_server \
         test_krb5_wait_queue \
         test_cert_utils \
+        test_ldap_id_cleanup \
         $(NULL)
 
 if HAVE_LIBRESOLV
