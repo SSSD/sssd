@@ -49,8 +49,8 @@ int get_fd_from_ldap(LDAP *ldap, int *fd)
 
 int remove_ldap_connection_callbacks(struct sdap_handle *sh)
 {
-    /* sdap_fd_events might be NULL here if sdap_mark_offline()
-     * was called before a connection was established.
+    /* sdap_fd_events might be NULL here if the back end was marked offline
+     * before a connection was established.
      */
     if (sh->sdap_fd_events) {
 #ifdef HAVE_LDAP_CONNCB

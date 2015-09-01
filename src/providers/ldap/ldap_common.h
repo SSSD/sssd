@@ -210,8 +210,6 @@ errno_t ldap_setup_cleanup(struct sdap_id_ctx *id_ctx,
 errno_t ldap_id_cleanup(struct sdap_options *opts,
                         struct sdap_domain *sdom);
 
-void sdap_mark_offline(struct sdap_id_ctx *ctx);
-
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct sdap_id_ctx *ctx,

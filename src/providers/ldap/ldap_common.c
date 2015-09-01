@@ -44,11 +44,6 @@ void sdap_handler_done(struct be_req *req, int dp_err,
     return be_req_terminate(req, dp_err, error, errstr);
 }
 
-void sdap_mark_offline(struct sdap_id_ctx *ctx)
-{
-    be_mark_offline(ctx->be);
-}
-
 int ldap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
     return sdap_id_setup_tasks(ctx->be, ctx, ctx->opts->sdom,
