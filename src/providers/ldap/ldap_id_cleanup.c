@@ -357,9 +357,20 @@ static int cleanup_groups(TALLOC_CTX *memctx,
     }
 
     for (i = 0; i < count; i++) {
+        char *sanitized_dn;
+
         dn = ldb_dn_get_linearized(msgs[i]->dn);
         if (!dn) {
             ret = EFAULT;
+            goto done;
+        }
+
+        /* sanitize dn */
+        ret = sss_filter_sanitize(tmpctx, dn, &sanitized_dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "sss_filter_sanitize failed: %s:[%d]\n",
+                  sss_strerror(ret), ret);
             goto done;
         }
 
@@ -372,11 +383,14 @@ static int cleanup_groups(TALLOC_CTX *memctx,
             gid = (gid_t) ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
             subfilter = talloc_asprintf(tmpctx, "(&(%s=%s)(|(%s=%s)(%s=%lu)))",
                                         SYSDB_OBJECTCLASS, SYSDB_USER_CLASS,
-                                        SYSDB_MEMBEROF, dn,
+                                        SYSDB_MEMBEROF, sanitized_dn,
                                         SYSDB_GIDNUM, (long unsigned) gid);
         } else {
-            subfilter = talloc_asprintf(tmpctx, "(%s=%s)", SYSDB_MEMBEROF, dn);
+            subfilter = talloc_asprintf(tmpctx, "(%s=%s)", SYSDB_MEMBEROF,
+                                        sanitized_dn);
         }
+        talloc_zfree(sanitized_dn);
+
         if (!subfilter) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
             ret = ENOMEM;
