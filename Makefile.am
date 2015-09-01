@@ -2118,153 +2118,105 @@ test_utils_LDADD = \
     libsss_test_common.la
 
 test_search_bases_SOURCES = \
-    $(sssd_be_SOURCES) \
     src/tests/cmocka/test_search_bases.c
-test_search_bases_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DUNIT_TESTING
 test_search_bases_LDADD = \
-    $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
-    $(POPT_LIBS) \
-    $(SSSD_LIBS) \
-    $(CARES_LIBS) \
-    $(KRB5_LIBS) \
+    $(TALLOC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
-    libsss_idmap.la \
-    libsss_krb5_common.la \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libdlopen_test_providers.la \
+    $(NULL)
 
 test_ldap_auth_SOURCES = \
-    $(sssd_be_SOURCES) \
     src/tests/cmocka/test_ldap_auth.c \
     src/tests/cmocka/test_expire_common.c \
     $(NULL)
-test_ldap_auth_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DUNIT_TESTING
-    $(NULL)
 test_ldap_auth_LDADD = \
-    $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
-    $(POPT_LIBS) \
-    $(SSSD_LIBS) \
-    $(CARES_LIBS) \
-    $(KRB5_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
+    $(TALLOC_LIBS) \
     libsss_ldap_common.la \
     libsss_test_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 test_ldap_id_cleanup_SOURCES = \
-    $(sssd_be_SOURCES) \
     src/tests/cmocka/test_ldap_id_cleanup.c \
-    src/providers/ldap/ldap_id_cleanup.c \
-    $(NULL)
-test_ldap_id_cleanup_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DUNIT_TESTING
     $(NULL)
 test_ldap_id_cleanup_LDADD = \
-    $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
-    $(SSSD_LIBS) \
-    $(CARES_LIBS) \
-    $(KRB5_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
     libsss_test_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 test_sdap_access_SOURCES = \
-    $(sssd_be_SOURCES) \
     src/tests/cmocka/test_sdap_access.c \
     src/tests/cmocka/test_expire_common.c \
     $(NULL)
-test_sdap_access_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DUNIT_TESTING
-    $(NULL)
 test_sdap_access_LDADD = \
-    $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
-    $(POPT_LIBS) \
-    $(SSSD_LIBS) \
-    $(CARES_LIBS) \
-    $(KRB5_LIBS) \
-    $(SSSD_INTERNAL_LTLIBS) \
+    $(TALLOC_LIBS) \
     libsss_ldap_common.la \
     libsss_test_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 ad_access_filter_tests_SOURCES = \
-    $(sssd_be_SOURCES) \
-    src/providers/ad/ad_common.c \
     src/tests/cmocka/test_ad_access_filter.c
-ad_access_filter_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DUNIT_TESTING
 ad_access_filter_tests_LDADD = \
-    $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
-    $(SSSD_LIBS) \
-    $(CARES_LIBS) \
-    $(KRB5_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
-    libsss_idmap.la \
-    libsss_krb5_common.la \
     libsss_ad_common.la \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libdlopen_test_providers.la \
+    $(NULL)
 
 ad_gpo_tests_SOURCES = \
-    $(sssd_be_SOURCES) \
-    src/providers/ad/ad_common.c \
     src/tests/cmocka/test_ad_gpo.c
 ad_gpo_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
-    -DUNIT_TESTING
+    $(NULL)
 ad_gpo_tests_LDADD = \
-    $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
-    $(CARES_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NDR_NBT_LIBS) \
     libsss_ldap_common.la \
     libsss_idmap.la \
     libsss_krb5_common.la \
     libsss_ad_common.la \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libdlopen_test_providers.la \
+    $(NULL)
 
 ad_common_tests_SOURCES = \
-    $(sssd_be_SOURCES) \
     $(libsss_krb5_common_la_SOURCES) \
     src/tests/cmocka/common_mock_krb5.c \
     src/tests/cmocka/test_ad_common.c \
-    $(NULL)
-ad_common_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    -DUNIT_TESTING \
     $(NULL)
 ad_common_tests_LDFLAGS = \
     -Wl,-wrap,sdap_set_sasl_options \
     -Wl,-wrap,krb5_kt_default \
     $(NULL)
 ad_common_tests_LDADD = \
-    $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
-    $(CARES_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
-    libsss_idmap.la \
     libsss_test_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 dp_opt_tests_SOURCES = \
@@ -2566,7 +2518,6 @@ test_ipa_subdom_util_LDADD = \
     $(NULL)
 
 test_ipa_subdom_server_SOURCES = \
-    $(sssd_be_SOURCES) \
     $(libsss_krb5_common_la_SOURCES) \
     src/tests/cmocka/common_mock_sdap.c \
     src/tests/cmocka/common_mock_be.c \
@@ -2577,7 +2528,6 @@ test_ipa_subdom_server_SOURCES = \
     $(NULL)
 test_ipa_subdom_server_CFLAGS = \
     $(AM_CFLAGS) \
-    -DUNIT_TESTING \
     -DIPA_TRUST_KEYTAB_DIR=TEST_DIR \
     $(NULL)
 test_ipa_subdom_server_LDFLAGS = \
@@ -2588,17 +2538,15 @@ test_ipa_subdom_server_LDFLAGS = \
     -Wl,-wrap,sss_unique_filename \
     $(NULL)
 test_ipa_subdom_server_LDADD = \
-    $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
-    $(CARES_LIBS) \
     $(KEYUTILS_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
-    libsss_idmap.la \
     libsss_ad_common.la \
     libsss_test_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 test_krb5_wait_queue_SOURCES = \
