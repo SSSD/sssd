@@ -161,10 +161,10 @@ static errno_t invalidate_group(TALLOC_CTX *ctx,
     sys_attrs = sysdb_new_attrs(ctx);
     if (sys_attrs) {
         ret = sysdb_attrs_add_time_t(sys_attrs,
-                SYSDB_CACHE_EXPIRE, 1);
+                                     SYSDB_CACHE_EXPIRE, 1);
         if (ret == EOK) {
-                    ret = sysdb_set_group_attr(domain, name, sys_attrs,
-                                               SYSDB_MOD_REP);
+            ret = sysdb_set_group_attr(domain, name, sys_attrs,
+                                       SYSDB_MOD_REP);
         } else {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Could not add expiration time to attributes\n");
@@ -211,13 +211,13 @@ static void test_id_cleanup_exp_group(void **state)
     ret = sysdb_store_user(test_ctx->domain, "test_user", NULL,
                            10001, 10002, "Test user",
                            NULL, NULL, NULL, NULL, NULL,
-                           0,0);
+                           0, 0);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_store_user(test_ctx->domain, "test_user2", NULL,
                            10002, 10004, "Test user",
                            NULL, NULL, NULL, NULL, NULL,
-                           0,0);
+                           0, 0);
     assert_int_equal(ret, EOK);
 
     sdom.dom = test_ctx->domain;
@@ -277,8 +277,8 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
-        {"no-cleanup", 'n', POPT_ARG_NONE, &no_cleanup, 0,
-         _("Do not delete the test database after a test run"), NULL },
+        { "no-cleanup", 'n', POPT_ARG_NONE, &no_cleanup, 0,
+          _("Do not delete the test database after a test run"), NULL },
         POPT_TABLEEND
     };
 
@@ -291,8 +291,8 @@ int main(int argc, const char *argv[])
     debug_level = SSSDBG_INVALID;
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
-    while((opt = poptGetNextOpt(pc)) != -1) {
-        switch(opt) {
+    while ((opt = poptGetNextOpt(pc)) != -1) {
+        switch (opt) {
         default:
             fprintf(stderr, "\nInvalid option %s: %s\n\n",
                     poptBadOption(pc, 0), poptStrerror(opt));
