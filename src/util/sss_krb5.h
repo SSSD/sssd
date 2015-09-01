@@ -182,11 +182,6 @@ char * sss_get_ccache_name_for_principal(TALLOC_CTX *mem_ctx,
                                          krb5_principal principal,
                                          const char *location);
 
-char *
-sss_krb5_get_primary(TALLOC_CTX *mem_ctx,
-                     const char *pattern,
-                     const char *hostname);
-
 krb5_error_code sss_krb5_kt_have_content(krb5_context context,
                                          krb5_keytab keytab);
 

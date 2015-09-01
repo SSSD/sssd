@@ -27,7 +27,7 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
-char *
+static char *
 sss_krb5_get_primary(TALLOC_CTX *mem_ctx,
                      const char *pattern,
                      const char *hostname)
