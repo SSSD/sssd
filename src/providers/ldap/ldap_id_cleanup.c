@@ -517,7 +517,6 @@ get_group_dn_with_filter_sanitized_name(TALLOC_CTX *mem_ctx,
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
         ret = ENOMEM;
-        goto done;
     }
 
     /* sanitize group name */
