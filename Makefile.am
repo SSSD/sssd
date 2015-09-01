@@ -1654,29 +1654,15 @@ simple_access_tests_SOURCES = \
     src/tests/simple_access-tests.c \
     src/providers/simple/simple_access.c \
     src/providers/simple/simple_access_check.c \
-    src/providers/data_provider_be.c \
-    src/providers/data_provider_fo.c \
-    src/providers/data_provider_opts.c \
-    src/providers/data_provider_callbacks.c \
-    src/providers/dp_ptask.c \
-    src/providers/dp_refresh.c \
-    src/monitor/monitor_iface_generated.c \
-    src/monitor/monitor_iface_generated.h \
-    src/providers/data_provider_iface_generated.c \
-    src/providers/data_provider_iface_generated.h \
-    $(SSSD_FAILOVER_OBJ)
-simple_access_tests_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(CHECK_CFLAGS) \
-    -DUNIT_TESTING
+    $(NULL)
 simple_access_tests_LDADD = \
     $(LIBADD_DL) \
-    $(SSSD_LIBS) \
-    $(CARES_LIBS) \
     $(CHECK_LIBS) \
-    $(PAM_LIBS) \
+    $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_test_common.la
+    libsss_test_common.la \
+    libdlopen_test_providers.la \
+    $(NULL)
 
 util_tests_SOURCES = \
     src/tests/util-tests.c \
