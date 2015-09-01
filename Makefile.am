@@ -1300,7 +1300,7 @@ libdlopen_test_providers_la_LIBADD = \
     $(CARES_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 libdlopen_test_providers_la_LDFLAGS = \
-    -module \
+    -shared \
     -avoid-version \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
     -rpath $(abs_top_builddir) \
