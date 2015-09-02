@@ -720,7 +720,7 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
              * was found good, setting offline,
              * but we still have to call the child to setup
              * the ccache file if we are performing auth */
-            be_mark_offline(state->be_ctx);
+            be_mark_dom_offline(state->domain, state->be_ctx);
             kr->is_offline = true;
 
             if (kr->pd->cmd == SSS_PAM_CHAUTHTOK ||
@@ -754,9 +754,19 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
         kr->is_offline = be_is_offline(state->be_ctx);
     }
 
+    if (!kr->is_offline
+            && sss_domain_get_state(state->domain) == DOM_INACTIVE) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Subdomain %s is inactive, will proceed offline\n",
+              state->domain->name);
+        kr->is_offline = true;
+    }
+
     if (kr->is_offline
             && sss_krb5_realm_has_proxy(dp_opt_get_cstring(kr->krb5_ctx->opts,
                                         KRB5_REALM))) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Resetting offline status, KDC proxy is in use\n");
         kr->is_offline = false;
     }
 
