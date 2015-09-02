@@ -634,6 +634,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto fail;
         }
+        clist[1]->ignore_mark_offline = true;
         break;
     default:
         clist = talloc_zero_array(req, struct sdap_id_conn_ctx *, 2);
@@ -642,6 +643,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
             goto fail;
         }
         clist[0] = ad_id_ctx->ldap_ctx;
+        clist[0]->ignore_mark_offline = true;
         clist[1] = NULL;
     }
 
@@ -1037,7 +1039,11 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
 
     ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret == ERR_SUBDOM_INACTIVE) {
+        be_mark_dom_offline(state->obj_dom, be_req_get_be_ctx(state->be_req));
+        tevent_req_error(req, ret);
+        return;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "AD lookup failed: %d\n", ret);
         tevent_req_error(req, ret);
         return;
