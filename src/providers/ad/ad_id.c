@@ -146,6 +146,7 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
 
     ret = sdap_handle_acct_req_recv(subreq, &dp_error, &err, &sdap_err);
     if (dp_error == DP_ERR_OFFLINE
+        && state->conn[state->cindex+1] != NULL
         && state->conn[state->cindex]->ignore_mark_offline) {
          /* This is a special case: GC does not work.
           *  We need to Fall back to ldap
