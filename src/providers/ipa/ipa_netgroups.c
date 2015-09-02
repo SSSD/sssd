@@ -121,9 +121,9 @@ static errno_t ipa_save_netgroup(TALLOC_CTX *mem_ctx,
         }
     } else {
         for(c = 0; c < el->num_values; c++) {
-            ret = sysdb_attrs_add_string(netgroup_attrs,
-                                         SYSDB_NETGROUP_TRIPLE,
-                                         (const char*)el->values[c].data);
+            ret = sysdb_attrs_add_string_safe(netgroup_attrs,
+                                              SYSDB_NETGROUP_TRIPLE,
+                                              (const char*)el->values[c].data);
             if (ret) {
                 goto fail;
             }
@@ -699,6 +699,7 @@ static bool extract_netgroups(hash_entry_t *entry, void *pvt)
 
 struct extract_state {
     const char *group;
+    const char *appropriateMemberOf;
 
     const char **entries;
     int entries_count;
@@ -706,7 +707,7 @@ struct extract_state {
 
 static bool extract_entities(hash_entry_t *entry, void *pvt)
 {
-    int i, ret;
+    int ret;
     struct extract_state *state;
     struct sysdb_attrs *member;
     struct ldb_message_element *el;
@@ -715,22 +716,25 @@ static bool extract_entities(hash_entry_t *entry, void *pvt)
     state = talloc_get_type(pvt, struct extract_state);
     member = talloc_get_type(entry->value.ptr, struct sysdb_attrs);
 
-    ret = sysdb_attrs_get_el(member, SYSDB_ORIG_MEMBEROF, &el);
-    if (ret != EOK) return false;
+    ret = sysdb_attrs_get_el(member, state->appropriateMemberOf, &el);
+    if (ret != EOK) {
+        return false;
+    }
 
     ret = sysdb_attrs_get_el(member, SYSDB_NAME, &name_el);
     if (ret != EOK || name_el == NULL || name_el->num_values == 0) {
         return false;
     }
 
-    for (i = 0; i < el->num_values; i++) {
-        if (strcmp((char *)el->values[i].data, state->group) == 0) {
-
-            state->entries = talloc_realloc(state, state->entries, const char *,
+    for (int j = 0; j < el->num_values; j++) {
+        if (strcmp((char *)el->values[j].data, state->group) == 0) {
+            state->entries = talloc_realloc(state, state->entries,
+                                            const char *,
                                             state->entries_count + 1);
             if (state->entries == NULL) {
                 return false;
             }
+
             state->entries[state->entries_count] = (char *)name_el->values[0].data;
             state->entries_count++;
             break;
@@ -743,6 +747,7 @@ static bool extract_entities(hash_entry_t *entry, void *pvt)
 static int extract_members(TALLOC_CTX *mem_ctx,
                            struct sysdb_attrs *netgroup,
                            const char *member_type,
+                           const char *appropriateMemberOf,
                            hash_table_t *lookup_table,
                            const char ***_ret_array,
                            int *_ret_count)
@@ -766,6 +771,8 @@ static int extract_members(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+
+    state->appropriateMemberOf = appropriateMemberOf;
 
     ret = sysdb_attrs_get_el(netgroup, member_type, &el);
     if (ret != EOK && ret != ENOENT) {
@@ -909,6 +916,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         DEBUG(SSSDBG_TRACE_ALL, "Extracting user members of netgroup %d\n", i);
         ret = extract_members(state, state->netgroups[i],
                               SYSDB_ORIG_MEMBER_USER,
+                              state->ipa_opts->id->user_map[SDAP_AT_USER_MEMBEROF].sys_name,
                               state->new_users,
                               &uids, &uids_count);
         if (ret != EOK) {
@@ -919,6 +927,7 @@ static int ipa_netgr_process_all(struct ipa_get_netgroups_state *state)
         DEBUG(SSSDBG_TRACE_ALL, "Extracting host members of netgroup %d\n", i);
         ret = extract_members(state, state->netgroups[i],
                               SYSDB_ORIG_MEMBER_HOST,
+                              state->ipa_opts->host_map[IPA_AT_HOST_MEMBER_OF].sys_name,
                               state->new_hosts,
                               &hosts, &hosts_count);
         if (ret != EOK) {
