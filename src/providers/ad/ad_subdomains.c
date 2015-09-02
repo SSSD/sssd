@@ -80,7 +80,8 @@ struct ad_subdomains_req_ctx {
     struct ad_id_ctx *root_id_ctx;
     struct sdap_id_op *root_op;
     size_t root_base_iter;
-    struct sysdb_attrs *root_domain;
+    struct sysdb_attrs *root_domain_attrs;
+    struct sss_domain_info *root_domain;
 
     size_t reply_count;
     struct sysdb_attrs **reply;
@@ -689,6 +690,7 @@ static errno_t ad_subdomains_get_root(struct ad_subdomains_req_ctx *ctx)
     return EAGAIN;
 }
 
+static struct sss_domain_info *ads_get_root_domain(struct ad_subdomains_req_ctx *ctx);
 static struct ad_id_ctx *ads_get_root_id_ctx(struct ad_subdomains_req_ctx *ctx);
 static void ad_subdomains_root_conn_done(struct tevent_req *req);
 
@@ -769,7 +771,14 @@ static void ad_subdomains_get_root_domain_done(struct tevent_req *req)
         }
     }
 
-    ctx->root_domain = reply[0];
+    ctx->root_domain_attrs = reply[0];
+    ctx->root_domain = ads_get_root_domain(ctx);
+    if (ctx->root_domain == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not find the root domain\n");
+        ret = EFAULT;
+        goto fail;
+    }
+
     ctx->root_id_ctx = ads_get_root_id_ctx(ctx);
     if (ctx->root_id_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot create id ctx for the root domain\n");
@@ -803,15 +812,13 @@ fail:
     be_req_terminate(ctx->be_req, dp_error, ret, NULL);
 }
 
-static struct ad_id_ctx *ads_get_root_id_ctx(struct ad_subdomains_req_ctx *ctx)
+static struct sss_domain_info *ads_get_root_domain(struct ad_subdomains_req_ctx *ctx)
 {
     errno_t ret;
     const char *name;
     struct sss_domain_info *root;
-    struct sdap_domain *sdom;
-    struct ad_id_ctx *root_id_ctx;
 
-    ret = sysdb_attrs_get_string(ctx->root_domain, AD_AT_TRUST_PARTNER, &name);
+    ret = sysdb_attrs_get_string(ctx->root_domain_attrs, AD_AT_TRUST_PARTNER, &name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_get_string failed.\n");
         return NULL;
@@ -820,32 +827,40 @@ static struct ad_id_ctx *ads_get_root_id_ctx(struct ad_subdomains_req_ctx *ctx)
     /* With a subsequent run, the root should already be known */
     root = find_domain_by_name(ctx->sd_ctx->be_ctx->domain,
                                name, false);
-    if (root == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not find the root domain\n");
-        return NULL;
-    }
 
-    sdom = sdap_domain_get(ctx->sd_ctx->ad_id_ctx->sdap_id_ctx->opts, root);
+    return root;
+}
+
+static struct ad_id_ctx *ads_get_root_id_ctx(struct ad_subdomains_req_ctx *ctx)
+{
+    errno_t ret;
+    struct sdap_domain *sdom;
+    struct ad_id_ctx *root_id_ctx;
+
+    sdom = sdap_domain_get(ctx->sd_ctx->ad_id_ctx->sdap_id_ctx->opts,
+                           ctx->root_domain);
     if (sdom == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot get the sdom for %s!\n", root->name);
+              "Cannot get the sdom for %s!\n", ctx->root_domain->name);
         return NULL;
     }
 
     if (sdom->pvt == NULL) {
         ret = ad_subdom_ad_ctx_new(ctx->sd_ctx->be_ctx,
                                    ctx->sd_ctx->ad_id_ctx,
-                                   root,
+                                   ctx->root_domain,
                                    &root_id_ctx);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "ad_subdom_ad_ctx_new failed.\n");
             return NULL;
         }
+
         sdom->pvt = root_id_ctx;
     } else {
         root_id_ctx = sdom->pvt;
     }
 
+    root_id_ctx->ldap_ctx->ignore_mark_offline = true;
     return root_id_ctx;
 }
 
@@ -860,16 +875,11 @@ static void ad_subdomains_root_conn_done(struct tevent_req *req)
     ret = sdap_id_op_connect_recv(req, &dp_error);
     talloc_zfree(req);
     if (ret) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No AD server is available, cannot get the "
-                  "subdomain list while offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to AD server: [%d](%s)\n",
-                  ret, strerror(ret));
-        }
+        be_mark_dom_offline(ctx->root_domain, be_req_get_be_ctx(ctx->be_req));
 
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to connect to AD server: [%d](%s)\n",
+              ret, strerror(ret));
         goto fail;
     }
 
@@ -1040,7 +1050,7 @@ static void ad_subdomains_get_slave_domain_done(struct tevent_req *req)
      */
     ret = ad_subdomains_process(ctx, ctx->sd_ctx->be_ctx->domain,
                                 ctx->reply_count, ctx->reply,
-                                ctx->root_domain, &nsubdoms, &subdoms);
+                                ctx->root_domain_attrs, &nsubdoms, &subdoms);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, ("Cannot process subdomain list\n"));
         tevent_req_error(req, ret);
