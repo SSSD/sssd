@@ -567,9 +567,9 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Failed to connect, going offline (%d [%s])\n",
                    ret, strerror(ret));
+            is_offline = true;
             be_mark_offline(conn_cache->id_conn->id_ctx->be);
         }
-        is_offline = true;
     }
 
     if (ret == EOK) {
