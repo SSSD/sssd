@@ -91,16 +91,26 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
     state->ad_options = ad_options;
     state->cindex = 0;
 
+    if (sss_domain_get_state(sdom->dom) == DOM_INACTIVE) {
+        ret = ERR_SUBDOM_INACTIVE;
+        goto immediate;
+    }
+
     ret = ad_handle_acct_info_step(req);
-    if (ret == EOK) {
-        tevent_req_done(req);
-        tevent_req_post(req, be_ctx->ev);
-    } else if (ret != EAGAIN) {
-        tevent_req_error(req, ret);
-        tevent_req_post(req, be_ctx->ev);
+    if (ret != EAGAIN) {
+        goto immediate;
     }
 
     /* Lookup in progress */
+    return req;
+
+immediate:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+    tevent_req_post(req, be_ctx->ev);
     return req;
 }
 
@@ -160,8 +170,7 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
         state->dp_error = dp_error;
         state->err = err;
 
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
     if (sdap_err == EOK) {
@@ -170,8 +179,8 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     } else if (sdap_err == ERR_NO_POSIX) {
         disable_gc(state->ad_options);
     } else if (sdap_err != ENOENT) {
-        tevent_req_error(req, EIO);
-        return;
+        ret = EIO;
+        goto fail;
     }
 
     /* Ret is only ENOENT or ERR_NO_POSIX now. Try the next connection */
@@ -188,12 +197,27 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
             /* No more connections */
             tevent_req_done(req);
         } else {
-            tevent_req_error(req, ret);
+            goto fail;
         }
         return;
     }
 
     /* Another lookup in progress */
+    return;
+
+fail:
+    if (IS_SUBDOMAIN(state->sdom->dom)) {
+        /* Deactivate subdomain on lookup errors instead of going
+         * offline completely.
+         * This is a stopgap, until our failover is per-domain,
+         * not per-backend. Unfortunately, we can't rewrite the error
+         * code on some reported codes only, because sdap_id_op code
+         * encapsulated the failover as well..
+         */
+        ret = ERR_SUBDOM_INACTIVE;
+    }
+    tevent_req_error(req, ret);
+    return;
 }
 
 errno_t
@@ -256,6 +280,16 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
         clist[0] = ad_ctx->ldap_ctx;
         clist[1] = NULL;
         break;
+    }
+
+    /* Regardless of connection types, a subdomain error must not be allowed
+     * to set the whole back end offline, rather report an error and let the
+     * caller deal with it (normally disable the subdomain
+     */
+    if (IS_SUBDOMAIN(dom)) {
+        for (cindex = 0; clist[cindex] != NULL; cindex++) {
+            clist[cindex]->ignore_mark_offline = true;
+        }
     }
 
     return clist;
@@ -328,6 +362,11 @@ done:
 
 static void ad_account_info_complete(struct tevent_req *req);
 
+struct ad_account_info_state {
+    struct be_req *be_req;
+    struct sss_domain_info *dom;
+};
+
 void
 ad_account_info_handler(struct be_req *be_req)
 {
@@ -341,6 +380,7 @@ ad_account_info_handler(struct be_req *be_req)
     struct sdap_id_conn_ctx **clist;
     bool shortcut;
     errno_t ret;
+    struct ad_account_info_state *state;
 
     ad_ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data,
                              struct ad_id_ctx);
@@ -391,13 +431,21 @@ ad_account_info_handler(struct be_req *be_req)
         goto fail;
     }
 
+    state = talloc(be_req, struct ad_account_info_state);
+    if (state == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    state->dom = sdom->dom;
+    state->be_req = be_req;
+
     req = ad_handle_acct_info_send(be_req, be_req, ar, sdap_id_ctx,
                                    ad_ctx->ad_options, sdom, clist);
     if (req == NULL) {
         ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(req, ad_account_info_complete, be_req);
+    tevent_req_set_callback(req, ad_account_info_complete, state);
     return;
 
 fail:
@@ -412,12 +460,17 @@ ad_account_info_complete(struct tevent_req *req)
     int dp_error;
     const char *error_text = "Internal error";
     const char *req_error_text;
+    struct ad_account_info_state *state;
 
-    be_req = tevent_req_callback_data(req, struct be_req);
+    state = tevent_req_callback_data(req, struct ad_account_info_state);
+    be_req = state->be_req;
 
     ret = ad_handle_acct_info_recv(req, &dp_error, &req_error_text);
     talloc_zfree(req);
-    if (dp_error == DP_ERR_OK) {
+    if (ret == ERR_SUBDOM_INACTIVE) {
+        be_mark_dom_offline(state->dom, be_req_get_be_ctx(be_req));
+        return be_req_terminate(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
+    } else if (dp_error == DP_ERR_OK) {
         if (ret == EOK) {
             error_text = NULL;
         } else {
