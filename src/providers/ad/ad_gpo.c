@@ -560,14 +560,14 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_initgroups failed: [%d](%s)\n",
               ret, sss_strerror(ret));
-        return ret;
+        goto done;
     }
 
     if (res->count == 0) {
         ret = ENOENT;
         DEBUG(SSSDBG_OP_FAILURE,
               "sysdb_initgroups returned empty result\n");
-        return ret;
+        goto done;
     }
 
     user_sid = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SID_STR, NULL);
@@ -602,7 +602,7 @@ ad_gpo_get_sids(TALLOC_CTX *mem_ctx,
     *_group_size = num_group_sids + 1;
     *_group_sids = talloc_steal(mem_ctx, group_sids);
     *_user_sid = talloc_steal(mem_ctx, user_sid);
-    return EOK;
+    ret = EOK;
 
  done:
     talloc_free(tmp_ctx);
