@@ -130,7 +130,7 @@ get_serv_byname(struct proxy_id_ctx *ctx,
     if (status != NSS_STATUS_SUCCESS && status != NSS_STATUS_NOTFOUND) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "getservbyname_r failed for service [%s].\n", name);
-        return ret;
+        goto done;
     }
 
     if (status == NSS_STATUS_NOTFOUND) {
@@ -183,7 +183,7 @@ get_serv_byport(struct proxy_id_ctx *ctx,
     if (status != NSS_STATUS_SUCCESS && status != NSS_STATUS_NOTFOUND) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "getservbyport_r failed for service [%s].\n", be_filter);
-        return ret;
+        goto done;
     }
 
     if (status == NSS_STATUS_NOTFOUND) {
