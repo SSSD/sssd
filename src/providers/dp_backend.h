@@ -189,6 +189,7 @@ struct be_host_req {
 
 bool be_is_offline(struct be_ctx *ctx);
 void be_mark_offline(struct be_ctx *ctx);
+void be_mark_dom_offline(struct sss_domain_info *dom, struct be_ctx *ctx);
 
 int be_add_reconnect_cb(TALLOC_CTX *mem_ctx,
                         struct be_ctx *ctx,
