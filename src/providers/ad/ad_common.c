@@ -745,7 +745,7 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
     ret = be_add_online_cb(bectx, bectx, ad_online_cb, service, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Could not set up AD online callback\n");
-        return ret;
+        goto done;
     }
 
     ret = be_fo_service_add_callback(mem_ctx, bectx, ad_service,
@@ -797,7 +797,8 @@ ad_resolve_callback(void *private_data, struct fo_server *server)
     sdata = fo_get_server_user_data(server);
     if (fo_is_srv_lookup(server) == false && sdata == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No user data?\n");
-        return;
+        ret = EINVAL;
+        goto done;
     }
 
     service = talloc_get_type(private_data, struct ad_service);
