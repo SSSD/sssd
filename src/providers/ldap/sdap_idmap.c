@@ -206,7 +206,8 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     if (err != IDMAP_SUCCESS) {
         /* This should never happen */
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_idmap_ctx corrupted\n");
-        return EIO;
+        ret = EIO;
+        goto done;
     }
 
 

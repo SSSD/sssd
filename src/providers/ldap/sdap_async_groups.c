@@ -592,7 +592,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Error: Failed to mark group as non-posix!\n");
-            return ret;
+            goto done;
         }
     }
 
