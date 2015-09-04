@@ -1634,6 +1634,7 @@ ipa_ldap_opt_tests_SOURCES = \
     src/providers/data_provider_opts.c \
     src/providers/ldap/sdap.c \
     src/providers/ldap/sdap_range.c \
+    src/providers/ldap/sdap_domain.c \
     src/util/sss_ldap.c \
     src/tests/ipa_ldap_opt-tests.c
 ipa_ldap_opt_tests_CFLAGS = \
@@ -1642,6 +1643,7 @@ ipa_ldap_opt_tests_CFLAGS = \
 ipa_ldap_opt_tests_LDADD = \
     $(CHECK_LIBS) \
     $(TALLOC_LIBS) \
+    $(LDB_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(OPENLDAP_LIBS) \
     libsss_test_common.la
@@ -2225,6 +2227,7 @@ dp_opt_tests_LDADD = \
 
 sdap_tests_SOURCES = \
     src/providers/data_provider_opts.c \
+    src/providers/ldap/sdap_domain.c \
     src/providers/ldap/sdap.c \
     src/providers/ldap/sdap_range.c \
     src/util/sss_ldap.c \
@@ -2246,6 +2249,7 @@ sdap_tests_LDFLAGS = \
 sdap_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(TALLOC_LIBS) \
+    $(LDB_LIBS) \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SSS_CRYPT_LIBS) \

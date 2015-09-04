@@ -580,4 +580,13 @@ void sdap_steal_server_opts(struct sdap_id_ctx *id_ctx,
                             struct sdap_server_opts **srv_opts);
 
 char *sdap_make_oc_list(TALLOC_CTX *mem_ctx, struct sdap_attr_map *map);
+
+size_t sdap_steal_objects_in_dom(struct sdap_options *opts,
+                                 struct sysdb_attrs **dom_objects,
+                                 size_t offset,
+                                 struct sss_domain_info *dom,
+                                 struct sysdb_attrs **all_objects,
+                                 size_t count,
+                                 bool filter);
+
 #endif /* _SDAP_H_ */

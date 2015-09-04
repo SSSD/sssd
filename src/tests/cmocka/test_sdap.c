@@ -941,6 +941,184 @@ static void test_sdap_inherit_option_user(void **state)
     talloc_free(test_ctx->child_sdap_opts->user_map[SDAP_AT_USER_PRINC].name);
 }
 
+struct copy_dom_obj_test_ctx {
+    struct sdap_options *opts;
+
+    struct sss_domain_info *parent;
+    struct sss_domain_info *child;
+
+    struct sdap_domain *parent_sd;
+    struct sdap_domain *child_sd;
+
+    struct sysdb_attrs **ldap_objects;
+    struct sysdb_attrs **dom_objects;
+};
+
+static struct sysdb_attrs *test_obj(TALLOC_CTX *mem_ctx,
+                                    const char *name,
+                                    const char *basedn)
+{
+    errno_t ret;
+    const char *orig_dn;
+    struct sysdb_attrs *obj;
+
+    obj = sysdb_new_attrs(mem_ctx);
+    assert_non_null(obj);
+
+    orig_dn = talloc_asprintf(obj, "CN=%s,%s", name, basedn);
+    assert_non_null(orig_dn);
+
+    ret = sysdb_attrs_add_string(obj, SYSDB_ORIG_DN, orig_dn);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(obj, SYSDB_NAME, name);
+    assert_int_equal(ret, EOK);
+
+    return obj;
+}
+
+static struct sdap_domain *create_sdap_domain(struct sdap_options *opts,
+                                              struct sss_domain_info *dom)
+{
+    errno_t ret;
+    struct sdap_domain *sdom;
+
+    ret = sdap_domain_add(opts, dom, &sdom);
+    assert_int_equal(ret, EOK);
+
+    sdom->search_bases = talloc_array(sdom, struct sdap_search_base *, 2);
+    assert_non_null(sdom->search_bases);
+    sdom->search_bases[1] = NULL;
+
+    ret = sdap_create_search_base(sdom, sdom->basedn,
+                                  LDAP_SCOPE_SUBTREE,
+                                  NULL,
+                                  &sdom->search_bases[0]);
+    assert_int_equal(ret, EOK);
+
+    return sdom;
+}
+
+static int sdap_copy_objects_in_dom_setup(void **state)
+{
+    struct copy_dom_obj_test_ctx *test_ctx;
+
+    test_ctx = talloc_zero(NULL,
+                           struct copy_dom_obj_test_ctx);
+    assert_non_null(test_ctx);
+
+    test_ctx->opts = talloc_zero(test_ctx, struct sdap_options);
+    assert_non_null(test_ctx->opts);
+
+    test_ctx->parent = named_domain(test_ctx, "win.trust.test", NULL);
+    assert_non_null(test_ctx->parent);
+
+    test_ctx->child = named_domain(test_ctx, "child.win.trust.test",
+                                   test_ctx->parent);
+    assert_non_null(test_ctx->child);
+
+    test_ctx->parent_sd = create_sdap_domain(test_ctx->opts,
+                                             test_ctx->parent);
+    assert_non_null(test_ctx->parent_sd);
+
+    test_ctx->child_sd = create_sdap_domain(test_ctx->opts,
+                                            test_ctx->child);
+    assert_non_null(test_ctx->child_sd);
+
+    /* These two objects were 'returned by LDAP' */
+    test_ctx->ldap_objects = talloc_zero_array(test_ctx,
+                                               struct sysdb_attrs *, 2);
+    assert_non_null(test_ctx->ldap_objects);
+
+    test_ctx->ldap_objects[0] = test_obj(test_ctx->ldap_objects, "parent",
+                                         test_ctx->parent_sd->basedn);
+    assert_non_null(test_ctx->ldap_objects[0]);
+
+    test_ctx->ldap_objects[1] = test_obj(test_ctx->ldap_objects, "child",
+                                         test_ctx->child_sd->basedn);
+    assert_non_null(test_ctx->ldap_objects[1]);
+
+    /* This is the array we'll filter to */
+    test_ctx->dom_objects = talloc_zero_array(test_ctx,
+                                              struct sysdb_attrs *, 2);
+    assert_non_null(test_ctx->dom_objects);
+
+    *state = test_ctx;
+    return 0;
+}
+
+static int sdap_copy_objects_in_dom_teardown(void **state)
+{
+    struct copy_dom_obj_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                 struct copy_dom_obj_test_ctx);
+
+    talloc_free(test_ctx);
+    return 0;
+}
+
+static void test_sdap_copy_objects_in_dom(void **state)
+{
+    struct copy_dom_obj_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                 struct copy_dom_obj_test_ctx);
+    size_t count;
+
+    assert_ptr_equal(talloc_parent(test_ctx->ldap_objects[0]),
+                     test_ctx->ldap_objects);
+    assert_ptr_equal(talloc_parent(test_ctx->ldap_objects[1]),
+                     test_ctx->ldap_objects);
+
+    assert_null(test_ctx->dom_objects[0]);
+    assert_null(test_ctx->dom_objects[1]);
+
+    count = sdap_steal_objects_in_dom(test_ctx->opts,
+                                      test_ctx->dom_objects,
+                                      0,
+                                      test_ctx->parent,
+                                      test_ctx->ldap_objects,
+                                      2, true);
+    assert_int_equal(count, 1);
+
+    assert_non_null(test_ctx->dom_objects[0]);
+    assert_non_null(test_ctx->dom_objects[0] == test_ctx->ldap_objects[0]);
+    assert_null(test_ctx->dom_objects[1]);
+
+    assert_ptr_equal(talloc_parent(test_ctx->ldap_objects[0]),
+                     test_ctx->dom_objects);
+
+    count = sdap_steal_objects_in_dom(test_ctx->opts,
+                                      test_ctx->dom_objects,
+                                      1,
+                                      test_ctx->child,
+                                      test_ctx->ldap_objects,
+                                      2, true);
+    assert_int_equal(count, 1);
+
+    assert_non_null(test_ctx->dom_objects[1]);
+    assert_non_null(test_ctx->dom_objects[1] == test_ctx->ldap_objects[1]);
+    assert_ptr_equal(talloc_parent(test_ctx->ldap_objects[1]),
+                     test_ctx->dom_objects);
+}
+
+static void test_sdap_copy_objects_in_dom_nofilter(void **state)
+{
+    struct copy_dom_obj_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                 struct copy_dom_obj_test_ctx);
+    size_t count;
+
+    count = sdap_steal_objects_in_dom(test_ctx->opts,
+                                      test_ctx->dom_objects,
+                                      0,
+                                      test_ctx->parent,
+                                      test_ctx->ldap_objects,
+                                      2, false);
+    assert_int_equal(count, 2);
+
+    assert_ptr_equal(talloc_parent(test_ctx->ldap_objects[0]),
+                     test_ctx->dom_objects);
+    assert_ptr_equal(talloc_parent(test_ctx->ldap_objects[1]),
+                     test_ctx->dom_objects);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1008,6 +1186,14 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sdap_inherit_option_user,
                                         test_sdap_inherit_option_setup,
                                         test_sdap_inherit_option_teardown),
+
+        /* Per-domain object filter tests */
+        cmocka_unit_test_setup_teardown(test_sdap_copy_objects_in_dom,
+                                        sdap_copy_objects_in_dom_setup,
+                                        sdap_copy_objects_in_dom_teardown),
+        cmocka_unit_test_setup_teardown(test_sdap_copy_objects_in_dom_nofilter,
+                                        sdap_copy_objects_in_dom_setup,
+                                        sdap_copy_objects_in_dom_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */

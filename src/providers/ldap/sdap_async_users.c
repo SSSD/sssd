@@ -617,6 +617,9 @@ struct sdap_search_user_state {
 };
 
 static errno_t sdap_search_user_next_base(struct tevent_req *req);
+static void sdap_search_user_copy_batch(struct sdap_search_user_state *state,
+                                        struct sysdb_attrs **users,
+                                        size_t count);
 static void sdap_search_user_process(struct tevent_req *subreq);
 
 struct tevent_req *sdap_search_user_send(TALLOC_CTX *memctx,
@@ -728,7 +731,7 @@ static void sdap_search_user_process(struct tevent_req *subreq)
     struct sdap_search_user_state *state = tevent_req_data(req,
                                             struct sdap_search_user_state);
     int ret;
-    size_t count, i;
+    size_t count;
     struct sysdb_attrs **users;
     bool next_base = false;
 
@@ -762,16 +765,7 @@ static void sdap_search_user_process(struct tevent_req *subreq)
             return;
         }
 
-        /* Copy the new users into the list
-         * They're already allocated on 'state'
-         */
-        for (i = 0; i < count; i++) {
-            state->users[state->count + i] =
-                talloc_steal(state->users, users[i]);
-        }
-
-        state->count += count;
-        state->users[state->count] = NULL;
+        sdap_search_user_copy_batch(state, users, count);
     }
 
     if (next_base) {
@@ -798,6 +792,25 @@ static void sdap_search_user_process(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
+static void sdap_search_user_copy_batch(struct sdap_search_user_state *state,
+                                        struct sysdb_attrs **users,
+                                        size_t count)
+{
+    size_t copied;
+    bool filter;
+
+    /* Always copy all objects for wildcard lookups. */
+    filter = state->lookup_type == SDAP_LOOKUP_SINGLE ? true : false;
+
+    copied = sdap_steal_objects_in_dom(state->opts,
+                                       state->users,
+                                       state->count,
+                                       state->dom,
+                                       users, count, filter);
+
+    state->count += copied;
+    state->users[state->count] = NULL;
+}
 
 int sdap_search_user_recv(TALLOC_CTX *memctx, struct tevent_req *req,
                           char **higher_usn, struct sysdb_attrs ***users,

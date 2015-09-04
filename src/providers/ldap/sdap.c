@@ -1619,3 +1619,62 @@ char *sdap_make_oc_list(TALLOC_CTX *mem_ctx, struct sdap_attr_map *map)
                                map[SDAP_OC_GROUP_ALT].name);
     }
 }
+
+static bool sdap_object_in_domain(struct sdap_options *opts,
+                                  struct sysdb_attrs *obj,
+                                  struct sss_domain_info *dom)
+{
+    errno_t ret;
+    const char *original_dn = NULL;
+    struct sdap_domain *sdmatch = NULL;
+
+    ret = sysdb_attrs_get_string(obj, SYSDB_ORIG_DN, &original_dn);
+    if (ret) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "The group has no original DN, assuming our domain\n");
+        return true;
+    }
+
+    sdmatch = sdap_domain_get_by_dn(opts, original_dn);
+    if (sdmatch == NULL) {
+        DEBUG(SSSDBG_FUNC_DATA,
+              "The group has no original DN, assuming our domain\n");
+        return true;
+    }
+
+    return (sdmatch->dom == dom);
+}
+
+size_t sdap_steal_objects_in_dom(struct sdap_options *opts,
+                                 struct sysdb_attrs **dom_objects,
+                                 size_t offset,
+                                 struct sss_domain_info *dom,
+                                 struct sysdb_attrs **all_objects,
+                                 size_t count,
+                                 bool filter)
+{
+    size_t copied = 0;
+
+    /* Own objects from all_objects by dom_objects in case they belong
+     * to domain dom.
+     *
+     * Don't copy objects from other domains in case
+     * the search was for parent domain but a child domain would match,
+     * too, such as:
+     *  dc=example,dc=com
+     *  dc=child,dc=example,dc=com
+     * while searching for an object from dc=example.
+     */
+    for (size_t i = 0; i < count; i++) {
+        if (filter &&
+                sdap_object_in_domain(opts, all_objects[i], dom) == false) {
+            continue;
+        }
+
+        dom_objects[offset + copied] =
+            talloc_steal(dom_objects, all_objects[i]);
+        copied++;
+    }
+
+    return copied;
+}

@@ -1905,6 +1905,9 @@ static errno_t sdap_get_groups_next_base(struct tevent_req *req)
 }
 
 static void sdap_nested_done(struct tevent_req *req);
+static void sdap_search_group_copy_batch(struct sdap_get_groups_state *state,
+                                         struct sysdb_attrs **groups,
+                                         size_t count);
 static void sdap_ad_match_rule_members_process(struct tevent_req *subreq);
 
 static void sdap_get_groups_process(struct tevent_req *subreq)
@@ -1950,15 +1953,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
             return;
         }
 
-        /* Copy the new groups into the list
-         */
-        for (i = 0; i < count; i++) {
-            state->groups[state->count + i] =
-                talloc_steal(state->groups, groups[i]);
-        }
-
-        state->count += count;
-        state->groups[state->count] = NULL;
+        sdap_search_group_copy_batch(state, groups, count);
     }
 
     if (next_base) {
@@ -2091,6 +2086,26 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         }
         tevent_req_set_callback(subreq, sdap_get_groups_done, req);
     }
+}
+
+static void sdap_search_group_copy_batch(struct sdap_get_groups_state *state,
+                                         struct sysdb_attrs **groups,
+                                         size_t count)
+{
+    size_t copied;
+    bool filter;
+
+    /* Always copy all objects for wildcard lookups. */
+    filter = state->lookup_type == SDAP_LOOKUP_SINGLE ? true : false;
+
+    copied = sdap_steal_objects_in_dom(state->opts,
+                                       state->groups,
+                                       state->count,
+                                       state->dom,
+                                       groups, count, filter);
+
+    state->count += copied;
+    state->groups[state->count] = NULL;
 }
 
 static void sdap_get_groups_done(struct tevent_req *subreq)
