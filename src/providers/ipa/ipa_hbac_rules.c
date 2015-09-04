@@ -86,7 +86,7 @@ ipa_hbac_rule_info_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state, struct ipa_hbac_rule_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
-        return NULL;
+        goto error;
     }
 
     state->ev = ev;
