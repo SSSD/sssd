@@ -43,11 +43,6 @@ enum pam_verbosity {
 
 #define DEFAULT_PAM_VERBOSITY PAM_VERBOSITY_IMPORTANT
 
-/* TODO: Should we make this configurable? */
-#ifndef SSS_P11_CHILD_TIMEOUT
-#define SSS_P11_CHILD_TIMEOUT 10
-#endif
-
 static errno_t
 pam_null_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                           const char *username);
@@ -1027,6 +1022,39 @@ static bool is_domain_public(char *name,
     return false;
 }
 
+static errno_t check_cert(TALLOC_CTX *mctx,
+                          struct tevent_context *ev,
+                          struct pam_ctx *pctx,
+                          struct pam_auth_req *preq,
+                          struct pam_data *pd)
+{
+    int p11_child_timeout;
+    const int P11_CHILD_TIMEOUT_DEFAULT = 10;
+    errno_t ret;
+    struct tevent_req *req;
+
+    ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_P11_CHILD_TIMEOUT,
+                         P11_CHILD_TIMEOUT_DEFAULT,
+                         &p11_child_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read p11_child_timeout from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    req = pam_check_cert_send(mctx, ev, pctx->p11_child_debug_fd,
+                              pctx->nss_db, p11_child_timeout, pd);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, pam_forwarder_cert_cb, preq);
+    return EAGAIN;
+}
+
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
     struct sss_domain_info *dom;
@@ -1125,17 +1153,10 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         }
     }
 
-    if (may_do_cert_auth(pctx, pd)) {
-        req = pam_check_cert_send(cctx, cctx->ev, pctx->p11_child_debug_fd,
-                                  pctx->nss_db, SSS_P11_CHILD_TIMEOUT, pd);
-        if (req == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
-            ret = ENOMEM;
-        } else {
-            tevent_req_set_callback(req, pam_forwarder_cert_cb, preq);
-            ret = EAGAIN;
-        }
 
+    if (may_do_cert_auth(pctx, pd)) {
+        ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
+        /* Finish here */
         goto done;
     }
 
@@ -1342,16 +1363,8 @@ static void pam_forwarder_cb(struct tevent_req *req)
     }
 
     if (may_do_cert_auth(pctx, pd)) {
-        req = pam_check_cert_send(cctx, cctx->ev, pctx->p11_child_debug_fd,
-                                  pctx->nss_db, SSS_P11_CHILD_TIMEOUT, pd);
-        if (req == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
-            ret = ENOMEM;
-        } else {
-            tevent_req_set_callback(req, pam_forwarder_cert_cb, preq);
-            ret = EAGAIN;
-        }
-
+        ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
+        /* Finish here */
         goto done;
     }
 

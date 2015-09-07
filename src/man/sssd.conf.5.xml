@@ -988,6 +988,18 @@ pam_account_expired_message = Account expired, please call help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>p11_child_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How many seconds will pam_sss wait for
+                            p11_child to finish.
+                        </para>
+                        <para>
+                            Default: 10
+                        </para>
+                    </listitem>
+                </varlistentry>
 
             </variablelist>
         </refsect2>
