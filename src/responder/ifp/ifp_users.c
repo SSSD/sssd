@@ -403,7 +403,7 @@ static void ifp_users_list_by_name_done(struct tevent_req *req)
         return;
     }
 
-    list_ctx->dom = get_next_domain(list_ctx->dom, true);
+    list_ctx->dom = get_next_domain(list_ctx->dom, SSS_GND_DESCEND);
     if (list_ctx->dom == NULL) {
         return ifp_users_list_by_name_reply(list_ctx);
     }

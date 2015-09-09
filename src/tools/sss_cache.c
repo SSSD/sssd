@@ -128,7 +128,8 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    for (dinfo = tctx->domains; dinfo; dinfo = get_next_domain(dinfo, true)) {
+    for (dinfo = tctx->domains; dinfo;
+            dinfo = get_next_domain(dinfo, SSS_GND_DESCEND)) {
         if (!IS_SUBDOMAIN(dinfo)) {
             /* Update list of subdomains for this domain */
             ret = sysdb_update_subdomains(dinfo);
@@ -555,7 +556,7 @@ errno_t init_domains(struct cache_tool_ctx *ctx, const char *domain)
         }
     }
 
-    for (dinfo = ctx->domains; dinfo; dinfo = get_next_domain(dinfo, false)) {
+    for (dinfo = ctx->domains; dinfo; dinfo = get_next_domain(dinfo, 0)) {
         ret = sss_names_init(ctx, ctx->confdb, dinfo->name, &dinfo->names);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sss_names_init() failed\n");

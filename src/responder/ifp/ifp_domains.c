@@ -111,7 +111,7 @@ static void ifp_list_domains_process(struct tevent_req *req)
     num_domains = 0;
     for (dom = ireq->ifp_ctx->rctx->domains;
             dom != NULL;
-            dom = get_next_domain(dom, true)) {
+            dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         num_domains++;
     }
 
@@ -124,7 +124,7 @@ static void ifp_list_domains_process(struct tevent_req *req)
     pi = 0;
     for (dom = ireq->ifp_ctx->rctx->domains;
             dom != NULL;
-            dom = get_next_domain(dom, true)) {
+            dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         p = sbus_opath_compose(ireq, IFP_PATH_DOMAINS, dom->name);
         if (p == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -221,7 +221,7 @@ static void ifp_find_domain_by_name_process(struct tevent_req *req)
     /* Reply with the domain that was asked for */
     for (iter = ireq->ifp_ctx->rctx->domains;
             iter != NULL;
-            iter = get_next_domain(iter, true)) {
+            iter = get_next_domain(iter, SSS_GND_DESCEND)) {
         if (strcasecmp(iter->name, state->name) == 0) {
             break;
         }
@@ -271,7 +271,8 @@ get_domain_info_from_req(struct sbus_request *dbus_req, void *data)
     DEBUG(SSSDBG_TRACE_INTERNAL, "Looking for domain %s\n", name);
 
     domains = ctx->rctx->domains;
-    for (iter = domains; iter != NULL; iter = get_next_domain(iter, true)) {
+    for (iter = domains; iter != NULL;
+            iter = get_next_domain(iter, SSS_GND_DESCEND)) {
         if (strcasecmp(iter->name, name) == 0) {
             break;
         }

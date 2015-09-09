@@ -134,7 +134,8 @@ static errno_t sss_tool_domains_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    for (dom = domains; dom != NULL; dom = get_next_domain(dom, true)) {
+    for (dom = domains; dom != NULL;
+            dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         if (!IS_SUBDOMAIN(dom)) {
             /* Update list of subdomains for this domain */
             ret = sysdb_update_subdomains(dom);
@@ -146,7 +147,8 @@ static errno_t sss_tool_domains_init(TALLOC_CTX *mem_ctx,
         }
     }
 
-    for (dom = domains; dom != NULL; dom = get_next_domain(dom, true)) {
+    for (dom = domains; dom != NULL;
+            dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         ret = sss_names_init(mem_ctx, confdb, dom->name, &dom->names);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sss_names_init() failed\n");

@@ -520,11 +520,11 @@ static void test_get_next_domain(void **state)
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom = NULL;
 
-    dom = get_next_domain(test_ctx->dom_list, false);
+    dom = get_next_domain(test_ctx->dom_list, 0);
     assert_non_null(dom);
     assert_string_equal(dom->name, "dom2");
 
-    dom = get_next_domain(dom, false);
+    dom = get_next_domain(dom, 0);
     assert_null(dom);
 }
 
@@ -534,23 +534,23 @@ static void test_get_next_domain_descend(void **state)
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom = NULL;
 
-    dom = get_next_domain(test_ctx->dom_list, true);
+    dom = get_next_domain(test_ctx->dom_list, SSS_GND_DESCEND);
     assert_non_null(dom);
     assert_string_equal(dom->name, "sub1a");
 
-    dom = get_next_domain(dom, true);
+    dom = get_next_domain(dom, SSS_GND_DESCEND);
     assert_non_null(dom);
     assert_string_equal(dom->name, "dom2");
 
-    dom = get_next_domain(dom, true);
+    dom = get_next_domain(dom, SSS_GND_DESCEND);
     assert_non_null(dom);
     assert_string_equal(dom->name, "sub2a");
 
-    dom = get_next_domain(dom, true);
+    dom = get_next_domain(dom, SSS_GND_DESCEND);
     assert_non_null(dom);
     assert_string_equal(dom->name, "sub2b");
 
-    dom = get_next_domain(dom, false);
+    dom = get_next_domain(dom, 0);
     assert_null(dom);
 }
 
@@ -560,11 +560,12 @@ static void test_get_next_domain_disabled(void **state)
                                                       struct dom_list_test_ctx);
     struct sss_domain_info *dom = NULL;
 
-    for (dom = test_ctx->dom_list; dom; dom = get_next_domain(dom, true)) {
+    for (dom = test_ctx->dom_list; dom;
+            dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         sss_domain_set_state(dom, DOM_DISABLED);
     }
 
-    dom = get_next_domain(test_ctx->dom_list, true);
+    dom = get_next_domain(test_ctx->dom_list, SSS_GND_DESCEND);
     assert_null(dom);
 }
 

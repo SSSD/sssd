@@ -261,7 +261,7 @@ static errno_t be_refresh_step(struct tevent_req *req)
 
         /* if not found than continue with next domain */
         if (state->index == BE_REFRESH_TYPE_SENTINEL) {
-            state->domain = get_next_domain(state->domain, false);
+            state->domain = get_next_domain(state->domain, 0);
             continue;
         }
 

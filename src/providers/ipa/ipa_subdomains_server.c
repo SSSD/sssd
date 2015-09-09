@@ -836,9 +836,9 @@ static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
 
     state = tevent_req_data(req, struct ipa_server_create_trusts_state);
 
-    for (state->domiter = get_next_domain(state->domiter, true);
+    for (state->domiter = get_next_domain(state->domiter, SSS_GND_DESCEND);
          state->domiter && IS_SUBDOMAIN(state->domiter);
-         state->domiter = get_next_domain(state->domiter, false)) {
+         state->domiter = get_next_domain(state->domiter, 0)) {
 
         /* Check if we already have an ID context for this subdomain */
         DLIST_FOR_EACH(trust_iter, state->id_ctx->server_mode->trusts) {

@@ -132,9 +132,9 @@ sdap_domain_subdom_add(struct sdap_id_ctx *sdap_id_ctx,
     struct sdap_domain *sdom, *sditer;
     errno_t ret;
 
-    for (dom = get_next_domain(parent, true);
+    for (dom = get_next_domain(parent, SSS_GND_DESCEND);
          dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-         dom = get_next_domain(dom, false)) {
+         dom = get_next_domain(dom, 0)) {
 
         DLIST_FOR_EACH(sditer, sdom_list) {
             if (sditer->dom == dom) {
