@@ -1281,7 +1281,7 @@ static int override_user_export(struct sss_cmdline *cmdline,
 
         /* All overrides are under the same subtree, so we don't want to
          * descent into subdomains. */
-        dom = get_next_domain(dom, false);
+        dom = get_next_domain(dom, 0);
     } while (dom != NULL);
 
     exit = EXIT_SUCCESS;
@@ -1482,7 +1482,7 @@ static int override_group_export(struct sss_cmdline *cmdline,
 
         /* All overrides are under the same subtree, so we don't want to
          * descent into subdomains. */
-        dom = get_next_domain(dom, false);
+        dom = get_next_domain(dom, 0);
     } while (dom != NULL);
 
     exit = EXIT_SUCCESS;

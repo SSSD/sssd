@@ -190,7 +190,7 @@ errno_t ifp_cache_list_domains(TALLOC_CTX *mem_ctx,
 
         num_paths += num_tmp_paths;
 
-        domain = get_next_domain(domain, true);
+        domain = get_next_domain(domain, SSS_GND_DESCEND);
     }
 
     if (_paths != NULL) {

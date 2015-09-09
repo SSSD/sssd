@@ -261,7 +261,7 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
 
     for (domain = domain_list;
          domain;
-         domain = get_next_domain(domain, false)) {
+         domain = get_next_domain(domain, 0)) {
         domain_count++;
     }
 
@@ -286,7 +286,7 @@ errno_t get_confdb_sections(TALLOC_CTX *ctx, struct confdb_ctx *confdb,
 
     for (domain = domain_list;
          domain;
-         domain = get_next_domain(domain, false), i++) {
+         domain = get_next_domain(domain, 0), i++) {
         sections[i] = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
                                       domain->name);
         if (sections[i] == NULL) {

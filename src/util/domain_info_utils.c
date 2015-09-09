@@ -35,9 +35,11 @@ struct sss_domain_info *get_domains_head(struct sss_domain_info *domain)
 }
 
 struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
-                                        bool descend)
+                                        uint32_t gnd_flags)
 {
     struct sss_domain_info *dom;
+    bool descend = gnd_flags & SSS_GND_DESCEND;
+    bool include_disabled = gnd_flags & SSS_GND_INCLUDE_DISABLED;
 
     dom = domain;
     while (dom) {
@@ -51,8 +53,14 @@ struct sss_domain_info *get_next_domain(struct sss_domain_info *domain,
             dom = NULL;
         }
 
-        if (dom && sss_domain_get_state(dom) != DOM_DISABLED) {
-            break;
+        if (dom) {
+            if (sss_domain_get_state(dom) == DOM_DISABLED
+                    && !include_disabled) {
+                continue;
+            } else {
+                /* Next domain found. */
+                break;
+            }
         }
     }
 
@@ -95,7 +103,7 @@ struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
     }
 
     while (dom && sss_domain_get_state(dom) == DOM_DISABLED) {
-        dom = get_next_domain(dom, true);
+        dom = get_next_domain(dom, SSS_GND_DESCEND);
     }
     while (dom) {
         if (strcasecmp(dom->name, name) == 0 ||
@@ -103,7 +111,7 @@ struct sss_domain_info *find_domain_by_name(struct sss_domain_info *domain,
              (strcasecmp(dom->flat_name, name) == 0))) {
             return dom;
         }
-        dom = get_next_domain(dom, true);
+        dom = get_next_domain(dom, SSS_GND_DESCEND);
     }
 
     return NULL;
@@ -123,7 +131,7 @@ struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
     sid_len = strlen(sid);
 
     while (dom && sss_domain_get_state(dom) == DOM_DISABLED) {
-        dom = get_next_domain(dom, true);
+        dom = get_next_domain(dom, SSS_GND_DESCEND);
     }
 
     while (dom) {
@@ -144,7 +152,7 @@ struct sss_domain_info *find_domain_by_sid(struct sss_domain_info *domain,
             }
         }
 
-        dom = get_next_domain(dom, true);
+        dom = get_next_domain(dom, SSS_GND_DESCEND);
     }
 
     return NULL;
@@ -347,9 +355,9 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
         goto done;
     }
 
-    for (dom = get_next_domain(domain, true);
+    for (dom = get_next_domain(domain, SSS_GND_DESCEND);
          dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-         dom = get_next_domain(dom, false)) {
+         dom = get_next_domain(dom, 0)) {
         ret = fprintf(fstream, ".%s = %s\n%s = %s\n",
                                dom->name, dom->realm, dom->name, dom->realm);
         if (ret < 0) {
@@ -366,9 +374,9 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
         goto done;
     }
 
-    for (dom = get_next_domain(domain, true);
+    for (dom = get_next_domain(domain, SSS_GND_DESCEND);
             dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-            dom = get_next_domain(dom, false)) {
+            dom = get_next_domain(dom, 0)) {
 
         if (dom->forest == NULL) {
             continue;
@@ -482,7 +490,7 @@ errno_t get_dom_names(TALLOC_CTX *mem_ctx,
     dom = start_dom;
     while (dom) {
         count++;
-        dom = get_next_domain(dom, false);
+        dom = get_next_domain(dom, 0);
     }
 
     dom_names = talloc_array(tmp_ctx, char*, count);
@@ -500,7 +508,7 @@ errno_t get_dom_names(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
-        dom = get_next_domain(dom, false);
+        dom = get_next_domain(dom, 0);
         i++;
     }
 

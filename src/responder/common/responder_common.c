@@ -845,7 +845,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    for (dom = rctx->domains; dom; dom = get_next_domain(dom, false)) {
+    for (dom = rctx->domains; dom; dom = get_next_domain(dom, 0)) {
         ret = sss_names_init(rctx->cdb, rctx->cdb, dom->name, &dom->names);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
@@ -923,7 +923,8 @@ responder_get_domain(struct resp_ctx *rctx, const char *name)
     struct sss_domain_info *dom;
     struct sss_domain_info *ret_dom = NULL;
 
-    for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
+    for (dom = rctx->domains; dom;
+            dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         if (sss_domain_get_state(dom) == DOM_DISABLED) {
             continue;
         }
@@ -958,7 +959,8 @@ errno_t responder_get_domain_by_id(struct resp_ctx *rctx, const char *id,
 
     id_len = strlen(id);
 
-    for (dom = rctx->domains; dom; dom = get_next_domain(dom, true)) {
+    for (dom = rctx->domains; dom;
+            dom = get_next_domain(dom, SSS_GND_DESCEND)) {
         if (sss_domain_get_state(dom) == DOM_DISABLED ||
                 dom->domain_id == NULL) {
             continue;

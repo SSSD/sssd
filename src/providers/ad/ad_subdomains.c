@@ -350,9 +350,9 @@ static errno_t ad_subdomains_refresh(struct ad_subdomains_ctx *ctx,
     }
 
     /* check existing subdomains */
-    for (dom = get_next_domain(domain, true);
+    for (dom = get_next_domain(domain, SSS_GND_DESCEND);
          dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-         dom = get_next_domain(dom, false)) {
+         dom = get_next_domain(dom, 0)) {
 
         /* If we are handling root domain, skip all the other domains. We don't
          * want to accidentally remove non-root domains

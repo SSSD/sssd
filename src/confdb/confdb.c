@@ -1458,7 +1458,7 @@ int confdb_get_domain(struct confdb_ctx *cdb,
         return ret;
     }
 
-    for (dom = doms; dom; dom = get_next_domain(dom, false)) {
+    for (dom = doms; dom; dom = get_next_domain(dom, 0)) {
         if (strcasecmp(dom->name, name) == 0) {
             *_domain = dom;
             return EOK;

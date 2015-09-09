@@ -509,9 +509,9 @@ static errno_t ipa_subdomains_refresh(struct ipa_subdomains_ctx *ctx,
     h = 0;
 
     /* check existing subdomains */
-    for (dom = get_next_domain(parent, true);
+    for (dom = get_next_domain(parent, SSS_GND_DESCEND);
          dom && IS_SUBDOMAIN(dom); /* if we get back to a parent, stop */
-         dom = get_next_domain(dom, false)) {
+         dom = get_next_domain(dom, 0)) {
         for (c = 0; c < count; c++) {
             if (handled[c]) {
                 continue;
