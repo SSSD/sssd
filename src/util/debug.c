@@ -316,24 +316,27 @@ int chown_debug_file(const char *filename,
     const char *log_file;
     errno_t ret;
 
-    if (filename == NULL) {
-        log_file = debug_log_file;
-    } else {
-        log_file = filename;
-    }
+    if (debug_file) {
 
-    ret = asprintf(&logpath, "%s/%s.log", LOG_PATH, log_file);
-    if (ret == -1) {
-        return ENOMEM;
-    }
+        if (filename == NULL) {
+            log_file = debug_log_file;
+        } else {
+            log_file = filename;
+        }
 
-    ret = chown(logpath, uid, gid);
-    free(logpath);
-    if (ret != 0) {
-        ret = errno;
-        DEBUG(SSSDBG_FATAL_FAILURE, "chown failed for [%s]: [%d]\n",
-              log_file, ret);
-        return ret;
+        ret = asprintf(&logpath, "%s/%s.log", LOG_PATH, log_file);
+        if (ret == -1) {
+            return ENOMEM;
+        }
+
+        ret = chown(logpath, uid, gid);
+        free(logpath);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_FATAL_FAILURE, "chown failed for [%s]: [%d]\n",
+                  log_file, ret);
+            return ret;
+        }
     }
 
     return EOK;
