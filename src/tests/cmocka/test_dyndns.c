@@ -70,6 +70,7 @@ void __wrap_execv(const char *path, char *const argv[])
         case MOCK_NSUPDATE_OK:
             DEBUG(SSSDBG_FUNC_DATA, "nsupdate success test case\n");
             err = 0;
+            usleep(50000); /* 50 miliseconds */
             break;
         case MOCK_NSUPDATE_ERR:
             DEBUG(SSSDBG_FUNC_DATA, "nsupdate error test case\n");
