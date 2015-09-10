@@ -40,14 +40,15 @@
 #define REALMNAME   DOMNAME
 #define HOST_NAME   "ad."REALMNAME
 
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_AUTHID       "host/"HOST_NAME
 #define KEYTAB_TEST_PRINC TEST_AUTHID"@"REALMNAME
-#define KEYTAB_PATH       TEST_DIR"/keytab_test.keytab"
+#define KEYTAB_PATH       TESTS_PATH"/keytab_test.keytab"
 
 #define ONEWAY_DOMNAME     "ONEWAY"
 #define ONEWAY_HOST_NAME   "ad."ONEWAY_DOMNAME
 
-#define ONEWAY_KEYTAB_PATH       TEST_DIR"/oneway_test.keytab"
+#define ONEWAY_KEYTAB_PATH       TESTS_PATH"/oneway_test.keytab"
 #define ONEWAY_AUTHID            "host/"ONEWAY_HOST_NAME
 #define ONEWAY_TEST_PRINC        ONEWAY_AUTHID"@"ONEWAY_DOMNAME
 
@@ -86,6 +87,8 @@ static int test_ad_common_setup(void **state)
 {
     struct ad_common_test_ctx *test_ctx;
 
+    test_dom_suite_setup(TESTS_PATH);
+
     assert_true(leak_check_setup());
     check_leaks_push(global_talloc_context);
 
@@ -111,6 +114,7 @@ static int test_ad_common_setup(void **state)
 
 static int test_ad_common_teardown(void **state)
 {
+    int ret;
     struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
                                                   struct ad_common_test_ctx);
     assert_non_null(test_ctx);
@@ -119,6 +123,9 @@ static int test_ad_common_teardown(void **state)
     talloc_free(test_ctx);
     assert_true(check_leaks_pop(global_talloc_context) == true);
     assert_true(leak_check_teardown());
+
+    ret = rmdir(TESTS_PATH);
+    assert_return_code(ret, errno);
 
     return 0;
 }
@@ -241,6 +248,8 @@ static void test_ad_create_2way_trust_options(void **state)
     assert_string_equal(s, TEST_AUTHID);
 
     talloc_free(test_ctx->ad_ctx->ad_options);
+
+    unlink(KEYTAB_PATH);
 }
 
 static int
@@ -255,6 +264,8 @@ test_ldap_conn_setup(void **state)
 
     ret = test_ad_common_setup((void **) &test_ctx);
     assert_int_equal(ret, EOK);
+
+    mock_keytab_with_contents(test_ctx, KEYTAB_PATH, KEYTAB_TEST_PRINC);
 
     ad_ctx = test_ctx->ad_ctx;
 
@@ -304,6 +315,8 @@ test_ldap_conn_teardown(void **state)
     struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
                                                   struct ad_common_test_ctx);
     assert_non_null(test_ctx);
+
+    unlink(KEYTAB_PATH);
 
     talloc_free(test_ctx->subdom_ad_ctx);
     talloc_free(test_ctx->ad_ctx->ad_options);
