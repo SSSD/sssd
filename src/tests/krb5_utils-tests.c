@@ -32,7 +32,7 @@
 #include "util/sss_utf8.h"
 #include "tests/common.h"
 
-#define TESTS_PATH "tests_krb5_utils"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 
 #define BASE "/abc/def"
 #define FILENAME "ghi"

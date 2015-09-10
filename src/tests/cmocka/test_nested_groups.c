@@ -32,7 +32,7 @@
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ldap/sdap_async_private.h"
 
-#define TESTS_PATH "tests_ldap_nested_groups"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_ldap_nested_groups_conf.ldb"
 #define TEST_DOM_NAME "ldap_nested_groups_test"
 #define TEST_ID_PROVIDER "ldap"

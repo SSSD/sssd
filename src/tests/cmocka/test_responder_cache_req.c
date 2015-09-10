@@ -28,7 +28,7 @@
 #include "db/sysdb.h"
 #include "responder/common/responder_cache_req.h"
 
-#define TESTS_PATH "tests_responder_cache_req"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_responder_cache_req_conf.ldb"
 #define TEST_DOM_NAME "responder_cache_req_test"
 #define TEST_ID_PROVIDER "ldap"

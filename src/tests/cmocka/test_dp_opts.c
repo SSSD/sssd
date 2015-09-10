@@ -30,7 +30,7 @@
 #define BLOB_DEFAULT    "blobval"
 #define INT_DEFAULT     123
 
-#define TESTS_PATH "tests_opts"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_opt_conf.ldb"
 #define TEST_DOM_NAME "opt_test"
 #define TEST_ID_PROVIDER "ldap"

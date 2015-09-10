@@ -50,7 +50,7 @@
 #define LIFETIME 200
 #define SHORTSPAN 1
 #define NAME "foo_name"
-#define TESTS_PATH "tests_ncache"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_nss_conf.ldb"
 #define TEST_DOM_NAME "nss_test"
 #define TEST_ID_PROVIDER "ldap"

@@ -34,7 +34,7 @@
 #include "db/sysdb_autofs.h"
 #include "tests/common.h"
 
-#define TESTS_PATH "tests_sysdb"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_FILE "tests_conf.ldb"
 
 #define TEST_ATTR_NAME "test_attr_name"

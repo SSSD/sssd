@@ -32,7 +32,7 @@
 #include "tests/common.h"
 #include "db/sysdb_private.h" /* for sysdb->ldb member */
 
-#define TESTS_PATH "test_sysdb_subdomains_dir"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_sysdb_subdomains.ldb"
 
 #define TEST_DOM1_NAME "test_sysdb_subdomains_1"

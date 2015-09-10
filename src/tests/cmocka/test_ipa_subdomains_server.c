@@ -57,7 +57,7 @@
 #define CHILD_FLAT  "CHILD"
 #define CHILD_SID   "S-1-2-3-4"
 
-#define TESTS_PATH "tests_ipa_subdom_server"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_ipa_subdom_server.ldb"
 #define TEST_DOM_NAME "ipa_subdom_server_test"
 #define TEST_ID_PROVIDER "ipa"

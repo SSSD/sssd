@@ -39,7 +39,7 @@
 #include "db/sysdb.h"
 #include "tests/common.h"
 
-#define TESTS_PATH "tests_auth"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_FILE "tests_conf.ldb"
 
 struct sysdb_test_ctx {

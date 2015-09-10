@@ -36,7 +36,7 @@
 #include "providers/ldap/ldap_opts.h"
 #include "providers/ipa/ipa_opts.h"
 
-#define TESTS_PATH "tests_ldap_id_cleanup"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_FILE "tests_conf.ldb"
 
 struct sysdb_test_ctx {

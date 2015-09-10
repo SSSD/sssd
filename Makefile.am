@@ -433,7 +433,9 @@ AM_CPPFLAGS = \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
     -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
     -DSSS_SSH_SOCKET_NAME=\"$(pipepath)/ssh\" \
-    -DLOCALEDIR=\"$(localedir)\"
+    -DLOCALEDIR=\"$(localedir)\" \
+    -DBASE_FILE_STEM=\"$(*F)\" \
+    $(NULL)
 
 EXTRA_DIST =
 

@@ -28,7 +28,7 @@
 #include "util/sss_nss.h"
 #include "test_utils.h"
 
-#define TESTS_PATH "tests_utils"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_utils_conf.ldb"
 #define TEST_DOM_NAME "utils_test.ldb"
 

@@ -34,7 +34,7 @@
 #include "db/sysdb_services.h"
 #include "db/sysdb_ssh.h"
 
-#define TESTS_PATH "tests_sysdb_ssh"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_FILE "tests_conf.ldb"
 #define TEST_HOSTNAME "testhost"
 

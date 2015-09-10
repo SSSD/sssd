@@ -37,7 +37,7 @@
 #include "util/crypto/nss/nss_util.h"
 #endif
 
-#define TESTS_PATH "tests_pam"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_pam_conf.ldb"
 #define TEST_DOM_NAME "pam_test"
 #define TEST_SUBDOM_NAME "test.subdomain"

@@ -28,7 +28,7 @@
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_resp.h"
 
-#define TESTS_PATH "tests_responder"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_responder_conf.ldb"
 #define TEST_DOM_NAME "responder_test"
 #define TEST_ID_PROVIDER "ldap"

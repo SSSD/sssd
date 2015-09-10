@@ -34,7 +34,7 @@
 #include "util/util_sss_idmap.h"
 #include "db/sysdb_private.h"   /* new_subdomain() */
 
-#define TESTS_PATH "tests_nss"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_nss_conf.ldb"
 #define TEST_DOM_NAME "nss_test"
 #define TEST_SUBDOM_NAME "test.subdomain"

@@ -40,7 +40,7 @@
 #include "util/util.h"
 #include "tests/common.h"
 
-#define TESTS_PATH "tests_io"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define FILE_TEMPLATE TESTS_PATH"/test_io.XXXXXX"
 #define NON_EX_PATH TESTS_PATH"/non-existent-path"
 

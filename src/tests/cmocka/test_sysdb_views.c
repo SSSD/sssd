@@ -32,7 +32,7 @@
 #include "providers/ipa/ipa_id.h"
 #include "db/sysdb_private.h" /* for sysdb->ldb member */
 
-#define TESTS_PATH "tests_sysdb_views"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_FILE "tests_conf.ldb"
 
 #define TEST_ANCHOR_PREFIX ":ANCHOR:"

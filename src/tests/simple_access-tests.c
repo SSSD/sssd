@@ -30,7 +30,7 @@
 #include "providers/simple/simple_access.h"
 #include "tests/common.h"
 
-#define TESTS_PATH "tests_simple_access"
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_FILE "tests_conf.ldb"
 
 const char *ulist_1[] = {"u1", "u2", NULL};
