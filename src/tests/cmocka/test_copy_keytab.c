@@ -28,9 +28,10 @@
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_krb5.h"
 
+#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define KEYTAB_TEST_PRINC "test/keytab@TEST.KEYTAB"
-#define KEYTAB_PATH TEST_DIR "/keytab_test.keytab"
-#define EMPTY_KEYTAB_PATH TEST_DIR "/empty_keytab_test.keytab"
+#define KEYTAB_PATH TESTS_PATH "/keytab_test.keytab"
+#define EMPTY_KEYTAB_PATH TESTS_PATH "/empty_keytab_test.keytab"
 
 struct keytab_test_ctx {
     krb5_context kctx;
@@ -44,6 +45,8 @@ static int setup_keytab(void **state)
     krb5_error_code kerr;
     size_t nkeys = 4;
     krb5_keytab_entry keys[nkeys];
+
+    test_dom_suite_setup(TESTS_PATH);
 
     assert_true(leak_check_setup());
 
@@ -90,6 +93,10 @@ static int teardown_keytab(void **state)
     assert_true(check_leaks_pop(test_ctx) == true);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
+
+    ret = rmdir(TESTS_PATH);
+    assert_return_code(ret, errno);
+
     return 0;
 }
 
