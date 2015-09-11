@@ -2519,7 +2519,7 @@ test_ipa_subdom_server_SOURCES = \
     $(NULL)
 test_ipa_subdom_server_CFLAGS = \
     $(AM_CFLAGS) \
-    -DIPA_TRUST_KEYTAB_DIR=TEST_DIR \
+    -DIPA_TRUST_KEYTAB_DIR=TEST_DIR\"/tp_test_ipa_subdom_server-test_ipa_subdomains_server\" \
     $(NULL)
 test_ipa_subdom_server_LDFLAGS = \
     -Wl,-wrap,krb5_kt_default \

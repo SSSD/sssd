@@ -30,6 +30,8 @@
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 
+#define TESTS_PATH "tp_" BASE_FILE_STEM
+
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_opts.h"
 #include "providers/data_provider.h"
@@ -45,7 +47,7 @@
 
 #define TEST_AUTHID       "host/"HOSTNAME
 #define KEYTAB_TEST_PRINC TEST_AUTHID"@"DOM_REALM
-#define KEYTAB_PATH       TEST_DIR"/keytab_test.keytab"
+#define KEYTAB_PATH       TEST_DIR"/"TESTS_PATH"/keytab_test.keytab"
 
 #define SUBDOM_NAME  "twoway.subdom.test"
 #define SUBDOM_REALM "TWOWAY.SUBDOM.TEST"
@@ -57,12 +59,11 @@
 #define CHILD_FLAT  "CHILD"
 #define CHILD_SID   "S-1-2-3-4"
 
-#define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_ipa_subdom_server.ldb"
 #define TEST_DOM_NAME "ipa_subdom_server_test"
 #define TEST_ID_PROVIDER "ipa"
 
-#define ONEWAY_KEYTAB   TEST_DIR"/"SUBDOM_REALM".keytab"
+#define ONEWAY_KEYTAB   TEST_DIR"/"TESTS_PATH"/"SUBDOM_REALM".keytab"
 #define ONEWAY_PRINC    DOM_FLAT"$"
 #define ONEWAY_AUTHID   ONEWAY_PRINC"@"SUBDOM_REALM
 
