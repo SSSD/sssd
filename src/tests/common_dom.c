@@ -292,19 +292,6 @@ create_dom_test_ctx(TALLOC_CTX *mem_ctx,
                                     id_provider, params);
 }
 
-void test_dom_suite_setup(const char *tests_path)
-{
-    errno_t ret;
-
-    /* Create tests directory if it doesn't exist */
-    /* (relative to current dir) */
-    ret = mkdir(tests_path, 0775);
-    if (ret != 0 && errno != EEXIST) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Could not create test directory\n");
-    }
-}
-
 void test_multidom_suite_cleanup(const char *tests_path,
                                  const char *cdb_file,
                                  const char **domains)

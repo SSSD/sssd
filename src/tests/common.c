@@ -38,6 +38,18 @@ tests_set_cwd(void)
     }
 }
 
+void test_dom_suite_setup(const char *tests_path)
+{
+    errno_t ret;
+
+    /* Create tests directory if it doesn't exist */
+    /* (relative to current dir) */
+    ret = mkdir(tests_path, 0775);
+    if (ret != 0 && errno != EEXIST) {
+        fprintf(stderr, "Could not create test directory\n");
+    }
+}
+
 /* Check that the option names of the two maps are the same
  * and appear in the same order.
  */
