@@ -201,6 +201,32 @@ void will_return_getifaddrs(const char *ifname, const char *straddr,
     }
 }
 
+void dyndns_test_sss_iface_addr_get_misc(void **state)
+{
+    struct sss_iface_addr addrs[3];
+    struct sockaddr_storage ss[3];
+
+    addrs[0].prev = NULL;
+    addrs[0].next = &addrs[1];
+    addrs[0].addr = &ss[0];
+    addrs[1].prev = &addrs[0];
+    addrs[1].next = &addrs[2];
+    addrs[1].addr = &ss[1];
+    addrs[2].prev = &addrs[1];
+    addrs[2].next = NULL;
+    addrs[2].addr = &ss[2];
+
+    assert_ptr_equal(sss_iface_addr_get_address(NULL), NULL);
+    assert_ptr_equal(sss_iface_addr_get_address(&addrs[0]), &ss[0]);
+    assert_ptr_equal(sss_iface_addr_get_address(&addrs[1]), &ss[1]);
+    assert_ptr_equal(sss_iface_addr_get_address(&addrs[2]), &ss[2]);
+
+    assert_ptr_equal(sss_iface_addr_get_next(NULL), NULL);
+    assert_ptr_equal(sss_iface_addr_get_next(&addrs[0]), &addrs[1]);
+    assert_ptr_equal(sss_iface_addr_get_next(&addrs[1]), &addrs[2]);
+    assert_ptr_equal(sss_iface_addr_get_next(&addrs[2]), NULL);
+}
+
 void dyndns_test_get_ifaddr(void **state)
 {
     errno_t ret;
@@ -703,6 +729,9 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         /* Utility functions unit test */
+        cmocka_unit_test_setup_teardown(dyndns_test_sss_iface_addr_get_misc,
+                                        dyndns_test_simple_setup,
+                                        dyndns_test_teardown),
         cmocka_unit_test_setup_teardown(dyndns_test_get_ifaddr,
                                         dyndns_test_simple_setup,
                                         dyndns_test_teardown),

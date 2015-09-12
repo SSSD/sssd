@@ -97,9 +97,9 @@ be_nsupdate_create_fwd_msg(TALLOC_CTX *mem_ctx, const char *realm,
 errno_t
 be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
                            const char *servername, const char *hostname,
-                           const unsigned int ttl, uint8_t remove_af,
-                           struct sss_iface_addr *addresses,
-                           struct sss_iface_addr *old_addresses,
+                           const unsigned int ttl,
+                           struct sockaddr_storage *address,
+                           bool delete,
                            char **_update_msg);
 
 /* Returns:
@@ -133,4 +133,11 @@ errno_t
 sss_get_dualstack_addresses(TALLOC_CTX *mem_ctx,
                             struct sockaddr *ss,
                             struct sss_iface_addr **_iface_addrs);
+
+struct sss_iface_addr *
+sss_iface_addr_get_next(struct sss_iface_addr *address);
+
+struct sockaddr_storage*
+sss_iface_addr_get_address(struct sss_iface_addr *address);
+
 #endif /* DP_DYNDNS_H_ */

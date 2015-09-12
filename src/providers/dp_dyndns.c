@@ -52,6 +52,25 @@ struct sss_iface_addr {
     struct sockaddr_storage *addr;
 };
 
+struct sockaddr_storage*
+sss_iface_addr_get_address(struct sss_iface_addr *address)
+{
+    if (address == NULL) {
+        return NULL;
+    }
+
+    return address->addr;
+}
+
+struct sss_iface_addr *sss_iface_addr_get_next(struct sss_iface_addr *address)
+{
+    if (address) {
+        return address->next;
+    }
+
+    return NULL;
+}
+
 void sss_iface_addr_concatenate(struct sss_iface_addr **list,
                                 struct sss_iface_addr *list2)
 {
@@ -293,80 +312,63 @@ nsupdate_msg_add_fwd(char *update_msg, struct sss_iface_addr *addresses,
     return talloc_asprintf_append(update_msg, "send\n");
 }
 
-static char *
-nsupdate_msg_add_ptr(char *update_msg, struct sss_iface_addr *addresses,
-                     const char *hostname, int ttl, uint8_t remove_af,
-                     struct sss_iface_addr *old_addresses)
+static uint8_t *nsupdate_convert_address(struct sockaddr_storage *add_address)
 {
-    struct sss_iface_addr *new_record, *old_record;
+    uint8_t *addr;
+
+    switch(add_address->ss_family) {
+    case AF_INET:
+        addr = (uint8_t *) &((struct sockaddr_in *) add_address)->sin_addr;
+        break;
+    case AF_INET6:
+        addr = (uint8_t *) &((struct sockaddr_in6 *) add_address)->sin6_addr;
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
+        addr = NULL;
+        break;
+    }
+
+    return addr;
+}
+
+static char *nsupdate_msg_add_ptr(char *update_msg,
+                                  struct sockaddr_storage *address,
+                                  const char *hostname,
+                                  int ttl,
+                                  bool delete)
+{
     char *strptr;
     uint8_t *addr;
 
-    DLIST_FOR_EACH(old_record, old_addresses) {
-        switch(old_record->addr->ss_family) {
-        case AF_INET:
-            if (!(remove_af & DYNDNS_REMOVE_A)) {
-                continue;
-            }
-            addr = (uint8_t *) &((struct sockaddr_in *) old_record->addr)->sin_addr;
-            break;
-        case AF_INET6:
-            if (!(remove_af & DYNDNS_REMOVE_AAAA)) {
-                continue;
-            }
-            addr = (uint8_t *) &((struct sockaddr_in6 *) old_record->addr)->sin6_addr;
-            break;
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
-            return NULL;
-        }
+    addr = nsupdate_convert_address(address);
+    if (addr == NULL) {
+        return NULL;
+    }
 
-        strptr = resolv_get_string_ptr_address(update_msg, old_record->addr->ss_family,
-                                               addr);
-        if (strptr == NULL) {
-            return NULL;
-        }
+    strptr = resolv_get_string_ptr_address(update_msg, address->ss_family,
+                                           addr);
+    if (strptr == NULL) {
+        return NULL;
+    }
 
+    if (delete) {
         /* example: update delete 38.78.16.10.in-addr.arpa. in PTR */
         update_msg = talloc_asprintf_append(update_msg,
                                             "update delete %s in PTR\n"
                                             "send\n",
                                             strptr);
-        talloc_free(strptr);
-        if (update_msg == NULL) {
-            return NULL;
-        }
-    }
-
-    /* example: update add 11.78.16.10.in-addr.arpa. 85000 in PTR testvm.example.com */
-    DLIST_FOR_EACH(new_record, addresses) {
-        switch(new_record->addr->ss_family) {
-        case AF_INET:
-            addr = (uint8_t *) &((struct sockaddr_in *) new_record->addr)->sin_addr;
-            break;
-        case AF_INET6:
-            addr = (uint8_t *) &((struct sockaddr_in6 *) new_record->addr)->sin6_addr;
-            break;
-        default:
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unknown address family\n");
-            return NULL;
-        }
-
-        strptr = resolv_get_string_ptr_address(update_msg, new_record->addr->ss_family,
-                                               addr);
-        if (strptr == NULL) {
-            return NULL;
-        }
-
+    } else {
         /* example: update delete 38.78.16.10.in-addr.arpa. in PTR */
         update_msg = talloc_asprintf_append(update_msg,
                                             "update add %s %d in PTR %s.\n"
                                             "send\n",
                                             strptr, ttl, hostname);
-        talloc_free(strptr);
-        if (update_msg == NULL) {
-            return NULL;
-        }
+    }
+
+    talloc_free(strptr);
+    if (update_msg == NULL) {
+        return NULL;
     }
 
     return update_msg;
@@ -471,9 +473,9 @@ done:
 errno_t
 be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
                            const char *servername, const char *hostname,
-                           const unsigned int ttl, uint8_t remove_af,
-                           struct sss_iface_addr *addresses,
-                           struct sss_iface_addr *old_addresses,
+                           const unsigned int ttl,
+                           struct sockaddr_storage *address,
+                           bool delete,
                            char **_update_msg)
 {
     errno_t ret;
@@ -490,8 +492,8 @@ be_nsupdate_create_ptr_msg(TALLOC_CTX *mem_ctx, const char *realm,
         goto done;
     }
 
-    update_msg = nsupdate_msg_add_ptr(update_msg, addresses, hostname,
-                                      ttl, remove_af, old_addresses);
+    update_msg = nsupdate_msg_add_ptr(update_msg, address, hostname, ttl,
+                                      delete);
     if (update_msg == NULL) {
         ret = ENOMEM;
         goto done;
