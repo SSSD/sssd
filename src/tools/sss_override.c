@@ -604,58 +604,133 @@ done:
     return ret;
 }
 
-static errno_t override_user(struct sss_tool_ctx *tool_ctx,
-                             struct override_user *user)
+static errno_t override_fqn(TALLOC_CTX *mem_ctx,
+                            struct sss_tool_ctx *tool_ctx,
+                            struct sss_domain_info *domain,
+                            const char *input,
+                            const char **_name)
 {
+    struct sss_domain_info *dom;
+    errno_t ret;
+
+    if (input == NULL) {
+        return EOK;
+    }
+
+    ret = sss_tool_parse_name(mem_ctx, tool_ctx, input, _name, &dom);
+    if (ret == EAGAIN) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to find domain from "
+              "fqn %s\n", input);
+        fprintf(stderr, _("Changing domain is not allowed!\n"));
+        ret = EINVAL;
+    } else if (ret == EOK && dom != NULL && dom != domain) {
+        DEBUG(SSSDBG_OP_FAILURE, "Trying to change domain from "
+              "%s to %s, not allowed!\n", domain->name, dom->name);
+        fprintf(stderr, _("Changing domain is not allowed!\n"));
+        ret = EINVAL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name %s [%d]: %s\n",
+              input, ret, sss_strerror(ret));
+    }
+
+    return ret;
+}
+
+static errno_t override_user(struct sss_tool_ctx *tool_ctx,
+                             struct override_user *input_user)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct override_user user;
     struct sysdb_attrs *attrs;
     errno_t ret;
 
-    ret = prepare_view_msg(user->domain);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    attrs = build_user_attrs(tool_ctx, user);
-    if (attrs == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build sysdb attrs.\n");
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
-    ret = override_object_add(user->domain, SYSDB_MEMBER_USER, attrs,
-                              user->orig_name);
+    user = *input_user;
+
+    /* We need to parse the name and ensure that domain did not change. */
+    ret = override_fqn(tmp_ctx, tool_ctx, user.domain, user.name, &user.name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = prepare_view_msg(user.domain);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    attrs = build_user_attrs(tool_ctx, &user);
+    if (attrs == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build sysdb attrs.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = override_object_add(user.domain, SYSDB_MEMBER_USER, attrs,
+                              user.orig_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static errno_t override_group(struct sss_tool_ctx *tool_ctx,
-                              struct override_group *group)
+                              struct override_group *input_group)
 {
+    TALLOC_CTX *tmp_ctx;
+    struct override_group group;
     struct sysdb_attrs *attrs;
     errno_t ret;
 
-    ret = prepare_view_msg(group->domain);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    attrs = build_group_attrs(tool_ctx, group);
-    if (attrs == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build sysdb attrs.\n");
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
-    ret = override_object_add(group->domain, SYSDB_MEMBER_GROUP, attrs,
-                              group->orig_name);
+    group = *input_group;
+
+    /* We need to parse the name and ensure that domain did not change. */
+    ret = override_fqn(tmp_ctx, tool_ctx, group.domain, group.name,
+                       &group.name);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
-        return ret;
+        goto done;
     }
 
-    return EOK;
+    ret = prepare_view_msg(group.domain);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    attrs = build_group_attrs(tool_ctx, &group);
+    if (attrs == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build sysdb attrs.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = override_object_add(group.domain, SYSDB_MEMBER_GROUP, attrs,
+                              group.orig_name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to add override object.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static errno_t override_object_del(struct sss_domain_info *domain,
