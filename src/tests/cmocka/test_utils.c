@@ -454,23 +454,6 @@ void test_find_domain_by_sid_disabled(void **state)
     }
 }
 
-static struct sss_domain_info *named_domain(TALLOC_CTX *mem_ctx,
-                                            const char *name,
-                                            struct sss_domain_info *parent)
-{
-    struct sss_domain_info *dom = NULL;
-
-    dom = talloc_zero(mem_ctx, struct sss_domain_info);
-    assert_non_null(dom);
-
-    dom->name = talloc_strdup(dom, name);
-    assert_non_null(dom->name);
-
-    dom->parent = parent;
-
-    return dom;
-}
-
 /*
  * dom1 -> sub1a
  *  |

@@ -371,3 +371,25 @@ void test_dom_suite_cleanup(const char *tests_path,
 
     test_multidom_suite_cleanup(tests_path, cdb_file, domains);
 }
+
+struct sss_domain_info *named_domain(TALLOC_CTX *mem_ctx,
+                                     const char *name,
+                                     struct sss_domain_info *parent)
+{
+    struct sss_domain_info *dom = NULL;
+
+    dom = talloc_zero(mem_ctx, struct sss_domain_info);
+    if (dom == NULL) {
+        return NULL;
+    }
+
+    dom->name = talloc_strdup(dom, name);
+    if (dom->name == NULL) {
+        talloc_free(dom);
+        return NULL;
+    }
+
+    dom->parent = parent;
+
+    return dom;
+}

@@ -66,23 +66,6 @@ struct test_ctx {
     struct be_ctx *be_ctx;
 };
 
-static struct sss_domain_info *named_domain(TALLOC_CTX *mem_ctx,
-                                            const char *name,
-                                            struct sss_domain_info *parent)
-{
-    struct sss_domain_info *dom = NULL;
-
-    dom = talloc_zero(mem_ctx, struct sss_domain_info);
-    assert_non_null(dom);
-
-    dom->name = talloc_strdup(dom, name);
-    assert_non_null(dom->name);
-
-    dom->parent = parent;
-
-    return dom;
-}
-
 static int test_setup(void **state)
 {
     struct test_ctx *test_ctx = NULL;

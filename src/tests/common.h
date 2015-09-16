@@ -134,4 +134,8 @@ test_dbus_call_sync(DBusConnection *conn,
                     int first_arg_type,
                     ...);
 
+struct sss_domain_info *named_domain(TALLOC_CTX *mem_ctx,
+                                     const char *name,
+                                     struct sss_domain_info *parent);
+
 #endif /* !__TESTS_COMMON_H__ */
