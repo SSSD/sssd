@@ -191,7 +191,7 @@ static void link_forest_roots(struct sss_domain_info *domain)
 {
     struct sss_domain_info *d;
     struct sss_domain_info *dd;
-    uint32_t gnd_flags = SSS_GND_DESCEND;
+    uint32_t gnd_flags = SSS_GND_ALL_DOMAINS;
 
     for (d = domain; d; d = get_next_domain(d, gnd_flags)) {
         d->forest_root = NULL;
