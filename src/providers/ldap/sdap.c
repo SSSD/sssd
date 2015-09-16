@@ -1031,6 +1031,67 @@ static char *get_naming_context(TALLOC_CTX *mem_ctx,
     return naming_context;
 }
 
+errno_t
+sdap_create_search_base(TALLOC_CTX *mem_ctx,
+                        const char *unparsed_base,
+                        int scope,
+                        const char *filter,
+                        struct sdap_search_base **_base)
+{
+    struct sdap_search_base *base;
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    struct ldb_dn *ldn;
+    struct ldb_context *ldb;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Create a throwaway LDB context for validating the DN */
+    ldb = ldb_init(tmp_ctx, NULL);
+    if (!ldb) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    base = talloc_zero(tmp_ctx, struct sdap_search_base);
+    if (base == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    base->basedn = talloc_strdup(base, unparsed_base);
+    if (base->basedn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Validate the basedn */
+    ldn = ldb_dn_new(tmp_ctx, ldb, unparsed_base);
+    if (!ldn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (!ldb_dn_validate(ldn)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid base DN [%s]\n", unparsed_base);
+        ret = EINVAL;
+        goto done;
+    }
+
+    base->scope = scope;
+    base->filter = filter;
+
+    *_base = talloc_steal(mem_ctx, base);
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static errno_t sdap_set_search_base(struct sdap_options *opts,
                                     struct sdap_domain *sdom,
                                     enum sdap_basic_opt class,

@@ -294,13 +294,6 @@ struct sdap_domain *sdap_domain_get(struct sdap_options *opts,
 struct sdap_domain *sdap_domain_get_by_dn(struct sdap_options *opts,
                                           const char *dn);
 
-errno_t
-sdap_create_search_base(TALLOC_CTX *mem_ctx,
-                        const char *unparsed_base,
-                        int scope,
-                        const char *filter,
-                        struct sdap_search_base **_base);
-
 errno_t sdap_parse_search_base(TALLOC_CTX *mem_ctx,
                                struct dp_option *opts, int class,
                                struct sdap_search_base ***_search_bases);

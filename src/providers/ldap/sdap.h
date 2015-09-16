@@ -373,6 +373,13 @@ struct sdap_search_base {
     const char *filter;
 };
 
+errno_t
+sdap_create_search_base(TALLOC_CTX *mem_ctx,
+                        const char *unparsed_base,
+                        int scope,
+                        const char *filter,
+                        struct sdap_search_base **_base);
+
 /* Values from
  * http://msdn.microsoft.com/en-us/library/cc223272%28v=prot.13%29.aspx
  */
