@@ -2948,7 +2948,8 @@ static int fill_grent(struct sss_packet *packet,
             }
             el = ldb_msg_find_element(msg, SYSDB_GHOST);
             if (el) {
-                if (DOM_HAS_VIEWS(dom) && el->num_values != 0) {
+                if (DOM_HAS_VIEWS(dom) && !is_local_view(dom->view_name)
+                        && el->num_values != 0) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Domain has a view [%s] but group [%s] still has " \
                           "ghost members.\n", dom->view_name, orig_name);

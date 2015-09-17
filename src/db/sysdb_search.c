@@ -482,14 +482,16 @@ int sysdb_getgrnam_with_views(TALLOC_CTX *mem_ctx,
     /* If there are views we have to check if override values must be added to
      * the original object. */
     if (DOM_HAS_VIEWS(domain) && orig_obj->count == 1) {
-        el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
-        if (el != NULL && el->num_values != 0) {
-            DEBUG(SSSDBG_TRACE_ALL,
-                  "Group object [%s], contains ghost entries which must be " \
-                  "resolved before overrides can be applied.\n",
-                   ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
-            ret = ENOENT;
-            goto done;
+        if (!is_local_view(domain->view_name)) {
+            el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
+            if (el != NULL && el->num_values != 0) {
+                DEBUG(SSSDBG_TRACE_ALL, "Group object [%s], contains ghost "
+                      "entries which must be resolved before overrides can be "
+                      "applied.\n",
+                      ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
+                ret = ENOENT;
+                goto done;
+            }
         }
 
         ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
@@ -634,14 +636,16 @@ int sysdb_getgrgid_with_views(TALLOC_CTX *mem_ctx,
     /* If there are views we have to check if override values must be added to
      * the original object. */
     if (DOM_HAS_VIEWS(domain) && orig_obj->count == 1) {
-        el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
-        if (el != NULL && el->num_values != 0) {
-            DEBUG(SSSDBG_TRACE_ALL,
-                  "Group object [%s], contains ghost entries which must be " \
-                  "resolved before overrides can be applied.\n",
-                   ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
-            ret = ENOENT;
-            goto done;
+        if (!is_local_view(domain->view_name)) {
+            el = ldb_msg_find_element(orig_obj->msgs[0], SYSDB_GHOST);
+            if (el != NULL && el->num_values != 0) {
+                DEBUG(SSSDBG_TRACE_ALL, "Group object [%s], contains ghost "
+                      "entries which must be resolved before overrides can be "
+                      "applied.\n",
+                      ldb_dn_get_linearized(orig_obj->msgs[0]->dn));
+                ret = ENOENT;
+                goto done;
+            }
         }
 
         ret = sysdb_add_overrides_to_object(domain, orig_obj->msgs[0],
