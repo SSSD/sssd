@@ -1193,7 +1193,7 @@ errno_t sysdb_add_overrides_to_object(struct sss_domain_info *domain,
             }
 
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Missing override DN for objext [%s].\n",
+                  "Missing override DN for object [%s].\n",
                   ldb_dn_get_linearized(obj->dn));
 
             ret = ENOENT;
@@ -1344,7 +1344,7 @@ errno_t sysdb_add_group_member_overrides(struct sss_domain_info *domain,
             }
 
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Missing override DN for objext [%s].\n",
+                  "Missing override DN for object [%s].\n",
                   ldb_dn_get_linearized(member_obj->msgs[0]->dn));
             ret = ENOENT;
             goto done;
