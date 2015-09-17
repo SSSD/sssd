@@ -52,6 +52,17 @@ struct ipa_ad_server_ctx {
     struct ipa_ad_server_ctx *next, *prev;
 };
 
+/* Can be used to set up trusted subdomain, for example fetch
+ * keytab in server mode
+ */
+struct tevent_req *
+ipa_server_trusted_dom_setup_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct be_ctx *be_ctx,
+                                  struct ipa_id_ctx *id_ctx,
+                                  struct sss_domain_info *subdom);
+errno_t ipa_server_trusted_dom_setup_recv(struct tevent_req *req);
+
 /* To be used by ipa_subdomains.c only */
 struct tevent_req *
 ipa_server_create_trusts_send(TALLOC_CTX *mem_ctx,

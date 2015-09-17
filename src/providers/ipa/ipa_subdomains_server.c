@@ -563,7 +563,7 @@ done:
     return ret;
 }
 
-struct ipa_server_trust_add_state {
+struct ipa_server_trusted_dom_setup_state {
     struct tevent_context *ev;
     struct be_ctx *be_ctx;
     struct ipa_id_ctx *id_ctx;
@@ -578,22 +578,22 @@ struct ipa_server_trust_add_state {
     const char *ccache;
 };
 
-static errno_t ipa_server_trust_add_1way(struct tevent_req *req);
+static errno_t ipa_server_trusted_dom_setup_1way(struct tevent_req *req);
 static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq);
-static errno_t ipa_server_trust_add_step(struct tevent_req *req);
 
-static struct tevent_req *
-ipa_server_trust_add_send(TALLOC_CTX *mem_ctx,
-                          struct tevent_context *ev,
-                          struct be_ctx *be_ctx,
-                          struct ipa_id_ctx *id_ctx,
-                          struct sss_domain_info *subdom)
+struct tevent_req *
+ipa_server_trusted_dom_setup_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct be_ctx *be_ctx,
+                                  struct ipa_id_ctx *id_ctx,
+                                  struct sss_domain_info *subdom)
 {
     struct tevent_req *req = NULL;
-    struct ipa_server_trust_add_state *state = NULL;
+    struct ipa_server_trusted_dom_setup_state *state = NULL;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct ipa_server_trust_add_state);
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_server_trusted_dom_setup_state);
     if (req == NULL) {
         return NULL;
     }
@@ -626,16 +626,19 @@ ipa_server_trust_add_send(TALLOC_CTX *mem_ctx,
           ipa_trust_dir2str(state->direction));
 
     if (state->direction & LSA_TRUST_DIRECTION_OUTBOUND) {
-        /* Use system keytab */
-        ret = ipa_server_trust_add_step(req);
+        /* Use system keytab, nothing to do here */
+        ret = EOK;
+        goto immediate;
     } else if (state->direction & LSA_TRUST_DIRECTION_INBOUND) {
         /* Need special keytab */
-        ret = ipa_server_trust_add_1way(req);
+        ret = ipa_server_trusted_dom_setup_1way(req);
         if (ret == EAGAIN) {
             /* In progress.. */
             return req;
         } else if (ret == EOK) {
-            ret = ipa_server_trust_add_step(req);
+            /* Keytab available, shortcut */
+            ret = EOK;
+            goto immediate;
         }
     } else {
         /* Even unset is an error at this point */
@@ -658,12 +661,12 @@ immediate:
     return req;
 }
 
-static errno_t ipa_server_trust_add_1way(struct tevent_req *req)
+static errno_t ipa_server_trusted_dom_setup_1way(struct tevent_req *req)
 {
     errno_t ret;
     struct tevent_req *subreq = NULL;
-    struct ipa_server_trust_add_state *state =
-            tevent_req_data(req, struct ipa_server_trust_add_state);
+    struct ipa_server_trusted_dom_setup_state *state =
+            tevent_req_data(req, struct ipa_server_trusted_dom_setup_state);
     const char *hostname;
 
     state->keytab = forest_keytab(state, state->forest);
@@ -715,8 +718,8 @@ static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq)
     errno_t ret;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct ipa_server_trust_add_state *state =
-            tevent_req_data(req, struct ipa_server_trust_add_state);
+    struct ipa_server_trusted_dom_setup_state *state =
+            tevent_req_data(req, struct ipa_server_trusted_dom_setup_state);
 
     ret = ipa_getkeytab_recv(subreq, NULL);
     talloc_zfree(subreq);
@@ -764,46 +767,12 @@ static void ipa_server_trust_1way_kt_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC,
           "Keytab %s contains the expected principals\n", state->new_keytab);
 
-    ret = ipa_server_trust_add_step(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "ipa_server_trust_add_step failed: %d\n", ret);
-        tevent_req_error(req, ret);
-        return;
-    }
-
     DEBUG(SSSDBG_TRACE_FUNC,
           "Established trust context for %s\n", state->subdom->name);
     tevent_req_done(req);
 }
 
-static errno_t ipa_server_trust_add_step(struct tevent_req *req)
-{
-    struct ipa_ad_server_ctx *trust_ctx;
-    struct ad_id_ctx *ad_id_ctx;
-    errno_t ret;
-    struct ipa_server_trust_add_state *state =
-            tevent_req_data(req, struct ipa_server_trust_add_state);
-
-    ret = ipa_ad_ctx_new(state->be_ctx, state->id_ctx, state->subdom, &ad_id_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Cannot create ad_id_ctx for subdomain %s\n", state->subdom->name);
-        return ret;
-    }
-
-    trust_ctx = talloc(state->id_ctx->server_mode, struct ipa_ad_server_ctx);
-    if (trust_ctx == NULL) {
-        return ENOMEM;
-    }
-    trust_ctx->dom = state->subdom;
-    trust_ctx->ad_id_ctx = ad_id_ctx;
-
-    DLIST_ADD(state->id_ctx->server_mode->trusts, trust_ctx);
-    return EOK;
-}
-
-static errno_t ipa_server_trust_add_recv(struct tevent_req *req)
+errno_t ipa_server_trusted_dom_setup_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
@@ -817,6 +786,7 @@ struct ipa_server_create_trusts_state {
 };
 
 static errno_t ipa_server_create_trusts_step(struct tevent_req *req);
+static errno_t ipa_server_create_trusts_ctx(struct tevent_req *req);
 static void ipa_server_create_trusts_done(struct tevent_req *subreq);
 
 struct tevent_req *
@@ -879,8 +849,11 @@ static errno_t ipa_server_create_trusts_step(struct tevent_req *req)
 
         /* Newly detected trust */
         if (trust_iter == NULL) {
-            subreq = ipa_server_trust_add_send(state, state->ev, state->be_ctx,
-                                               state->id_ctx, state->domiter);
+            subreq = ipa_server_trusted_dom_setup_send(state,
+                                                       state->ev,
+                                                       state->be_ctx,
+                                                       state->id_ctx,
+                                                       state->domiter);
             if (subreq == NULL) {
                 return ENOMEM;
             }
@@ -898,8 +871,14 @@ static void ipa_server_create_trusts_done(struct tevent_req *subreq)
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
 
-    ret = ipa_server_trust_add_recv(subreq);
+    ret = ipa_server_trusted_dom_setup_recv(subreq);
     talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = ipa_server_create_trusts_ctx(req);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -915,6 +894,33 @@ static void ipa_server_create_trusts_done(struct tevent_req *subreq)
     }
 
     /* Will cycle back */
+}
+
+static errno_t ipa_server_create_trusts_ctx(struct tevent_req *req)
+{
+    struct ipa_ad_server_ctx *trust_ctx;
+    struct ad_id_ctx *ad_id_ctx;
+    errno_t ret;
+    struct ipa_server_create_trusts_state *state = NULL;
+
+    state = tevent_req_data(req, struct ipa_server_create_trusts_state);
+
+    ret = ipa_ad_ctx_new(state->be_ctx, state->id_ctx, state->domiter, &ad_id_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot create ad_id_ctx for subdomain %s\n", state->domiter->name);
+        return ret;
+    }
+
+    trust_ctx = talloc(state->id_ctx->server_mode, struct ipa_ad_server_ctx);
+    if (trust_ctx == NULL) {
+        return ENOMEM;
+    }
+    trust_ctx->dom = state->domiter;
+    trust_ctx->ad_id_ctx = ad_id_ctx;
+
+    DLIST_ADD(state->id_ctx->server_mode->trusts, trust_ctx);
+    return EOK;
 }
 
 errno_t ipa_server_create_trusts_recv(struct tevent_req *req)
