@@ -34,6 +34,16 @@
 #include "providers/ad/ad_id.h"
 #include "providers/ipa/ipa_subdomains.h"
 
+static struct tevent_req *
+ipa_srv_ad_acct_send(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
+                     struct ipa_id_ctx *ipa_ctx,
+                     struct be_req *be_req,
+                     struct sysdb_attrs *override_attrs,
+                     struct be_acct_req *ar);
+static errno_t
+ipa_srv_ad_acct_recv(struct tevent_req *req, int *dp_error_out);
+
 struct ipa_subdomain_account_state {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
@@ -45,6 +55,7 @@ struct ipa_subdomain_account_state {
     struct be_acct_req *ar;
 
     bool ipa_server_mode;
+    bool server_retry;
     int entry_type;
     const char *filter;
     int filter_type;
@@ -263,7 +274,7 @@ static errno_t ipa_subdomain_account_get_original_step(struct tevent_req *req,
     struct tevent_req *subreq;
 
     if (state->ipa_server_mode) {
-        subreq = ipa_get_ad_acct_send(state, state->ev, state->ipa_ctx,
+        subreq = ipa_srv_ad_acct_send(state, state->ev, state->ipa_ctx,
                                       state->be_req, state->override_attrs, ar);
     } else {
         subreq = ipa_get_subdom_acct_send(state, state->ev, state->ipa_ctx,
@@ -291,7 +302,7 @@ static void ipa_subdomain_account_done(struct tevent_req *subreq)
     int ret;
 
     if (state->ipa_server_mode) {
-        ret = ipa_get_ad_acct_recv(subreq, &dp_error);
+        ret = ipa_srv_ad_acct_recv(subreq, &dp_error);
     } else {
         ret = ipa_get_subdom_acct_recv(subreq, &dp_error);
     }
@@ -576,7 +587,7 @@ static void ipa_get_ad_acct_done(struct tevent_req *subreq);
 static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
                                            struct sss_domain_info *dom);
 
-struct tevent_req *
+static struct tevent_req *
 ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct ipa_id_ctx *ipa_ctx,
@@ -1040,7 +1051,6 @@ ipa_get_ad_acct_ad_part_done(struct tevent_req *subreq)
     ret = ad_handle_acct_info_recv(subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
     if (ret == ERR_SUBDOM_INACTIVE) {
-        be_mark_dom_offline(state->obj_dom, be_req_get_be_ctx(state->be_req));
         tevent_req_error(req, ret);
         return;
     } else if (ret != EOK) {
@@ -1325,7 +1335,7 @@ ipa_get_ad_acct_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-errno_t
+static errno_t
 ipa_get_ad_acct_recv(struct tevent_req *req, int *dp_error_out)
 {
     struct ipa_get_ad_acct_state *state = tevent_req_data(req,
@@ -1337,5 +1347,175 @@ ipa_get_ad_acct_recv(struct tevent_req *req, int *dp_error_out)
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
+    return EOK;
+}
+
+struct ipa_srv_ad_acct_state {
+    struct tevent_context *ev;
+    struct ipa_id_ctx *ipa_ctx;
+    struct be_req *be_req;
+    struct sysdb_attrs *override_attrs;
+    struct be_acct_req *ar;
+
+    struct sss_domain_info *obj_dom;
+    struct be_ctx *be_ctx;
+    bool retry;
+
+    int dp_error;
+};
+
+static int ipa_srv_ad_acct_lookup_step(struct tevent_req *req);
+static void ipa_srv_ad_acct_lookup_done(struct tevent_req *subreq);
+static void ipa_srv_ad_acct_retried(struct tevent_req *subreq);
+
+static struct tevent_req *
+ipa_srv_ad_acct_send(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
+                     struct ipa_id_ctx *ipa_ctx,
+                     struct be_req *be_req,
+                     struct sysdb_attrs *override_attrs,
+                     struct be_acct_req *ar)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct ipa_srv_ad_acct_state *state;
+
+    req = tevent_req_create(mem_ctx, &state, struct ipa_srv_ad_acct_state);
+    if (req == NULL) {
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->ipa_ctx = ipa_ctx;
+    state->be_req = be_req;
+    state->override_attrs = override_attrs;
+    state->ar = ar;
+    state->retry = true;
+    state->dp_error = DP_ERR_FATAL;
+    state->be_ctx = be_req_get_be_ctx(state->be_req);
+
+    state->obj_dom = find_domain_by_name(
+                                  state->ipa_ctx->sdap_id_ctx->be->domain,
+                                  state->ar->domain, true);
+    if (state->obj_dom == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Domain not found\n");
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto fail;
+    }
+
+    ret = ipa_srv_ad_acct_lookup_step(req);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static int ipa_srv_ad_acct_lookup_step(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct ipa_srv_ad_acct_state *state = tevent_req_data(req,
+                                            struct ipa_srv_ad_acct_state);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Looking up AD account\n");
+    subreq = ipa_get_ad_acct_send(state, state->ev, state->ipa_ctx,
+                                  state->be_req, state->override_attrs,
+                                  state->ar);
+    if (subreq == NULL) {
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq, ipa_srv_ad_acct_lookup_done, req);
+
+    return EOK;
+}
+
+static void ipa_srv_ad_acct_lookup_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    int dp_error = DP_ERR_FATAL;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_srv_ad_acct_state *state = tevent_req_data(req,
+                                            struct ipa_srv_ad_acct_state);
+
+    ret = ipa_get_ad_acct_recv(subreq, &dp_error);
+    talloc_free(subreq);
+    if (ret == ERR_SUBDOM_INACTIVE && state->retry == true) {
+
+        state->retry = false;
+
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Sudomain lookup failed, will try to reset sudomain..\n");
+        subreq = ipa_server_trusted_dom_setup_send(state, state->ev,
+                                                   state->be_ctx,
+                                                   state->ipa_ctx,
+                                                   state->obj_dom);
+        if (subreq == NULL) {
+            goto fail;
+        }
+        tevent_req_set_callback(subreq, ipa_srv_ad_acct_retried, req);
+        return;
+    } else if (ret != EOK) {
+        be_mark_dom_offline(state->obj_dom, state->be_ctx);
+
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_get_*_acct request failed: [%d]: %s.\n",
+              ret, sss_strerror(ret));
+        goto fail;
+    }
+
+    state->dp_error = DP_ERR_OK;
+    tevent_req_done(req);
+    return;
+
+fail:
+    state->dp_error = dp_error;
+    tevent_req_error(req, ret);
+}
+
+static void ipa_srv_ad_acct_retried(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                struct tevent_req);
+    struct ipa_srv_ad_acct_state *state = tevent_req_data(req,
+                                            struct ipa_srv_ad_acct_state);
+
+    ret = ipa_server_trusted_dom_setup_recv(subreq);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to re-set subdomain [%d]: %s\n", ret, sss_strerror(ret));
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ret);
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Sudomain re-set, will retry lookup\n");
+    be_fo_reset_svc(state->be_ctx, state->obj_dom->name);
+
+    ret = ipa_srv_ad_acct_lookup_step(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to look up AD acct [%d]: %s\n", ret, sss_strerror(ret));
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ret);
+    }
+}
+
+static errno_t
+ipa_srv_ad_acct_recv(struct tevent_req *req, int *dp_error_out)
+{
+    struct ipa_srv_ad_acct_state *state = tevent_req_data(req,
+                                                struct ipa_srv_ad_acct_state);
+
+    if (dp_error_out) {
+        *dp_error_out = state->dp_error;
+    }
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
 }
