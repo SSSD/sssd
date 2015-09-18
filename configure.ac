@@ -14,7 +14,7 @@ m4_ifdef([AC_USE_SYSTEM_EXTENSIONS],
 CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
 
 
-AM_INIT_AUTOMAKE([-Wall foreign subdir-objects tar-pax])
+AM_INIT_AUTOMAKE([-Wall -Wno-portability foreign subdir-objects tar-pax])
 AM_PROG_CC_C_O
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_DISABLE_STATIC
