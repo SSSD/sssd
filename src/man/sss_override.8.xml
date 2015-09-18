@@ -198,7 +198,7 @@
         <variablelist remap='IP'>
             <varlistentry>
                 <term>
-                    <option>-d</option>,<option>--debug</option>
+                    <option>--debug</option>
                     <replaceable>LEVEL</replaceable>
                 </term>
                 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
