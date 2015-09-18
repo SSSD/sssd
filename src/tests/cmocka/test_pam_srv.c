@@ -184,7 +184,26 @@ struct pam_ctx *mock_pctx(TALLOC_CTX *mem_ctx)
     return pctx;
 }
 
-void test_pam_setup(struct sss_test_conf_param params[],
+static int add_pam_params(struct sss_test_conf_param pam_params[],
+                          struct confdb_ctx *cdb)
+{
+    const char *val[2];
+    int ret;
+
+    val[1] = NULL;
+
+    for (int i = 0; pam_params[i].key; i++) {
+        val[0] = pam_params[i].value;
+        ret = confdb_add_param(cdb, true, CONFDB_PAM_CONF_ENTRY,
+                               pam_params[i].key, val);
+        assert_int_equal(ret, EOK);
+    }
+
+    return EOK;
+}
+
+void test_pam_setup(struct sss_test_conf_param dom_params[],
+                    struct sss_test_conf_param pam_params[],
                     void **state)
 {
     errno_t ret;
@@ -194,7 +213,7 @@ void test_pam_setup(struct sss_test_conf_param params[],
 
     pam_test_ctx->tctx = create_dom_test_ctx(pam_test_ctx, TESTS_PATH,
                                              TEST_CONF_DB, TEST_DOM_NAME,
-                                             TEST_ID_PROVIDER, params);
+                                             TEST_ID_PROVIDER, dom_params);
     assert_non_null(pam_test_ctx->tctx);
 
     pam_test_ctx->pam_cmds = get_pam_cmds();
@@ -217,6 +236,9 @@ void test_pam_setup(struct sss_test_conf_param params[],
     pam_test_ctx->rctx->cdb = pam_test_ctx->tctx->confdb;
     pam_test_ctx->pctx->rctx = pam_test_ctx->rctx;
 
+    ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
     /* Create client context */
     pam_test_ctx->cctx = mock_cctx(pam_test_ctx, pam_test_ctx->rctx);
     assert_non_null(pam_test_ctx->cctx);
@@ -229,13 +251,18 @@ static int pam_test_setup(void **state)
 {
     int ret;
 
-    struct sss_test_conf_param params[] = {
+    struct sss_test_conf_param dom_params[] = {
         { "enumerate", "false" },
         { "cache_credentials", "true" },
         { NULL, NULL },             /* Sentinel */
     };
 
-    test_pam_setup(params, state);
+    struct sss_test_conf_param pam_params[] = {
+        { "p11_child_timeout", "30"},
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_pam_setup(dom_params, pam_params, state);
 
     /* Prime the cache with a valid user */
     ret = sysdb_add_user(pam_test_ctx->tctx->dom,
