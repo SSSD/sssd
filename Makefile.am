@@ -1578,7 +1578,7 @@ resolv_tests_LDADD = \
 
 refcount_tests_SOURCES = \
     src/tests/refcount-tests.c \
-    $(CHECK_OBJ)
+    $(NULL)
 refcount_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 refcount_tests_LDADD = \
@@ -1590,7 +1590,7 @@ refcount_tests_LDADD = \
 fail_over_tests_SOURCES = \
     src/tests/fail_over-tests.c \
     $(SSSD_FAILOVER_OBJ) \
-    $(CHECK_OBJ)
+    $(NULL)
 fail_over_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 fail_over_tests_LDADD = \
