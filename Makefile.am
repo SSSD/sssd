@@ -2066,7 +2066,6 @@ fqnames_tests_LDADD = \
     libsss_test_common.la
 
 nestedgroups_tests_SOURCES = \
-    $(TEST_MOCK_OBJ) \
     $(TEST_MOCK_PROVIDER_OBJ) \
     src/providers/ldap/sdap_idmap.c \
     src/tests/cmocka/test_nested_groups.c \
@@ -2437,7 +2436,6 @@ test_child_common_LDADD = \
     $(NULL)
 
 responder_cache_req_tests_SOURCES = \
-    $(TEST_MOCK_OBJ) \
     $(TEST_MOCK_RESP_OBJ) \
     src/tests/cmocka/test_responder_cache_req.c \
     $(NULL)
