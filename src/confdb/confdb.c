@@ -827,6 +827,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     uint32_t entry_cache_timeout;
     char *default_domain;
     bool fqnames_default = false;
+    int memcache_timeout;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
@@ -848,6 +849,16 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     if (res->count != 1) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Unknown domain [%s]\n", name);
         ret = ENOENT;
+        goto done;
+    }
+
+    ret = confdb_get_int(cdb,
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_MEMCACHE_TIMEOUT,
+                         300, &memcache_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Unable to get memory cache entry timeout.\n");
         goto done;
     }
 
@@ -1078,6 +1089,13 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    if (domain->user_timeout < memcache_timeout) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "%s is less than %s. User records will not be updated before "
+              "memory cache entry expires.\n",
+              CONFDB_DOMAIN_USER_CACHE_TIMEOUT, CONFDB_MEMCACHE_TIMEOUT);
+    }
+
     /* Override the group cache timeout, if specified */
     ret = get_entry_as_uint32(res->msgs[0], &domain->group_timeout,
                               CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT,
@@ -1087,6 +1105,13 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
               "Invalid value for [%s]\n",
                CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT);
         goto done;
+    }
+
+    if (domain->group_timeout < memcache_timeout) {
+        DEBUG(SSSDBG_CONF_SETTINGS,
+              "%s is less than %s. Group records will not be updated before "
+              "memory cache entry expires.\n",
+              CONFDB_DOMAIN_GROUP_CACHE_TIMEOUT, CONFDB_MEMCACHE_TIMEOUT);
     }
 
     /* Override the netgroup cache timeout, if specified */
