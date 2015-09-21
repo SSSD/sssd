@@ -752,6 +752,30 @@ done:
     return ret;
 }
 
+errno_t sysdb_attrs_copy(struct sysdb_attrs *src, struct sysdb_attrs *dst)
+{
+    int ret;
+    size_t c;
+    size_t d;
+
+    if (src == NULL || dst == NULL) {
+        return EINVAL;
+    }
+
+    for (c = 0; c < src->num; c++) {
+        for (d = 0; d < src->a[c].num_values; d++) {
+            ret = sysdb_attrs_add_val_safe(dst, src->a[c].name,
+                                           &src->a[c].values[d]);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val failed.\n");
+                return ret;
+            }
+        }
+    }
+
+    return EOK;
+}
+
 int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
                                     const char *attr_name,
                                     const char *domain,

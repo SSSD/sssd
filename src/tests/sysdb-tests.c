@@ -4997,6 +4997,92 @@ START_TEST(test_sysdb_attrs_add_string_safe)
 }
 END_TEST
 
+START_TEST(test_sysdb_attrs_copy)
+{
+    int ret;
+    struct sysdb_attrs *src;
+    struct sysdb_attrs *dst;
+    TALLOC_CTX *tmp_ctx;
+    const char *val;
+    const char **array;
+
+    ret = sysdb_attrs_copy(NULL, NULL);
+    fail_unless(ret == EINVAL, "Wrong return code");
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed");
+
+    src = sysdb_new_attrs(tmp_ctx);
+    fail_unless(src != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_copy(src, NULL);
+    fail_unless(ret == EINVAL, "Wrong return code");
+
+    dst = sysdb_new_attrs(tmp_ctx);
+    fail_unless(dst != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_copy(NULL, dst);
+    fail_unless(ret == EINVAL, "Wrong return code");
+
+    ret = sysdb_attrs_copy(src, dst);
+    fail_unless(ret == EOK, "sysdb_attrs_copy failed");
+    fail_unless(dst->num == 0, "Wrong number of elements");
+
+    ret = sysdb_attrs_add_string(src, TEST_ATTR_NAME, TEST_ATTR_VALUE);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed.");
+
+    ret = sysdb_attrs_copy(src, dst);
+    fail_unless(ret == EOK, "sysdb_attrs_copy failed");
+    fail_unless(dst->num == 1, "Wrong number of elements");
+    ret = sysdb_attrs_get_string(dst, TEST_ATTR_NAME, &val);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string failed.\n");
+    fail_unless(strcmp(val, TEST_ATTR_VALUE) == 0, "Wrong attribute value.");
+
+    /* Make sure the same entry is not copied twice */
+    ret = sysdb_attrs_copy(src, dst);
+    fail_unless(ret == EOK, "sysdb_attrs_copy failed");
+    fail_unless(dst->num == 1, "Wrong number of elements");
+    ret = sysdb_attrs_get_string(dst, TEST_ATTR_NAME, &val);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string failed.\n");
+    fail_unless(strcmp(val, TEST_ATTR_VALUE) == 0, "Wrong attribute value.");
+
+    /* Add new value to existing attribute */
+    ret = sysdb_attrs_add_string(src, TEST_ATTR_NAME, TEST_ATTR_VALUE"_2nd");
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed.");
+
+    ret = sysdb_attrs_copy(src, dst);
+    fail_unless(ret == EOK, "sysdb_attrs_copy failed");
+    fail_unless(dst->num == 1, "Wrong number of elements");
+    ret = sysdb_attrs_get_string_array(dst, TEST_ATTR_NAME, tmp_ctx, &array);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string_array failed.\n");
+    fail_unless(strcmp(array[0], TEST_ATTR_VALUE) == 0,
+                       "Wrong attribute value.");
+    fail_unless(strcmp(array[1], TEST_ATTR_VALUE"_2nd") == 0,
+                       "Wrong attribute value.");
+    fail_unless(array[2] == NULL, "Wrong number of values.");
+
+    /* Add new attribute */
+    ret = sysdb_attrs_add_string(src, TEST_ATTR_NAME"_2nd", TEST_ATTR_VALUE);
+    fail_unless(ret == EOK, "sysdb_attrs_add_val failed.");
+
+    ret = sysdb_attrs_copy(src, dst);
+    fail_unless(ret == EOK, "sysdb_attrs_copy failed");
+    fail_unless(dst->num == 2, "Wrong number of elements");
+    ret = sysdb_attrs_get_string_array(dst, TEST_ATTR_NAME, tmp_ctx, &array);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string_array failed.\n");
+    fail_unless(strcmp(array[0], TEST_ATTR_VALUE) == 0,
+                       "Wrong attribute value.");
+    fail_unless(strcmp(array[1], TEST_ATTR_VALUE"_2nd") == 0,
+                       "Wrong attribute value.");
+    fail_unless(array[2] == NULL, "Wrong number of values.");
+    ret = sysdb_attrs_get_string(dst, TEST_ATTR_NAME"_2nd", &val);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string failed.\n");
+    fail_unless(strcmp(val, TEST_ATTR_VALUE) == 0, "Wrong attribute value.");
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
 START_TEST (test_sysdb_search_return_ENOENT)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -6995,6 +7081,7 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_attrs_add_val);
     tcase_add_test(tc_sysdb, test_sysdb_attrs_add_val_safe);
     tcase_add_test(tc_sysdb, test_sysdb_attrs_add_string_safe);
+    tcase_add_test(tc_sysdb, test_sysdb_attrs_copy);
 
 /* ===== Test search return empty result ===== */
     tcase_add_test(tc_sysdb, test_sysdb_search_return_ENOENT);
