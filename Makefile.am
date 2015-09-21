@@ -2594,6 +2594,8 @@ test_data_provider_be_LDADD = \
     $(POPT_LIBS) \
     $(PAM_LIBS) \
     $(TALLOC_LIBS) \
+    $(LDB_LIBS) \
+    $(DBUS_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_debug.la \
     libsss_test_common.la \
