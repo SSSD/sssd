@@ -1723,17 +1723,16 @@ debug_tests_LDADD = \
     libsss_debug.la
 
 crypto_tests_SOURCES = \
-    $(SSS_CRYPT_SOURCES) \
     src/tests/crypto-tests.c
 crypto_tests_CFLAGS = \
-    $(SSS_CRYPT_CFLAGS) \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 crypto_tests_LDADD = \
-    libsss_debug.la \
-    $(SSS_CRYPT_LIBS) \
-    $(SSSD_LIBS) \
     $(CHECK_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    libsss_crypt.la \
+    libsss_debug.la \
     libsss_test_common.la
 
 ipa_hbac_tests_SOURCES = \
