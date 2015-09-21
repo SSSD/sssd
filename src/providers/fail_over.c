@@ -1554,7 +1554,9 @@ void fo_reset_servers(struct fo_service *service)
     DLIST_FOR_EACH(server, service->server_list) {
         if (server->srv_data != NULL) {
             set_srv_data_status(server->srv_data, SRV_NEUTRAL);
-        } else {
+        }
+
+        if (server->common) {
             fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
         }
 

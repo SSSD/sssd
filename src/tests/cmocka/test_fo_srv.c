@@ -194,7 +194,7 @@ errno_t resolv_get_domain_recv(TALLOC_CTX *mem_ctx,
 }
 
 /* The unit test */
-struct test_fo_srv_ctx {
+struct test_fo_ctx {
     struct resolv_ctx *resolv;
     struct fo_ctx *fo_ctx;
     struct fo_resolve_srv_dns_ctx *srv_ctx;
@@ -208,19 +208,18 @@ int test_fo_srv_data_cmp(void *ud1, void *ud2)
     return strcasecmp((char*) ud1, (char*) ud2);
 }
 
-static int test_fo_srv_setup(void **state)
+static int test_fo_setup(void **state)
 {
-    struct test_fo_srv_ctx *test_ctx;
+    struct test_fo_ctx *test_ctx;
     errno_t ret;
     struct fo_options fopts;
-    bool ok;
 
     assert_true(leak_check_setup());
     global_mock_context = talloc_new(global_talloc_context);
     assert_non_null(global_mock_context);
 
     test_ctx = talloc_zero(global_mock_context,
-                           struct test_fo_srv_ctx);
+                           struct test_fo_ctx);
     assert_non_null(test_ctx);
 
     test_ctx->ctx = create_ev_test_ctx(test_ctx);
@@ -237,6 +236,34 @@ static int test_fo_srv_setup(void **state)
     test_ctx->fo_ctx = fo_context_init(test_ctx, &fopts);
     assert_non_null(test_ctx->fo_ctx);
 
+    ret = fo_new_service(test_ctx->fo_ctx, "ldap",
+                         test_fo_srv_data_cmp,
+                         &test_ctx->fo_svc);
+    assert_int_equal(ret, ERR_OK);
+
+    *state = test_ctx;
+    return 0;
+}
+
+static int test_fo_teardown(void **state)
+{
+    struct test_fo_ctx *test_ctx =
+        talloc_get_type(*state, struct test_fo_ctx);
+
+    talloc_free(test_ctx);
+    talloc_free(global_mock_context);
+    assert_true(leak_check_teardown());
+    return 0;
+}
+
+static int test_fo_srv_setup(void **state)
+{
+    struct test_fo_ctx *test_ctx;
+    bool ok;
+
+    test_fo_setup(state);
+    test_ctx = *state;
+
     test_ctx->srv_ctx = fo_resolve_srv_dns_ctx_init(test_ctx, test_ctx->resolv,
                                                     IPV4_FIRST, default_host_dbs,
                                                     "client.sssd.com", "sssd.local");
@@ -248,23 +275,13 @@ static int test_fo_srv_setup(void **state)
                                   test_ctx->srv_ctx);
     assert_true(ok);
 
-    ret = fo_new_service(test_ctx->fo_ctx, "ldap",
-                         test_fo_srv_data_cmp,
-                         &test_ctx->fo_svc);
-    assert_int_equal(ret, ERR_OK);
-
     *state = test_ctx;
     return 0;
 }
 
 static int test_fo_srv_teardown(void **state)
 {
-    struct test_fo_srv_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_srv_ctx);
-
-    talloc_free(test_ctx);
-    talloc_free(global_mock_context);
-    assert_true(leak_check_teardown());
+    test_fo_teardown(state);
     return 0;
 }
 
@@ -280,25 +297,30 @@ static void mock_srv_results(struct ares_srv_reply *reply_list,
     will_return(resolv_discover_srv_recv, dns_domain);
 }
 
-static void check_server(struct fo_server *srv, int port, const char *name)
+static void check_server(struct test_fo_ctx *ctx,
+                         struct fo_server *srv,
+                         int port,
+                         const char *name)
 {
     assert_non_null(srv);
-    assert_true(fo_is_srv_lookup(srv));
     assert_int_equal(fo_get_server_port(srv), port);
     assert_string_equal(fo_get_server_name(srv), name);
+
+
+    if (ctx->srv_ctx) {
+        assert_true(fo_is_srv_lookup(srv));
+    }
 }
 
+static void test_fo_srv_step1(struct test_fo_ctx *test_ctx);
 static void test_fo_srv_done1(struct tevent_req *req);
 static void test_fo_srv_done2(struct tevent_req *req);
 static void test_fo_srv_done3(struct tevent_req *req);
 static void test_fo_srv_done4(struct tevent_req *req);
+static void test_fo_srv_done5(struct tevent_req *req);
 
-void test_fo_srv(void **state)
+static void test_fo_srv_mock_dns(struct test_fo_ctx *test_ctx)
 {
-    errno_t ret;
-    struct tevent_req *req;
-    struct test_fo_srv_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_srv_ctx);
     struct ares_srv_reply *s1;
     struct ares_srv_reply *s2;
     char *dns_domain;
@@ -325,25 +347,41 @@ void test_fo_srv(void **state)
     assert_non_null(dns_domain);
 
     mock_srv_results(s1, TEST_SRV_TTL, dns_domain);
+}
+
+static void test_fo_srv(void **state)
+{
+    errno_t ret;
+    struct test_fo_ctx *test_ctx =
+        talloc_get_type(*state, struct test_fo_ctx);
+
+    test_fo_srv_mock_dns(test_ctx);
 
     ret = fo_add_srv_server(test_ctx->fo_svc, "_ldap", "sssd.com",
                             "sssd.local", "tcp", test_ctx);
     assert_int_equal(ret, ERR_OK);
+
+    test_fo_srv_step1(test_ctx);
+
+    ret = test_ev_loop(test_ctx->ctx);
+    assert_int_equal(ret, ERR_OK);
+}
+
+static void test_fo_srv_step1(struct test_fo_ctx *test_ctx)
+{
+    struct tevent_req *req;
 
     req = fo_resolve_service_send(test_ctx, test_ctx->ctx->ev,
                                   test_ctx->resolv, test_ctx->fo_ctx,
                                   test_ctx->fo_svc);
     assert_non_null(req);
     tevent_req_set_callback(req, test_fo_srv_done1, test_ctx);
-
-    ret = test_ev_loop(test_ctx->ctx);
-    assert_int_equal(ret, ERR_OK);
 }
 
 static void test_fo_srv_done1(struct tevent_req *req)
 {
-    struct test_fo_srv_ctx *test_ctx = \
-        tevent_req_callback_data(req, struct test_fo_srv_ctx);
+    struct test_fo_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct test_fo_ctx);
     struct fo_server *srv;
     errno_t ret;
 
@@ -352,7 +390,7 @@ static void test_fo_srv_done1(struct tevent_req *req)
     assert_int_equal(ret, ERR_OK);
 
     /* ldap1.sssd.com has lower priority, it must always be first */
-    check_server(srv, 389, "ldap1.sssd.com");
+    check_server(test_ctx, srv, 389, "ldap1.sssd.com");
 
     /* Mark the server as working and request the service again. The same server
      * must be returned */
@@ -367,8 +405,8 @@ static void test_fo_srv_done1(struct tevent_req *req)
 
 static void test_fo_srv_done2(struct tevent_req *req)
 {
-    struct test_fo_srv_ctx *test_ctx = \
-        tevent_req_callback_data(req, struct test_fo_srv_ctx);
+    struct test_fo_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct test_fo_ctx);
     struct fo_server *srv;
     errno_t ret;
 
@@ -377,7 +415,7 @@ static void test_fo_srv_done2(struct tevent_req *req)
     assert_int_equal(ret, ERR_OK);
 
     /* Must be ldap1 again */
-    check_server(srv, 389, "ldap1.sssd.com");
+    check_server(test_ctx, srv, 389, "ldap1.sssd.com");
 
     /* Mark it at wrong, next lookup should yield ldap2 */
     fo_set_server_status(srv, SERVER_NOT_WORKING);
@@ -391,8 +429,8 @@ static void test_fo_srv_done2(struct tevent_req *req)
 
 static void test_fo_srv_done3(struct tevent_req *req)
 {
-    struct test_fo_srv_ctx *test_ctx = \
-        tevent_req_callback_data(req, struct test_fo_srv_ctx);
+    struct test_fo_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct test_fo_ctx);
     struct fo_server *srv;
     errno_t ret;
 
@@ -401,7 +439,7 @@ static void test_fo_srv_done3(struct tevent_req *req)
     assert_int_equal(ret, ERR_OK);
 
     /* Must be ldap2 now */
-    check_server(srv, 389, "ldap2.sssd.com");
+    check_server(test_ctx, srv, 389, "ldap2.sssd.com");
 
     /* Mark is at wrong, next lookup must reach the end of the server list */
     fo_set_server_status(srv, SERVER_NOT_WORKING);
@@ -415,8 +453,8 @@ static void test_fo_srv_done3(struct tevent_req *req)
 
 static void test_fo_srv_done4(struct tevent_req *req)
 {
-    struct test_fo_srv_ctx *test_ctx = \
-        tevent_req_callback_data(req, struct test_fo_srv_ctx);
+    struct test_fo_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct test_fo_ctx);
     struct fo_server *srv;
     errno_t ret;
 
@@ -425,6 +463,35 @@ static void test_fo_srv_done4(struct tevent_req *req)
     /* No servers are left..*/
     assert_int_equal(ret, ENOENT);
 
+    /* reset the server status and try again.. */
+    fo_reset_servers(test_ctx->fo_svc);
+    if (test_ctx->srv_ctx) {
+        test_fo_srv_mock_dns(test_ctx);
+    }
+
+    req = fo_resolve_service_send(test_ctx, test_ctx->ctx->ev,
+                                  test_ctx->resolv, test_ctx->fo_ctx,
+                                  test_ctx->fo_svc);
+    assert_non_null(req);
+    tevent_req_set_callback(req, test_fo_srv_done5, test_ctx);
+}
+
+static void test_fo_srv_done5(struct tevent_req *req)
+{
+    struct test_fo_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct test_fo_ctx);
+    struct fo_server *srv;
+    errno_t ret;
+
+    ret = fo_resolve_service_recv(req, &srv);
+    talloc_zfree(req);
+
+    assert_int_equal(ret, ERR_OK);
+
+    /* ldap1.sssd.com has lower priority, it must always be first */
+    check_server(test_ctx, srv, 389, "ldap1.sssd.com");
+
+    /* OK, we made a full circle with the test, done */
     test_ctx->ctx->error = ERR_OK;
     test_ctx->ctx->done = true;
 }
@@ -432,20 +499,20 @@ static void test_fo_srv_done4(struct tevent_req *req)
 /* Make sure that two queries more than TTL seconds apart resolve
  * into two different lists
  */
-static void test_fo_srv_ttl_change_step(struct test_fo_srv_ctx *test_ctx);
+static void test_fo_srv_ttl_change_step(struct test_fo_ctx *test_ctx);
 static void test_fo_srv_before(struct tevent_req *req);
 static void test_fo_srv_after(struct tevent_req *req);
 
 void test_fo_srv_ttl_change(void **state)
 {
-    struct test_fo_srv_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_srv_ctx);
+    struct test_fo_ctx *test_ctx =
+        talloc_get_type(*state, struct test_fo_ctx);
 
     test_ctx->ttl = TEST_SRV_SHORT_TTL;
     test_fo_srv_ttl_change_step(test_ctx);
 }
 
-static void test_fo_srv_ttl_change_step(struct test_fo_srv_ctx *test_ctx)
+static void test_fo_srv_ttl_change_step(struct test_fo_ctx *test_ctx)
 {
     errno_t ret;
     struct tevent_req *req;
@@ -497,8 +564,8 @@ static void test_fo_srv_ttl_change_step(struct test_fo_srv_ctx *test_ctx)
 
 static void test_fo_srv_before(struct tevent_req *req)
 {
-    struct test_fo_srv_ctx *test_ctx = \
-        tevent_req_callback_data(req, struct test_fo_srv_ctx);
+    struct test_fo_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct test_fo_ctx);
     struct fo_server *srv;
     struct ares_srv_reply *s1;
     struct ares_srv_reply *s2;
@@ -511,7 +578,7 @@ static void test_fo_srv_before(struct tevent_req *req)
 
     DEBUG(SSSDBG_TRACE_FUNC, "Before TTL change\n");
 
-    check_server(srv, 389, "ldap1.sssd.com");
+    check_server(test_ctx, srv, 389, "ldap1.sssd.com");
     fo_set_server_status(srv, SERVER_WORKING);
 
     /* Simulate changing the DNS environment. Change the host names */
@@ -548,8 +615,8 @@ static void test_fo_srv_before(struct tevent_req *req)
 
 static void test_fo_srv_after(struct tevent_req *req)
 {
-    struct test_fo_srv_ctx *test_ctx = \
-        tevent_req_callback_data(req, struct test_fo_srv_ctx);
+    struct test_fo_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct test_fo_ctx);
     struct fo_server *srv;
     errno_t ret;
 
@@ -558,7 +625,7 @@ static void test_fo_srv_after(struct tevent_req *req)
     assert_int_equal(ret, ERR_OK);
 
     /* Must be a different server now */
-    check_server(srv, 389, "ldap3.sssd.com");
+    check_server(test_ctx, srv, 389, "ldap3.sssd.com");
 
     test_ctx->ctx->error = ERR_OK;
     test_ctx->ctx->done = true;
@@ -566,11 +633,31 @@ static void test_fo_srv_after(struct tevent_req *req)
 
 void test_fo_srv_ttl_zero(void **state)
 {
-    struct test_fo_srv_ctx *test_ctx =
-        talloc_get_type(*state, struct test_fo_srv_ctx);
+    struct test_fo_ctx *test_ctx =
+        talloc_get_type(*state, struct test_fo_ctx);
 
     test_ctx->ttl = 0;
     test_fo_srv_ttl_change_step(test_ctx);
+}
+
+static void test_fo_hostlist(void **state)
+{
+    errno_t ret;
+    struct test_fo_ctx *test_ctx =
+        talloc_get_type(*state, struct test_fo_ctx);
+
+    ret = fo_add_server(test_ctx->fo_svc,
+                        "ldap1.sssd.com", 389, test_ctx, true);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = fo_add_server(test_ctx->fo_svc,
+                        "ldap2.sssd.com", 389, test_ctx, true);
+    assert_int_equal(ret, ERR_OK);
+
+    test_fo_srv_step1(test_ctx);
+
+    ret = test_ev_loop(test_ctx->ctx);
+    assert_int_equal(ret, ERR_OK);
 }
 
 int main(int argc, const char *argv[])
@@ -585,6 +672,9 @@ int main(int argc, const char *argv[])
     };
 
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test_setup_teardown(test_fo_hostlist,
+                                        test_fo_setup,
+                                        test_fo_teardown),
         cmocka_unit_test_setup_teardown(test_fo_srv,
                                         test_fo_srv_setup,
                                         test_fo_srv_teardown),
