@@ -1158,7 +1158,6 @@ sssd_pac_SOURCES = \
     src/responder/pac/pacsrv.c \
     src/responder/pac/pacsrv_cmd.c \
     src/responder/pac/pacsrv_utils.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_pac_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1184,7 +1183,6 @@ sssd_ifp_SOURCES = \
     src/responder/ifp/ifp_users.c \
     src/responder/ifp/ifp_groups.c \
     src/responder/ifp/ifp_cache.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_ifp_CFLAGS = \
     $(AM_CFLAGS)
