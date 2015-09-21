@@ -352,6 +352,7 @@ int sysdb_attrs_add_lc_name_alias_safe(struct sysdb_attrs *attrs,
 int sysdb_attrs_copy_values(struct sysdb_attrs *src,
                             struct sysdb_attrs *dst,
                             const char *name);
+errno_t sysdb_attrs_copy(struct sysdb_attrs *src, struct sysdb_attrs *dst);
 int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
                        struct ldb_message_element **el);
 int sysdb_attrs_get_el_ext(struct sysdb_attrs *attrs, const char *name,
