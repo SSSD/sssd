@@ -198,6 +198,8 @@ time_t fo_get_service_retry_timeout(struct fo_service *svc);
 
 void fo_reset_services(struct fo_ctx *fo_ctx);
 
+void fo_reset_servers(struct fo_service *svc);
+
 bool fo_svc_has_server(struct fo_service *service, struct fo_server *server);
 
 /*

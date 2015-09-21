@@ -1547,21 +1547,31 @@ time_t fo_get_service_retry_timeout(struct fo_service *svc)
     return svc->ctx->opts->retry_timeout;
 }
 
+void fo_reset_servers(struct fo_service *service)
+{
+    struct fo_server *server;
+
+    DLIST_FOR_EACH(server, service->server_list) {
+        if (server->srv_data != NULL) {
+            set_srv_data_status(server->srv_data, SRV_NEUTRAL);
+        } else {
+            fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
+        }
+
+        fo_set_port_status(server, PORT_NEUTRAL);
+    }
+}
+
+
 void fo_reset_services(struct fo_ctx *fo_ctx)
 {
     struct fo_service *service;
-    struct fo_server *server;
+
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Resetting all servers in all services\n");
 
     DLIST_FOR_EACH(service, fo_ctx->service_list) {
-        DLIST_FOR_EACH(server, service->server_list) {
-            if (server->srv_data != NULL) {
-                set_srv_data_status(server->srv_data, SRV_NEUTRAL);
-            } else {
-                fo_set_server_status(server, SERVER_NAME_NOT_RESOLVED);
-            }
-
-            fo_set_port_status(server, PORT_NEUTRAL);
-        }
+        fo_reset_servers(service);
     }
 }
 

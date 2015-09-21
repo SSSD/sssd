@@ -743,6 +743,25 @@ void reset_fo(struct be_ctx *be_ctx)
     fo_reset_services(be_ctx->be_fo->fo_ctx);
 }
 
+void be_fo_reset_svc(struct be_ctx *be_ctx,
+                     const char *svc_name)
+{
+    struct fo_service *service;
+    int ret;
+
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Resetting all servers in service %s\n", svc_name);
+
+    ret = fo_get_service(be_ctx->be_fo->fo_ctx, svc_name, &service);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot retrieve service [%s]\n", svc_name);
+        return;
+    }
+
+    fo_reset_servers(service);
+}
+
 void _be_fo_set_port_status(struct be_ctx *ctx,
                             const char *service_name,
                             struct fo_server *server,
