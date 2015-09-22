@@ -131,6 +131,8 @@ netlogon_get_domain_info(TALLOC_CTX *mem_ctx,
         && response.data.nt5_ex.client_site[0] != '\0') {
         site = response.data.nt5_ex.client_site;
     } else {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "No netlogon site name data available\n");
         ret = ENOENT;
         goto done;
     }
@@ -379,7 +381,8 @@ ad_master_domain_netlogon_done(struct tevent_req *subreq)
                                    &state->site, &state->forest);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Could not get the flat name or forest\n");
+              "Could not get the flat name or forest: %d:[%s]\n",
+              ret, sss_strerror(ret));
         /* Not fatal. Just quit. */
         goto done;
     }
