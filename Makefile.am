@@ -2579,29 +2579,24 @@ test_cert_utils_LDADD = \
     $(NULL)
 
 test_data_provider_be_SOURCES = \
-    $(sssd_be_SOURCES) \
+    src/providers/data_provider_be.c \
     src/tests/cmocka/test_data_provider_be.c \
     src/tests/cmocka/common_mock_be.c \
     $(NULL)
 test_data_provider_be_CFLAGS = \
     $(AM_CFLAGS) \
     -DUNIT_TESTING \
-    $(CRYPTO_CFLAGS) \
     $(NULL)
 test_data_provider_be_LDFLAGS = \
     -Wl,-wrap,_tevent_add_timer \
     $(NULL)
 test_data_provider_be_LDADD = \
     $(CMOCKA_LIBS) \
-    $(CARES_LIBS) \
-    $(POPT_LIBS) \
     $(PAM_LIBS) \
-    $(TALLOC_LIBS) \
-    $(LDB_LIBS) \
-    $(DBUS_LIBS) \
+    $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    libsss_debug.la \
     libsss_test_common.la \
+    libdlopen_test_providers.la \
     $(NULL)
 
 endif # HAVE_CMOCKA
