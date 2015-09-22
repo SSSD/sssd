@@ -1421,6 +1421,10 @@ check_LTLIBRARIES += \
     libsss_nss_idmap_tests.la \
     $(NULL)
 
+if BUILD_SAMBA
+check_LTLIBRARIES += libsss_ad_tests.la
+endif
+
 libdlopen_test_providers_la_SOURCES = \
     $(sssd_be_SOURCES)
 libdlopen_test_providers_la_CFLAGS = \
@@ -1448,6 +1452,14 @@ libsss_nss_idmap_tests_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/sss_client/idmap/sss_nss_idmap.unit_tests
 
 dist_noinst_DATA += src/sss_client/idmap/sss_nss_idmap.unit_tests
+
+libsss_ad_tests_la_SOURCES = $(libsss_ad_la_SOURCES)
+libsss_ad_tests_la_CFLAGS = $(libsss_ad_la_CFLAGS)
+libsss_ad_tests_la_LIBADD = $(libsss_ad_la_LIBADD)
+libsss_ad_tests_la_LDFLAGS = \
+    -shared \
+    -rpath $(abs_top_builddir) \
+    $(NULL)
 
 dlopen_tests_SOURCES = \
     src/tests/dlopen-tests.c
@@ -2168,7 +2180,7 @@ ad_access_filter_tests_LDADD = \
     $(TEVENT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
-    libsss_ad_common.la \
+    libsss_ad_tests.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
     $(NULL)
@@ -2187,7 +2199,7 @@ ad_gpo_tests_LDADD = \
     libsss_ldap_common.la \
     libsss_idmap.la \
     libsss_krb5_common.la \
-    libsss_ad_common.la \
+    libsss_ad_tests.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
     $(NULL)
@@ -2539,7 +2551,7 @@ test_ipa_subdom_server_LDADD = \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_ldap_common.la \
-    libsss_ad_common.la \
+    libsss_ad_tests.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
     $(NULL)
@@ -2837,21 +2849,6 @@ libsss_ldap_common_la_SOURCES += \
     src/providers/ldap/sdap_autofs.c \
     src/providers/ldap/sdap_async_autofs.c
 endif
-
-if BUILD_SAMBA
-pkglib_LTLIBRARIES += libsss_ad_common.la
-endif
-libsss_ad_common_la_SOURCES = \
-    $(libsss_ad_la_SOURCES)
-libsss_ad_common_la_LDFLAGS = \
-    -avoid-version
-libsss_ad_common_la_CFLAGS = \
-    $(AM_CFLAGS) \
-    $(NDR_NBT_CFLAGS) \
-    $(SMBCLIENT_CFLAGS)
-libsss_ad_common_la_LIBADD = \
-    $(NDR_NBT_LIBS) \
-    $(SMBCLIENT_LIBS)
 
 libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_utils.c \
