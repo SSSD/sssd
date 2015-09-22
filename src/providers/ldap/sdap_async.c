@@ -2190,9 +2190,12 @@ sdap_posix_check_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     state->attrs[2] = opts->group_map[SDAP_AT_GROUP_GID].name;
     state->attrs[3] = NULL;
 
-    state->filter = talloc_asprintf(state, "(|(%s=*)(%s=*))",
+    state->filter = talloc_asprintf(state,
+        "(|(&(%s=*)(objectclass=%s))(&(%s=*)(objectclass=%s)))",
                                     opts->user_map[SDAP_AT_USER_UID].name,
-                                    opts->group_map[SDAP_AT_GROUP_GID].name);
+                                    opts->user_map[SDAP_OC_USER].name,
+                                    opts->group_map[SDAP_AT_GROUP_GID].name,
+                                    opts->group_map[SDAP_OC_GROUP].name);
     if (state->filter == NULL) {
         ret = ENOMEM;
         goto fail;
@@ -2275,9 +2278,8 @@ static errno_t sdap_posix_check_parse(struct sdap_handle *sh,
     errno = 0;
     strtouint32(vals[0]->bv_val, &endptr, 10);
     if (errno || *endptr || (vals[0]->bv_val == endptr)) {
-        DEBUG(SSSDBG_OP_FAILURE,
+        DEBUG(SSSDBG_MINOR_FAILURE,
               "POSIX attribute is not a number: %s\n", vals[0]->bv_val);
-        goto done;
     }
 
     state->has_posix = true;
