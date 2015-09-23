@@ -228,6 +228,7 @@ sss_iface_addr_list_get(TALLOC_CTX *mem_ctx, const char *ifname,
             /* Add this address to the IP address list */
             address = talloc_zero(mem_ctx, struct sss_iface_addr);
             if (!address) {
+                ret = ENOMEM;
                 goto done;
             }
 
