@@ -338,8 +338,8 @@ int ifp_process_init(TALLOC_CTX *mem_ctx,
 
     if (wildcard_limit_str) {
         ifp_ctx->wildcard_limit = strtouint32(wildcard_limit_str, NULL, 10);
-        if (errno != 0) {
-            ret = errno;
+        ret = errno;
+        if (ret != EOK) {
             goto fail;
         }
     }

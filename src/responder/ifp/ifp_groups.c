@@ -68,8 +68,8 @@ static errno_t ifp_groups_decompose_path(struct sss_domain_info *domains,
     }
 
     gid = strtouint32(parts[1], NULL, 10);
-    if (errno != 0) {
-        ret = errno;
+    ret = errno;
+    if (ret != EOK) {
         goto done;
     }
 
