@@ -150,6 +150,9 @@ static krb5_error_code sssdpac_verify(krb5_context kcontext,
     kerr = krb5_pac_verify(kcontext, pac,
                            req->ticket->enc_part2->times.authtime,
                            req->ticket->enc_part2->client, key, NULL);
+    /* deallocate pac */
+    krb5_pac_free(kcontext, pac);
+    pac = NULL;
     if (kerr != 0) {
         /* The krb5 documentation says:
          * A checksum mismatch can occur if the PAC was copied from a
