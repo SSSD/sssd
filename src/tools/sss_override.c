@@ -92,7 +92,6 @@ static int parse_cmdline_user_add(struct sss_cmdline *cmdline,
                                   struct override_user *user)
 {
     struct poptOption options[] = {
-        POPT_AUTOHELP
         {"name", 'n', POPT_ARG_STRING, &user->name, 0, _("Override name"), NULL },
         {"uid", 'u', POPT_ARG_INT, &user->uid, 0, _("Override uid (non-zero value)"), NULL },
         {"gid", 'g', POPT_ARG_INT, &user->gid, 0, _("Override gid (non-zero value)"), NULL },
@@ -119,7 +118,6 @@ static int parse_cmdline_group_add(struct sss_cmdline *cmdline,
                                    struct override_group *group)
 {
     struct poptOption options[] = {
-        POPT_AUTOHELP
         {"name", 'n', POPT_ARG_STRING, &group->name, 0, _("Override name"), NULL },
         {"gid", 'g', POPT_ARG_INT, &group->gid, 0, _("Override gid"), NULL },
         POPT_TABLEEND
