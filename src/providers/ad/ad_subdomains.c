@@ -505,7 +505,7 @@ static void ad_subdomains_retrieve(struct ad_subdomains_ctx *ctx,
     int dp_error = DP_ERR_FATAL;
     int ret;
 
-    req_ctx = talloc(be_req, struct ad_subdomains_req_ctx);
+    req_ctx = talloc_zero(be_req, struct ad_subdomains_req_ctx);
     if (req_ctx == NULL) {
         ret = ENOMEM;
         goto done;
@@ -519,6 +519,7 @@ static void ad_subdomains_retrieve(struct ad_subdomains_ctx *ctx,
     req_ctx->root_id_ctx = NULL;
     req_ctx->root_op = NULL;
     req_ctx->root_domain = NULL;
+    req_ctx->root_domain_attrs = NULL;
     req_ctx->reply_count = 0;
     req_ctx->reply = NULL;
 
