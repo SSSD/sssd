@@ -235,7 +235,7 @@ if test x$HAVE_MANPAGES != x; then
                      [HAVE_PROFILE_CATALOGS=1],
                      [AC_MSG_WARN([Man pages might contain documentation for experimental features])])
 
-    if test x$HAVE_PROFILE_CATALOGS == x; then
+    if test x$HAVE_PROFILE_CATALOGS = x; then
         DOCBOOK_XSLT=http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl
         CHECK_STYLESHEET([$SGML_CATALOG_FILES],
                          [$DOCBOOK_XSLT],

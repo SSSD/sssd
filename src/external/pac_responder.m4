@@ -9,7 +9,7 @@ AC_ARG_ENABLE([pac-responder],
 
 ndr_krb5pac_ok=no
 krb5_version_ok=no
-if test x$build_pac_responder == xyes
+if test x$build_pac_responder = xyes
 then
     PKG_CHECK_MODULES(NDR_KRB5PAC, ndr_krb5pac, ndr_krb5pac_ok=yes,
         AC_MSG_WARN([Cannot build pac responder without libndr_krb5pac]))

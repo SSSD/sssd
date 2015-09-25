@@ -182,7 +182,7 @@ AC_DEFUN([WITH_INIT_DIR],
                 ]
                )
     initdir="${sysconfdir}/rc.d/init.d"
-    if test x$osname == xgentoo; then
+    if test x$osname = xgentoo; then
         initdir="${sysconfdir}/init.d"
     fi
     if test x"$with_init_dir" != x; then
