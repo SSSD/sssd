@@ -1164,6 +1164,7 @@ struct sdap_get_generic_ext_state {
     void *cb_data;
 
     bool allow_paging;
+    unsigned int flags;
 };
 
 static errno_t sdap_get_generic_ext_step(struct tevent_req *req);
@@ -1171,6 +1172,11 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req);
 static void sdap_get_generic_op_finished(struct sdap_op *op,
                                          struct sdap_msg *reply,
                                          int error, void *pvt);
+
+enum {
+    /* Be silent about exceeded size limit */
+    SDAP_SRCH_FLG_SIZELIMIT_SILENT = 1 << 0,
+};
 
 static struct tevent_req *
 sdap_get_generic_ext_send(TALLOC_CTX *memctx,
@@ -1188,7 +1194,8 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
                           int timeout,
                           bool allow_paging,
                           sdap_parse_cb parse_cb,
-                          void *cb_data)
+                          void *cb_data,
+                          unsigned int flags)
 {
     errno_t ret;
     struct sdap_get_generic_ext_state *state;
@@ -1215,6 +1222,7 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
     state->parse_cb = parse_cb;
     state->cb_data = cb_data;
     state->clientctrls = clientctrls;
+    state->flags = flags;
 
     if (state->sh == NULL || state->sh->ldap == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1500,8 +1508,12 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
 
         if (result == LDAP_SIZELIMIT_EXCEEDED) {
             /* Try to return what we've got */
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "LDAP sizelimit was exceeded, returning incomplete data\n");
+
+            if ( ! (state->flags & SDAP_SRCH_FLG_SIZELIMIT_SILENT)) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "LDAP sizelimit was exceeded, "
+                      "returning incomplete data\n");
+            }
         } else if (result == LDAP_INAPPROPRIATE_MATCHING) {
             /* This error should only occur when we're testing for
              * specialized functionality like the ldap matching rule
@@ -1708,7 +1720,8 @@ struct tevent_req *sdap_get_and_parse_generic_send(TALLOC_CTX *memctx,
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, search_base,
                                        scope, filter, attrs, false, NULL,
                                        NULL, sizelimit, timeout, allow_paging,
-                                       sdap_get_and_parse_generic_parse_entry, state);
+                                       sdap_get_and_parse_generic_parse_entry,
+                                       state, 0);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -1919,7 +1932,7 @@ sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                                        filter, attrs,
                                        false, state->ctrls, NULL, 0, timeout,
                                        true, sdap_x_deref_parse_entry,
-                                       state);
+                                       state, 0);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -2143,7 +2156,7 @@ sdap_sd_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                                        LDAP_SCOPE_BASE, "(objectclass=*)", attrs,
                                        false, state->ctrls, NULL, 0, timeout,
                                        true, sdap_sd_search_parse_entry,
-                                       state);
+                                       state, 0);
     if (!subreq) {
         ret = EIO;
         goto fail;
@@ -2342,7 +2355,7 @@ sdap_asq_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                                        LDAP_SCOPE_BASE, NULL, attrs,
                                        false, state->ctrls, NULL, 0, timeout,
                                        true, sdap_asq_search_parse_entry,
-                                       state);
+                                       state, 0);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -2626,8 +2639,8 @@ static errno_t sdap_posix_check_next(struct tevent_req *req)
                                  LDAP_SCOPE_SUBTREE, state->filter,
                                  state->attrs, false,
                                  NULL, NULL, 1, state->timeout,
-                                 false, sdap_posix_check_parse,
-                                 state);
+                                 false, sdap_posix_check_parse, state,
+                                 SDAP_SRCH_FLG_SIZELIMIT_SILENT);
     if (subreq == NULL) {
         return ENOMEM;
     }
