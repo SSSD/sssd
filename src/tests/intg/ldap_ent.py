@@ -18,25 +18,40 @@
 #
 
 
-def user(base_dn, uid, uidNumber, gidNumber):
+def user(base_dn, uid, uidNumber, gidNumber,
+         userPassword=None,
+         gecos=None,
+         homeDirectory=None,
+         loginShell=None,
+         cn=None,
+         sn=None):
     """
     Generate an RFC2307(bis) user add-modlist for passing to ldap.add*
     """
     uidNumber = str(uidNumber)
     gidNumber = str(gidNumber)
-    return (
+    user = (
         "uid=" + uid + ",ou=Users," + base_dn,
         [
-            ('objectClass',     ['top', 'inetOrgPerson', 'posixAccount']),
-            ('cn',              [uidNumber]),
-            ('sn',              ['User']),
-            ('uidNumber',       [uidNumber]),
-            ('gidNumber',       [gidNumber]),
-            ('userPassword',    ['Password' + uidNumber]),
-            ('homeDirectory',   ['/home/' + uid]),
-            ('loginShell',      ['/bin/bash']),
+            ('objectClass', ['top', 'inetOrgPerson', 'posixAccount']),
+            ('cn', [uidNumber if cn is None else cn]),
+            ('sn', ['User' if sn is None else sn]),
+            ('uidNumber', [uidNumber]),
+            ('gidNumber', [gidNumber]),
+            ('userPassword', ['Password' + uidNumber
+                              if userPassword is None
+                              else userPassword]),
+            ('homeDirectory', ['/home/' + uid
+                               if homeDirectory is None
+                               else homeDirectory]),
+            ('loginShell', ['/bin/bash'
+                            if loginShell is None
+                            else loginShell]),
         ]
     )
+    if gecos is not None:
+        user[1].append(('gecos', [gecos]))
+    return user
 
 
 def group(base_dn, cn, gidNumber, member_uids=[]):
@@ -86,10 +101,22 @@ class List(list):
         self.base_dn = base_dn
 
     def add_user(self, uid, uidNumber, gidNumber,
-                 base_dn=None):
+                 base_dn=None,
+                 userPassword=None,
+                 gecos=None,
+                 homeDirectory=None,
+                 loginShell=None,
+                 cn=None,
+                 sn=None):
         """Add an RFC2307(bis) user add-modlist."""
         self.append(user(base_dn or self.base_dn,
-                         uid, uidNumber, gidNumber))
+                         uid, uidNumber, gidNumber,
+                         userPassword=userPassword,
+                         gecos=gecos,
+                         homeDirectory=homeDirectory,
+                         loginShell=loginShell,
+                         cn=cn,
+                         sn=sn))
 
     def add_group(self, cn, gidNumber, member_uids=[],
                   base_dn=None):
