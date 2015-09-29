@@ -97,6 +97,7 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libtdb-dev
         libtevent-dev
         libtool
+        libtool-bin
         libxml2-utils
         make
         python-dev
