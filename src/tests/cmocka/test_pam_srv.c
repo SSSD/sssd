@@ -1432,6 +1432,8 @@ int main(int argc, const char *argv[])
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_offline_chauthtok,
                                         pam_test_setup, pam_test_teardown),
+/* p11_child is not built without NSS */
+#ifdef HAVE_NSS
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_nocert,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_nomatch,
@@ -1449,6 +1451,7 @@ int main(int argc, const char *argv[])
                                    pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_cert_auth,
                                         pam_test_setup, pam_test_teardown),
+#endif /* HAVE_NSS */
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
