@@ -60,7 +60,8 @@ function distro_pkg_install()
                  {print}
                  END {exit s}'
     elif [[ "$DISTRO_BRANCH" == -debian-* ]]; then
-        [ $# != 0 ] && sudo -p "$prompt" apt-get --yes install -- "$@"
+        [ $# != 0 ] && DEBIAN_FRONTEND=noninteractive \
+                       sudo -p "$prompt" apt-get --yes install -- "$@"
     else
         echo "Cannot install packages on $DISTRO_BRANCH" >&2
         exit 1

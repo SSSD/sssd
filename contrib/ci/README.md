@@ -47,6 +47,11 @@ and Debian-based distros:
 
 Where `<USER>` is the user invoking CI.
 
+You may also want to allow passing DEBIAN_FRONTEND environment variable to
+apt-get on Debian, so CI can request non-interactive package installation:
+
+    Defaults!/usr/bin/apt-get env_keep += "DEBIAN_FRONTEND"
+
 On Red Hat distros a repository carrying dependencies missing from some
 distros needs to be added to yum configuration. See instructions on the
 [Copr project page](http://copr-fe.cloud.fedoraproject.org/coprs/lslebodn/sssd-deps/).
