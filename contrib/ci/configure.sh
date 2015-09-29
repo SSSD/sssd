@@ -31,7 +31,8 @@ declare -a CONFIGURE_ARG_LIST=(
 )
 
 
-if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ]]; then
+if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ||
+      "$DISTRO_BRANCH" == -redhat-centos-6.*- ]]; then
     CONFIGURE_ARG_LIST+=(
         "--disable-cifs-idmap-plugin"
         "--with-syslog=syslog"
@@ -39,7 +40,8 @@ if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ]]; then
     )
 fi
 
-if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-7.*- ]]; then
+if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-7.*- ||
+      "$DISTRO_BRANCH" == -redhat-centos-7.*- ]]; then
     CONFIGURE_ARG_LIST+=(
         "--without-python3-bindings"
     )
