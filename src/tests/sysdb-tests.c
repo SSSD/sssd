@@ -5232,7 +5232,7 @@ START_TEST(test_sysdb_search_user_by_cert)
     fail_unless(ret == EOK, "sysdb_add_user failed with [%d][%s].",
                 ret, strerror(ret));
 
-    ret = sysdb_search_user_by_cert(test_ctx, test_ctx->domain, "ABC", &res);
+    ret = sysdb_search_user_by_cert(test_ctx, test_ctx->domain, "ABA=", &res);
     fail_unless(ret == ENOENT,
                 "Unexpected return code from sysdb_search_user_by_cert for "
                 "missing object, expected [%d], got [%d].", ENOENT, ret);
