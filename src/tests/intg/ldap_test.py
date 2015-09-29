@@ -91,6 +91,40 @@ def create_ldap_fixture(request, ldap_conn, ent_list=None):
     create_ldap_cleanup(request, ldap_conn, ent_list)
 
 
+SCHEMA_RFC2307 = "rfc2307"
+SCHEMA_RFC2307_BIS = "rfc2307bis"
+
+
+def format_basic_conf(ldap_conn, schema, enum):
+    """Format a basic SSSD configuration"""
+    schema_conf = "ldap_schema         = " + schema + "\n"
+    if schema == SCHEMA_RFC2307_BIS:
+        schema_conf += "ldap_group_object_class = groupOfNames\n"
+    return unindent("""\
+        [sssd]
+        debug_level         = 0xffff
+        domains             = LDAP
+        services            = nss, pam
+
+        [nss]
+        debug_level         = 0xffff
+        memcache_timeout    = 0
+
+        [pam]
+        debug_level         = 0xffff
+
+        [domain/LDAP]
+        ldap_auth_disable_tls_never_use_in_production = true
+        debug_level         = 0xffff
+        enumerate           = {enum}
+        {schema_conf}
+        id_provider         = ldap
+        auth_provider       = ldap
+        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
+        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
+    """).format(**locals())
+
+
 def create_conf_file(contents):
     """Create sssd.conf with specified contents"""
     conf = open(config.CONF_PATH, "w")
@@ -172,30 +206,7 @@ def sanity_rfc2307(request, ldap_conn):
     ent_list.add_group("two_user_group", 2012, ["user1", "user2"])
     create_ldap_fixture(request, ldap_conn, ent_list)
 
-    conf = unindent("""\
-        [sssd]
-        debug_level         = 0xffff
-        domains             = LDAP
-        services            = nss, pam
-
-        [nss]
-        debug_level         = 0xffff
-        memcache_timeout    = 0
-
-        [pam]
-        debug_level         = 0xffff
-
-        [domain/LDAP]
-        ldap_auth_disable_tls_never_use_in_production = true
-        debug_level         = 0xffff
-        enumerate           = true
-        ldap_schema         = rfc2307
-        id_provider         = ldap
-        auth_provider       = ldap
-        sudo_provider       = ldap
-        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
-        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
-    """).format(**locals())
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
@@ -206,27 +217,8 @@ def simple_rfc2307(request, ldap_conn):
     ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user('usr\\\\001', 181818, 181818)
     ent_list.add_group("group1", 181818)
-
     create_ldap_fixture(request, ldap_conn, ent_list)
-
-    conf = unindent("""\
-        [sssd]
-        config_file_version = 2
-        domains             = LDAP
-        services            = nss, pam
-
-        [nss]
-
-        [pam]
-
-        [domain/LDAP]
-        ldap_auth_disable_tls_never_use_in_production = true
-        ldap_schema         = rfc2307
-        id_provider         = ldap
-        auth_provider       = ldap
-        ldap_uri            = {ldap_conn.ds_inst.ldap_url}
-        ldap_search_base    = {ldap_conn.ds_inst.base_dn}
-    """).format(**locals())
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=False)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
@@ -260,32 +252,7 @@ def sanity_rfc2307_bis(request, ldap_conn):
                            [], ["one_user_group1", "one_user_group2"])
 
     create_ldap_fixture(request, ldap_conn, ent_list)
-
-    conf = unindent("""\
-        [sssd]
-        debug_level             = 0xffff
-        domains                 = LDAP
-        services                = nss, pam
-
-        [nss]
-        debug_level             = 0xffff
-        memcache_timeout        = 0
-
-        [pam]
-        debug_level             = 0xffff
-
-        [domain/LDAP]
-        ldap_auth_disable_tls_never_use_in_production = true
-        debug_level             = 0xffff
-        enumerate               = true
-        ldap_schema             = rfc2307bis
-        ldap_group_object_class = groupOfNames
-        id_provider             = ldap
-        auth_provider           = ldap
-        sudo_provider           = ldap
-        ldap_uri                = {ldap_conn.ds_inst.ldap_url}
-        ldap_search_base        = {ldap_conn.ds_inst.base_dn}
-    """).format(**locals())
+    conf = format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, enum=True)
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
@@ -370,31 +337,14 @@ def refresh_after_cleanup_task(request, ldap_conn):
 
     create_ldap_fixture(request, ldap_conn, ent_list)
 
-    conf = unindent("""\
-        [sssd]
-        config_file_version     = 2
-        domains                 = LDAP
-        services                = nss
-
-        [nss]
-        memcache_timeout        = 0
-
-        [domain/LDAP]
-        ldap_auth_disable_tls_never_use_in_production = true
-        debug_level             = 0xffff
-        ldap_schema             = rfc2307bis
-        ldap_group_object_class = groupOfNames
-        id_provider             = ldap
-        auth_provider           = ldap
-        sudo_provider           = ldap
-        ldap_uri                = {ldap_conn.ds_inst.ldap_url}
-        ldap_search_base        = {ldap_conn.ds_inst.base_dn}
-
-        entry_cache_user_timeout = 1
-        entry_cache_group_timeout = 5000
-        ldap_purge_cache_timeout = 3
-
-    """).format(**locals())
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307_BIS, enum=False) + \
+        unindent("""
+            [domain/LDAP]
+            entry_cache_user_timeout = 1
+            entry_cache_group_timeout = 5000
+            ldap_purge_cache_timeout = 3
+        """).format(**locals())
     create_conf_fixture(request, conf)
     create_sssd_fixture(request)
     return None
