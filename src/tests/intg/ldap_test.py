@@ -105,7 +105,7 @@ def create_sssd_fixture(request):
 
 @pytest.fixture
 def sanity_rfc2307(request, ldap_conn):
-    ent_list = ldap_ent.List(LDAP_BASE_DN)
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user1", 1001, 2001)
     ent_list.add_user("user2", 1002, 2002)
     ent_list.add_user("user3", 1003, 2003)
@@ -150,7 +150,7 @@ def sanity_rfc2307(request, ldap_conn):
 
 @pytest.fixture
 def simple_rfc2307(request, ldap_conn):
-    ent_list = ldap_ent.List(LDAP_BASE_DN)
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user('usr\\\\001', 181818, 181818)
     ent_list.add_group("group1", 181818)
 
@@ -181,7 +181,7 @@ def simple_rfc2307(request, ldap_conn):
 
 @pytest.fixture
 def sanity_rfc2307_bis(request, ldap_conn):
-    ent_list = ldap_ent.List(LDAP_BASE_DN)
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user1", 1001, 2001)
     ent_list.add_user("user2", 1002, 2002)
     ent_list.add_user("user3", 1003, 2003)
@@ -309,7 +309,7 @@ def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
 
 @pytest.fixture
 def refresh_after_cleanup_task(request, ldap_conn):
-    ent_list = ldap_ent.List(LDAP_BASE_DN)
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user1", 1001, 2001)
 
     ent_list.add_group_bis("group1", 2001, ["user1"])

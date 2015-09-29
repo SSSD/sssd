@@ -109,7 +109,7 @@ def create_sssd_fixture(request):
 
 
 def load_data_to_ldap(request, ldap_conn):
-    ent_list = ldap_ent.List(LDAP_BASE_DN)
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
     ent_list.add_user("user1", 1001, 2001)
     ent_list.add_user("user2", 1002, 2002)
     ent_list.add_user("user3", 1003, 2003)
