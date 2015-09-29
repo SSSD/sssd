@@ -33,6 +33,7 @@ import ldap_ent
 from util import *
 
 LDAP_BASE_DN = "dc=example,dc=com"
+INTERACTIVE_TIMEOUT = 4
 
 
 @pytest.fixture(scope="module")
@@ -125,6 +126,23 @@ def format_basic_conf(ldap_conn, schema, enum):
         ldap_uri            = {ldap_conn.ds_inst.ldap_url}
         ldap_search_base    = {ldap_conn.ds_inst.base_dn}
     """).format(**locals())
+
+
+def format_interactive_conf(ldap_conn, schema):
+    """Format an SSSD configuration with all caches refreshing in 4 seconds"""
+    return \
+        format_basic_conf(ldap_conn, schema, enum=True) + \
+        unindent("""
+            [nss]
+            memcache_timeout                    = 0
+            enum_cache_timeout                  = {0}
+            entry_negative_timeout              = 0
+
+            [domain/LDAP]
+            ldap_enumeration_refresh_timeout    = {0}
+            ldap_purge_cache_timeout            = 1
+            entry_cache_timeout                 = {0}
+        """).format(INTERACTIVE_TIMEOUT)
 
 
 def create_conf_file(contents):
@@ -388,3 +406,346 @@ def test_refresh_after_cleanup_task(ldap_conn, refresh_after_cleanup_task):
     ent.assert_group_by_name(
         "group2",
         dict(mem=ent.contains_only("user1")))
+
+
+@pytest.fixture
+def blank_rfc2307(request, ldap_conn):
+    """Create blank RFC2307 directory fixture with interactive SSSD conf"""
+    create_ldap_cleanup(request, ldap_conn)
+    create_conf_fixture(request,
+                        format_interactive_conf(ldap_conn, SCHEMA_RFC2307))
+    create_sssd_fixture(request)
+
+
+@pytest.fixture
+def blank_rfc2307_bis(request, ldap_conn):
+    """Create blank RFC2307bis directory fixture with interactive SSSD conf"""
+    create_ldap_cleanup(request, ldap_conn)
+    create_conf_fixture(request,
+                        format_interactive_conf(ldap_conn, SCHEMA_RFC2307_BIS))
+    create_sssd_fixture(request)
+
+
+@pytest.fixture
+def user_and_group_rfc2307(request, ldap_conn):
+    """
+    Create an RFC2307 directory fixture with interactive SSSD conf,
+    one user and one group
+    """
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user", 1001, 2000)
+    ent_list.add_group("group", 2001)
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    create_conf_fixture(request,
+                        format_interactive_conf(ldap_conn, SCHEMA_RFC2307))
+    create_sssd_fixture(request)
+    return None
+
+
+@pytest.fixture
+def user_and_groups_rfc2307_bis(request, ldap_conn):
+    """
+    Create an RFC2307bis directory fixture with interactive SSSD conf,
+    one user and two groups
+    """
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user", 1001, 2000)
+    ent_list.add_group_bis("group1", 2001)
+    ent_list.add_group_bis("group2", 2002)
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    create_conf_fixture(request,
+                        format_interactive_conf(ldap_conn, SCHEMA_RFC2307_BIS))
+    create_sssd_fixture(request)
+    return None
+
+
+def test_add_remove_user(ldap_conn, blank_rfc2307):
+    """Test user addition and removal are reflected by SSSD"""
+    e = ldap_ent.user(ldap_conn.ds_inst.base_dn, "user", 1001, 2000)
+    time.sleep(INTERACTIVE_TIMEOUT/2)
+    # Add the user
+    ent.assert_passwd(ent.contains_only())
+    ldap_conn.add_s(*e)
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_passwd(ent.contains_only(dict(name="user", uid=1001)))
+    # Remove the user
+    ldap_conn.delete_s(e[0])
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_passwd(ent.contains_only())
+
+
+def test_add_remove_group_rfc2307(ldap_conn, blank_rfc2307):
+    """Test RFC2307 group addition and removal are reflected by SSSD"""
+    e = ldap_ent.group(ldap_conn.ds_inst.base_dn, "group", 2001)
+    time.sleep(INTERACTIVE_TIMEOUT/2)
+    # Add the group
+    ent.assert_group(ent.contains_only())
+    ldap_conn.add_s(*e)
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group(ent.contains_only(dict(name="group", gid=2001)))
+    # Remove the group
+    ldap_conn.delete_s(e[0])
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group(ent.contains_only())
+
+
+def test_add_remove_group_rfc2307_bis(ldap_conn, blank_rfc2307_bis):
+    """Test RFC2307bis group addition and removal are reflected by SSSD"""
+    e = ldap_ent.group_bis(ldap_conn.ds_inst.base_dn, "group", 2001)
+    time.sleep(INTERACTIVE_TIMEOUT/2)
+    # Add the group
+    ent.assert_group(ent.contains_only())
+    ldap_conn.add_s(*e)
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group(ent.contains_only(dict(name="group", gid=2001)))
+    # Remove the group
+    ldap_conn.delete_s(e[0])
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group(ent.contains_only())
+
+
+def test_add_remove_membership_rfc2307(ldap_conn, user_and_group_rfc2307):
+    """Test user membership addition and removal are reflected by SSSD"""
+    time.sleep(INTERACTIVE_TIMEOUT/2)
+    # Add user to group
+    ent.assert_group_by_name("group", dict(mem=ent.contains_only()))
+    ldap_conn.modify_s("cn=group,ou=Groups," + ldap_conn.ds_inst.base_dn,
+                       [(ldap.MOD_REPLACE, "memberUid", "user")])
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group_by_name("group", dict(mem=ent.contains_only("user")))
+    # Remove user from group
+    ldap_conn.modify_s("cn=group,ou=Groups," + ldap_conn.ds_inst.base_dn,
+                       [(ldap.MOD_DELETE, "memberUid", None)])
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group_by_name("group", dict(mem=ent.contains_only()))
+
+
+def test_add_remove_membership_rfc2307_bis(ldap_conn,
+                                           user_and_groups_rfc2307_bis):
+    """
+    Test user and group membership addition and removal are reflected by SSSD,
+    with RFC2307bis schema
+    """
+    time.sleep(INTERACTIVE_TIMEOUT/2)
+    # Add user to group1
+    ent.assert_group_by_name("group1", dict(mem=ent.contains_only()))
+    ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
+                       [(ldap.MOD_REPLACE, "member",
+                         "uid=user,ou=Users," + ldap_conn.ds_inst.base_dn)])
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group_by_name("group1", dict(mem=ent.contains_only("user")))
+
+    # Add group1 to group2
+    ldap_conn.modify_s("cn=group2,ou=Groups," + ldap_conn.ds_inst.base_dn,
+                       [(ldap.MOD_REPLACE, "member",
+                         "cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn)])
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group_by_name("group2", dict(mem=ent.contains_only("user")))
+
+    # Remove group1 from group2
+    ldap_conn.modify_s("cn=group2,ou=Groups," + ldap_conn.ds_inst.base_dn,
+                       [(ldap.MOD_DELETE, "member", None)])
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group_by_name("group2", dict(mem=ent.contains_only()))
+
+    # Remove user from group1
+    ldap_conn.modify_s("cn=group1,ou=Groups," + ldap_conn.ds_inst.base_dn,
+                       [(ldap.MOD_DELETE, "member", None)])
+    time.sleep(INTERACTIVE_TIMEOUT)
+    ent.assert_group_by_name("group1", dict(mem=ent.contains_only()))
+
+
+@pytest.fixture
+def override_homedir(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user_with_homedir_A", 1001, 2001,
+                      homeDirectory="/home/A")
+    ent_list.add_user("user_with_homedir_B", 1002, 2002,
+                      homeDirectory="/home/B")
+    ent_list.add_user("user_with_empty_homedir", 1003, 2003,
+                      homeDirectory="")
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        unindent("""\
+            [nss]
+            override_homedir    = /home/B
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_override_homedir(override_homedir):
+    """Test the effect of the "override_homedir" option"""
+    ent.assert_passwd(
+        ent.contains_only(
+            dict(name="user_with_homedir_A", uid=1001, dir="/home/B"),
+            dict(name="user_with_homedir_B", uid=1002, dir="/home/B"),
+            dict(name="user_with_empty_homedir", uid=1003, dir="/home/B")
+        )
+    )
+
+
+@pytest.fixture
+def fallback_homedir(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user_with_homedir_A", 1001, 2001,
+                      homeDirectory="/home/A")
+    ent_list.add_user("user_with_homedir_B", 1002, 2002,
+                      homeDirectory="/home/B")
+    ent_list.add_user("user_with_empty_homedir", 1003, 2003,
+                      homeDirectory="")
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        unindent("""\
+            [nss]
+            fallback_homedir    = /home/B
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_fallback_homedir(fallback_homedir):
+    """Test the effect of the "fallback_homedir" option"""
+    ent.assert_passwd(
+        ent.contains_only(
+            dict(name="user_with_homedir_A", uid=1001, dir="/home/A"),
+            dict(name="user_with_homedir_B", uid=1002, dir="/home/B"),
+            dict(name="user_with_empty_homedir", uid=1003, dir="/home/B")
+        )
+    )
+
+
+@pytest.fixture
+def override_shell(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user_with_shell_A", 1001, 2001,
+                      loginShell="/bin/A")
+    ent_list.add_user("user_with_shell_B", 1002, 2002,
+                      loginShell="/bin/B")
+    ent_list.add_user("user_with_empty_shell", 1003, 2003,
+                      loginShell="")
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        unindent("""\
+            [nss]
+            override_shell      = /bin/B
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_override_shell(override_shell):
+    """Test the effect of the "override_shell" option"""
+    ent.assert_passwd(
+        ent.contains_only(
+            dict(name="user_with_shell_A", uid=1001, shell="/bin/B"),
+            dict(name="user_with_shell_B", uid=1002, shell="/bin/B"),
+            dict(name="user_with_empty_shell", uid=1003, shell="/bin/B")
+        )
+    )
+
+
+@pytest.fixture
+def shell_fallback(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user_with_sh_shell", 1001, 2001,
+                      loginShell="/bin/sh")
+    ent_list.add_user("user_with_not_installed_shell", 1002, 2002,
+                      loginShell="/bin/not_installed")
+    ent_list.add_user("user_with_empty_shell", 1003, 2003,
+                      loginShell="")
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        unindent("""\
+            [nss]
+            shell_fallback      = /bin/fallback
+            allowed_shells      = /bin/not_installed
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_shell_fallback(shell_fallback):
+    """Test the effect of the "shell_fallback" option"""
+    ent.assert_passwd(
+        ent.contains_only(
+            dict(name="user_with_sh_shell", uid=1001, shell="/bin/sh"),
+            dict(name="user_with_not_installed_shell", uid=1002,
+                 shell="/bin/fallback"),
+            dict(name="user_with_empty_shell", uid=1003, shell="")
+        )
+    )
+
+
+@pytest.fixture
+def default_shell(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user_with_sh_shell", 1001, 2001,
+                      loginShell="/bin/sh")
+    ent_list.add_user("user_with_not_installed_shell", 1002, 2002,
+                      loginShell="/bin/not_installed")
+    ent_list.add_user("user_with_empty_shell", 1003, 2003,
+                      loginShell="")
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        unindent("""\
+            [nss]
+            default_shell       = /bin/default
+            allowed_shells      = /bin/default, /bin/not_installed
+            shell_fallback      = /bin/fallback
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_default_shell(default_shell):
+    """Test the effect of the "default_shell" option"""
+    ent.assert_passwd(
+        ent.contains_only(
+            dict(name="user_with_sh_shell", uid=1001, shell="/bin/sh"),
+            dict(name="user_with_not_installed_shell", uid=1002,
+                 shell="/bin/fallback"),
+            dict(name="user_with_empty_shell", uid=1003,
+                 shell="/bin/default")
+        )
+    )
+
+
+@pytest.fixture
+def vetoed_shells(request, ldap_conn):
+    ent_list = ldap_ent.List(ldap_conn.ds_inst.base_dn)
+    ent_list.add_user("user_with_sh_shell", 1001, 2001,
+                      loginShell="/bin/sh")
+    ent_list.add_user("user_with_vetoed_shell", 1002, 2002,
+                      loginShell="/bin/vetoed")
+    ent_list.add_user("user_with_empty_shell", 1003, 2003,
+                      loginShell="")
+    create_ldap_fixture(request, ldap_conn, ent_list)
+    conf = \
+        format_basic_conf(ldap_conn, SCHEMA_RFC2307, enum=True) + \
+        unindent("""\
+            [nss]
+            default_shell       = /bin/default
+            vetoed_shells       = /bin/vetoed
+            shell_fallback      = /bin/fallback
+        """).format(**locals())
+    create_conf_fixture(request, conf)
+    create_sssd_fixture(request)
+
+
+def test_vetoed_shells(vetoed_shells):
+    """Test the effect of the "vetoed_shells" option"""
+    ent.assert_passwd(
+        ent.contains_only(
+            dict(name="user_with_sh_shell", uid=1001, shell="/bin/sh"),
+            dict(name="user_with_vetoed_shell", uid=1002,
+                 shell="/bin/fallback"),
+            dict(name="user_with_empty_shell", uid=1003,
+                 shell="/bin/default")
+        )
+    )
