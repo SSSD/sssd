@@ -107,8 +107,15 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         xml-core
         xsltproc
         libssl-dev
+        fakeroot
+        libnss-wrapper
+        libuid-wrapper
+        python-pytest
+        python-ldap
+        ldap-utils
+        slapd
     )
-    DEPS_INTGCHECK_SATISFIED=false
+    DEPS_INTGCHECK_SATISFIED=true
 fi
 
 declare -a -r DEPS_LIST
