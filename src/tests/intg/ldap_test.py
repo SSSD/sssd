@@ -59,48 +59,101 @@ def ldap_conn(request, ds_inst):
     return ldap_conn
 
 
-def create_ldap_fixture(request, ldap_conn, ent_list):
-    """Add LDAP entries and add teardown for removing them"""
-    for entry in ent_list:
-        ldap_conn.add_s(entry[0], entry[1])
-    def teardown():
+def create_ldap_entries(ldap_conn, ent_list=None):
+    """Add LDAP entries from ent_list"""
+    if ent_list is not None:
+        for entry in ent_list:
+            ldap_conn.add_s(entry[0], entry[1])
+
+
+def cleanup_ldap_entries(ldap_conn, ent_list=None):
+    """Remove LDAP entries added by create_ldap_entries"""
+    if ent_list is None:
+        for ou in ("Users", "Groups", "Netgroups", "Services", "Policies"):
+            for entry in ldap_conn.search_s("ou=" + ou + "," +
+                                            ldap_conn.ds_inst.base_dn,
+                                            ldap.SCOPE_ONELEVEL,
+                                            attrlist=[]):
+                ldap_conn.delete_s(entry[0])
+    else:
         for entry in ent_list:
             ldap_conn.delete_s(entry[0])
-    request.addfinalizer(teardown)
 
 
-def create_conf_fixture(request, contents):
-    """Generate sssd.conf and add teardown for removing it"""
+def create_ldap_cleanup(request, ldap_conn, ent_list=None):
+    """Add teardown for removing all user/group LDAP entries"""
+    request.addfinalizer(lambda: cleanup_ldap_entries(ldap_conn, ent_list))
+
+
+def create_ldap_fixture(request, ldap_conn, ent_list=None):
+    """Add LDAP entries and add teardown for removing them"""
+    create_ldap_entries(ldap_conn, ent_list)
+    create_ldap_cleanup(request, ldap_conn, ent_list)
+
+
+def create_conf_file(contents):
+    """Create sssd.conf with specified contents"""
     conf = open(config.CONF_PATH, "w")
     conf.write(contents)
     conf.close()
     os.chmod(config.CONF_PATH, stat.S_IRUSR | stat.S_IWUSR)
-    request.addfinalizer(lambda: os.unlink(config.CONF_PATH))
+
+
+def cleanup_conf_file():
+    """Remove sssd.conf, if it exists"""
+    if os.path.lexists(config.CONF_PATH):
+        os.unlink(config.CONF_PATH)
+
+
+def create_conf_cleanup(request):
+    """Add teardown for removing sssd.conf"""
+    request.addfinalizer(cleanup_conf_file)
+
+
+def create_conf_fixture(request, contents):
+    """
+    Create sssd.conf with specified contents and add teardown for removing it
+    """
+    create_conf_file(contents)
+    create_conf_cleanup(request)
+
+
+def create_sssd_process():
+    """Start the SSSD process"""
+    if subprocess.call(["sssd", "-D", "-f"]) != 0:
+        raise Exception("sssd start failed")
+
+
+def cleanup_sssd_process():
+    """Stop the SSSD process and remove its state"""
+    try:
+        pid_file = open(config.PIDFILE_PATH, "r")
+        pid = int(pid_file.read())
+        os.kill(pid, signal.SIGTERM)
+        while True:
+            try:
+                os.kill(pid, signal.SIGCONT)
+            except:
+                break
+            time.sleep(1)
+    except:
+        pass
+    subprocess.call(["sss_cache", "-E"])
+    for path in os.listdir(config.DB_PATH):
+        os.unlink(config.DB_PATH + "/" + path)
+    for path in os.listdir(config.MCACHE_PATH):
+        os.unlink(config.MCACHE_PATH + "/" + path)
+
+
+def create_sssd_cleanup(request):
+    """Add teardown for stopping SSSD and removing its state"""
+    request.addfinalizer(cleanup_sssd_process)
 
 
 def create_sssd_fixture(request):
-    """Start sssd and add teardown for stopping it and removing state"""
-    if subprocess.call(["sssd", "-D", "-f"]) != 0:
-        raise Exception("sssd start failed")
-    def teardown():
-        try:
-            pid_file = open(config.PIDFILE_PATH, "r")
-            pid = int(pid_file.read())
-            os.kill(pid, signal.SIGTERM)
-            while True:
-                try:
-                    os.kill(pid, signal.SIGCONT)
-                except:
-                    break
-                time.sleep(1)
-        except:
-            pass
-        subprocess.call(["sss_cache", "-E"])
-        for path in os.listdir(config.DB_PATH):
-            os.unlink(config.DB_PATH + "/" + path)
-        for path in os.listdir(config.MCACHE_PATH):
-            os.unlink(config.MCACHE_PATH + "/" + path)
-    request.addfinalizer(teardown)
+    """Start SSSD and add teardown for stopping it and removing its state"""
+    create_sssd_process()
+    create_sssd_cleanup(request)
 
 
 @pytest.fixture
