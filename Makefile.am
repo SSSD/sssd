@@ -2605,6 +2605,7 @@ test_data_provider_be_LDADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(LIBADD_DL) \
     libsss_test_common.la \
     libdlopen_test_providers.la \
     $(NULL)
