@@ -590,6 +590,14 @@ subdomain_inherit = ldap_purge_cache_timeout
                             to filter only users from the particular domain.
                         </para>
                         <para>
+                            NOTE: The filter_groups option doesn't affect
+                            inheritance of nested group members, since
+                            filtering happens after they are propagated for
+                            returning via NSS. E.g. a group having a member
+                            group filtered out will still have the member
+                            users of the latter listed.
+                        </para>
+                        <para>
                             Default: root
                         </para>
                     </listitem>
