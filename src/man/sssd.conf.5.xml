@@ -927,14 +927,18 @@ fallback_homedir = /home/%u
                     <term>pam_trusted_users (string)</term>
                     <listitem>
                         <para>
-                            Specifies the comma-separated list of UID values or
-                            user names that are allowed to access the PAM
-                            responder. User names are resolved to UIDs at
+                            Specifies the comma-separated list of UID
+                            values or user names that are allowed to run
+                            PAM conversations against trusted domains.
+                            Users not included in this list can only access
+                            domains marked as public with
+                            <quote>pam_public_domains</quote>.
+                            User names are resolved to UIDs at
                             startup.
                         </para>
                         <para>
-                            Default: all (All users are allowed to access
-                            the PAM responder)
+                            Default: All users are considered trusted
+                            by default
                         </para>
                         <para>
                             Please note that UID 0 is always allowed to access
