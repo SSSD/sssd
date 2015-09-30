@@ -583,11 +583,11 @@ subdomain_inherit = ldap_purge_cache_timeout
                     <term>filter_users, filter_groups (string)</term>
                     <listitem>
                         <para>
-                            Exclude certain users from being fetched from the sss
-                            NSS database. This is particularly useful for system
-                            accounts. This option can also be set per-domain or
-                            include fully-qualified names to filter only users from
-                            the particular domain.
+                            Exclude certain users or groups from being fetched
+                            from the sss NSS database. This is particularly
+                            useful for system accounts. This option can also
+                            be set per-domain or include fully-qualified names
+                            to filter only users from the particular domain.
                         </para>
                         <para>
                             Default: root
