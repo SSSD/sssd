@@ -17,13 +17,13 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2015-05-10 06:20-0400\n"
+"PO-Revision-Date: 2015-09-29 10:18-0400\n"
 "Last-Translator: Robert Antoni Buj Gelonch <rbuj@fedoraproject.org>\n"
 "Language-Team: Catalan (http://www.transifex.com/projects/p/sssd/language/ca/"
 ")\n"
 "Language: ca\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 3.6.2\n"
+"X-Generator: Zanata 3.7.2\n"
 
 #: src/config/SSSDConfig/__init__.py.in:43
 msgid "Set the verbosity of the debug logging"
@@ -36,21 +36,21 @@ msgstr "Inclou les marques de temps als registres de depuració"
 #: src/config/SSSDConfig/__init__.py.in:45
 msgid "Include microseconds in timestamps in debug logs"
 msgstr ""
-"Inclou els mil·lisegons en les marques de temps als registres de depuració"
+"Inclou els mil·lisegons a les marques de temps als registres de depuració"
 
 #: src/config/SSSDConfig/__init__.py.in:46
 msgid "Write debug messages to logfiles"
-msgstr "Escriu els missatges de depuració als fitxers de registre"
+msgstr "Escriu els missatges de depuració als fitxers dels registres"
 
 #: src/config/SSSDConfig/__init__.py.in:47
 msgid "Ping timeout before restarting service"
-msgstr "El temps d'espera del ping abans de reiniciar el servei"
+msgstr "El temps d'expiració del ping abans de reiniciar el servei"
 
 #: src/config/SSSDConfig/__init__.py.in:48
 msgid ""
 "Timeout between three failed ping checks and forcibly killing the service"
 msgstr ""
-"El temps d'espera entre les tres comprovacions de ping fallides i matar "
+"El temps d'expiració entre les tres comprovacions fallides del ping i matar "
 "forçadament el servei"
 
 #: src/config/SSSDConfig/__init__.py.in:49
@@ -59,12 +59,13 @@ msgstr "L'ordre per iniciar el servei"
 
 #: src/config/SSSDConfig/__init__.py.in:50
 msgid "Number of times to attempt connection to Data Providers"
-msgstr "El número d'intents de connexió als proveïdors de dades"
+msgstr ""
+"El nombre de vegaders per intentar la connexió als proveïdors de dades"
 
 #: src/config/SSSDConfig/__init__.py.in:51
 msgid "The number of file descriptors that may be opened by this responder"
 msgstr ""
-"El número de descriptors de fitxers que poden estar oberts per aquest "
+"El nombre de descriptors de fitxers que poden estar oberts per aquest "
 "contestador"
 
 #: src/config/SSSDConfig/__init__.py.in:52
@@ -81,7 +82,7 @@ msgstr "Els dominis del SSSD a iniciar"
 
 #: src/config/SSSDConfig/__init__.py.in:57
 msgid "Timeout for messages sent over the SBUS"
-msgstr "El temps d'espera per als missatges enviats a través del SBUS"
+msgstr "El temps d'expiració per als missatges enviats a través del SBUS"
 
 #: src/config/SSSDConfig/__init__.py.in:58
 msgid "Regex to parse username and domain"
@@ -97,7 +98,7 @@ msgid ""
 "files."
 msgstr ""
 "El directori del sistema de fitxers on el SSSD ha d'emmagatzemar els fitxers "
-"cau de repetició de Kerberos."
+"de la memòria auxiliar de la repetició de Kerberos."
 
 #: src/config/SSSDConfig/__init__.py.in:61
 msgid "Domain to add to names without a domain component."
@@ -105,22 +106,25 @@ msgstr "El domini per afegir als noms sense un component de domini."
 
 #: src/config/SSSDConfig/__init__.py.in:62
 msgid "The user to drop privileges to"
-msgstr ""
+msgstr "L'usuari a qui es disminueixen el permisos"
 
 #: src/config/SSSDConfig/__init__.py.in:65
 msgid "Enumeration cache timeout length (seconds)"
-msgstr "La durada del temps d'espera de l'enumeració de la cau (en segons)"
+msgstr ""
+"La durada del temps d'expiració de l'enumeració de la memòria auxiliar (en "
+"segons)"
 
 #: src/config/SSSDConfig/__init__.py.in:66
 msgid "Entry cache background update timeout length (seconds)"
 msgstr ""
-"La durada del temps d'espera de l'actualització en rerefons de les entrades "
-"en cau (en segons)"
+"La durada del temps d'expiració de l'actualització en rerefons de les "
+"entrades de la memòria auxiliar (en segons)"
 
 #: src/config/SSSDConfig/__init__.py.in:67
 #: src/config/SSSDConfig/__init__.py.in:97
 msgid "Negative cache timeout length (seconds)"
-msgstr "La durada del temps d'espera del cau negatiu (en segons)"
+msgstr ""
+"La durada del temps d'expiració de la memòria auxiliar, negativa (en segons)"
 
 #: src/config/SSSDConfig/__init__.py.in:68
 msgid "Users that SSSD should explicitly ignore"
@@ -132,7 +136,7 @@ msgstr "Els grups que l'SSSD hauria d'ignorar explícitament"
 
 #: src/config/SSSDConfig/__init__.py.in:70
 msgid "Should filtered users appear in groups"
-msgstr "Si els usuaris filtrats apareixen en els grups"
+msgstr "Si els usuaris filtrats han d'aparèixer als grups"
 
 #: src/config/SSSDConfig/__init__.py.in:71
 msgid "The value of the password field the NSS provider should return"
@@ -142,61 +146,60 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:72
 msgid "Override homedir value from the identity provider with this value"
 msgstr ""
-"Substitueix el valor de directori d'usuari del proveïdor d'identitat amb "
+"Substitueix el valor del directori d'usuari del proveïdor d'identitat amb "
 "aquest valor"
 
 #: src/config/SSSDConfig/__init__.py.in:73
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr ""
-"Substitueix el valor buit de directori d'usuari del proveïdor d'identitat "
+"Substitueix el valor buit del directori d'usuari del proveïdor d'identitat "
 "amb aquest valor"
 
 #: src/config/SSSDConfig/__init__.py.in:74
 msgid "Override shell value from the identity provider with this value"
 msgstr ""
-"Substitueix el valor de l'intèrpret d'ordres des del proveïdor d'identitat "
-"amb aquest valor"
+"Substitueix el valor del shell del proveïdor d'identitat amb aquest valor"
 
 #: src/config/SSSDConfig/__init__.py.in:75
 msgid "The list of shells users are allowed to log in with"
 msgstr ""
-"La llista d'intèrprets d'ordres amb que els usuaris poden iniciar la sessió"
+"La llista dels shells que els usuaris poden utilitzar per iniciar la sessió"
 
 #: src/config/SSSDConfig/__init__.py.in:76
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
 msgstr ""
-"La llista d'intèrprets d'ordres que seran vetats i substituits amb "
-"l'intèrpret alternatiu"
+"La llista dels shells que es vetaran i se substituiran amb el shell "
+"alternatiu"
 
 #: src/config/SSSDConfig/__init__.py.in:77
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
 msgstr ""
-"Si un intèrpret d'ordres establert al directori central està permés però no "
-"es troba disponible, utilitza aquesta alternativa"
+"Si un shell establert al directori central està permès però no es troba "
+"disponible, utilitza aquesta alternativa"
 
 #: src/config/SSSDConfig/__init__.py.in:78
 msgid "Shell to use if the provider does not list one"
-msgstr "L'intèrpret d'ordres a utilitzar si el proveïdor no en llista cap"
+msgstr "El shell a utilitzar si el proveïdor no en llista cap"
 
 #: src/config/SSSDConfig/__init__.py.in:79
 msgid "How long will be in-memory cache records valid"
-msgstr "Quant de temps seran vàlids els registres de la memòria cau"
+msgstr "Quant de temps seran vàlids els registres a la memòria auxiliar"
 
 #: src/config/SSSDConfig/__init__.py.in:80
 msgid "All spaces in group or user names will be replaced with this character"
 msgstr ""
-"Tots els espais en els noms dels grups o dels usuaris han de ser reemplaçats "
-"amb aquest caràcter"
+"Tots els espais, als noms dels grups o dels usuaris, se substituiran amb "
+"aquest caràcter"
 
 #: src/config/SSSDConfig/__init__.py.in:83
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
-"Quant de temps s'ha de permetre entre els inicis de sessió en cau i els "
-"inicis de sessió en línia (en dies)"
+"Quant de temps s'ha de permetre entre els inicis de sessió en memòria "
+"auxiliar i els inicis de sessió en línia (en dies)"
 
 #: src/config/SSSDConfig/__init__.py.in:84
 msgid "How many failed logins attempts are allowed when offline"
@@ -214,13 +217,13 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:86
 msgid "What kind of messages are displayed to the user during authentication"
-msgstr "Quins tipus de missatges es mostres a l'usuari durant l'autenticació"
+msgstr "Quins tipus de missatges es mostren a l'usuari durant l'autenticació"
 
 #: src/config/SSSDConfig/__init__.py.in:87
 msgid "How many seconds to keep identity information cached for PAM requests"
 msgstr ""
-"Quants segons s'ha de mantenir la informació en la cau per a les peticions "
-"PAM"
+"Quants segons s'ha de mantenir la informació en la memòria auxiliar per a "
+"les peticions PAM"
 
 #: src/config/SSSDConfig/__init__.py.in:88
 msgid "How many days before password expiration a warning should be displayed"
@@ -240,7 +243,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:91
 msgid "Message printed when user account is expired."
-msgstr ""
+msgstr "El missatge que es mostra quan venç el compte de l'usuari."
 
 #: src/config/SSSDConfig/__init__.py.in:94
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -274,7 +277,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:108
 msgid "List of user attributes the InfoPipe is allowed to publish"
-msgstr ""
+msgstr "La llista dels atributs de l'usuari que l'InfoPipe pot publicar"
 
 #: src/config/SSSDConfig/__init__.py.in:111
 msgid "Identity provider"
@@ -322,7 +325,8 @@ msgstr "Activa l'enumeració de tots els usuaris/grups"
 
 #: src/config/SSSDConfig/__init__.py.in:124
 msgid "Cache credentials for offline login"
-msgstr "Credencials en cau per inicis de sessió fora de línia"
+msgstr ""
+"Credencials en memòria auxiliar per als inicis de sessió fora de línia"
 
 #: src/config/SSSDConfig/__init__.py.in:125
 msgid "Store password hashes"
@@ -334,7 +338,7 @@ msgstr "Mostra els usuaris/grups en format plenament qualificat"
 
 #: src/config/SSSDConfig/__init__.py.in:127
 msgid "Don't include group members in group lookups"
-msgstr "No incloure als membres dels grups en les recerques dels grups"
+msgstr "No incloure als membres dels grups en la recerca del grup"
 
 #: src/config/SSSDConfig/__init__.py.in:128
 #: src/config/SSSDConfig/__init__.py.in:135
@@ -344,29 +348,32 @@ msgstr "No incloure als membres dels grups en les recerques dels grups"
 #: src/config/SSSDConfig/__init__.py.in:139
 #: src/config/SSSDConfig/__init__.py.in:140
 msgid "Entry cache timeout length (seconds)"
-msgstr "Durada del temps d'espera de les entrades cau (en segons)"
+msgstr ""
+"La durada del temps d'expiració de les entrades de la memòria auxiliar (en "
+"segons)"
 
 #: src/config/SSSDConfig/__init__.py.in:129
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr ""
-"Restringeix o prefereix una família específica d'adreces en efectuar "
-"peticions DNS"
+"Restringeix o prefereix una família específica d'adreces quan es realitzi la "
+"recerca del DNS"
 
 #: src/config/SSSDConfig/__init__.py.in:130
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
-"Quant temps s'ha de mantenir les entrades en cau després d'un inici de "
-"sessió amb èxit (en dies)"
+"Quant de temps s'han de mantenir les entrades en la memòria auxiliar després "
+"de l'últim inici de sessió reeixit (en dies)"
 
 #: src/config/SSSDConfig/__init__.py.in:131
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
-"Temps d'espera per les respostes DNS en resoldre servidors (en segons)"
+"Temps d'expiració per a les respostes del DNS en la resolució dels servidors "
+"(en segons)"
 
 #: src/config/SSSDConfig/__init__.py.in:132
 msgid "The domain part of service discovery DNS query"
-msgstr "La part del domini de la petició DNS de la recerca de servei"
+msgstr "La part de domini de la consulta DNS del descobriment del servei"
 
 #: src/config/SSSDConfig/__init__.py.in:133
 msgid "Override GID value from the identity provider with this value"
@@ -378,16 +385,17 @@ msgstr "Distingeix entre majúscules i minúscules als noms d'usuari"
 
 #: src/config/SSSDConfig/__init__.py.in:141
 msgid "How often should expired entries be refreshed in background"
-msgstr ""
+msgstr "Amb quina freqüència les entrades vençudes s'actualitzen al rerefons"
 
 #: src/config/SSSDConfig/__init__.py.in:142
 msgid "Whether to automatically update the client's DNS entry"
-msgstr "Si s'actualitza automàticament l'entrada DND del client"
+msgstr "Si s'actualitza automàticament l'entrada DNS del client"
 
 #: src/config/SSSDConfig/__init__.py.in:143
 #: src/config/SSSDConfig/__init__.py.in:159
 msgid "The TTL to apply to the client's DNS entry after updating it"
 msgstr ""
+"El TTL per aplicar a l'entrada DNS del client després d'actualitzar-ho"
 
 #: src/config/SSSDConfig/__init__.py.in:144
 #: src/config/SSSDConfig/__init__.py.in:160
@@ -454,7 +462,7 @@ msgstr "Base de cerca pels objectes HBAC"
 msgid ""
 "The amount of time between lookups of the HBAC rules against the IPA server"
 msgstr ""
-"Quantitat de temps entre peticions de les regles HBAC contra el servidor IPA"
+"Quantitat de temps entre recerques de les regles HBAC contra el servidor IPA"
 
 #: src/config/SSSDConfig/__init__.py.in:163
 msgid ""
@@ -481,7 +489,8 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:167
 msgid "Search base for objects containing info about ID ranges"
 msgstr ""
-"Base de cerca per a objectes que contenen informació sobre intervals d'ID"
+"Base de cerca per als objectes que contenen informació sobre els intervals "
+"d'id."
 
 #: src/config/SSSDConfig/__init__.py.in:168
 #: src/config/SSSDConfig/__init__.py.in:182
@@ -614,7 +623,7 @@ msgstr "Reialme Kerberos"
 
 #: src/config/SSSDConfig/__init__.py.in:202
 msgid "Authentication timeout"
-msgstr "Temps d'espera de la autenticació"
+msgstr "Temps d'expiració de l'autenticació"
 
 #: src/config/SSSDConfig/__init__.py.in:203
 msgid "Whether to create kdcinfo files"
@@ -626,11 +635,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:207
 msgid "Directory to store credential caches"
-msgstr "Directori on emmagatzemar el cau de credencials"
+msgstr "Directori per emmagatzemar la memòria auxiliar de les credencials"
 
 #: src/config/SSSDConfig/__init__.py.in:208
 msgid "Location of the user's credential cache"
-msgstr "Ubicació de la cau de credencials d'usuari"
+msgstr "Ubicació de la memòria auxiliar de les credencials de l'usuari"
 
 #: src/config/SSSDConfig/__init__.py.in:209
 msgid "Location of the keytab to validate credentials"
@@ -698,19 +707,21 @@ msgstr "La base DN per defecte"
 
 #: src/config/SSSDConfig/__init__.py.in:229
 msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr "El tipus d'esquema en us al servidor LDAP, rfc2307"
+msgstr "El tipus d'esquema en ús al servidor LDAP, rfc2307"
 
 #: src/config/SSSDConfig/__init__.py.in:230
 msgid "The default bind DN"
-msgstr "La connexió DN per defecte"
+msgstr "DN de creació del vincle per defecte"
 
 #: src/config/SSSDConfig/__init__.py.in:231
 msgid "The type of the authentication token of the default bind DN"
-msgstr "El tipus del testimoni d'autenticació a la connexió DN per defecte"
+msgstr ""
+"El tipus del testimoni d'autenticació del DN de creació del vincle per "
+"defecte"
 
 #: src/config/SSSDConfig/__init__.py.in:232
 msgid "The authentication token of the default bind DN"
-msgstr "El testimoni d'autenticació de la connexió DN per defecte"
+msgstr "El testimoni d'autenticació del DN de creació del vincle per defecte"
 
 #: src/config/SSSDConfig/__init__.py.in:233
 msgid "Length of time to attempt connection"
@@ -736,7 +747,7 @@ msgstr "Fitxer que conté els certificats CA"
 
 #: src/config/SSSDConfig/__init__.py.in:238
 msgid "Path to CA certificate directory"
-msgstr "Ruta al directori de certificats CA"
+msgstr "Camí al directori del certificat de l'AC"
 
 #: src/config/SSSDConfig/__init__.py.in:239
 msgid "File that contains the client certificate"
@@ -756,19 +767,19 @@ msgstr "Requereix verificació de certificat TLS"
 
 #: src/config/SSSDConfig/__init__.py.in:243
 msgid "Specify the sasl mechanism to use"
-msgstr "Especifica el mecanisme sasl a utilitzar"
+msgstr "Especifica el mecanisme SASL a utilitzar"
 
 #: src/config/SSSDConfig/__init__.py.in:244
 msgid "Specify the sasl authorization id to use"
-msgstr "Escecifica l'id d'autorització sasl a utilitzar"
+msgstr "Especifica l'id. d'autorització SASL a utilitzar"
 
 #: src/config/SSSDConfig/__init__.py.in:245
 msgid "Specify the sasl authorization realm to use"
-msgstr "Especifica el reialme d'autorització sasl a utilitzar"
+msgstr "Especifica el reialme d'autorització SASL a utilitzar"
 
 #: src/config/SSSDConfig/__init__.py.in:246
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr "Especifica el SSF mínim per autorització sasl de LDAP"
+msgstr "Especifica el SSF mínim per autorització SASL de LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:247
 msgid "Kerberos service keytab"
@@ -792,7 +803,7 @@ msgstr "Com desreferenciar àlies"
 
 #: src/config/SSSDConfig/__init__.py.in:252
 msgid "Service name for DNS service lookups"
-msgstr "Nom del servei per les peticions DNS"
+msgstr "Nom del servei per la recerca del servei del DNS"
 
 #: src/config/SSSDConfig/__init__.py.in:253
 msgid "The number of records to retrieve in a single LDAP query"
@@ -809,16 +820,16 @@ msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
-"Si la biblioteca LDAP hauria de realitzar una petició inversa per "
-"canonalitzar el nom d'amfitrió durant la creació de l'enllaç SASL"
+"Si la biblioteca LDAP hauria de realitzar una recerca inversa per "
+"canonalitzar el nom d'amfitrió durant la creació del vincle SASL"
 
 #: src/config/SSSDConfig/__init__.py.in:257
 msgid "entryUSN attribute"
-msgstr "atribut entryUSN"
+msgstr "Atribut entryUSN"
 
 #: src/config/SSSDConfig/__init__.py.in:258
 msgid "lastUSN attribute"
-msgstr "atribut lastUSN"
+msgstr "Atribut lastUSN"
 
 #: src/config/SSSDConfig/__init__.py.in:260
 msgid ""
@@ -833,7 +844,7 @@ msgstr "Desactiva el control de paginació LDAP"
 
 #: src/config/SSSDConfig/__init__.py.in:263
 msgid "Disable Active Directory range retrieval"
-msgstr "Inhabilita la recuperació del rang de l'Active Directory"
+msgstr "Inhabilita la recuperació de l'interval de l'Active Directory"
 
 #: src/config/SSSDConfig/__init__.py.in:266
 msgid "Length of time to wait for a search request"
@@ -849,27 +860,28 @@ msgstr "Llargària de temps entre actualitzacions d'enumeració"
 
 #: src/config/SSSDConfig/__init__.py.in:269
 msgid "Length of time between cache cleanups"
-msgstr "Llargària de temps entre neteges del cau"
+msgstr "Longevitat entre les neteges de la memòria auxiliar"
 
 #: src/config/SSSDConfig/__init__.py.in:270
 msgid "Require TLS for ID lookups"
-msgstr "Requereix TLS per cerques d'ID"
+msgstr "Requereix TLS per a la recerca d'id."
 
 #: src/config/SSSDConfig/__init__.py.in:271
 msgid "Use ID-mapping of objectSID instead of pre-set IDs"
-msgstr "Utilitza mapejat d'IDs enlloc de IDs pre-establerts"
+msgstr ""
+"Utilitza l'assignació d'id. de l'objectSID enlloc dels id. pre-establerts"
 
 #: src/config/SSSDConfig/__init__.py.in:272
 msgid "Base DN for user lookups"
-msgstr "DN base per cerques d'usuari"
+msgstr "DN base per a la recerca de l'usuari"
 
 #: src/config/SSSDConfig/__init__.py.in:273
 msgid "Scope of user lookups"
-msgstr "Abast de les cerques d'usuari"
+msgstr "Abast de la recerca de l'usuari"
 
 #: src/config/SSSDConfig/__init__.py.in:274
 msgid "Filter for user lookups"
-msgstr "Filtre per les cerques d'usuari"
+msgstr "Filtre per a la recerca de l'usuari"
 
 #: src/config/SSSDConfig/__init__.py.in:275
 msgid "Objectclass for users"
@@ -889,7 +901,7 @@ msgstr "Atribut del GID primari"
 
 #: src/config/SSSDConfig/__init__.py.in:280
 msgid "GECOS attribute"
-msgstr "Atribut GECOS"
+msgstr "Atribut del GECOS"
 
 #: src/config/SSSDConfig/__init__.py.in:281
 msgid "Home directory attribute"
@@ -897,11 +909,11 @@ msgstr "Atribut del directori d'usuari"
 
 #: src/config/SSSDConfig/__init__.py.in:282
 msgid "Shell attribute"
-msgstr "Atribut d'intèrpret d'ordres"
+msgstr "Atribut del shell"
 
 #: src/config/SSSDConfig/__init__.py.in:283
 msgid "UUID attribute"
-msgstr ""
+msgstr "Atribut del UUID"
 
 #: src/config/SSSDConfig/__init__.py.in:284
 #: src/config/SSSDConfig/__init__.py.in:324
@@ -910,7 +922,8 @@ msgstr "Atribut de l'objectSID"
 
 #: src/config/SSSDConfig/__init__.py.in:285
 msgid "Active Directory primary group attribute for ID-mapping"
-msgstr "Atribut del grup primari de l'Active Directory per assignació d'Ids."
+msgstr ""
+"Atribut del grup primari de l'Active Directory per a l'assignació d'id."
 
 #: src/config/SSSDConfig/__init__.py.in:286
 msgid "User principal attribute (for Kerberos)"
@@ -922,39 +935,39 @@ msgstr "Nom complet"
 
 #: src/config/SSSDConfig/__init__.py.in:288
 msgid "memberOf attribute"
-msgstr "Atribut de memberOf"
+msgstr "Atribut memberOf"
 
 #: src/config/SSSDConfig/__init__.py.in:289
 msgid "Modification time attribute"
-msgstr "Atribut de data de modificació"
+msgstr "Atribut de la data de modificació"
 
 #: src/config/SSSDConfig/__init__.py.in:291
 msgid "shadowLastChange attribute"
-msgstr "Atribut de shadowLastChange"
+msgstr "Atribut shadowLastChange"
 
 #: src/config/SSSDConfig/__init__.py.in:292
 msgid "shadowMin attribute"
-msgstr "Atribut de shadowMin"
+msgstr "Atribut shadowMin"
 
 #: src/config/SSSDConfig/__init__.py.in:293
 msgid "shadowMax attribute"
-msgstr "Atribut de shadowMax"
+msgstr "Atribut shadowMax"
 
 #: src/config/SSSDConfig/__init__.py.in:294
 msgid "shadowWarning attribute"
-msgstr "Atribut de shadowWarning"
+msgstr "Atribut shadowWarning"
 
 #: src/config/SSSDConfig/__init__.py.in:295
 msgid "shadowInactive attribute"
-msgstr "Atribut de shadowInactive"
+msgstr "Atribut shadowInactive"
 
 #: src/config/SSSDConfig/__init__.py.in:296
 msgid "shadowExpire attribute"
-msgstr "Atribut de shadowExpire"
+msgstr "Atribut shadowExpire"
 
 #: src/config/SSSDConfig/__init__.py.in:297
 msgid "shadowFlag attribute"
-msgstr "Atribut de shadowFlag"
+msgstr "Atribut shadowFlag"
 
 #: src/config/SSSDConfig/__init__.py.in:298
 msgid "Attribute listing authorized PAM services"
@@ -962,15 +975,15 @@ msgstr "Atribut que llista els serveis PAM autoritzats"
 
 #: src/config/SSSDConfig/__init__.py.in:299
 msgid "Attribute listing authorized server hosts"
-msgstr "Llista els atributs dels amfitrions servidors autoritzats"
+msgstr "Llista els atributs dels amfitrions dels servidors autoritzats"
 
 #: src/config/SSSDConfig/__init__.py.in:300
 msgid "krbLastPwdChange attribute"
-msgstr "Atribut de krbLastPwdChange"
+msgstr "Atribut krbLastPwdChange"
 
 #: src/config/SSSDConfig/__init__.py.in:301
 msgid "krbPasswordExpiration attribute"
-msgstr "Atribut de krbPasswordExpiration"
+msgstr "Atribut krbPasswordExpiration"
 
 #: src/config/SSSDConfig/__init__.py.in:302
 msgid "Attribute indicating that server side password policies are active"
@@ -979,19 +992,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:303
 msgid "accountExpires attribute of AD"
-msgstr "Atribut de l'AD de accountExpires"
+msgstr "Atribut accountExpires de l'AD"
 
 #: src/config/SSSDConfig/__init__.py.in:304
 msgid "userAccountControl attribute of AD"
-msgstr "Atribut de l'AD de userAccountControl"
+msgstr "Atribut userAccountControl de l'AD"
 
 #: src/config/SSSDConfig/__init__.py.in:305
 msgid "nsAccountLock attribute"
-msgstr "Atribut de nsAccountLock"
+msgstr "Atribut nsAccountLock"
 
 #: src/config/SSSDConfig/__init__.py.in:306
 msgid "loginDisabled attribute of NDS"
-msgstr "Atribut del NDS de loginDisabled"
+msgstr "Atribut loginDisabled del NDS"
 
 #: src/config/SSSDConfig/__init__.py.in:307
 msgid "loginExpirationTime attribute of NDS"
@@ -999,7 +1012,7 @@ msgstr "Atribut del NDS de loginExpirationTime"
 
 #: src/config/SSSDConfig/__init__.py.in:308
 msgid "loginAllowedTimeMap attribute of NDS"
-msgstr "Atribut del NDS de loginAllowedTimeMap"
+msgstr "Atribut loginAllowedTimeMap del NDS"
 
 #: src/config/SSSDConfig/__init__.py.in:309
 msgid "SSH public key attribute"
@@ -1019,7 +1032,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:315
 msgid "Base DN for group lookups"
-msgstr "DN base per cerques de grup"
+msgstr "DN base per a la recerca del grup"
 
 #: src/config/SSSDConfig/__init__.py.in:318
 msgid "Objectclass for groups"
@@ -1039,15 +1052,15 @@ msgstr "Atribut GID"
 
 #: src/config/SSSDConfig/__init__.py.in:322
 msgid "Group member attribute"
-msgstr "Atribut del membre de grup"
+msgstr "Atribut de membre del grup"
 
 #: src/config/SSSDConfig/__init__.py.in:323
 msgid "Group UUID attribute"
-msgstr ""
+msgstr "Atribut UUID del grup"
 
 #: src/config/SSSDConfig/__init__.py.in:325
 msgid "Modification time attribute for groups"
-msgstr "Atribut de data de modificació per grups"
+msgstr "Atribut de data de modificació per als grups"
 
 #: src/config/SSSDConfig/__init__.py.in:326
 msgid "Type of the group and other flags"
@@ -1055,11 +1068,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:328
 msgid "Maximum nesting level SSSd will follow"
-msgstr "El nivell d'imbricament màxim que seguirà l'SSSd"
+msgstr "Nivell màxim d'encadenament que seguirà l'SSSd"
 
 #: src/config/SSSDConfig/__init__.py.in:330
 msgid "Base DN for netgroup lookups"
-msgstr "DN base per cerques de grups de xarxa"
+msgstr "DN base per a la recerca del grups de xarxa"
 
 #: src/config/SSSDConfig/__init__.py.in:331
 msgid "Objectclass for netgroups"
@@ -1071,19 +1084,19 @@ msgstr "Nom de grup de xarxa"
 
 #: src/config/SSSDConfig/__init__.py.in:333
 msgid "Netgroups members attribute"
-msgstr "Atribut de membres de grup de xarxa"
+msgstr "Atribut dels membres del grup de xarxa"
 
 #: src/config/SSSDConfig/__init__.py.in:334
 msgid "Netgroup triple attribute"
-msgstr "Atribut triple de grup de xarxa"
+msgstr "Atribut triple del grup de xarxa"
 
 #: src/config/SSSDConfig/__init__.py.in:335
 msgid "Modification time attribute for netgroups"
-msgstr "Atribut de data de modificació de grups de xarxa"
+msgstr "Atribut de data de modificació per als grups de xarxa"
 
 #: src/config/SSSDConfig/__init__.py.in:337
 msgid "Base DN for service lookups"
-msgstr "DN base per cerques de serveis"
+msgstr "DN base per a la recerca del servei"
 
 #: src/config/SSSDConfig/__init__.py.in:338
 msgid "Objectclass for services"
@@ -1091,47 +1104,47 @@ msgstr "Objectclass per serveis"
 
 #: src/config/SSSDConfig/__init__.py.in:339
 msgid "Service name attribute"
-msgstr "Atribut de nom de serveis"
+msgstr "Atribut del nom del servei"
 
 #: src/config/SSSDConfig/__init__.py.in:340
 msgid "Service port attribute"
-msgstr "Atribut de port de serveis"
+msgstr "Atribut del port del servei"
 
 #: src/config/SSSDConfig/__init__.py.in:341
 msgid "Service protocol attribute"
-msgstr "Atribut de protocol de serveis"
+msgstr "Atribut del protocol del servei"
 
 #: src/config/SSSDConfig/__init__.py.in:344
 msgid "Lower bound for ID-mapping"
-msgstr "Límit inferior per mapejat d'IDs"
+msgstr "Límit inferior per a l'assignació d'id."
 
 #: src/config/SSSDConfig/__init__.py.in:345
 msgid "Upper bound for ID-mapping"
-msgstr "Límit superior per mapejat d'IDs"
+msgstr "Límit superior per a l'assignació d'id."
 
 #: src/config/SSSDConfig/__init__.py.in:346
 msgid "Number of IDs for each slice when ID-mapping"
-msgstr "Número d'IDS per cada llesca en mapejar IDs"
+msgstr "Nombres d'id. per cada porció en l'assignació d'id."
 
 #: src/config/SSSDConfig/__init__.py.in:347
 msgid "Use autorid-compatible algorithm for ID-mapping"
-msgstr "Utilitza l'algoritme compatible d'autorid per mapejat d'IDs"
+msgstr "Utilitza l'algoritme compatible d'autorid per a l'assignació d'id."
 
 #: src/config/SSSDConfig/__init__.py.in:348
 msgid "Name of the default domain for ID-mapping"
-msgstr "Nom del domini per defecte per mapejat d'IDs"
+msgstr "Nom del domini per defecte per a l'assignació d'id."
 
 #: src/config/SSSDConfig/__init__.py.in:349
 msgid "SID of the default domain for ID-mapping"
-msgstr "SID del domini per defecte per mapejat d'IDs"
+msgstr "SID del domini per defecte per a l'assignació d'id."
 
 #: src/config/SSSDConfig/__init__.py.in:351
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for group lookups"
-msgstr "Utilitza LDAP_MATCHING_RULE_IN_CHAIN per a cerques de grup"
+msgstr "Utilitza LDAP_MATCHING_RULE_IN_CHAIN per a la recerca del grup"
 
 #: src/config/SSSDConfig/__init__.py.in:352
 msgid "Use LDAP_MATCHING_RULE_IN_CHAIN for initgroup lookups"
-msgstr "Utilitza LDAP_MATCHING_RULE_IN_CHAIN per a cerques d'initgroup"
+msgstr "Utilitza LDAP_MATCHING_RULE_IN_CHAIN per a la recerca de l'initgroup"
 
 #: src/config/SSSDConfig/__init__.py.in:353
 msgid "Whether to use Token-Groups"
@@ -1156,7 +1169,7 @@ msgstr "Política per avaluar l'expiració de contrasenya"
 #: src/config/SSSDConfig/__init__.py.in:363
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
-"Quins atributs s'haurien d'utilitzar per avaluar si el compte està expirat"
+"Quins atributs s'haurien d'utilitzar per avaluar si el compte ha vençut"
 
 #: src/config/SSSDConfig/__init__.py.in:364
 msgid "Which rules should be used to evaluate access control"
@@ -1184,7 +1197,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/__init__.py.in:373
 msgid "Base DN for sudo rules lookups"
-msgstr "DN base per cerques de regles sudo"
+msgstr "DN base per a la recerca de les regles sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:374
 msgid "Automatic full refresh period"
@@ -1214,13 +1227,13 @@ msgstr ""
 #: src/config/SSSDConfig/__init__.py.in:379
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr ""
-"Si s'inclouen les regles que contenen netgroup en l'atribut de l'amfitrió"
+"Si s'inclouen les regles que contenen el netgroup a l'atribut de l'amfitrió"
 
 #: src/config/SSSDConfig/__init__.py.in:380
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
-"Si s'inclouen les regles que contenen expressions regulars en l'atribut de "
+"Si s'inclouen les regles que contenen expressions regulars a l'atribut de "
 "l'amfitrió"
 
 #: src/config/SSSDConfig/__init__.py.in:381
@@ -1233,19 +1246,19 @@ msgstr "Nom de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:383
 msgid "Sudo rule command attribute"
-msgstr "Attribut de la comanda de la regla sudo"
+msgstr "Attribut command de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:384
 msgid "Sudo rule host attribute"
-msgstr "Atribut d'amfitrió de la regla sudo"
+msgstr "Atribut host de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:385
 msgid "Sudo rule user attribute"
-msgstr "Atribut de l'usuari de la regla sudo"
+msgstr "Atribut user de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:386
 msgid "Sudo rule option attribute"
-msgstr "Atribut de l'opció de la regla sudo"
+msgstr "Atribut option de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:387
 msgid "Sudo rule runas attribute"
@@ -1253,47 +1266,47 @@ msgstr "Atribut runas de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:388
 msgid "Sudo rule runasuser attribute"
-msgstr "Atribut de runasuser de la regla sudo"
+msgstr "Atribut runasuser de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:389
 msgid "Sudo rule runasgroup attribute"
-msgstr "Atribut de runasgroup de la regla sudo"
+msgstr "Atribut runasgroup de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:390
 msgid "Sudo rule notbefore attribute"
-msgstr "Atribut de notbefore de la regla sudo"
+msgstr "Atribut notbefore de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:391
 msgid "Sudo rule notafter attribute"
-msgstr "Atribut de notafter de la regla sudo"
+msgstr "Atribut notafter de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:392
 msgid "Sudo rule order attribute"
-msgstr "Atribut d'ordre de la regla sudo"
+msgstr "Atribut order de la regla sudo"
 
 #: src/config/SSSDConfig/__init__.py.in:395
 msgid "Object class for automounter maps"
-msgstr "Objectclass dels mapes automounter"
+msgstr "Objectclass per a l'assignació automounter"
 
 #: src/config/SSSDConfig/__init__.py.in:396
 msgid "Automounter map name attribute"
-msgstr "Atribut del nom del mapa automounter"
+msgstr "Atribut del nom de l'assignació automounter"
 
 #: src/config/SSSDConfig/__init__.py.in:397
 msgid "Object class for automounter map entries"
-msgstr "Objectclass de les entrades del mapa automounter"
+msgstr "Objectclass de les entrades de l'assignació automounter"
 
 #: src/config/SSSDConfig/__init__.py.in:398
 msgid "Automounter map entry key attribute"
-msgstr "Atribut de la clau d'entrada del mapa automounter"
+msgstr "Atribut de la clau d'entrada de l'assignació automounter"
 
 #: src/config/SSSDConfig/__init__.py.in:399
 msgid "Automounter map entry value attribute"
-msgstr "Atribut del valor de l'entrada del mapa automounter"
+msgstr "Atribut del valor de l'entrada de l'assignació automounter"
 
 #: src/config/SSSDConfig/__init__.py.in:400
 msgid "Base DN for automounter map lookups"
-msgstr "DN base per cerques del mapa automounter"
+msgstr "DN base per a la recerca de l'assignació automounter"
 
 #: src/config/SSSDConfig/__init__.py.in:403
 msgid "Comma separated list of allowed users"
@@ -1305,7 +1318,7 @@ msgstr "Llista separada per comes dels usuaris no autoritzats"
 
 #: src/config/SSSDConfig/__init__.py.in:407
 msgid "Default shell, /bin/bash"
-msgstr "Intèrpret d'ordres per defecte, /bin/bash"
+msgstr "El shell predeterminat, /bin/bash"
 
 #: src/config/SSSDConfig/__init__.py.in:408
 msgid "Base for home directories"
@@ -1318,7 +1331,8 @@ msgstr "El nom de la biblioteca NSS a utilitzar"
 #: src/config/SSSDConfig/__init__.py.in:412
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr ""
-"Si es cerca el nom del grup canònic des de la memòria cau, si és possible"
+"Si se cerca el nom del grup canònic des de la memòria auxiliar, si és "
+"possible"
 
 #: src/config/SSSDConfig/__init__.py.in:415
 msgid "PAM stack to use"
@@ -1419,11 +1433,11 @@ msgstr "La reinicialització de la contrasenya pel root no està suportada."
 
 #: src/sss_client/pam_sss.c:475
 msgid "Authenticated with cached credentials"
-msgstr "S'ha autenticat amb credencials del cau"
+msgstr "S'ha autenticat amb credencials en la memòria auxiliar"
 
 #: src/sss_client/pam_sss.c:476
 msgid ", your cached password will expire at: "
-msgstr ", la seva contrasenya del cau expirarà el: "
+msgstr ", la vostra contrasenya en memòria auxiliar expirarà el: "
 
 #: src/sss_client/pam_sss.c:506
 #, c-format
@@ -1504,7 +1518,7 @@ msgstr "El domini SSSD a utilitzar"
 #: src/tools/sss_userdel.c:152 src/tools/sss_usermod.c:79
 #: src/tools/sss_cache.c:627
 msgid "Error setting the locale\n"
-msgstr "S'ha produït un error en establir la localització\n"
+msgstr "S'ha produït un error en establir la configuració regional\n"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:64
 msgid "Not enough memory\n"
@@ -1532,7 +1546,7 @@ msgstr "No s'ha especificat l'amfitrió\n"
 
 #: src/sss_client/ssh/sss_ssh_knownhostsproxy.c:249
 msgid "The path to the proxy command must be absolute\n"
-msgstr "La ruta a la comanda proxy ha de ser absoluta\n"
+msgstr "El camí a l'ordre proxy ha de ser absolut\n"
 
 #: src/tools/sss_useradd.c:49 src/tools/sss_usermod.c:48
 msgid "The UID of the user"
@@ -1548,7 +1562,7 @@ msgstr "Directori d'usuari"
 
 #: src/tools/sss_useradd.c:52 src/tools/sss_usermod.c:52
 msgid "Login shell"
-msgstr "Intèrpret d'ordres de l'inici de sessió"
+msgstr "El shell de l'inici de sessió"
 
 #: src/tools/sss_useradd.c:53
 msgid "Groups"
@@ -1624,7 +1638,7 @@ msgstr "No es poden establir els valors per defecte\n"
 
 #: src/tools/sss_useradd.c:181 src/tools/sss_usermod.c:187
 msgid "The selected UID is outside the allowed range\n"
-msgstr "L'UID seleccionat es troba fora del rang permès\n"
+msgstr "L'UID seleccionat es troba fora de l'interval permès\n"
 
 #: src/tools/sss_useradd.c:210 src/tools/sss_usermod.c:305
 msgid "Cannot set SELinux login context\n"
@@ -1660,7 +1674,7 @@ msgstr "Ja existeix un usuari o grup amb el mateix nom o ID\n"
 
 #: src/tools/sss_useradd.c:280
 msgid "Transaction error. Could not add user.\n"
-msgstr "S'ha produït un error de transacció. No s'ha pogut afegir l'usuari\n"
+msgstr "S'ha produït un error de transacció. No s'ha pogut afegir l'usuari.\n"
 
 #: src/tools/sss_groupadd.c:43 src/tools/sss_groupmod.c:48
 msgid "The GID of the group"
@@ -1672,7 +1686,7 @@ msgstr "Especifica el grup a afegir\n"
 
 #: src/tools/sss_groupadd.c:106 src/tools/sss_groupmod.c:198
 msgid "The selected GID is outside the allowed range\n"
-msgstr "El GID seleccionat és fora del rang permès\n"
+msgstr "El GID seleccionat està fora de l'interval permès\n"
 
 #: src/tools/sss_groupadd.c:143
 msgid "Could not allocate ID for the group - domain full?\n"
@@ -1694,7 +1708,7 @@ msgstr "Especificau el grup a eliminar\n"
 #: src/tools/sss_groupdel.c:104
 #, c-format
 msgid "Group %1$s is outside the defined ID range for domain\n"
-msgstr "El grup %1$s es troba fora del rand d'IDs definit pel domini\n"
+msgstr "El grup %1$s està fora de l'interval d'id. definit pel domini\n"
 
 #: src/tools/sss_groupdel.c:119 src/tools/sss_groupmod.c:225
 #: src/tools/sss_groupmod.c:232 src/tools/sss_groupmod.c:239
@@ -1846,7 +1860,7 @@ msgstr "Especifica l'usuari a eliminar\n"
 #: src/tools/sss_userdel.c:234
 #, c-format
 msgid "User %1$s is outside the defined ID range for domain\n"
-msgstr "L'usuari %1$s és fora del rang d'IDs del domini\n"
+msgstr "L'usuari %1$s està fora de l'interval d'id. pel domini\n"
 
 #: src/tools/sss_userdel.c:259
 msgid "Cannot reset SELinux login context\n"
@@ -1856,7 +1870,8 @@ msgstr "No es pot reiniciar el context d'inici de sessió de SELinux\n"
 #, c-format
 msgid "WARNING: The user (uid %1$lu) was still logged in when deleted.\n"
 msgstr ""
-"ATENCIÓ: L'usuari (uid %1$lu) era encara a la sessió quan es va eliminar\n"
+"ATENCIÓ: L'usuari (uid %1$lu) encara estava en la sessió quan es va eliminar."
+"\n"
 
 #: src/tools/sss_userdel.c:276
 msgid "Cannot determine if the user was logged in on this platform"
@@ -1963,23 +1978,24 @@ msgstr ""
 
 #: src/tools/sss_cache.c:188
 msgid "No cache object matched the specified search\n"
-msgstr "Cap objecte cau ha coincidit amb la cerca especificada\n"
+msgstr ""
+"Cap objecte de la memòria auxiliar ha coincidit amb la cerca especificada\n"
 
 #: src/tools/sss_cache.c:431
 #, c-format
 msgid "Couldn't invalidate %1$s\n"
-msgstr ""
+msgstr "No s'ha pogut invalidar %1$s\n"
 
 #: src/tools/sss_cache.c:438
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s\n"
-msgstr ""
+msgstr "No s'ha pogut invalidar %1$s %2$s\n"
 
 #: src/tools/sss_cache.c:589
 msgid "Invalidate all cached entries except for sudo rules"
 msgstr ""
-"Invalida totes les entrades de la memòria cau amb l'excepció de les regles "
-"sudo"
+"Invalida totes les entrades de la memòria auxiliar amb l'excepció de les "
+"regles sudo"
 
 #: src/tools/sss_cache.c:591
 msgid "Invalidate particular user"
@@ -2015,11 +2031,11 @@ msgstr "Invalida tots els serveis"
 
 #: src/tools/sss_cache.c:608
 msgid "Invalidate particular autofs map"
-msgstr "Invalida el mapa autofs particular"
+msgstr "Invalida un assignació autofs específica"
 
 #: src/tools/sss_cache.c:610
 msgid "Invalidate all autofs maps"
-msgstr "Invalida tots els mapes autofs"
+msgstr "Invalida totes les assignacions autofs"
 
 #: src/tools/sss_cache.c:614
 msgid "Invalidate particular SSH host"
@@ -2035,7 +2051,7 @@ msgstr "Invalida les entrades només d'un domini particular"
 
 #: src/tools/sss_cache.c:668
 msgid "Please select at least one object to invalidate\n"
-msgstr "Si us plau, seleccionau al menys un objecte per invalidar\n"
+msgstr "Si us plau, seleccionau al menys un objecte a invalidar\n"
 
 #: src/tools/sss_cache.c:751
 #, c-format
@@ -2054,7 +2070,7 @@ msgstr "\n"
 
 #: src/tools/sss_debuglevel.c:96
 msgid "Specify debug level you want to set\n"
-msgstr "Especificau el nivell de depuració que voleu establir\n"
+msgstr "Especifica el nivell de depuració que vulgueu establir\n"
 
 #: src/tools/sss_debuglevel.c:102
 msgid "Only one argument expected\n"
