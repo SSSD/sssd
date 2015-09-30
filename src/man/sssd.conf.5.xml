@@ -1720,6 +1720,16 @@ pam_account_expired_message = Account expired, please call help desk.
                             information on configuring the simple access module.
                         </para>
                         <para>
+                            <quote>krb5</quote>: .k5login based access control.
+                            See <citerefentry>
+                            <refentrytitle>sssd-krb5</refentrytitle>
+                            <manvolnum>5</manvolnum></citerefentry> for more
+                            information on configuring Kerberos.
+                        </para>
+                        <para>
+                            <quote>proxy</quote> for relaying access control to another PAM module.
+                        </para>
+                        <para>
                             Default: <quote>permit</quote>
                         </para>
                     </listitem>
