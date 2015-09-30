@@ -77,20 +77,13 @@ def group_bis(base_dn, cn, gidNumber, member_uids=[], member_gids=[]):
         ('objectClass', ['top', 'extensibleObject', 'groupOfNames']),
         ('gidNumber', [gidNumber])
     ]
-    if len(member_uids) > 0:
-        attr_list.append(
-            ('member', [
-                "uid=" + uid + ",ou=Users," + base_dn for
-                    uid in member_uids
-            ])
-        )
-    if len(member_gids) > 0:
-        attr_list.append(
-            ('member', [
-                "cn=" + gid + ",ou=Groups," + base_dn for
-                    gid in member_gids
-            ])
-        )
+    member_list = []
+    for uid in member_uids:
+        member_list.append("uid=" + uid + ",ou=Users," + base_dn)
+    for gid in member_gids:
+        member_list.append("cn=" + gid + ",ou=Groups," + base_dn)
+    if len(member_list) > 0:
+        attr_list.append(('member', member_list))
     return ("cn=" + cn + ",ou=Groups," + base_dn, attr_list)
 
 
