@@ -1193,6 +1193,8 @@ START_TEST(test_get_array_dict_sas)
         ck_assert_str_eq(value, exp_values[1]);
         dbus_message_iter_next(&it_dict);
     }
+
+    talloc_free(ctx);
 }
 END_TEST
 
