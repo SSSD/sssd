@@ -1237,6 +1237,14 @@ ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom)
     subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
     conn = subdom_id_ctx->ldap_ctx;
 
+    if (IS_SUBDOMAIN(sdom->dom) == true && conn != NULL) {
+        /* Regardless of connection types, a subdomain error must not be
+         * allowed to set the whole back end offline, rather report an error
+         * and let the caller deal with it (normally disable the subdomain
+         */
+        conn->ignore_mark_offline = true;
+    }
+
     return conn;
 }
 
@@ -1259,5 +1267,23 @@ ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
 
     clist[cindex] = ad_get_dom_ldap_conn(ad_ctx, dom);
 
+    return clist;
+}
+
+struct sdap_id_conn_ctx **
+ad_ldap_conn_list(TALLOC_CTX *mem_ctx,
+                  struct ad_id_ctx *ad_ctx,
+                  struct sss_domain_info *dom)
+{
+    struct sdap_id_conn_ctx **clist;
+
+    clist = talloc_zero_array(mem_ctx, struct sdap_id_conn_ctx *, 2);
+    if (clist == NULL) {
+        return NULL;
+    }
+
+    clist[0] = ad_get_dom_ldap_conn(ad_ctx, dom);
+
+    clist[1] = NULL;
     return clist;
 }

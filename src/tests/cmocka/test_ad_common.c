@@ -350,7 +350,7 @@ __wrap_sdap_set_sasl_options(struct sdap_options *id_opts,
     return EOK;
 }
 
-void test_ldap_conn_list(void **state)
+void test_ad_get_dom_ldap_conn(void **state)
 {
     struct sdap_id_conn_ctx *conn;
 
@@ -365,7 +365,7 @@ void test_ldap_conn_list(void **state)
     assert_true(conn == test_ctx->subdom_ad_ctx->ldap_ctx);
 }
 
-void test_conn_list(void **state)
+void test_gc_conn_list(void **state)
 {
     struct sdap_id_conn_ctx **conn_list;
 
@@ -392,7 +392,8 @@ void test_conn_list(void **state)
     assert_true(conn_list[0] == test_ctx->ad_ctx->gc_ctx);
     assert_true(conn_list[0]->ignore_mark_offline);
     assert_true(conn_list[1] == test_ctx->subdom_ad_ctx->ldap_ctx);
-    assert_false(conn_list[1]->ignore_mark_offline);
+    /* Subdomain error should not set the backend offline! */
+    assert_true(conn_list[1]->ignore_mark_offline);
     talloc_free(conn_list);
 
     dp_opt_set_bool(test_ctx->ad_ctx->ad_options->basic, AD_ENABLE_GC, false);
@@ -411,6 +412,37 @@ void test_conn_list(void **state)
     assert_non_null(conn_list);
 
     assert_true(conn_list[0] == test_ctx->subdom_ad_ctx->ldap_ctx);
+    assert_true(conn_list[0]->ignore_mark_offline);
+    assert_null(conn_list[1]);
+    talloc_free(conn_list);
+}
+
+void test_ldap_conn_list(void **state)
+{
+    struct sdap_id_conn_ctx **conn_list;
+
+    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+                                                     struct ad_common_test_ctx);
+    assert_non_null(test_ctx);
+
+    conn_list = ad_ldap_conn_list(test_ctx,
+                                  test_ctx->ad_ctx,
+                                  test_ctx->dom);
+    assert_non_null(conn_list);
+
+    assert_true(conn_list[0] == test_ctx->ad_ctx->ldap_ctx);
+    assert_false(conn_list[0]->ignore_mark_offline);
+    assert_null(conn_list[1]);
+    talloc_free(conn_list);
+
+    conn_list = ad_ldap_conn_list(test_ctx,
+                                  test_ctx->ad_ctx,
+                                  test_ctx->subdom);
+    assert_non_null(conn_list);
+
+    assert_true(conn_list[0] == test_ctx->subdom_ad_ctx->ldap_ctx);
+    assert_true(conn_list[0]->ignore_mark_offline);
+    assert_null(conn_list[1]);
     talloc_free(conn_list);
 }
 
@@ -432,10 +464,13 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_ad_create_2way_trust_options,
                                         test_ad_common_setup,
                                         test_ad_common_teardown),
-        cmocka_unit_test_setup_teardown(test_ldap_conn_list,
+        cmocka_unit_test_setup_teardown(test_ad_get_dom_ldap_conn,
                                         test_ldap_conn_setup,
                                         test_ldap_conn_teardown),
-        cmocka_unit_test_setup_teardown(test_conn_list,
+        cmocka_unit_test_setup_teardown(test_gc_conn_list,
+                                        test_ldap_conn_setup,
+                                        test_ldap_conn_teardown),
+        cmocka_unit_test_setup_teardown(test_ldap_conn_list,
                                         test_ldap_conn_setup,
                                         test_ldap_conn_teardown),
     };

@@ -641,21 +641,16 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_BY_SECID:
     case BE_REQ_GROUP:
         clist = ad_gc_conn_list(req, ad_id_ctx, state->obj_dom);
-        if (clist == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-        clist[1]->ignore_mark_offline = true;
         break;
     default:
-        clist = talloc_zero_array(req, struct sdap_id_conn_ctx *, 2);
-        if (clist == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-        clist[0] = ad_id_ctx->ldap_ctx;
-        clist[0]->ignore_mark_offline = true;
-        clist[1] = NULL;
+        clist = ad_ldap_conn_list(req, ad_id_ctx, state->obj_dom);
+        break;
+    }
+
+    if (clist == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Cannot generate AD connection list!\n");
+        ret = ENOMEM;
+        goto fail;
     }
 
     /* Now we already need ad_id_ctx in particular sdap_id_conn_ctx */

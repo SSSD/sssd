@@ -269,27 +269,12 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
     case BE_REQ_GROUP: /* group */
     case BE_REQ_INITGROUPS: /* init groups for user */
         clist = ad_gc_conn_list(breq, ad_ctx, dom);
-        if (clist == NULL) return NULL;
         break;
 
     default:
         /* Requests for other object should only contact LDAP by default */
-        clist = talloc_zero_array(breq, struct sdap_id_conn_ctx *, 2);
-        if (clist == NULL) return NULL;
-
-        clist[0] = ad_ctx->ldap_ctx;
-        clist[1] = NULL;
+        clist = ad_ldap_conn_list(breq, ad_ctx, dom);
         break;
-    }
-
-    /* Regardless of connection types, a subdomain error must not be allowed
-     * to set the whole back end offline, rather report an error and let the
-     * caller deal with it (normally disable the subdomain
-     */
-    if (IS_SUBDOMAIN(dom)) {
-        for (cindex = 0; clist[cindex] != NULL; cindex++) {
-            clist[cindex]->ignore_mark_offline = true;
-        }
     }
 
     return clist;
