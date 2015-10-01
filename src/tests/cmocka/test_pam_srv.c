@@ -623,6 +623,23 @@ static int test_pam_wrong_pw_offline_auth_check(uint32_t status,
     return test_pam_simple_check(status, body, blen);
 }
 
+static int test_pam_creds_insufficient_check(uint32_t status,
+                                             uint8_t *body, size_t blen)
+{
+    size_t rp = 0;
+    uint32_t val;
+
+    assert_int_equal(status, 0);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, PAM_CRED_INSUFFICIENT);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 0);
+
+    return EOK;
+}
+
 static int test_pam_user_unknown_check(uint32_t status,
                                        uint8_t *body, size_t blen)
 {
@@ -1127,6 +1144,25 @@ void test_pam_offline_chauthtok(void **state)
     assert_int_equal(ret, EOK);
 }
 
+void test_pam_preauth_no_logon_name(void **state)
+{
+    int ret;
+
+    mock_input_pam_cert(pam_test_ctx, NULL, NULL);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    set_cmd_cb(test_pam_creds_insufficient_check);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
 static void set_cert_auth_param(struct pam_ctx *pctx, const char *dbpath)
 {
     pam_test_ctx->pctx->cert_auth = true;
@@ -1431,6 +1467,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_offline_chauthtok_prelim,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_offline_chauthtok,
+                                        pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_no_logon_name,
                                         pam_test_setup, pam_test_teardown),
 /* p11_child is not built without NSS */
 #ifdef HAVE_NSS
