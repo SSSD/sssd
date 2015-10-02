@@ -1239,6 +1239,53 @@ static void cache_req_user_by_filter_test_done(struct tevent_req *req)
     ctx->tctx->done = true;
 }
 
+void test_user_by_recent_filter_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_user = true;
+
+    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME2,
+                           "pwd", 1001, 1001, NULL, NULL, NULL,
+                           "cn="TEST_USER_NAME2",dc=test",
+                           NULL, NULL, 1000, time(NULL)-1);
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(test_ctx->tctx);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* User TEST_USER is created with a DP callback. */
+    req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        test_ctx->tctx->dom->name,
+                                        "test*");
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_USER_NAME);
+}
+
+
 void test_users_by_filter_filter_old(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
@@ -1476,11 +1523,14 @@ int main(int argc, const char *argv[])
         new_multi_domain_test(group_by_id_multiple_domains_found),
         new_multi_domain_test(group_by_id_multiple_domains_notfound),
 
+        new_single_domain_test(user_by_recent_filter_valid),
+
         new_single_domain_test(users_by_filter_filter_old),
         new_single_domain_test(users_by_filter_notfound),
         new_multi_domain_test(users_by_filter_multiple_domains_notfound),
         new_single_domain_test(groups_by_filter_notfound),
         new_multi_domain_test(groups_by_filter_multiple_domains_notfound),
+
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
