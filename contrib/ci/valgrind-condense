@@ -29,16 +29,17 @@ Run Valgrind, condensing logged reports into an exit code.
 Arguments:
     ERROR_EXITCODE  An exit code to return if at least one error is found in
                     Valgrind log files.
-    PATH_PATTERN    An extended glob pattern matching (original) paths to
-                    programs to execute under Valgrind. Execution is skipped
-                    and success is returned for non-matching programs. Without
-                    patterns, all programs match.
+    PATH_PATTERN    An extended glob pattern matching the (original) path to
+                    the program to execute under Valgrind. If the program path
+                    doesn't match any patterns, the program is executed
+                    directly, without Valgrind. Without patterns any program
+                    path matches.
     VALGRIND_ARG    An argument to pass to Valgrind after the arguments
                     specified by `basename "$0"`.
 
-The first non-option VALGRIND_ARG will be considered the path to the program
-to execute under Valgrind and will be used in naming Valgrind log files as
-such:
+The first non-option VALGRIND_ARG, or the first VALGRIND_ARG after a "--",
+will be considered the path to the program to execute under Valgrind and will
+be used in naming Valgrind log files as such:
 
     PROGRAM_NAME.PID.valgrind.log
 
@@ -63,11 +64,12 @@ fi
 declare error_exitcode="$1";    shift
 declare -a path_pattern_list=()
 declare arg
-declare got_dash_dash
+declare collecting_argv
+declare -a program_argv=()
 declare program_path
+declare program_name
 declare path_pattern
 declare match
-declare program_name
 declare status=0
 
 # Extract path patterns
@@ -81,48 +83,53 @@ while [[ $# != 0 ]]; do
     fi
 done
 
-# Find program path argument
-got_dash_dash=false
+# Find program argv list in Valgrind arguments
+collecting_argv=false
 for arg in "$@"; do
-    if [[ "$arg" == "--" ]]; then
-        got_dash_dash=true
-    elif "$got_dash_dash" || [[ "$arg" != -* ]]; then
-        program_path="$arg"
-        break
+    if ! "$collecting_argv" && [[ "$arg" == "--" ]]; then
+        collecting_argv=true
+    elif "$collecting_argv" || [[ "$arg" != -* ]]; then
+        collecting_argv=true
+        program_argv+=("$arg")
     fi
 done
 
-if [[ -z "${program_path+set}" ]]; then
+if [[ ${#program_argv[@]} == 0 ]]; then
     echo "Program path not specified." >&2
     usage >&2
     exit 1
 fi
+program_path="${program_argv[0]}"
 
 # Match against path patterns, if any
-if [[ ${#path_pattern_list[@]} != 0 ]]; then
+if [[ ${#path_pattern_list[@]} == 0 ]]; then
+    match=true
+else
     match=false
     for path_pattern in "${path_pattern_list[@]}"; do
         if [[ "$program_path" == $path_pattern ]]; then
             match=true
         fi
     done
-    if ! $match; then
-        exit 0
-    fi
 fi
 
-# Generate original path from libtool path
-program_path=`sed -e 's/^\(.*\/\)\?\.libs\/lt-\([^\/]\+\)$/\1\2/' \
-                    <<<"$program_path"`
+# Run the program
+if $match; then
+    # Generate original path from libtool path
+    program_path=`sed -e 's/^\(.*\/\)\?\.libs\/lt-\([^\/]\+\)$/\1\2/' \
+                        <<<"$program_path"`
 
-program_name=`basename "$program_path"`
+    program_name=`basename "$program_path"`
 
-rm -f "$program_name".*.valgrind.log
-valgrind --log-file="$program_name.%p.valgrind.log" "$@" || status=$?
+    rm -f "$program_name".*.valgrind.log
+    valgrind --log-file="$program_name.%p.valgrind.log" "$@" || status=$?
 
-if grep -q '^==[0-9]\+== *ERROR SUMMARY: *[1-9]' \
-            "$program_name".*.valgrind.log; then
-    exit "$error_exitcode"
+    if grep -q '^==[0-9]\+== *ERROR SUMMARY: *[1-9]' \
+                "$program_name".*.valgrind.log; then
+        exit "$error_exitcode"
+    else
+        exit "$status"
+    fi
 else
-    exit "$status"
+    "${program_argv[@]}"
 fi
