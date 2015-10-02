@@ -185,6 +185,9 @@ enabled=1
 # Run debug build checks.
 function build_debug()
 {
+    # Extended glob pattern matching tests to run under Valgrind.
+    # NOTE: The particular pattern below is inverted
+    declare -r valgrind_test_pattern="!(*.py|*/dlopen-tests|*/whitespace_test)"
     export CFLAGS="$DEBUG_CFLAGS"
     declare test_dir
     declare test_dir_distcheck
@@ -206,7 +209,7 @@ function build_debug()
                 make-check-wrap -j $CPU_NUM check -- \
                                 libtool --mode=execute \
                                     valgrind-condense 99 \
-                                    '!(*.py|*dlopen-tests)' -- \
+                                    "$valgrind_test_pattern" -- \
                                     --trace-children=yes \
                                     --trace-children-skip='*/bin/*,*/sbin/*' \
                                     --leak-check=full \
