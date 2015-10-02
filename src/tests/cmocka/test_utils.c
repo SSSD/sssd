@@ -569,6 +569,139 @@ static void test_get_next_domain_disabled(void **state)
     assert_null(dom);
 }
 
+static void test_get_next_domain_flags(void **state)
+{
+    struct dom_list_test_ctx *test_ctx = talloc_get_type(*state,
+                                                      struct dom_list_test_ctx);
+    struct sss_domain_info *dom = NULL;
+    uint32_t gnd_flags;
+
+    /* No flags; all doms enabled */
+    gnd_flags = 0;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    /* Descend flag onlyl; all doms enabled  */
+    gnd_flags = SSS_GND_DESCEND;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub1a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2b");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    /* Incl. disabled flag only; all doms enabled */
+    gnd_flags = SSS_GND_INCLUDE_DISABLED;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    /* Descend and inculude disabled; all doms enabled */
+    gnd_flags = SSS_GND_DESCEND | SSS_GND_INCLUDE_DISABLED;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub1a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2b");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    /* Now disable dom2 and sub2a */
+    dom = find_domain_by_name(test_ctx->dom_list, "dom2", false);
+    assert_non_null(dom);
+    sss_domain_set_state(dom, DOM_DISABLED);
+
+    dom = find_domain_by_name(test_ctx->dom_list, "sub2a", false);
+    assert_non_null(dom);
+    sss_domain_set_state(dom, DOM_DISABLED);
+
+    /* No flags; dom2 and sub2a disabled */
+    gnd_flags = 0;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_null(dom);
+
+    /* Descend flag onlyl; dom2 and sub2a disabled  */
+    gnd_flags = SSS_GND_DESCEND;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub1a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2b");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    /* Incl. disabled flag only; dom2 and sub2a disabled */
+    gnd_flags = SSS_GND_INCLUDE_DISABLED;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+
+    /* Descend and inculude disabled; dom2 and sub2a disabled */
+    gnd_flags = SSS_GND_DESCEND | SSS_GND_INCLUDE_DISABLED;
+
+    dom = get_next_domain(test_ctx->dom_list, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub1a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "dom2");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2a");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_non_null(dom);
+    assert_string_equal(dom->name, "sub2b");
+
+    dom = get_next_domain(dom, gnd_flags);
+    assert_null(dom);
+}
+
 struct name_init_test_ctx {
     struct confdb_ctx *confdb;
 };
@@ -1396,6 +1529,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_get_next_domain_descend,
                                         setup_dom_tree, teardown_dom_tree),
         cmocka_unit_test_setup_teardown(test_get_next_domain_disabled,
+                                        setup_dom_tree, teardown_dom_tree),
+        cmocka_unit_test_setup_teardown(test_get_next_domain_flags,
                                         setup_dom_tree, teardown_dom_tree),
 
         cmocka_unit_test(test_well_known_sid_to_name),
