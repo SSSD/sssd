@@ -60,7 +60,9 @@
                 </term>
                 <listitem>
                     <para>
-                        Override attributes of an user.
+                        Override attributes of an user. Please be aware that
+                        calling this command will replace any previous override
+                        for the (NAMEd) user.
                     </para>
                 </listitem>
             </varlistentry>
@@ -128,7 +130,9 @@
                 </term>
                 <listitem>
                     <para>
-                        Override attributes of a group.
+                        Override attributes of a group. Please be aware that
+                        calling this command will replace any previous override
+                        for the (NAMEd) group.
                     </para>
                 </listitem>
             </varlistentry>
