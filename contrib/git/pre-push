@@ -16,14 +16,14 @@ def get_all_commits(ref_from, ref_to):
     args = ['git', 'rev-list', '{:s}..{:s}'.format(ref_from, ref_to)]
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
-    return [commit.strip() for commit in out.split('\n') if commit != '']
+    return [commit.strip() for commit in out.decode('UTF-8').split('\n') if commit != '']
 
 
 def commit_message(commit_hash):
     args = ['git', 'cat-file', 'commit', commit_hash]
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
-    return out
+    return out.decode('UTF-8')
 
 
 def commit_has_rb(commit):
