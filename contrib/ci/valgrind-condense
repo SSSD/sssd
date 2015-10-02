@@ -119,12 +119,12 @@ if $match; then
     program_path=`sed -e 's/^\(.*\/\)\?\.libs\/lt-\([^\/]\+\)$/\1\2/' \
                         <<<"$program_path"`
 
-    program_name=`basename "$program_path"`
+    program_name=`basename -- "$program_path"`
 
-    rm -f "$program_name".*.valgrind.log
+    rm -f -- "$program_name".*.valgrind.log
     valgrind --log-file="$program_name.%p.valgrind.log" "$@" || status=$?
 
-    if grep -q '^==[0-9]\+== *ERROR SUMMARY: *[1-9]' \
+    if grep -q '^==[0-9]\+== *ERROR SUMMARY: *[1-9]' -- \
                 "$program_name".*.valgrind.log; then
         exit "$error_exitcode"
     else
