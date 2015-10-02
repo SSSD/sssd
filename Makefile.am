@@ -488,7 +488,6 @@ SSSD_LIBS = \
     $(INI_CONFIG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
-    $(SSS_CRYPT_LIBS) \
     $(OPENLDAP_LIBS) \
     $(TDB_LIBS)
 
@@ -719,6 +718,11 @@ libsss_child_la_LDFLAGS = -avoid-version
 
 pkglib_LTLIBRARIES += libsss_crypt.la
 
+# NOTE:
+# Please try to avoid using SSS_CRYPT_{CFLAGS,LIBS} directly for compiling and
+# linking programs or libraries. This is purpose of wrapper library
+# libsss_crypt.so to hide internals. SSS_CRYPT_{CFLAGS,LIBS} might be used
+# in unit tests if you directly uses functions from underlining crypto libraries
 if HAVE_NSS
     SSS_CRYPT_SOURCES = src/util/crypto/nss/nss_base64.c \
                         src/util/crypto/nss/nss_hmac_sha1.c \
@@ -2244,7 +2248,6 @@ sdap_tests_SOURCES = \
     $(NULL)
 sdap_tests_CFLAGS = \
     $(AM_CFLAGS) \
-    $(SSS_CRYPT_CFLAGS) \
     $(NULL)
 sdap_tests_LDFLAGS = \
     -Wl,-wrap,ldap_set_option \
@@ -2261,7 +2264,6 @@ sdap_tests_LDADD = \
     $(LDB_LIBS) \
     $(POPT_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
-    $(SSS_CRYPT_LIBS) \
     $(OPENLDAP_LIBS) \
     libsss_test_common.la \
     $(NULL)
