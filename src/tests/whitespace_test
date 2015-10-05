@@ -14,7 +14,12 @@ if [ ! -d "$GIT_DIR" ]; then
     exit 77
 fi
 
-git grep -n -I '\s\+$' -- "$(git rev-parse --show-toplevel)" |
+{
+    # Look for lines with trailing whitespace in all files tracked by Git
+    git grep -n -I '\s\+$' -- "$(git rev-parse --show-toplevel)" ||
+        # Don't fail if no such lines were found anywhere
+        [[ $? == 1 ]]
+} |
     awk -- "
         BEGIN {
             found = 0
