@@ -59,6 +59,8 @@
 
 #define CLEAR_MC_FLAG "clear_mc_flag"
 
+/** Default secure umask */
+#define SSS_DFL_UMASK 0177
 
 /** Secure mask with executable bit */
 #define SSS_DFL_X_UMASK 0077
