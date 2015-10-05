@@ -396,7 +396,8 @@ int main(int argc, const char *argv[])
         return 2;
     }
 
-    ret = create_pipe_fd(SSS_PAM_PRIV_SOCKET_NAME, &priv_pipe_fd, 0177);
+    ret = create_pipe_fd(SSS_PAM_PRIV_SOCKET_NAME, &priv_pipe_fd,
+                         DFL_RSP_UMASK);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "create_pipe_fd failed (priviledged pipe) [%d]: %s.\n",

@@ -690,7 +690,8 @@ static int set_unix_socket(struct resp_ctx *rctx)
     if (rctx->priv_sock_name != NULL ) {
         /* create privileged pipe */
         if (rctx->priv_lfd == -1) {
-            ret = create_pipe_fd(rctx->priv_sock_name, &rctx->priv_lfd, 0177);
+            ret = create_pipe_fd(rctx->priv_sock_name, &rctx->priv_lfd,
+                                 DFL_RSP_UMASK);
             if (ret != EOK) {
                 goto failed;
             }
