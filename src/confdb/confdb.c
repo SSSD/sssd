@@ -659,7 +659,7 @@ int confdb_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    old_umask = umask(0177);
+    old_umask = umask(SSS_DFL_UMASK);
 
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
     umask(old_umask);

@@ -490,9 +490,8 @@ int server_setup(const char *name, int flags,
 
     setup_signals();
 
-    /* we want default permissions on created files to be very strict,
-       so set our umask to 0177 */
-    umask(0177);
+    /* we want default permissions on created files to be very strict */
+    umask(SSS_DFL_UMASK);
 
     if (flags & FLAGS_DAEMON) {
         DEBUG(SSSDBG_IMPORTANT_INFO, "Becoming a daemon.\n");

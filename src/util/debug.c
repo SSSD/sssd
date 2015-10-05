@@ -362,7 +362,7 @@ int open_debug_file_ex(const char *filename, FILE **filep, bool want_cloexec)
 
     if (debug_file && !filep) fclose(debug_file);
 
-    old_umask = umask(0177);
+    old_umask = umask(SSS_DFL_UMASK);
     errno = 0;
     f = fopen(logpath, "a");
     if (f == NULL) {

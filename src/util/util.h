@@ -64,6 +64,9 @@
 #define SSS_ATTRIBUTE_PRINTF(a1, a2)
 #endif
 
+/** Default secure umask */
+#define SSS_DFL_UMASK 0177
+
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;
