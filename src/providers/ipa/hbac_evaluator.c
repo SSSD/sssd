@@ -169,10 +169,6 @@ enum hbac_eval_result hbac_evaluate(struct hbac_rule **rules,
                        rules[i]->name);
             continue;
         } else if (intermediate_result == HBAC_EVAL_MATCHED) {
-            /* This request matched an ALLOW rule
-             * Set the result to ALLOW but continue checking
-             * the other rules in case a DENY rule trumps it.
-             */
             HBAC_DEBUG(HBAC_DBG_INFO, "ALLOWED by rule [%s].\n", rules[i]->name);
             result = HBAC_EVAL_ALLOW;
             if (info) {
