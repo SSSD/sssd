@@ -1286,3 +1286,34 @@ ad_ldap_conn_list(TALLOC_CTX *mem_ctx,
     clist[1] = NULL;
     return clist;
 }
+
+struct sdap_id_conn_ctx **
+ad_user_conn_list(TALLOC_CTX *mem_ctx,
+                  struct ad_id_ctx *ad_ctx,
+                  struct sss_domain_info *dom)
+{
+    struct sdap_id_conn_ctx **clist;
+    int cindex = 0;
+
+    clist = talloc_zero_array(ad_ctx, struct sdap_id_conn_ctx *, 3);
+    if (clist == NULL) {
+        return NULL;
+    }
+
+    /* Try GC first for users from trusted domains, but go to LDAP
+     * for users from non-trusted domains to get all POSIX attrs
+     */
+    if (dp_opt_get_bool(ad_ctx->ad_options->basic, AD_ENABLE_GC)
+            && IS_SUBDOMAIN(dom)) {
+        clist[cindex] = ad_ctx->gc_ctx;
+        clist[cindex]->ignore_mark_offline = true;
+        cindex++;
+    }
+
+    /* Users from primary domain can be just downloaded from LDAP.
+     * The domain's LDAP connection also works as a fallback
+     */
+    clist[cindex] = ad_get_dom_ldap_conn(ad_ctx, dom);
+
+    return clist;
+}
