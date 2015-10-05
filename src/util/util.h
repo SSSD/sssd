@@ -67,6 +67,9 @@
 /** Default secure umask */
 #define SSS_DFL_UMASK 0177
 
+/** Secure mask with executable bit */
+#define SSS_DFL_X_UMASK 0077
+
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;

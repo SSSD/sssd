@@ -720,7 +720,7 @@ static krb5_error_code create_ccache(char *ccname, krb5_creds *creds)
 #endif
 
     /* Set a restrictive umask, just in case we end up creating any file */
-    umask(077);
+    umask(SSS_DFL_X_UMASK);
 
     /* we create a new context here as the main process one may have been
      * opened as root and contain possibly references (even open handles ?)

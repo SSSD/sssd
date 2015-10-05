@@ -482,7 +482,7 @@ int main(int argc, const char *argv[])
     debug_level = SSSDBG_INVALID;
 
     clearenv();
-    umask(077);
+    umask(SSS_DFL_X_UMASK);
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while ((opt = poptGetNextOpt(pc)) != -1) {
