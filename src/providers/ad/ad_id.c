@@ -244,25 +244,10 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
               struct sss_domain_info *dom, struct be_acct_req *ar)
 {
     struct sdap_id_conn_ctx **clist;
-    int cindex = 0;
 
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
-        clist = talloc_zero_array(ad_ctx, struct sdap_id_conn_ctx *, 3);
-        if (clist == NULL) return NULL;
-
-        /* Try GC first for users from trusted domains */
-        if (dp_opt_get_bool(ad_ctx->ad_options->basic, AD_ENABLE_GC)
-                && IS_SUBDOMAIN(dom)) {
-            clist[cindex] = ad_ctx->gc_ctx;
-            clist[cindex]->ignore_mark_offline = true;
-            cindex++;
-        }
-
-        /* Users from primary domain can be just downloaded from LDAP.
-         * The domain's LDAP connection also works as a fallback
-         */
-        clist[cindex] = ad_get_dom_ldap_conn(ad_ctx, dom);
+        clist = ad_user_conn_list(breq, ad_ctx, dom);
         break;
     case BE_REQ_BY_SECID:   /* by SID */
     case BE_REQ_USER_AND_GROUP: /* get SID */
@@ -270,7 +255,6 @@ get_conn_list(struct be_req *breq, struct ad_id_ctx *ad_ctx,
     case BE_REQ_INITGROUPS: /* init groups for user */
         clist = ad_gc_conn_list(breq, ad_ctx, dom);
         break;
-
     default:
         /* Requests for other object should only contact LDAP by default */
         clist = ad_ldap_conn_list(breq, ad_ctx, dom);
