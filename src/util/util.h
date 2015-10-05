@@ -60,6 +60,9 @@
 #define CLEAR_MC_FLAG "clear_mc_flag"
 
 
+/** Secure mask with executable bit */
+#define SSS_DFL_X_UMASK 0077
+
 #ifndef NULL
 #define NULL 0
 #endif

@@ -505,7 +505,7 @@ int main(int argc, const char *argv[])
      * environment. This would allow to use e.g. pkcs11-spy.so for further
      * debugging.
      */
-    umask(077);
+    umask(SSS_DFL_X_UMASK);
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while ((opt = poptGetNextOpt(pc)) != -1) {

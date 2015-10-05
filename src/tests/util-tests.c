@@ -593,7 +593,7 @@ void setup_atomicio(void)
     fail_unless(filename != NULL, "strdup failed");
 
     atio_fd = -1;
-    old_umask = umask(077);
+    old_umask = umask(SSS_DFL_X_UMASK);
     ret = mkstemp(filename);
     umask(old_umask);
     fail_unless(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
