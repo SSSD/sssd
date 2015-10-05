@@ -3522,10 +3522,10 @@ if BUILD_PYTHON2_BINDINGS
 			--record=$(abs_builddir)/src/config/.files2 --root=$(DESTDIR); \
 	fi
 	cd $(DESTDIR)$(py2execdir) && \
-		$(LN_S) -f _py2sss.so pysss.so ; \
-		$(LN_S) -f _py2hbac.so pyhbac.so ; \
-		$(LN_S) -f _py2sss_murmur.so pysss_murmur.so ; \
-		$(LN_S) -f _py2sss_nss_idmap.so pysss_nss_idmap.so
+		mv -f _py2sss.so pysss.so ; \
+		mv -f _py2hbac.so pyhbac.so ; \
+		mv -f _py2sss_murmur.so pysss_murmur.so ; \
+		mv -f _py2sss_nss_idmap.so pysss_nss_idmap.so
 endif
 if BUILD_PYTHON3_BINDINGS
 	if [ "$(DESTDIR)" = "" ]; then \
@@ -3540,10 +3540,10 @@ if BUILD_PYTHON3_BINDINGS
 			--record=$(abs_builddir)/src/config/.files3 --root=$(DESTDIR); \
 	fi
 	cd $(DESTDIR)$(py3execdir) && \
-		$(LN_S) -f _py3sss.so pysss.so ; \
-		$(LN_S) -f _py3hbac.so pyhbac.so ; \
-		$(LN_S) -f _py3sss_murmur.so pysss_murmur.so ; \
-		$(LN_S) -f _py3sss_nss_idmap.so pysss_nss_idmap.so
+		mv -f _py3sss.so pysss.so ; \
+		mv -f _py3hbac.so pyhbac.so ; \
+		mv -f _py3sss_murmur.so pysss_murmur.so ; \
+		mv -f _py3sss_nss_idmap.so pysss_nss_idmap.so
 endif
 	for doc in $(SSSD_DOCS); do \
 		$(MKDIR_P) $$doc $(DESTDIR)/$(docdir); \

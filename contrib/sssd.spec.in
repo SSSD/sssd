@@ -867,25 +867,21 @@ rm -rf $RPM_BUILD_ROOT
 %files -n python-sss
 %defattr(-,root,root,-)
 %{python2_sitearch}/pysss.so
-%{python2_sitearch}/_py2sss.so
 
 %if (0%{?with_python3} == 1)
 %files -n python3-sss
 %defattr(-,root,root,-)
 %{python3_sitearch}/pysss.so
-%{python3_sitearch}/_py3sss.so
 %endif
 
 %files -n python-sss-murmur
 %defattr(-,root,root,-)
 %{python2_sitearch}/pysss_murmur.so
-%{python2_sitearch}/_py2sss_murmur.so
 
 %if (0%{?with_python3} == 1)
 %files -n python3-sss-murmur
 %defattr(-,root,root,-)
 %{python3_sitearch}/pysss_murmur.so
-%{python3_sitearch}/_py3sss_murmur.so
 %endif
 
 %files -n libsss_idmap
@@ -927,25 +923,21 @@ rm -rf $RPM_BUILD_ROOT
 %files -n python-libsss_nss_idmap
 %defattr(-,root,root,-)
 %{python2_sitearch}/pysss_nss_idmap.so
-%{python2_sitearch}/_py2sss_nss_idmap.so
 
 %if (0%{?with_python3} == 1)
 %files -n python3-libsss_nss_idmap
 %defattr(-,root,root,-)
 %{python3_sitearch}/pysss_nss_idmap.so
-%{python3_sitearch}/_py3sss_nss_idmap.so
 %endif
 
 %files -n python-libipa_hbac
 %defattr(-,root,root,-)
 %{python2_sitearch}/pyhbac.so
-%{python2_sitearch}/_py2hbac.so
 
 %if (0%{?with_python3} == 1)
 %files -n python3-libipa_hbac
 %defattr(-,root,root,-)
 %{python3_sitearch}/pyhbac.so
-%{python3_sitearch}/_py3hbac.so
 %endif
 
 %files libwbclient
