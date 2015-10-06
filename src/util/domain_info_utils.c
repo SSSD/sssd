@@ -312,7 +312,7 @@ sss_write_domain_mappings(struct sss_domain_info *domain)
         goto done;
     }
 
-    old_mode = umask(SSS_DFL_X_UMASK);
+    old_mode = umask(SSS_DFL_UMASK);
     fd = mkstemp(tmp_file);
     umask(old_mode);
     if (fd < 0) {
@@ -562,7 +562,7 @@ static errno_t sss_write_krb5_localauth_snippet(const char *path)
         goto done;
     }
 
-    old_mode = umask(SSS_DFL_X_UMASK);
+    old_mode = umask(SSS_DFL_UMASK);
     fd = mkstemp(tmp_file);
     umask(old_mode);
     if (fd < 0) {
