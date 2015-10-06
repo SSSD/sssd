@@ -618,7 +618,7 @@ def test_invalidate_user_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-u", "user1"])
@@ -631,7 +631,7 @@ def test_invalidate_user_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     stop_sssd()
@@ -644,7 +644,7 @@ def test_invalidate_users_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-U"])
@@ -657,7 +657,7 @@ def test_invalidate_users_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     stop_sssd()
@@ -670,7 +670,7 @@ def test_invalidate_group_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-g", "group1"])
@@ -683,7 +683,7 @@ def test_invalidate_group_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     stop_sssd()
@@ -696,7 +696,7 @@ def test_invalidate_groups_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-G"])
@@ -709,7 +709,7 @@ def test_invalidate_groups_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     stop_sssd()
@@ -722,7 +722,7 @@ def test_invalidate_everything_before_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     subprocess.call(["sss_cache", "-E"])
@@ -735,7 +735,7 @@ def test_invalidate_everything_after_stop(ldap_conn, sanity_rfc2307):
     # initialize cache with full ID
     (res, errno, _) = sssd_id.get_user_groups("user1")
     assert res == sssd_id.NssReturnCode.SUCCESS, \
-        "Could not find groups for user1 %s, %d" % errno
+        "Could not find groups for user1, %d" % errno
     assert_mc_records_for_user1()
 
     stop_sssd()
