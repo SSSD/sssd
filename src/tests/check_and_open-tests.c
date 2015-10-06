@@ -48,7 +48,7 @@ void setup_check_and_open(void)
     filename = strdup(FILENAME_TEMPLATE);
     fail_unless(filename != NULL, "strdup failed");
 
-    old_umask = umask(SSS_DFL_X_UMASK);
+    old_umask = umask(SSS_DFL_UMASK);
     ret = mkstemp(filename);
     umask(old_umask);
     fail_unless(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
