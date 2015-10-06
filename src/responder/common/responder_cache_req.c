@@ -70,10 +70,12 @@ struct cache_req_input {
     enum cache_req_type type;
 
     /* Provided input. */
-    const char *raw_name;
     const char *orig_name;
     uint32_t id;
     const char *cert;
+
+    /* Parsed name or UPN. */
+    const char *name;
 
     /* Data Provider request type resolved from @type.
      * FIXME: This is currently needed for data provider calls. We should
@@ -122,11 +124,6 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_INITGROUPS_BY_UPN:
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
-            goto fail;
-        }
-
-        input->raw_name = talloc_strdup(input, name);
-        if (input->raw_name == NULL) {
             goto fail;
         }
 
@@ -196,8 +193,8 @@ fail:
 }
 
 static errno_t
-cache_req_input_set_orig_name(struct cache_req_input *input,
-                              const char *name)
+cache_req_input_set_name(struct cache_req_input *input,
+                         const char *name)
 {
     const char *dup;
 
@@ -206,8 +203,8 @@ cache_req_input_set_orig_name(struct cache_req_input *input,
         return ENOMEM;
     }
 
-    talloc_zfree(input->orig_name);
-    input->orig_name = dup;
+    talloc_zfree(input->name);
+    input->name = dup;
 
     return EOK;
 }
@@ -238,8 +235,13 @@ cache_req_input_set_domain(struct cache_req_input *input,
     case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
-        name = sss_get_cased_name(tmp_ctx, input->orig_name,
-                                  domain->case_sensitive);
+        if (input->name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: input->name is NULL?\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        name = sss_get_cased_name(tmp_ctx, input->name, domain->case_sensitive);
         if (name == NULL) {
             ret = ENOMEM;
             goto done;
@@ -316,7 +318,7 @@ cache_req_input_assume_upn(struct cache_req_input *input)
     errno_t ret;
     bool bret;
 
-    if (input->raw_name == NULL || strchr(input->raw_name, '@') == NULL) {
+    if (input->orig_name == NULL || strchr(input->orig_name, '@') == NULL) {
         return false;
     }
 
@@ -335,14 +337,14 @@ cache_req_input_assume_upn(struct cache_req_input *input)
     }
 
     if (bret == true) {
-        ret = cache_req_input_set_orig_name(input, input->raw_name);
+        ret = cache_req_input_set_name(input, input->orig_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "cache_req_input_set_orig_name() failed\n");
             return false;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, "Assuming UPN %s\n", input->raw_name);
+        DEBUG(SSSDBG_TRACE_FUNC, "Assuming UPN %s\n", input->orig_name);
     }
 
     return bret;
@@ -875,6 +877,13 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
 
         tevent_req_set_callback(subreq, cache_req_input_parsed, req);
     } else {
+        if (input->orig_name != NULL) {
+            ret = cache_req_input_set_name(input, input->orig_name);
+            if (ret != EOK) {
+                goto immediately;
+            }
+        }
+
         ret = cache_req_select_domains(req, domain);
         if (ret != EAGAIN) {
             goto immediately;
@@ -909,13 +918,10 @@ static void cache_req_input_parsed(struct tevent_req *subreq)
     ret = sss_parse_inp_recv(subreq, state, &name, &domain);
     switch (ret) {
     case EOK:
-        if (strcmp(name, state->input->orig_name) != 0) {
-            /* The name has changed during input parse phase. */
-            ret = cache_req_input_set_orig_name(state->input, name);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-                return;
-            }
+        ret = cache_req_input_set_name(state->input, name);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
         }
         break;
     case ERR_DOMAIN_NOT_FOUND:
@@ -1070,7 +1076,7 @@ errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
         if (state->input->dom_objname == NULL) {
             *_name = NULL;
         } else {
-            name = talloc_strdup(mem_ctx, state->input->orig_name);
+            name = talloc_strdup(mem_ctx, state->input->name);
             if (name == NULL) {
                 return ENOMEM;
             }
