@@ -133,7 +133,7 @@ int test_helper_debug_check_message(int level)
 
     strncpy(filename, "sssd_debug_tests.XXXXXX", 24);
 
-    old_umask = umask(SSS_DFL_X_UMASK);
+    old_umask = umask(SSS_DFL_UMASK);
     fd = mkstemp(filename);
     umask(old_umask);
     if (fd == -1) {
@@ -273,7 +273,7 @@ int test_helper_debug_is_empty_message(int level)
 
     strncpy(filename, "sssd_debug_tests.XXXXXX", 24);
 
-    old_umask = umask(SSS_DFL_X_UMASK);
+    old_umask = umask(SSS_DFL_UMASK);
     fd = mkstemp(filename);
     umask(old_umask);
     if (fd == -1) {
