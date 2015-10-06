@@ -388,7 +388,7 @@ int main(int argc, const char *argv[])
 
     /* Crate pipe file descriptors here before privileges are dropped
      * in server_setup() */
-    ret = create_pipe_fd(SSS_PAM_SOCKET_NAME, &pipe_fd, 0111);
+    ret = create_pipe_fd(SSS_PAM_SOCKET_NAME, &pipe_fd, SCKT_RSP_UMASK);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "create_pipe_fd failed [%d]: %s.\n",

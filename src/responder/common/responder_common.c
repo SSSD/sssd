@@ -667,7 +667,7 @@ static int set_unix_socket(struct resp_ctx *rctx)
         /* Set the umask so that permissions are set right on the socket.
          * It must be readable and writable by anybody on the system. */
         if (rctx->lfd == -1) {
-            ret = create_pipe_fd(rctx->sock_name, &rctx->lfd, 0111);
+            ret = create_pipe_fd(rctx->sock_name, &rctx->lfd, SCKT_RSP_UMASK);
             if (ret != EOK) {
                 return ret;
             }

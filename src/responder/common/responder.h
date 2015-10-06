@@ -43,6 +43,10 @@ extern hash_table_t *dp_requests;
  * so set our umask to 0177 */
 #define DFL_RSP_UMASK SSS_DFL_UMASK
 
+/* Public sockets must be readable and writable by anybody on the system.
+ * So we set umask to 0111. */
+#define SCKT_RSP_UMASK 0111
+
 /* if there is a provider other than the special local */
 #define NEED_CHECK_PROVIDER(provider) \
     (provider != NULL && strcmp(provider, "local") != 0)
