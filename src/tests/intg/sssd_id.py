@@ -24,7 +24,7 @@ from ctypes import (cdll, c_int, c_char, c_uint32, c_long, c_char_p,
 
 
 class NssReturnCode(object):
-    """ 'enum' class for name service switch retrn code """
+    """ 'enum' class for name service switch return code """
     TRYAGAIN = -2,
     UNAVAIL = -1
     NOTFOUND = 0
@@ -42,8 +42,8 @@ def call_sssd_initgroups(user, gid):
     @param int gid the additional gid will be also added to the list.
 
     @return (int, int, List[int]) (err, errno, gids)
-        gids shoudl contain user group IDs if err is NssReturnCode.SUCCESS
-        otherwise errno will contain non-zero vlaue.
+        gids should contain user group IDs if err is NssReturnCode.SUCCESS
+        otherwise errno will contain non-zero value.
     """
     libnss_sss_path = config.PREFIX + "/lib/libnss_sss.so.2"
     libnss_sss = cdll.LoadLibrary(libnss_sss_path)
@@ -67,7 +67,7 @@ def call_sssd_initgroups(user, gid):
     gids = []
     if res == NssReturnCode.SUCCESS:
         gids_count = size[0]
-        assert gids_count > 0, "_nss_sss_initgroups_dyn shoulld return " \
+        assert gids_count > 0, "_nss_sss_initgroups_dyn should return " \
                                "one gid"
 
         for i in range(0, gids_count):
@@ -85,8 +85,8 @@ def get_user_gids(user):
     @param string user name of user
 
     @return (int, int, List[int]) (err, errno, gids)
-        gids shoudl contain user group IDs if err is NssReturnCode.SUCCESS
-        otherwise errno will contain non-zero vlaue.
+        gids should contain user group IDs if err is NssReturnCode.SUCCESS
+        otherwise errno will contain non-zero value.
     """
     pwd_user = pwd.getpwnam(user)
     uid = pwd_user.pw_uid
@@ -106,9 +106,9 @@ def get_user_groups(user):
     @param string user name of user
 
     @return (int, int, List[string]) (err, errno, groups)
-        roups shoudl contain names of user groups
+        groups should contain names of user groups
         if err is NssReturnCode.SUCCESS
-        otherwise errno will contain non-zero vlaue.
+        otherwise errno will contain non-zero value.
     """
     (res, errno, gids) = get_user_gids(user)
     groups = []
