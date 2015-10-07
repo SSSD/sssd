@@ -1006,6 +1006,12 @@ list_user_overrides(TALLOC_CTX *mem_ctx,
         objs[i].home = ldb_msg_find_attr_as_string(msgs[i], SYSDB_HOMEDIR, NULL);
         objs[i].shell = ldb_msg_find_attr_as_string(msgs[i], SYSDB_SHELL, NULL);
         objs[i].gecos = ldb_msg_find_attr_as_string(msgs[i], SYSDB_GECOS, NULL);
+
+        talloc_steal(objs, objs[i].orig_name);
+        talloc_steal(objs, objs[i].name);
+        talloc_steal(objs, objs[i].home);
+        talloc_steal(objs, objs[i].shell);
+        talloc_steal(objs, objs[i].gecos);
     }
 
     talloc_steal(mem_ctx, objs);
@@ -1061,6 +1067,9 @@ list_group_overrides(TALLOC_CTX *mem_ctx,
 
         objs[i].name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
         objs[i].gid = ldb_msg_find_attr_as_uint(msgs[i], SYSDB_GIDNUM, 0);
+
+        talloc_steal(objs, objs[i].orig_name);
+        talloc_steal(objs, objs[i].name);
     }
 
     talloc_steal(mem_ctx, objs);
