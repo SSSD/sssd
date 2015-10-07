@@ -1454,7 +1454,7 @@ static int override_group_export(struct sss_cmdline *cmdline,
 
         for (i = 0; objs[i].orig_name != NULL; i++) {
             /**
-             * Format: orig_name:name:uid:gid:gecos:home:shell
+             * Format: orig_name:name:gid
              */
             struct sss_colondb_write_field table[] = {
                 {SSS_COLONDB_STRING, {.str = objs[i].orig_name}},
