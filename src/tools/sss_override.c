@@ -895,6 +895,8 @@ static errno_t append_name(struct sss_domain_info *domain,
 
     talloc_steal(override, fqname);
 
+    ret = EOK;
+
 done:
     talloc_free(tmp_ctx);
 
