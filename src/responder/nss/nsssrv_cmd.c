@@ -895,7 +895,11 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
                    name, dom->name);
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
-                dom = get_next_domain(dom, false);
+                if (cmdctx->name_is_upn) {
+                    dom = get_next_domain(dom, true);
+                } else {
+                    dom = get_next_domain(dom, false);
+                }
                 continue;
             }
             /* There are no further domains or this was a
@@ -970,7 +974,11 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
             /* if a multidomain search, try with next */
             if (cmdctx->check_next) {
-                dom = get_next_domain(dom, false);
+                if (cmdctx->name_is_upn) {
+                    dom = get_next_domain(dom, true);
+                } else {
+                    dom = get_next_domain(dom, false);
+                }
                 if (dom) continue;
             }
 
