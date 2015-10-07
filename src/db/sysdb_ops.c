@@ -483,7 +483,6 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
     TALLOC_CTX *tmp_ctx;
     struct ldb_result *res;
     struct ldb_dn *base_dn;
-    char *filter;
     int ret;
     const char *def_attrs[] = { SYSDB_NAME, SYSDB_UPN, SYSDB_CANONICAL_UPN,
                                 NULL };
@@ -500,15 +499,9 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    filter = talloc_asprintf(tmp_ctx, SYSDB_PWUPN_FILTER, upn, upn);
-    if (filter == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     ret = ldb_search(domain->sysdb->ldb, tmp_ctx, &res,
                      base_dn, LDB_SCOPE_SUBTREE, attrs ? attrs : def_attrs,
-                     filter);
+                     SYSDB_PWUPN_FILTER, upn, upn);
     if (ret != EOK) {
         ret = sysdb_error_to_errno(ret);
         goto done;
