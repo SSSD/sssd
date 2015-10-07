@@ -494,8 +494,7 @@ int sysdb_search_user_by_upn(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb,
-                            SYSDB_TMPL_USER_BASE, domain->name);
+    basedn = sysdb_base_dn(domain->sysdb, tmp_ctx);
     if (basedn == NULL) {
         ret = ENOMEM;
         goto done;
