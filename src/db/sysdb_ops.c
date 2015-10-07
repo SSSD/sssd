@@ -493,7 +493,7 @@ int sysdb_search_user_by_upn_res(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    base_dn = sysdb_user_base_dn(tmp_ctx, domain);
+    base_dn = sysdb_base_dn(domain->sysdb, tmp_ctx);
     if (base_dn == NULL) {
         ret = ENOMEM;
         goto done;
