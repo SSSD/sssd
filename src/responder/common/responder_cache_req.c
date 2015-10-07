@@ -981,7 +981,8 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
        /* If it is a domainless search, skip domains that require fully
         * qualified names instead. */
         while (state->domain != NULL && state->check_next
-                && state->domain->fqnames) {
+                && state->domain->fqnames
+                && !cache_req_input_is_upn(state->input)) {
             state->domain = get_next_domain(state->domain, false);
         }
 
@@ -1009,7 +1010,11 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
 
         /* we will continue with the following domain the next time */
         if (state->check_next) {
-            state->domain = get_next_domain(state->domain, false);
+            if (cache_req_input_is_upn(state->input)) {
+                state->domain = get_next_domain(state->domain, true);
+            } else {
+                state->domain = get_next_domain(state->domain, false);
+            }
         }
 
         return EAGAIN;
