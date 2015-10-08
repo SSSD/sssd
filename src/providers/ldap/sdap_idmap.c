@@ -503,6 +503,13 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
         ret = ENOTSUP;
         goto done;
         break;
+    case IDMAP_NO_RANGE:
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Object SID [%s] has a RID that is larger than the "
+              "ldap_idmap_range_size. See the \"ID MAPPING\" section of "
+              "sssd-ad(5) for an explanation of how to resolve this issue.",
+              sid_str);
+        /* Fall through intentionally */
     default:
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Could not convert objectSID [%s] to a UNIX ID\n",
