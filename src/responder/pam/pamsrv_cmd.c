@@ -53,6 +53,14 @@ pam_get_last_online_auth_with_curr_token(struct sss_domain_info *domain,
 
 static void pam_reply(struct pam_auth_req *preq);
 
+static errno_t check_cert(TALLOC_CTX *mctx,
+                          struct tevent_context *ev,
+                          struct pam_ctx *pctx,
+                          struct pam_auth_req *preq,
+                          struct pam_data *pd);
+
+static int pam_check_user_done(struct pam_auth_req *preq, int ret);
+
 static errno_t pack_user_info_msg(TALLOC_CTX *mem_ctx,
                                   const char *user_error_message,
                                   size_t *resp_len,
@@ -718,6 +726,28 @@ static void pam_reply(struct pam_auth_req *preq)
     DEBUG(SSSDBG_FUNC_DATA,
           "pam_reply called with result [%d]: %s.\n",
           pd->pam_status, pam_strerror(NULL, pd->pam_status));
+
+    if (pd->cmd == SSS_PAM_AUTHENTICATE
+            && (pd->pam_status == PAM_AUTHINFO_UNAVAIL
+                || pd->pam_status == PAM_NO_MODULE_DATA
+                || pd->pam_status == PAM_BAD_ITEM)
+            && may_do_cert_auth(pctx, pd)) {
+        /* We have Smartcard credentials and the backend indicates that it is
+         * offline (PAM_AUTHINFO_UNAVAIL) or cannot handle the credentials
+         * (PAM_BAD_ITEM), so let's try authentication against the Smartcard
+         * PAM_NO_MODULE_DATA is returned by the krb5 backend if no
+         * authentication method was found at all, this might happen if the
+         * user has a Smartcard assigned but the pkint plugin is not available
+         * on the client. */
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Backend cannot handle Smartcard authentication, "
+              "trying local Smartcard authentication.\n");
+        preq->cert_auth_local = true;
+        ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
+        pam_check_user_done(preq, ret);
+        return;
+    }
+
     if (pd->pam_status == PAM_AUTHINFO_UNAVAIL || preq->use_cached_auth) {
 
         switch(pd->cmd) {
@@ -1019,7 +1049,6 @@ static void pam_forwarder_cert_cb(struct tevent_req *req);
 static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                                        const char *err_msg, void *ptr);
 static int pam_check_user_search(struct pam_auth_req *preq);
-static int pam_check_user_done(struct pam_auth_req *preq, int ret);
 
 static errno_t pam_cmd_assume_upn(struct pam_auth_req *preq)
 {
@@ -1234,6 +1263,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     }
     talloc_set_destructor(preq, pam_auth_req_destructor);
     preq->cctx = cctx;
+    preq->cert_auth_local = false;
 
     preq->pd = create_pam_data(preq);
     if (!preq->pd) {
@@ -1330,8 +1360,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         }
     }
 
-
-    if (may_do_cert_auth(pctx, pd)) {
+    /* try backend first for authentication before doing local Smartcard
+     * authentication */
+    if (pd->cmd != SSS_PAM_AUTHENTICATE && may_do_cert_auth(pctx, pd)) {
         ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
         /* Finish here */
         goto done;
@@ -1439,6 +1470,12 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
         preq->cert_user_obj = talloc_steal(preq, result->msgs[0]);
 
         if (preq->pd->logon_name == NULL) {
+            if (preq->pd->cmd != SSS_PAM_PREAUTH) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Missing logon name only allowed during pre-auth.\n");
+                ret = ENOENT;
+                goto done;
+            }
             cert_user = ldb_msg_find_attr_as_string(preq->cert_user_obj,
                                                     SYSDB_NAME, NULL);
             if (cert_user == NULL) {
@@ -1451,20 +1488,17 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
             DEBUG(SSSDBG_FUNC_DATA, "Found certificate user [%s].\n",
                                     cert_user);
 
-            ret = add_pam_cert_response(preq->pd, cert_user, preq->token_name);
+            ret = sss_parse_name_for_domains(preq->pd,
+                                             preq->cctx->rctx->domains,
+                                             preq->cctx->rctx->default_domain,
+                                             cert_user,
+                                             &preq->pd->domain,
+                                             &preq->pd->user);
             if (ret != EOK) {
-                DEBUG(SSSDBG_OP_FAILURE, "add_pam_cert_response failed.\n");
-            }
-
-            preq->pd->domain = talloc_strdup(preq->pd, result->domain->name);
-            if (preq->pd->domain == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
-                ret = ENOMEM;
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "sss_parse_name_for_domains failed.\n");
                 goto done;
             }
-            preq->pd->pam_status = PAM_SUCCESS;
-            pam_reply(preq);
-            return;
         }
     } else {
         if (preq->pd->logon_name == NULL) {
@@ -1475,7 +1509,12 @@ static void pam_forwarder_lookup_by_cert_done(struct tevent_req *req)
         }
     }
 
-    ret = pam_check_user_search(preq);
+    if (preq->user_obj == NULL) {
+        ret = pam_check_user_search(preq);
+    } else {
+        ret = EOK;
+    }
+
     if (ret == EOK) {
         pam_dom_forwarder(preq);
     }
@@ -1531,7 +1570,9 @@ static void pam_forwarder_cb(struct tevent_req *req)
         }
     }
 
-    if (may_do_cert_auth(pctx, pd)) {
+    /* try backend first for authentication before doing local Smartcard
+     * authentication */
+    if (pd->cmd != SSS_PAM_AUTHENTICATE && may_do_cert_auth(pctx, pd)) {
         ret = check_cert(cctx, cctx->ev, pctx, preq, pd);
         /* Finish here */
         goto done;
@@ -1985,7 +2026,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                                                 NULL);
         if (cert_user == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Certificate user object has not name.\n");
+                  "Certificate user object has no name.\n");
             preq->pd->pam_status = PAM_USER_UNKNOWN;
             pam_reply(preq);
             return;
@@ -1994,11 +2035,21 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         /* pam_check_user_search() calls pd_set_primary_name() is the search
          * was successful, so pd->user contains the canonical sysdb name
          * as well */
-        if (strcmp(cert_user, preq->pd->user) == 0) {
-
-            preq->pd->pam_status = PAM_SUCCESS;
+        if (ldb_dn_compare(preq->cert_user_obj->dn, preq->user_obj->dn) == 0) {
 
             if (preq->pd->cmd == SSS_PAM_PREAUTH) {
+                ret = sss_authtok_set_sc(preq->pd->authtok,
+                                         SSS_AUTHTOK_TYPE_SC_PIN, NULL, 0,
+                                         preq->token_name, 0,
+                                         preq->module_name, 0,
+                                         preq->key_id, 0);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_set_sc failed, "
+                                             "Smartcard authentication "
+                                             "detection might fail in the "
+                                             "backend.\n");
+                }
+
                 ret = add_pam_cert_response(preq->pd, cert_user,
                                             preq->token_name);
                 if (ret != EOK) {
@@ -2007,9 +2058,14 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                 }
             }
 
-            preq->callback = pam_reply;
-            pam_reply(preq);
-            return;
+            /* We are done if we do not have to call the backend */
+            if (preq->pd->cmd == SSS_PAM_AUTHENTICATE
+                    && preq->cert_auth_local) {
+                preq->pd->pam_status = PAM_SUCCESS;
+                preq->callback = pam_reply;
+                pam_reply(preq);
+                return;
+            }
         } else {
             if (preq->pd->cmd == SSS_PAM_PREAUTH) {
                 DEBUG(SSSDBG_TRACE_FUNC,

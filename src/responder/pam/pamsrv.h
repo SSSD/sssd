@@ -71,6 +71,9 @@ struct pam_auth_req {
     struct ldb_message *user_obj;
     struct ldb_message *cert_user_obj;
     char *token_name;
+    char *module_name;
+    char *key_id;
+    bool cert_auth_local;
 };
 
 struct sss_cmd_table *get_pam_cmds(void);

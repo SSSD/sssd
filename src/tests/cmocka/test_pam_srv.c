@@ -285,6 +285,9 @@ static void pam_test_setup_common(void)
                                                pam_test_ctx->tctx->dom->name);
     assert_non_null(pam_test_ctx->wrong_user_fqdn);
 
+    /* integer values cannot be set by pam_params */
+    pam_test_ctx->pctx->id_timeout = 5;
+
     /* Prime the cache with a valid user */
     ret = sysdb_add_user(pam_test_ctx->tctx->dom,
                          pam_test_ctx->pam_user_fqdn,
@@ -780,6 +783,13 @@ static int test_pam_wrong_pw_offline_auth_check(uint32_t status,
                                                 uint8_t *body, size_t blen)
 {
     pam_test_ctx->exp_pam_status = PAM_AUTH_ERR;
+    return test_pam_simple_check(status, body, blen);
+}
+
+static int test_pam_simple_check_success(uint32_t status,
+                                                uint8_t *body, size_t blen)
+{
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
     return test_pam_simple_check(status, body, blen);
 }
 
@@ -1752,7 +1762,11 @@ void test_pam_cert_auth(void **state)
     mock_account_recv(0, 0, NULL, test_lookup_by_cert_cb,
                       discard_const(TEST_TOKEN_CERT));
 
-    set_cmd_cb(test_pam_simple_check);
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+
+    set_cmd_cb(test_pam_simple_check_success);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
                           pam_test_ctx->pam_cmds);
     assert_int_equal(ret, EOK);
