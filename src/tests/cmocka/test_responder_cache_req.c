@@ -188,20 +188,20 @@ static void run_user_by_name(struct cache_req_test_ctx *test_ctx,
                   cache_refresh_percent, TEST_USER_NAME, exp_ret);
 }
 
-static errno_t run_user_by_upn(struct cache_req_test_ctx *test_ctx,
-                               struct sss_domain_info *domain,
-                               int cache_refresh_percent,
-                               errno_t exp_ret)
+static void run_user_by_upn(struct cache_req_test_ctx *test_ctx,
+                            struct sss_domain_info *domain,
+                            int cache_refresh_percent,
+                            errno_t exp_ret)
 {
     run_cache_req(test_ctx, cache_req_user_by_name_send,
                   cache_req_user_by_name_test_done, domain,
                   cache_refresh_percent, TEST_UPN, exp_ret);
 }
 
-static errno_t run_user_by_id(struct cache_req_test_ctx *test_ctx,
-                              struct sss_domain_info *domain,
-                              int cache_refresh_percent,
-                              errno_t exp_ret)
+static void run_user_by_id(struct cache_req_test_ctx *test_ctx,
+                           struct sss_domain_info *domain,
+                           int cache_refresh_percent,
+                           errno_t exp_ret)
 {
     run_cache_req(test_ctx, cache_req_user_by_id_send,
                   cache_req_user_by_id_test_done, domain,
