@@ -217,7 +217,8 @@ class DSOpenLDAP(DS):
                 break
             except ldap.SERVER_DOWN:
                 pass
-            if ++attempt > 30:
+            attempt = attempt + 1
+            if attempt > 30:
                 raise Exception("Failed to start slapd")
             time.sleep(1)
 
@@ -270,7 +271,8 @@ class DSOpenLDAP(DS):
                 pid_file.close()
             attempt = 0
             while os.path.isfile(self.pid_path):
-                if ++attempt > 30:
+                attempt = attempt + 1
+                if attempt > 30:
                     raise Exception("Failed to stop slapd")
                 time.sleep(1)
         except IOError as e:
