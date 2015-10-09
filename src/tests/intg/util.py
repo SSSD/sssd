@@ -31,6 +31,7 @@ def unindent(text):
         the first non-empty line from the beginning of every line.
     """
     indent_ref = [0]
+
     def replace(match):
         if indent_ref[0] == 0:
             indent_ref[0] = len(match.group())
@@ -56,7 +57,6 @@ def run_shell():
         ".config/screenrc"],
         env=my_env
     )
-
 
 
 def first_dir(*args):

@@ -55,23 +55,23 @@ class DSOpenLDAP(DS):
             admin_pw    Administrator password.
         """
         DS.__init__(self, dir, port, base_dn, admin_rdn, admin_pw)
-        self.run_dir            = self.dir + "/var/run/ldap"
-        self.pid_path           = self.run_dir + "/slapd.pid"
-        self.conf_dir           = self.dir + "/etc/ldap"
-        self.conf_slapd_d_dir   = self.conf_dir + "/slapd.d"
-        self.data_dir           = self.dir + "/var/lib/ldap"
+        self.run_dir = self.dir + "/var/run/ldap"
+        self.pid_path = self.run_dir + "/slapd.pid"
+        self.conf_dir = self.dir + "/etc/ldap"
+        self.conf_slapd_d_dir = self.conf_dir + "/slapd.d"
+        self.data_dir = self.dir + "/var/lib/ldap"
 
     def _setup_config(self):
         """Setup the instance initial configuration."""
-        dist_lib_dir        = first_dir("/usr/lib/openldap",
-                                        "/usr/lib64/openldap",
-                                        "/usr/lib/ldap")
-        dist_conf_dir       = first_dir("/etc/ldap",
-                                        "/etc/openldap")
-        args_file           = self.run_dir + "/slapd.args"
-        admin_pw_hash       = hash_password(self.admin_pw)
-        uid                 = os.geteuid()
-        gid                 = os.getegid()
+        dist_lib_dir = first_dir("/usr/lib/openldap",
+                                 "/usr/lib64/openldap",
+                                 "/usr/lib/ldap")
+        dist_conf_dir = first_dir("/etc/ldap",
+                                  "/etc/openldap")
+        args_file = self.run_dir + "/slapd.args"
+        admin_pw_hash = hash_password(self.admin_pw)
+        uid = os.geteuid()
+        gid = os.getegid()
 
         #
         # Add configuration
@@ -159,7 +159,7 @@ class DSOpenLDAP(DS):
 
         slapadd = subprocess.Popen(
             ["slapadd", "-F", self.conf_slapd_d_dir, "-b", "cn=config"],
-            stdin = subprocess.PIPE, close_fds = True
+            stdin=subprocess.PIPE, close_fds=True
         )
         slapadd.communicate(config)
         if slapadd.returncode != 0:
@@ -182,9 +182,9 @@ class DSOpenLDAP(DS):
 
     def setup(self):
         """Setup the instance."""
-        ldapi_socket        = self.run_dir + "/ldapi"
-        ldapi_url           = "ldapi://" + urllib.quote(ldapi_socket, "")
-        url_list            = ldapi_url + " " + self.ldap_url
+        ldapi_socket = self.run_dir + "/ldapi"
+        ldapi_url = "ldapi://" + urllib.quote(ldapi_socket, "")
+        url_list = ldapi_url + " " + self.ldap_url
 
         os.makedirs(self.conf_slapd_d_dir)
         os.makedirs(self.run_dir)
@@ -209,7 +209,8 @@ class DSOpenLDAP(DS):
         while True:
             try:
                 ldap_conn = ldap.initialize(ldapi_url)
-                ldap_conn.simple_bind_s(self.admin_rdn + ",cn=config", self.admin_pw)
+                ldap_conn.simple_bind_s(self.admin_rdn + ",cn=config",
+                                        self.admin_pw)
                 ldap_conn.unbind_s()
                 ldap_conn = ldap.initialize(self.ldap_url)
                 ldap_conn.simple_bind_s(self.admin_dn, self.admin_pw)

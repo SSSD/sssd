@@ -35,13 +35,13 @@ class DS:
             admin_rdn   Administrator DN, relative to BASE_DN.
             admin_pw    Administrator password.
         """
-        self.dir        = dir
-        self.port       = port
-        self.ldap_url   = "ldap://localhost:" + str(self.port)
-        self.base_dn    = base_dn
-        self.admin_rdn  = admin_rdn
-        self.admin_dn   = admin_rdn + "," + base_dn
-        self.admin_pw   = admin_pw
+        self.dir = dir
+        self.port = port
+        self.ldap_url = "ldap://localhost:" + str(self.port)
+        self.base_dn = base_dn
+        self.admin_rdn = admin_rdn
+        self.admin_dn = admin_rdn + "," + base_dn
+        self.admin_pw = admin_pw
 
     def setup(self):
         """Setup the instance"""

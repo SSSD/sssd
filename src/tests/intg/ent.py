@@ -21,9 +21,9 @@ from pprint import pformat
 import pwd
 import grp
 
-_PASSWD_LIST_DESC   = {None: ("user", {})}
-_GROUP_DESC         = {"mem": ("member list", {None: ("member", {})})}
-_GROUP_LIST_DESC    = {None: ("group", _GROUP_DESC)}
+_PASSWD_LIST_DESC = {None: ("user", {})}
+_GROUP_DESC = {"mem": ("member list", {None: ("member", {})})}
+_GROUP_LIST_DESC = {None: ("group", _GROUP_DESC)}
 
 
 def _get_desc(desc_map, key):
@@ -39,10 +39,10 @@ def _get_desc(desc_map, key):
         return desc_map[key]
     if None in desc_map:
         desc = desc_map[None]
-        if key != None:
+        if key is not None:
             desc = (desc[0] + " " + pformat(key), desc[1])
         return desc
-    elif key == None:
+    elif key is None:
         return ("item", {})
     else:
         return (pformat(key), {})
@@ -123,9 +123,8 @@ def _diff(ent, pattern, desc_map={}):
                 if not d:
                     pattern_matches[pi] += 1
 
-        unmatched_pattern = [ pattern[pi] for pi in \
-                                          xrange(0, len(pattern)) \
-                                          if pattern_matches[pi] == 0 ]
+        unmatched_pattern = [pattern[pi] for pi in xrange(0, len(pattern))
+                             if pattern_matches[pi] == 0]
 
         items = _get_desc(desc_map, None)[0] + "s"
         if len(unmatched_pattern) > 0:
@@ -145,12 +144,10 @@ def _diff(ent, pattern, desc_map={}):
                     pattern_matches[pi] += 1
                     ent_matches[ei] += 1
 
-        unmatched_pattern = [ pattern[pi] for pi in \
-                                          xrange(0, len(pattern)) \
-                                          if pattern_matches[pi] == 0 ]
-        unmatched_ent = [ ent[pi] for pi in \
-                                  xrange(0, len(ent)) \
-                                  if ent_matches[pi] == 0 ]
+        unmatched_pattern = [pattern[pi] for pi in xrange(0, len(pattern))
+                             if pattern_matches[pi] == 0]
+        unmatched_ent = [ent[pi] for pi in xrange(0, len(ent))
+                         if ent_matches[pi] == 0]
 
         items = _get_desc(desc_map, None)[0] + "s"
         d = ""
@@ -190,13 +187,13 @@ def _convert_passwd(passwd):
     Convert a passwd entry returned by pwd module to an entry dictionary.
     """
     return dict(
-            name    = passwd.pw_name,
-            passwd  = passwd.pw_passwd,
-            uid     = passwd.pw_uid,
-            gid     = passwd.pw_gid,
-            gecos   = passwd.pw_gecos,
-            dir     = passwd.pw_dir,
-            shell   = passwd.pw_shell
+            name=passwd.pw_name,
+            passwd=passwd.pw_passwd,
+            uid=passwd.pw_uid,
+            gid=passwd.pw_gid,
+            gecos=passwd.pw_gecos,
+            dir=passwd.pw_dir,
+            shell=passwd.pw_shell
     )
 
 
@@ -353,10 +350,10 @@ def _convert_group(group):
     Convert a group entry returned by grp module to an entry dictionary.
     """
     return dict(
-            name    = group.gr_name,
-            passwd  = group.gr_passwd,
-            gid     = group.gr_gid,
-            mem     = group.gr_mem
+            name=group.gr_name,
+            passwd=group.gr_passwd,
+            gid=group.gr_gid,
+            mem=group.gr_mem
     )
 
 
