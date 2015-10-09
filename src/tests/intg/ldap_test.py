@@ -32,7 +32,7 @@ import ds_openldap
 import ldap_ent
 from util import *
 
-LDAP_BASE_DN="dc=example,dc=com"
+LDAP_BASE_DN = "dc=example,dc=com"
 
 
 @pytest.fixture(scope="module")
@@ -267,9 +267,12 @@ def test_regression_ticket2163(ldap_conn, simple_rfc2307):
 
 def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
     passwd_pattern = ent.contains_only(
-        dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001', dir='/home/user1', shell='/bin/bash'),
-        dict(name='user2', passwd='*', uid=1002, gid=2002, gecos='1002', dir='/home/user2', shell='/bin/bash'),
-        dict(name='user3', passwd='*', uid=1003, gid=2003, gecos='1003', dir='/home/user3', shell='/bin/bash')
+        dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001',
+             dir='/home/user1', shell='/bin/bash'),
+        dict(name='user2', passwd='*', uid=1002, gid=2002, gecos='1002',
+             dir='/home/user2', shell='/bin/bash'),
+        dict(name='user3', passwd='*', uid=1003, gid=2003, gecos='1003',
+             dir='/home/user3', shell='/bin/bash')
     )
     ent.assert_passwd(passwd_pattern)
 
@@ -277,8 +280,10 @@ def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
         dict(name='group1', passwd='*', gid=2001, mem=ent.contains_only()),
         dict(name='group2', passwd='*', gid=2002, mem=ent.contains_only()),
         dict(name='group3', passwd='*', gid=2003, mem=ent.contains_only()),
-        dict(name='empty_group', passwd='*', gid=2010, mem=ent.contains_only()),
-        dict(name='two_user_group', passwd='*', gid=2012, mem=ent.contains_only("user1", "user2"))
+        dict(name='empty_group', passwd='*', gid=2010,
+             mem=ent.contains_only()),
+        dict(name='two_user_group', passwd='*', gid=2012,
+             mem=ent.contains_only("user1", "user2"))
     )
     ent.assert_group(group_pattern)
 
@@ -294,9 +299,12 @@ def test_sanity_rfc2307(ldap_conn, sanity_rfc2307):
 
 def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
     passwd_pattern = ent.contains_only(
-        dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001', dir='/home/user1', shell='/bin/bash'),
-        dict(name='user2', passwd='*', uid=1002, gid=2002, gecos='1002', dir='/home/user2', shell='/bin/bash'),
-        dict(name='user3', passwd='*', uid=1003, gid=2003, gecos='1003', dir='/home/user3', shell='/bin/bash')
+        dict(name='user1', passwd='*', uid=1001, gid=2001, gecos='1001',
+             dir='/home/user1', shell='/bin/bash'),
+        dict(name='user2', passwd='*', uid=1002, gid=2002, gecos='1002',
+             dir='/home/user2', shell='/bin/bash'),
+        dict(name='user3', passwd='*', uid=1003, gid=2003, gecos='1003',
+             dir='/home/user3', shell='/bin/bash')
     )
     ent.assert_passwd(passwd_pattern)
 
@@ -304,16 +312,26 @@ def test_sanity_rfc2307_bis(ldap_conn, sanity_rfc2307_bis):
         dict(name='group1', passwd='*', gid=2001, mem=ent.contains_only()),
         dict(name='group2', passwd='*', gid=2002, mem=ent.contains_only()),
         dict(name='group3', passwd='*', gid=2003, mem=ent.contains_only()),
-        dict(name='empty_group1', passwd='*', gid=2010, mem=ent.contains_only()),
-        dict(name='empty_group2', passwd='*', gid=2011, mem=ent.contains_only()),
-        dict(name='two_user_group', passwd='*', gid=2012, mem=ent.contains_only("user1", "user2")),
-        dict(name='group_empty_group', passwd='*', gid=2013, mem=ent.contains_only()),
-        dict(name='group_two_empty_groups', passwd='*', gid=2014, mem=ent.contains_only()),
-        dict(name='one_user_group1', passwd='*', gid=2015, mem=ent.contains_only("user1")),
-        dict(name='one_user_group2', passwd='*', gid=2016, mem=ent.contains_only("user2")),
-        dict(name='group_one_user_group', passwd='*', gid=2017, mem=ent.contains_only("user1")),
-        dict(name='group_two_user_group', passwd='*', gid=2018, mem=ent.contains_only("user1", "user2")),
-        dict(name='group_two_one_user_groups', passwd='*', gid=2019, mem=ent.contains_only("user1", "user2"))
+        dict(name='empty_group1', passwd='*', gid=2010,
+             mem=ent.contains_only()),
+        dict(name='empty_group2', passwd='*', gid=2011,
+             mem=ent.contains_only()),
+        dict(name='two_user_group', passwd='*', gid=2012,
+             mem=ent.contains_only("user1", "user2")),
+        dict(name='group_empty_group', passwd='*', gid=2013,
+             mem=ent.contains_only()),
+        dict(name='group_two_empty_groups', passwd='*', gid=2014,
+             mem=ent.contains_only()),
+        dict(name='one_user_group1', passwd='*', gid=2015,
+             mem=ent.contains_only("user1")),
+        dict(name='one_user_group2', passwd='*', gid=2016,
+             mem=ent.contains_only("user2")),
+        dict(name='group_one_user_group', passwd='*', gid=2017,
+             mem=ent.contains_only("user1")),
+        dict(name='group_two_user_group', passwd='*', gid=2018,
+             mem=ent.contains_only("user1", "user2")),
+        dict(name='group_two_one_user_groups', passwd='*', gid=2019,
+             mem=ent.contains_only("user1", "user2"))
     )
     ent.assert_group(group_pattern)
 
