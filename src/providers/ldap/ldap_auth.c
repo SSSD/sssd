@@ -695,7 +695,7 @@ static void auth_resolve_done(struct tevent_req *subreq)
     int ret;
     bool use_tls;
 
-    ret = be_resolve_server_recv(subreq, &state->srv);
+    ret = be_resolve_server_recv(subreq, state, &state->srv);
     talloc_zfree(subreq);
     if (ret) {
         /* all servers have been tried and none

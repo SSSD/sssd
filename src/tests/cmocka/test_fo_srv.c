@@ -201,6 +201,8 @@ struct test_fo_ctx {
     struct fo_service *fo_svc;
     struct sss_test_ctx *ctx;
     int ttl;
+
+    struct fo_server *srv;
 };
 
 int test_fo_srv_data_cmp(void *ud1, void *ud2)
@@ -401,7 +403,7 @@ static void test_fo_srv_done1(struct tevent_req *req)
     struct fo_server *srv;
     errno_t ret;
 
-    ret = fo_resolve_service_recv(req, &srv);
+    ret = fo_resolve_service_recv(req, req, &srv);
     talloc_zfree(req);
     assert_int_equal(ret, ERR_OK);
 
@@ -426,7 +428,7 @@ static void test_fo_srv_done2(struct tevent_req *req)
     struct fo_server *srv;
     errno_t ret;
 
-    ret = fo_resolve_service_recv(req, &srv);
+    ret = fo_resolve_service_recv(req, req, &srv);
     talloc_zfree(req);
     assert_int_equal(ret, ERR_OK);
 
@@ -450,7 +452,7 @@ static void test_fo_srv_done3(struct tevent_req *req)
     struct fo_server *srv;
     errno_t ret;
 
-    ret = fo_resolve_service_recv(req, &srv);
+    ret = fo_resolve_service_recv(req, req, &srv);
     talloc_zfree(req);
     assert_int_equal(ret, ERR_OK);
 
@@ -474,7 +476,7 @@ static void test_fo_srv_done4(struct tevent_req *req)
     struct fo_server *srv;
     errno_t ret;
 
-    ret = fo_resolve_service_recv(req, &srv);
+    ret = fo_resolve_service_recv(req, req, &srv);
     talloc_zfree(req);
     /* No servers are left..*/
     assert_int_equal(ret, ENOENT);
@@ -499,7 +501,7 @@ static void test_fo_srv_done5(struct tevent_req *req)
     struct fo_server *srv;
     errno_t ret;
 
-    ret = fo_resolve_service_recv(req, &srv);
+    ret = fo_resolve_service_recv(req, req, &srv);
     talloc_zfree(req);
 
     assert_int_equal(ret, ERR_OK);
@@ -558,20 +560,19 @@ static void test_fo_srv_before(struct tevent_req *req)
 {
     struct test_fo_ctx *test_ctx = \
         tevent_req_callback_data(req, struct test_fo_ctx);
-    struct fo_server *srv;
     struct ares_srv_reply *s1;
     struct ares_srv_reply *s2;
     char *dns_domain;
     errno_t ret;
 
-    ret = fo_resolve_service_recv(req, &srv);
+    ret = fo_resolve_service_recv(req, test_ctx, &test_ctx->srv);
     talloc_zfree(req);
     assert_int_equal(ret, ERR_OK);
 
     DEBUG(SSSDBG_TRACE_FUNC, "Before TTL change\n");
 
-    check_server(test_ctx, srv, 389, "ldap1.sssd.com");
-    fo_set_server_status(srv, SERVER_WORKING);
+    check_server(test_ctx, test_ctx->srv, 389, "ldap1.sssd.com");
+    fo_set_server_status(test_ctx->srv, SERVER_WORKING);
 
     /* Simulate changing the DNS environment. Change the host names */
     s1 = mock_ares_reply(test_ctx, "ldap2.sssd.com", 100, 2, 389);
@@ -602,9 +603,14 @@ static void test_fo_srv_after(struct tevent_req *req)
     struct fo_server *srv;
     errno_t ret;
 
-    ret = fo_resolve_service_recv(req, &srv);
+    ret = fo_resolve_service_recv(req, req, &srv);
     talloc_zfree(req);
     assert_int_equal(ret, ERR_OK);
+
+    /* Try accessing server from a previous iteration. The
+     * server should be collapsed, but at least we shouldn't crash
+     */
+    fo_set_server_status(test_ctx->srv, SERVER_WORKING);
 
     /* Must be a different server now */
     check_server(test_ctx, srv, 389, "ldap3.sssd.com");
