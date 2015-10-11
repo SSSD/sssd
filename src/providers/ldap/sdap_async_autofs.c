@@ -160,8 +160,6 @@ save_autofs_entries(struct sss_domain_info *domain,
 
 static errno_t
 del_autofs_entries(struct sss_domain_info *dom,
-                   struct sdap_options *opts,
-                   const char *map,
                    char **del_dn_list)
 {
     size_t i;
@@ -920,8 +918,7 @@ sdap_autofs_setautomntent_save(struct tevent_req *req)
 
     /* Delete entries that don't exist anymore */
     if (del_entries && del_entries[0]) {
-        ret = del_autofs_entries(state->dom, state->opts,
-                                 state->mapname, del_entries);
+        ret = del_autofs_entries(state->dom, del_entries);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Cannot delete autofs entries [%d]: %s\n",
