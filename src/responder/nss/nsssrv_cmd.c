@@ -600,6 +600,124 @@ is_refreshed_on_bg(enum sss_dp_acct_type req_type,
 
 static void nsssrv_dp_send_acct_req_done(struct tevent_req *req);
 
+static void get_dp_name_and_id(TALLOC_CTX *mem_ctx,
+                              struct sss_domain_info *dom,
+                              enum sss_dp_acct_type req_type,
+                              const char *opt_name,
+                              uint32_t opt_id,
+                              const char **_name,
+                              uint32_t *_id)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res = NULL;
+    const char *attr;
+    const char *name;
+    uint32_t id;
+    errno_t ret;
+
+    /* First set the same values to make things easier. */
+    *_name = opt_name;
+    *_id = opt_id;
+
+    if (!DOM_HAS_VIEWS(dom) || !is_local_view(dom->view_name)) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Not a LOCAL view, continuing with "
+              "provided values.\n");
+        return;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return;
+    }
+
+    if (opt_name != NULL) {
+        switch (req_type) {
+        case SSS_DP_USER:
+        case SSS_DP_INITGROUPS:
+            ret = sysdb_getpwnam_with_views(tmp_ctx, dom, opt_name, &res);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "sysdb_getpwnam_with_views() failed [%d]: %s\n",
+                      ret, sss_strerror(ret));
+                goto done;
+            }
+            break;
+        case SSS_DP_GROUP:
+            ret = sysdb_getgrnam_with_views(tmp_ctx, dom, opt_name, &res);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "sysdb_getgrnam_with_views() failed [%d]: %s\n",
+                      ret, sss_strerror(ret));
+                goto done;
+            }
+            break;
+        default:
+            goto done;
+        }
+
+        if (res == NULL || res->count != 1) {
+            /* This should not happen with LOCAL view and overridden value. */
+            DEBUG(SSSDBG_TRACE_FUNC, "Entry is missing?! Continuing with "
+                  "provided values.\n");
+            goto done;
+        }
+
+        name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+        if (name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL\n");
+            goto done;
+        }
+
+        *_name = talloc_steal(mem_ctx, name);
+    } else if (opt_id != 0) {
+        switch (req_type) {
+        case SSS_DP_USER:
+            ret = sysdb_getpwuid_with_views(tmp_ctx, dom, opt_id, &res);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "sysdb_getpwuid_with_views() failed [%d]: %s\n",
+                      ret, sss_strerror(ret));
+                goto done;
+            }
+
+            attr = SYSDB_UIDNUM;
+            break;
+        case SSS_DP_GROUP:
+            ret = sysdb_getgrgid_with_views(tmp_ctx, dom, opt_id, &res);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CONF_SETTINGS,
+                      "sysdb_getgrgid_with_views() failed [%d]: %s\n",
+                      ret, sss_strerror(ret));
+                goto done;
+            }
+
+            attr = SYSDB_GIDNUM;
+            break;
+        default:
+            goto done;
+        }
+
+        if (res == NULL || res->count != 1) {
+            /* This should not happen with LOCAL view and overridden value. */
+            DEBUG(SSSDBG_TRACE_FUNC, "Entry is missing?! Continuing with "
+                  "provided values.\n");
+            goto done;
+        }
+
+        id = ldb_msg_find_attr_as_uint64(res->msgs[0], attr, 0);
+        if (id == 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: id cannot be 0\n");
+            goto done;
+        }
+
+        *_id = id;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+}
+
 /* FIXME: do not check res->count, but get in a msgs and check in parent */
 errno_t check_cache(struct nss_dom_ctx *dctx,
                     struct nss_ctx *nctx,
@@ -617,6 +735,8 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
     struct tevent_req *req = NULL;
     struct dp_callback_ctx *cb_ctx = NULL;
     uint64_t cacheExpire = 0;
+    const char *name = opt_name;
+    uint32_t id = opt_id;
 
     /* when searching for a user or netgroup, more than one reply is a
      * db error
@@ -627,6 +747,11 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
               "getpwXXX call returned more than one result! DB Corrupted?\n");
         return ENOENT;
     }
+
+    /* In case of local view we have to always contant DP with the original
+     * name or id. */
+    get_dp_name_and_id(dctx->cmdctx, dctx->domain, req_type, opt_name, opt_id,
+                       &name, &id);
 
     /* if we have any reply let's check cache validity, but ignore netgroups
      * if refresh_expired_interval is set (which implies that another method
@@ -672,10 +797,10 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
          * immediately.
          */
         DEBUG(SSSDBG_TRACE_FUNC,
-             "Performing midpoint cache update on [%s]\n", opt_name);
+             "Performing midpoint cache update on [%s]\n", name);
 
         req = sss_dp_get_account_send(cctx, cctx->rctx, dctx->domain, true,
-                                      req_type, opt_name, opt_id, extra);
+                                      req_type, name, id, extra);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending out-of-band data provider "
@@ -704,7 +829,7 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
         }
 
         req = sss_dp_get_account_send(cctx, cctx->rctx, dctx->domain, true,
-                                      req_type, opt_name, opt_id, extra);
+                                      req_type, name, id, extra);
         if (!req) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");
