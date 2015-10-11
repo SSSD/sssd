@@ -507,7 +507,6 @@ create_server_common(TALLOC_CTX *mem_ctx, struct fo_ctx *ctx, const char *name)
 
     common->name = talloc_strdup(common, name);
     if (common->name == NULL) {
-        talloc_free(common);
         return NULL;
     }
 
