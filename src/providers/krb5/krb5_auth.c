@@ -695,9 +695,9 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
     int ret;
 
     if (!state->search_kpasswd) {
-        ret = be_resolve_server_recv(subreq, &kr->srv);
+        ret = be_resolve_server_recv(subreq, kr, &kr->srv);
     } else {
-        ret = be_resolve_server_recv(subreq, &kr->kpasswd_srv);
+        ret = be_resolve_server_recv(subreq, kr, &kr->kpasswd_srv);
     }
     talloc_zfree(subreq);
 

@@ -1148,7 +1148,7 @@ static void sdap_kinit_kdc_resolved(struct tevent_req *subreq)
     struct tevent_req *tgtreq;
     int ret;
 
-    ret = be_resolve_server_recv(subreq, &state->kdc_srv);
+    ret = be_resolve_server_recv(subreq, state, &state->kdc_srv);
     talloc_zfree(subreq);
     if (ret != EOK) {
         /* all servers have been tried and none
@@ -1508,7 +1508,7 @@ static void sdap_cli_resolve_done(struct tevent_req *subreq)
                                              struct sdap_cli_connect_state);
     int ret;
 
-    ret = be_resolve_server_recv(subreq, &state->srv);
+    ret = be_resolve_server_recv(subreq, state, &state->srv);
     talloc_zfree(subreq);
     if (ret) {
         state->srv = NULL;

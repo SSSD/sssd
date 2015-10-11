@@ -258,7 +258,9 @@ struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
                                           struct be_ctx *ctx,
                                           const char *service_name,
                                           bool first_try);
-int be_resolve_server_recv(struct tevent_req *req, struct fo_server **srv);
+int be_resolve_server_recv(struct tevent_req *req,
+                           TALLOC_CTX *ref_ctx,
+                           struct fo_server **srv);
 
 #define be_fo_set_port_status(ctx, service_name, server, status) \
     _be_fo_set_port_status(ctx, service_name, server, status, \

@@ -128,7 +128,6 @@ int fo_add_server(struct fo_service *service,
                   const char *name, int port,
                   void *user_data, bool primary);
 
-
 int fo_add_srv_server(struct fo_service *service,
                       const char *srv,
                       const char *discovery_domain,
@@ -148,7 +147,16 @@ struct tevent_req *fo_resolve_service_send(TALLOC_CTX *mem_ctx,
                                            struct fo_service *service);
 
 int fo_resolve_service_recv(struct tevent_req *req,
+                            TALLOC_CTX *ref_ctx,
                             struct fo_server **server);
+
+
+/* To be used by async consumers of fo_resolve_service. If a server should be returned
+ * to an outer request, it should be referenced by a memory from that outer request,
+ * because the failover's server list might change with a subsequent call (see upstream
+ * bug #2829)
+ */
+void fo_ref_server(TALLOC_CTX *ref_ctx, struct fo_server *server);
 
 /*
  * Set feedback about 'server'. Caller should use this to indicate a problem
