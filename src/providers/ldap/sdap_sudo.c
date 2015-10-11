@@ -76,7 +76,7 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
      * so we don't have current usn values available */
     sudo_ctx->full_refresh_done = false;
 
-    ret = ldap_get_sudo_options(id_ctx, be_ctx->cdb,
+    ret = ldap_get_sudo_options(be_ctx->cdb,
                                 be_ctx->conf_path, id_ctx->opts,
                                 &sudo_ctx->use_host_filter,
                                 &sudo_ctx->include_regexp,
