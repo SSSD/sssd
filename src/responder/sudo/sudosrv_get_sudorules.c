@@ -160,7 +160,10 @@ static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
         if ((user->count == 0 || cache_expire < time(NULL))
             && dctx->check_provider) {
 
-            if (DOM_HAS_VIEWS(dom) && user->count == 0) {
+            if (DOM_HAS_VIEWS(dom) && (user->count == 0
+                    || ldb_msg_find_attr_as_string(user->msgs[0],
+                                                   OVERRIDE_PREFIX SYSDB_NAME,
+                                                   NULL) != NULL)) {
                 extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
             }
 
