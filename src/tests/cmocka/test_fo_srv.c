@@ -319,34 +319,50 @@ static void test_fo_srv_done3(struct tevent_req *req);
 static void test_fo_srv_done4(struct tevent_req *req);
 static void test_fo_srv_done5(struct tevent_req *req);
 
-static void test_fo_srv_mock_dns(struct test_fo_ctx *test_ctx)
+
+struct ares_srv_reply *
+mock_ares_reply(TALLOC_CTX *mem_ctx, const char *hostname,
+                int weight, int priority, int port)
+{
+    struct ares_srv_reply *s;
+
+    s = talloc_zero(mem_ctx, struct ares_srv_reply);
+    if (s == NULL) {
+        return NULL;
+    }
+
+    s->host = talloc_strdup(s, hostname);
+    if (s->host == NULL) {
+        talloc_free(s);
+        return NULL;
+    }
+
+    s->weight = weight;
+    s->priority = priority;
+    s->port = port;
+
+    return s;
+}
+
+static void test_fo_srv_mock_dns(struct test_fo_ctx *test_ctx,
+                                 int ttl)
 {
     struct ares_srv_reply *s1;
     struct ares_srv_reply *s2;
     char *dns_domain;
 
-    s1 = talloc_zero(test_ctx, struct ares_srv_reply);
+    s1 = mock_ares_reply(test_ctx, "ldap1.sssd.com", 100, 1, 389);
     assert_non_null(s1);
-    s1->host = talloc_strdup(s1, "ldap1.sssd.com");
-    assert_non_null(s1->host);
-    s1->weight = 100;
-    s1->priority = 1;
-    s1->port = 389;
 
-    s2 = talloc_zero(test_ctx, struct ares_srv_reply);
+    s2 = mock_ares_reply(test_ctx, "ldap2.sssd.com", 100, 2, 389);
     assert_non_null(s2);
-    s2->host = talloc_strdup(s2, "ldap2.sssd.com");
-    assert_non_null(s2->host);
-    s2->weight = 100;
-    s2->priority = 2;
-    s2->port = 389;
 
     s1->next = s2;
 
     dns_domain = talloc_strdup(test_ctx, "sssd.com");
     assert_non_null(dns_domain);
 
-    mock_srv_results(s1, TEST_SRV_TTL, dns_domain);
+    mock_srv_results(s1, ttl, dns_domain);
 }
 
 static void test_fo_srv(void **state)
@@ -355,7 +371,7 @@ static void test_fo_srv(void **state)
     struct test_fo_ctx *test_ctx =
         talloc_get_type(*state, struct test_fo_ctx);
 
-    test_fo_srv_mock_dns(test_ctx);
+    test_fo_srv_mock_dns(test_ctx, TEST_SRV_TTL);
 
     ret = fo_add_srv_server(test_ctx->fo_svc, "_ldap", "sssd.com",
                             "sssd.local", "tcp", test_ctx);
@@ -466,7 +482,7 @@ static void test_fo_srv_done4(struct tevent_req *req)
     /* reset the server status and try again.. */
     fo_reset_servers(test_ctx->fo_svc);
     if (test_ctx->srv_ctx) {
-        test_fo_srv_mock_dns(test_ctx);
+        test_fo_srv_mock_dns(test_ctx, TEST_SRV_TTL);
     }
 
     req = fo_resolve_service_send(test_ctx, test_ctx->ctx->ev,
@@ -516,32 +532,8 @@ static void test_fo_srv_ttl_change_step(struct test_fo_ctx *test_ctx)
 {
     errno_t ret;
     struct tevent_req *req;
-    struct ares_srv_reply *s1;
-    struct ares_srv_reply *s2;
-    char *dns_domain;
 
-    s1 = talloc_zero(test_ctx, struct ares_srv_reply);
-    assert_non_null(s1);
-    s1->host = talloc_strdup(s1, "ldap1.sssd.com");
-    assert_non_null(s1->host);
-    s1->weight = 100;
-    s1->priority = 1;
-    s1->port = 389;
-
-    s2 = talloc_zero(test_ctx, struct ares_srv_reply);
-    assert_non_null(s2);
-    s2->host = talloc_strdup(s2, "ldap2.sssd.com");
-    assert_non_null(s2->host);
-    s2->weight = 100;
-    s2->priority = 2;
-    s2->port = 389;
-
-    s1->next = s2;
-
-    dns_domain = talloc_strdup(test_ctx, "sssd.com");
-    assert_non_null(dns_domain);
-
-    mock_srv_results(s1, test_ctx->ttl, dns_domain);
+    test_fo_srv_mock_dns(test_ctx, test_ctx->ttl);
 
     ret = fo_add_srv_server(test_ctx->fo_svc, "_ldap", "sssd.com",
                             "sssd.local", "tcp", test_ctx);
@@ -582,21 +574,11 @@ static void test_fo_srv_before(struct tevent_req *req)
     fo_set_server_status(srv, SERVER_WORKING);
 
     /* Simulate changing the DNS environment. Change the host names */
-    s1 = talloc_zero(test_ctx, struct ares_srv_reply);
+    s1 = mock_ares_reply(test_ctx, "ldap2.sssd.com", 100, 2, 389);
     assert_non_null(s1);
-    s1->host = talloc_strdup(s1, "ldap2.sssd.com");
-    assert_non_null(s1->host);
-    s1->weight = 100;
-    s1->priority = 2;
-    s1->port = 389;
 
-    s2 = talloc_zero(test_ctx, struct ares_srv_reply);
+    s2 = mock_ares_reply(test_ctx, "ldap3.sssd.com", 100, 1, 389);
     assert_non_null(s2);
-    s2->host = talloc_strdup(s2, "ldap3.sssd.com");
-    assert_non_null(s2->host);
-    s2->weight = 100;
-    s2->priority = 1;
-    s2->port = 389;
 
     s1->next = s2;
 
