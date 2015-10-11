@@ -474,8 +474,7 @@ static void users_get_done(struct tevent_req *subreq)
         }
 
         if (fallback) {
-            ret = sdap_fallback_local_user(state, state->ctx->opts,
-                                           name, uid, &usr_attrs);
+            ret = sdap_fallback_local_user(state, name, uid, &usr_attrs);
             if (ret == EOK) {
                 ret = sdap_save_user(state, state->ctx->opts, state->domain,
                                      usr_attrs[0], NULL, 0);
