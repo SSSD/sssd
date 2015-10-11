@@ -27,9 +27,8 @@
 /* shared non-async user functions */
 
 errno_t sdap_fallback_local_user(TALLOC_CTX *memctx,
-                             struct sdap_options *opts,
-                             const char *name, uid_t uid,
-                             struct sysdb_attrs ***reply);
+                                 const char *name, uid_t uid,
+                                 struct sysdb_attrs ***reply);
 
 int sdap_save_user(TALLOC_CTX *memctx,
                    struct sdap_options *opts,

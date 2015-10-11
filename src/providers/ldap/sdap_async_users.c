@@ -939,7 +939,6 @@ int sdap_get_users_recv(struct tevent_req *req,
 /* ==Fetch-Fallback-local-user============================================ */
 
 errno_t sdap_fallback_local_user(TALLOC_CTX *memctx,
-                                 struct sdap_options *opts,
                                  const char *name, uid_t uid,
                                  struct sysdb_attrs ***reply)
 {
