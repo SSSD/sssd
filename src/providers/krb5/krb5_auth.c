@@ -344,8 +344,13 @@ static void krb5_auth_store_creds(struct sss_domain_info *domain,
                           domain->cache_credentials_min_ff_length);
                     ret = EINVAL;
                 }
-            } else {
+            } else if (sss_authtok_get_type(pd->authtok) ==
+                                                    SSS_AUTHTOK_TYPE_PASSWORD) {
                 ret = sss_authtok_get_password(pd->authtok, &password, NULL);
+            } else {
+                DEBUG(SSSDBG_MINOR_FAILURE, "Cannot cache authtok type [%d].\n",
+                      sss_authtok_get_type(pd->authtok));
+                ret = EINVAL;
             }
             break;
         case SSS_PAM_CHAUTHTOK:
@@ -466,7 +471,9 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK:
             if (authtok_type != SSS_AUTHTOK_TYPE_PASSWORD
-                    && authtok_type != SSS_AUTHTOK_TYPE_2FA) {
+                    && authtok_type != SSS_AUTHTOK_TYPE_2FA
+                    && authtok_type != SSS_AUTHTOK_TYPE_SC_PIN
+                    && authtok_type != SSS_AUTHTOK_TYPE_SC_KEYPAD) {
                 /* handle empty password gracefully */
                 if (authtok_type == SSS_AUTHTOK_TYPE_EMPTY) {
                     DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1023,6 +1030,12 @@ static void krb5_auth_done(struct tevent_req *subreq)
         ret = EOK;
         goto done;
 
+    case ERR_NO_AUTH_METHOD_AVAILABLE:
+        state->pam_status = PAM_NO_MODULE_DATA;
+        state->dp_err = DP_ERR_OK;
+        ret = EOK;
+        goto done;
+
     default:
         DEBUG(SSSDBG_IMPORTANT_INFO,
               "The krb5_child process returned an error. Please inspect the "
@@ -1185,6 +1198,7 @@ krb5_pam_handler_send(TALLOC_CTX *mem_ctx,
 
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
+        case SSS_PAM_PREAUTH:
         case SSS_CMD_RENEW:
         case SSS_PAM_CHAUTHTOK_PRELIM:
         case SSS_PAM_CHAUTHTOK:

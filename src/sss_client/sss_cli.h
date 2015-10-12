@@ -431,6 +431,12 @@ enum response_type {
                              * SSS_PAM_OTP_INFO to determine the type of
                              * prompting. There is no message.
                              * @param None. */
+    SSS_CERT_AUTH_PROMPTING, /**< Indicates that on the server side
+                              * Smartcard/certificate based authentication is
+                              * available for the selected account. This might
+                              * be used together with other prompting options
+                              * to determine the type of prompting.
+                              * @param None. */
 };
 
 /**
