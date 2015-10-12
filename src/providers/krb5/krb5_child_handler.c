@@ -90,7 +90,9 @@ static errno_t pack_authtok(struct io_buffer *buf, size_t *rp,
     if (ret == EOK) {
         SAFEALIGN_COPY_UINT32(&buf->data[*rp], &auth_token_type, rp);
         SAFEALIGN_COPY_UINT32(&buf->data[*rp], &auth_token_length, rp);
-        safealign_memcpy(&buf->data[*rp], data, auth_token_length, rp);
+        if (data != NULL) {
+            safealign_memcpy(&buf->data[*rp], data, auth_token_length, rp);
+        }
     }
 
     return ret;
@@ -145,6 +147,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     buf->size = 8*sizeof(uint32_t) + strlen(kr->upn);
 
     if (kr->pd->cmd == SSS_PAM_AUTHENTICATE ||
+        kr->pd->cmd == SSS_PAM_PREAUTH ||
         kr->pd->cmd == SSS_CMD_RENEW ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
@@ -187,6 +190,7 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
     safealign_memcpy(&buf->data[rp], kr->upn, strlen(kr->upn), &rp);
 
     if (kr->pd->cmd == SSS_PAM_AUTHENTICATE ||
+        kr->pd->cmd == SSS_PAM_PREAUTH ||
         kr->pd->cmd == SSS_CMD_RENEW ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM ||
         kr->pd->cmd == SSS_PAM_CHAUTHTOK) {

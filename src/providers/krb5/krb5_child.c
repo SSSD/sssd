@@ -64,6 +64,7 @@ struct krb5_req {
     krb5_creds *creds;
     bool otp;
     bool password_prompting;
+    bool pkinit_prompting;
     char *otp_vendor;
     char *otp_token_id;
     char *otp_challenge;
@@ -587,6 +588,138 @@ done:
     return ret;
 }
 
+static bool pkinit_identity_matches(const char *identity,
+                                    const char *token_name,
+                                    const char *module_name)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *str;
+    bool res = false;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");
+        return false;
+    }
+
+    str = talloc_asprintf(tmp_ctx, "module_name=%s", module_name);
+    if (str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        goto done;
+    }
+
+    if (strstr(identity, str) == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Identity [%s] does not contain [%s].\n",
+                                identity, str);
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in identity [%s].\n", str, identity);
+
+    str = talloc_asprintf(tmp_ctx, "token=%s", token_name);
+    if (str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        goto done;
+    }
+
+    if (strstr(identity, str) == NULL) {
+        DEBUG(SSSDBG_TRACE_ALL, "Identity [%s] does not contain [%s].\n",
+                                identity, str);
+        goto done;
+    }
+    DEBUG(SSSDBG_TRACE_ALL, "Found [%s] in identity [%s].\n", str, identity);
+
+    res = true;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return res;
+}
+
+static krb5_error_code answer_pkinit(krb5_context ctx,
+                                     struct krb5_req *kr,
+                                     krb5_responder_context rctx)
+{
+    krb5_error_code kerr;
+    const char *pin = NULL;
+    const char *token_name = NULL;
+    const char *module_name = NULL;
+    krb5_responder_pkinit_challenge *chl = NULL;
+    size_t c;
+
+    kerr = krb5_responder_pkinit_get_challenge(ctx, rctx, &chl);
+    if (kerr != EOK || chl == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "krb5_responder_pkinit_get_challenge failed.\n");
+        return kerr;
+    }
+    if (chl->identities == NULL || chl->identities[0] == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "No identities for pkinit!\n");
+        kerr = EINVAL;
+        goto done;
+    }
+
+    if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
+        for (c = 0; chl->identities[c] != NULL; c++) {
+            DEBUG(SSSDBG_TRACE_ALL, "[%zu] Identity [%s] flags [%"PRId32"].\n",
+                                    c, chl->identities[c]->identity,
+                                    chl->identities[c]->token_flags);
+        }
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Setting pkinit_prompting.\n");
+    kr->pkinit_prompting = true;
+
+    if (kr->pd->cmd == SSS_PAM_AUTHENTICATE
+            && (sss_authtok_get_type(kr->pd->authtok)
+                    == SSS_AUTHTOK_TYPE_SC_PIN
+                || sss_authtok_get_type(kr->pd->authtok)
+                    == SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
+        kerr = sss_authtok_get_sc(kr->pd->authtok, &pin, NULL,
+                                 &token_name, NULL,
+                                 &module_name, NULL,
+                                 NULL, NULL);
+        if (kerr != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "sss_authtok_get_sc failed.\n");
+            goto done;
+        }
+
+        for (c = 0; chl->identities[c] != NULL; c++) {
+            if (chl->identities[c]->identity != NULL
+                    && pkinit_identity_matches(chl->identities[c]->identity,
+                                               token_name, module_name)) {
+                break;
+            }
+        }
+
+        if (chl->identities[c] == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "No matching identity for [%s][%s] found in pkinit challenge.\n",
+                  token_name, module_name);
+            kerr = EINVAL;
+            goto done;
+        }
+
+        kerr = krb5_responder_pkinit_set_answer(ctx, rctx,
+                                                chl->identities[c]->identity,
+                                                pin);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "krb5_responder_set_answer failed.\n");
+        }
+
+        goto done;
+    }
+
+    kerr = EOK;
+
+done:
+    krb5_responder_pkinit_challenge_free(ctx, rctx, chl);
+
+    return kerr;
+}
+
 static krb5_error_code sss_krb5_responder(krb5_context ctx,
                                           void *data,
                                           krb5_responder_context rctx)
@@ -634,6 +767,9 @@ static krb5_error_code sss_krb5_responder(krb5_context ctx,
 
                     return kerr;
                 }
+            } else if (strcmp(question_list[c],
+                       KRB5_RESPONDER_QUESTION_PKINIT) == 0) {
+                return answer_pkinit(ctx, kr, rctx);
             }
         }
     }
@@ -661,18 +797,23 @@ static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
     size_t c;
     struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
 
+    if (kr == NULL) {
+        return EINVAL;
+    }
+
     DEBUG(SSSDBG_TRACE_ALL,
           "sss_krb5_prompter name [%s] banner [%s] num_prompts [%d] EINVAL.\n",
           name, banner, num_prompts);
 
     if (num_prompts != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot handle password prompts.\n");
         if (DEBUG_IS_SET(SSSDBG_TRACE_ALL)) {
             for (c = 0; c < num_prompts; c++) {
                 DEBUG(SSSDBG_TRACE_ALL, "Prompt [%zu][%s].\n", c,
                                         prompts[c].prompt);
             }
         }
+
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot handle password prompts.\n");
         return KRB5_LIBOS_CANTREADPWD;
     }
 
@@ -1036,6 +1177,63 @@ static errno_t k5c_send_data(struct krb5_req *kr, int fd, errno_t error)
     return EOK;
 }
 
+static errno_t get_pkinit_identity(TALLOC_CTX *mem_ctx,
+                                   struct sss_auth_token *authtok,
+                                   char **_identity)
+{
+    int ret;
+    char *identity;
+    const char *token_name;
+    const char *module_name;
+    const char *key_id;
+
+    ret = sss_authtok_get_sc(authtok, NULL, NULL,
+                             &token_name, NULL,
+                             &module_name, NULL,
+                             &key_id, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_authtok_get_sc failed.\n");
+        return ret;
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL, "Got [%s][%s].\n", token_name, module_name);
+
+    if (module_name == NULL || *module_name == '\0') {
+        module_name = "p11-kit-proxy.so";
+    }
+
+    identity = talloc_asprintf(mem_ctx, "PKCS11:module_name=%s", module_name);
+    if (identity == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        return ENOMEM;
+    }
+
+    if (token_name != NULL && *token_name != '\0') {
+        identity = talloc_asprintf_append(identity, ":token=%s",
+                                                    token_name);
+        if (identity == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "talloc_asprintf_append failed.\n");
+            return ENOMEM;
+        }
+    }
+
+    if (key_id != NULL && *key_id != '\0') {
+        identity = talloc_asprintf_append(identity, ":certid=%s", key_id);
+        if (identity == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "talloc_asprintf_append failed.\n");
+            return ENOMEM;
+        }
+    }
+
+    *_identity = identity;
+
+    DEBUG(SSSDBG_TRACE_ALL, "Using pkinit identity [%s].\n", identity);
+
+    return EOK;
+}
+
 static errno_t add_ticket_times_and_upn_to_response(struct krb5_req *kr)
 {
     int ret;
@@ -1268,6 +1466,8 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     int realm_length;
     krb5_error_code kerr;
     char *cc_name;
+    int ret;
+    char *identity = NULL;
 
     kerr = sss_krb5_get_init_creds_opt_set_expire_callback(kr->ctx, kr->options,
                                                   sss_krb5_expire_callback_func,
@@ -1284,6 +1484,30 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         return KRB5KRB_ERR_GENERIC;
     }
 
+    if (sss_authtok_get_type(kr->pd->authtok) == SSS_AUTHTOK_TYPE_SC_PIN
+            || sss_authtok_get_type(kr->pd->authtok)
+                                                == SSS_AUTHTOK_TYPE_SC_KEYPAD) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Found Smartcard credentials, trying pkinit.\n");
+
+        ret = get_pkinit_identity(kr, kr->pd->authtok, &identity);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "get_pkinit_identity failed.\n");
+            return ret;
+        }
+
+        kerr = krb5_get_init_creds_opt_set_pa(kr->ctx, kr->options,
+                                              "X509_user_identity", identity);
+        talloc_free(identity);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "krb5_get_init_creds_opt_set_pa failed.\n");
+            return kerr;
+        }
+
+        /* TODO: Maybe X509_anchors should be added here as well */
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC,
           "Attempting kinit for realm [%s]\n",realm_name);
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
@@ -1294,12 +1518,25 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         /* Any errors are ignored during pre-auth, only data is collected to
          * be send back to the client.*/
         DEBUG(SSSDBG_TRACE_FUNC,
-              "krb5_get_init_creds_password returned [%d} during pre-auth.\n",
+              "krb5_get_init_creds_password returned [%d] during pre-auth.\n",
               kerr);
         return 0;
     } else {
         if (kerr != 0) {
             KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
+
+            /* If during authentication either the MIT Kerberos pkinit
+             * pre-auth module is missing or no Smartcard is inserted and only
+             * pkinit is available KRB5_PREAUTH_FAILED is returned.
+             * ERR_NO_AUTH_METHOD_AVAILABLE is used to indicate to the
+             * frontend that local authentication might be tried. */
+            if (kr->pd->cmd == SSS_PAM_AUTHENTICATE
+                    && kerr == KRB5_PREAUTH_FAILED
+                    && kr->password_prompting == false
+                    && kr->otp == false
+                    && kr->pkinit_prompting == false) {
+                return ERR_NO_AUTH_METHOD_AVAILABLE;
+            }
             return kerr;
         }
     }
@@ -1367,6 +1604,12 @@ done:
 
 static errno_t map_krb5_error(krb5_error_code kerr)
 {
+    /* just pass SSSD's internal error codes */
+    if (kerr > 0 && IS_SSSD_ERROR(kerr)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "[%d][%s].\n", kerr, sss_strerror(kerr));
+        return kerr;
+    }
+
     if (kerr != 0) {
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
     }
@@ -1615,9 +1858,12 @@ static errno_t tgt_req_child(struct krb5_req *kr)
 
     DEBUG(SSSDBG_TRACE_LIBS, "Attempting to get a TGT\n");
 
-    /* No password is needed for pre-auth, or if we have 2FA */
+    /* No password is needed for pre-auth or if we have 2FA or SC */
     if (kr->pd->cmd != SSS_PAM_PREAUTH
-            && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_2FA) {
+            && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_2FA
+            && sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_SC_PIN
+            && sss_authtok_get_type(kr->pd->authtok)
+                                                != SSS_AUTHTOK_TYPE_SC_KEYPAD) {
         ret = sss_authtok_get_password(kr->pd->authtok, &password, NULL);
         switch (ret) {
         case EOK:
@@ -1641,11 +1887,25 @@ static errno_t tgt_req_child(struct krb5_req *kr)
         if (kr->pd->cmd == SSS_PAM_PREAUTH) {
             /* add OTP tokeninfo messge if available */
             if (kr->otp) {
-                kerr = k5c_attach_otp_info_msg(kr);
+                ret = k5c_attach_otp_info_msg(kr);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "k5c_attach_otp_info_msg failed.\n");
+                    goto done;
+                }
             }
 
             if (kr->password_prompting) {
                 ret = pam_add_response(kr->pd, SSS_PASSWORD_PROMPTING, 0, NULL);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
+                    goto done;
+                }
+            }
+
+            if (kr->pkinit_prompting) {
+                ret = pam_add_response(kr->pd, SSS_CERT_AUTH_PROMPTING, 0,
+                                       NULL);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_CRIT_FAILURE, "pam_add_response failed.\n");
                     goto done;
@@ -1918,6 +2178,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
            *offline ? "true" : "false", kr->upn ? kr->upn : "none");
 
     if (pd->cmd == SSS_PAM_AUTHENTICATE ||
+        pd->cmd == SSS_PAM_PREAUTH ||
         pd->cmd == SSS_CMD_RENEW ||
         pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM || pd->cmd == SSS_PAM_CHAUTHTOK) {
         SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
@@ -2801,11 +3062,16 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
-    kerr = become_user(kr->uid, kr->gid);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
-        ret = EFAULT;
-        goto done;
+    /* pkinit need access to pcscd */
+    if ((sss_authtok_get_type(kr->pd->authtok) != SSS_AUTHTOK_TYPE_SC_PIN
+            && sss_authtok_get_type(kr->pd->authtok)
+                                        != SSS_AUTHTOK_TYPE_SC_KEYPAD)) {
+        kerr = become_user(kr->uid, kr->gid);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "become_user failed.\n");
+            ret = EFAULT;
+            goto done;
+        }
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
