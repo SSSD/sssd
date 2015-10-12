@@ -982,6 +982,7 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
         * qualified names instead. */
         while (state->domain != NULL && state->check_next
                 && state->domain->fqnames
+                && state->input->type != CACHE_REQ_USER_BY_CERT
                 && !cache_req_input_is_upn(state->input)) {
             state->domain = get_next_domain(state->domain, 0);
         }
@@ -1010,9 +1011,9 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
 
         /* we will continue with the following domain the next time */
         if (state->check_next) {
-            if (cache_req_input_is_upn(state->input)) {
-                state->domain = get_next_domain(state->domain,
-                                                SSS_GND_DESCEND);
+            if (cache_req_input_is_upn(state->input)
+                    || state->input->type == CACHE_REQ_USER_BY_CERT ) {
+                state->domain = get_next_domain(state->domain, SSS_GND_DESCEND);
             } else {
                 state->domain = get_next_domain(state->domain, 0);
             }
