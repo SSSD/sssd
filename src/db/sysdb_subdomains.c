@@ -312,8 +312,8 @@ errno_t sysdb_update_subdomains(struct sss_domain_info *domain)
                                              SYSDB_SUBDOMAIN_TRUST_DIRECTION,
                                              0);
 
-        /* explicitly use dom->next as we need to check 'disabled' domains */
-        for (dom = domain->subdomains; dom; dom = dom->next) {
+        for (dom = domain->subdomains; dom;
+                dom = get_next_domain(dom, SSS_GND_INCLUDE_DISABLED)) {
             if (strcasecmp(dom->name, name) == 0) {
                 sss_domain_set_state(dom, DOM_ACTIVE);
 
