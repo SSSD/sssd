@@ -1146,7 +1146,6 @@ struct sdap_get_generic_ext_state {
     const char *filter;
     const char **attrs;
     int timeout;
-    int attrsonly;
     int sizelimit;
 
     struct sdap_op *op;
@@ -1178,6 +1177,9 @@ enum {
 
     /* Allow paging */
     SDAP_SRCH_FLG_PAGING           = 1 << 1,
+
+    /* Only attribute descriptions are requested */
+    SDAP_SRCH_FLG_ATTRS_ONLY       = 1 << 2,
 };
 
 static struct tevent_req *
@@ -1189,7 +1191,6 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
                           int scope,
                           const char *filter,
                           const char **attrs,
-                          int attrsonly,
                           LDAPControl **serverctrls,
                           LDAPControl **clientctrls,
                           int sizelimit,
@@ -1214,7 +1215,6 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
     state->scope = scope;
     state->filter = filter;
     state->attrs = attrs;
-    state->attrsonly = attrsonly;
     state->op = NULL;
     state->sizelimit = sizelimit;
     state->timeout = timeout;
@@ -1350,7 +1350,8 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
     lret = ldap_search_ext(state->sh->ldap, state->search_base,
                            state->scope, state->filter,
                            discard_const(state->attrs),
-                           state->attrsonly, state->serverctrls,
+                           (state->flags & SDAP_SRCH_FLG_ATTRS_ONLY),
+                           state->serverctrls,
                            state->clientctrls, NULL, state->sizelimit, &msgid);
     ldap_control_free(page_control);
     state->serverctrls[state->nserverctrls] = NULL;
@@ -1725,7 +1726,7 @@ struct tevent_req *sdap_get_and_parse_generic_send(TALLOC_CTX *memctx,
     }
 
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, search_base,
-                                       scope, filter, attrs, false, NULL,
+                                       scope, filter, attrs, NULL,
                                        NULL, sizelimit, timeout,
                                        sdap_get_and_parse_generic_parse_entry,
                                        state, flags);
@@ -1937,7 +1938,7 @@ sdap_x_deref_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
                                        filter == NULL ? LDAP_SCOPE_BASE
                                                       : LDAP_SCOPE_SUBTREE,
                                        filter, attrs,
-                                       false, state->ctrls, NULL, 0, timeout,
+                                       state->ctrls, NULL, 0, timeout,
                                        sdap_x_deref_parse_entry,
                                        state, SDAP_SRCH_FLG_PAGING);
     if (!subreq) {
@@ -2161,7 +2162,7 @@ sdap_sd_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     DEBUG(SSSDBG_TRACE_FUNC, "Searching entry [%s] using SD\n", base_dn);
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
                                        LDAP_SCOPE_BASE, "(objectclass=*)", attrs,
-                                       false, state->ctrls, NULL, 0, timeout,
+                                       state->ctrls, NULL, 0, timeout,
                                        sdap_sd_search_parse_entry,
                                        state, SDAP_SRCH_FLG_PAGING);
     if (!subreq) {
@@ -2360,7 +2361,7 @@ sdap_asq_search_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     DEBUG(SSSDBG_TRACE_FUNC, "Dereferencing entry [%s] using ASQ\n", base_dn);
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, base_dn,
                                        LDAP_SCOPE_BASE, NULL, attrs,
-                                       false, state->ctrls, NULL, 0, timeout,
+                                       state->ctrls, NULL, 0, timeout,
                                        sdap_asq_search_parse_entry,
                                        state, SDAP_SRCH_FLG_PAGING);
     if (!subreq) {
@@ -2644,7 +2645,7 @@ static errno_t sdap_posix_check_next(struct tevent_req *req)
                                  state->sh,
                                  state->search_bases[state->base_iter]->basedn,
                                  LDAP_SCOPE_SUBTREE, state->filter,
-                                 state->attrs, false,
+                                 state->attrs,
                                  NULL, NULL, 1, state->timeout,
                                  sdap_posix_check_parse, state,
                                  SDAP_SRCH_FLG_SIZELIMIT_SILENT);
