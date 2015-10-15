@@ -1405,10 +1405,10 @@ class SSSDConfig(SSSDChangeConf):
         try:
             if int(self.get('sssd', 'config_file_version')) != self.API_VERSION:
                 raise ParsingError("Wrong config_file_version")
-        except:
-            # Either the 'sssd' section or the 'config_file_version' was not
-            # present in the config file
-            raise ParsingError("File contains no config_file_version")
+        except TypeError:
+            # This happens when config_file_version is missing. We
+            # can assume it is the default version and continue.
+            pass
 
     def new_config(self):
         """
