@@ -157,9 +157,13 @@ class SSSDConfigTestValid(unittest.TestCase):
         #non-owners, and should not be executable by anyone
         self.assertFalse(S_IMODE(mode) & 0o177)
 
+        # try to import saved configuration file
+        config = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                       srcdir + "/etc/sssd.api.d")
+        config.import_config(configfile=of)
+
         #Remove the output file
         os.unlink(of)
-
 
     def testCreateNewLDAPConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -191,8 +195,14 @@ class SSSDConfigTestValid(unittest.TestCase):
         #non-owners, and should not be executable by anyone
         self.assertFalse(S_IMODE(mode) & 0o177)
 
+        # try to import saved configuration file
+        config = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                       srcdir + "/etc/sssd.api.d")
+        config.import_config(configfile=of)
+
         #Remove the output file
         os.unlink(of)
+
 
     def testModifyExistingConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
