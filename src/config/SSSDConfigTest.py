@@ -1226,11 +1226,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                            srcdir + "/etc/sssd.api.d")
         self.assertRaises(SSSDConfig.ParsingError, sssdconfig.import_config, srcdir + "/testconfigs/sssd-badversion.conf")
 
-        # Negative Test - No config file version
-        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
-                                           srcdir + "/etc/sssd.api.d")
-        self.assertRaises(SSSDConfig.ParsingError, sssdconfig.import_config, srcdir + "/testconfigs/sssd-noversion.conf")
-
         # Negative Test - Already initialized
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
                                            srcdir + "/etc/sssd.api.d")
