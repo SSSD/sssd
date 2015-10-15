@@ -1230,6 +1230,91 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertRaises(SSSDConfig.AlreadyInitializedError,
                           sssdconfig.import_config, srcdir + "/testconfigs/sssd-valid.conf")
 
+    def testImportConfigNoVersion(self):
+        # Positive Test
+        sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
+                                           srcdir + "/etc/sssd.api.d")
+        sssdconfig.import_config(
+            srcdir + "/testconfigs/sssd-noversion.conf"
+        )
+
+        # Validate services
+        services = sssdconfig.list_services()
+        self.assertTrue('sssd' in services)
+        self.assertTrue('nss' in services)
+        self.assertTrue('pam' in services)
+        self.assertTrue('dp' in services)
+
+        #Verify service attributes
+        sssd_service = sssdconfig.get_service('sssd')
+        service_opts = sssd_service.list_options()
+
+        self.assertTrue('services' in service_opts.keys())
+        service_list = sssd_service.get_option('services')
+        self.assertTrue('nss' in service_list)
+        self.assertTrue('pam' in service_list)
+        self.assertTrue('reconnection_retries' in service_opts)
+
+        #Validate domain list
+        domains = sssdconfig.list_domains()
+        self.assertTrue('LOCAL' in domains)
+        self.assertTrue('LDAP' in domains)
+        self.assertTrue('PROXY' in domains)
+        self.assertTrue('IPA' in domains)
+
+        # Verify domain attributes
+        ipa_domain = sssdconfig.get_domain('IPA')
+        domain_opts = ipa_domain.list_options()
+        self.assertTrue('debug_level' in domain_opts.keys())
+        self.assertTrue('id_provider' in domain_opts.keys())
+        self.assertTrue('auth_provider' in domain_opts.keys())
+
+        # Verify domain attributes
+        proxy_domain = sssdconfig.get_domain('PROXY')
+        domain_opts = proxy_domain.list_options()
+        self.assertTrue('debug_level' in domain_opts.keys())
+        self.assertTrue('id_provider' in domain_opts.keys())
+        self.assertTrue('auth_provider' in domain_opts.keys())
+
+        # Verify domain attributes
+        local_domain = sssdconfig.get_domain('LOCAL')
+        domain_opts = local_domain.list_options()
+        self.assertTrue('debug_level' in domain_opts.keys())
+        self.assertTrue('id_provider' in domain_opts.keys())
+        self.assertTrue('auth_provider' in domain_opts.keys())
+
+        # Verify domain attributes
+        ldap_domain = sssdconfig.get_domain('LDAP')
+        domain_opts = ldap_domain.list_options()
+        self.assertTrue('debug_level' in domain_opts.keys())
+        self.assertTrue('id_provider' in domain_opts.keys())
+        self.assertTrue('auth_provider' in domain_opts.keys())
+
+        domain_control_list = [
+            'cache_credentials',
+            'id_provider',
+            'auth_provider',
+            'access_provider',
+            'default_shell',
+            'fallback_homedir',
+            'cache_credentials',
+            'use_fully_qualified_names',
+        ]
+
+        ad_domain = sssdconfig.get_domain("ad.example.com")
+
+        for option in ad_domain.get_all_options():
+            self.assertTrue(option in domain_control_list)
+
+        negative_domain_control_list = [
+            'ad_server',
+            'ldap_id_mapping',
+            'ldap_sasl_authid',
+        ]
+
+        for option in ad_domain.get_all_options():
+            self.assertFalse(option in negative_domain_control_list)
+
     def testNewConfig(self):
         # Positive Test
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
