@@ -159,11 +159,9 @@ responder_common_tests_CFLAGS = \
     $(NULL)
 responder_common_tests_LDADD = \
     $(CMOCKA_LIBS) \
-    $(UNICODE_LIBS) \
     $(SSSD_LIBS) \
     $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_debug.la \
-    $(abs_top_builddir)/libsss_crypt.la \
     $(abs_top_builddir)/libsss_test_common.la \
     $(NULL)
 
