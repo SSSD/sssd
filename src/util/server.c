@@ -458,6 +458,7 @@ int server_setup(const char *name, int flags,
     bool dm;
     struct tevent_signal *tes;
     struct logrotate_ctx *lctx;
+    char *locale;
 
     ret = chown_debug_file(NULL, uid, gid);
     if (ret != EOK) {
@@ -509,7 +510,12 @@ int server_setup(const char *name, int flags,
     }
 
     /* Set up locale */
-    setlocale(LC_ALL, "");
+    locale = setlocale(LC_ALL, "");
+    if (locale == NULL) {
+        /* Just print debug message and continue */
+        DEBUG(SSSDBG_TRACE_FUNC, "Unable to set locale\n");
+    }
+
     bindtextdomain(PACKAGE, LOCALEDIR);
     textdomain(PACKAGE);
 
