@@ -50,7 +50,9 @@ int set_locale(void)
 
     c = setlocale(LC_ALL, "");
     if (c == NULL) {
-        return EIO;
+        /* If setlocale fails, continue with the default
+         * locale. */
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to set locale\n");
     }
 
     errno = 0;
