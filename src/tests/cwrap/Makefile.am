@@ -32,7 +32,6 @@ SSSD_LIBS = \
     $(INI_CONFIG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
-    $(SSS_CRYPT_LIBS) \
     $(OPENLDAP_LIBS) \
     $(TDB_LIBS)
 
