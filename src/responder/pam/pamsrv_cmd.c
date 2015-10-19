@@ -1667,7 +1667,6 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
 
 static errno_t pam_is_last_online_login_fresh(struct sss_domain_info *domain,
                                               const char* user,
-                                              struct confdb_ctx *cdb,
                                               int cached_auth_timeout,
                                               bool *_result)
 {
@@ -1723,8 +1722,7 @@ static bool pam_is_authtok_cachable(struct sss_auth_token *authtok)
     return cachable;
 }
 
-static bool pam_can_user_cache_auth(struct confdb_ctx *cdb,
-                                    struct sss_domain_info *domain,
+static bool pam_can_user_cache_auth(struct sss_domain_info *domain,
                                     int pam_cmd,
                                     struct sss_auth_token *authtok,
                                     const char* user,
@@ -1739,7 +1737,7 @@ static bool pam_can_user_cache_auth(struct confdb_ctx *cdb,
             && pam_is_authtok_cachable(authtok)
             && pam_is_cmd_cachable(pam_cmd)) {
 
-        ret = pam_is_last_online_login_fresh(domain, user, cdb,
+        ret = pam_is_last_online_login_fresh(domain, user,
                                              domain->cached_auth_timeout,
                                              &result);
         if (ret != EOK) {
@@ -1785,8 +1783,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         return;
     }
 
-    if (pam_can_user_cache_auth(pctx->rctx->cdb,
-                                preq->domain,
+    if (pam_can_user_cache_auth(preq->domain,
                                 preq->pd->cmd,
                                 preq->pd->authtok,
                                 preq->pd->user,
