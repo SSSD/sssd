@@ -97,14 +97,12 @@ server_tests_SOURCES = \
     $(NULL)
 server_tests_CFLAGS = \
     $(AM_CFLAGS) \
-    $(LIBCAPNG_CFLAGS) \
     -DTEST_DB_PATH=\"server_tests\" \
     -DTEST_PID_PATH=\"server_tests\" \
     -DUNIT_TESTING \
     $(NULL)
 server_tests_LDADD = \
     $(CMOCKA_LIBS) \
-    $(LIBCAPNG_LIBS) \
     $(UNICODE_LIBS) \
     $(SSSD_LIBS) \
     $(abs_top_builddir)/libsss_debug.la \
