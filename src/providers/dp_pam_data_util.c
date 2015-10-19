@@ -22,6 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <security/pam_modules.h>
+
 #include "providers/data_provider.h"
 #include "util/sss_cli_cmd.h"
 
@@ -47,6 +49,8 @@ struct pam_data *create_pam_data(TALLOC_CTX *mem_ctx)
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
         goto failed;
     }
+
+    pd->pam_status = PAM_SYSTEM_ERR;
 
     pd->authtok = sss_authtok_new(pd);
     if (pd->authtok == NULL) {
