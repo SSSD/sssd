@@ -1725,9 +1725,13 @@ struct tevent_req *sdap_get_and_parse_generic_send(TALLOC_CTX *memctx,
         flags |= SDAP_SRCH_FLG_PAGING;
     }
 
+    if (attrsonly) {
+        flags |= SDAP_SRCH_FLG_ATTRS_ONLY;
+    }
+
     subreq = sdap_get_generic_ext_send(state, ev, opts, sh, search_base,
-                                       scope, filter, attrs, NULL,
-                                       NULL, sizelimit, timeout,
+                                       scope, filter, attrs, serverctrls,
+                                       clientctrls, sizelimit, timeout,
                                        sdap_get_and_parse_generic_parse_entry,
                                        state, flags);
     if (!subreq) {
