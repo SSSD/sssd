@@ -247,22 +247,9 @@ void test_pam_setup(struct sss_test_conf_param dom_params[],
     pam_test_ctx->cctx->ev = pam_test_ctx->tctx->ev;
 }
 
-static int pam_test_setup(void **state)
+static void pam_test_setup_common(void)
 {
-    int ret;
-
-    struct sss_test_conf_param dom_params[] = {
-        { "enumerate", "false" },
-        { "cache_credentials", "true" },
-        { NULL, NULL },             /* Sentinel */
-    };
-
-    struct sss_test_conf_param pam_params[] = {
-        { "p11_child_timeout", "30"},
-        { NULL, NULL },             /* Sentinel */
-    };
-
-    test_pam_setup(dom_params, pam_params, state);
+    errno_t ret;
 
     /* Prime the cache with a valid user */
     ret = sysdb_add_user(pam_test_ctx->tctx->dom,
@@ -293,7 +280,24 @@ static int pam_test_setup(void **state)
                                discard_const("wronguser"),
                                pam_test_ctx->pctx->id_timeout);
     assert_int_equal(ret, EOK);
+}
 
+static int pam_test_setup(void **state)
+{
+    struct sss_test_conf_param dom_params[] = {
+        { "enumerate", "false" },
+        { "cache_credentials", "true" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    struct sss_test_conf_param pam_params[] = {
+        { "p11_child_timeout", "30" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_pam_setup(dom_params, pam_params, state);
+
+    pam_test_setup_common();
     return 0;
 }
 
