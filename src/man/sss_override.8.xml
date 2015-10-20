@@ -102,6 +102,17 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>user-show</option>
+                    <emphasis>NAME</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Show user overrides.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>user-import</option>
                     <emphasis>FILE</emphasis>
                 </term>
