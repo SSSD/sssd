@@ -262,6 +262,19 @@ int sss_tool_route(int argc, const char **argv,
     return sss_tool_usage(argv[0], commands);
 }
 
+static struct poptOption *nonnull_popt_table(struct poptOption *options)
+{
+    static struct poptOption empty[] = {
+        POPT_TABLEEND
+    };
+
+    if (options == NULL) {
+        return empty;
+    }
+
+    return options;
+}
+
 int sss_tool_popt_ex(struct sss_cmdline *cmdline,
                      struct poptOption *options,
                      enum sss_tool_opt require_option,
@@ -272,7 +285,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
                      const char **_fopt)
 {
     struct poptOption opts_table[] = {
-        {NULL, '\0', POPT_ARG_INCLUDE_TABLE, options, \
+        {NULL, '\0', POPT_ARG_INCLUDE_TABLE, nonnull_popt_table(options), \
          0, _("Command options:"), NULL },
         {NULL, '\0', POPT_ARG_INCLUDE_TABLE, sss_tool_common_opts_table(), \
          0, _("Common options:"), NULL },
