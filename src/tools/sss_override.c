@@ -1249,7 +1249,7 @@ static int override_user_export(struct sss_cmdline *cmdline,
 
     dom = tool_ctx->domains;
     do {
-        objs = list_user_overrides(tool_ctx, tool_ctx->domains);
+        objs = list_user_overrides(tool_ctx, dom);
         if (objs == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get override objects\n");
             exit = EXIT_FAILURE;
@@ -1454,7 +1454,7 @@ static int override_group_export(struct sss_cmdline *cmdline,
 
     dom = tool_ctx->domains;
     do {
-        objs = list_group_overrides(tool_ctx, tool_ctx->domains);
+        objs = list_group_overrides(tool_ctx, dom);
         if (objs == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get override objects\n");
             exit = EXIT_FAILURE;
