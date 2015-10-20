@@ -71,6 +71,9 @@
 "zotpoBIZmdH+ipYsu58HohHVlM9Wi5H4QmiiXl+Soldkq7eXYlafcmT7wv8+cKwz" \
 "Nz0Tm3+eYpFqRo3skr6QzXi525Jkg3r6r+kkhxU=" \
 
+static char CACHED_AUTH_TIMEOUT_STR[] = "2";
+static const int CACHED_AUTH_TIMEOUT = 2;
+
 struct pam_test_ctx {
     struct sss_test_ctx *tctx;
     struct sss_domain_info *subdom;
@@ -82,6 +85,7 @@ struct pam_test_ctx {
 
     int ncache_hits;
     int exp_pam_status;
+    bool provider_contacted;
 };
 
 /* Must be global because it is needed in some wrappers */
@@ -301,6 +305,26 @@ static int pam_test_setup(void **state)
     return 0;
 }
 
+static int pam_cached_test_setup(void **state)
+{
+    struct sss_test_conf_param dom_params[] = {
+        { "enumerate", "false" },
+        { "cache_credentials", "true" },
+        { "cached_auth_timeout", CACHED_AUTH_TIMEOUT_STR },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    struct sss_test_conf_param pam_params[] = {
+        { "p11_child_timeout", "30" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_pam_setup(dom_params, pam_params, state);
+
+    pam_test_setup_common();
+    return 0;
+}
+
 static int pam_test_teardown(void **state)
 {
     int ret;
@@ -383,6 +407,7 @@ static void set_cmd_cb(cmd_cb_fn_t fn)
 
 int __wrap_pam_dp_send_req(struct pam_auth_req *preq, int timeout)
 {
+    pam_test_ctx->provider_contacted = true;
 
     /* Set expected status */
     preq->pd->pam_status = pam_test_ctx->exp_pam_status;
@@ -620,6 +645,13 @@ static int test_pam_successful_offline_auth_check(uint32_t status,
     return test_pam_simple_check(status, body, blen);
 }
 
+static int test_pam_successful_cached_auth_check(uint32_t status,
+                                                 uint8_t *body, size_t blen)
+{
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
+    return test_pam_simple_check(status, body, blen);
+}
+
 static int test_pam_wrong_pw_offline_auth_check(uint32_t status,
                                                 uint8_t *body, size_t blen)
 {
@@ -813,6 +845,144 @@ void test_pam_preauth(void **state)
     ret = test_ev_loop(pam_test_ctx->tctx);
     assert_int_equal(ret, EOK);
 }
+
+/* Cached on-line authentication */
+
+static void common_test_pam_cached_auth(const char *pwd)
+{
+    int ret;
+
+    mock_input_pam(pam_test_ctx, "pamuser", pwd, NULL);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
+    set_cmd_cb(test_pam_successful_cached_auth_check);
+
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+void test_pam_cached_auth_success(void **state)
+{
+    int ret;
+
+    common_test_pam_cached_auth("12345");
+
+    /* Back end should be contacted */
+    assert_true(pam_test_ctx->provider_contacted);
+
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    assert_int_equal(ret, EOK);
+
+    /* Reset before next call */
+    pam_test_ctx->provider_contacted = false;
+
+    common_test_pam_cached_auth("12345");
+
+    /* Back end should not be contacted */
+    assert_false(pam_test_ctx->provider_contacted);
+}
+
+void test_pam_cached_auth_wrong_pw(void **state)
+{
+    int ret;
+
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    assert_int_equal(ret, EOK);
+
+    ret = pam_set_last_online_auth_with_curr_token(pam_test_ctx->tctx->dom,
+                                                   "pamuser", time(NULL));
+    assert_int_equal(ret, EOK);
+
+    common_test_pam_cached_auth("11111");
+
+    /* Back end should be contacted */
+    assert_true(pam_test_ctx->provider_contacted);
+}
+
+/* test cached_auth_timeout option */
+void test_pam_cached_auth_opt_timeout(void **state)
+{
+    int ret;
+    uint64_t last_online;
+
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    assert_int_equal(ret, EOK);
+
+    last_online = time(NULL) - CACHED_AUTH_TIMEOUT - 1;
+    ret = pam_set_last_online_auth_with_curr_token(pam_test_ctx->tctx->dom,
+                                                   "pamuser",
+                                                   last_online);
+    assert_int_equal(ret, EOK);
+
+    common_test_pam_cached_auth("12345");
+
+    /* Back end should be contacted */
+    assert_true(pam_test_ctx->provider_contacted);
+}
+
+/* too long since last on-line authentication */
+void test_pam_cached_auth_timeout(void **state)
+{
+    int ret;
+
+    ret = sysdb_cache_password(pam_test_ctx->tctx->dom, "pamuser", "12345");
+    assert_int_equal(ret, EOK);
+
+    ret = pam_set_last_online_auth_with_curr_token(pam_test_ctx->tctx->dom,
+                                                   "pamuser", 0);
+    assert_int_equal(ret, EOK);
+
+    common_test_pam_cached_auth("12345");
+
+    /* Back end should be contacted */
+    assert_true(pam_test_ctx->provider_contacted);
+}
+
+void test_pam_cached_auth_success_combined_pw_with_cached_2fa(void **state)
+{
+    int ret;
+
+    common_test_pam_cached_auth("12345678");
+
+    assert_true(pam_test_ctx->provider_contacted);
+
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser",
+                                  "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
+    assert_int_equal(ret, EOK);
+
+    /* Reset before next call */
+    pam_test_ctx->provider_contacted = false;
+
+    common_test_pam_cached_auth("12345678");
+
+    assert_false(pam_test_ctx->provider_contacted);
+}
+
+void test_pam_cached_auth_failed_combined_pw_with_cached_2fa(void **state)
+{
+    int ret;
+
+    ret = sysdb_cache_password_ex(pam_test_ctx->tctx->dom, "pamuser",
+                                  "12345678", SSS_AUTHTOK_TYPE_2FA, 5);
+    assert_int_equal(ret, EOK);
+    ret = pam_set_last_online_auth_with_curr_token(pam_test_ctx->tctx->dom,
+                                                   "pamuser", time(NULL));
+    assert_int_equal(ret, EOK);
+
+    common_test_pam_cached_auth("1111abcde");
+
+    assert_true(pam_test_ctx->provider_contacted);
+}
+
+/* Off-line authentication */
 
 void test_pam_offline_auth_no_hash(void **state)
 {
@@ -1474,6 +1644,24 @@ int main(int argc, const char *argv[])
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_no_logon_name,
                                         pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cached_auth_success,
+                                        pam_cached_test_setup,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cached_auth_wrong_pw,
+                                        pam_cached_test_setup,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cached_auth_opt_timeout,
+                                        pam_cached_test_setup,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cached_auth_timeout,
+                                        pam_cached_test_setup,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cached_auth_success_combined_pw_with_cached_2fa,
+                                        pam_cached_test_setup,
+                                        pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cached_auth_failed_combined_pw_with_cached_2fa,
+                                        pam_cached_test_setup,
+                                        pam_test_teardown),
 /* p11_child is not built without NSS */
 #ifdef HAVE_NSS
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_nocert,
