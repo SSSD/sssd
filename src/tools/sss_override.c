@@ -113,6 +113,14 @@ static int parse_cmdline_user_del(struct sss_cmdline *cmdline,
                          &user->orig_name, &user->domain);
 }
 
+static int parse_cmdline_user_show(struct sss_cmdline *cmdline,
+                                   struct sss_tool_ctx *tool_ctx,
+                                   struct override_user *user)
+{
+    return parse_cmdline(cmdline, tool_ctx, NULL, &user->input_name,
+                         &user->orig_name, &user->domain);
+}
+
 static int parse_cmdline_group_add(struct sss_cmdline *cmdline,
                                    struct sss_tool_ctx *tool_ctx,
                                    struct override_group *group)
@@ -941,7 +949,8 @@ done:
 }
 
 static errno_t list_overrides(TALLOC_CTX *mem_ctx,
-                              const char *filter,
+                              const char *base_filter,
+                              const char *ext_filter,
                               const char **attrs,
                               struct sss_domain_info *domain,
                               size_t *_count,
@@ -952,6 +961,7 @@ static errno_t list_overrides(TALLOC_CTX *mem_ctx,
     struct ldb_context *ldb = sysdb_ctx_get_ldb(domain->sysdb);
     size_t count;
     struct ldb_message **msgs;
+    const char *filter;
     size_t i;
     int ret;
 
@@ -959,6 +969,16 @@ static errno_t list_overrides(TALLOC_CTX *mem_ctx,
     if (tmp_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
         return ENOMEM;
+    }
+
+    filter = base_filter;
+    if (ext_filter != NULL) {
+        filter = talloc_asprintf(tmp_ctx, "(&%s%s)", filter, ext_filter);
+        if (filter == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     /* Acquire list of override objects. */
@@ -1000,7 +1020,8 @@ done:
 
 static struct override_user *
 list_user_overrides(TALLOC_CTX *mem_ctx,
-                    struct sss_domain_info *domain)
+                    struct sss_domain_info *domain,
+                    const char *filter)
 {
     TALLOC_CTX *tmp_ctx;
     struct override_user *objs;
@@ -1017,7 +1038,7 @@ list_user_overrides(TALLOC_CTX *mem_ctx,
     }
 
     ret = list_overrides(tmp_ctx, "(objectClass=" SYSDB_OVERRIDE_USER_CLASS ")",
-                         attrs, domain, &count, &msgs);
+                         filter, attrs, domain, &count, &msgs);
     if (ret != EOK) {
         goto done;
     }
@@ -1082,7 +1103,7 @@ list_group_overrides(TALLOC_CTX *mem_ctx,
     }
 
     ret = list_overrides(tmp_ctx, "(objectClass=" SYSDB_OVERRIDE_GROUP_CLASS ")",
-                         attrs, domain, &count, &msgs);
+                         NULL, attrs, domain, &count, &msgs);
     if (ret != EOK) {
         goto done;
     }
@@ -1123,7 +1144,8 @@ done:
 
 static errno_t user_export(const char *filename,
                            struct sss_domain_info *dom,
-                           bool iterate)
+                           bool iterate,
+                           const char *filter)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_colondb *db;
@@ -1146,7 +1168,7 @@ static errno_t user_export(const char *filename,
     }
 
     do {
-        objs = list_user_overrides(tmp_ctx, dom);
+        objs = list_user_overrides(tmp_ctx, dom, filter);
         if (objs == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get override objects\n");
             ret = ENOMEM;
@@ -1326,9 +1348,83 @@ static int override_user_find(struct sss_cmdline *cmdline,
         iterate = false;
     }
 
-    ret = user_export(NULL, dom, iterate);
+    ret = user_export(NULL, dom, iterate, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to export users\n");
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+static int override_user_show(struct sss_cmdline *cmdline,
+                              struct sss_tool_ctx *tool_ctx,
+                              void *pvt)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct override_user input = {NULL};
+    const char *dn;
+    char *anchor;
+    const char *filter;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        return EXIT_FAILURE;
+    }
+
+    ret = parse_cmdline_user_show(cmdline, tool_ctx, &input);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
+        goto done;
+    }
+
+    ret = get_user_domain_msg(tool_ctx, &input);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get object domain\n");
+        goto done;
+    }
+
+    ret = get_object_dn(tmp_ctx, input.domain, SYSDB_MEMBER_USER,
+                        input.orig_name, NULL, &dn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get object dn\n");
+        goto done;
+    }
+
+    anchor = build_anchor(tmp_ctx, dn);
+    if (anchor == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_filter_sanitize(tmp_ctx, anchor, &anchor);
+    if (ret != EOK) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(%s=%s)",
+                             SYSDB_OVERRIDE_ANCHOR_UUID, anchor);
+    if (filter == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = user_export(NULL, input.domain, false, filter);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to export users\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
         return EXIT_FAILURE;
     }
 
@@ -1434,7 +1530,7 @@ static int override_user_export(struct sss_cmdline *cmdline,
         return EXIT_FAILURE;
     }
 
-    ret = user_export(filename, tool_ctx->domains, true);
+    ret = user_export(filename, tool_ctx->domains, true, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to export users\n");
         return EXIT_FAILURE;
@@ -1637,6 +1733,7 @@ int main(int argc, const char **argv)
         {"user-add", override_user_add},
         {"user-del", override_user_del},
         {"user-find", override_user_find},
+        {"user-show", override_user_show},
         {"user-import", override_user_import},
         {"user-export", override_user_export},
         {"group-add", override_group_add},
