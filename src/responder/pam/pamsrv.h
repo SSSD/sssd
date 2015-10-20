@@ -95,4 +95,9 @@ errno_t add_pam_cert_response(struct pam_data *pd, const char *user,
                               const char *token_name);
 
 bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd);
+
+errno_t
+pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,
+                                         const char *username,
+                                         uint64_t value);
 #endif /* __PAMSRV_H__ */

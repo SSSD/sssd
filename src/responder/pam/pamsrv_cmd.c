@@ -1925,7 +1925,7 @@ struct sss_cmd_table *get_pam_cmds(void)
     return sss_cmds;
 }
 
-static errno_t
+errno_t
 pam_set_last_online_auth_with_curr_token(struct sss_domain_info *domain,
                                          const char *username,
                                          uint64_t value)
