@@ -31,7 +31,6 @@
 #define DFL_BASEDIR_VAL    "/home"
 #define DFL_CREATE_HOMEDIR true
 #define DFL_REMOVE_HOMEDIR true
-#define DFL_UMASK          077
 #define DFL_SKEL_DIR       "/etc/skel"
 #define DFL_MAIL_DIR       "/var/spool/mail"
 
@@ -524,7 +523,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
     /* umask to create homedirs */
     ret = confdb_get_int(confdb,
                          conf_path, CONFDB_LOCAL_UMASK,
-                         DFL_UMASK, (int *) &data->umask);
+                         SSS_DFL_UMASK, (int *) &data->umask);
     if (ret != EOK) {
         goto done;
     }
