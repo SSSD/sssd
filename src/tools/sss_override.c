@@ -136,7 +136,6 @@ static int parse_cmdline_group_del(struct sss_cmdline *cmdline,
 }
 
 static int parse_cmdline_import(struct sss_cmdline *cmdline,
-                                struct sss_tool_ctx *tool_ctx,
                                 const char **_file)
 {
     int ret;
@@ -153,7 +152,6 @@ static int parse_cmdline_import(struct sss_cmdline *cmdline,
 }
 
 static int parse_cmdline_export(struct sss_cmdline *cmdline,
-                                struct sss_tool_ctx *tool_ctx,
                                 const char **_file)
 {
     int ret;
@@ -1169,7 +1167,7 @@ static int override_user_import(struct sss_cmdline *cmdline,
         {SSS_COLONDB_SENTINEL, {0}}
     };
 
-    ret = parse_cmdline_import(cmdline, tool_ctx, &filename);
+    ret = parse_cmdline_import(cmdline, &filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
         exit = EXIT_FAILURE;
@@ -1235,7 +1233,7 @@ static int override_user_export(struct sss_cmdline *cmdline,
     int exit;
     int i;
 
-    ret = parse_cmdline_export(cmdline, tool_ctx, &filename);
+    ret = parse_cmdline_export(cmdline, &filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
         exit = EXIT_FAILURE;
@@ -1374,7 +1372,7 @@ static int override_group_import(struct sss_cmdline *cmdline,
         {SSS_COLONDB_SENTINEL, {0}}
     };
 
-    ret = parse_cmdline_import(cmdline, tool_ctx, &filename);
+    ret = parse_cmdline_import(cmdline, &filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
         exit = EXIT_FAILURE;
@@ -1440,7 +1438,7 @@ static int override_group_export(struct sss_cmdline *cmdline,
     int exit;
     int i;
 
-    ret = parse_cmdline_export(cmdline, tool_ctx, &filename);
+    ret = parse_cmdline_export(cmdline, &filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
         exit = EXIT_FAILURE;
