@@ -34,8 +34,15 @@
             and groups. This change takes effect only on local machine.
         </para>
         <para>
-            Overrides data are stored in SSSD cache. If the cache is deleted
-            all local overrides are lost.
+            Overrides data are stored in the SSSD cache. If the cache is deleted,
+            all local overrides are lost. Please note that after the first
+            override is created using any of the following
+            <emphasis>user-add</emphasis>, <emphasis>group-add</emphasis>,
+            <emphasis>user-import</emphasis> or
+            <emphasis>group-import</emphasis> command. SSSD needs to be
+            restarted to take effect.
+            <emphasis>sss_override</emphasis> prints message when a restart is
+            required.
         </para>
     </refsect1>
 
