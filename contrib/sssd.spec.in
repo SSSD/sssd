@@ -716,6 +716,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,sssd,sssd) %dir %{mcpath}
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/passwd
 %ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/group
+%ghost %attr(0644,sssd,sssd) %verify(not md5 size mtime) %{mcpath}/initgroups
 %attr(755,sssd,sssd) %dir %{pipepath}
 %attr(755,sssd,sssd) %dir %{pubconfpath}
 %attr(755,sssd,sssd) %dir %{gpocachepath}
