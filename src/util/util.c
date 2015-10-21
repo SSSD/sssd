@@ -1090,7 +1090,7 @@ int sss_unique_file(TALLOC_CTX *owner,
                     char *path_tmpl,
                     errno_t *_err)
 {
-    return sss_unique_file_ex(owner, path_tmpl, 077, _err);
+    return sss_unique_file_ex(owner, path_tmpl, SSS_DFL_UMASK, _err);
 }
 
 errno_t sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl)
