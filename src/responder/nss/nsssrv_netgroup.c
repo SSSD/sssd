@@ -646,8 +646,8 @@ static void lookup_netgr_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg);
         /* Loop to the next domain if possible */
-        if (cmdctx->check_next && get_next_domain(dctx->domain, 0)) {
-            dctx->domain = get_next_domain(dctx->domain, 0);
+        if (cmdctx->check_next
+                && (dctx->domain = get_next_domain(dctx->domain, 0))) {
             dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         }
     }
