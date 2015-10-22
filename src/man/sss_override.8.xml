@@ -80,7 +80,10 @@
                 </term>
                 <listitem>
                     <para>
-                        Remove user overrides.
+                        Remove user overrides. However be aware that overridden
+                        attributes might be returned from memory cache. Please
+                        see SSSD option <emphasis>memcache_timeout</emphasis>
+                        for more details.
                     </para>
                 </listitem>
             </varlistentry>
@@ -150,7 +153,10 @@
                 </term>
                 <listitem>
                     <para>
-                        Remove group overrides.
+                        Remove group overrides. However be aware that overridden
+                        attributes might be returned from memory cache. Please
+                        see SSSD option <emphasis>memcache_timeout</emphasis>
+                        for more details.
                     </para>
                 </listitem>
             </varlistentry>
