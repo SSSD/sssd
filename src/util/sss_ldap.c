@@ -304,6 +304,22 @@ struct sss_ldap_init_state {
 #endif
 };
 
+static int sss_ldap_init_state_destructor(void *data)
+{
+    struct sss_ldap_init_state *state = (struct sss_ldap_init_state *)data;
+
+    if (state->ldap) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "calling ldap_unbind_ext for ldap:[%p] sd:[%d]\n",
+              state->ldap, state->sd);
+        ldap_unbind_ext(state->ldap, NULL, NULL);
+    } else if (state->sd != -1) {
+        DEBUG(SSSDBG_TRACE_FUNC, "closing socket [%d]\n", state->sd);
+        close(state->sd);
+    }
+
+    return 0;
+}
 
 struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
@@ -320,6 +336,8 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create failed.\n");
         return NULL;
     }
+
+    talloc_set_destructor((TALLOC_CTX *)state, sss_ldap_init_state_destructor);
 
     state->ldap = NULL;
     state->uri = uri;
@@ -370,9 +388,6 @@ struct tevent_req *sss_ldap_init_send(TALLOC_CTX *mem_ctx,
     return req;
 
 fail:
-    if(state->sd >= 0) {
-        close(state->sd);
-    }
     tevent_req_error(req, ret);
 #else
     DEBUG(SSSDBG_MINOR_FAILURE, "ldap_init_fd not available, "
@@ -455,11 +470,6 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
     return;
 
 fail:
-    if (state->ldap) {
-        ldap_unbind_ext(state->ldap, NULL, NULL);
-    } else {
-        close(state->sd);
-    }
     tevent_req_error(req, ret);
 }
 #endif
@@ -469,6 +479,9 @@ int sss_ldap_init_recv(struct tevent_req *req, LDAP **ldap, int *sd)
     struct sss_ldap_init_state *state = tevent_req_data(req,
                                                     struct sss_ldap_init_state);
     TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    /* Everything went well therefore we do not want to release resources */
+    talloc_set_destructor(state, NULL);
 
     *ldap = state->ldap;
     *sd = state->sd;
