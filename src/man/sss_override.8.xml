@@ -89,6 +89,19 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>user-find</option>
+                    <optional><option>-d,--domain</option> DOMAIN</optional>
+                </term>
+                <listitem>
+                    <para>
+                        List all users with set overrides.
+                        If <emphasis>DOMAIN</emphasis> parameter is set,
+                        only users from the domain are listed.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>user-import</option>
                     <emphasis>FILE</emphasis>
                 </term>
