@@ -175,6 +175,19 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>group-find</option>
+                    <optional><option>-d,--domain</option> DOMAIN</optional>
+                </term>
+                <listitem>
+                    <para>
+                        List all groups with set overrides.
+                        If <emphasis>DOMAIN</emphasis> parameter is set,
+                        only groups from the domain are listed.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>group-import</option>
                     <emphasis>FILE</emphasis>
                 </term>
