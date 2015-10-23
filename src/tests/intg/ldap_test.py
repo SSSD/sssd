@@ -39,8 +39,10 @@ LDAP_BASE_DN = "dc=example,dc=com"
 def ds_inst(request):
     """LDAP server instance fixture"""
     ds_inst = ds_openldap.DSOpenLDAP(
-                config.PREFIX, 10389, LDAP_BASE_DN,
-                "cn=admin", "Secret123")
+        config.PREFIX, 10389, LDAP_BASE_DN,
+        "cn=admin", "Secret123"
+    )
+
     try:
         ds_inst.setup()
     except:
