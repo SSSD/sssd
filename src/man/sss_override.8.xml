@@ -199,6 +199,17 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>group-show</option>
+                    <emphasis>NAME</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Show group overrides.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>group-import</option>
                     <emphasis>FILE</emphasis>
                 </term>

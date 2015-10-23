@@ -143,6 +143,14 @@ static int parse_cmdline_group_del(struct sss_cmdline *cmdline,
                          &group->orig_name, &group->domain);
 }
 
+static int parse_cmdline_group_show(struct sss_cmdline *cmdline,
+                                    struct sss_tool_ctx *tool_ctx,
+                                    struct override_group *group)
+{
+    return parse_cmdline(cmdline, tool_ctx, NULL, &group->input_name,
+                         &group->orig_name, &group->domain);
+}
+
 static int parse_cmdline_find(struct sss_cmdline *cmdline,
                               struct sss_tool_ctx *tool_ctx,
                               struct sss_domain_info **_dom)
@@ -1086,7 +1094,8 @@ done:
 
 static struct override_group *
 list_group_overrides(TALLOC_CTX *mem_ctx,
-                     struct sss_domain_info *domain)
+                     struct sss_domain_info *domain,
+                     const char *filter)
 {
     TALLOC_CTX *tmp_ctx;
     struct override_group *objs;
@@ -1103,7 +1112,7 @@ list_group_overrides(TALLOC_CTX *mem_ctx,
     }
 
     ret = list_overrides(tmp_ctx, "(objectClass=" SYSDB_OVERRIDE_GROUP_CLASS ")",
-                         NULL, attrs, domain, &count, &msgs);
+                         filter, attrs, domain, &count, &msgs);
     if (ret != EOK) {
         goto done;
     }
@@ -1212,7 +1221,8 @@ done:
 
 static errno_t group_export(const char *filename,
                             struct sss_domain_info *dom,
-                            bool iterate)
+                            bool iterate,
+                            const char *filter)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_colondb *db;
@@ -1236,7 +1246,7 @@ static errno_t group_export(const char *filename,
     }
 
     do {
-        objs = list_group_overrides(tmp_ctx, dom);
+        objs = list_group_overrides(tmp_ctx, dom, filter);
         if (objs == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get override objects\n");
             ret = ENOMEM;
@@ -1614,9 +1624,83 @@ static int override_group_find(struct sss_cmdline *cmdline,
         iterate = false;
     }
 
-    ret = group_export(NULL, dom, iterate);
+    ret = group_export(NULL, dom, iterate, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to export groups\n");
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+static int override_group_show(struct sss_cmdline *cmdline,
+                               struct sss_tool_ctx *tool_ctx,
+                               void *pvt)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct override_group input = {NULL};
+    const char *dn;
+    char *anchor;
+    const char *filter;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        return EXIT_FAILURE;
+    }
+
+    ret = parse_cmdline_group_show(cmdline, tool_ctx, &input);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
+        goto done;
+    }
+
+    ret = get_group_domain_msg(tool_ctx, &input);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get object domain\n");
+        goto done;
+    }
+
+    ret = get_object_dn(tmp_ctx, input.domain, SYSDB_MEMBER_GROUP,
+                        input.orig_name, NULL, &dn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get object dn\n");
+        goto done;
+    }
+
+    anchor = build_anchor(tmp_ctx, dn);
+    if (anchor == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_filter_sanitize(tmp_ctx, anchor, &anchor);
+    if (ret != EOK) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(%s=%s)",
+                             SYSDB_OVERRIDE_ANCHOR_UUID, anchor);
+    if (filter == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf() failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = group_export(NULL, input.domain, false, filter);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to export groups\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
         return EXIT_FAILURE;
     }
 
@@ -1718,7 +1802,7 @@ static int override_group_export(struct sss_cmdline *cmdline,
         return EXIT_FAILURE;
     }
 
-    ret = group_export(filename, tool_ctx->domains, true);
+    ret = group_export(filename, tool_ctx->domains, true, NULL);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to export groups\n");
         return EXIT_FAILURE;
@@ -1739,6 +1823,7 @@ int main(int argc, const char **argv)
         {"group-add", override_group_add},
         {"group-del", override_group_del},
         {"group-find", override_group_find},
+        {"group-show", override_group_show},
         {"group-import", override_group_import},
         {"group-export", override_group_export},
         {NULL, NULL}
