@@ -169,7 +169,7 @@ def test_assert_each_passwd_by_name(users_and_groups):
         assert False
     except AssertionError as e:
         assert str(e) == \
-               "user 'user1' mismatch: 'name' mismatch: 'user2' != 'user1'"
+            "user 'user1' mismatch: 'name' mismatch: 'user2' != 'user1'"
 
 
 def test_assert_each_passwd_by_uid(users_and_groups):
@@ -186,7 +186,7 @@ def test_assert_each_passwd_by_uid(users_and_groups):
         assert False
     except AssertionError as e:
         assert str(e) == \
-               "user 1001 mismatch: 'uid' mismatch: 1002 != 1001"
+            "user 1001 mismatch: 'uid' mismatch: 1002 != 1001"
 
 
 def test_assert_each_passwd_with_name(users_and_groups):
@@ -203,7 +203,7 @@ def test_assert_each_passwd_with_name(users_and_groups):
         assert False
     except AssertionError as e:
         assert str(e) == \
-               "user 'user1' mismatch: 'uid' mismatch: 1002 != 1001"
+            "user 'user1' mismatch: 'uid' mismatch: 1002 != 1001"
 
 
 def test_assert_each_passwd_with_uid(users_and_groups):
@@ -220,7 +220,7 @@ def test_assert_each_passwd_with_uid(users_and_groups):
         assert False
     except AssertionError as e:
         assert str(e) == \
-               "user 1001 mismatch: 'name' mismatch: 'user2' != 'user1'"
+            "user 1001 mismatch: 'name' mismatch: 'user2' != 'user1'"
 
 
 def test_assert_passwd(users_and_groups):
@@ -381,7 +381,7 @@ def test_assert_each_group_by_gid(users_and_groups):
         assert False
     except AssertionError as e:
         assert str(e) == \
-               "group 2001 mismatch: 'gid' mismatch: 2002 != 2001"
+            "group 2001 mismatch: 'gid' mismatch: 2002 != 2001"
 
 
 def test_assert_each_group_with_name(users_and_groups):
@@ -398,7 +398,7 @@ def test_assert_each_group_with_name(users_and_groups):
         assert False
     except AssertionError as e:
         assert str(e) == \
-               "group 'group1' mismatch: 'gid' mismatch: 2002 != 2001"
+            "group 'group1' mismatch: 'gid' mismatch: 2002 != 2001"
 
 
 def test_assert_each_group_with_gid(users_and_groups):
@@ -415,7 +415,7 @@ def test_assert_each_group_with_gid(users_and_groups):
         assert False
     except AssertionError as e:
         assert str(e) == \
-               "group 2001 mismatch: 'name' mismatch: 'group2' != 'group1'"
+            "group 2001 mismatch: 'name' mismatch: 'group2' != 'group1'"
 
 
 def test_assert_group(users_and_groups):

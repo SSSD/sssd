@@ -129,7 +129,7 @@ def _diff(ent, pattern, desc_map={}):
         items = _get_desc(desc_map, None)[0] + "s"
         if len(unmatched_pattern) > 0:
             return "\nexpected " + items + " not found:\n" + \
-                    pformat(unmatched_pattern)
+                pformat(unmatched_pattern)
     elif isinstance(pattern, list):
         if not isinstance(ent, list):
             return "not a list, " + str(type(ent))
@@ -153,10 +153,10 @@ def _diff(ent, pattern, desc_map={}):
         d = ""
         if len(unmatched_pattern) > 0:
             d += "\nexpected " + items + " not found:\n" + \
-                    pformat(unmatched_pattern)
+                pformat(unmatched_pattern)
         if len(unmatched_ent) != 0:
             d += "\nunexpected " + items + " found:\n" + \
-                    pformat(unmatched_ent)
+                pformat(unmatched_ent)
         if len(d) > 0:
             return d
     else:
@@ -187,13 +187,13 @@ def _convert_passwd(passwd):
     Convert a passwd entry returned by pwd module to an entry dictionary.
     """
     return dict(
-            name=passwd.pw_name,
-            passwd=passwd.pw_passwd,
-            uid=passwd.pw_uid,
-            gid=passwd.pw_gid,
-            gecos=passwd.pw_gecos,
-            dir=passwd.pw_dir,
-            shell=passwd.pw_shell
+        name=passwd.pw_name,
+        passwd=passwd.pw_passwd,
+        uid=passwd.pw_uid,
+        gid=passwd.pw_gid,
+        gecos=passwd.pw_gecos,
+        dir=passwd.pw_dir,
+        shell=passwd.pw_shell
     )
 
 
@@ -350,10 +350,10 @@ def _convert_group(group):
     Convert a group entry returned by grp module to an entry dictionary.
     """
     return dict(
-            name=group.gr_name,
-            passwd=group.gr_passwd,
-            gid=group.gr_gid,
-            mem=group.gr_mem
+        name=group.gr_name,
+        passwd=group.gr_passwd,
+        gid=group.gr_gid,
+        mem=group.gr_mem
     )
 
 
