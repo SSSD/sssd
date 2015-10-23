@@ -102,7 +102,6 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq);
 
 /* Create a connection cache */
 int sdap_id_conn_cache_create(TALLOC_CTX *memctx,
-                              struct sdap_id_ctx *id_ctx,
                               struct sdap_id_conn_ctx *id_conn,
                               struct sdap_id_conn_cache** conn_cache_out)
 {

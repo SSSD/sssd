@@ -938,7 +938,7 @@ sdap_id_ctx_conn_add(struct sdap_id_ctx *id_ctx,
     conn->id_ctx = id_ctx;
 
     /* Create a connection cache */
-    ret = sdap_id_conn_cache_create(conn, id_ctx, conn, &conn->conn_cache);
+    ret = sdap_id_conn_cache_create(conn, conn, &conn->conn_cache);
     if (ret != EOK) {
         talloc_free(conn);
         return NULL;
