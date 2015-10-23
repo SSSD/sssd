@@ -454,8 +454,7 @@ void test_user_conn_list(void **state)
                                                      struct ad_common_test_ctx);
     assert_non_null(test_ctx);
 
-    conn_list = ad_user_conn_list(test_ctx,
-                                  test_ctx->ad_ctx,
+    conn_list = ad_user_conn_list(test_ctx->ad_ctx,
                                   test_ctx->dom);
     assert_non_null(conn_list);
 
@@ -464,8 +463,7 @@ void test_user_conn_list(void **state)
     assert_null(conn_list[1]);
     talloc_free(conn_list);
 
-    conn_list = ad_user_conn_list(test_ctx,
-                                  test_ctx->ad_ctx,
+    conn_list = ad_user_conn_list(test_ctx->ad_ctx,
                                   test_ctx->subdom);
     assert_non_null(conn_list);
 
