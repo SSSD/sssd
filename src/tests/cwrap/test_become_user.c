@@ -78,6 +78,8 @@ void test_switch_user(void **state)
     struct sss_creds *saved_creds;
     struct sss_creds *saved_creds2 = NULL;
 
+    assert_true(leak_check_setup());
+
     check_leaks_push(global_talloc_context);
     tmp_ctx = talloc_new(global_talloc_context);
     assert_non_null(tmp_ctx);
@@ -121,6 +123,7 @@ void test_switch_user(void **state)
     check_leaks_pop(tmp_ctx);
     talloc_free(tmp_ctx);
     check_leaks_pop(global_talloc_context);
+    assert_true(leak_check_teardown());
 }
 
 int main(int argc, const char *argv[])
