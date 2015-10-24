@@ -150,6 +150,7 @@ errno_t switch_creds(TALLOC_CTX *mem_ctx,
 
     if (myuid == uid && mygid == gid) {
         DEBUG(SSSDBG_FUNC_DATA, "Already user [%"SPRIuid"].\n", uid);
+        talloc_zfree(ssc);
         return EOK;
     }
 
