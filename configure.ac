@@ -379,6 +379,23 @@ if test x"$sss_cv_attribute_format" = xyes ; then
              [whether compiler supports __attribute__((format))])
 fi
 
+AC_CACHE_CHECK([whether compiler supports __attribute__((warn_unused_result))],
+               sss_cv_attribute_warn_unused_result,
+               [AC_COMPILE_IFELSE(
+                    [AC_LANG_SOURCE(
+                        [ char _check_leaks(int bytes) __attribute__ ((warn_unused_result)); ]
+                    )],
+                    [sss_cv_attribute_warn_unused_result=yes],
+                    [
+                        AC_MSG_RESULT([no])
+                        AC_MSG_WARN([compiler does NOT support __attribute__((warn_unused_result))])
+                    ])
+               ])
+if test x"$sss_cv_attribute_warn_unused_result" = xyes ; then
+   AC_DEFINE(HAVE_FUNCTION_ATTRIBUTE_WARN_UNUSED_RESULT, 1,
+             [whether compiler supports __attribute__((warn_unused_result))])
+fi
+
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.5], [have_check=1], [have_check=])
 if test x$have_check = x; then
     AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])
