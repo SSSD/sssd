@@ -45,6 +45,8 @@ static int child_test_setup(void **state)
     struct child_test_ctx *child_tctx;
     errno_t ret;
 
+    assert_true(leak_check_setup());
+
     check_leaks_push(global_talloc_context);
     child_tctx = talloc(global_talloc_context, struct child_test_ctx);
     assert_non_null(child_tctx);
@@ -75,6 +77,7 @@ static int child_test_teardown(void **state)
 
     talloc_free(child_tctx);
     check_leaks_pop(global_talloc_context);
+    assert_true(leak_check_teardown());
     return 0;
 }
 
