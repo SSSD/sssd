@@ -60,7 +60,7 @@ void test_uid_csv_to_uid_list(void **state)
     assert_int_equal(list[2], 3);
 
     talloc_free(list);
-    check_leaks_pop(tmp_ctx);
+    assert_true(check_leaks_pop(tmp_ctx));
     talloc_free(tmp_ctx);
 }
 
@@ -83,7 +83,7 @@ void test_name_csv_to_uid_list(void **state)
     assert_int_equal(list[1], 10001);
 
     talloc_free(list);
-    check_leaks_pop(tmp_ctx);
+    assert_true(check_leaks_pop(tmp_ctx));
     talloc_free(tmp_ctx);
 }
 
@@ -102,7 +102,7 @@ void test_csv_to_uid_list_neg(void **state)
     ret = csv_string_to_uid_array(tmp_ctx, "nosuchuser", true, &count, &list);
     assert_int_not_equal(ret, EOK);
 
-    check_leaks_pop(tmp_ctx);
+    assert_true(check_leaks_pop(tmp_ctx));
     talloc_free(tmp_ctx);
 }
 

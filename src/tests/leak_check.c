@@ -131,7 +131,11 @@ bool
 leak_check_teardown(void)
 {
     bool res;
-    check_leaks_pop(global_talloc_context);
+    res = check_leaks_pop(global_talloc_context);
+    if (!res) {
+        _set_leak_err_msg("check_leaks_pop failed in leak_check_teardown");
+    }
+
     if (snapshot_stack != NULL) {
         _set_leak_err_msg("Exiting with a non-empty stack");
         return false;

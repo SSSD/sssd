@@ -634,7 +634,7 @@ START_TEST(test_parse_krb5_map_user)
                     name_to_primary[0].krb_primary == NULL);
         talloc_free(name_to_primary);
 
-        check_leaks_pop(mem_ctx);
+        fail_unless(check_leaks_pop(mem_ctx));
     }
     /* valid input */
     {
@@ -653,7 +653,7 @@ START_TEST(test_parse_krb5_map_user)
         compare_map_id_name_to_krb_primary(name_to_primary,  expected,
                                          sizeof(expected)/sizeof(const char*)/2);
         talloc_free(name_to_primary);
-        check_leaks_pop(mem_ctx);
+        fail_unless(check_leaks_pop(mem_ctx));
     }
     /* invalid input */
     {
@@ -677,7 +677,7 @@ START_TEST(test_parse_krb5_map_user)
         ret = parse_krb5_map_user(mem_ctx, "joe:j:user", &name_to_primary);
         fail_unless(ret == EINVAL);
 
-        check_leaks_pop(mem_ctx);
+        fail_unless(check_leaks_pop(mem_ctx));
     }
 
     talloc_free(mem_ctx);
