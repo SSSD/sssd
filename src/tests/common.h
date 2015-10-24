@@ -25,10 +25,19 @@
 #ifndef __TESTS_COMMON_H__
 #define __TESTS_COMMON_H__
 
+#include "config.h"
+
 #include <talloc.h>
 #include "util/util.h"
 #include "providers/data_provider.h"
 #include "providers/ldap/sdap.h"
+
+
+#ifdef HAVE_FUNCTION_ATTRIBUTE_WARN_UNUSED_RESULT
+#define SSS_ATTRIBUTE_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#else
+#define SSS_ATTRIBUTE_WARN_UNUSED_RESULT
+#endif
 
 #define N_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -37,10 +46,11 @@ extern TALLOC_CTX *global_talloc_context;
 void check_leaks_push(TALLOC_CTX *ctx);
 
 #define check_leaks_pop(ctx) _check_leaks_pop((ctx), __location__)
-bool _check_leaks_pop(TALLOC_CTX *ctx, const char *location);
+bool _check_leaks_pop(TALLOC_CTX *ctx, const char *location)
+                      SSS_ATTRIBUTE_WARN_UNUSED_RESULT;
 
-bool leak_check_setup(void);
-bool leak_check_teardown(void);
+bool leak_check_setup(void) SSS_ATTRIBUTE_WARN_UNUSED_RESULT;
+bool leak_check_teardown(void) SSS_ATTRIBUTE_WARN_UNUSED_RESULT;
 const char *check_leaks_err_msg(void);
 
 void tests_set_cwd(void);
