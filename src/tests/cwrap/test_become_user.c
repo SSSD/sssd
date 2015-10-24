@@ -120,9 +120,10 @@ void test_switch_user(void **state)
     assert_int_equal(getgid(), 0);
 
     talloc_free(saved_creds);
-    check_leaks_pop(tmp_ctx);
+    assert_true(check_leaks_pop(tmp_ctx));
     talloc_free(tmp_ctx);
-    check_leaks_pop(global_talloc_context);
+
+    assert_true(check_leaks_pop(global_talloc_context));
     assert_true(leak_check_teardown());
 }
 

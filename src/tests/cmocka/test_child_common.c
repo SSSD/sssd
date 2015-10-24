@@ -76,7 +76,8 @@ static int child_test_teardown(void **state)
                                                         struct child_test_ctx);
 
     talloc_free(child_tctx);
-    check_leaks_pop(global_talloc_context);
+
+    assert_true(check_leaks_pop(global_talloc_context));
     assert_true(leak_check_teardown());
     return 0;
 }
