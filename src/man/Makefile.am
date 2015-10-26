@@ -161,8 +161,7 @@ dist-hook: man.stamp
 	fi
 
 
-clean-local-no:
-clean-local-yes:
+clean-local:
 	for lang in $(LINGUAS); do \
 		if [ -d $$lang ]; then \
 			rm -rf $$lang; \
@@ -176,17 +175,11 @@ else
 man.stamp: $(XML_DOC)
 	touch $@
 
-clean-local-no:
-clean-local-yes:
+clean-local:
 	rm -f $(man_MANS)
 	rm -f man.stamp
 
 endif
-
-clean-local: clean-local-@USE_NLS@
-distclean-local: clean-local-@USE_NLS@
-mostlyclean-local: clean-local-@USE_NLS@
-maintainer-clean-local: clean-local-@USE_NLS@
 
 # Generate translated manual pages
 all-local: all-local-@USE_NLS@
