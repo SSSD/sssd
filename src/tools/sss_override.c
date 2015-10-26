@@ -581,35 +581,55 @@ static errno_t get_object_dn(TALLOC_CTX *mem_ctx,
                              struct ldb_dn **_ldb_dn,
                              const char **_str_dn)
 {
+    TALLOC_CTX *tmp_ctx;
     struct ldb_dn *ldb_dn;
+    const char *str_dn;
+    errno_t ret;
 
-    switch (type) {
-    case SYSDB_MEMBER_USER:
-       ldb_dn = sysdb_user_dn(mem_ctx, domain, name);
-       break;
-    case SYSDB_MEMBER_GROUP:
-       ldb_dn = sysdb_group_dn(mem_ctx, domain, name);
-       break;
-    default:
-       DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported member type %d\n", type);
-       return ERR_INTERNAL;
-    }
-
-    if (ldb_dn == NULL) {
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
         return ENOMEM;
     }
 
+    switch (type) {
+    case SYSDB_MEMBER_USER:
+       ldb_dn = sysdb_user_dn(tmp_ctx, domain, name);
+       break;
+    case SYSDB_MEMBER_GROUP:
+       ldb_dn = sysdb_group_dn(tmp_ctx, domain, name);
+       break;
+    default:
+       DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported member type %d\n", type);
+       ret = ERR_INTERNAL;
+       goto done;
+    }
+
+    if (ldb_dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     if (_str_dn != NULL) {
-        *_str_dn = ldb_dn_get_linearized(ldb_dn);
+        str_dn = talloc_strdup(tmp_ctx, ldb_dn_get_linearized(ldb_dn));
+        if (str_dn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        *_str_dn = talloc_steal(mem_ctx, str_dn);
     }
 
     if (_ldb_dn != NULL) {
-        *_ldb_dn = ldb_dn;
-    } else {
-        talloc_free(ldb_dn);
+        *_ldb_dn = talloc_steal(mem_ctx, ldb_dn);
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
 }
 
 static errno_t override_object_add(struct sss_domain_info *domain,
