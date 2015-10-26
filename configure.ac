@@ -50,7 +50,9 @@ BUILD_WITH_SHARED_BUILD_DIR
 
 AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM([[#include <pthread.h>]],
-        [[pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;]])],
+        [[pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+          (void) m; /* unused */
+        ]])],
     [AC_DEFINE([HAVE_PTHREAD], [1], [Pthread mutexes available.])
      HAVE_PTHREAD=1
     ],
