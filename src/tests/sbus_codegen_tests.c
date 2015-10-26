@@ -1128,7 +1128,7 @@ START_TEST(test_get_array_dict_sas)
     const char *value;
     const char *hash_content[2][2] = {{"hello1", "world1"},
                                       {"hello2", "world2"}};
-    const char **exp_values;
+    const char **exp_values = NULL;
     int i;
 
     ctx = talloc_new(NULL);
