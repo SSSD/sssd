@@ -2530,7 +2530,7 @@ static int service_send_ping(struct mt_svc *svc)
         return ENXIO;
     }
 
-    DEBUG(SSSDBG_CONF_SETTINGS,"Pinging %s\n", svc->name);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "Pinging %s\n", svc->name);
 
     /*
      * Set up identity request
@@ -2592,7 +2592,8 @@ static void ping_check(DBusPendingCall *pending, void *data)
         /* ok peer replied,
          * make sure we reset the failure counter in the service structure */
 
-        DEBUG(SSSDBG_CONF_SETTINGS,"Service %s replied to ping\n", svc->name);
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Service %s replied to ping\n", svc->name);
 
         svc->failed_pongs = 0;
         break;
