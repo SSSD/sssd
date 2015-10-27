@@ -318,7 +318,6 @@ static void check_group(struct cache_req_test_ctx *test_ctx,
     assert_string_equal(exp_dom->name, test_ctx->domain->name);
 }
 
-
 struct tevent_req *
 __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
                                struct resp_ctx *rctx,
@@ -1317,6 +1316,67 @@ void test_user_by_recent_filter_valid(void **state)
     assert_string_equal(ldbname, TEST_USER_NAME);
 }
 
+void test_users_by_recent_filter_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char **user_names = NULL;
+    const char **ldb_results = NULL;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_user1 = true;
+    test_ctx->create_user2 = true;
+
+    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME3,
+                           "pwd", 1002, 1002, NULL, NULL, NULL,
+                           "cn="TEST_USER_NAME3",dc=test",
+                           NULL, NULL, 1000, time(NULL)-1);
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(test_ctx->tctx);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* User TEST_USER1 and TEST_USER2 are created with a DP callback. */
+    req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                        test_ctx->rctx,
+                                        test_ctx->tctx->dom->name,
+                                        TEST_USER_PREFIX);
+    assert_non_null(req);
+
+    tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 2);
+
+    user_names = talloc_array(test_ctx, const char *, 2);
+    assert_non_null(user_names);
+    user_names[0] = TEST_USER_NAME;
+    user_names[1] = TEST_USER_NAME2;
+
+    ldb_results = talloc_array(test_ctx, const char *, 2);
+    assert_non_null(ldb_results);
+    for (int i = 0; i < 2; ++i) {
+        ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[i],
+                                              SYSDB_NAME, NULL);
+        assert_non_null(ldbname);
+        ldb_results[i] = ldbname;
+    }
+
+    assert_string_not_equal(ldb_results[0], ldb_results[1]);
+
+    assert_true(tc_are_values_in_array(user_names, ldb_results));
+}
 
 void test_users_by_filter_filter_old(void **state)
 {
@@ -1557,6 +1617,7 @@ int main(int argc, const char *argv[])
         new_multi_domain_test(group_by_id_multiple_domains_notfound),
 
         new_single_domain_test(user_by_recent_filter_valid),
+        new_single_domain_test(users_by_recent_filter_valid),
 
         new_single_domain_test(users_by_filter_filter_old),
         new_single_domain_test(users_by_filter_notfound),
