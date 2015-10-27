@@ -39,8 +39,15 @@
 #define TEST_GROUP_NAME "test-group"
 #define TEST_GROUP_ID 1000
 
-#define TEST_USER_NAME2 "test-user2"
-#define TEST_GROUP_NAME2 "test-group2"
+#define TEST_USER_ID2 1001
+#define TEST_USER_NAME2 "test_user2"
+#define TEST_GROUP_NAME2 "test_group2"
+#define TEST_GROUP_ID2 1001
+
+#define TEST_USER_ID3 1002
+#define TEST_USER_NAME3 "test_user3"
+#define TEST_GROUP_NAME3 "test_group3"
+#define TEST_GROUP_ID3 1002
 
 #define TEST_USER_PREFIX "test*"
 
@@ -84,7 +91,10 @@ struct cache_req_test_ctx {
     struct sss_domain_info *domain;
     char *name;
     bool dp_called;
-    bool create_user;
+
+    /* NOTE: Please, instead of adding new create_user bool, use bitshift. */
+    bool create_user1;
+    bool create_user2;
     bool create_group;
 };
 
@@ -159,10 +169,13 @@ static void cache_req_group_by_id_test_done(struct tevent_req *req)
     ctx->tctx->done = true;
 }
 
-static void prepare_user(TALLOC_CTX *mem_ctx,
-                         struct sss_domain_info *domain,
-                         uint64_t timeout,
-                         time_t transaction_time)
+static void prepare_concrete_user(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  const char* user_name,
+                                  int user_id,
+                                  int group_id,
+                                  uint64_t timeout,
+                                  time_t transaction_time)
 {
     struct sysdb_attrs *attrs;
     errno_t ret;
@@ -173,11 +186,20 @@ static void prepare_user(TALLOC_CTX *mem_ctx,
     ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, TEST_UPN);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_user(domain, TEST_USER_NAME, "pwd",
-                           TEST_USER_ID, TEST_GROUP_ID, NULL, NULL, NULL,
+    ret = sysdb_store_user(domain, user_name, "pwd",
+                           user_id, group_id, NULL, NULL, NULL,
                            "cn=test-user,dc=test", attrs, NULL,
                            timeout, transaction_time);
     assert_int_equal(ret, EOK);
+}
+
+static void prepare_user(TALLOC_CTX *mem_ctx,
+                         struct sss_domain_info *domain,
+                         uint64_t timeout,
+                         time_t transaction_time)
+{
+    prepare_concrete_user(mem_ctx, domain, TEST_USER_NAME, TEST_USER_ID,
+                          TEST_GROUP_ID, timeout, transaction_time);
 }
 
 static void run_user_by_name(struct cache_req_test_ctx *test_ctx,
@@ -313,8 +335,12 @@ __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
     ctx = sss_mock_ptr_type(struct cache_req_test_ctx*);
     ctx->dp_called = true;
 
-    if (ctx->create_user) {
+    if (ctx->create_user1) {
         prepare_user(ctx, ctx->tctx->dom, 1000, time(NULL));
+    }
+    if (ctx->create_user2) {
+        prepare_concrete_user(mem_ctx, ctx->tctx->dom, TEST_USER_NAME2,
+                              TEST_USER_ID2, TEST_GROUP_ID2, 1000, time(NULL));
     }
 
     if (ctx->create_group) {
@@ -570,7 +596,8 @@ void test_user_by_name_missing_found(void **state)
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
 
-    test_ctx->create_user = true;
+    test_ctx->create_user1 = true;
+    test_ctx->create_user2 = false;
 
     /* Test. */
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
@@ -723,7 +750,8 @@ void test_user_by_upn_missing_found(void **state)
     mock_account_recv_simple();
     mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
 
-    test_ctx->create_user = true;
+    test_ctx->create_user1 = true;
+    test_ctx->create_user2 = false;
 
     /* Test. */
     run_user_by_upn(test_ctx, NULL, 0, ERR_OK);
@@ -865,7 +893,8 @@ void test_user_by_id_missing_found(void **state)
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
 
-    test_ctx->create_user = true;
+    test_ctx->create_user1 = true;
+    test_ctx->create_user2 = false;
 
     /* Test. */
     run_user_by_id(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
@@ -1250,7 +1279,8 @@ void test_user_by_recent_filter_valid(void **state)
     errno_t ret;
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
-    test_ctx->create_user = true;
+    test_ctx->create_user1 = true;
+    test_ctx->create_user2 = false;
 
     ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME2,
                            "pwd", 1001, 1001, NULL, NULL, NULL,
@@ -1297,7 +1327,8 @@ void test_users_by_filter_filter_old(void **state)
     errno_t ret;
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
-    test_ctx->create_user = true;
+    test_ctx->create_user1 = true;
+    test_ctx->create_user2 = false;
 
     /* This user was updated in distant past, so it wont't be reported by
      * the filter search */
