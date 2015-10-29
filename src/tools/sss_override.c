@@ -66,8 +66,7 @@ static int parse_cmdline(struct sss_cmdline *cmdline,
     require = options == NULL ? SSS_TOOL_OPT_OPTIONAL : SSS_TOOL_OPT_REQUIRED;
 
     ret = sss_tool_popt_ex(cmdline, options, require,
-                           NULL, NULL, "NAME", _("Specify name of modified "
-                           "object."), &input_name);
+                           NULL, NULL, "NAME", _("Specify name."), &input_name);
     if (ret != EXIT_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command arguments\n");
         return ret;
