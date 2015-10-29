@@ -292,6 +292,7 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
         POPT_AUTOHELP
         POPT_TABLEEND
     };
+    const char *fopt;
     char *help;
     poptContext pc;
     int ret;
@@ -337,9 +338,9 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
     }
 
     /* Parse free option which is always required if requested. */
+    fopt = poptGetArg(pc);
     if (_fopt != NULL) {
-        *_fopt = poptGetArg(pc);
-        if (*_fopt == NULL) {
+        if (fopt == NULL) {
             fprintf(stderr, _("Missing option: %s\n\n"), fopt_help);
             poptPrintHelp(pc, stderr, 0);
             ret = EXIT_FAILURE;
@@ -353,6 +354,14 @@ int sss_tool_popt_ex(struct sss_cmdline *cmdline,
             ret = EXIT_FAILURE;
             goto done;
         }
+
+        *_fopt = fopt;
+    } else if (_fopt == NULL && fopt != NULL) {
+        /* Unexpected free argument. */
+        fprintf(stderr, _("Unexpected parameter: %s\n\n"), fopt);
+        poptPrintHelp(pc, stderr, 0);
+        ret = EXIT_FAILURE;
+        goto done;
     }
 
     /* If at least one option is required and not provided, print error. */
