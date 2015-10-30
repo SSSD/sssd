@@ -5453,13 +5453,16 @@ static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     }
 
     ret = nss_check_well_known_sid(cmdctx);
-    if (ret != ENOENT) {
-        if (ret == EOK) {
-            DEBUG(SSSDBG_TRACE_ALL, "SID [%s] is a Well-Known SID.\n",
-                                         cmdctx->secid);
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE, "nss_check_well_known_sid failed.\n");
-        }
+    switch (ret) {
+    case EOK:
+        DEBUG(SSSDBG_TRACE_ALL, "SID [%s] is a Well-Known SID.\n", sid_str);
+        /* message is already send and cmdctx is freed, we can just return */
+        return EOK;
+        break;
+    case ENOENT:
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "nss_check_well_known_sid failed.\n");
         goto done;
     }
 

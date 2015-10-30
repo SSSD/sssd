@@ -136,6 +136,7 @@ void __wrap_sss_cmd_done(struct cli_ctx *cctx, void *freectx)
     nss_test_ctx->tctx->error = check_cb(sss_packet_get_status(packet),
                                          body, blen);
     nss_test_ctx->tctx->done = true;
+    talloc_free(freectx);
 }
 
 enum sss_cli_command __wrap_sss_packet_get_cmd(struct sss_packet *packet)
