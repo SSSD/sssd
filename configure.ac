@@ -432,6 +432,7 @@ my_srcdir=`readlink -f $srcdir`
 AC_DEFINE_UNQUOTED([ABS_SRC_DIR], ["$my_srcdir"], [Absolute path to the source directory])
 
 AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
+                 contrib/sssd-pcsc.rules
                  src/sysv/sssd src/sysv/gentoo/sssd src/sysv/SUSE/sssd
                  po/Makefile.in src/man/Makefile src/tests/cwrap/Makefile
                  src/tests/intg/Makefile

@@ -1,0 +1,15 @@
+// Please put this file in /usr/share/polkit-1/rules.d/ if SSSD is running as
+// unprivileged user '@SSSD_USER@' to allow access to the Smartcard via pcscd.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.debian.pcsc-lite.access_card" &&
+        subject.user == "@SSSD_USER@") {
+            return polkit.Result.YES;
+    }
+});
+
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.debian.pcsc-lite.access_pcsc" &&
+        subject.user == "@SSSD_USER@") {
+            return polkit.Result.YES;
+    }
+});
