@@ -482,10 +482,13 @@ int main(int argc, const char *argv[])
     debug_level = SSSDBG_INVALID;
 
     /*
-     * This child runs as root (setuid(0)), so we need clear environment and
-     * set permissions for security reasons.
+     * This child can run as root or as sssd user relying on policy kit to
+     * grant access to pcscd. This means that no setuid or setgid bit must be
+     * set on the binary. We still should make sure to run with a restrictive
+     * umask but do not have to make additional precautions like clearing the
+     * environment. This would allow to use e.g. pkcs11-spy.so for further
+     * debugging.
      */
-    clearenv();
     umask(SSS_DFL_UMASK);
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
@@ -581,24 +584,6 @@ int main(int argc, const char *argv[])
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Running with effective IDs: [%"SPRIuid"][%"SPRIgid"].\n",
           geteuid(), getegid());
-
-    if (getuid() != 0) {
-        ret = setuid(0);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "setuid failed: %d, p11_child might not work!\n", ret);
-        }
-    }
-
-    if (getgid() != 0) {
-        ret = setgid(0);
-        if (ret == -1) {
-            ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "setgid failed: %d, p11_child might not work!\n", ret);
-        }
-    }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Running with real IDs [%"SPRIuid"][%"SPRIgid"].\n",

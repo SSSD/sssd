@@ -150,6 +150,10 @@ sssdlibexec_PROGRAMS += selinux_child
 endif
 if HAVE_NSS
 sssdlibexec_PROGRAMS += p11_child
+if SSSD_USER
+polkit_rulesdir = $(datadir)/polkit-1/rules.d
+dist_polkit_rules_DATA = contrib/sssd-pcsc.rules
+endif
 endif
 
 if BUILD_PAC_RESPONDER
@@ -3564,10 +3568,6 @@ if SSSD_USER
 if BUILD_SEMANAGE
 	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/selinux_child
 	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/selinux_child
-endif
-if HAVE_NSS
-	-chgrp $(SSSD_USER) $(DESTDIR)$(sssdlibexecdir)/p11_child
-	chmod 4750 $(DESTDIR)$(sssdlibexecdir)/p11_child
 endif
 endif
 
