@@ -92,10 +92,12 @@ struct cache_req_test_ctx {
     char *name;
     bool dp_called;
 
-    /* NOTE: Please, instead of adding new create_user bool, use bitshift. */
+    /* NOTE: Please, instead of adding new create_[user|group] bool,
+     * use bitshift. */
     bool create_user1;
     bool create_user2;
-    bool create_group;
+    bool create_group1;
+    bool create_group2;
 };
 
 const char *domains[] = {"responder_cache_req_test_a",
@@ -342,11 +344,17 @@ __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
                               TEST_USER_ID2, TEST_GROUP_ID2, 1000, time(NULL));
     }
 
-    if (ctx->create_group) {
+    if (ctx->create_group1) {
         ret = sysdb_store_group(ctx->tctx->dom, TEST_GROUP_NAME,
                                 TEST_GROUP_ID, NULL, 1000, time(NULL));
         assert_int_equal(ret, EOK);
     }
+    if (ctx->create_group2) {
+        ret = sysdb_store_group(ctx->tctx->dom, TEST_GROUP_NAME2,
+                                TEST_GROUP_ID2, NULL, 1000, time(NULL));
+        assert_int_equal(ret, EOK);
+    }
+
 
     return test_req_succeed_send(mem_ctx, rctx->ev);
 }
@@ -1093,7 +1101,8 @@ void test_group_by_name_missing_found(void **state)
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
 
-    test_ctx->create_group = true;
+    test_ctx->create_group1 = true;
+    test_ctx->create_group2 = false;
 
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
@@ -1233,7 +1242,8 @@ void test_group_by_id_missing_found(void **state)
     will_return(__wrap_sss_dp_get_account_send, test_ctx);
     mock_account_recv_simple();
 
-    test_ctx->create_group = true;
+    test_ctx->create_group1 = true;
+    test_ctx->create_group2 = false;
 
     /* Test. */
     run_group_by_id(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
@@ -1507,7 +1517,8 @@ void test_group_by_recent_filter_valid(void **state)
     errno_t ret;
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
-    test_ctx->create_group = true;
+    test_ctx->create_group1 = true;
+    test_ctx->create_group2 = false;
 
     ret = sysdb_store_group(test_ctx->tctx->dom, TEST_GROUP_NAME2,
                             1001, NULL, 1001, time(NULL)-1);
