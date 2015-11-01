@@ -1498,6 +1498,49 @@ static void cache_req_group_by_filter_test_done(struct tevent_req *req)
     ctx->tctx->done = true;
 }
 
+void test_group_by_recent_filter_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    TALLOC_CTX *req_mem_ctx = NULL;
+    struct tevent_req *req = NULL;
+    const char *ldbname = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+    test_ctx->create_group = true;
+
+    ret = sysdb_store_group(test_ctx->tctx->dom, TEST_GROUP_NAME2,
+                            1001, NULL, 1001, time(NULL)-1);
+    assert_int_equal(ret, EOK);
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    /* Filters always go to DP */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* Group TEST_GROUP is created with a DP callback. */
+    req = cache_req_group_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
+                                         test_ctx->rctx,
+                                         test_ctx->tctx->dom->name,
+                                         TEST_USER_PREFIX);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_group_by_filter_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, ERR_OK);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    assert_non_null(test_ctx->result);
+    assert_int_equal(test_ctx->result->count, 1);
+
+    ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                          SYSDB_NAME, NULL);
+    assert_non_null(ldbname);
+    assert_string_equal(ldbname, TEST_GROUP_NAME);
+}
+
 void test_groups_by_filter_notfound(void **state)
 {
     struct cache_req_test_ctx *test_ctx = NULL;
@@ -1618,6 +1661,7 @@ int main(int argc, const char *argv[])
 
         new_single_domain_test(user_by_recent_filter_valid),
         new_single_domain_test(users_by_recent_filter_valid),
+        new_single_domain_test(group_by_recent_filter_valid),
 
         new_single_domain_test(users_by_filter_filter_old),
         new_single_domain_test(users_by_filter_notfound),
