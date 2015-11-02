@@ -71,6 +71,7 @@
 #define CONFDB_MONITOR_DEFAULT_DOMAIN "default_domain_suffix"
 #define CONFDB_MONITOR_OVERRIDE_SPACE "override_space"
 #define CONFDB_MONITOR_USER_RUNAS "user"
+#define CONFDB_MONITOR_PRE_KILL_CMD "diag_cmd"
 
 /* Both monitor and domains */
 #define CONFDB_NAME_REGEX   "re_expression"

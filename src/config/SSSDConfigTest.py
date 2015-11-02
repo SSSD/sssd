@@ -307,6 +307,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'reconnection_retries',
             'fd_limit',
             'client_idle_timeout',
+            'diag_cmd',
             'description']
 
         self.assertTrue(type(options) == dict,
