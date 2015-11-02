@@ -28,7 +28,6 @@
 static errno_t sdap_sudo_get_usn(TALLOC_CTX *mem_ctx,
                                  struct sysdb_attrs *attrs,
                                  struct sdap_attr_map *map,
-                                 const char *name,
                                  char **_usn)
 {
     const char *usn;
@@ -86,7 +85,7 @@ sdap_save_native_sudorule(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sdap_sudo_get_usn(mem_ctx, attrs, map, rule_name, _usn);
+    ret = sdap_sudo_get_usn(mem_ctx, attrs, map, _usn);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Could not read USN from %s\n", rule_name);
         *_usn = NULL;
