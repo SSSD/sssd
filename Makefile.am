@@ -679,7 +679,7 @@ if BUILD_SUDO
 endif
 
 if BUILD_IFP
-    SSSD_DOCS += libsss_simpleifp_doc
+    SSSD_DOCS += sss_simpleifp_doc
 endif
 
 CLIENT_LIBS = $(LTLIBINTL)
