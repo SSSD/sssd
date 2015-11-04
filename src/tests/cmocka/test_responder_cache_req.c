@@ -42,6 +42,8 @@
 #define TEST_USER_NAME2 "test-user2"
 #define TEST_GROUP_NAME2 "test-group2"
 
+#define TEST_USER_PREFIX "test*"
+
 #define new_single_domain_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
                                     test_single_domain_setup, \
@@ -1267,7 +1269,7 @@ void test_user_by_recent_filter_valid(void **state)
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
                                         test_ctx->tctx->dom->name,
-                                        "test*");
+                                        TEST_USER_PREFIX);
     assert_non_null(req);
 
     tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
@@ -1314,7 +1316,7 @@ void test_users_by_filter_filter_old(void **state)
     req = cache_req_user_by_filter_send(req_mem_ctx, test_ctx->tctx->ev,
                                         test_ctx->rctx,
                                         test_ctx->tctx->dom->name,
-                                        "test*");
+                                        TEST_USER_PREFIX);
     assert_non_null(req);
     tevent_req_set_callback(req, cache_req_user_by_filter_test_done, test_ctx);
 
