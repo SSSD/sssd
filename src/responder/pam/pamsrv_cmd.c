@@ -1032,6 +1032,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
 {
     int p11_child_timeout;
     const int P11_CHILD_TIMEOUT_DEFAULT = 10;
+    char *cert_verification_opts;
     errno_t ret;
     struct tevent_req *req;
 
@@ -1046,8 +1047,19 @@ static errno_t check_cert(TALLOC_CTX *mctx,
         return ret;
     }
 
+    ret = confdb_get_string(pctx->rctx->cdb, mctx, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_CERT_VERIFICATION, NULL,
+                            &cert_verification_opts);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to read certificate_verification from confdb: [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
     req = pam_check_cert_send(mctx, ev, pctx->p11_child_debug_fd,
-                              pctx->nss_db, p11_child_timeout, pd);
+                              pctx->nss_db, p11_child_timeout,
+                              cert_verification_opts, pd);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
         return ENOMEM;

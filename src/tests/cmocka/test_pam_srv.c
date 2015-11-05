@@ -188,26 +188,38 @@ struct pam_ctx *mock_pctx(TALLOC_CTX *mem_ctx)
     return pctx;
 }
 
-static int add_pam_params(struct sss_test_conf_param pam_params[],
-                          struct confdb_ctx *cdb)
+static int add_confdb_params(struct sss_test_conf_param params[],
+                             struct confdb_ctx *cdb, const char *section)
 {
     const char *val[2];
     int ret;
 
     val[1] = NULL;
 
-    for (int i = 0; pam_params[i].key; i++) {
-        val[0] = pam_params[i].value;
-        ret = confdb_add_param(cdb, true, CONFDB_PAM_CONF_ENTRY,
-                               pam_params[i].key, val);
+    for (int i = 0; params[i].key; i++) {
+        val[0] = params[i].value;
+        ret = confdb_add_param(cdb, true, section, params[i].key, val);
         assert_int_equal(ret, EOK);
     }
 
     return EOK;
 }
 
+static int add_pam_params(struct sss_test_conf_param pam_params[],
+                          struct confdb_ctx *cdb)
+{
+    return add_confdb_params(pam_params, cdb, CONFDB_PAM_CONF_ENTRY);
+}
+
+static int add_monitor_params(struct sss_test_conf_param monitor_params[],
+                              struct confdb_ctx *cdb)
+{
+    return add_confdb_params(monitor_params, cdb, CONFDB_MONITOR_CONF_ENTRY);
+}
+
 void test_pam_setup(struct sss_test_conf_param dom_params[],
                     struct sss_test_conf_param pam_params[],
+                    struct sss_test_conf_param monitor_params[],
                     void **state)
 {
     errno_t ret;
@@ -241,6 +253,9 @@ void test_pam_setup(struct sss_test_conf_param dom_params[],
     pam_test_ctx->pctx->rctx = pam_test_ctx->rctx;
 
     ret = add_pam_params(pam_params, pam_test_ctx->rctx->cdb);
+    assert_int_equal(ret, EOK);
+
+    ret = add_monitor_params(monitor_params, pam_test_ctx->rctx->cdb);
     assert_int_equal(ret, EOK);
 
     /* Create client context */
@@ -299,7 +314,12 @@ static int pam_test_setup(void **state)
         { NULL, NULL },             /* Sentinel */
     };
 
-    test_pam_setup(dom_params, pam_params, state);
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "no_ocsp"},
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_pam_setup(dom_params, pam_params, monitor_params, state);
 
     pam_test_setup_common();
     return 0;
@@ -319,7 +339,12 @@ static int pam_cached_test_setup(void **state)
         { NULL, NULL },             /* Sentinel */
     };
 
-    test_pam_setup(dom_params, pam_params, state);
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "no_ocsp"},
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_pam_setup(dom_params, pam_params, monitor_params, state);
 
     pam_test_setup_common();
     return 0;

@@ -61,6 +61,7 @@ option_strings = {
     'krb5_rcache_dir' : _('Directory on the filesystem where SSSD should store Kerberos replay cache files.'),
     'default_domain_suffix' : _('Domain to add to names without a domain component.'),
     'user' : _('The user to drop privileges to'),
+    'certificate_verification' : _('Tune certificate verification'),
 
     # [nss]
     'enum_cache_timeout' : _('Enumeration cache timeout length (seconds)'),

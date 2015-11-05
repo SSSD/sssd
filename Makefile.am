@@ -3163,6 +3163,7 @@ proxy_child_LDADD = \
 p11_child_SOURCES = \
     src/p11_child/p11_child_nss.c \
     src/util/atomic_io.c \
+    src/util/util.c \
     $(NULL)
 p11_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -3172,6 +3173,7 @@ p11_child_CFLAGS = \
 p11_child_LDADD = \
     libsss_debug.la \
     $(TALLOC_LIBS) \
+    $(DHASH_LIBS) \
     $(POPT_LIBS) \
     $(NSS_LIBS) \
     libsss_crypt.la \

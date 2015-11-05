@@ -236,6 +236,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        int child_debug_fd,
                                        const char *nss_db,
                                        time_t timeout,
+                                       const char *verify_opts,
                                        struct pam_data *pd)
 {
     errno_t ret;
@@ -246,9 +247,10 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     struct timeval tv;
     int pipefd_to_child[2];
     int pipefd_from_child[2];
-    const char *extra_args[5] = {NULL, NULL, NULL, NULL, NULL};
+    const char *extra_args[7] = { NULL };
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
+    size_t arg_c;
 
     req = tevent_req_create(mem_ctx, &state, struct pam_check_cert_state);
     if (req == NULL) {
@@ -262,16 +264,21 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     }
 
     /* extra_args are added in revers order */
-    extra_args[1] = "--nssdb";
-    extra_args[0] = nss_db;
+    arg_c = 0;
+    extra_args[arg_c++] = nss_db;
+    extra_args[arg_c++] = "--nssdb";
+    if (verify_opts != NULL) {
+        extra_args[arg_c++] = verify_opts;
+        extra_args[arg_c++] = "--verify";
+    }
     if (pd->cmd == SSS_PAM_AUTHENTICATE) {
-        extra_args[2] = "--auth";
+        extra_args[arg_c++] = "--auth";
         switch (sss_authtok_get_type(pd->authtok)) {
         case SSS_AUTHTOK_TYPE_SC_PIN:
-            extra_args[3] = "--pin";
+            extra_args[arg_c++] = "--pin";
             break;
         case SSS_AUTHTOK_TYPE_SC_KEYPAD:
-            extra_args[3] = "--keypad";
+            extra_args[arg_c++] = "--keypad";
             break;
         default:
             DEBUG(SSSDBG_OP_FAILURE, "Unsupported authtok type.\n");
@@ -279,7 +286,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
     } else if (pd->cmd == SSS_PAM_PREAUTH) {
-        extra_args[2] = "--pre";
+        extra_args[arg_c++] = "--pre";
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected PAM command [%d}.\n", pd->cmd);
         ret = EINVAL;

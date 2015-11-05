@@ -356,7 +356,7 @@ void test_cert_to_ssh_key(void **state)
     assert_non_null(exp_key);
 
     ret = cert_to_ssh_key(ts, "sql:" ABS_SRC_DIR "/src/tests/cmocka/p11_nssdb",
-                          der, der_size, &key, &key_size);
+                          der, der_size, false, &key, &key_size);
     assert_int_equal(ret, EOK);
     assert_int_equal(key_size, exp_key_size);
     assert_memory_equal(key, exp_key, exp_key_size);
