@@ -797,6 +797,8 @@ static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
     int ret;
     size_t d;
     TALLOC_CTX *tmp_ctx;
+    char *cert_verification_opts;
+    bool do_ocsp = true;
 
     if (el == NULL) {
         DEBUG(SSSDBG_TRACE_ALL, "Mssing element, nothing to do.\n");
@@ -811,9 +813,30 @@ static errno_t decode_and_add_base64_data(struct ssh_cmd_ctx *cmd_ctx,
 
     for (d = 0; d < el->num_values; d++) {
         if (cert_data) {
+
+            ret = confdb_get_string(cctx->rctx->cdb, tmp_ctx,
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_CERT_VERIFICATION, NULL,
+                                    &cert_verification_opts);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Failed to read p11_child_timeout from confdb: [%d] %s\n",
+                      ret, sss_strerror(ret));
+                return ret;
+            }
+
+            if (cert_verification_opts != NULL) {
+                ret = parse_cert_verify_opts(cert_verification_opts, &do_ocsp);
+                if (ret != EOK) {
+                    DEBUG(SSSDBG_FATAL_FAILURE,
+                          "Failed to parse verifiy option.\n");
+                    return ret;
+                }
+            }
+
             ret = cert_to_ssh_key(tmp_ctx, ssh_ctx->ca_db,
                                   el->values[d].data, el->values[d].length,
-                                  &key, &key_len);
+                                  do_ocsp, &key, &key_len);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "cert_to_ssh_key failed.\n");
                 return ret;

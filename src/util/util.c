@@ -1106,3 +1106,49 @@ errno_t sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl)
 
     return ret;
 }
+
+errno_t parse_cert_verify_opts(const char *verify_opts, bool *do_ocsp)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+    char **opts;
+    size_t c;
+
+    if (verify_opts == NULL) {
+        *do_ocsp = true;
+
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
+        return ENOMEM;
+    }
+
+    ret = split_on_separator(tmp_ctx, verify_opts, ',', true, true, &opts,
+                             NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "split_on_separator failed.\n");
+        goto done;
+    }
+
+    for (c = 0; opts[c] != NULL; c++) {
+        if (strcasecmp(opts[c], "no_ocsp") == 0) {
+            DEBUG(SSSDBG_TRACE_ALL,
+                  "Found 'no_ocsp' option, disabling OCSP.\n");
+            *do_ocsp = false;
+        } else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unsupported certificate verification option [%s], " \
+                  "skipping.\n", opts[c]);
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}

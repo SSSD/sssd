@@ -38,10 +38,12 @@
 #include <keyhi.h>
 #include <pk11pub.h>
 #include <prerror.h>
+#include <ocsp.h>
 
 #include "util/child_common.h"
 #include "providers/dp_backend.h"
 #include "util/crypto/sss_crypto.h"
+#include "util/cert.h"
 
 enum op_mode {
     OP_NONE,
@@ -68,7 +70,7 @@ static char *password_passthrough(PK11SlotInfo *slot, PRBool retry, void *arg)
 
 
 int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
-            enum op_mode mode, const char *pin, char **cert,
+            enum op_mode mode, const char *pin, bool do_ocsp, char **cert,
             char **token_name_out)
 {
     int ret;
@@ -261,6 +263,14 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
         return EIO;
     }
 
+    if (do_ocsp) {
+        rv = CERT_EnableOCSPChecking(handle);
+        if (rv != SECSuccess) {
+            DEBUG(SSSDBG_OP_FAILURE, "CERT_EnableOCSPChecking failed: [%d].\n",
+                                     PR_GetError());
+            return EIO;
+        }
+    }
 
     found_cert = NULL;
     DEBUG(SSSDBG_TRACE_ALL, "Filtered certificates:\n");
@@ -456,6 +466,8 @@ int main(int argc, const char *argv[])
     char *slot_name_in = NULL;
     char *token_name_out = NULL;
     char *nss_db = NULL;
+    bool do_ocsp = true;
+    char *verify_opts = NULL;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -474,6 +486,8 @@ int main(int argc, const char *argv[])
         {"pre", 0, POPT_ARG_NONE, NULL, 'p', _("Run in pre-auth mode"), NULL},
         {"pin", 0, POPT_ARG_NONE, NULL, 'i', _("Expect PIN on stdin"), NULL},
         {"keypad", 0, POPT_ARG_NONE, NULL, 'k', _("Expect PIN on keypad"),
+         NULL},
+        {"verify", 0, POPT_ARG_STRING, &verify_opts, 0 , _("Tune validation"),
          NULL},
         {"nssdb", 0, POPT_ARG_STRING, &nss_db, 0, _("NSS DB to use"),
          NULL},
@@ -599,6 +613,13 @@ int main(int argc, const char *argv[])
     }
     talloc_steal(main_ctx, debug_prg_name);
 
+    if (verify_opts != NULL) {
+        ret = parse_cert_verify_opts(verify_opts, &do_ocsp);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to parse verifiy option.\n");
+            goto fail;
+        }
+    }
 
     if (mode == OP_AUTH && pin_mode == PIN_STDIN) {
         ret = p11c_recv_data(main_ctx, STDIN_FILENO, &pin);
@@ -608,7 +629,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    ret = do_work(main_ctx, nss_db, slot_name_in, mode, pin, &cert,
+    ret = do_work(main_ctx, nss_db, slot_name_in, mode, pin, do_ocsp, &cert,
                   &token_name_out);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "do_work failed.\n");

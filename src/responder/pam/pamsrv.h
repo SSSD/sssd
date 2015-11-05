@@ -87,6 +87,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        int child_debug_fd,
                                        const char *nss_db,
                                        time_t timeout,
+                                       const char *verify_opts,
                                        struct pam_data *pd);
 errno_t pam_check_cert_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                             char **cert, char **token_name);

@@ -18,16 +18,19 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "util/util.h"
+#include "config.h"
 
 #include <nss.h>
 #include <cert.h>
 #include <base64.h>
 #include <key.h>
 #include <prerror.h>
+#include <ocsp.h>
+#include <talloc.h>
 
 #include "util/crypto/sss_crypto.h"
 #include "util/crypto/nss/nss_util.h"
+#include "util/cert.h"
 
 #define NS_CERT_HEADER "-----BEGIN CERTIFICATE-----"
 #define NS_CERT_TRAILER "-----END CERTIFICATE-----"
@@ -220,6 +223,7 @@ done:
 
 errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
                         const uint8_t *der_blob, size_t der_size,
+                        bool do_ocsp,
                         uint8_t **key, size_t *key_size)
 {
     CERTCertDBHandle *handle;
@@ -254,6 +258,15 @@ errno_t cert_to_ssh_key(TALLOC_CTX *mem_ctx, const char *ca_db,
     }
 
     handle = CERT_GetDefaultCertDB();
+
+    if (do_ocsp) {
+        rv = CERT_EnableOCSPChecking(handle);
+        if (rv != SECSuccess) {
+            DEBUG(SSSDBG_OP_FAILURE, "CERT_EnableOCSPChecking failed: [%d].\n",
+                                     PR_GetError());
+            return EIO;
+        }
+    }
 
     der_item.len = der_size;
     der_item.data = discard_const(der_blob);

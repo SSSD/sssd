@@ -418,6 +418,9 @@ int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
 
 char **parse_args(const char *str);
 
+errno_t parse_cert_verify_opts(const char *verify_opts, bool *do_ocsp);
+
+
 errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
                         unsigned long count,
                         hash_table_t **tbl);

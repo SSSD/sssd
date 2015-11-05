@@ -365,6 +365,35 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>certificate_verification (string)</term>
+                        <listitem>
+                            <para>
+                                With this parameter the certificate verification
+                                can be tuned with a comma separated list of
+                                options. Supported options are:
+                                <variablelist>
+                                <varlistentry>
+                                    <term>no_ocsp</term>
+                                    <listitem>
+                                        <para>Disables Online Certificate Status
+                                        Protocol (OCSP) checks. This might be
+                                        needed if the OCSP servers defined in
+                                        the certificate are not reachable from
+                                        the client.</para>
+                                    </listitem>
+                                </varlistentry>
+                                </variablelist>
+                            </para>
+                            <para>
+                                Unknown options are reported but ignored.
+                            </para>
+                            <para>
+                                Default: not set, i.e. do not restrict
+                                certificate vertification
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>
