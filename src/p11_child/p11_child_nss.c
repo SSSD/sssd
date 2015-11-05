@@ -272,6 +272,18 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
                              cert_list_node->cert->nickname,
                              cert_list_node->cert->subjectName);
 
+            rv = CERT_VerifyCertificateNow(handle, cert_list_node->cert,
+                                           PR_TRUE, certificateUsageSSLClient,
+                                           NULL, NULL);
+            if (rv != SECSuccess) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Certificate [%s][%s] not valid [%d], skipping.\n",
+                      cert_list_node->cert->nickname,
+                      cert_list_node->cert->subjectName, PR_GetError());
+                continue;
+            }
+
+
             if (found_cert == NULL) {
                 found_cert = cert_list_node->cert;
             } else {
@@ -288,16 +300,6 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
         *cert = NULL;
         *token_name_out = NULL;
         ret = EOK;
-        goto done;
-    }
-
-    rv = CERT_VerifyCertificateNow(handle, found_cert, PR_TRUE,
-                                   certificateUsageSSLClient, NULL, NULL);
-    if (rv != SECSuccess) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "CERT_VerifyCertificateNow failed [%d].\n",
-              PR_GetError());
-        ret = EIO;
         goto done;
     }
 
