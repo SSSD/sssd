@@ -429,7 +429,7 @@ static void mock_input_pam(TALLOC_CTX *mem_ctx, const char *name,
         }
     }
 
-    pi.pam_service = "ssh";
+    pi.pam_service = "pam_test_service";
     pi.pam_service_size = strlen(pi.pam_service) + 1;
     pi.pam_tty = "/dev/tty";
     pi.pam_tty_size = strlen(pi.pam_tty) + 1;
