@@ -50,8 +50,8 @@ const char *check_leaks_err_msg(void)
     return leak_err_msg;
 }
 
-bool
-_check_leaks(TALLOC_CTX *ctx, size_t bytes, const char *location)
+static bool
+check_leaks(TALLOC_CTX *ctx, size_t bytes, const char *location)
 {
     size_t bytes_allocated;
 
@@ -110,7 +110,7 @@ _check_leaks_pop(TALLOC_CTX *ctx, const char *location)
     }
 
     talloc_zfree(snapshot);
-    return _check_leaks(old_ctx, bytes_allocated, location);
+    return check_leaks(old_ctx, bytes_allocated, location);
 }
 
 bool
@@ -140,7 +140,7 @@ leak_check_teardown(void)
         _set_leak_err_msg("Exiting with a non-empty stack");
         return false;
     }
-    res = check_leaks(global_talloc_context, 0);
+    res = check_leaks(global_talloc_context, 0, __location__);
     talloc_disable_null_tracking();
     talloc_free(global_talloc_context);
     return res;
