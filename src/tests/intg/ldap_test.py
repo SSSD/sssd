@@ -174,7 +174,6 @@ def cleanup_sssd_process():
             time.sleep(1)
     except:
         pass
-    subprocess.call(["sss_cache", "-E"])
     for path in os.listdir(config.DB_PATH):
         os.unlink(config.DB_PATH + "/" + path)
     for path in os.listdir(config.MCACHE_PATH):
