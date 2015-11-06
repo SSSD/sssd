@@ -43,6 +43,7 @@
 #define PILOT_IFACE "test.Pilot"
 #define PILOT_BLINK "Blink"
 #define PILOT_EAT "Eat"
+#define PILOT_CRASH "Crash"
 
 #define PILOT_IFACE_INTROSPECT \
         "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n" \
@@ -72,6 +73,7 @@
         "  <interface name=\"test.Pilot\">\n" \
         "    <method name=\"Blink\" />\n" \
         "    <method name=\"Eat\" />\n" \
+        "    <method name=\"Crash\" />\n" \
         "  </interface>\n" \
         "</node>\n"
 
@@ -80,6 +82,7 @@ struct pilot_vtable {
     struct sbus_vtable vtable;
     sbus_msg_handler_fn Blink;
     sbus_msg_handler_fn Eat;
+    sbus_msg_handler_fn Crash;
 };
 
 const struct sbus_method_meta pilot_methods[] = {
@@ -95,6 +98,13 @@ const struct sbus_method_meta pilot_methods[] = {
         NULL, /* in args: manually parsed */
         NULL, /* out args: manually parsed */
         offsetof(struct pilot_vtable, Eat),
+        NULL
+    },
+    {
+        PILOT_CRASH, /* method name */
+        NULL, /* in args: manually parsed */
+        NULL, /* out args: manually parsed */
+        offsetof(struct pilot_vtable, Crash),
         NULL
     },
     { NULL, }
@@ -169,10 +179,21 @@ static int eat_handler(struct sbus_request *req, void *data)
     return sbus_request_return_and_finish(req, DBUS_TYPE_INVALID);
 }
 
+static int crash_handler(struct sbus_request *req, void *data)
+{
+    /* Pilot crashes by returning a malformed UTF-8 string */
+    const char *invalid = "ad\351la\357d";
+
+    return sbus_request_return_and_finish(req,
+                                          DBUS_TYPE_STRING, &invalid,
+                                          DBUS_TYPE_INVALID);
+}
+
 struct pilot_vtable pilot_impl = {
     { &pilot_meta, 0 },
     .Blink = blink_handler,
     .Eat = eat_handler,
+    .Crash = crash_handler,
 };
 
 static int pilot_test_server_init(struct sbus_connection *server, void *unused)
@@ -304,6 +325,33 @@ START_TEST(test_request_parse_bad_args)
 }
 END_TEST
 
+START_TEST(test_request_dontcrash)
+{
+#ifdef HAVE_DBUSBASICVALUE
+    TALLOC_CTX *ctx;
+    DBusConnection *client;
+    DBusError error = DBUS_ERROR_INIT;
+    DBusMessage *reply;
+
+    ctx = talloc_new(NULL);
+    client = test_dbus_setup_mock(ctx, NULL, pilot_test_server_init, NULL);
+
+    reply = test_dbus_call_sync(client,
+                                "/test/leela",
+                                PILOT_IFACE,
+                                PILOT_CRASH,
+                                &error,
+                                DBUS_TYPE_INVALID); /* bad agruments */
+    ck_assert(reply == NULL);
+    ck_assert(dbus_error_is_set(&error));
+    ck_assert(dbus_error_has_name(&error, DBUS_ERROR_INVALID_ARGS));
+    dbus_error_free(&error);
+
+    talloc_free(ctx);
+#endif /* HAVE_DBUSBASICVALUE */
+}
+END_TEST
+
 START_TEST(test_introspection)
 {
     TALLOC_CTX *ctx;
@@ -373,6 +421,7 @@ TCase *create_sbus_tests(void)
     tcase_add_test(tc, test_raw_handler);
     tcase_add_test(tc, test_request_parse_ok);
     tcase_add_test(tc, test_request_parse_bad_args);
+    tcase_add_test(tc, test_request_dontcrash);
     tcase_add_test(tc, test_introspection);
     tcase_add_test(tc, test_sbus_new_error);
 

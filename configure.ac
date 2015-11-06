@@ -218,10 +218,19 @@ fi
 if test x$has_dbus != xno; then
     SAFE_LIBS="$LIBS"
     LIBS="$DBUS_LIBS"
+    SAFE_CFLAGS=$CFLAGS
+    CFLAGS="$CFLAGS $DBUS_CFLAGS"
+
     AC_CHECK_FUNC([dbus_watch_get_unix_fd],
                   AC_DEFINE([HAVE_DBUS_WATCH_GET_UNIX_FD], [1],
                             [Define if dbus_watch_get_unix_fd exists]))
+    AC_CHECK_TYPES([DBusBasicValue],
+                   [],
+                   [],
+                   [ #include <dbus/dbus.h> ])
+
     LIBS="$SAFE_LIBS"
+    CFLAGS=$SAFE_CFLAGS
 fi
 
 # work around a bug in cov-build from Coverity
