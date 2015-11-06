@@ -37,6 +37,7 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/sss_utf8.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
 #include "sbus/sssd_dbus.h"
@@ -130,6 +131,28 @@ static const char *dp_err_to_string(int dp_err_type)
     }
 
     return "Unknown Error";
+}
+
+static const char *safe_be_req_err_msg(const char *msg_in,
+                                       int dp_err_type)
+{
+    bool ok;
+
+    if (msg_in == NULL) {
+        /* No custom error, just use default */
+        return dp_err_to_string(dp_err_type);
+    }
+
+    ok = sss_utf8_check((const uint8_t *) msg_in,
+                        strlen(msg_in));
+    if (!ok) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Back end message [%s] contains invalid non-UTF8 character, " \
+              "using default\n", msg_in);
+        return dp_err_to_string(dp_err_type);
+    }
+
+    return msg_in;
 }
 
 #define REQ_PHASE_ACCESS 0
@@ -658,11 +681,7 @@ static void get_subdomains_callback(struct be_req *req,
          */
         err_maj = dp_err_type;
         err_min = errnum;
-        if (errstr) {
-            err_msg = errstr;
-        } else {
-            err_msg = dp_err_to_string(dp_err_type);
-        }
+        err_msg = safe_be_req_err_msg(errstr, dp_err_type);
 
         sbus_request_return_and_finish(dbus_req,
                                        DBUS_TYPE_UINT16, &err_maj,
@@ -797,11 +816,7 @@ static void acctinfo_callback(struct be_req *req,
 
         err_maj = dp_err_type;
         err_min = errnum;
-        if (errstr) {
-            err_msg = errstr;
-        } else {
-            err_msg = dp_err_to_string(dp_err_type);
-        }
+        err_msg = safe_be_req_err_msg(errstr, dp_err_type);
 
         sbus_request_return_and_finish(dbus_req,
                                        DBUS_TYPE_UINT16, &err_maj,
@@ -1547,10 +1562,13 @@ static void be_sudo_handler_callback(struct be_req *req,
                                      int dp_ret,
                                      const char *errstr)
 {
+    const char *err_msg = NULL;
     struct sbus_request *dbus_req;
+
     dbus_req = (struct sbus_request *)(req->pvt);
 
-    be_sudo_handler_reply(dbus_req, dp_err, dp_ret, errstr);
+    err_msg = safe_be_req_err_msg(errstr, dp_err);
+    be_sudo_handler_reply(dbus_req, dp_err, dp_ret, err_msg);
 
     talloc_free(req);
 }
@@ -1891,11 +1909,7 @@ static void be_autofs_handler_callback(struct be_req *req,
 
         err_maj = dp_err_type;
         err_min = errnum;
-        if (errstr) {
-            err_msg = errstr;
-        } else {
-            err_msg = dp_err_to_string(dp_err_type);
-        }
+        err_msg = safe_be_req_err_msg(errstr, dp_err_type);
 
         sbus_request_return_and_finish(dbus_req,
                                        DBUS_TYPE_UINT16, &err_maj,
