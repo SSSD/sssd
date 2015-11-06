@@ -115,6 +115,23 @@ struct bet_queue_item {
 
 };
 
+static const char *dp_err_to_string(int dp_err_type)
+{
+    switch (dp_err_type) {
+    case DP_ERR_OK:
+        return "Success";
+    case DP_ERR_OFFLINE:
+        return "Provider is Offline";
+    case DP_ERR_TIMEOUT:
+        return "Request timed out";
+    case DP_ERR_FATAL:
+    default:
+        return "Internal Error";
+    }
+
+    return "Unknown Error";
+}
+
 #define REQ_PHASE_ACCESS 0
 #define REQ_PHASE_SELINUX 1
 
@@ -616,37 +633,6 @@ static void be_reset_offline(struct be_ctx *ctx)
     be_run_online_cb(ctx);
 }
 
-static char *dp_pam_err_to_string(TALLOC_CTX *memctx, int dp_err_type, int errnum)
-{
-    switch (dp_err_type) {
-    case DP_ERR_OK:
-        return talloc_asprintf(memctx, "Success (%s)",
-                               pam_strerror(NULL, errnum));
-        break;
-
-    case DP_ERR_OFFLINE:
-        return talloc_asprintf(memctx,
-                               "Provider is Offline (%s)",
-                               pam_strerror(NULL, errnum));
-        break;
-
-    case DP_ERR_TIMEOUT:
-        return talloc_asprintf(memctx,
-                               "Request timed out (%s)",
-                               pam_strerror(NULL, errnum));
-        break;
-
-    case DP_ERR_FATAL:
-    default:
-        return talloc_asprintf(memctx,
-                               "Internal Error (%s)",
-                               pam_strerror(NULL, errnum));
-        break;
-    }
-
-    return NULL;
-}
-
 static void get_subdomains_callback(struct be_req *req,
                                     int dp_err_type,
                                     int errnum,
@@ -659,7 +645,7 @@ static void get_subdomains_callback(struct be_req *req,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
-              dp_pam_err_to_string(req, dp_err_type, errnum));
+              dp_err_to_string(dp_err_type));
 
     be_queue_next_request(req, BET_SUBDOMAINS);
 
@@ -675,12 +661,7 @@ static void get_subdomains_callback(struct be_req *req,
         if (errstr) {
             err_msg = errstr;
         } else {
-            err_msg = dp_pam_err_to_string(req, dp_err_type, errnum);
-        }
-        if (!err_msg) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to set err_msg, Out of memory?\n");
-            err_msg = "OOM";
+            err_msg = dp_err_to_string(dp_err_type);
         }
 
         sbus_request_return_and_finish(dbus_req,
@@ -819,12 +800,7 @@ static void acctinfo_callback(struct be_req *req,
         if (errstr) {
             err_msg = errstr;
         } else {
-            err_msg = dp_pam_err_to_string(req, dp_err_type, errnum);
-        }
-        if (!err_msg) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to set err_msg, Out of memory?\n");
-            err_msg = "OOM";
+            err_msg = dp_err_to_string(dp_err_type);
         }
 
         sbus_request_return_and_finish(dbus_req,
@@ -1365,7 +1341,7 @@ static void be_pam_handler_callback(struct be_req *req,
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
-              dp_pam_err_to_string(req, dp_err_type, errnum));
+              dp_err_to_string(dp_err_type));
 
     pd = talloc_get_type(be_req_get_data(req), struct pam_data);
 
@@ -1918,12 +1894,7 @@ static void be_autofs_handler_callback(struct be_req *req,
         if (errstr) {
             err_msg = errstr;
         } else {
-            err_msg = dp_pam_err_to_string(req, dp_err_type, errnum);
-        }
-        if (!err_msg) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to set err_msg, Out of memory?\n");
-            err_msg = "OOM";
+            err_msg = dp_err_to_string(dp_err_type);
         }
 
         sbus_request_return_and_finish(dbus_req,
@@ -2211,7 +2182,7 @@ static void check_online_callback(struct be_req *req, int dp_err_type,
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
-              dp_pam_err_to_string(req, dp_err_type, errnum));
+              dp_err_to_string(dp_err_type));
 
     req->be_ctx->check_online_ref_count--;
 
