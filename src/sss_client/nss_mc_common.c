@@ -60,6 +60,8 @@ errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
     struct sss_mc_header h;
     bool copy_ok;
     int count;
+    int ret;
+    struct stat fdstat;
 
     /* retry barrier protected reading max 5 times then give up */
     for (count = 5; count > 0; count--) {
@@ -97,6 +99,16 @@ errno_t sss_nss_check_header(struct sss_cli_mc_ctx *ctx)
             ctx->ht_size != h.ht_size) {
             return EINVAL;
         }
+    }
+
+    ret = fstat(ctx->fd, &fdstat);
+    if (ret == -1) {
+        return EIO;
+    }
+
+    if (fdstat.st_nlink == 0) {
+        /* memory cache was removed; we need to reinitialize it. */
+        return EINVAL;
     }
 
     return 0;
