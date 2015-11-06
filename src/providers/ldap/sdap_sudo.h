@@ -21,6 +21,9 @@
 #ifndef _SDAP_SUDO_H_
 #define _SDAP_SUDO_H_
 
+#include "providers/dp_backend.h"
+#include "providers/ldap/ldap_common.h"
+
 struct sdap_sudo_ctx {
     struct sdap_id_ctx *id_ctx;
 
@@ -32,15 +35,6 @@ struct sdap_sudo_ctx {
 
     bool full_refresh_done;
     bool full_refresh_in_progress;
-    int full_refresh_attempts;
-    struct be_cb *first_refresh_online_cb;
-    struct tevent_req *first_refresh_timer;
-};
-
-enum sdap_sudo_refresh_type {
-    SDAP_SUDO_REFRESH_FULL,
-    SDAP_SUDO_REFRESH_SMART,
-    SDAP_SUDO_REFRESH_RULES
 };
 
 /* Common functions from ldap_sudo.c */
@@ -65,21 +59,22 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
                            char **usn,
                            size_t *num_rules);
 
-/* timer */
+struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
+                                               struct sdap_sudo_ctx *sudo_ctx);
 
-typedef struct tevent_req * (*sdap_sudo_timer_fn_t)(TALLOC_CTX *mem_ctx,
-                                                    struct sdap_sudo_ctx *sudo_ctx);
+int sdap_sudo_full_refresh_recv(struct tevent_req *req,
+                                int *dp_error,
+                                int *error);
 
-struct tevent_req * sdap_sudo_timer_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sdap_sudo_ctx *sudo_ctx,
-                                         struct timeval when,
-                                         time_t timeout,
-                                         sdap_sudo_timer_fn_t fn);
+struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
+                                                struct sdap_sudo_ctx *sudo_ctx);
 
-int sdap_sudo_timer_recv(TALLOC_CTX *mem_ctx,
-                         struct tevent_req *req,
-                         struct tevent_req **_subreq);
+int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
+                                 int *dp_error,
+                                 int *error);
+
+errno_t
+sdap_sudo_ptask_setup(struct be_ctx *be_ctx, struct sdap_sudo_ctx *sudo_ctx);
 
 /* host info */
 struct tevent_req * sdap_sudo_get_hostinfo_send(TALLOC_CTX *mem_ctx,
