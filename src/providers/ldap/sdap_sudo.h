@@ -73,6 +73,17 @@ int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
                                  int *dp_error,
                                  int *error);
 
+struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
+                                                struct sdap_sudo_ctx *sudo_ctx,
+                                                struct be_ctx *be_ctx,
+                                                struct sdap_options *opts,
+                                                struct sdap_id_conn_cache *conn_cache,
+                                                char **rules);
+
+int sdap_sudo_rules_refresh_recv(struct tevent_req *req,
+                                 int *dp_error,
+                                 int *error);
+
 errno_t
 sdap_sudo_ptask_setup(struct be_ctx *be_ctx, struct sdap_sudo_ctx *sudo_ctx);
 
