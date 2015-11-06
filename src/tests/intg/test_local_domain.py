@@ -60,13 +60,10 @@ def create_sssd_fixture(request):
             stop_sssd()
         except:
             pass
-        subprocess.call(["sss_cache", "-E"])
         for path in os.listdir(config.DB_PATH):
             os.unlink(config.DB_PATH + "/" + path)
-        # FIXME: Uncomment this when ticket #2726 is solved
-        # https://fedorahosted.org/sssd/ticket/2726
-        # for path in os.listdir(config.MCACHE_PATH):
-        #     os.unlink(config.MCACHE_PATH + "/" + path)
+        for path in os.listdir(config.MCACHE_PATH):
+            os.unlink(config.MCACHE_PATH + "/" + path)
     request.addfinalizer(teardown)
 
 
