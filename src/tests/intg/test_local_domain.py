@@ -58,7 +58,6 @@ def create_sssd_fixture(request):
             stop_sssd()
         except:
             pass
-        subprocess.call(["sss_cache", "-E"])
         for path in os.listdir(config.DB_PATH):
             os.unlink(config.DB_PATH + "/" + path)
         for path in os.listdir(config.MCACHE_PATH):
