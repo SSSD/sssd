@@ -257,9 +257,19 @@ function build_debug()
 function build_coverage()
 {
     declare -r coverage_report_dir="ci-report-coverage"
+    declare extra_CFLAGS=""
     declare test_dir
 
-    export CFLAGS="$COVERAGE_CFLAGS"
+    if [[ "$DISTRO_BRANCH" == -redhat-redhatenterprise*-6.*- ||
+          "$DISTRO_BRANCH" == -redhat-centos-6.*- ]]; then
+        # enable optimisation to avoid bug in gcc < 4.6.0
+        # gcc commit 7959b7e646b493f48a2ea7228fbf1c43f84bedea
+        # git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/trunk@162384
+        #             138bc75d-0d04-0410-961f-82ee72b054a4
+        extra_CFLAGS=" -O1"
+    fi
+
+    export CFLAGS="$COVERAGE_CFLAGS $extra_CFLAGS"
 
     test_dir=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
     stage configure         "$BASE_DIR/configure" \
