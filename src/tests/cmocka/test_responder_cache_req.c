@@ -160,7 +160,7 @@ static void cache_req_group_by_id_test_done(struct tevent_req *req)
 static void prepare_user(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
                          uint64_t timeout,
-                         time_t time)
+                         time_t transaction_time)
 {
     struct sysdb_attrs *attrs;
     errno_t ret;
@@ -174,7 +174,7 @@ static void prepare_user(TALLOC_CTX *mem_ctx,
     ret = sysdb_store_user(domain, TEST_USER_NAME, "pwd",
                            TEST_USER_ID, TEST_GROUP_ID, NULL, NULL, NULL,
                            "cn=test-user,dc=test", attrs, NULL,
-                           timeout, time);
+                           timeout, transaction_time);
     assert_int_equal(ret, EOK);
 }
 
@@ -241,12 +241,12 @@ static void check_user(struct cache_req_test_ctx *test_ctx,
 static void prepare_group(TALLOC_CTX *mem_ctx,
                          struct sss_domain_info *domain,
                          uint64_t timeout,
-                         time_t time)
+                         time_t transaction_time)
 {
     errno_t ret;
 
     ret = sysdb_store_group(domain, TEST_GROUP_NAME, TEST_GROUP_ID, NULL,
-                            timeout, time);
+                            timeout, transaction_time);
     assert_int_equal(ret, EOK);
 }
 

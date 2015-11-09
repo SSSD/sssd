@@ -150,18 +150,18 @@ static int test_teardown_api(void **state)
 void test_sss_sifp_strdup_valid(void **state)
 {
     const char *str = "test_string";
-    char *dup = sss_sifp_strdup(test_ctx.dbus_ctx, str);
-    assert_non_null(dup);
-    assert_string_equal(str, dup);
+    char *dup_str = sss_sifp_strdup(test_ctx.dbus_ctx, str);
+    assert_non_null(dup_str);
+    assert_string_equal(str, dup_str);
 
-    sss_sifp_free_string(test_ctx.dbus_ctx, &dup);
-    assert_null(dup);
+    sss_sifp_free_string(test_ctx.dbus_ctx, &dup_str);
+    assert_null(dup_str);
 }
 
 void test_sss_sifp_strdup_null(void **state)
 {
-    char *dup = sss_sifp_strdup(test_ctx.dbus_ctx, NULL);
-    assert_null(dup);
+    char *dup_str = sss_sifp_strdup(test_ctx.dbus_ctx, NULL);
+    assert_null(dup_str);
 }
 
 void test_sss_sifp_strcat_valid(void **state)
