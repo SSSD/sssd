@@ -338,9 +338,9 @@ int sdap_sudo_full_refresh_recv(struct tevent_req *req,
 }
 
 struct sdap_sudo_smart_refresh_state {
-    struct tevent_req *subreq;
     struct sdap_id_ctx *id_ctx;
     struct sysdb_ctx *sysdb;
+    int dp_error;
 };
 
 static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq);
@@ -415,7 +415,6 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    state->subreq = subreq;
     tevent_req_set_callback(subreq, sdap_sudo_smart_refresh_done, req);
 
     /* free filters */
@@ -440,15 +439,15 @@ static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq)
     struct tevent_req *req = NULL;
     struct sdap_sudo_smart_refresh_state *state = NULL;
     char *highest_usn = NULL;
-    int dp_error;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_smart_refresh_state);
 
-    ret = sdap_sudo_refresh_recv(state, subreq, &dp_error,
+    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error,
                                  &highest_usn, NULL);
-    if (ret != EOK || dp_error != DP_ERR_OK) {
+    talloc_zfree(subreq);
+    if (ret != EOK || state->dp_error != DP_ERR_OK) {
         goto done;
     }
 
@@ -476,8 +475,9 @@ int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    return sdap_sudo_refresh_recv(state, state->subreq, dp_error,
-                                  NULL, NULL);
+    *dp_error = state->dp_error;
+
+    return EOK;
 }
 
 struct sdap_sudo_rules_refresh_state {
