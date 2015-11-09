@@ -38,7 +38,6 @@ struct sdap_sudo_refresh_state {
     struct be_ctx *be_ctx;
     struct sdap_options *opts;
     struct sdap_id_op *sdap_op;
-    struct sdap_id_conn_cache *sdap_conn_cache;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
@@ -124,14 +123,19 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
 
     state->be_ctx = be_ctx;
     state->opts = opts;
-    state->sdap_op = NULL;
-    state->sdap_conn_cache = conn_cache;
+    state->sdap_op = sdap_id_op_create(state, conn_cache);
     state->sysdb = be_ctx->domain->sysdb;
     state->domain = be_ctx->domain;
     state->ldap_filter = talloc_strdup(state, ldap_filter);
     state->sysdb_filter = talloc_strdup(state, sysdb_filter);
     state->dp_error = DP_ERR_FATAL;
     state->highest_usn = NULL;
+
+    if (!state->sdap_op) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
 
     if (state->ldap_filter == NULL) {
         ret = ENOMEM;
@@ -192,15 +196,6 @@ static int sdap_sudo_refresh_retry(struct tevent_req *req)
     int ret;
 
     state = tevent_req_data(req, struct sdap_sudo_refresh_state);
-
-    if (state->sdap_op == NULL) {
-        state->sdap_op = sdap_id_op_create(state, state->sdap_conn_cache);
-        if (state->sdap_op == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_create() failed\n");
-            state->dp_error = DP_ERR_FATAL;
-            return ENOMEM;
-        }
-    }
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
@@ -439,6 +434,7 @@ static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
     struct sdap_sudo_refresh_state *state;
     struct sysdb_attrs **rules = NULL;
     size_t rules_count = 0;
+    int dp_error;
     int ret;
     errno_t sret;
     bool in_transaction = false;
@@ -449,8 +445,15 @@ static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
 
     ret = sdap_sudo_load_sudoers_recv(subreq, state, &rules_count, &rules);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        goto done;
+
+    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+    if (dp_error == DP_ERR_OK && ret != EOK) {
+        /* retry */
+        ret = sdap_sudo_refresh_retry(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Received %zu rules\n", rules_count);
@@ -501,11 +504,10 @@ done:
         }
     }
 
+    state->dp_error = dp_error;
     if (ret == EOK) {
-        state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
     } else {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
     }
 }
