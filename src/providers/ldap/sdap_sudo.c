@@ -173,6 +173,11 @@ void sdap_sudo_handler(struct be_req *be_req)
     struct sdap_id_ctx *id_ctx = NULL;
     int ret = EOK;
 
+    if (be_is_offline(be_ctx)) {
+        sdap_handler_done(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
+        return;
+    }
+
     sudo_ctx = talloc_get_type(be_ctx->bet_info[BET_SUDO].pvt_bet_data,
                                struct sdap_sudo_ctx);
     id_ctx = sudo_ctx->id_ctx;

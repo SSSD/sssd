@@ -197,12 +197,6 @@ static int sdap_sudo_refresh_retry(struct tevent_req *req)
 
     state = tevent_req_data(req, struct sdap_sudo_refresh_state);
 
-    if (be_is_offline(state->be_ctx)) {
-        state->dp_error = DP_ERR_OFFLINE;
-        state->error = EAGAIN;
-        return EOK;
-    }
-
     if (state->sdap_op == NULL) {
         state->sdap_op = sdap_id_op_create(state, state->sdap_conn_cache);
         if (state->sdap_op == NULL) {
