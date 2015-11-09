@@ -38,14 +38,15 @@ struct sdap_sudo_load_sudoers_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
-    struct sysdb_attrs **ldap_rules; /* search result will be stored here */
-    size_t ldap_rules_count;         /* search result will be stored here */
 
+    int timeout;
     const char **attrs;
     const char *filter;
     size_t base_iter;
     struct sdap_search_base **search_bases;
-    int timeout;
+
+    struct sysdb_attrs **rules;
+    size_t num_rules;
 };
 
 static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req);
@@ -75,85 +76,75 @@ sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
     state->search_bases = opts->sdom->sudo_search_bases;
     state->filter = ldap_filter;
     state->timeout = dp_opt_get_int(opts->basic, SDAP_SEARCH_TIMEOUT);
-    state->ldap_rules = NULL;
-    state->ldap_rules_count = 0;
+    state->rules = NULL;
+    state->num_rules = 0;
 
-    if (!state->search_bases) {
+    if (state->search_bases == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "SUDOERS lookup request without a search base\n");
         ret = EINVAL;
-        goto done;
+        goto immediately;
     }
 
     /* create attrs from map */
     ret = build_attrs_from_map(state, opts->sudorule_map, SDAP_OPTS_SUDO,
                                NULL, &state->attrs, NULL);
     if (ret != EOK) {
-        goto fail;
+        goto immediately;
     }
 
     /* begin search */
     ret = sdap_sudo_load_sudoers_next_base(req);
-
-done:
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        tevent_req_post(req, ev);
+    if (ret == EAGAIN) {
+        /* asynchronous processing */
+        return req;
     }
 
-    return req;
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
 
-fail:
-    talloc_zfree(req);
-    return NULL;
+    return req;
 }
 
 static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req)
 {
     struct sdap_sudo_load_sudoers_state *state;
-    struct sdap_search_base *search_base;
+    struct sdap_search_base *base;
     struct tevent_req *subreq;
     char *filter;
 
     state = tevent_req_data(req, struct sdap_sudo_load_sudoers_state);
-    search_base = state->search_bases[state->base_iter];
-    if (search_base == NULL) {
-        /* should not happen */
-        DEBUG(SSSDBG_CRIT_FAILURE, "search_base is null\n");
-        return EFAULT;
+    base = state->search_bases[state->base_iter];
+    if (base == NULL) {
+        return EOK;
     }
 
-    /* create filter */
-    filter = sdap_get_id_specific_filter(state, state->filter,
-                                         search_base->filter);
+    /* Combine lookup and search base filters. */
+    filter = sdap_get_id_specific_filter(state, state->filter, base->filter);
     if (filter == NULL) {
         return ENOMEM;
     }
 
-    /* send request */
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Searching for sudo rules with base [%s]\n",
-           search_base->basedn);
+    DEBUG(SSSDBG_TRACE_FUNC, "Searching for sudo rules with base [%s]\n",
+                             base->basedn);
 
-    subreq = sdap_get_generic_send(state,
-                                   state->ev,
-                                   state->opts,
-                                   state->sh,
-                                   search_base->basedn,
-                                   search_base->scope,
-                                   filter,
-                                   state->attrs,
-                                   state->opts->sudorule_map,
-                                   SDAP_OPTS_SUDO,
-                                   state->timeout,
-                                   true);
+    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                   base->basedn, base->scope, filter,
+                                   state->attrs, state->opts->sudorule_map,
+                                   SDAP_OPTS_SUDO, state->timeout, true);
     if (subreq == NULL) {
         return ENOMEM;
     }
 
     tevent_req_set_callback(subreq, sdap_sudo_load_sudoers_done, req);
 
-    return EOK;
+    state->base_iter++;
+    return EAGAIN;
 }
 
 static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
@@ -168,55 +159,50 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_load_sudoers_state);
-    search_base = state->search_bases[state->base_iter];
+    search_base = state->search_bases[state->base_iter - 1];
 
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Receiving sudo rules with base [%s]\n",
-           search_base->basedn);
+    DEBUG(SSSDBG_TRACE_FUNC, "Receiving sudo rules with base [%s]\n",
+                             search_base->basedn);
 
     ret = sdap_get_generic_recv(subreq, state, &count, &attrs);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
 
-    /* add rules to result */
+    /* Add rules to result. */
     if (count > 0) {
-        state->ldap_rules = talloc_realloc(state, state->ldap_rules,
-                                           struct sysdb_attrs *,
-                                           state->ldap_rules_count + count);
-        if (state->ldap_rules == NULL) {
+        state->rules = talloc_realloc(state, state->rules,
+                                      struct sysdb_attrs *,
+                                      state->num_rules + count);
+        if (state->rules == NULL) {
             tevent_req_error(req, ENOMEM);
             return;
         }
 
         for (i = 0; i < count; i++) {
-            state->ldap_rules[state->ldap_rules_count + i] = talloc_steal(
-                                                   state->ldap_rules, attrs[i]);
+            state->rules[state->num_rules + i] = talloc_steal(state->rules,
+                                                              attrs[i]);
         }
 
-        state->ldap_rules_count += count;
+        state->num_rules += count;
     }
 
-    /* go to next base */
-    state->base_iter++;
-    if (state->search_bases[state->base_iter]) {
-        ret = sdap_sudo_load_sudoers_next_base(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-        }
-
-        return;
+    /* Try next search base. */
+    ret = sdap_sudo_load_sudoers_next_base(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
     }
 
-    /* we are done */
-    tevent_req_done(req);
+    return;
 }
 
 static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
                                        TALLOC_CTX *mem_ctx,
-                                       size_t *rules_count,
+                                       size_t *num_rules,
                                        struct sysdb_attrs ***rules)
 {
     struct sdap_sudo_load_sudoers_state *state;
@@ -225,8 +211,8 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *rules_count = state->ldap_rules_count;
-    *rules = talloc_steal(mem_ctx, state->ldap_rules);
+    *num_rules = state->num_rules;
+    *rules = talloc_steal(mem_ctx, state->rules);
 
     return EOK;
 }
