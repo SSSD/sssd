@@ -200,12 +200,12 @@ char *__wrap_ldap_next_attribute(LDAP *ld,
 {
     struct mock_ldap_entry *ldap_entry = mock_ldap_entry_get();
 
-    int index = mock_ldap_entry_iter();
+    int idx = mock_ldap_entry_iter();
     char *val;
 
-    val = discard_const(ldap_entry->attrs[index].name);
+    val = discard_const(ldap_entry->attrs[idx].name);
     if (val != NULL) {
-        will_return(mock_ldap_entry_iter, index+1);
+        will_return(mock_ldap_entry_iter, idx + 1);
     }
     return val;
 }
