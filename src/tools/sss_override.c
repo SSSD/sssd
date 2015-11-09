@@ -1470,7 +1470,7 @@ static int override_user_import(struct sss_cmdline *cmdline,
     struct override_user obj;
     int linenum = 1;
     errno_t ret;
-    int exit;
+    int rc;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1495,14 +1495,14 @@ static int override_user_import(struct sss_cmdline *cmdline,
     ret = parse_cmdline_import(cmdline, tool_ctx, &filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
-        exit = EXIT_FAILURE;
+        rc = EXIT_FAILURE;
         goto done;
     }
 
     db = sss_colondb_open(tool_ctx, SSS_COLONDB_READ, filename);
     if (db == NULL) {
         fprintf(stderr, _("Unable to open %s.\n"), filename);
-        exit = EXIT_FAILURE;
+        rc = EXIT_FAILURE;
         goto done;
     }
 
@@ -1513,19 +1513,19 @@ static int override_user_import(struct sss_cmdline *cmdline,
                                   &obj.orig_name, &obj.domain);
         if (ret != EOK) {
             fprintf(stderr, _("Unable to parse name %s.\n"), obj.input_name);
-            exit = EXIT_FAILURE;
+            rc = EXIT_FAILURE;
             goto done;
         }
 
         ret = get_user_domain_msg(tool_ctx, &obj);
         if (ret != EOK) {
-            exit = EXIT_FAILURE;
+            rc = EXIT_FAILURE;
             goto done;
         }
 
         ret = override_user(tool_ctx, &obj);
         if (ret != EOK) {
-            exit = EXIT_FAILURE;
+            rc = EXIT_FAILURE;
             goto done;
         }
 
@@ -1535,15 +1535,15 @@ static int override_user_import(struct sss_cmdline *cmdline,
     if (ret != EOF) {
         fprintf(stderr, _("Invalid format on line %d. "
                 "Use --debug option for more information.\n"), linenum);
-        exit = EXIT_FAILURE;
+        rc = EXIT_FAILURE;
         goto done;
     }
 
-    exit = EXIT_SUCCESS;
+    rc = EXIT_SUCCESS;
 
 done:
     talloc_free(tmp_ctx);
-    return exit;
+    return rc;
 }
 
 static int override_user_export(struct sss_cmdline *cmdline,
@@ -1736,7 +1736,7 @@ static int override_group_import(struct sss_cmdline *cmdline,
     struct override_group obj;
     int linenum = 1;
     errno_t ret;
-    int exit;
+    int rc;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1757,14 +1757,14 @@ static int override_group_import(struct sss_cmdline *cmdline,
     ret = parse_cmdline_import(cmdline, tool_ctx, &filename);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse command line.\n");
-        exit = EXIT_FAILURE;
+        rc = EXIT_FAILURE;
         goto done;
     }
 
     db = sss_colondb_open(tool_ctx, SSS_COLONDB_READ, filename);
     if (db == NULL) {
         fprintf(stderr, _("Unable to open %s.\n"), filename);
-        exit = EXIT_FAILURE;
+        rc = EXIT_FAILURE;
         goto done;
     }
 
@@ -1775,19 +1775,19 @@ static int override_group_import(struct sss_cmdline *cmdline,
                                   &obj.orig_name, &obj.domain);
         if (ret != EOK) {
             fprintf(stderr, _("Unable to parse name %s.\n"), obj.input_name);
-            exit = EXIT_FAILURE;
+            rc = EXIT_FAILURE;
             goto done;
         }
 
         ret = get_group_domain_msg(tool_ctx, &obj);
         if (ret != EOK) {
-            exit = EXIT_FAILURE;
+            rc = EXIT_FAILURE;
             goto done;
         }
 
         ret = override_group(tool_ctx, &obj);
         if (ret != EOK) {
-            exit = EXIT_FAILURE;
+            rc = EXIT_FAILURE;
             goto done;
         }
 
@@ -1797,15 +1797,15 @@ static int override_group_import(struct sss_cmdline *cmdline,
     if (ret != EOF) {
         fprintf(stderr, _("Invalid format on line %d. "
                 "Use --debug option for more information.\n"), linenum);
-        exit = EXIT_FAILURE;
+        rc = EXIT_FAILURE;
         goto done;
     }
 
-    exit = EXIT_SUCCESS;
+    rc = EXIT_SUCCESS;
 
 done:
     talloc_free(tmp_ctx);
-    return exit;
+    return rc;
 }
 
 static int override_group_export(struct sss_cmdline *cmdline,
