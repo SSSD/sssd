@@ -249,8 +249,8 @@ struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a full refresh of sudo rules\n");
 
-    subreq = sdap_sudo_refresh_send(state, id_ctx->be, id_ctx->opts,
-                                    id_ctx->conn->conn_cache,
+    subreq = sdap_sudo_refresh_send(state, id_ctx->be->ev, id_ctx->be->domain,
+                                    id_ctx->opts, id_ctx->conn,
                                     ldap_full_filter, sysdb_filter);
     if (subreq == NULL) {
         ret = ENOMEM;
@@ -407,8 +407,8 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a smart refresh of sudo rules "
                              "(USN > %s)\n", (usn == NULL ? "0" : usn));
 
-    subreq = sdap_sudo_refresh_send(state, id_ctx->be, id_ctx->opts,
-                                    id_ctx->conn->conn_cache,
+    subreq = sdap_sudo_refresh_send(state, id_ctx->be->ev, id_ctx->be->domain,
+                                    id_ctx->opts, id_ctx->conn,
                                     ldap_full_filter, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
@@ -491,14 +491,13 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                 struct sdap_sudo_ctx *sudo_ctx,
-                                                struct be_ctx *be_ctx,
-                                                struct sdap_options *opts,
-                                                struct sdap_id_conn_cache *conn_cache,
                                                 char **rules)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct sdap_sudo_rules_refresh_state *state = NULL;
+    struct sdap_id_ctx *id_ctx = sudo_ctx->id_ctx;
+    struct sdap_options *opts = id_ctx->opts;
     TALLOC_CTX *tmp_ctx = NULL;
     char *ldap_filter = NULL;
     char *ldap_full_filter = NULL;
@@ -578,7 +577,8 @@ struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    subreq = sdap_sudo_refresh_send(req, be_ctx, opts, conn_cache,
+    subreq = sdap_sudo_refresh_send(req, id_ctx->be->ev, id_ctx->be->domain,
+                                    opts, id_ctx->conn,
                                     ldap_full_filter, sysdb_filter);
     if (subreq == NULL) {
         ret = ENOMEM;
@@ -593,7 +593,7 @@ immediately:
 
     if (ret != EOK) {
         tevent_req_error(req, ret);
-        tevent_req_post(req, be_ctx->ev);
+        tevent_req_post(req, id_ctx->be->ev);
     }
 
     return req;
