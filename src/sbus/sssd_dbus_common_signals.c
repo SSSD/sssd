@@ -27,10 +27,10 @@
 #include "sbus/sssd_dbus_private.h"
 
 static void
-sbus_signal_name_owner_changed(struct sbus_incoming_signal *signal,
+sbus_signal_name_owner_changed(struct sbus_incoming_signal *a_signal,
                                void *handler_data)
 {
-    hash_table_t *table = signal->conn->clients;
+    hash_table_t *table = a_signal->conn->clients;
     hash_key_t *keys;
     unsigned long count;
     unsigned long i;
