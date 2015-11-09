@@ -203,7 +203,7 @@ static int
 sbus_introspect_generate_signals(FILE *file,
                                  const struct sbus_signal_meta *signals)
 {
-    const struct sbus_signal_meta *signal;
+    const struct sbus_signal_meta *a_signal;
     int ret;
     int i;
 
@@ -212,16 +212,16 @@ sbus_introspect_generate_signals(FILE *file,
     }
 
     for (i = 0; signals[i].name != NULL; i++) {
-        signal = &signals[i];
+        a_signal = &signals[i];
 
-        if (!SIGNAL_HAS_ARGS(signal)) {
-            WRITE_OR_FAIL(file, ret, done, FMT_SIGNAL_NOARG, signal->name);
+        if (!SIGNAL_HAS_ARGS(a_signal)) {
+            WRITE_OR_FAIL(file, ret, done, FMT_SIGNAL_NOARG, a_signal->name);
             continue;
         }
 
-        WRITE_OR_FAIL(file, ret, done, FMT_SIGNAL, signal->name);
+        WRITE_OR_FAIL(file, ret, done, FMT_SIGNAL, a_signal->name);
 
-        ret = sbus_introspect_generate_signal_args(file, signal->args);
+        ret = sbus_introspect_generate_signal_args(file, a_signal->args);
         if (ret != EOK) {
             goto done;
         }
@@ -240,7 +240,7 @@ sbus_introspect_generate_properties(FILE *file,
                                     const struct sbus_property_meta *props)
 {
     const struct sbus_property_meta *prop;
-    const char *access;
+    const char *access_mode;
     int ret;
     int i;
 
@@ -251,9 +251,10 @@ sbus_introspect_generate_properties(FILE *file,
     for (i = 0; props[i].name != NULL; i++) {
         prop = &props[i];
 
-        access = prop->flags & SBUS_PROPERTY_WRITABLE ? "readwrite" : "read";
+        access_mode = prop->flags & SBUS_PROPERTY_WRITABLE
+                      ? "readwrite" : "read";
         WRITE_OR_FAIL(file, ret, done, FMT_PROPERTY,
-                   prop->name, prop->type, access);
+                   prop->name, prop->type, access_mode);
     }
 
     ret = EOK;
