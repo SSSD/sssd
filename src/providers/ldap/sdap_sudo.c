@@ -135,8 +135,8 @@ static void sdap_sudo_reply(struct tevent_req *req)
 {
     struct be_req *be_req = NULL;
     struct be_sudo_req *sudo_req = NULL;
-    int dp_error = DP_ERR_OK;
-    int error = EOK;
+    int dp_error;
+    bool deleted;
     int ret;
 
     be_req = tevent_req_callback_data(req, struct be_req);
@@ -144,24 +144,24 @@ static void sdap_sudo_reply(struct tevent_req *req)
 
     switch (sudo_req->type) {
     case BE_REQ_SUDO_FULL:
-        ret = sdap_sudo_full_refresh_recv(req, &dp_error, &error);
+        ret = sdap_sudo_full_refresh_recv(req, &dp_error);
         break;
     case BE_REQ_SUDO_RULES:
-        ret = sdap_sudo_rules_refresh_recv(req, &dp_error, &error);
+        ret = sdap_sudo_rules_refresh_recv(req, &dp_error, &deleted);
+        if (ret == EOK && deleted == true) {
+            ret = ENOENT;
+        }
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
                                     sudo_req->type);
-        ret = EINVAL;
+        dp_error = DP_ERR_FATAL;
+        ret = ERR_INTERNAL;
+        break;
     }
 
     talloc_zfree(req);
-    if (ret != EOK) {
-        sdap_handler_done(be_req, DP_ERR_FATAL, ret, strerror(ret));
-        return;
-    }
-
-    sdap_handler_done(be_req, dp_error, error, strerror(error));
+    sdap_handler_done(be_req, dp_error, ret, strerror(ret));
 }
 
 void sdap_sudo_handler(struct be_req *be_req)
