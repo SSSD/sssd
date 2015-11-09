@@ -34,21 +34,6 @@
 #include "providers/ldap/sdap_sudo_cache.h"
 #include "db/sysdb_sudo.h"
 
-struct sdap_sudo_refresh_state {
-    struct be_ctx *be_ctx;
-    struct sdap_options *opts;
-    struct sdap_id_op *sdap_op;
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
-
-    const char *ldap_filter;    /* search */
-    const char *sysdb_filter;   /* delete */
-
-    int dp_error;
-    char *highest_usn;
-    size_t num_rules;
-};
-
 struct sdap_sudo_load_sudoers_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
@@ -63,204 +48,22 @@ struct sdap_sudo_load_sudoers_state {
     int timeout;
 };
 
-static int sdap_sudo_refresh_retry(struct tevent_req *req);
-
-static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq);
-
-static struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
-                                                       struct tevent_context *ev,
-                                                       struct sdap_options *opts,
-                                                       struct sdap_handle *sh,
-                                                       const char *ldap_filter);
-
 static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req);
+static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq);
 
-static void sdap_sudo_load_sudoers_process(struct tevent_req *subreq);
-
-static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
-                                       TALLOC_CTX *mem_ctx,
-                                       size_t *rules_count,
-                                       struct sysdb_attrs ***rules);
-
-static void sdap_sudo_refresh_load_done(struct tevent_req *subreq);
-
-static int sdap_sudo_purge_sudoers(struct sss_domain_info *dom,
-                                   const char *filter,
-                                   struct sdap_attr_map *map,
-                                   size_t rules_count,
-                                   struct sysdb_attrs **rules);
-
-static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
-                                   struct sss_domain_info *domain,
-                                   struct sdap_options *opts,
-                                   size_t rules_count,
-                                   struct sysdb_attrs **rules,
-                                   int cache_timeout,
-                                   time_t now,
-                                   char **_usn);
-
-struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
-                                          struct be_ctx *be_ctx,
-                                          struct sdap_options *opts,
-                                          struct sdap_id_conn_cache *conn_cache,
-                                          const char *ldap_filter,
-                                          const char *sysdb_filter)
-{
-    struct tevent_req *req;
-    struct sdap_sudo_refresh_state *state;
-    int ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_refresh_state);
-    if (!req) {
-        return NULL;
-    }
-
-    /* if we don't have a search filter, this request is meaningless */
-    if (ldap_filter == NULL) {
-        ret = EINVAL;
-        goto immediately;
-    }
-
-    state->be_ctx = be_ctx;
-    state->opts = opts;
-    state->sdap_op = sdap_id_op_create(state, conn_cache);
-    state->sysdb = be_ctx->domain->sysdb;
-    state->domain = be_ctx->domain;
-    state->ldap_filter = talloc_strdup(state, ldap_filter);
-    state->sysdb_filter = talloc_strdup(state, sysdb_filter);
-    state->dp_error = DP_ERR_FATAL;
-    state->highest_usn = NULL;
-
-    if (!state->sdap_op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
-        ret = ENOMEM;
-        goto immediately;
-    }
-
-    if (state->ldap_filter == NULL) {
-        ret = ENOMEM;
-        goto immediately;
-    }
-
-    if (sysdb_filter != NULL && state->sysdb_filter == NULL) {
-        ret = ENOMEM;
-        goto immediately;
-    }
-
-    ret = sdap_sudo_refresh_retry(req);
-    if (ret == EAGAIN) {
-        /* asynchronous processing */
-        return req;
-    }
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
-    tevent_req_post(req, be_ctx->ev);
-
-    return req;
-}
-
-int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
-                           struct tevent_req *req,
-                           int *dp_error,
-                           char **usn,
-                           size_t *num_rules)
-{
-    struct sdap_sudo_refresh_state *state;
-
-    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dp_error = state->dp_error;
-
-    if (usn != NULL && state->highest_usn != NULL) {
-        *usn = talloc_steal(mem_ctx, state->highest_usn);
-    }
-
-    if (num_rules != NULL) {
-        *num_rules = state->num_rules;
-    }
-
-    return EOK;
-}
-
-static int sdap_sudo_refresh_retry(struct tevent_req *req)
-{
-    struct sdap_sudo_refresh_state *state;
-    struct tevent_req *subreq;
-    int ret;
-
-    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed: "
-                                   "%d(%s)\n", ret, strerror(ret));
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, sdap_sudo_refresh_connect_done, req);
-
-    return EAGAIN;
-}
-
-static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req; /* req from sdap_sudo_refresh_send() */
-    struct sdap_sudo_refresh_state *state;
-    int dp_error;
-    int ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
-
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
-    talloc_zfree(subreq);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "SUDO LDAP connection failed "
-                                   "[%d]: %s\n", ret, strerror(ret));
-        state->dp_error = dp_error;
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC, "SUDO LDAP connection successful\n");
-
-    subreq = sdap_sudo_load_sudoers_send(state, state->be_ctx->ev,
-                                         state->opts,
-                                         sdap_id_op_handle(state->sdap_op),
-                                         state->ldap_filter);
-    if (subreq == NULL) {
-        state->dp_error = DP_ERR_FATAL;
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    tevent_req_set_callback(subreq, sdap_sudo_refresh_load_done, req);
-
-    return;
-}
-
-static struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
-                                                       struct tevent_context *ev,
-                                                       struct sdap_options *opts,
-                                                       struct sdap_handle *sh,
-                                                       const char *ldap_filter)
-
-
-
+static struct tevent_req *
+sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct sdap_options *opts,
+                            struct sdap_handle *sh,
+                            const char *ldap_filter)
 {
     struct tevent_req *req;
     struct sdap_sudo_load_sudoers_state *state;
     int ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_load_sudoers_state);
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sdap_sudo_load_sudoers_state);
     if (!req) {
         return NULL;
     }
@@ -348,12 +151,12 @@ static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req)
         return ENOMEM;
     }
 
-    tevent_req_set_callback(subreq, sdap_sudo_load_sudoers_process, req);
+    tevent_req_set_callback(subreq, sdap_sudo_load_sudoers_done, req);
 
     return EOK;
 }
 
-static void sdap_sudo_load_sudoers_process(struct tevent_req *subreq)
+static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_sudo_load_sudoers_state *state;
@@ -428,9 +231,234 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
     return EOK;
 }
 
-static void sdap_sudo_refresh_load_done(struct tevent_req *subreq)
+static int sdap_sudo_purge_sudoers(struct sss_domain_info *dom,
+                                   const char *filter,
+                                   struct sdap_attr_map *map,
+                                   size_t rules_count,
+                                   struct sysdb_attrs **rules)
 {
-    struct tevent_req *req; /* req from sdap_sudo_refresh_send() */
+    const char *name;
+    int i;
+    errno_t ret;
+
+    if (filter == NULL) {
+        /* removes downloaded rules from the cache */
+        if (rules_count == 0 || rules == NULL) {
+            return EOK;
+        }
+
+        for (i = 0; i < rules_count; i++) {
+            ret = sysdb_attrs_get_string(rules[i],
+                                         map[SDAP_AT_SUDO_NAME].sys_name,
+                                         &name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Failed to retrieve rule name: [%s]\n", strerror(ret));
+                continue;
+            }
+
+            ret = sysdb_sudo_purge_byname(dom, name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_MINOR_FAILURE,
+                      "Failed to delete rule %s: [%s]\n",
+                      name, strerror(ret));
+                continue;
+            }
+        }
+
+        ret = EOK;
+    } else {
+        /* purge cache by provided filter */
+        ret = sysdb_sudo_purge_byfilter(dom, filter);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+done:
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "failed to purge sudo rules [%d]: %s\n",
+                                 ret, strerror(ret));
+    }
+
+    return ret;
+}
+
+static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
+                                   struct sss_domain_info *domain,
+                                   struct sdap_options *opts,
+                                   size_t rules_count,
+                                   struct sysdb_attrs **rules,
+                                   int cache_timeout,
+                                   time_t now,
+                                   char **_usn)
+{
+    errno_t ret;
+
+    /* Empty sudoers? Done. */
+    if (rules_count == 0 || rules == NULL) {
+        return EOK;
+    }
+
+    ret = sdap_save_native_sudorule_list(mem_ctx, domain,
+                                         opts->sudorule_map, rules,
+                                         rules_count, cache_timeout, now,
+                                         _usn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "failed to save sudo rules [%d]: %s\n",
+              ret, strerror(ret));
+        return ret;
+    }
+
+    return EOK;
+}
+
+struct sdap_sudo_refresh_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sdap_id_op *sdap_op;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+
+    const char *ldap_filter;    /* search */
+    const char *sysdb_filter;   /* delete */
+
+    int dp_error;
+    char *highest_usn;
+    size_t num_rules;
+};
+
+static errno_t sdap_sudo_refresh_retry(struct tevent_req *req);
+static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq);
+static void sdap_sudo_refresh_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          struct sss_domain_info *domain,
+                                          struct sdap_options *opts,
+                                          struct sdap_id_conn_ctx *conn,
+                                          const char *ldap_filter,
+                                          const char *sysdb_filter)
+{
+    struct tevent_req *req;
+    struct sdap_sudo_refresh_state *state;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_refresh_state);
+    if (!req) {
+        return NULL;
+    }
+
+    /* if we don't have a search filter, this request is meaningless */
+    if (ldap_filter == NULL) {
+        ret = EINVAL;
+        goto immediately;
+    }
+
+    state->ev = ev;
+    state->opts = opts;
+    state->domain = domain;
+    state->sysdb = domain->sysdb;
+    state->dp_error = DP_ERR_FATAL;
+    state->highest_usn = NULL;
+
+    state->sdap_op = sdap_id_op_create(state, conn->conn_cache);
+    if (!state->sdap_op) {
+        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->ldap_filter = talloc_strdup(state, ldap_filter);
+    if (state->ldap_filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->sysdb_filter = talloc_strdup(state, sysdb_filter);
+    if (sysdb_filter != NULL && state->sysdb_filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    ret = sdap_sudo_refresh_retry(req);
+    if (ret == EAGAIN) {
+        /* asynchronous processing */
+        return req;
+    }
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static errno_t sdap_sudo_refresh_retry(struct tevent_req *req)
+{
+    struct sdap_sudo_refresh_state *state;
+    struct tevent_req *subreq;
+    int ret;
+
+    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
+
+    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed: "
+                                   "%d(%s)\n", ret, strerror(ret));
+        return ret;
+    }
+
+    tevent_req_set_callback(subreq, sdap_sudo_refresh_connect_done, req);
+
+    return EAGAIN;
+}
+
+static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_sudo_refresh_state *state;
+    int dp_error;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "SUDO LDAP connection failed "
+                                   "[%d]: %s\n", ret, strerror(ret));
+        state->dp_error = dp_error;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "SUDO LDAP connection successful\n");
+
+    subreq = sdap_sudo_load_sudoers_send(state, state->ev,
+                                         state->opts,
+                                         sdap_id_op_handle(state->sdap_op),
+                                         state->ldap_filter);
+    if (subreq == NULL) {
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, sdap_sudo_refresh_done, req);
+
+    return;
+}
+
+static void sdap_sudo_refresh_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
     struct sdap_sudo_refresh_state *state;
     struct sysdb_attrs **rules = NULL;
     size_t rules_count = 0;
@@ -512,83 +540,26 @@ done:
     }
 }
 
-static int sdap_sudo_purge_sudoers(struct sss_domain_info *dom,
-                                   const char *filter,
-                                   struct sdap_attr_map *map,
-                                   size_t rules_count,
-                                   struct sysdb_attrs **rules)
+int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
+                           struct tevent_req *req,
+                           int *dp_error,
+                           char **usn,
+                           size_t *num_rules)
 {
-    const char *name;
-    int i;
-    errno_t ret;
+    struct sdap_sudo_refresh_state *state;
 
-    if (filter == NULL) {
-        /* removes downloaded rules from the cache */
-        if (rules_count == 0 || rules == NULL) {
-            return EOK;
-        }
+    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
 
-        for (i = 0; i < rules_count; i++) {
-            ret = sysdb_attrs_get_string(rules[i],
-                                         map[SDAP_AT_SUDO_NAME].sys_name,
-                                         &name);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      "Failed to retrieve rule name: [%s]\n", strerror(ret));
-                continue;
-            }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-            ret = sysdb_sudo_purge_byname(dom, name);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      "Failed to delete rule %s: [%s]\n",
-                       name, strerror(ret));
-                continue;
-            }
-        }
+    *dp_error = state->dp_error;
 
-        ret = EOK;
-    } else {
-        /* purge cache by provided filter */
-        ret = sysdb_sudo_purge_byfilter(dom, filter);
-        if (ret != EOK) {
-            goto done;
-        }
+    if (usn != NULL && state->highest_usn != NULL) {
+        *usn = talloc_steal(mem_ctx, state->highest_usn);
     }
 
-done:
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "failed to purge sudo rules [%d]: %s\n",
-                                  ret, strerror(ret));
-    }
-
-    return ret;
-}
-
-static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
-                                   struct sss_domain_info *domain,
-                                   struct sdap_options *opts,
-                                   size_t rules_count,
-                                   struct sysdb_attrs **rules,
-                                   int cache_timeout,
-                                   time_t now,
-                                   char **_usn)
-{
-    errno_t ret;
-
-    /* Empty sudoers? Done. */
-    if (rules_count == 0 || rules == NULL) {
-        return EOK;
-    }
-
-    ret = sdap_save_native_sudorule_list(mem_ctx, domain,
-                                         opts->sudorule_map, rules,
-                                         rules_count, cache_timeout, now,
-                                         _usn);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "failed to save sudo rules [%d]: %s\n",
-              ret, strerror(ret));
-        return ret;
+    if (num_rules != NULL) {
+        *num_rules = state->num_rules;
     }
 
     return EOK;

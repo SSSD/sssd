@@ -46,9 +46,10 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
 
 /* sdap async interface */
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
-                                          struct be_ctx *be_ctx,
+                                          struct tevent_context *ev,
+                                          struct sss_domain_info *domain,
                                           struct sdap_options *opts,
-                                          struct sdap_id_conn_cache *conn_cache,
+                                          struct sdap_id_conn_ctx *conn,
                                           const char *ldap_filter,
                                           const char *sysdb_filter);
 
@@ -72,9 +73,6 @@ int sdap_sudo_smart_refresh_recv(struct tevent_req *req,
 
 struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
                                                 struct sdap_sudo_ctx *sudo_ctx,
-                                                struct be_ctx *be_ctx,
-                                                struct sdap_options *opts,
-                                                struct sdap_id_conn_cache *conn_cache,
                                                 char **rules);
 
 int sdap_sudo_rules_refresh_recv(struct tevent_req *req,

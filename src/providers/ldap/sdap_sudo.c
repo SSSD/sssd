@@ -170,7 +170,6 @@ void sdap_sudo_handler(struct be_req *be_req)
     struct tevent_req *req = NULL;
     struct be_sudo_req *sudo_req = NULL;
     struct sdap_sudo_ctx *sudo_ctx = NULL;
-    struct sdap_id_ctx *id_ctx = NULL;
     int ret = EOK;
 
     if (be_is_offline(be_ctx)) {
@@ -180,7 +179,6 @@ void sdap_sudo_handler(struct be_req *be_req)
 
     sudo_ctx = talloc_get_type(be_ctx->bet_info[BET_SUDO].pvt_bet_data,
                                struct sdap_sudo_ctx);
-    id_ctx = sudo_ctx->id_ctx;
 
     sudo_req = talloc_get_type(be_req_get_data(be_req), struct be_sudo_req);
 
@@ -191,9 +189,7 @@ void sdap_sudo_handler(struct be_req *be_req)
         break;
     case BE_REQ_SUDO_RULES:
         DEBUG(SSSDBG_TRACE_FUNC, "Issuing a refresh of specific sudo rules\n");
-        req = sdap_sudo_rules_refresh_send(be_req, sudo_ctx, id_ctx->be,
-                                           id_ctx->opts, id_ctx->conn->conn_cache,
-                                           sudo_req->rules);
+        req = sdap_sudo_rules_refresh_send(be_req, sudo_ctx, sudo_req->rules);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
