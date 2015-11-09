@@ -30,6 +30,27 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ipa/ipa_id.h"
 
+static bool is_object_overridable(struct be_acct_req *ar)
+{
+    bool ret = false;
+
+    switch (ar->entry_type & BE_REQ_TYPE_MASK) {
+    case BE_REQ_USER:
+    case BE_REQ_GROUP:
+    case BE_REQ_INITGROUPS:
+    case BE_REQ_BY_SECID:
+    case BE_REQ_USER_AND_GROUP:
+    case BE_REQ_BY_UUID:
+    case BE_REQ_BY_CERT:
+        ret = true;
+        break;
+    default:
+        break;
+    }
+
+    return ret;
+}
+
 static const char *ipa_account_info_error_text(int ret, int *dp_error,
                                                const char *default_text)
 {
@@ -638,7 +659,8 @@ ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
             || state->ar->filter_type == BE_FILTER_SECID
             || state->ar->extra_value == NULL
             || strcmp(state->ar->extra_value,
-                      EXTRA_INPUT_MAYBE_WITH_VIEW) != 0 ) {
+                      EXTRA_INPUT_MAYBE_WITH_VIEW) != 0
+            || ! is_object_overridable(state->ar)) {
         ret = ipa_id_get_account_info_get_original_step(req, ar);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
@@ -818,6 +840,12 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct request failed: %d\n", ret);
         goto fail;
+    }
+
+    if (! is_object_overridable(state->ar)) {
+        state->dp_error = DP_ERR_OK;
+        tevent_req_done(req);
+        return;
     }
 
     ret = get_object_from_cache(state, state->domain, state->ar,
