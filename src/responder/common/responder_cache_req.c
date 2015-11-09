@@ -196,15 +196,15 @@ static errno_t
 cache_req_input_set_name(struct cache_req_input *input,
                          const char *name)
 {
-    const char *dup;
+    const char *dup_name;
 
-    dup = talloc_strdup(input, name);
-    if (dup == NULL) {
+    dup_name = talloc_strdup(input, name);
+    if (dup_name == NULL) {
         return ENOMEM;
     }
 
     talloc_zfree(input->name);
-    input->name = dup;
+    input->name = dup_name;
 
     return EOK;
 }
