@@ -806,8 +806,10 @@ void ifp_users_user_get_groups(struct sbus_request *sbus_req,
             continue;
         }
 
-        out[i] = ifp_groups_build_path_from_msg(out, domain, res->msgs[i]);
-        if (out[i] == NULL) {
+        out[num_groups] = ifp_groups_build_path_from_msg(out,
+                                                         domain,
+                                                         res->msgs[i]);
+        if (out[num_groups] == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "ifp_groups_build_path() failed\n");
             return;
         }
