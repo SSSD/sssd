@@ -46,7 +46,6 @@ struct sdap_sudo_refresh_state {
     const char *sysdb_filter;   /* delete */
 
     int dp_error;
-    int error;
     char *highest_usn;
     size_t num_rules;
 };
@@ -131,8 +130,7 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->domain = be_ctx->domain;
     state->ldap_filter = talloc_strdup(state, ldap_filter);
     state->sysdb_filter = talloc_strdup(state, sysdb_filter);
-    state->dp_error = DP_ERR_OK;
-    state->error = EOK;
+    state->dp_error = DP_ERR_FATAL;
     state->highest_usn = NULL;
 
     if (state->ldap_filter == NULL) {
@@ -165,7 +163,6 @@ immediately:
 int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
                            int *dp_error,
-                           int *error,
                            char **usn,
                            size_t *num_rules)
 {
@@ -176,7 +173,6 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *dp_error = state->dp_error;
-    *error = state->error;
 
     if (usn != NULL && state->highest_usn != NULL) {
         *usn = talloc_steal(mem_ctx, state->highest_usn);
@@ -202,18 +198,14 @@ static int sdap_sudo_refresh_retry(struct tevent_req *req)
         if (state->sdap_op == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_create() failed\n");
             state->dp_error = DP_ERR_FATAL;
-            state->error = EIO;
-            return EIO;
+            return ENOMEM;
         }
     }
 
     subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
     if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "sdap_id_op_connect_send() failed: %d(%s)\n", ret, strerror(ret));
-        talloc_zfree(state->sdap_op);
-        state->dp_error = DP_ERR_FATAL;
-        state->error = ret;
+        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed: "
+                                   "%d(%s)\n", ret, strerror(ret));
         return ret;
     }
 
@@ -235,16 +227,12 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
     ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
 
-    if (dp_error == DP_ERR_OFFLINE) {
-        talloc_zfree(state->sdap_op);
-        state->dp_error = DP_ERR_OFFLINE;
-        state->error = EAGAIN;
-        tevent_req_done(req);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "SUDO LDAP connection failed "
+                                   "[%d]: %s\n", ret, strerror(ret));
+        state->dp_error = dp_error;
+        tevent_req_error(req, ret);
         return;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "SUDO LDAP connection failed - %s\n", strerror(ret));
-        goto fail;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "SUDO LDAP connection successful\n");
@@ -254,18 +242,14 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
                                          sdap_id_op_handle(state->sdap_op),
                                          state->ldap_filter);
     if (subreq == NULL) {
-        ret = EFAULT;
-        goto fail;
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ENOMEM);
+        return;
     }
 
     tevent_req_set_callback(subreq, sdap_sudo_refresh_load_done, req);
 
     return;
-
-fail:
-    state->dp_error = DP_ERR_FATAL;
-    state->error = ret;
-    tevent_req_error(req, ret);
 }
 
 static struct tevent_req * sdap_sudo_load_sudoers_send(TALLOC_CTX *mem_ctx,
@@ -517,7 +501,6 @@ done:
         }
     }
 
-    state->error = ret;
     if (ret == EOK) {
         state->dp_error = DP_ERR_OK;
         tevent_req_done(req);
