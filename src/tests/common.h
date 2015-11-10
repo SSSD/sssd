@@ -143,4 +143,12 @@ struct sss_domain_info *named_domain(TALLOC_CTX *mem_ctx,
                                      const char *name,
                                      struct sss_domain_info *parent);
 
+/* Returns true if all values are in array (else returns false) */
+bool are_values_in_array(const char **values, size_t values_len,
+                         const char **array, size_t array_len);
+
+#define tc_are_values_in_array(values, array) \
+        are_values_in_array(values, talloc_array_length(values), \
+                            array, talloc_array_length(array))
+
 #endif /* !__TESTS_COMMON_H__ */
