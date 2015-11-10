@@ -76,7 +76,7 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot get SUDO options [%d]: %s\n",
                                   ret, strerror(ret));
-        return ret;
+        goto done;
     }
 
     req = sdap_sudo_get_hostinfo_send(sudo_ctx, id_ctx->opts, be_ctx);
@@ -98,7 +98,14 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
         tevent_req_set_callback(req, sdap_sudo_get_hostinfo_done, sudo_ctx);
     }
 
-    return EOK;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(sudo_ctx);
+    }
+
+    return ret;
 }
 
 static void sdap_sudo_get_hostinfo_done(struct tevent_req *req)
