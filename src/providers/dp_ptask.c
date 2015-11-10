@@ -197,7 +197,7 @@ static void be_ptask_schedule(struct be_ptask *task,
                               enum be_ptask_delay delay_type,
                               enum be_ptask_schedule from)
 {
-    struct timeval tv;
+    struct timeval tv = { 0, };
     time_t delay = 0;
 
     if (!task->enabled) {
