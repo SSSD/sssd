@@ -35,6 +35,8 @@ struct sdap_sudo_ctx {
 
     bool full_refresh_done;
     bool full_refresh_in_progress;
+
+    bool run_hostinfo;
 };
 
 /* Common functions from ldap_sudo.c */

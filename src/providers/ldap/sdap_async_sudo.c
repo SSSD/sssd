@@ -497,6 +497,8 @@ struct sdap_sudo_refresh_state {
 
 static errno_t sdap_sudo_refresh_retry(struct tevent_req *req);
 static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq);
+static void sdap_sudo_refresh_hostinfo_done(struct tevent_req *subreq);
+static errno_t sdap_sudo_refresh_sudoers(struct tevent_req *req);
 static void sdap_sudo_refresh_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
@@ -588,7 +590,6 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_sudo_refresh_state *state;
-    char *filter;
     int dp_error;
     int ret;
 
@@ -608,15 +609,74 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_FUNC, "SUDO LDAP connection successful\n");
 
+    /* Renew host information if needed. */
+    if (state->sudo_ctx->run_hostinfo) {
+        subreq = sdap_sudo_get_hostinfo_send(state, state->opts,
+                                             state->sudo_ctx->id_ctx->be);
+        if (subreq == NULL) {
+            state->dp_error = DP_ERR_FATAL;
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        tevent_req_set_callback(subreq, sdap_sudo_refresh_hostinfo_done, req);
+        state->sudo_ctx->run_hostinfo = false;
+        return;
+    }
+
+    ret = sdap_sudo_refresh_sudoers(req);
+    if (ret != EAGAIN) {
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ret);
+    }
+}
+
+static void sdap_sudo_refresh_hostinfo_done(struct tevent_req *subreq)
+{
+    struct sdap_sudo_ctx *sudo_ctx;
+    struct sdap_sudo_refresh_state *state;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
+
+    sudo_ctx = state->sudo_ctx;
+
+    ret = sdap_sudo_get_hostinfo_recv(sudo_ctx, subreq, &sudo_ctx->hostnames,
+                                      &sudo_ctx->ip_addr);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve host information, "
+                                 "host filter will be disabled [%d]: %s\n",
+                                 ret, sss_strerror(ret));
+        sudo_ctx->use_host_filter = false;
+    } else {
+        sudo_ctx->use_host_filter = true;
+    }
+
+    ret = sdap_sudo_refresh_sudoers(req);
+    if (ret != EAGAIN) {
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ret);
+    }
+}
+
+static errno_t sdap_sudo_refresh_sudoers(struct tevent_req *req)
+{
+    struct sdap_sudo_refresh_state *state;
+    struct tevent_req *subreq;
+    char *filter;
+
+    state = tevent_req_data(req, struct sdap_sudo_refresh_state);
+
     /* We are connected. Host information may have changed during transition
      * from offline to online state. At this point we can combine search
      * and host filter. */
     filter = sdap_sudo_get_filter(state, state->opts->sudorule_map,
                                   state->sudo_ctx, state->search_filter);
     if (filter == NULL) {
-        state->dp_error = DP_ERR_FATAL;
-        tevent_req_error(req, ENOMEM);
-        return;
+        return ENOMEM;
     }
 
     subreq = sdap_sudo_load_sudoers_send(state, state->ev,
@@ -624,14 +684,13 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
                                          sdap_id_op_handle(state->sdap_op),
                                          filter);
     if (subreq == NULL) {
-        state->dp_error = DP_ERR_FATAL;
-        tevent_req_error(req, ENOMEM);
-        return;
+        talloc_free(filter);
+        return ENOMEM;
     }
 
     tevent_req_set_callback(subreq, sdap_sudo_refresh_done, req);
 
-    return;
+    return EAGAIN;
 }
 
 static void sdap_sudo_refresh_done(struct tevent_req *subreq)
