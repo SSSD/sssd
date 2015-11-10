@@ -858,7 +858,7 @@ void fo_ref_server(TALLOC_CTX *ref_ctx,
                    struct fo_server *server)
 {
     if (server) {
-        rc_reference(ref_ctx, struct fo_server, server);
+        server = rc_reference(ref_ctx, struct fo_server, server);
     }
 }
 
