@@ -118,3 +118,24 @@ bool ldb_modules_path_is_set(void)
 
     return false;
 }
+
+/* Returns true if all values are in array (else returns false) */
+bool are_values_in_array(const char **values, size_t values_len,
+                         const char **array, size_t array_len)
+{
+    bool is_value_in_element = false;
+    bool is_value_in_array = false;
+    bool ret = true;
+
+    for (size_t i = 0; i < values_len; i++) {
+        is_value_in_array = false;
+        for (size_t j = 0; j < array_len; j++) {
+            is_value_in_element = strcmp(values[i], array[j]) == 0 ? \
+                                 true : false;
+            is_value_in_array = is_value_in_array || is_value_in_element;
+        }
+        ret = ret && is_value_in_array;
+    }
+
+    return ret;
+}
