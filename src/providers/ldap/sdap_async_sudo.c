@@ -305,13 +305,24 @@ static void sdap_sudo_set_usn(struct sdap_server_opts *srv_opts, char *usn)
     unsigned int usn_number;
     char *endptr = NULL;
 
-    if (usn == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Empty USN, ignoring\n");
+    if (srv_opts == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Bug: srv_opts is NULL\n");
         return;
     }
 
-    if (srv_opts == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Bug: srv_opts is NULL\n");
+    if (usn == NULL) {
+        /* If the USN value is unknown and we don't have max_sudo_value set
+         * (possibly first full refresh which did not find any rule) we will
+         * set zero so smart refresh can pick up. */
+        if (srv_opts->max_sudo_value == NULL) {
+            srv_opts->max_sudo_value = talloc_strdup(srv_opts, "0");
+            if (srv_opts->max_sudo_value == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
+            }
+            return;
+        }
+
+        DEBUG(SSSDBG_TRACE_FUNC, "Empty USN, ignoring\n");
         return;
     }
 
@@ -689,9 +700,7 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "Sudoers is successfuly stored in cache\n");
 
     /* remember new usn */
-    if (usn != NULL) {
-        sdap_sudo_set_usn(state->srv_opts, usn);
-    }
+    sdap_sudo_set_usn(state->srv_opts, usn);
 
     ret = EOK;
     state->num_rules = rules_count;
