@@ -182,7 +182,7 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     if (!sudo_ctx->full_refresh_done
-            && (srv_opts == NULL || srv_opts->max_sudo_value == 0)) {
+            || srv_opts == NULL || srv_opts->max_sudo_value == NULL) {
         /* Perform full refresh first */
         DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, "
                                  "waiting for full refresh!\n");
@@ -195,17 +195,11 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
 
     /* Download all rules from LDAP that are newer than usn */
     usn = srv_opts->max_sudo_value;
-    if (usn != NULL) {
-        search_filter = talloc_asprintf(state,
-                                        "(&(objectclass=%s)(%s>=%s)(!(%s=%s)))",
-                                        map[SDAP_OC_SUDORULE].name,
-                                        map[SDAP_AT_SUDO_USN].name, usn,
-                                        map[SDAP_AT_SUDO_USN].name, usn);
-    } else {
-        /* no valid USN value known */
-        search_filter = talloc_asprintf(state, SDAP_SUDO_FILTER_CLASS,
-                                        map[SDAP_OC_SUDORULE].name);
-    }
+    search_filter = talloc_asprintf(state,
+                                    "(&(objectclass=%s)(%s>=%s)(!(%s=%s)))",
+                                    map[SDAP_OC_SUDORULE].name,
+                                    map[SDAP_AT_SUDO_USN].name, usn,
+                                    map[SDAP_AT_SUDO_USN].name, usn);
     if (search_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -215,7 +209,7 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
      * sysdb_filter = NULL; */
 
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a smart refresh of sudo rules "
-                             "(USN > %s)\n", (usn == NULL ? "0" : usn));
+                             "(USN > %s)\n", usn);
 
     subreq = sdap_sudo_refresh_send(state, sudo_ctx, search_filter, NULL);
     if (subreq == NULL) {
