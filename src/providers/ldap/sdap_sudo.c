@@ -41,7 +41,20 @@ struct bet_ops sdap_sudo_ops = {
     .finalize = sdap_sudo_shutdown
 };
 
-static void sdap_sudo_get_hostinfo_done(struct tevent_req *req);
+static void sdap_sudo_online_cb(void *pvt)
+{
+    struct sdap_sudo_ctx *sudo_ctx;
+
+    sudo_ctx = talloc_get_type(pvt, struct sdap_sudo_ctx);
+    if (sudo_ctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "BUG: sudo_ctx is NULL\n");
+        return;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "We are back online. SUDO host information will "
+                             "be renewed on next refresh.\n");
+    sudo_ctx->run_hostinfo = true;
+}
 
 int sdap_sudo_init(struct be_ctx *be_ctx,
                    struct sdap_id_ctx *id_ctx,
@@ -49,7 +62,6 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
                    void **pvt_data)
 {
     struct sdap_sudo_ctx *sudo_ctx = NULL;
-    struct tevent_req *req = NULL;
     int ret;
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "Initializing sudo LDAP back end\n");
@@ -79,23 +91,26 @@ int sdap_sudo_init(struct be_ctx *be_ctx,
         goto done;
     }
 
-    req = sdap_sudo_get_hostinfo_send(sudo_ctx, id_ctx->opts, be_ctx);
-    if (req == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve host information - "
-              "(host filter will be disabled)\n");
-
-        sudo_ctx->use_host_filter = false;
-
-        ret = sdap_sudo_ptask_setup(sudo_ctx->id_ctx->be, sudo_ctx);
+    if (sudo_ctx->use_host_filter) {
+        ret = be_add_online_cb(sudo_ctx, sudo_ctx->id_ctx->be,
+                               sdap_sudo_online_cb, sudo_ctx, NULL);
         if (ret != EOK) {
-             DEBUG(SSSDBG_OP_FAILURE,
-                   "Unable to setup periodical refresh"
-                    "of sudo rules [%d]: %s\n", ret, strerror(ret));
-             /* periodical updates will not work, but specific-rule update
-              * is no affected by this, therefore we don't have to fail here */
+            DEBUG(SSSDBG_OP_FAILURE, "Unable to install online callback "
+                                     "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
         }
-    } else {
-        tevent_req_set_callback(req, sdap_sudo_get_hostinfo_done, sudo_ctx);
+
+        /* Obtain hostinfo with the first refresh. */
+        sudo_ctx->run_hostinfo = true;
+    }
+
+    ret = sdap_sudo_ptask_setup(sudo_ctx->id_ctx->be, sudo_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to setup periodical refresh of sudo rules [%d]: %s\n",
+              ret, strerror(ret));
+        /* periodical updates will not work, but specific-rule update
+         * is no affected by this, therefore we don't have to fail here */
     }
 
     ret = EOK;
@@ -106,36 +121,6 @@ done:
     }
 
     return ret;
-}
-
-static void sdap_sudo_get_hostinfo_done(struct tevent_req *req)
-{
-    struct sdap_sudo_ctx *sudo_ctx = NULL;
-    char **hostnames = NULL;
-    char **ip_addr = NULL;
-    int ret;
-
-    sudo_ctx = tevent_req_callback_data(req, struct sdap_sudo_ctx);
-
-    ret = sdap_sudo_get_hostinfo_recv(sudo_ctx, req, &hostnames, &ip_addr);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to retrieve host information - "
-              "(host filter will be disabled) [%d]: %s\n", ret, strerror(ret));
-        sudo_ctx->use_host_filter = false;
-    }
-
-    talloc_zfree(sudo_ctx->hostnames);
-    talloc_zfree(sudo_ctx->ip_addr);
-
-    sudo_ctx->hostnames = talloc_move(sudo_ctx, &hostnames);
-    sudo_ctx->ip_addr = talloc_move(sudo_ctx, &ip_addr);
-
-    ret = sdap_sudo_ptask_setup(sudo_ctx->id_ctx->be, sudo_ctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Unable to setup periodical refresh"
-                                  "of sudo rules [%d]: %s\n", ret, strerror(ret));
-    }
 }
 
 static void sdap_sudo_reply(struct tevent_req *req)
