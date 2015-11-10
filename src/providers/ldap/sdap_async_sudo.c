@@ -328,7 +328,148 @@ static void sdap_sudo_set_usn(struct sdap_server_opts *srv_opts, char *usn)
                              srv_opts->max_sudo_value);
 }
 
+static char *sdap_sudo_build_host_filter(TALLOC_CTX *mem_ctx,
+                                         struct sdap_attr_map *map,
+                                         char **hostnames,
+                                         char **ip_addr,
+                                         bool netgroups,
+                                         bool regexp)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *filter = NULL;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return NULL;
+    }
+
+    filter = talloc_strdup(tmp_ctx, "(|");
+    if (filter == NULL) {
+        goto done;
+    }
+
+    /* sudoHost is not specified */
+    filter = talloc_asprintf_append_buffer(filter, "(!(%s=*))",
+                                           map[SDAP_AT_SUDO_HOST].name);
+    if (filter == NULL) {
+        goto done;
+    }
+
+    /* ALL */
+    filter = talloc_asprintf_append_buffer(filter, "(%s=ALL)",
+                                           map[SDAP_AT_SUDO_HOST].name);
+    if (filter == NULL) {
+        goto done;
+    }
+
+    /* hostnames */
+    if (hostnames != NULL) {
+        for (i = 0; hostnames[i] != NULL; i++) {
+            filter = talloc_asprintf_append_buffer(filter, "(%s=%s)",
+                                                   map[SDAP_AT_SUDO_HOST].name,
+                                                   hostnames[i]);
+            if (filter == NULL) {
+                goto done;
+            }
+        }
+    }
+
+    /* ip addresses and networks */
+    if (ip_addr != NULL) {
+        for (i = 0; ip_addr[i] != NULL; i++) {
+            filter = talloc_asprintf_append_buffer(filter, "(%s=%s)",
+                                                   map[SDAP_AT_SUDO_HOST].name,
+                                                   ip_addr[i]);
+            if (filter == NULL) {
+                goto done;
+            }
+        }
+    }
+
+    /* sudoHost contains netgroup - will be filtered more by sudo */
+    if (netgroups) {
+        filter = talloc_asprintf_append_buffer(filter, SDAP_SUDO_FILTER_NETGROUP,
+                                               map[SDAP_AT_SUDO_HOST].name,
+                                               "*");
+        if (filter == NULL) {
+            goto done;
+        }
+    }
+
+    /* sudoHost contains regexp - will be filtered more by sudo */
+    /* from sudo match.c :
+     * #define has_meta(s)  (strpbrk(s, "\\?*[]") != NULL)
+     */
+    if (regexp) {
+        filter = talloc_asprintf_append_buffer(filter,
+                                               "(|(%s=*\\\\*)(%s=*?*)(%s=*\\2A*)"
+                                                 "(%s=*[*]*))",
+                                               map[SDAP_AT_SUDO_HOST].name,
+                                               map[SDAP_AT_SUDO_HOST].name,
+                                               map[SDAP_AT_SUDO_HOST].name,
+                                               map[SDAP_AT_SUDO_HOST].name);
+        if (filter == NULL) {
+            goto done;
+        }
+    }
+
+    filter = talloc_strdup_append_buffer(filter, ")");
+    if (filter == NULL) {
+        goto done;
+    }
+
+    talloc_steal(mem_ctx, filter);
+
+done:
+    talloc_free(tmp_ctx);
+
+    return filter;
+}
+
+static char *sdap_sudo_get_filter(TALLOC_CTX *mem_ctx,
+                                  struct sdap_attr_map *map,
+                                  struct sdap_sudo_ctx *sudo_ctx,
+                                  const char *rule_filter)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *host_filter = NULL;
+    char *filter = NULL;
+
+    if (!sudo_ctx->use_host_filter) {
+        return talloc_strdup(mem_ctx, rule_filter);
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return NULL;
+    }
+
+    host_filter = sdap_sudo_build_host_filter(tmp_ctx, map,
+                                              sudo_ctx->hostnames,
+                                              sudo_ctx->ip_addr,
+                                              sudo_ctx->include_netgroups,
+                                              sudo_ctx->include_regexp);
+    if (host_filter == NULL) {
+        goto done;
+    }
+
+    filter = sdap_get_id_specific_filter(tmp_ctx, rule_filter, host_filter);
+    if (filter == NULL) {
+        goto done;
+    }
+
+    talloc_steal(mem_ctx, filter);
+
+done:
+    talloc_free(tmp_ctx);
+    return filter;
+}
+
 struct sdap_sudo_refresh_state {
+    struct sdap_sudo_ctx *sudo_ctx;
     struct tevent_context *ev;
     struct sdap_server_opts *srv_opts;
     struct sdap_options *opts;
@@ -336,8 +477,8 @@ struct sdap_sudo_refresh_state {
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
-    const char *ldap_filter;    /* search */
-    const char *sysdb_filter;   /* delete */
+    const char *search_filter;
+    const char *delete_filter;
 
     int dp_error;
     size_t num_rules;
@@ -348,16 +489,13 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq);
 static void sdap_sudo_refresh_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct sss_domain_info *domain,
-                                          struct sdap_server_opts *srv_opts,
-                                          struct sdap_options *opts,
-                                          struct sdap_id_conn_ctx *conn,
-                                          const char *ldap_filter,
-                                          const char *sysdb_filter)
+                                          struct sdap_sudo_ctx *sudo_ctx,
+                                          const char *search_filter,
+                                          const char *delete_filter)
 {
     struct tevent_req *req;
     struct sdap_sudo_refresh_state *state;
+    struct sdap_id_ctx *id_ctx = sudo_ctx->id_ctx;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_refresh_state);
@@ -366,33 +504,34 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     /* if we don't have a search filter, this request is meaningless */
-    if (ldap_filter == NULL) {
+    if (search_filter == NULL) {
         ret = EINVAL;
         goto immediately;
     }
 
-    state->ev = ev;
-    state->srv_opts = srv_opts;
-    state->opts = opts;
-    state->domain = domain;
-    state->sysdb = domain->sysdb;
+    state->sudo_ctx = sudo_ctx;
+    state->ev = id_ctx->be->ev;
+    state->srv_opts = id_ctx->srv_opts;
+    state->opts = id_ctx->opts;
+    state->domain = id_ctx->be->domain;
+    state->sysdb = id_ctx->be->domain->sysdb;
     state->dp_error = DP_ERR_FATAL;
 
-    state->sdap_op = sdap_id_op_create(state, conn->conn_cache);
+    state->sdap_op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
     if (!state->sdap_op) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
         ret = ENOMEM;
         goto immediately;
     }
 
-    state->ldap_filter = talloc_strdup(state, ldap_filter);
-    if (state->ldap_filter == NULL) {
+    state->search_filter = talloc_strdup(state, search_filter);
+    if (state->search_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
 
-    state->sysdb_filter = talloc_strdup(state, sysdb_filter);
-    if (sysdb_filter != NULL && state->sysdb_filter == NULL) {
+    state->delete_filter = talloc_strdup(state, delete_filter);
+    if (delete_filter != NULL && state->delete_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
@@ -409,7 +548,7 @@ immediately:
     } else {
         tevent_req_error(req, ret);
     }
-    tevent_req_post(req, ev);
+    tevent_req_post(req, id_ctx->be->ev);
 
     return req;
 }
@@ -438,6 +577,7 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_sudo_refresh_state *state;
+    char *filter;
     int dp_error;
     int ret;
 
@@ -457,10 +597,21 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_FUNC, "SUDO LDAP connection successful\n");
 
+    /* We are connected. Host information may have changed during transition
+     * from offline to online state. At this point we can combine search
+     * and host filter. */
+    filter = sdap_sudo_get_filter(state, state->opts->sudorule_map,
+                                  state->sudo_ctx, state->search_filter);
+    if (filter == NULL) {
+        state->dp_error = DP_ERR_FATAL;
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
     subreq = sdap_sudo_load_sudoers_send(state, state->ev,
                                          state->opts,
                                          sdap_id_op_handle(state->sdap_op),
-                                         state->ldap_filter);
+                                         filter);
     if (subreq == NULL) {
         state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ENOMEM);
@@ -512,7 +663,7 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     in_transaction = true;
 
     /* purge cache */
-    ret = sdap_sudo_purge_sudoers(state->domain, state->sysdb_filter,
+    ret = sdap_sudo_purge_sudoers(state->domain, state->delete_filter,
                                   state->opts->sudorule_map, rules_count, rules);
     if (ret != EOK) {
         goto done;
