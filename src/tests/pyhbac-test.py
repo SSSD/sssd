@@ -14,18 +14,29 @@ MODPATH = srcdir + "/.libs" #FIXME - is there a way to get this from libtool?
 if sys.version_info[0] > 2:
     unicode = str
 
-def compat_assertItemsEqual(this, expected_seq, actual_seq, msg=None):
-    return this.assertEqual(sorted(expected_seq), sorted(actual_seq))
 
 def compat_assertIsInstance(this, obj, cls, msg=None):
     return this.assertTrue(isinstance(obj, cls))
 
-# add compat methods for old unittest.TestCase versions
-# (python < 2.7, RHEL5 for instance)
-if not hasattr(unittest.TestCase, "assertItemsEqual"):
-    setattr(unittest.TestCase, "assertItemsEqual", compat_assertItemsEqual)
+
+def compat_assertItemsEqual(this, expected_seq, actual_seq, msg=None):
+    return this.assertEqual(sorted(expected_seq), sorted(actual_seq))
+
+# add compat assertIsInstance for old unittest.TestCase versions
+# (python < 2.7, RHEL6 for instance)
 if not hasattr(unittest.TestCase, "assertIsInstance"):
     setattr(unittest.TestCase, "assertIsInstance", compat_assertIsInstance)
+
+# Python3 renamed assertItemsEqual to assertCountEqual but at the same time
+# Python2 doesn't have assertCountEqual, see http://bugs.python.org/issue17866
+if not hasattr(unittest.TestCase, "assertCountEqual"):
+    if not hasattr(unittest.TestCase, "assertItemsEqual"):
+        # This is RHEL-6
+        setattr(unittest.TestCase, "assertItemsEqual", compat_assertItemsEqual)
+
+    setattr(unittest.TestCase,
+            "assertCountEqual",
+            unittest.TestCase.assertItemsEqual)
 
 class PyHbacImport(unittest.TestCase):
     def setUp(self):
@@ -66,38 +77,38 @@ class PyHbacImport(unittest.TestCase):
 class PyHbacRuleElementTest(unittest.TestCase):
     def testInstantiateEmpty(self):
         el = pyhbac.HbacRuleElement()
-        self.assertItemsEqual(el.names, [])
-        self.assertItemsEqual(el.groups, [])
-        self.assertItemsEqual(el.category, set([pyhbac.HBAC_CATEGORY_NULL]))
+        self.assertCountEqual(el.names, [])
+        self.assertCountEqual(el.groups, [])
+        self.assertCountEqual(el.category, set([pyhbac.HBAC_CATEGORY_NULL]))
 
     def testInit(self):
         names = [ "foo", "bar" ]
         el = pyhbac.HbacRuleElement(names=names)
-        self.assertItemsEqual(el.names, names)
+        self.assertCountEqual(el.names, names)
 
         groups = [ "abc", "def" ]
         el = pyhbac.HbacRuleElement(groups=groups)
-        self.assertItemsEqual(el.groups, groups)
+        self.assertCountEqual(el.groups, groups)
 
     def testGetSet(self):
         names = [ "foo", "bar" ]
         el = pyhbac.HbacRuleElement()
-        self.assertItemsEqual(el.names, [])
+        self.assertCountEqual(el.names, [])
         el.names = names
-        self.assertItemsEqual(el.names, names)
+        self.assertCountEqual(el.names, names)
 
         groups = [ "abc", "def" ]
         el = pyhbac.HbacRuleElement()
-        self.assertItemsEqual(el.groups, [])
+        self.assertCountEqual(el.groups, [])
         el.groups = groups
-        self.assertItemsEqual(el.groups, groups)
+        self.assertCountEqual(el.groups, groups)
 
         # Test other iterables than list
         groups = ( "abc", "def" )
         el = pyhbac.HbacRuleElement()
-        self.assertItemsEqual(el.groups, [])
+        self.assertCountEqual(el.groups, [])
         el.groups = groups
-        self.assertItemsEqual(el.groups, groups)
+        self.assertCountEqual(el.groups, groups)
 
     def testCategory(self):
         el = pyhbac.HbacRuleElement()
@@ -126,8 +137,8 @@ class PyHbacRuleElementTest(unittest.TestCase):
             return pyhbac.HbacRuleElement(names=users, groups=user_groups)
 
         el = _get_rule()
-        self.assertItemsEqual(el.names, [ "foo", "bar" ])
-        self.assertItemsEqual(el.groups, [ "abc", "def" ])
+        self.assertCountEqual(el.names, [ "foo", "bar" ])
+        self.assertCountEqual(el.groups, [ "abc", "def" ])
 
     def testRepr(self):
         el = pyhbac.HbacRuleElement()
@@ -196,22 +207,22 @@ class PyHbacRuleTest(unittest.TestCase):
 
         self.assertIsInstance(rule.users.names, list)
         self.assertIsInstance(rule.users.groups, list)
-        self.assertItemsEqual(rule.users.names, [])
-        self.assertItemsEqual(rule.users.groups, [])
+        self.assertCountEqual(rule.users.names, [])
+        self.assertCountEqual(rule.users.groups, [])
 
         # Assign by copying a HbacRuleElement
         user_el = pyhbac.HbacRuleElement(names=users, groups=user_groups)
         rule = pyhbac.HbacRule("testRuleElement")
         rule.users = user_el
-        self.assertItemsEqual(rule.users.names, users)
-        self.assertItemsEqual(rule.users.groups, user_groups)
+        self.assertCountEqual(rule.users.names, users)
+        self.assertCountEqual(rule.users.groups, user_groups)
 
         # Assign directly
         rule = pyhbac.HbacRule("testRuleElement")
         rule.users.names = users
         rule.users.groups = user_groups
-        self.assertItemsEqual(rule.users.names, users)
-        self.assertItemsEqual(rule.users.groups, user_groups)
+        self.assertCountEqual(rule.users.names, users)
+        self.assertCountEqual(rule.users.groups, user_groups)
 
     def testRuleElementInRuleReference(self):
         " Test that references to RuleElement are kept even if element goes out of scope "
@@ -224,8 +235,8 @@ class PyHbacRuleTest(unittest.TestCase):
             return rule
 
         rule = _get_rule()
-        self.assertItemsEqual(rule.users.names, [ "foo", "bar" ])
-        self.assertItemsEqual(rule.users.groups, [ "abc", "def" ])
+        self.assertCountEqual(rule.users.names, [ "foo", "bar" ])
+        self.assertCountEqual(rule.users.groups, [ "abc", "def" ])
 
     def testRepr(self):
         r = pyhbac.HbacRule('foo')
@@ -257,7 +268,7 @@ class PyHbacRuleTest(unittest.TestCase):
 
         valid, missing = r.validate()
         self.assertEqual(valid, False)
-        self.assertItemsEqual(missing, ( pyhbac.HBAC_RULE_ELEMENT_USERS,
+        self.assertCountEqual(missing, ( pyhbac.HBAC_RULE_ELEMENT_USERS,
                                          pyhbac.HBAC_RULE_ELEMENT_SERVICES,
                                          pyhbac.HBAC_RULE_ELEMENT_TARGETHOSTS,
                                          pyhbac.HBAC_RULE_ELEMENT_SOURCEHOSTS ))
@@ -267,7 +278,7 @@ class PyHbacRuleTest(unittest.TestCase):
 
         valid, missing = r.validate()
         self.assertEqual(valid, False)
-        self.assertItemsEqual(missing, ( pyhbac.HBAC_RULE_ELEMENT_TARGETHOSTS,
+        self.assertCountEqual(missing, ( pyhbac.HBAC_RULE_ELEMENT_TARGETHOSTS,
                                          pyhbac.HBAC_RULE_ELEMENT_SOURCEHOSTS ))
 
         r.srchosts.names = [ "host1" ]
@@ -279,37 +290,37 @@ class PyHbacRuleTest(unittest.TestCase):
 class PyHbacRequestElementTest(unittest.TestCase):
     def testInstantiateEmpty(self):
         el = pyhbac.HbacRequestElement()
-        self.assertItemsEqual(el.name, "")
-        self.assertItemsEqual(el.groups, [])
+        self.assertCountEqual(el.name, "")
+        self.assertCountEqual(el.groups, [])
 
     def testInit(self):
         name = "foo"
         el = pyhbac.HbacRequestElement(name=name)
-        self.assertItemsEqual(el.name, name)
+        self.assertCountEqual(el.name, name)
 
         groups = [ "abc", "def" ]
         el = pyhbac.HbacRequestElement(groups=groups)
-        self.assertItemsEqual(el.groups, groups)
+        self.assertCountEqual(el.groups, groups)
 
     def testGetSet(self):
         name = "foo"
         el = pyhbac.HbacRequestElement()
-        self.assertItemsEqual(el.name, "")
+        self.assertCountEqual(el.name, "")
         el.name = name
-        self.assertItemsEqual(el.name, name)
+        self.assertCountEqual(el.name, name)
 
         groups = [ "abc", "def" ]
         el = pyhbac.HbacRequestElement()
-        self.assertItemsEqual(el.groups, [])
+        self.assertCountEqual(el.groups, [])
         el.groups = groups
-        self.assertItemsEqual(el.groups, groups)
+        self.assertCountEqual(el.groups, groups)
 
         # Test other iterables than list
         groups = ( "abc", "def" )
         el = pyhbac.HbacRequestElement()
-        self.assertItemsEqual(el.groups, [])
+        self.assertCountEqual(el.groups, [])
         el.groups = groups
-        self.assertItemsEqual(el.groups, groups)
+        self.assertCountEqual(el.groups, groups)
 
     def testGroupsNotIterable(self):
         self.assertRaises(TypeError, pyhbac.HbacRequestElement, groups=None)
@@ -337,21 +348,21 @@ class PyHbacRequestTest(unittest.TestCase):
 
         self.assertEqual(req.user.name, "")
         self.assertIsInstance(req.user.groups, list)
-        self.assertItemsEqual(req.user.groups, [])
+        self.assertCountEqual(req.user.groups, [])
 
         # Assign by copying a HbacRequestElement
         user_el = pyhbac.HbacRequestElement(name=name, groups=groups)
         req = pyhbac.HbacRequest()
         req.user = user_el
-        self.assertItemsEqual(req.user.name, name)
-        self.assertItemsEqual(req.user.groups, groups)
+        self.assertCountEqual(req.user.name, name)
+        self.assertCountEqual(req.user.groups, groups)
 
         # Assign directly
         req = pyhbac.HbacRequest()
         req.user.name = name
         req.user.groups = groups
-        self.assertItemsEqual(req.user.name, name)
-        self.assertItemsEqual(req.user.groups, groups)
+        self.assertCountEqual(req.user.name, name)
+        self.assertCountEqual(req.user.groups, groups)
 
     def testRuleName(self):
         req = pyhbac.HbacRequest()

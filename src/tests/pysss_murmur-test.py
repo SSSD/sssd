@@ -28,19 +28,6 @@ import errno
 srcdir = os.getenv('builddir') or "."
 MODPATH = srcdir + "/.libs" #FIXME - is there a way to get this from libtool?
 
-def compat_assertItemsEqual(this, expected_seq, actual_seq, msg=None):
-    return this.assertEqual(sorted(expected_seq), sorted(actual_seq))
-
-def compat_assertIsInstance(this, obj, cls, msg=None):
-    return this.assertTrue(isinstance(obj, cls))
-
-# add compat methods for old unittest.TestCase versions
-# (python < 2.7, RHEL5 for instance)
-if not hasattr(unittest.TestCase, "assertItemsEqual"):
-    setattr(unittest.TestCase, "assertItemsEqual", compat_assertItemsEqual)
-if not hasattr(unittest.TestCase, "assertIsInstance"):
-    setattr(unittest.TestCase, "assertIsInstance", compat_assertIsInstance)
-
 class PySssMurmurImport(unittest.TestCase):
     def setUp(self):
         " Make sure we load the in-tree module "
