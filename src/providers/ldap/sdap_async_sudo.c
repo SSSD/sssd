@@ -283,6 +283,7 @@ static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
 
     /* Empty sudoers? Done. */
     if (rules_count == 0 || rules == NULL) {
+        *_usn = NULL;
         return EOK;
     }
 
@@ -299,8 +300,37 @@ static int sdap_sudo_store_sudoers(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static void sdap_sudo_set_usn(struct sdap_server_opts *srv_opts, char *usn)
+{
+    unsigned int usn_number;
+    char *endptr = NULL;
+
+    if (usn == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Empty USN, ignoring\n");
+        return;
+    }
+
+    if (srv_opts == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Bug: srv_opts is NULL\n");
+        return;
+    }
+
+    talloc_zfree(srv_opts->max_sudo_value);
+    srv_opts->max_sudo_value = talloc_steal(srv_opts, usn);
+
+    usn_number = strtoul(usn, &endptr, 10);
+    if ((endptr == NULL || (*endptr == '\0' && endptr != usn))
+         && (usn_number > srv_opts->last_usn)) {
+         srv_opts->last_usn = usn_number;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "SUDO higher USN value: [%s]\n",
+                             srv_opts->max_sudo_value);
+}
+
 struct sdap_sudo_refresh_state {
     struct tevent_context *ev;
+    struct sdap_server_opts *srv_opts;
     struct sdap_options *opts;
     struct sdap_id_op *sdap_op;
     struct sysdb_ctx *sysdb;
@@ -310,7 +340,6 @@ struct sdap_sudo_refresh_state {
     const char *sysdb_filter;   /* delete */
 
     int dp_error;
-    char *highest_usn;
     size_t num_rules;
 };
 
@@ -321,6 +350,7 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq);
 struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,
                                           struct sss_domain_info *domain,
+                                          struct sdap_server_opts *srv_opts,
                                           struct sdap_options *opts,
                                           struct sdap_id_conn_ctx *conn,
                                           const char *ldap_filter,
@@ -342,11 +372,11 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
+    state->srv_opts = srv_opts;
     state->opts = opts;
     state->domain = domain;
     state->sysdb = domain->sysdb;
     state->dp_error = DP_ERR_FATAL;
-    state->highest_usn = NULL;
 
     state->sdap_op = sdap_id_op_create(state, conn->conn_cache);
     if (!state->sdap_op) {
@@ -448,6 +478,7 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     struct sdap_sudo_refresh_state *state;
     struct sysdb_attrs **rules = NULL;
     size_t rules_count = 0;
+    char *usn = NULL;
     int dp_error;
     int ret;
     errno_t sret;
@@ -491,8 +522,7 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     now = time(NULL);
     ret = sdap_sudo_store_sudoers(state, state->domain,
                                   state->opts, rules_count, rules,
-                                  state->domain->sudo_timeout, now,
-                                  &state->highest_usn);
+                                  state->domain->sudo_timeout, now, &usn);
     if (ret != EOK) {
         goto done;
     }
@@ -506,6 +536,11 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
     in_transaction = false;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Sudoers is successfuly stored in cache\n");
+
+    /* remember new usn */
+    if (usn != NULL) {
+        sdap_sudo_set_usn(state->srv_opts, usn);
+    }
 
     ret = EOK;
     state->num_rules = rules_count;
@@ -529,7 +564,6 @@ done:
 int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
                            int *dp_error,
-                           char **usn,
                            size_t *num_rules)
 {
     struct sdap_sudo_refresh_state *state;
@@ -539,10 +573,6 @@ int sdap_sudo_refresh_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *dp_error = state->dp_error;
-
-    if (usn != NULL && state->highest_usn != NULL) {
-        *usn = talloc_steal(mem_ctx, state->highest_usn);
-    }
 
     if (num_rules != NULL) {
         *num_rules = state->num_rules;
