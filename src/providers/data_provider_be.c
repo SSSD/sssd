@@ -2107,6 +2107,9 @@ static int be_client_destructor(void *ctx)
         } else if (becli->bectx->pac_cli == becli) {
             DEBUG(SSSDBG_TRACE_FUNC, "Removed PAC client\n");
             becli->bectx->pac_cli = NULL;
+        } else if (becli->bectx->ifp_cli == becli) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Removed IFP client\n");
+            becli->bectx->ifp_cli = NULL;
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unknown client removed ...\n");
         }
