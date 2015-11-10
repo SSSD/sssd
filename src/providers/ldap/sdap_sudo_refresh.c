@@ -27,28 +27,6 @@
 #include "providers/ldap/sdap_sudo.h"
 #include "db/sysdb_sudo.h"
 
-static void sdap_sudo_set_usn(struct sdap_server_opts *srv_opts, char *usn)
-{
-    unsigned int usn_number;
-    char *endptr = NULL;
-
-    if (srv_opts != NULL && usn != NULL) {
-        talloc_zfree(srv_opts->max_sudo_value);
-        srv_opts->max_sudo_value = talloc_steal(srv_opts, usn);
-
-        usn_number = strtoul(usn, &endptr, 10);
-        if ((endptr == NULL || (*endptr == '\0' && endptr != usn))
-             && (usn_number > srv_opts->last_usn)) {
-             srv_opts->last_usn = usn_number;
-        }
-
-        DEBUG(SSSDBG_FUNC_DATA, "SUDO higher USN value: [%s]\n",
-                                srv_opts->max_sudo_value);
-    } else {
-        DEBUG(SSSDBG_TRACE_FUNC, "srv_opts is NULL\n");
-    }
-}
-
 static char *sdap_sudo_build_host_filter(TALLOC_CTX *mem_ctx,
                                          struct sdap_attr_map *map,
                                          char **hostnames,
@@ -250,8 +228,9 @@ struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a full refresh of sudo rules\n");
 
     subreq = sdap_sudo_refresh_send(state, id_ctx->be->ev, id_ctx->be->domain,
-                                    id_ctx->opts, id_ctx->conn,
-                                    ldap_full_filter, sysdb_filter);
+                                    id_ctx->srv_opts, id_ctx->opts,
+                                    id_ctx->conn, ldap_full_filter,
+                                    sysdb_filter);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -281,14 +260,12 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
     struct sdap_sudo_full_refresh_state *state = NULL;
-    char *highest_usn = NULL;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_full_refresh_state);
 
-    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error,
-                                 &highest_usn, NULL);
+    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
     if (ret != EOK || state->dp_error != DP_ERR_OK) {
         goto done;
@@ -307,11 +284,6 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Successful full refresh of sudo rules\n");
-
-    /* set highest usn */
-    if (highest_usn != NULL) {
-        sdap_sudo_set_usn(state->id_ctx->srv_opts, highest_usn);
-    }
 
 done:
     state->sudo_ctx->full_refresh_in_progress = false;
@@ -408,8 +380,8 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
                              "(USN > %s)\n", (usn == NULL ? "0" : usn));
 
     subreq = sdap_sudo_refresh_send(state, id_ctx->be->ev, id_ctx->be->domain,
-                                    id_ctx->opts, id_ctx->conn,
-                                    ldap_full_filter, NULL);
+                                    id_ctx->srv_opts, id_ctx->opts,
+                                    id_ctx->conn, ldap_full_filter, NULL);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -438,25 +410,18 @@ static void sdap_sudo_smart_refresh_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
     struct sdap_sudo_smart_refresh_state *state = NULL;
-    char *highest_usn = NULL;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_smart_refresh_state);
 
-    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error,
-                                 &highest_usn, NULL);
+    ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error, NULL);
     talloc_zfree(subreq);
     if (ret != EOK || state->dp_error != DP_ERR_OK) {
         goto done;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Successful smart refresh of sudo rules\n");
-
-    /* set highest usn */
-    if (highest_usn != NULL) {
-        sdap_sudo_set_usn(state->id_ctx->srv_opts, highest_usn);
-    }
 
 done:
     if (ret != EOK) {
@@ -578,7 +543,7 @@ struct tevent_req *sdap_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = sdap_sudo_refresh_send(req, id_ctx->be->ev, id_ctx->be->domain,
-                                    opts, id_ctx->conn,
+                                    id_ctx->srv_opts, opts, id_ctx->conn,
                                     ldap_full_filter, sysdb_filter);
     if (subreq == NULL) {
         ret = ENOMEM;
@@ -603,7 +568,6 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
     struct sdap_sudo_rules_refresh_state *state = NULL;
-    char *highest_usn = NULL;
     size_t downloaded_rules_num;
     int ret;
 
@@ -611,15 +575,10 @@ static void sdap_sudo_rules_refresh_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct sdap_sudo_rules_refresh_state);
 
     ret = sdap_sudo_refresh_recv(state, subreq, &state->dp_error,
-                                 &highest_usn, &downloaded_rules_num);
+                                 &downloaded_rules_num);
     talloc_zfree(subreq);
     if (ret != EOK || state->dp_error != DP_ERR_OK) {
         goto done;
-    }
-
-    /* set highest usn */
-    if (highest_usn != NULL) {
-        sdap_sudo_set_usn(state->id_ctx->srv_opts, highest_usn);
     }
 
     state->deleted = downloaded_rules_num != state->num_rules ? true : false;
