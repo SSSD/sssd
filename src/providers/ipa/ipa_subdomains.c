@@ -1342,7 +1342,7 @@ static void ipa_subdom_online_cb(void *pvt)
 
     refresh_interval = ctx->be_ctx->domain->subdomain_refresh_interval;
 
-    be_req = be_req_create(ctx, NULL, ctx->be_ctx,
+    be_req = be_req_create(ctx, NULL, ctx->be_ctx, "IPA subdomains",
                            ipa_subdom_be_req_callback, NULL);
     if (be_req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "be_req_create() failed.\n");

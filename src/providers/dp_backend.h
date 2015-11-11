@@ -291,9 +291,16 @@ errno_t be_res_init(struct be_ctx *ctx);
 
 /* be_req helpers */
 
+/* Create a back end request and call fn when done. Please note the
+ * request name is not duplicated. The caller should either provide
+ * a static string or steal a dynamic string onto req context.
+ */
 struct be_req *be_req_create(TALLOC_CTX *mem_ctx,
-                             struct be_client *becli, struct be_ctx *be_ctx,
-                             be_async_callback_t fn, void *pvt_fn_data);
+                             struct be_client *becli,
+                             struct be_ctx *be_ctx,
+                             const char *name,
+                             be_async_callback_t fn,
+                             void *pvt_fn_data);
 struct be_ctx *be_req_get_be_ctx(struct be_req *be_req);
 
 void *be_req_get_data(struct be_req *be_req);
