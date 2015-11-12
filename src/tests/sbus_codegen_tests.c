@@ -22,6 +22,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <check.h>
 #include <talloc.h>
@@ -254,9 +255,9 @@ static int eject_handler(struct sbus_request *req, void *instance_data,
     arg_int32++;
     ck_assert_uint_eq(arg_uint32, 55555555);
     arg_uint32++;
-    ck_assert(arg_int64 == -6666666666666666);
+    ck_assert(arg_int64 == INT64_C(-6666666666666666));
     arg_int64++;
-    ck_assert(arg_uint64 == 7777777777777777);
+    ck_assert(arg_uint64 == UINT64_C(7777777777777777));
     arg_uint64++;
     ck_assert(arg_double == 1.1);
     arg_double++;
@@ -658,8 +659,8 @@ START_TEST(test_marshal_basic_types)
     dbus_uint16_t arg_uint16 = 3333;
     dbus_int32_t arg_int32 = -44444444;
     dbus_uint32_t arg_uint32 = 55555555;
-    dbus_int64_t arg_int64 = -6666666666666666;
-    dbus_uint64_t arg_uint64 = 7777777777777777;
+    dbus_int64_t arg_int64 = INT64_C(-6666666666666666);
+    dbus_uint64_t arg_uint64 = UINT64_C(7777777777777777);
     double arg_double = 1.1;
     const char *arg_string = "hello";
     const char *arg_object_path = "/original/object/path";
@@ -669,8 +670,8 @@ START_TEST(test_marshal_basic_types)
     dbus_uint16_t v_uint16[] = { 1, 2, 3, 4, 5 };
     dbus_int32_t v_int32[] = { -1, -23, 34, -56, -90000000, 78 };
     dbus_uint32_t v_uint32[] = { 11111111, 22222222, 33333333 };
-    dbus_int64_t v_int64[] = { -6666666666666666, 7777777777777777 };
-    dbus_uint64_t v_uint64[] = { 7777777777777777, 888888888888888888 };
+    dbus_int64_t v_int64[] = { INT64_C(-6666666666666666), INT64_C(7777777777777777) };
+    dbus_uint64_t v_uint64[] = { UINT64_C(7777777777777777), INT64_C(888888888888888888) };
     double v_double[] = { 1.1, 2.2, 3.3 };
     char *v_string[] = { "bears", "bears", "bears" };
     char *v_object_path[] = { "/original", "/original" };
@@ -767,8 +768,8 @@ START_TEST(test_marshal_basic_types)
     ck_assert_uint_eq(arg_uint16, 3334);
     ck_assert_int_eq(arg_int32, -44444443);
     ck_assert_uint_eq(arg_uint32, 55555556);
-    ck_assert(arg_int64 ==-6666666666666665);
-    ck_assert(arg_uint64 == 7777777777777778);
+    ck_assert(arg_int64 == INT64_C(-6666666666666665));
+    ck_assert(arg_uint64 == UINT64_C(7777777777777778));
     ck_assert(arg_double == 2.1);
     ck_assert_str_eq(arg_string, "bears, beets, battlestar galactica");
     ck_assert_str_eq(arg_object_path, "/another/object/path");
@@ -802,12 +803,12 @@ START_TEST(test_marshal_basic_types)
     ck_assert_uint_eq(arr_uint32[2], 33333334);
 
     ck_assert_int_eq(len_int64, 2);
-    ck_assert(arr_int64[0] == -6666666666666665);
-    ck_assert(arr_int64[1] == 7777777777777778);
+    ck_assert(arr_int64[0] == INT64_C(-6666666666666665));
+    ck_assert(arr_int64[1] == INT64_C(7777777777777778));
 
     ck_assert_int_eq(len_uint64, 2);
-    ck_assert(arr_uint64[0] == 7777777777777778);
-    ck_assert(arr_uint64[1] == 888888888888888889);
+    ck_assert(arr_uint64[0] == UINT64_C(7777777777777778));
+    ck_assert(arr_uint64[1] == UINT64_C(888888888888888889));
 
     ck_assert_int_eq(len_double, 3);
     ck_assert(arr_double[0] == 2.1);
