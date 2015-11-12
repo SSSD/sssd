@@ -621,10 +621,6 @@ static int ad_user_data_cmp(void *ud1, void *ud2)
         return sd1 == sd2 ? 0 : 1;
     }
 
-    DEBUG(SSSDBG_TRACE_LIBS, "Comparing %s with %s\n",
-          sd1->gc ? "GC" : "LDAP",
-          sd2->gc ? "GC" : "LDAP");
-
     if (sd1->gc == sd2->gc) {
         return 0;
     }
