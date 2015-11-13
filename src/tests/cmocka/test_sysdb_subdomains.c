@@ -245,19 +245,19 @@ static void test_sysdb_link_forest_root_ipa(void **state)
 
     sub = find_domain_by_name(test_ctx->tctx->dom, dom1[0], true);
     assert_non_null(sub->forest_root);
-    assert_true(sub->forest_root = sub);
+    assert_ptr_equal(sub->forest_root, sub);
 
     child = find_domain_by_name(test_ctx->tctx->dom, child_dom1[0], true);
     assert_non_null(child->forest_root);
-    assert_true(child->forest_root = sub);
+    assert_ptr_equal(child->forest_root, sub);
 
     sub = find_domain_by_name(test_ctx->tctx->dom, dom2[0], true);
     assert_non_null(sub->forest_root);
-    assert_true(sub->forest_root = sub);
+    assert_ptr_equal(sub->forest_root, sub);
 
     child = find_domain_by_name(test_ctx->tctx->dom, child_dom2[0], true);
     assert_non_null(child->forest_root);
-    assert_true(child->forest_root = sub);
+    assert_ptr_equal(child->forest_root, sub);
 
     main_dom = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM1_NAME, true);
     assert_non_null(main_dom);
@@ -328,11 +328,11 @@ static void test_sysdb_link_forest_root_ad(void **state)
 
     child = find_domain_by_name(test_ctx->tctx->dom, child_dom[0], true);
     assert_non_null(child->forest_root);
-    assert_true(child->forest_root = test_ctx->tctx->dom);
+    assert_ptr_equal(child->forest_root, test_ctx->tctx->dom);
 
     sub = find_domain_by_name(test_ctx->tctx->dom, sub_dom[0], true);
     assert_non_null(sub->forest_root);
-    assert_true(sub->forest_root = test_ctx->tctx->dom);
+    assert_ptr_equal(sub->forest_root, test_ctx->tctx->dom);
 
     /* Another separate domain is a forest of its own */
     main_dom = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM2_NAME, true);
@@ -407,14 +407,14 @@ static void test_sysdb_link_forest_member_ad(void **state)
     /* Checks */
     root = find_domain_by_name(test_ctx->tctx->dom, forest_root[0], true);
     assert_non_null(root->forest_root);
-    assert_true(root->forest_root = root);
+    assert_ptr_equal(root->forest_root, root);
 
     assert_non_null(test_ctx->tctx->dom->forest_root);
     assert_true(test_ctx->tctx->dom->forest_root == root);
 
     sub = find_domain_by_name(test_ctx->tctx->dom, sub_dom[0], true);
     assert_non_null(sub->forest_root);
-    assert_true(sub->forest_root = root);
+    assert_ptr_equal(sub->forest_root, root);
 
     /* Another separate domain is a forest of its own */
     main_dom = find_domain_by_name(test_ctx->tctx->dom, TEST_DOM2_NAME, true);
@@ -505,7 +505,7 @@ static void test_sysdb_link_ad_multidom(void **state)
     root = find_domain_by_name(test_ctx->tctx->dom, dom2_forest_root[0], true);
     assert_non_null(root);
     assert_non_null(root->forest_root);
-    assert_true(root->forest_root = main_dom2);
+    assert_ptr_equal(root->forest_root, main_dom2);
 
 }
 
