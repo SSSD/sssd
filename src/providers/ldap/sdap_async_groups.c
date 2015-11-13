@@ -876,6 +876,14 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     size_t nuserdns = 0;
     int ret;
 
+    if (dom->ignore_group_members) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Group members are ignored, nothing to do. If you see this " \
+              "message it might indicate an error in the group processing " \
+              "logic.\n");
+        return EOK;
+    }
+
     ret = sdap_get_group_primary_name(memctx, opts, attrs, dom, &group_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get group name\n");
