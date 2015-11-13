@@ -3065,6 +3065,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     char *dom_sid_str;
     char *group_sid_str;
     struct sdap_options *opts = state->opts;
+    struct ldb_message *msg;
 
     DEBUG(SSSDBG_TRACE_ALL, "Initgroups done\n");
 
@@ -3109,7 +3110,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
     if (ret) {
         DEBUG(SSSDBG_TRACE_ALL, "Error in initgroups: [%d][%s]\n",
                   ret, strerror(ret));
-        goto fail;
+        goto done;
     }
 
     /* We also need to update the user's primary group, since
@@ -3132,7 +3133,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
                 tmp_ctx, opts->idmap_ctx, state->orig_user,
                 opts->user_map[SDAP_AT_USER_OBJECTSID].sys_name,
                 &sid_str);
-        if (ret != EOK) goto fail;
+        if (ret != EOK) goto done;
 
         /* Get the domain SID from the user SID */
         ret = sdap_idmap_get_dom_sid_from_object(tmp_ctx, sid_str,
@@ -3140,7 +3141,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Could not parse domain SID from [%s]\n", sid_str);
-            goto fail;
+            goto done;
         }
 
         ret = sysdb_attrs_get_uint32_t(
@@ -3151,7 +3152,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "no primary group ID provided\n");
             ret = EINVAL;
-            goto fail;
+            goto done;
         }
 
         /* Add the RID to the end */
@@ -3160,43 +3161,57 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
                                         (unsigned long)primary_gid);
         if (!group_sid_str) {
             ret = ENOMEM;
-            goto fail;
+            goto done;
         }
 
         /* Convert the SID into a UNIX group ID */
         ret = sdap_idmap_sid_to_unix(opts->idmap_ctx, group_sid_str,
                                      &primary_gid);
-        if (ret != EOK) goto fail;
+        if (ret != EOK) goto done;
     } else {
         ret = sysdb_attrs_get_uint32_t(state->orig_user, SYSDB_GIDNUM,
                                        &primary_gid);
         if (ret != EOK) {
             DEBUG(SSSDBG_TRACE_FUNC, "Could not find user's primary GID\n");
-            goto fail;
+            goto done;
         }
     }
 
-    gid = talloc_asprintf(state, "%lu", (unsigned long)primary_gid);
-    if (gid == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
+    ret = sysdb_search_group_by_gid(tmp_ctx, state->dom, primary_gid, NULL,
+                                    &msg);
+    if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Primary group already cached, nothing to do.\n");
+        ret = EOK;
+        goto done;
+    } else {
+        gid = talloc_asprintf(state, "%lu", (unsigned long)primary_gid);
+        if (gid == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
 
-    subreq = groups_get_send(req, state->ev, state->id_ctx,
-                             state->id_ctx->opts->sdom, state->conn,
-                             gid, BE_FILTER_IDNUM, BE_ATTR_ALL, false, false);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
+        subreq = groups_get_send(req, state->ev, state->id_ctx,
+                                 state->id_ctx->opts->sdom, state->conn,
+                                 gid, BE_FILTER_IDNUM, BE_ATTR_ALL, false,
+                                 false);
+        if (!subreq) {
+            ret = ENOMEM;
+            goto done;
+        }
+        tevent_req_set_callback(subreq, sdap_get_initgr_pgid, req);
     }
-    tevent_req_set_callback(subreq, sdap_get_initgr_pgid, req);
 
     talloc_free(tmp_ctx);
     return;
 
-fail:
+done:
     talloc_free(tmp_ctx);
-    tevent_req_error(req, ret);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
     return;
 }
 
