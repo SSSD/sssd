@@ -1938,6 +1938,15 @@ pam_account_expired_message = Account expired, please call help desk.
                             </citerefentry> for more information on configuring IPA.
                         </para>
                         <para>
+                            <quote>ad</quote> to load maps stored in an AD
+                            server. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring
+                            the AD provider.
+                        </para>
+                        <para>
                             <quote>none</quote> disables autofs explicitly.
                         </para>
                         <para>

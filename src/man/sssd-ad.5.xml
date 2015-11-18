@@ -61,9 +61,9 @@
         </para>
         <para>
             However, it is neither necessary nor recommended to set these
-            options. The AD provider can also be used as an access, chpass and
-            sudo provider. No configuration of the access provider is required
-            on the client side.
+            options. The AD provider can also be used as an access, chpass,
+            sudo and autofs provider. No configuration of the access provider
+            is required on the client side.
         </para>
         <para>
             By default, the AD provider will map UID and GID values from the
@@ -935,6 +935,14 @@ ldap_account_expire_policy = ad
             access provider other than <quote>ad</quote>, you need to set
             all the connection parameters (such as LDAP URIs and encryption
             details) manually.
+        </para>
+        <para>
+            When the autofs provider is set to <quote>ad</quote>, the RFC2307
+            schema attribute mapping (nisMap, nisObject, ...) is used,
+            because these attributes are included the default Active
+            Directory schema.
+        </para>
+        <para>
         </para>
     </refsect1>
 
