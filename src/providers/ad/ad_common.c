@@ -1020,6 +1020,37 @@ ad_get_id_options(struct ad_options *ad_opts,
 }
 
 errno_t
+ad_get_autofs_options(struct ad_options *ad_opts,
+                      struct confdb_ctx *cdb,
+                      const char *conf_path)
+{
+    errno_t ret;
+
+    /* autofs maps */
+    ret = sdap_get_map(ad_opts->id,
+                       cdb,
+                       conf_path,
+                       ad_autofs_mobject_map,
+                       SDAP_OPTS_AUTOFS_MAP,
+                       &ad_opts->id->autofs_mobject_map);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sdap_get_map(ad_opts->id,
+                       cdb,
+                       conf_path,
+                       ad_autofs_entry_map,
+                       SDAP_OPTS_AUTOFS_ENTRY,
+                       &ad_opts->id->autofs_entry_map);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+
+errno_t
 ad_set_search_bases(struct sdap_options *id_opts)
 {
     errno_t ret;

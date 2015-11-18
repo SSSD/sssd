@@ -132,6 +132,10 @@ ad_get_id_options(struct ad_options *ad_opts,
                    const char *conf_path,
                    struct sdap_options **_opts);
 errno_t
+ad_get_autofs_options(struct ad_options *ad_opts,
+                      struct confdb_ctx *cdb,
+                      const char *conf_path);
+errno_t
 ad_get_auth_options(TALLOC_CTX *mem_ctx,
                     struct ad_options *ad_opts,
                     struct be_ctx *bectx,
@@ -169,5 +173,10 @@ int ad_sudo_init(struct be_ctx *be_ctx,
                  struct ad_id_ctx *id_ctx,
                  struct bet_ops **ops,
                  void **pvt_data);
+
+int ad_autofs_init(struct be_ctx *be_ctx,
+                  struct ad_id_ctx *id_ctx,
+                  struct bet_ops **ops,
+                  void **pvt_data);
 
 #endif /* AD_COMMON_H_ */
