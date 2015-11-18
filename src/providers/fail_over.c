@@ -131,6 +131,7 @@ struct resolve_service_request {
 
     struct server_common *server_common;
     struct tevent_req *req;
+    struct tevent_context *ev;
 };
 
 struct status {
@@ -940,7 +941,9 @@ resolve_service_request_destructor(struct resolve_service_request *request)
 }
 
 static int
-set_lookup_hook(struct fo_server *server, struct tevent_req *req)
+set_lookup_hook(struct tevent_context *ev,
+                struct fo_server *server,
+                struct tevent_req *req)
 {
     struct resolve_service_request *request;
 
@@ -956,6 +959,7 @@ set_lookup_hook(struct fo_server *server, struct tevent_req *req)
         talloc_free(request);
         return ENOMEM;
     }
+    request->ev = ev;
     request->req = req;
     DLIST_ADD(server->common->request_list, request);
     talloc_set_destructor(request, resolve_service_request_destructor);
@@ -1142,7 +1146,7 @@ fo_resolve_service_server(struct tevent_req *req)
     case SERVER_RESOLVING_NAME:
         /* Name resolution is already under way. Just add ourselves into the
          * waiting queue so we get notified after the operation is finished. */
-        ret = set_lookup_hook(state->server, req);
+        ret = set_lookup_hook(state->ev, state->server, req);
         if (ret != EOK) {
             tevent_req_error(req, ret);
             return true;
@@ -1194,6 +1198,13 @@ fo_resolve_service_done(struct tevent_req *subreq)
     /* Take care of all requests for this server. */
     while ((request = common->request_list) != NULL) {
         DLIST_REMOVE(common->request_list, request);
+
+        /* If the request callback decresed refcount on the returned
+         * server, we would have crashed as common would not be valid
+         * anymore. Rather schedule the notify for next tev iteration
+         */
+        tevent_req_defer_callback(request->req, request->ev);
+
         if (ret) {
             tevent_req_error(request->req, ret);
         } else {

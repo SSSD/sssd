@@ -575,10 +575,10 @@ static void test_fo_srv_before(struct tevent_req *req)
     fo_set_server_status(test_ctx->srv, SERVER_WORKING);
 
     /* Simulate changing the DNS environment. Change the host names */
-    s1 = mock_ares_reply(test_ctx, "ldap2.sssd.com", 100, 2, 389);
+    s1 = mock_ares_reply(test_ctx, "ldap1.sssd.com", 100, 2, 389);
     assert_non_null(s1);
 
-    s2 = mock_ares_reply(test_ctx, "ldap3.sssd.com", 100, 1, 389);
+    s2 = mock_ares_reply(test_ctx, "ldap2.sssd.com", 100, 1, 389);
     assert_non_null(s2);
 
     s1->next = s2;
@@ -596,12 +596,17 @@ static void test_fo_srv_before(struct tevent_req *req)
     tevent_req_set_callback(req, test_fo_srv_after, test_ctx);
 }
 
+static void test_fo_srv_after2(struct tevent_req *req);
+
 static void test_fo_srv_after(struct tevent_req *req)
 {
     struct test_fo_ctx *test_ctx = \
         tevent_req_callback_data(req, struct test_fo_ctx);
     struct fo_server *srv;
     errno_t ret;
+    struct ares_srv_reply *s1;
+    struct ares_srv_reply *s2;
+    char *dns_domain;
 
     ret = fo_resolve_service_recv(req, req, &srv);
     talloc_zfree(req);
@@ -612,8 +617,46 @@ static void test_fo_srv_after(struct tevent_req *req)
      */
     fo_set_server_status(test_ctx->srv, SERVER_WORKING);
 
+    sleep(test_ctx->ttl + 1);
+
     /* Must be a different server now */
-    check_server(test_ctx, srv, 389, "ldap3.sssd.com");
+    check_server(test_ctx, srv, 389, "ldap2.sssd.com");
+
+    /* Simulate changing the DNS environment. Change the host names */
+    s1 = mock_ares_reply(test_ctx, "ldap1.sssd.com", 100, 1, 389);
+    assert_non_null(s1);
+
+    s2 = mock_ares_reply(test_ctx, "ldap2.sssd.com", 100, 2, 389);
+    assert_non_null(s2);
+
+    s1->next = s2;
+
+    dns_domain = talloc_strdup(test_ctx, "sssd.com");
+    assert_non_null(dns_domain);
+
+    mock_srv_results(s1, test_ctx->ttl, dns_domain);
+    sleep(test_ctx->ttl + 1);
+
+    req = fo_resolve_service_send(test_ctx, test_ctx->ctx->ev,
+                                  test_ctx->resolv, test_ctx->fo_ctx,
+                                  test_ctx->fo_svc);
+    assert_non_null(req);
+    tevent_req_set_callback(req, test_fo_srv_after2, test_ctx);
+}
+
+static void test_fo_srv_after2(struct tevent_req *req)
+{
+    struct test_fo_ctx *test_ctx = \
+        tevent_req_callback_data(req, struct test_fo_ctx);
+    struct fo_server *srv;
+    errno_t ret;
+
+    ret = fo_resolve_service_recv(req, req, &srv);
+    talloc_zfree(req);
+    assert_int_equal(ret, ERR_OK);
+
+    /* Must be a different server now */
+    check_server(test_ctx, srv, 389, "ldap1.sssd.com");
 
     test_ctx->ctx->error = ERR_OK;
     test_ctx->ctx->done = true;
