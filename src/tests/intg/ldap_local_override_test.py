@@ -31,6 +31,26 @@ import ldap_ent
 import sssd_id
 from util import unindent
 
+try:
+    from subprocess import check_output
+except ImportError:
+    # In python 2.6 , the module subprocess does not have the function
+    # check_output. This is a falback implementation
+    def check_output(*popenargs, **kwargs):
+        if 'stdout' in kwargs:
+            raise ValueError('stdout argument not allowed, it will be '
+                             'overridden.')
+        process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs,
+                                   **kwargs)
+        output, _ = process.communicate()
+        retcode = process.poll()
+        if retcode:
+            cmd = kwargs.get("args")
+            if cmd is None:
+                cmd = popenargs[0]
+            raise subprocess.CalledProcessError(retcode, cmd, output=output)
+        return output
+
 
 @pytest.fixture(scope="module")
 def ds_inst(request):
@@ -505,11 +525,11 @@ def env_show_user_override(request, ldap_conn,
 
 def test_show_user_override(ldap_conn, env_show_user_override):
 
-    out = subprocess.check_output(['sss_override', 'user-show', 'user1'])
+    out = check_output(['sss_override', 'user-show', 'user1'])
     assert out == "user1@LDAP:ov_user1:10010:20010:Overriden User 1:"\
                   "/home/ov/user1:/bin/ov_user1_shell\n"
 
-    out = subprocess.check_output(['sss_override', 'user-show', 'user2@LDAP'])
+    out = check_output(['sss_override', 'user-show', 'user2@LDAP'])
     assert out == "user2@LDAP:ov_user2:10020:20020:Overriden User 2:"\
                   "/home/ov/user2:/bin/ov_user2_shell\n"
 
@@ -531,7 +551,7 @@ def env_find_user_override(request, ldap_conn,
 
 def test_find_user_override(ldap_conn, env_find_user_override):
 
-    out = subprocess.check_output(['sss_override', 'user-find'])
+    out = check_output(['sss_override', 'user-find'])
 
     # Expected override of users
     exp_usr_ovrd = ['user1@LDAP:ov_user1:10010:20010:Overriden User 1:'
@@ -541,8 +561,7 @@ def test_find_user_override(ldap_conn, env_find_user_override):
 
     assert set(out.splitlines()) == set(exp_usr_ovrd)
 
-    out = subprocess.check_output(['sss_override', 'user-find',
-                                   '--domain=LDAP'])
+    out = check_output(['sss_override', 'user-find', '--domain=LDAP'])
 
     assert set(out.splitlines()) == set(exp_usr_ovrd)
 
