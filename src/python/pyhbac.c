@@ -191,8 +191,8 @@ pyobject_to_category(PyObject *o)
     return -1;
 }
 
-static uint32_t
-native_category(PyObject *pycat)
+static int
+native_category(PyObject *pycat, uint32_t *_category)
 {
     PyObject *iterator;
     PyObject *item;
@@ -218,7 +218,9 @@ native_category(PyObject *pycat)
     }
 
     Py_DECREF(iterator);
-    return cat;
+
+    *_category = cat;
+    return 0;
 }
 
 static char *
@@ -491,6 +493,7 @@ HbacRuleElement_repr(HbacRuleElement *self)
     char *strnames = NULL;
     char *strgroups = NULL;
     uint32_t category;
+    int ret;
     PyObject *o, *format, *args;
 
     format = PyUnicode_FromString("<category %lu names [%s] groups [%s]>");
@@ -502,8 +505,8 @@ HbacRuleElement_repr(HbacRuleElement *self)
                                    discard_const_p(char, ","));
     strgroups = str_concat_sequence(self->groups,
                                     discard_const_p(char, ","));
-    category = native_category(self->category);
-    if (strnames == NULL || strgroups == NULL || category == -1) {
+    ret = native_category(self->category, &category);
+    if (strnames == NULL || strgroups == NULL || ret == -1) {
         PyMem_Free(strnames);
         PyMem_Free(strgroups);
         Py_DECREF(format);
@@ -592,6 +595,7 @@ struct hbac_rule_element *
 HbacRuleElement_to_native(HbacRuleElement *pyel)
 {
     struct hbac_rule_element *el = NULL;
+    int ret;
 
     /* check the type, None would wreak havoc here because for some reason
      * it would pass the sequence check */
@@ -608,10 +612,10 @@ HbacRuleElement_to_native(HbacRuleElement *pyel)
         goto fail;
     }
 
-    el->category = native_category(pyel->category);
+    ret = native_category(pyel->category, &el->category);
     el->names = sequence_as_string_list(pyel->names, "names");
     el->groups = sequence_as_string_list(pyel->groups, "groups");
-    if (!el->names || !el->groups || el->category == -1) {
+    if (!el->names || !el->groups || ret == -1) {
         goto fail;
     }
 
