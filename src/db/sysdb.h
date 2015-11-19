@@ -315,7 +315,7 @@ int sysdb_attrs_add_string_safe(struct sysdb_attrs *attrs,
                                 const char *name, const char *str);
 int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
                            const char *name, const char *str);
-int sysdb_attrs_add_lower_case_string(struct sysdb_attrs *attrs,
+int sysdb_attrs_add_lower_case_string(struct sysdb_attrs *attrs, bool safe,
                                       const char *name, const char *str);
 int sysdb_attrs_add_mem(struct sysdb_attrs *attrs, const char *name,
                         const void *mem, size_t size);
@@ -329,6 +329,8 @@ int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
                            const char *name, time_t value);
 int sysdb_attrs_add_lc_name_alias(struct sysdb_attrs *attrs,
                                   const char *value);
+int sysdb_attrs_add_lc_name_alias_safe(struct sysdb_attrs *attrs,
+                                       const char *value);
 int sysdb_attrs_copy_values(struct sysdb_attrs *src,
                             struct sysdb_attrs *dst,
                             const char *name);
