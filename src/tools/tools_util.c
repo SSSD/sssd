@@ -94,7 +94,7 @@ int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
     char *orig, *n, *o;
     char delim = ',';
     unsigned int tokens = 1;
-    int i;
+    unsigned int i;
 
     orig = talloc_strdup(mem_ctx, optstr);
     if (!orig) return ENOMEM;
