@@ -1,26 +1,18 @@
-# SOME DESCRIPTIVE TITLE
-# Copyright (C) YEAR Red Hat
-# This file is distributed under the same license as the sssd-docs package.
-#
-# Translators:
-# Kristaps, 2012
-# Kristaps, 2012
+# Marco Aurélio Krause <ouesten@me.com>, 2015. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 1.12.90\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2015-11-19 16:04+0100\n"
-"PO-Revision-Date: 2014-06-04 02:04-0400\n"
-"Last-Translator: jhrozek <jhrozek@redhat.com>\n"
-"Language-Team: Latvian (http://www.transifex.com/projects/p/sssd/language/"
-"lv/)\n"
-"Language: lv\n"
+"PO-Revision-Date: 2015-10-27 08:16-0400\n"
+"Last-Translator: Marco Aurélio Krause <ouesten@me.com>\n"
+"Language-Team: Portuguese (Brazil)\n"
+"Language: pt-BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : "
-"2);\n"
 "X-Generator: Zanata 3.7.3\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -52,7 +44,7 @@ msgstr "8"
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupmod.8.xml:16
 msgid "modify a group"
-msgstr ""
+msgstr "Modificar um grupo"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupmod.8.xml:21
@@ -72,7 +64,7 @@ msgstr ""
 #: sss_debuglevel.8.xml:30 sss_seed.8.xml:31 sssd-ifp.5.xml:21
 #: sss_ssh_authorizedkeys.1.xml:30 sss_ssh_knownhostsproxy.1.xml:31
 msgid "DESCRIPTION"
-msgstr "APRAKSTS"
+msgstr "DESCRIÇÃO"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_groupmod.8.xml:32
@@ -88,7 +80,7 @@ msgstr ""
 #: sss_cache.8.xml:38 sss_debuglevel.8.xml:38 sss_seed.8.xml:42
 #: sss_ssh_authorizedkeys.1.xml:76 sss_ssh_knownhostsproxy.1.xml:62
 msgid "OPTIONS"
-msgstr "IESPĒJAS"
+msgstr "OPÇÕES"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_groupmod.8.xml:43 sss_usermod.8.xml:77
@@ -122,14 +114,14 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.conf.5.xml:10 sssd.conf.5.xml:16
 msgid "sssd.conf"
-msgstr "sssd.conf"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
 #: sssd.conf.5.xml:11 sssd-ldap.5.xml:11 sssd-simple.5.xml:11
 #: sssd-ipa.5.xml:11 sssd-ad.5.xml:11 sssd-sudo.5.xml:11 sssd-krb5.5.xml:11
 #: sssd-ifp.5.xml:11 sss_rpcidmapd.5.xml:27
 msgid "5"
-msgstr "5"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refmeta><refmiscinfo>
 #: sssd.conf.5.xml:12 sssd-ldap.5.xml:12 sssd-simple.5.xml:12
@@ -270,7 +262,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:107
 msgid "timeout (integer)"
-msgstr "noildze (vesels skaitlis)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:110
@@ -282,7 +274,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:115 sssd.conf.5.xml:999 sssd-ldap.5.xml:1392
 msgid "Default: 10"
-msgstr "Noklusējuma: 10"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:125
@@ -314,7 +306,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:148
 msgid "services"
-msgstr "pakalpojumi"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:151
@@ -351,7 +343,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:178
 msgid "domains"
-msgstr "domēni"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:181
@@ -656,7 +648,7 @@ msgstr ""
 #: sssd.conf.5.xml:736 sssd.conf.5.xml:922 sssd.conf.5.xml:1289
 #: sssd-ldap.5.xml:1219
 msgid "Default: 60"
-msgstr "Noklusējuma: 60"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:435 sssd.conf.5.xml:1278
@@ -844,7 +836,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:578 sssd.conf.5.xml:1059
 msgid "Default: 15"
-msgstr "Noklusējuma: 15"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:583
@@ -1063,7 +1055,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:748 sssd-ldap.5.xml:706
 msgid "Default: 300"
-msgstr "Noklusējuma: 300"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:753 sssd-ifp.5.xml:74
@@ -1120,7 +1112,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:796 sssd.conf.5.xml:809
 msgid "Default: 0 (No limit)"
-msgstr "Noklusējuma: 0 (bez ierobežojuma)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:802
@@ -1199,7 +1191,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:860 sssd.8.xml:63
 msgid "Default: 1"
-msgstr "Noklusējuma: 1"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:865
@@ -1338,10 +1330,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:992
-#, fuzzy
-#| msgid "timeout (integer)"
 msgid "p11_child_timeout (integer)"
-msgstr "noildze (vesels skaitlis)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:995
@@ -1452,10 +1442,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1106
-#, fuzzy
-#| msgid "Default: /etc/krb5.keytab"
 msgid "Default: /etc/pki/nssdb"
-msgstr "Noklusējuma: /etc/krb5.keytab"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:1114
@@ -1862,7 +1850,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1484
 msgid "Default: 0 (unlimited)"
-msgstr "Noklusējuma: 0 (neierobežots)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1489
@@ -2078,7 +2066,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1719
 msgid "Default: <quote>permit</quote>"
-msgstr "Noklusējuma: <quote>atļaut</quote>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1724
@@ -2371,7 +2359,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2038
 msgid "Default: <quote>%1$s@%2$s</quote>."
-msgstr "Noklusējuma: <quote>%1$s@%2$s</quote>."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2044
@@ -2388,7 +2376,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2051
 msgid "Supported values:"
-msgstr "Atbalstītās vērtības:"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2054
@@ -2432,7 +2420,7 @@ msgstr ""
 #: sssd.conf.5.xml:2081 sssd-ldap.5.xml:1203 sssd-ldap.5.xml:1245
 #: sssd-ldap.5.xml:1263 sssd-krb5.5.xml:248
 msgid "Default: 6"
-msgstr "Noklusējuma: 6"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2087
@@ -2575,10 +2563,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2205
-#, fuzzy
-#| msgid "timeout (integer)"
 msgid "cached_auth_timeout (int)"
-msgstr "noildze (vesels skaitlis)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2208
@@ -2672,7 +2658,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2281
 msgid "Default: <filename>/bin/bash</filename>"
-msgstr "Noklusējuma: <filename>/bin/bash</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2286
@@ -2736,7 +2722,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2334
 msgid "Default: 077"
-msgstr "Noklusējuma: 077"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2339
@@ -2755,7 +2741,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2352
 msgid "Default: <filename>/etc/skel</filename>"
-msgstr "Noklusējuma: <filename>/etc/skel</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2357
@@ -2773,7 +2759,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2367
 msgid "Default: <filename>/var/mail</filename>"
-msgstr "Noklusējuma: <filename>/var/mail</filename>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2372
@@ -2798,7 +2784,7 @@ msgstr ""
 #: sssd-ipa.5.xml:717 sssd-ad.5.xml:889 sssd-krb5.5.xml:564
 #: sss_rpcidmapd.5.xml:98
 msgid "EXAMPLE"
-msgstr "PIEMĒRS"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:2397
@@ -2842,7 +2828,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ldap.5.xml:10 sssd-ldap.5.xml:16
 msgid "sssd-ldap"
-msgstr "sssd-ldap"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-ldap.5.xml:17
@@ -2880,7 +2866,7 @@ msgstr ""
 #: sssd-ldap.5.xml:49 sssd-simple.5.xml:69 sssd-ipa.5.xml:70 sssd-ad.5.xml:88
 #: sssd-krb5.5.xml:63 sssd-ifp.5.xml:44
 msgid "CONFIGURATION OPTIONS"
-msgstr "KONFIGURĒŠANAS IESPĒJAS"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:60
@@ -3068,7 +3054,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:203
 msgid "Default: rfc2307"
-msgstr "Noklusējuma: rfc2307"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:209
@@ -3093,12 +3079,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:226
 msgid "The two mechanisms currently supported are:"
-msgstr "Divi pašlaik atbalstītie mehānismi ir:"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:229
 msgid "password"
-msgstr "parole"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:232
@@ -3135,7 +3121,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:257
 msgid "Default: posixAccount"
-msgstr "Noklusējuma: posixAccount"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:263
@@ -3150,7 +3136,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:270
 msgid "Default: uid"
-msgstr "Noklusējuma: uid"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:276
@@ -3314,7 +3300,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:414
 msgid "Default: shadowMin"
-msgstr "Noklusējuma: shadowMin"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:420
@@ -3333,7 +3319,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:432
 msgid "Default: shadowMax"
-msgstr "Noklusējuma: shadowMax"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:438
@@ -3783,7 +3769,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:837
 msgid "Default: posixGroup"
-msgstr "Noklusējuma: posixGroup"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:843
@@ -4600,7 +4586,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1660 sssd-ad.5.xml:783
 msgid "Default: 86400 (24 hours)"
-msgstr "Noklusējuma: 86400 (24 stundas)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1666 sssd-krb5.5.xml:74
@@ -4766,7 +4752,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1819
 msgid "Default: ldap"
-msgstr "Noklusējuma: ldap"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1825
@@ -4821,7 +4807,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1877
 msgid "Example:"
-msgstr "Piemērs:"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><programlisting>
 #: sssd-ldap.5.xml:1880
@@ -4876,7 +4862,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1917
 msgid "The following values are allowed:"
-msgstr "Atļautas šādas vērtības:"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1920
@@ -5017,7 +5003,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2044
 msgid "Default: filter"
-msgstr "Noklusējuma: filtrēt"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2047
@@ -5128,10 +5114,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2139 sssd-ifp.5.xml:136
-#, fuzzy
-#| msgid "timeout (integer)"
 msgid "wildcart_limit (integer)"
-msgstr "noildze (vesels skaitlis)"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2142
@@ -5556,10 +5540,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:2519
-#, fuzzy
-#| msgid "Default: posixAccount"
 msgid "Default: automount"
-msgstr "Noklusējuma: posixAccount"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2526
@@ -5600,7 +5582,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:2558
 msgid "ADVANCED OPTIONS"
-msgstr "PAPLAŠINĀTĀS IESPĒJAS"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:2565
@@ -5715,7 +5697,7 @@ msgstr ""
 #: sssd-ldap.5.xml:2652 sssd_krb5_locator_plugin.8.xml:61
 #: sssd-simple.5.xml:148 sssd-ad.5.xml:912 sssd.8.xml:195 sss_seed.8.xml:163
 msgid "NOTES"
-msgstr "PIEZĪMES"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ldap.5.xml:2654
@@ -5777,7 +5759,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:72
 msgid "<option>forward_pass</option>"
-msgstr "<option>forward_pass</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:75
@@ -5789,7 +5771,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:82
 msgid "<option>use_first_pass</option>"
-msgstr "<option>use_first_pass</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:85
@@ -5802,7 +5784,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:93
 msgid "<option>use_authtok</option>"
-msgstr "<option>use_authtok</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:96
@@ -5814,7 +5796,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:103
 msgid "<option>retry=N</option>"
-msgstr "<option>retry=N</option>"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:106
@@ -5978,7 +5960,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-simple.5.xml:10 sssd-simple.5.xml:16
 msgid "sssd-simple"
-msgstr "sssd-simple"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-simple.5.xml:17
@@ -6129,7 +6111,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ipa.5.xml:10 sssd-ipa.5.xml:16
 msgid "sssd-ipa"
-msgstr "sssd-ipa"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-ipa.5.xml:17
@@ -7945,7 +7927,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.8.xml:10 sssd.8.xml:15
 msgid "sssd"
-msgstr "sssd"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd.8.xml:16
@@ -8221,10 +8203,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_override.8.xml:10 sss_override.8.xml:15
-#, fuzzy
-#| msgid "sss_userdel"
 msgid "sss_override"
-msgstr "sss_userdel"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_override.8.xml:16
@@ -8476,9 +8456,9 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_override.8.xml:259
 #, fuzzy
-#| msgid "CONFIGURATION OPTIONS"
+#| msgid "OPTIONS"
 msgid "COMMON OPTIONS"
-msgstr "KONFIGURĒŠANAS IESPĒJAS"
+msgstr "OPÇÕES"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_override.8.xml:261
@@ -8498,7 +8478,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_useradd.8.xml:16
 msgid "create a new user"
-msgstr "create a new user"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_useradd.8.xml:21
@@ -8656,7 +8636,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-krb5.5.xml:10 sssd-krb5.5.xml:16
 msgid "sssd-krb5"
-msgstr "sssd-krb5"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-krb5.5.xml:17
@@ -8768,7 +8748,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:145
 msgid "Default: /tmp"
-msgstr "Noklusējuma: / tmp"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:151
@@ -8778,7 +8758,7 @@ msgstr ""
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:165 include/override_homedir.xml:11
 msgid "%u"
-msgstr "%u"
+msgstr ""
 
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:166 include/override_homedir.xml:12
@@ -8788,7 +8768,7 @@ msgstr ""
 #. type: Content of: <varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:169 include/override_homedir.xml:15
 msgid "%U"
-msgstr "%U"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:170
@@ -8939,7 +8919,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:279
 msgid "Default: /etc/krb5.keytab"
-msgstr "Noklusējuma: /etc/krb5.keytab"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-krb5.5.xml:285
@@ -9174,7 +9154,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupadd.8.xml:16
 msgid "create a new group"
-msgstr "izveidot jaunu grupu"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupadd.8.xml:21
@@ -9208,12 +9188,12 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_userdel.8.xml:10 sss_userdel.8.xml:15
 msgid "sss_userdel"
-msgstr "sss_userdel"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_userdel.8.xml:16
 msgid "delete a user account"
-msgstr "dzēst lietotāja kontu"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_userdel.8.xml:21
@@ -9284,7 +9264,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupdel.8.xml:16
 msgid "delete a group"
-msgstr "dzēst grupu"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_groupdel.8.xml:21
@@ -9304,7 +9284,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_groupshow.8.xml:10 sss_groupshow.8.xml:15
 msgid "sss_groupshow"
-msgstr "sss_groupshow"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_groupshow.8.xml:16
@@ -9343,7 +9323,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_usermod.8.xml:10 sss_usermod.8.xml:15
 msgid "sss_usermod"
-msgstr "sss_usermod"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sss_usermod.8.xml:16
@@ -10064,7 +10044,7 @@ msgstr ""
 #. type: Content of: <refsect1><title>
 #: sss_rpcidmapd.5.xml:120 include/seealso.xml:2
 msgid "SEE ALSO"
-msgstr "SKATĪT ARĪ"
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_rpcidmapd.5.xml:122

@@ -14,8 +14,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 1.12.90\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2015-09-30 11:58+0200\n"
-"PO-Revision-Date: 2015-09-21 08:33-0400\n"
+"POT-Creation-Date: 2015-11-19 16:04+0100\n"
+"PO-Revision-Date: 2015-11-18 04:30-0500\n"
 "Last-Translator: Jérôme Fenal <jfenal@gmail.com>\n"
 "Language-Team: French (http://www.transifex.com/projects/p/sssd/language/"
 "fr/)\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Zanata 3.7.2\n"
+"X-Generator: Zanata 3.7.3\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -266,6 +266,8 @@ msgid ""
 "Add a timestamp to the debug messages.  If journald is enabled for SSSD "
 "debug logging this option is ignored."
 msgstr ""
+"Ajoute un horodatage aux messages de débogage. Si journald est activé pour "
+"la journalisation de débogage de SSSD, cette option sera ignorée."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:81 sssd.conf.5.xml:605 sssd.conf.5.xml:1081
@@ -287,6 +289,9 @@ msgid ""
 "Add microseconds to the timestamp in debug messages.  If journald is enabled "
 "for SSSD debug logging this option is ignored."
 msgstr ""
+"Ajouter les microsecondes à l'horodatage dans les messages de débogage. Si "
+"journald est activé pour la journalisation de débogage de SSSD, cette option "
+"sera ignorée."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:94 sssd.conf.5.xml:1035 sssd.conf.5.xml:2164
@@ -415,6 +420,12 @@ msgid ""
 "them to be queried.  A domain name should only consist of alphanumeric ASCII "
 "characters, dashes, dots and underscores."
 msgstr ""
+"Un domaine est une base de données contenant les informations utilisateurs. "
+"SSSD peut utiliser plusieurs domaines en même temps, au moins un doit être "
+"configuré ou SSSD ne démarrera pas. Ce paramètre décrit la liste des "
+"domaines dans l'ordre où ils doivent être requêtés. Un nom de domaine ne "
+"doit comprendre que des caractères ASCII alphanumériques, des tirets, des "
+"points et caractères soulignés."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:193 sssd.conf.5.xml:1947
@@ -604,6 +615,8 @@ msgid ""
 "The user to drop the privileges to where appropriate to avoid running as the "
 "root user."
 msgstr ""
+"L'utilisation vers lequel abandonner les privilèges pour éviter de "
+"fonctionner en tant que l'utilisateur root."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:312
@@ -640,6 +653,12 @@ msgid ""
 "is not allowed to use this option together with use_fully_qualified_names "
 "set to False."
 msgstr ""
+"Noter que, si cette option est définie, tous les utilisateurs du domaine "
+"principal doivent utiliser leur nom pleinement qualifié, par exemple "
+"user@domain.name, pour se connecter. L'utilisation de cette option modifie "
+"la valeur par défaut de use_fully_qualified_names à True. Il n'est pas "
+"possible ni autorisé d'utiliser cette option avec l'option "
+"use_fully_qualified_names à False."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:339 sssd-ldap.5.xml:663 sssd-ldap.5.xml:1480
@@ -808,7 +827,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:461
 msgid "offline_timeout + random_offset"
-msgstr ""
+msgstr "offline_timeout + random_offset"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:464
@@ -1528,12 +1547,15 @@ msgstr ""
 #: sssd.conf.5.xml:954
 msgid "Two special values for pam_public_domains option are defined:"
 msgstr ""
+"Deux valeurs spéciales pour l'option pam_public_domains sont définies :"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:958
 msgid ""
 "all (Untrusted users are allowed to access all domains in PAM responder.)"
 msgstr ""
+"all (tous les utilisateurs non dignes de confiance sont autorisés à accéder "
+"à tous les domaines PAM dans le répondeur.)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:962
@@ -1541,6 +1563,8 @@ msgid ""
 "none (Untrusted users are not allowed to access any domains PAM in "
 "responder.)"
 msgstr ""
+"none (les utilisateurs non dignes de confiance, Untrusted, ne sont pas "
+"autorisés à accéder à un des domaines PAM dans le répondeur.)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:971
@@ -1562,6 +1586,8 @@ msgid ""
 "pam_account_expired_message = Account expired, please call help desk.\n"
 "                            "
 msgstr ""
+"pam_account_expired_message = Account a expiré, merci de contacter votre assistance.\n"
+"                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:992
@@ -2103,6 +2129,8 @@ msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
+"La durée en secondes pendant laquelle conserver une clé ssh d'hôte après "
+"rafraichissement. I.e. combien de temps mettre la clé en cache."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1414
@@ -2961,7 +2989,7 @@ msgstr "case_sensitive (chaîne)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2117
 msgid "True"
-msgstr ""
+msgstr "True"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2120
@@ -2971,17 +2999,17 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2126
 msgid "False"
-msgstr ""
+msgstr "False"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2128
 msgid "Case insensitive."
-msgstr ""
+msgstr "Insensible à la casse."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2132
 msgid "Preserving"
-msgstr ""
+msgstr "Preserving"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2135
@@ -2990,6 +3018,10 @@ msgid ""
 "of NSS operations. Note that name aliases (and in case of services also "
 "protocol names) are still lowercased in the output."
 msgstr ""
+"Comme False (insensible à la casse), mais ne convertit pas les noms en "
+"minuscules lors des opérations NSS. Notez que les alias de noms (et dans le "
+"cas des services les noms de protocoles) sont toujours en minuscule dans la "
+"sortie."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2112
@@ -3583,7 +3615,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:126 sssd-ldap.5.xml:646 sssd-ad.5.xml:212
-#: sss_override.8.xml:99 sss_override.8.xml:167
+#: sss_override.8.xml:135 sss_override.8.xml:232
 msgid "Examples:"
 msgstr "Exemples :"
 
@@ -6753,6 +6785,13 @@ msgid ""
 "ldap_tls_reqcert = demand\n"
 "cache_credentials = true\n"
 msgstr ""
+"[domain/LDAP]\n"
+"id_provider = ldap\n"
+"auth_provider = ldap\n"
+"ldap_uri = ldap://ldap.mydomain.org\n"
+"ldap_search_base = dc=mydomain,dc=org\n"
+"ldap_tls_reqcert = demand\n"
+"cache_credentials = true\n"
 
 #. type: Content of: <refsect1><refsect2><para>
 #: sssd-ldap.5.xml:2618 sssd-ldap.5.xml:2636 sssd-simple.5.xml:139
@@ -6788,6 +6827,16 @@ msgid ""
 "ldap_tls_reqcert = demand\n"
 "cache_credentials = true\n"
 msgstr ""
+"[domain/LDAP]\n"
+"id_provider = ldap\n"
+"auth_provider = ldap\n"
+"access_provider = ldap\n"
+"ldap_access_order = lockout\n"
+"ldap_pwdlockout_dn = cn=ppolicy,ou=policies,dc=mydomain,dc=org\n"
+"ldap_uri = ldap://ldap.mydomain.org\n"
+"ldap_search_base = dc=mydomain,dc=org\n"
+"ldap_tls_reqcert = demand\n"
+"cache_credentials = true\n"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap.5.xml:2652 sssd_krb5_locator_plugin.8.xml:61
@@ -9793,17 +9842,22 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_override.8.xml:37
 msgid ""
-"Overrides data are stored in SSSD cache. If the cache is deleted all local "
-"overrides are lost."
+"Overrides data are stored in the SSSD cache. If the cache is deleted, all "
+"local overrides are lost. Please note that after the first override is "
+"created using any of the following <emphasis>user-add</emphasis>, "
+"<emphasis>group-add</emphasis>, <emphasis>user-import</emphasis> or "
+"<emphasis>group-import</emphasis> command. SSSD needs to be restarted to "
+"take effect.  <emphasis>sss_override</emphasis> prints message when a "
+"restart is required."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_override.8.xml:43
+#: sss_override.8.xml:50
 msgid "AVAILABLE COMMANDS"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sss_override.8.xml:45
+#: sss_override.8.xml:52
 msgid ""
 "Argument <emphasis>NAME</emphasis> is the name of original object in all "
 "commands. It is not possible to override <emphasis>uid</emphasis> or "
@@ -9811,7 +9865,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:52
+#: sss_override.8.xml:59
 msgid ""
 "<option>user-add</option> <emphasis>NAME</emphasis> <optional><option>-n,--"
 "name</option> NAME</optional> <optional><option>-u,--uid</option> UID</"
@@ -9822,41 +9876,78 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:63
-msgid "Override attributes of an user."
+#: sss_override.8.xml:70
+msgid ""
+"Override attributes of an user. Please be aware that calling this command "
+"will replace any previous override for the (NAMEd) user."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:69
+#: sss_override.8.xml:78
 #, fuzzy
 #| msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 msgid "<option>user-del</option> <emphasis>NAME</emphasis>"
 msgstr "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:74
-msgid "Remove user overrides."
+#: sss_override.8.xml:83
+msgid ""
+"Remove user overrides. However be aware that overridden attributes might be "
+"returned from memory cache. Please see SSSD option "
+"<emphasis>memcache_timeout</emphasis> for more details."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:80
+#: sss_override.8.xml:92
+#, fuzzy
+#| msgid ""
+#| "<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
+#| "replaceable>"
+msgid ""
+"<option>user-find</option> <optional><option>-d,--domain</option> DOMAIN</"
+"optional>"
+msgstr ""
+"<option>-d</option>,<option>--domain</option> <replaceable>DOMAINE</"
+"replaceable>"
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_override.8.xml:97
+msgid ""
+"List all users with set overrides.  If <emphasis>DOMAIN</emphasis> parameter "
+"is set, only users from the domain are listed."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_override.8.xml:105
+#, fuzzy
+#| msgid "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
+msgid "<option>user-show</option> <emphasis>NAME</emphasis>"
+msgstr "<option>--setattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_override.8.xml:110
+msgid "Show user overrides."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_override.8.xml:116
 msgid "<option>user-import</option> <emphasis>FILE</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:85
+#: sss_override.8.xml:121
 msgid ""
 "Import user overrides from <emphasis>FILE</emphasis>.  Data format is "
 "similar to standard passwd file.  The format is:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:90
+#: sss_override.8.xml:126
 msgid "original_name:name:uid:gid:gecos:home:shell"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:93
+#: sss_override.8.xml:129
 msgid ""
 "where original_name is original name of the user whose attributes should be "
 "overridden. The rest of fields correspond to new values. You can omit a "
@@ -9864,29 +9955,29 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:102
+#: sss_override.8.xml:138
 msgid "ckent:superman::::::"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:105
+#: sss_override.8.xml:141
 msgid "ckent@krypton.com::501:501:Superman:/home/earth:/bin/bash"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:111
+#: sss_override.8.xml:147
 msgid "<option>user-export</option> <emphasis>FILE</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:116
+#: sss_override.8.xml:152
 msgid ""
 "Export all overridden attributes and store them in <emphasis>FILE</"
 "emphasis>. See <emphasis>user-import</emphasis> for data format."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:124
+#: sss_override.8.xml:160
 msgid ""
 "<option>group-add</option> <emphasis>NAME</emphasis> <optional><option>-n,--"
 "name</option> NAME</optional> <optional><option>-g,--gid</option> GID</"
@@ -9894,43 +9985,76 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:131
-#, fuzzy
-#| msgid "print properties of a group"
-msgid "Override attributes of a group."
-msgstr "affiche les propriétés d'un groupe"
+#: sss_override.8.xml:167
+msgid ""
+"Override attributes of a group. Please be aware that calling this command "
+"will replace any previous override for the (NAMEd) group."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:137
+#: sss_override.8.xml:175
 #, fuzzy
 #| msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 msgid "<option>group-del</option> <emphasis>NAME</emphasis>"
 msgstr "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:142
-msgid "Remove group overrides."
+#: sss_override.8.xml:180
+msgid ""
+"Remove group overrides. However be aware that overridden attributes might be "
+"returned from memory cache. Please see SSSD option "
+"<emphasis>memcache_timeout</emphasis> for more details."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:148
+#: sss_override.8.xml:189
+#, fuzzy
+#| msgid ""
+#| "<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
+#| "replaceable>"
+msgid ""
+"<option>group-find</option> <optional><option>-d,--domain</option> DOMAIN</"
+"optional>"
+msgstr ""
+"<option>-d</option>,<option>--domain</option> <replaceable>DOMAINE</"
+"replaceable>"
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_override.8.xml:194
+msgid ""
+"List all groups with set overrides.  If <emphasis>DOMAIN</emphasis> "
+"parameter is set, only groups from the domain are listed."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_override.8.xml:202
+msgid "<option>group-show</option> <emphasis>NAME</emphasis>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_override.8.xml:207
+msgid "Show group overrides."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_override.8.xml:213
 msgid "<option>group-import</option> <emphasis>FILE</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:153
+#: sss_override.8.xml:218
 msgid ""
 "Import group overrides from <emphasis>FILE</emphasis>.  Data format is "
 "similar to standard group file.  The format is:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:158
+#: sss_override.8.xml:223
 msgid "original_name:name:gid"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:161
+#: sss_override.8.xml:226
 msgid ""
 "where original_name is original name of the group whose attributes should be "
 "overridden. The rest of fields correspond to new values. You can omit a "
@@ -9938,43 +10062,43 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:170
+#: sss_override.8.xml:235
 msgid "admins:administrators:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:173
+#: sss_override.8.xml:238
 msgid "Domain Users:Users:501"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:179
+#: sss_override.8.xml:244
 msgid "<option>group-export</option> <emphasis>FILE</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:184
+#: sss_override.8.xml:249
 msgid ""
 "Export all overridden attributes and store them in <emphasis>FILE</"
 "emphasis>. See <emphasis>group-import</emphasis> for data format."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_override.8.xml:194
+#: sss_override.8.xml:259
 #, fuzzy
 #| msgid "SUDO OPTIONS"
 msgid "COMMON OPTIONS"
 msgstr "OPTIONS DE SUDO"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sss_override.8.xml:196
+#: sss_override.8.xml:261
 #, fuzzy
 #| msgid "This option is not available in IPA provider."
 msgid "Those options are available with all commands."
 msgstr "Cette option n'est pas disponible dans le fournisseur IPA."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:201
+#: sss_override.8.xml:266
 #, fuzzy
 #| msgid "<option>--delattr</option> <replaceable>ATTR_NAME_VAL</replaceable>"
 msgid "<option>--debug</option> <replaceable>LEVEL</replaceable>"
@@ -11774,7 +11898,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_rpcidmapd.5.xml:85
 msgid "SSSD INTEGRATION"
-msgstr ""
+msgstr "INTÉGRATION SSSD"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_rpcidmapd.5.xml:87
@@ -11808,6 +11932,18 @@ msgid ""
 "[Translation]\n"
 "Method = sss\n"
 msgstr ""
+"[General]\n"
+"Verbosity = 2\n"
+"# domain must be synced between NFSv4 server and clients\n"
+"# Solaris/Illumos/AIX use \"localdomain\" as default!\n"
+"Domain = default\n"
+"\n"
+"[Mapping]\n"
+"Nobody-User = nfsnobody\n"
+"Nobody-Group = nfsnobody\n"
+"\n"
+"[Translation]\n"
+"Method = sss\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_rpcidmapd.5.xml:100
@@ -11828,6 +11964,9 @@ msgid ""
 "citerefentry>, <citerefentry> <refentrytitle>idmapd.conf</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry>"
 msgstr ""
+"<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>idmapd.conf</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss_ssh_authorizedkeys.1.xml:10 sss_ssh_authorizedkeys.1.xml:15
@@ -11895,6 +12034,8 @@ msgid ""
 "  AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys\n"
 "  AuthorizedKeysCommandUser nobody\n"
 msgstr ""
+"  AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys\n"
+"  AuthorizedKeysCommandUser nobody\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:51

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 1.12.90\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2015-09-30 11:58+0200\n"
+"POT-Creation-Date: 2015-11-19 16:04+0100\n"
 "PO-Revision-Date: 2014-06-04 02:04-0400\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/projects/p/sssd/language/"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Zanata 3.7.2\n"
+"X-Generator: Zanata 3.7.3\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -3302,7 +3302,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:126 sssd-ldap.5.xml:646 sssd-ad.5.xml:212
-#: sss_override.8.xml:99 sss_override.8.xml:167
+#: sss_override.8.xml:135 sss_override.8.xml:232
 msgid "Examples:"
 msgstr "例:"
 
@@ -9029,17 +9029,22 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_override.8.xml:37
 msgid ""
-"Overrides data are stored in SSSD cache. If the cache is deleted all local "
-"overrides are lost."
+"Overrides data are stored in the SSSD cache. If the cache is deleted, all "
+"local overrides are lost. Please note that after the first override is "
+"created using any of the following <emphasis>user-add</emphasis>, "
+"<emphasis>group-add</emphasis>, <emphasis>user-import</emphasis> or "
+"<emphasis>group-import</emphasis> command. SSSD needs to be restarted to "
+"take effect.  <emphasis>sss_override</emphasis> prints message when a "
+"restart is required."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_override.8.xml:43
+#: sss_override.8.xml:50
 msgid "AVAILABLE COMMANDS"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sss_override.8.xml:45
+#: sss_override.8.xml:52
 msgid ""
 "Argument <emphasis>NAME</emphasis> is the name of original object in all "
 "commands. It is not possible to override <emphasis>uid</emphasis> or "
@@ -9047,7 +9052,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:52
+#: sss_override.8.xml:59
 msgid ""
 "<option>user-add</option> <emphasis>NAME</emphasis> <optional><option>-n,--"
 "name</option> NAME</optional> <optional><option>-u,--uid</option> UID</"
@@ -9058,39 +9063,74 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:63
-msgid "Override attributes of an user."
+#: sss_override.8.xml:70
+msgid ""
+"Override attributes of an user. Please be aware that calling this command "
+"will replace any previous override for the (NAMEd) user."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:69
+#: sss_override.8.xml:78
 msgid "<option>user-del</option> <emphasis>NAME</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:74
-msgid "Remove user overrides."
+#: sss_override.8.xml:83
+msgid ""
+"Remove user overrides. However be aware that overridden attributes might be "
+"returned from memory cache. Please see SSSD option "
+"<emphasis>memcache_timeout</emphasis> for more details."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:80
+#: sss_override.8.xml:92
+#, fuzzy
+#| msgid ""
+#| "<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
+#| "replaceable>"
+msgid ""
+"<option>user-find</option> <optional><option>-d,--domain</option> DOMAIN</"
+"optional>"
+msgstr ""
+"<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
+"replaceable>"
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_override.8.xml:97
+msgid ""
+"List all users with set overrides.  If <emphasis>DOMAIN</emphasis> parameter "
+"is set, only users from the domain are listed."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_override.8.xml:105
+msgid "<option>user-show</option> <emphasis>NAME</emphasis>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_override.8.xml:110
+msgid "Show user overrides."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_override.8.xml:116
 msgid "<option>user-import</option> <emphasis>FILE</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:85
+#: sss_override.8.xml:121
 msgid ""
 "Import user overrides from <emphasis>FILE</emphasis>.  Data format is "
 "similar to standard passwd file.  The format is:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:90
+#: sss_override.8.xml:126
 msgid "original_name:name:uid:gid:gecos:home:shell"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:93
+#: sss_override.8.xml:129
 msgid ""
 "where original_name is original name of the user whose attributes should be "
 "overridden. The rest of fields correspond to new values. You can omit a "
@@ -9098,29 +9138,29 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:102
+#: sss_override.8.xml:138
 msgid "ckent:superman::::::"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:105
+#: sss_override.8.xml:141
 msgid "ckent@krypton.com::501:501:Superman:/home/earth:/bin/bash"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:111
+#: sss_override.8.xml:147
 msgid "<option>user-export</option> <emphasis>FILE</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:116
+#: sss_override.8.xml:152
 msgid ""
 "Export all overridden attributes and store them in <emphasis>FILE</"
 "emphasis>. See <emphasis>user-import</emphasis> for data format."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:124
+#: sss_override.8.xml:160
 msgid ""
 "<option>group-add</option> <emphasis>NAME</emphasis> <optional><option>-n,--"
 "name</option> NAME</optional> <optional><option>-g,--gid</option> GID</"
@@ -9128,41 +9168,74 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:131
-#, fuzzy
-#| msgid "print properties of a group"
-msgid "Override attributes of a group."
-msgstr "グループのプロパティーを表示します"
+#: sss_override.8.xml:167
+msgid ""
+"Override attributes of a group. Please be aware that calling this command "
+"will replace any previous override for the (NAMEd) group."
+msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:137
+#: sss_override.8.xml:175
 msgid "<option>group-del</option> <emphasis>NAME</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:142
-msgid "Remove group overrides."
+#: sss_override.8.xml:180
+msgid ""
+"Remove group overrides. However be aware that overridden attributes might be "
+"returned from memory cache. Please see SSSD option "
+"<emphasis>memcache_timeout</emphasis> for more details."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:148
+#: sss_override.8.xml:189
+#, fuzzy
+#| msgid ""
+#| "<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
+#| "replaceable>"
+msgid ""
+"<option>group-find</option> <optional><option>-d,--domain</option> DOMAIN</"
+"optional>"
+msgstr ""
+"<option>-d</option>,<option>--domain</option> <replaceable>DOMAIN</"
+"replaceable>"
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_override.8.xml:194
+msgid ""
+"List all groups with set overrides.  If <emphasis>DOMAIN</emphasis> "
+"parameter is set, only groups from the domain are listed."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_override.8.xml:202
+msgid "<option>group-show</option> <emphasis>NAME</emphasis>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
+#: sss_override.8.xml:207
+msgid "Show group overrides."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
+#: sss_override.8.xml:213
 msgid "<option>group-import</option> <emphasis>FILE</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:153
+#: sss_override.8.xml:218
 msgid ""
 "Import group overrides from <emphasis>FILE</emphasis>.  Data format is "
 "similar to standard group file.  The format is:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:158
+#: sss_override.8.xml:223
 msgid "original_name:name:gid"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:161
+#: sss_override.8.xml:226
 msgid ""
 "where original_name is original name of the group whose attributes should be "
 "overridden. The rest of fields correspond to new values. You can omit a "
@@ -9170,43 +9243,43 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:170
+#: sss_override.8.xml:235
 msgid "admins:administrators:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:173
+#: sss_override.8.xml:238
 msgid "Domain Users:Users:501"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:179
+#: sss_override.8.xml:244
 msgid "<option>group-export</option> <emphasis>FILE</emphasis>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sss_override.8.xml:184
+#: sss_override.8.xml:249
 msgid ""
 "Export all overridden attributes and store them in <emphasis>FILE</"
 "emphasis>. See <emphasis>group-import</emphasis> for data format."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sss_override.8.xml:194
+#: sss_override.8.xml:259
 #, fuzzy
 #| msgid "SUDO OPTIONS"
 msgid "COMMON OPTIONS"
 msgstr "SUDO オプション"
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sss_override.8.xml:196
+#: sss_override.8.xml:261
 #, fuzzy
 #| msgid "This option is not available in IPA provider."
 msgid "Those options are available with all commands."
 msgstr "このオプションは IPA プロバイダーにおいて利用可能ではありません。"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sss_override.8.xml:201
+#: sss_override.8.xml:266
 #, fuzzy
 #| msgid "<option>--debug-timestamps=</option><replaceable>mode</replaceable>"
 msgid "<option>--debug</option> <replaceable>LEVEL</replaceable>"

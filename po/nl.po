@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2015-09-30 11:59+0200\n"
+"POT-Creation-Date: 2015-11-19 16:05+0100\n"
 "PO-Revision-Date: 2014-06-04 02:04-0400\n"
 "Last-Translator: jhrozek <jhrozek@redhat.com>\n"
 "Language-Team: Dutch (http://www.transifex.com/projects/p/sssd/language/"
@@ -23,7 +23,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Zanata 3.7.2\n"
+"X-Generator: Zanata 3.7.3\n"
 
 #: src/config/SSSDConfig/__init__.py.in:43
 msgid "Set the verbosity of the debug logging"
@@ -1333,19 +1333,19 @@ msgstr "Moet indien mogelijk canonieke groepsnaam in cache opgezocht worden "
 msgid "PAM stack to use"
 msgstr "PAM-stack die gebruikt wordt"
 
-#: src/monitor/monitor.c:2872
+#: src/monitor/monitor.c:2873
 msgid "Become a daemon (default)"
 msgstr "Start in de achtergrond (standaard)"
 
-#: src/monitor/monitor.c:2874
+#: src/monitor/monitor.c:2875
 msgid "Run interactive (not a daemon)"
 msgstr "Start interactief (standaard)"
 
-#: src/monitor/monitor.c:2876 src/tools/sss_debuglevel.c:71
+#: src/monitor/monitor.c:2877 src/tools/sss_debuglevel.c:71
 msgid "Specify a non-default config file"
 msgstr "Geef een niet-standaard configuratiebestand op"
 
-#: src/monitor/monitor.c:2878
+#: src/monitor/monitor.c:2879
 msgid "Print version number and exit"
 msgstr "Print versie nummer en sluit af"
 
@@ -1381,7 +1381,7 @@ msgstr ""
 msgid "The group to create FAST ccache as"
 msgstr ""
 
-#: src/providers/data_provider_be.c:2923
+#: src/providers/data_provider_be.c:2911
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domein voor de informatie provider (verplicht)"
 
@@ -1497,7 +1497,7 @@ msgstr "Wachtwoord verlopen. Verander nu uw wachtwoord."
 #: src/tools/sss_groupadd.c:41 src/tools/sss_groupdel.c:44
 #: src/tools/sss_groupmod.c:42 src/tools/sss_groupshow.c:651
 #: src/tools/sss_userdel.c:134 src/tools/sss_usermod.c:47
-#: src/tools/sss_cache.c:587 src/tools/sss_debuglevel.c:69
+#: src/tools/sss_cache.c:588 src/tools/sss_debuglevel.c:69
 msgid "The debug level to run with"
 msgstr "Het debugniveau waarmee gestart wordt"
 
@@ -1510,7 +1510,7 @@ msgstr "Hrt te gebruiken SSSD domein"
 #: src/tools/sss_groupadd.c:59 src/tools/sss_groupdel.c:54
 #: src/tools/sss_groupmod.c:66 src/tools/sss_groupshow.c:663
 #: src/tools/sss_userdel.c:152 src/tools/sss_usermod.c:79
-#: src/tools/sss_cache.c:627
+#: src/tools/sss_cache.c:628
 msgid "Error setting the locale\n"
 msgstr "Fout bij het zetten van de locale\n"
 
@@ -1972,82 +1972,82 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Transactiefout. Kan de gebruiker niet aanpassen.\n"
 
-#: src/tools/sss_cache.c:188
+#: src/tools/sss_cache.c:189
 msgid "No cache object matched the specified search\n"
 msgstr ""
 "Geen enkel cache object komt overeen met de gespecificeerde zoekopdracht\n"
 
-#: src/tools/sss_cache.c:431
+#: src/tools/sss_cache.c:432
 #, c-format
 msgid "Couldn't invalidate %1$s\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:438
+#: src/tools/sss_cache.c:439
 #, c-format
 msgid "Couldn't invalidate %1$s %2$s\n"
 msgstr ""
 
-#: src/tools/sss_cache.c:589
+#: src/tools/sss_cache.c:590
 msgid "Invalidate all cached entries except for sudo rules"
 msgstr ""
 
-#: src/tools/sss_cache.c:591
+#: src/tools/sss_cache.c:592
 msgid "Invalidate particular user"
 msgstr "Maak bepaalde gebruiker ongeldig"
 
-#: src/tools/sss_cache.c:593
+#: src/tools/sss_cache.c:594
 msgid "Invalidate all users"
 msgstr "Maak alle gebruikers ongeldig"
 
-#: src/tools/sss_cache.c:595
+#: src/tools/sss_cache.c:596
 msgid "Invalidate particular group"
 msgstr "Maak bepaalde groep ongeldig"
 
-#: src/tools/sss_cache.c:597
+#: src/tools/sss_cache.c:598
 msgid "Invalidate all groups"
 msgstr "Maak alle groepen ongeldig"
 
-#: src/tools/sss_cache.c:599
+#: src/tools/sss_cache.c:600
 msgid "Invalidate particular netgroup"
 msgstr "Maak bepaalde netgroep ongeldig"
 
-#: src/tools/sss_cache.c:601
+#: src/tools/sss_cache.c:602
 msgid "Invalidate all netgroups"
 msgstr "Maak alle netgroepen ongeldig"
 
-#: src/tools/sss_cache.c:603
+#: src/tools/sss_cache.c:604
 msgid "Invalidate particular service"
 msgstr "Maak bepaalde service ongeldig "
 
-#: src/tools/sss_cache.c:605
+#: src/tools/sss_cache.c:606
 msgid "Invalidate all services"
 msgstr "Maak alle services ongeldig"
 
-#: src/tools/sss_cache.c:608
+#: src/tools/sss_cache.c:609
 msgid "Invalidate particular autofs map"
 msgstr "Maak bepaalde autofs map ongeldig"
 
-#: src/tools/sss_cache.c:610
+#: src/tools/sss_cache.c:611
 msgid "Invalidate all autofs maps"
 msgstr "Maak alle autofs mappen ongeldig"
 
-#: src/tools/sss_cache.c:614
+#: src/tools/sss_cache.c:615
 msgid "Invalidate particular SSH host"
 msgstr ""
 
-#: src/tools/sss_cache.c:616
+#: src/tools/sss_cache.c:617
 msgid "Invalidate all SSH hosts"
 msgstr ""
 
-#: src/tools/sss_cache.c:619
+#: src/tools/sss_cache.c:620
 msgid "Only invalidate entries from a particular domain"
 msgstr "Maak alleen ingangen van een bepaald domein ongeldig"
 
-#: src/tools/sss_cache.c:668
+#: src/tools/sss_cache.c:669
 msgid "Please select at least one object to invalidate\n"
 msgstr "Selecteer tenminste een object om ongeldig te maken\n"
 
-#: src/tools/sss_cache.c:751
+#: src/tools/sss_cache.c:752
 #, c-format
 msgid ""
 "Could not open domain %1$s. If the domain is a subdomain (trusted domain), "
@@ -2057,7 +2057,7 @@ msgstr ""
 "is, gebruik dan de volledig gekwalificeerde naam in plaats van --domain/-d "
 "parameter.\n"
 
-#: src/tools/sss_cache.c:755
+#: src/tools/sss_cache.c:756
 msgid "Could not open available domains\n"
 msgstr "Kon beschikbare domeinen niet openen\n"
 
