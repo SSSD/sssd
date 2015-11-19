@@ -598,7 +598,7 @@ int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
     return sysdb_attrs_add_val(attrs, name, &v);
 }
 
-int sysdb_attrs_add_lower_case_string(struct sysdb_attrs *attrs,
+int sysdb_attrs_add_lower_case_string(struct sysdb_attrs *attrs, bool safe,
                                       const char *name, const char *str)
 {
     char *lc_str;
@@ -614,7 +614,11 @@ int sysdb_attrs_add_lower_case_string(struct sysdb_attrs *attrs,
         return ENOMEM;
     }
 
-    ret = sysdb_attrs_add_string(attrs, name, lc_str);
+    if (safe) {
+        ret = sysdb_attrs_add_string_safe(attrs, name, lc_str);
+    } else {
+        ret = sysdb_attrs_add_string(attrs, name, lc_str);
+    }
     talloc_free(lc_str);
 
     return ret;
@@ -729,7 +733,15 @@ int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
 int sysdb_attrs_add_lc_name_alias(struct sysdb_attrs *attrs,
                                   const char *value)
 {
-    return sysdb_attrs_add_lower_case_string(attrs, SYSDB_NAME_ALIAS, value);
+    return sysdb_attrs_add_lower_case_string(attrs, false, SYSDB_NAME_ALIAS,
+                                             value);
+}
+
+int sysdb_attrs_add_lc_name_alias_safe(struct sysdb_attrs *attrs,
+                                       const char *value)
+{
+    return sysdb_attrs_add_lower_case_string(attrs, true, SYSDB_NAME_ALIAS,
+                                             value);
 }
 
 int sysdb_attrs_copy_values(struct sysdb_attrs *src,
