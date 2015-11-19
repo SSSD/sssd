@@ -349,15 +349,15 @@ struct sdap_attr_map service_map[] = {
 };
 
 struct sdap_attr_map rfc2307_autofs_mobject_map[] = {
-    { "ldap_autofs_map_object_class", "automountMap", SYSDB_AUTOFS_MAP_OC, NULL },
-    { "ldap_autofs_map_name", "ou", SYSDB_AUTOFS_MAP_NAME, NULL },
+    { "ldap_autofs_map_object_class", "nisMap", SYSDB_AUTOFS_MAP_OC, NULL },
+    { "ldap_autofs_map_name", "nisMapName", SYSDB_AUTOFS_MAP_NAME, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
 struct sdap_attr_map rfc2307_autofs_entry_map[] = {
-    { "ldap_autofs_entry_object_class", "automount", SYSDB_AUTOFS_ENTRY_OC, NULL },
+    { "ldap_autofs_entry_object_class", "nisObject", SYSDB_AUTOFS_ENTRY_OC, NULL },
     { "ldap_autofs_entry_key", "cn", SYSDB_AUTOFS_ENTRY_KEY, NULL },
-    { "ldap_autofs_entry_value", "automountInformation", SYSDB_AUTOFS_ENTRY_VALUE, NULL },
+    { "ldap_autofs_entry_value", "nisMapEntry", SYSDB_AUTOFS_ENTRY_VALUE, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 

@@ -406,6 +406,58 @@ int ldap_get_sudo_options(struct confdb_ctx *cdb,
     return EOK;
 }
 
+static bool has_defaults(struct confdb_ctx *cdb,
+                         const char *conf_path,
+                         const char *attrs[])
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    char *val;
+    bool found_default = false;
+    tmp_ctx = talloc_new(NULL);
+
+    if (tmp_ctx == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; attrs[i] != NULL; i++) {
+        ret = confdb_get_string(cdb, tmp_ctx, conf_path,
+                               attrs[i], NULL, &val);
+        if (ret != EOK) {
+            continue;
+        }
+
+        if (val == NULL) {
+            found_default = true;
+            break;
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return found_default;
+}
+
+/* Return true if rfc2307 schema is used and all autofs options use
+ * defaults. Should be removed in future, see
+ * https://fedorahosted.org/sssd/ticket/2858
+ */
+static bool ldap_rfc2307_autofs_defaults(struct confdb_ctx *cdb,
+                                         const char *conf_path)
+{
+    const char *attrs[] = {
+        rfc2307_autofs_entry_map[SDAP_OC_AUTOFS_ENTRY].opt_name,
+        /* SDAP_AT_AUTOFS_ENTRY_KEY missing on purpose, its value was
+         * the same between the wrong and correct schema
+         */
+        rfc2307_autofs_entry_map[SDAP_AT_AUTOFS_ENTRY_VALUE].opt_name,
+        rfc2307_autofs_mobject_map[SDAP_OC_AUTOFS_MAP].opt_name,
+        rfc2307_autofs_mobject_map[SDAP_AT_AUTOFS_MAP_NAME].opt_name,
+        NULL,
+    };
+
+    return has_defaults(cdb, conf_path, attrs);
+}
+
 int ldap_get_autofs_options(TALLOC_CTX *memctx,
                             struct confdb_ctx *cdb,
                             const char *conf_path,
@@ -436,6 +488,20 @@ int ldap_get_autofs_options(TALLOC_CTX *memctx,
     } else {
         DEBUG(SSSDBG_TRACE_FUNC, "Search base not set, trying to discover it later "
               "connecting to the LDAP server.\n");
+    }
+
+    if (opts->schema_type == SDAP_SCHEMA_RFC2307 &&
+            ldap_rfc2307_autofs_defaults(cdb, conf_path) == true) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Your configuration uses the autofs provider "
+              "with schema set to rfc2307 and default attribute mappings. "
+              "The default map has changed in this release, please make "
+              "sure the configuration matches the server attributes.\n");
+        sss_log(SSS_LOG_NOTICE,
+                _("Your configuration uses the autofs provider "
+                  "with schema set to rfc2307 and default attribute mappings. "
+                  "The default map has changed in this release, please make "
+                  "sure the configuration matches the server attributes.\n"));
     }
 
     ret = sdap_parse_search_base(opts, opts->basic,

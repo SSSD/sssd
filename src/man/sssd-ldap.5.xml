@@ -2505,7 +2505,8 @@ ldap_access_filter = (employeeType=admin)
                             The object class of an automount map entry in LDAP.
                         </para>
                         <para>
-                            Default: automountMap
+                            Default: nisMap (rfc2307, autofs_provider=ad),
+                            otherwise automountMap
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2518,8 +2519,8 @@ ldap_access_filter = (employeeType=admin)
                             The name of an automount map entry in LDAP.
                         </para>
                         <para>
-                            Default: ou (rfc2307), automountMapName
-                            (rfc2307bis, ipa, ad)
+                            Default: nisMapName (rfc2307,
+                            autofs_provider=ad), otherwise automountMapName
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2534,7 +2535,8 @@ ldap_access_filter = (employeeType=admin)
                             point.
                         </para>
                         <para>
-                            Default: automount
+                            Default: nisObject (rfc2307, autofs_provider=ad),
+                            otherwise automount
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2548,8 +2550,8 @@ ldap_access_filter = (employeeType=admin)
                             entry usually corresponds to a mount point.
                         </para>
                         <para>
-                            Default: cn (rfc2307), automountKey (rfc2307bis,
-                            ipa, ad)
+                            Default: cn (rfc2307, autofs_provider=ad),
+                            otherwise automountKey
                         </para>
                     </listitem>
                 </varlistentry>
@@ -2563,7 +2565,8 @@ ldap_access_filter = (employeeType=admin)
                             entry usually corresponds to a mount point.
                         </para>
                         <para>
-                            Default: automountInformation
+                            Default: nisMapEntry (rfc2307,
+                            autofs_provider=ad), otherwise automountInformation
                         </para>
                     </listitem>
                 </varlistentry>
