@@ -1804,10 +1804,11 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
         ret = sysdb_attrs_get_string(attrs->sysdb_attrs,
                                      SYSDB_DEFAULT_OVERRIDE_NAME, &tmp_str);
         if (ret == EOK) {
-            ret = sysdb_attrs_add_lc_name_alias(attrs->sysdb_attrs, tmp_str);
+            ret = sysdb_attrs_add_lc_name_alias_safe(attrs->sysdb_attrs,
+                                                     tmp_str);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "sysdb_attrs_add_lc_name_alias failed.\n");
+                      "sysdb_attrs_add_lc_name_alias_safe failed.\n");
                 goto done;
             }
         } else if (ret != ENOENT) {
@@ -1876,10 +1877,10 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 }
             }
 
-            ret = sysdb_attrs_add_lc_name_alias(attrs->sysdb_attrs, name);
+            ret = sysdb_attrs_add_lc_name_alias_safe(attrs->sysdb_attrs, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "sysdb_attrs_add_lc_name_alias failed.\n");
+                      "sysdb_attrs_add_lc_name_alias_safe failed.\n");
                 goto done;
             }
 
@@ -2133,10 +2134,10 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             }
             DEBUG(SSSDBG_TRACE_FUNC, "Processing group %s\n", name);
 
-            ret = sysdb_attrs_add_lc_name_alias(attrs->sysdb_attrs, name);
+            ret = sysdb_attrs_add_lc_name_alias_safe(attrs->sysdb_attrs, name);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "sysdb_attrs_add_lc_name_alias failed.\n");
+                      "sysdb_attrs_add_lc_name_alias_safe failed.\n");
                 goto done;
             }
 

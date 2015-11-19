@@ -4690,6 +4690,7 @@ START_TEST(test_sysdb_attrs_add_lc_name_alias)
     int ret;
     struct sysdb_attrs *attrs;
     const char *str;
+    char **list = NULL;
 
     ret = sysdb_attrs_add_lc_name_alias(NULL, NULL);
     fail_unless(ret == EINVAL, "EINVAL not returned for NULL input");
@@ -4705,6 +4706,82 @@ START_TEST(test_sysdb_attrs_add_lc_name_alias)
     fail_unless(strcmp(str, LC_NAME_ALIAS_CHECK_VAL) == 0,
                 "Unexpected value, expected [%s], got [%s]",
                 LC_NAME_ALIAS_CHECK_VAL, str);
+
+    /* Add the same value a second time, it is not recommended to do this on
+     * purpose but the test should illustrate the different to
+     * sysdb_attrs_add_lc_name_alias_safe(). */
+    ret = sysdb_attrs_add_lc_name_alias(attrs, LC_NAME_ALIAS_TEST_VAL);
+    fail_unless(ret == EOK, "sysdb_attrs_add_lc_name_alias failed");
+
+    ret = sysdb_attrs_get_string_array(attrs, SYSDB_NAME_ALIAS, attrs, &list);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string_array failed");
+    fail_unless(list != NULL, "No list returned");
+    fail_unless(list[0] != NULL, "Missing first list element");
+    fail_unless(strcmp(list[0], LC_NAME_ALIAS_CHECK_VAL) == 0,
+                "Unexpected value, expected [%s], got [%s]",
+                LC_NAME_ALIAS_CHECK_VAL, list[0]);
+    fail_unless(list[1] != NULL, "Missing second list element");
+    fail_unless(strcmp(list[1], LC_NAME_ALIAS_CHECK_VAL) == 0,
+                "Unexpected value, expected [%s], got [%s]",
+                LC_NAME_ALIAS_CHECK_VAL, list[1]);
+    fail_unless(list[2] == NULL, "Missing list terminator");
+
+    talloc_free(attrs);
+}
+END_TEST
+
+START_TEST(test_sysdb_attrs_add_lc_name_alias_safe)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    const char *str;
+    char **list = NULL;
+
+    ret = sysdb_attrs_add_lc_name_alias_safe(NULL, NULL);
+    fail_unless(ret == EINVAL, "EINVAL not returned for NULL input");
+
+    attrs = sysdb_new_attrs(NULL);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_lc_name_alias_safe(attrs, LC_NAME_ALIAS_TEST_VAL);
+    fail_unless(ret == EOK, "sysdb_attrs_add_lc_name_alias failed");
+
+    ret = sysdb_attrs_get_string(attrs, SYSDB_NAME_ALIAS, &str);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string failed");
+    fail_unless(strcmp(str, LC_NAME_ALIAS_CHECK_VAL) == 0,
+                "Unexpected value, expected [%s], got [%s]",
+                LC_NAME_ALIAS_CHECK_VAL, str);
+
+    /* Adding the same value a second time should be ignored */
+    ret = sysdb_attrs_add_lc_name_alias_safe(attrs, LC_NAME_ALIAS_TEST_VAL);
+    fail_unless(ret == EOK, "sysdb_attrs_add_lc_name_alias failed");
+
+    ret = sysdb_attrs_get_string_array(attrs, SYSDB_NAME_ALIAS, attrs, &list);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string_array failed");
+    fail_unless(list != NULL, "No list returned");
+    fail_unless(list[0] != NULL, "Missing first list element");
+    fail_unless(strcmp(list[0], LC_NAME_ALIAS_CHECK_VAL) == 0,
+                "Unexpected value, expected [%s], got [%s]",
+                LC_NAME_ALIAS_CHECK_VAL, list[0]);
+    fail_unless(list[1] == NULL, "Missing list terminator");
+
+    /* Adding different value */
+    ret = sysdb_attrs_add_lc_name_alias_safe(attrs,
+                                             "2nd_" LC_NAME_ALIAS_TEST_VAL);
+    fail_unless(ret == EOK, "sysdb_attrs_add_lc_name_alias failed");
+
+    ret = sysdb_attrs_get_string_array(attrs, SYSDB_NAME_ALIAS, attrs, &list);
+    fail_unless(ret == EOK, "sysdb_attrs_get_string_array failed");
+    fail_unless(list != NULL, "No list returned");
+    fail_unless(list[0] != NULL, "Missing first list element");
+    fail_unless(strcmp(list[0], LC_NAME_ALIAS_CHECK_VAL) == 0,
+                "Unexpected value, expected [%s], got [%s]",
+                LC_NAME_ALIAS_CHECK_VAL, list[0]);
+    fail_unless(list[1] != NULL, "Missing first list element");
+    fail_unless(strcmp(list[1], "2nd_" LC_NAME_ALIAS_CHECK_VAL) == 0,
+                "Unexpected value, expected [%s], got [%s]",
+                "2nd_" LC_NAME_ALIAS_CHECK_VAL, list[1]);
+    fail_unless(list[2] == NULL, "Missing list terminator");
 
     talloc_free(attrs);
 }
@@ -6480,6 +6557,7 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_svc_remove_alias);
 
     tcase_add_test(tc_sysdb, test_sysdb_attrs_add_lc_name_alias);
+    tcase_add_test(tc_sysdb, test_sysdb_attrs_add_lc_name_alias_safe);
 
 /* ===== UTIL TESTS ===== */
     tcase_add_test(tc_sysdb, test_sysdb_attrs_get_string_array);
