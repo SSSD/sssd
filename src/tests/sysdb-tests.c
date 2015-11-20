@@ -4635,7 +4635,7 @@ START_TEST(test_sysdb_attrs_add_lc_name_alias)
     int ret;
     struct sysdb_attrs *attrs;
     const char *str;
-    char **list = NULL;
+    const char **list = NULL;
 
     ret = sysdb_attrs_add_lc_name_alias(NULL, NULL);
     fail_unless(ret == EINVAL, "EINVAL not returned for NULL input");
@@ -4680,7 +4680,7 @@ START_TEST(test_sysdb_attrs_add_lc_name_alias_safe)
     int ret;
     struct sysdb_attrs *attrs;
     const char *str;
-    char **list = NULL;
+    const char **list = NULL;
 
     ret = sysdb_attrs_add_lc_name_alias_safe(NULL, NULL);
     fail_unless(ret == EINVAL, "EINVAL not returned for NULL input");
