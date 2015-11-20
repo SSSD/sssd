@@ -126,8 +126,9 @@ static const char *dp_err_to_string(int dp_err_type)
     case DP_ERR_TIMEOUT:
         return "Request timed out";
     case DP_ERR_FATAL:
-    default:
         return "Internal Error";
+    default:
+        break;
     }
 
     return "Unknown Error";
