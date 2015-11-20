@@ -67,6 +67,7 @@
 #define AD_AT_FLAGS "flags"
 
 #define UAC_WORKSTATION_TRUST_ACCOUNT 0x00001000
+#define UAC_SERVER_TRUST_ACCOUNT 0x00002000
 #define AD_AGP_GUID "edacfd8f-ffb3-11d1-b41d-00a0c968f939"
 #define AD_AUTHENTICATED_USERS_SID "S-1-5-11"
 
@@ -1887,7 +1888,11 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     }
 
     /* we only support computer policy targets, not users */
-    if (!(uac & UAC_WORKSTATION_TRUST_ACCOUNT)) {
+    if (!(uac & UAC_WORKSTATION_TRUST_ACCOUNT ||
+          uac & UAC_SERVER_TRUST_ACCOUNT)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Invalid userAccountControl (%x) value for machine account.",
+              uac);
         ret = EINVAL;
         goto done;
     }
