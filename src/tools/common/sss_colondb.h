@@ -59,14 +59,37 @@ struct sss_colondb_read_field {
     union sss_colondb_read_data data;
 };
 
+/**
+ * Open colon DB and return connection.
+ * @param[in|out] mem_ctx Memory context. Internal sss_colondb_close() is set
+ *                        on destructor of this memory context.
+ * @param[in] mode Open mode of db: SSS_COLONDB_READ or SSS_COLONDB_WRITE.
+ * @param[in] filename Name of file.
+ * @return Pointer to structure holding DB connection, or NULL if fail.
+ */
 struct sss_colondb *sss_colondb_open(TALLOC_CTX *mem_ctx,
                                      enum sss_colondb_mode mode,
                                      const char *filename);
 
+/**
+ * Read line from colon DB.
+ * @param[in|out] mem_ctx Memory context.
+ * @param[in] db  Pointer to structure holding DB connection.
+ * @param[in|out] table Array of expected structure of line. It is expected
+ *                      that last item has SSS_COLONDB_SENTINEL type.
+ * @return EOK if success, else error code.
+ */
 errno_t sss_colondb_readline(TALLOC_CTX *mem_ctx,
                              struct sss_colondb *db,
                              struct sss_colondb_read_field *table);
 
+/**
+ * Write line to colon DB.
+ * @param[in] db Pointer to structure holding DB connection.
+ * @param[in] table Array with data. It is expected that last item has
+ *                  SSS_COLONDB_SENTINEL type.
+ * @return EOK if success, else error code.
+ */
 errno_t sss_colondb_writeline(struct sss_colondb *db,
                               struct sss_colondb_write_field *table);
 
