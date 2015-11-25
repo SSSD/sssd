@@ -828,3 +828,22 @@ AC_DEFUN([WITH_SSSD_USER],
       AC_DEFINE_UNQUOTED(AD_GPO_ACCESS_MODE_DEFAULT, "$GPO_DEFAULT", ["The default enforcing level for AD GPO access-control"])
       AM_CONDITIONAL([GPO_DEFAULT_ENFORCING], [test x"$GPO_DEFAULT" = xenforcing])
   ])
+
+AC_DEFUN([ENABLE_POLKIT_RULES_PATH],
+  [
+    polkitdir="/usr/share/polkit-1/rules.d"
+    AC_ARG_ENABLE([polkit-rules-path],
+                  [AC_HELP_STRING([--enable-polkit-rules-path=PATH],
+                                  [Path to store polkit rules at. Use --disable to not install the rules at all. [/usr/share/polkit-1/rules.d]]
+                                 )
+                  ],
+                  [ polkitdir=$enableval ],
+                 )
+
+    if test x"$polkitdir" != xno; then
+        HAVE_POLKIT_RULES_D=1
+        AC_SUBST(polkitdir)
+    fi
+
+    AM_CONDITIONAL([HAVE_POLKIT_RULES_D], [test x$HAVE_POLKIT_RULES_D != x])
+  ])

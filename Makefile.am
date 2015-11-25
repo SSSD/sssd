@@ -76,6 +76,7 @@ keytabdir = $(sss_statedir)/keytabs
 pkgconfigdir = $(libdir)/pkgconfig
 krb5rcachedir = @krb5rcachedir@
 sudolibdir = @sudolibpath@
+polkitdir = @polkitdir@
 
 UNICODE_LIBS=@UNICODE_LIBS@
 
@@ -151,8 +152,10 @@ endif
 if HAVE_NSS
 sssdlibexec_PROGRAMS += p11_child
 if SSSD_USER
-polkit_rulesdir = $(datadir)/polkit-1/rules.d
+if HAVE_POLKIT_RULES_D
+polkit_rulesdir = $(polkitdir)
 dist_polkit_rules_DATA = contrib/sssd-pcsc.rules
+endif
 endif
 endif
 
