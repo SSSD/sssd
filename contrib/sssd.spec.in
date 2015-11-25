@@ -23,6 +23,8 @@
 # talk to pcscd if SSSD runs as unpriviledged user
 %if (0%{?fedora} || 0%{?rhel} >= 7)
     %global install_pcscd_polkit_rule 1
+%else
+    %global enable_polkit_rules_option --disable-polkit-rules-path
 %endif
 
 %if (0%{?use_systemd} == 1)
@@ -570,6 +572,7 @@ autoreconf -ivf
     %{?with_syslog} \
     %{?with_cifs_utils_plugin_option} \
     %{?with_python3_option} \
+    %{?enable_polkit_rules_option} \
     %{?experimental}
 
 make %{?_smp_mflags} all
