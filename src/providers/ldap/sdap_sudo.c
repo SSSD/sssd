@@ -30,6 +30,8 @@
 #include "providers/ldap/sdap_sudo_cache.h"
 #include "db/sysdb_sudo.h"
 
+static void sdap_sudo_handler(struct be_req *breq);
+
 struct bet_ops sdap_sudo_ops = {
     .handler = sdap_sudo_handler,
     .finalize = NULL
@@ -150,7 +152,7 @@ static void sdap_sudo_reply(struct tevent_req *req)
     sdap_handler_done(be_req, dp_error, ret, strerror(ret));
 }
 
-void sdap_sudo_handler(struct be_req *be_req)
+static void sdap_sudo_handler(struct be_req *be_req)
 {
     struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
     struct tevent_req *req = NULL;
