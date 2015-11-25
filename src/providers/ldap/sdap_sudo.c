@@ -30,15 +30,9 @@
 #include "providers/ldap/sdap_sudo_cache.h"
 #include "db/sysdb_sudo.h"
 
-static void
-sdap_sudo_shutdown(struct be_req *req)
-{
-    sdap_handler_done(req, DP_ERR_OK, EOK, NULL);
-}
-
 struct bet_ops sdap_sudo_ops = {
     .handler = sdap_sudo_handler,
-    .finalize = sdap_sudo_shutdown
+    .finalize = NULL
 };
 
 static void sdap_sudo_online_cb(void *pvt)
