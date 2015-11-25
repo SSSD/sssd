@@ -644,6 +644,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_opts.h \
     src/providers/ipa/ipa_srv.h \
     src/providers/ipa/ipa_dn.h \
+    src/providers/ipa/ipa_sudo.h \
     src/providers/ad/ad_srv.h \
     src/providers/proxy/proxy.h \
     src/tools/tools_util.h \

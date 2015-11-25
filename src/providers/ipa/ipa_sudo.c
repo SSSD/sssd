@@ -18,9 +18,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "providers/ipa/ipa_opts.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap_sudo.h"
+#include "providers/ipa/ipa_sudo.h"
 #include "db/sysdb_sudo.h"
+
+static void ipa_sudo_handler(struct be_req *breq);
+
+struct bet_ops ipa_sudo_ops = {
+    .handler = ipa_sudo_handler,
+    .finalize = NULL,
+};
 
 enum sudo_schema {
     SUDO_SCHEMA_IPA,
@@ -85,6 +94,72 @@ done:
     return ret;
 }
 
+static int
+ipa_sudo_init_ipa_schema(struct be_ctx *be_ctx,
+                         struct ipa_id_ctx *id_ctx,
+                         struct bet_ops **ops,
+                         void **pvt_data)
+{
+    struct ipa_sudo_ctx *sudo_ctx;
+    errno_t ret;
+
+    sudo_ctx = talloc_zero(be_ctx, struct ipa_sudo_ctx);
+    if (sudo_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    sudo_ctx->id_ctx = id_ctx->sdap_id_ctx;
+    sudo_ctx->ipa_opts = id_ctx->ipa_options;
+    sudo_ctx->sdap_opts = id_ctx->sdap_id_ctx->opts;
+
+    ret = sdap_get_map(sudo_ctx, be_ctx->cdb, be_ctx->conf_path,
+                       ipa_sudorule_map, IPA_OPTS_SUDORULE,
+                       &sudo_ctx->sudorule_map);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sdap_get_map(sudo_ctx, be_ctx->cdb, be_ctx->conf_path,
+                       ipa_sudocmdgroup_map, IPA_OPTS_SUDOCMDGROUP,
+                       &sudo_ctx->sudocmdgroup_map);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sdap_get_map(sudo_ctx, be_ctx->cdb, be_ctx->conf_path,
+                       ipa_sudocmd_map, IPA_OPTS_SUDOCMD,
+                       &sudo_ctx->sudocmd_map);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse attribute map "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sdap_parse_search_base(sudo_ctx, sudo_ctx->sdap_opts->basic,
+                                 SDAP_SUDO_SEARCH_BASE,
+                                 &sudo_ctx->sudo_sb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not parse sudo search base\n");
+        return ret;
+    }
+
+    *ops = &ipa_sudo_ops;
+    *pvt_data = sudo_ctx;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(sudo_ctx);
+    }
+
+    return ret;
+}
+
 int ipa_sudo_init(struct be_ctx *be_ctx,
                   struct ipa_id_ctx *id_ctx,
                   struct bet_ops **ops,
@@ -107,6 +182,7 @@ int ipa_sudo_init(struct be_ctx *be_ctx,
     switch (schema) {
     case SUDO_SCHEMA_IPA:
         DEBUG(SSSDBG_TRACE_FUNC, "Using IPA schema for sudo\n");
+        ret = ipa_sudo_init_ipa_schema(be_ctx, id_ctx, ops, pvt_data);
         break;
     case SUDO_SCHEMA_LDAP:
         DEBUG(SSSDBG_TRACE_FUNC, "Using LDAP schema for sudo\n");
@@ -121,4 +197,10 @@ int ipa_sudo_init(struct be_ctx *be_ctx,
     }
 
     return EOK;
+}
+
+static void
+ipa_sudo_handler(struct be_req *be_req)
+{
+    sdap_handler_done(be_req, DP_ERR_FATAL, ERR_INTERNAL, "Not implemented yet.");
 }
