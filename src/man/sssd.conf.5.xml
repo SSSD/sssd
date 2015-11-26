@@ -538,6 +538,10 @@ subdomain_inherit = ldap_purge_cache_timeout
                         <para>
                             Default: none
                         </para>
+                        <para>
+                            Note: This option only works with the IPA and
+                            AD provider.
+                        </para>
                     </listitem>
                 </varlistentry>
             </variablelist>
