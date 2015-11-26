@@ -33,13 +33,21 @@
 #define SID_FMT "%s-%d"
 #define SID_STR_MAX_LEN 1024
 
+/* Hold all parameters for unix<->sid mapping relevant for
+ * given slice. */
+struct idmap_range_params {
+    uint32_t min_id;
+    uint32_t max_id;
+    char *range_id;
+
+    uint32_t first_rid;
+};
+
 struct idmap_domain_info {
     char *name;
     char *sid;
-    struct sss_idmap_range *range;
+    struct idmap_range_params range_params;
     struct idmap_domain_info *next;
-    uint32_t first_rid;
-    char *range_id;
     bool external_mapping;
 };
 
@@ -72,37 +80,17 @@ static char *idmap_strdup(struct sss_idmap_ctx *ctx, const char *str)
     return new;
 }
 
-static struct sss_idmap_range *idmap_range_dup(struct sss_idmap_ctx *ctx,
-                                               struct sss_idmap_range *range)
-{
-    struct sss_idmap_range *new = NULL;
-
-    CHECK_IDMAP_CTX(ctx, NULL);
-
-
-    new = ctx->alloc_func(sizeof(struct sss_idmap_range), ctx->alloc_pvt);
-    if (new == NULL) {
-        return NULL;
-    }
-
-    memset(new, 0, sizeof(struct sss_idmap_range));
-
-    new->min = range->min;
-    new->max = range->max;
-
-    return new;
-}
-
-static bool id_is_in_range(uint32_t id, struct idmap_domain_info *dom,
+static bool id_is_in_range(uint32_t id,
+                           struct idmap_range_params *rp,
                            uint32_t *rid)
 {
-    if (id == 0 || dom == NULL || dom->range == NULL) {
+    if (id == 0 || rp == NULL) {
         return false;
     }
 
-    if (id >= dom->range->min && id <= dom->range->max) {
+    if (id >= rp->min_id && id <= rp->max_id) {
         if (rid != NULL) {
-            *rid = dom->first_rid + (id - dom->range->min);
+            *rid = rp->first_rid + (id - rp->min_id);
         }
 
         return true;
@@ -220,8 +208,7 @@ static void sss_idmap_free_domain(struct sss_idmap_ctx *ctx,
         return;
     }
 
-    ctx->free_func(dom->range_id, ctx->alloc_pvt);
-    ctx->free_func(dom->range, ctx->alloc_pvt);
+    ctx->free_func(dom->range_params.range_id, ctx->alloc_pvt);
     ctx->free_func(dom->name, ctx->alloc_pvt);
     ctx->free_func(dom->sid, ctx->alloc_pvt);
     ctx->free_func(dom, ctx->alloc_pvt);
@@ -340,9 +327,12 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
         /* Verify that this slice is not already in use */
         do {
             for (dom = ctx->idmap_domain_info; dom != NULL; dom = dom->next) {
-                if ((dom->range->min <= min && dom->range->max >= max) ||
-                    (dom->range->min >= min && dom->range->min <= max) ||
-                    (dom->range->max >= min && dom->range->max <= max)) {
+                uint32_t dmin = dom->range_params.min_id;
+                uint32_t dmax = dom->range_params.max_id;
+
+                if ((dmin <= min && dmax >= max) ||
+                    (dmin >= min && dmin <= max) ||
+                    (dmax >= min && dmax <= max)) {
                     /* This range overlaps one already registered
                      * We'll try the next available slot
                      */
@@ -445,10 +435,17 @@ enum idmap_error_code sss_idmap_check_collision(struct sss_idmap_ctx *ctx,
 {
     struct idmap_domain_info *dom;
     enum idmap_error_code err;
+    struct sss_idmap_range range;
 
     for (dom = ctx->idmap_domain_info; dom != NULL; dom = dom->next) {
-        err = sss_idmap_check_collision_ex(dom->name, dom->sid, dom->range,
-                                           dom->first_rid, dom->range_id,
+
+        range.min = dom->range_params.min_id;
+        range.max = dom->range_params.max_id;
+
+        err = sss_idmap_check_collision_ex(dom->name, dom->sid,
+                                           &range,
+                                           dom->range_params.first_rid,
+                                           dom->range_params.range_id,
                                            dom->external_mapping,
                                            n_name, n_sid, n_range, n_first_rid,
                                            n_range_id, n_external_mapping);
@@ -459,20 +456,29 @@ enum idmap_error_code sss_idmap_check_collision(struct sss_idmap_ctx *ctx,
     return IDMAP_SUCCESS;
 }
 
-static enum idmap_error_code dom_check_collision(
-                                             struct idmap_domain_info *dom_list,
-                                             struct idmap_domain_info *new_dom)
+static enum
+idmap_error_code dom_check_collision(struct idmap_domain_info *dom_list,
+                                     struct idmap_domain_info *new_dom)
 {
     struct idmap_domain_info *dom;
     enum idmap_error_code err;
+    struct sss_idmap_range range;
+    struct sss_idmap_range new_dom_range = { new_dom->range_params.min_id,
+                                             new_dom->range_params.max_id };
 
     for (dom = dom_list; dom != NULL; dom = dom->next) {
-        err = sss_idmap_check_collision_ex(dom->name, dom->sid, dom->range,
-                                           dom->first_rid, dom->range_id,
+        range.min = dom->range_params.min_id;
+        range.max = dom->range_params.max_id;
+
+        err = sss_idmap_check_collision_ex(dom->name, dom->sid,
+                                           &range,
+                                           dom->range_params.first_rid,
+                                           dom->range_params.range_id,
                                            dom->external_mapping,
                                            new_dom->name, new_dom->sid,
-                                           new_dom->range, new_dom->first_rid,
-                                           new_dom->range_id,
+                                           &new_dom_range,
+                                           new_dom->range_params.first_rid,
+                                           new_dom->range_params.range_id,
                                            new_dom->external_mapping);
         if (err != IDMAP_SUCCESS) {
             return err;
@@ -531,21 +537,18 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
         }
     }
 
-    dom->range = idmap_range_dup(ctx, range);
-    if (dom->range == NULL) {
-        err = IDMAP_OUT_OF_MEMORY;
-        goto fail;
-    }
+    dom->range_params.min_id = range->min;
+    dom->range_params.max_id = range->max;
 
     if (range_id != NULL) {
-        dom->range_id = idmap_strdup(ctx, range_id);
-        if (dom->range_id == NULL) {
+        dom->range_params.range_id = idmap_strdup(ctx, range_id);
+        if (dom->range_params.range_id == NULL) {
             err = IDMAP_OUT_OF_MEMORY;
             goto fail;
         }
     }
 
-    dom->first_rid = rid;
+    dom->range_params.first_rid = rid;
     dom->external_mapping = external_mapping;
 
     err = dom_check_collision(ctx->idmap_domain_info, dom);
@@ -621,10 +624,10 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
                     return IDMAP_SID_INVALID;
                 }
 
-                if (rid >= idmap_domain_info->first_rid) {
-                    id = idmap_domain_info->range->min
-                            + (rid - idmap_domain_info->first_rid);
-                    if (id <= idmap_domain_info->range->max) {
+                if (rid >= idmap_domain_info->range_params.first_rid) {
+                    id = idmap_domain_info->range_params.min_id
+                            + (rid - idmap_domain_info->range_params.first_rid);
+                    if (id <= idmap_domain_info->range_params.max_id) {
                         *_id = id;
                         return IDMAP_SUCCESS;
                     }
@@ -670,8 +673,8 @@ enum idmap_error_code sss_idmap_check_sid_unix(struct sss_idmap_ctx *ctx,
             if (strlen(sid) > dom_len && sid[dom_len] == '-'
                     && strncmp(sid, idmap_domain_info->sid, dom_len) == 0) {
 
-                if (id >= idmap_domain_info->range->min
-                    && id <= idmap_domain_info->range->max) {
+                if (id >= idmap_domain_info->range_params.min_id
+                    && id <= idmap_domain_info->range_params.max_id) {
                     return IDMAP_SUCCESS;
                 }
 
@@ -700,7 +703,7 @@ enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
     idmap_domain_info = ctx->idmap_domain_info;
 
     while (idmap_domain_info != NULL) {
-        if (id_is_in_range(id, idmap_domain_info, &rid)) {
+        if (id_is_in_range(id, &idmap_domain_info->range_params, &rid)) {
 
             if (idmap_domain_info->external_mapping == true
                     || idmap_domain_info->sid == NULL) {
