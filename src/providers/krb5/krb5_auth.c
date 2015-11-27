@@ -826,6 +826,11 @@ static void krb5_auth_done(struct tevent_req *subreq)
                 search_srv = kr->srv;
                 break;
             }
+        case SSS_PAM_PREAUTH:
+            state->pam_status = PAM_CRED_UNAVAIL;
+            state->dp_err = DP_ERR_OK;
+            ret = EOK;
+            goto done;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected PAM task\n");
             ret = EINVAL;
