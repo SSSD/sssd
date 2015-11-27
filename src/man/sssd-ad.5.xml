@@ -931,7 +931,7 @@ ldap_account_expire_policy = ad
         <para>
             When the autofs provider is set to <quote>ad</quote>, the RFC2307
             schema attribute mapping (nisMap, nisObject, ...) is used,
-            because these attributes are included the default Active
+            because these attributes are included in the default Active
             Directory schema.
         </para>
         <para>
