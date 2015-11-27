@@ -82,7 +82,7 @@ static int test_sss_idmap_setup(void **state)
 }
 
 static int setup_ranges(struct test_ctx *test_ctx, bool external_mapping,
-                        bool second_domain)
+                        bool second_domain, bool sec_slices)
 {
     struct sss_idmap_range range;
     enum idmap_error_code err;
@@ -103,15 +103,27 @@ static int setup_ranges(struct test_ctx *test_ctx, bool external_mapping,
         sid = TEST_DOM_SID;
     }
 
-    err = sss_idmap_add_domain_ex(test_ctx->idmap_ctx, name, sid, &range, NULL,
-                                  0, external_mapping);
+    if (sec_slices) {
+        err = sss_idmap_add_auto_domain_ex(test_ctx->idmap_ctx, name, sid,
+                                           &range, NULL, 0, external_mapping,
+                                           NULL, NULL);
+    } else {
+        err = sss_idmap_add_domain_ex(test_ctx->idmap_ctx, name, sid, &range,
+                                      NULL, 0, external_mapping);
+    }
     assert_int_equal(err, IDMAP_SUCCESS);
 
     range.min += TEST_OFFSET;
     range.max += TEST_OFFSET;
 
-    err = sss_idmap_add_domain_ex(test_ctx->idmap_ctx, name, sid, &range, NULL,
-                                  TEST_OFFSET, external_mapping);
+    if (sec_slices) {
+        err = sss_idmap_add_auto_domain_ex(test_ctx->idmap_ctx, name, sid,
+                                           &range, NULL, TEST_OFFSET,
+                                           external_mapping, NULL, NULL);
+    } else {
+        err = sss_idmap_add_domain_ex(test_ctx->idmap_ctx, name, sid, &range,
+                                      NULL, TEST_OFFSET, external_mapping);
+    }
     assert_int_equal(err, IDMAP_SUCCESS);
     return 0;
 }
@@ -124,7 +136,19 @@ static int test_sss_idmap_setup_with_domains(void **state) {
     test_ctx = talloc_get_type(*state, struct test_ctx);
     assert_non_null(test_ctx);
 
-    setup_ranges(test_ctx, false, false);
+    setup_ranges(test_ctx, false, false, false);
+    return 0;
+}
+
+static int test_sss_idmap_setup_with_domains_sec_slices(void **state) {
+    struct test_ctx *test_ctx;
+
+    test_sss_idmap_setup(state);
+
+    test_ctx = talloc_get_type(*state, struct test_ctx);
+    assert_non_null(test_ctx);
+
+    setup_ranges(test_ctx, false, false, true);
     return 0;
 }
 
@@ -136,7 +160,7 @@ static int test_sss_idmap_setup_with_external_mappings(void **state) {
     test_ctx = talloc_get_type(*state, struct test_ctx);
     assert_non_null(test_ctx);
 
-    setup_ranges(test_ctx, true, false);
+    setup_ranges(test_ctx, true, false, false);
     return 0;
 }
 
@@ -148,8 +172,8 @@ static int test_sss_idmap_setup_with_both(void **state) {
     test_ctx = talloc_get_type(*state, struct test_ctx);
     assert_non_null(test_ctx);
 
-    setup_ranges(test_ctx, false, false);
-    setup_ranges(test_ctx, true, true);
+    setup_ranges(test_ctx, false, false, false);
+    setup_ranges(test_ctx, true, true, false);
     return 0;
 }
 
@@ -250,6 +274,48 @@ void test_map_id(void **state)
     err = sss_idmap_sid_to_unix(test_ctx->idmap_ctx, TEST_DOM_SID"-400000",
                                 &id);
     assert_int_equal(err, IDMAP_NO_RANGE);
+
+    err = sss_idmap_unix_to_sid(test_ctx->idmap_ctx, TEST_OFFSET - 1, &sid);
+    assert_int_equal(err, IDMAP_NO_DOMAIN);
+
+    err = sss_idmap_sid_to_unix(test_ctx->idmap_ctx, TEST_DOM_SID"-0", &id);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(id, TEST_RANGE_MIN);
+
+    err = sss_idmap_unix_to_sid(test_ctx->idmap_ctx, id, &sid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_string_equal(sid, TEST_DOM_SID"-0");
+    sss_idmap_free_sid(test_ctx->idmap_ctx, sid);
+
+    err = sss_idmap_sid_to_unix(test_ctx->idmap_ctx,
+                                TEST_DOM_SID"-"TEST_OFFSET_STR, &id);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(id, TEST_RANGE_MIN+TEST_OFFSET);
+
+    err = sss_idmap_unix_to_sid(test_ctx->idmap_ctx, id, &sid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_string_equal(sid, TEST_DOM_SID"-"TEST_OFFSET_STR);
+    sss_idmap_free_sid(test_ctx->idmap_ctx, sid);
+}
+
+void test_map_id_sec_slices(void **state)
+{
+    struct test_ctx *test_ctx;
+    enum idmap_error_code err;
+    uint32_t id;
+    char *sid = NULL;
+
+    test_ctx = talloc_get_type(*state, struct test_ctx);
+
+    assert_non_null(test_ctx);
+
+    err = sss_idmap_sid_to_unix(test_ctx->idmap_ctx, TEST_DOM_SID"1-1", &id);
+    assert_int_equal(err, IDMAP_NO_DOMAIN);
+
+    err = sss_idmap_sid_to_unix(test_ctx->idmap_ctx, TEST_DOM_SID"-4000000",
+                                &id);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(id, 575600000);
 
     err = sss_idmap_unix_to_sid(test_ctx->idmap_ctx, TEST_OFFSET - 1, &sid);
     assert_int_equal(err, IDMAP_NO_DOMAIN);
@@ -522,6 +588,9 @@ int main(int argc, const char *argv[])
                                         test_sss_idmap_teardown),
         cmocka_unit_test_setup_teardown(test_map_id,
                                         test_sss_idmap_setup_with_domains,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_map_id_sec_slices,
+                                        test_sss_idmap_setup_with_domains_sec_slices,
                                         test_sss_idmap_teardown),
         cmocka_unit_test_setup_teardown(test_map_id_external,
                                         test_sss_idmap_setup_with_external_mappings,

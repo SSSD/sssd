@@ -54,3 +54,13 @@ SSS_IDMAP_0.4 {
     local:
         *;
 };
+
+SSS_IDMAP_0.5 {
+
+    # public functions
+    global:
+
+        sss_idmap_ctx_set_extra_slice_init;
+        sss_idmap_add_auto_domain_ex;
+
+} SSS_IDMAP_0.4;
