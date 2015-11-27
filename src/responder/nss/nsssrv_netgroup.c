@@ -435,14 +435,18 @@ static errno_t create_negcache_netgr(struct setent_step_ctx *step_ctx)
     errno_t ret;
     struct getent_ctx *netgr;
 
-    netgr = talloc_zero(step_ctx->nctx, struct getent_ctx);
-    if (netgr == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
-        ret = ENOMEM;
-        goto done;
-    } else {
-        netgr->ready = true;
-        netgr->found = false;
+    /* Is there already netgroup with such name? */
+    ret = get_netgroup_entry(step_ctx->nctx, step_ctx->name,
+                             &netgr);
+    if (ret != EOK || netgr == NULL) {
+
+        netgr = talloc_zero(step_ctx->nctx, struct getent_ctx);
+        if (netgr == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
         netgr->entries = NULL;
         netgr->lookup_table = step_ctx->nctx->netgroups;
         netgr->name = talloc_strdup(netgr, step_ctx->name);
@@ -457,13 +461,20 @@ static errno_t create_negcache_netgr(struct setent_step_ctx *step_ctx)
             DEBUG(SSSDBG_CRIT_FAILURE, "set_netgroup_entry failed.\n");
             goto done;
         }
-        set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
     }
+
+    netgr->ready = true;
+    netgr->found = false;
+
+    set_netgr_lifetime(step_ctx->nctx->neg_timeout, step_ctx, netgr);
+
+    ret = EOK;
 
 done:
     if (ret != EOK) {
         talloc_free(netgr);
     }
+
     return ret;
 }
 
@@ -475,6 +486,12 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
     struct sysdb_ctx *sysdb;
     char *name = NULL;
     uint32_t lifetime;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
     /* Check each domain for this netgroup name */
     while (dom) {
@@ -495,8 +512,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
         /* make sure to update the dctx if we changed domain */
         step_ctx->dctx->domain = dom;
 
-        talloc_free(name);
-        name = sss_get_cased_name(step_ctx, step_ctx->name,
+        name = sss_get_cased_name(tmp_ctx, step_ctx->name,
                                   dom->case_sensitive);
         if (!name) {
             DEBUG(SSSDBG_CRIT_FAILURE, "sss_get_cased_name failed\n");
@@ -628,10 +644,11 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
               "create_negcache_netgr failed with: %d:[%s], ignored.\n",
               ret, sss_strerror(ret));
     }
+
     ret = ENOENT;
 
 done:
-    talloc_free(name);
+    talloc_free(tmp_ctx);
     return ret;
 }
 
