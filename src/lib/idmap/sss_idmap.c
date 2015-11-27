@@ -25,6 +25,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "lib/idmap/sss_idmap.h"
 #include "lib/idmap/sss_idmap_private.h"
@@ -41,6 +42,7 @@ struct idmap_range_params {
     char *range_id;
 
     uint32_t first_rid;
+    struct idmap_range_params *next;
 };
 
 struct idmap_domain_info {
@@ -49,6 +51,13 @@ struct idmap_domain_info {
     struct idmap_range_params range_params;
     struct idmap_domain_info *next;
     bool external_mapping;
+
+    struct idmap_range_params *helpers;
+    bool auto_add_ranges;
+    bool helpers_owner;
+
+    idmap_store_cb cb;
+    void *pvt;
 };
 
 static void *default_alloc(size_t size, void *pvt)
@@ -195,10 +204,32 @@ enum idmap_error_code sss_idmap_init(idmap_alloc_func *alloc_func,
     ctx->idmap_opts.idmap_lower = SSS_IDMAP_DEFAULT_LOWER;
     ctx->idmap_opts.idmap_upper = SSS_IDMAP_DEFAULT_UPPER;
     ctx->idmap_opts.rangesize = SSS_IDMAP_DEFAULT_RANGESIZE;
+    ctx->idmap_opts.extra_slice_init = SSS_IDMAP_DEFAULT_EXTRA_SLICE_INIT;
 
     *_ctx = ctx;
 
     return IDMAP_SUCCESS;
+}
+
+static void free_helpers(struct sss_idmap_ctx *ctx,
+                         struct idmap_range_params *helpers,
+                         bool helpers_owner)
+{
+    struct idmap_range_params *it = helpers;
+    struct idmap_range_params *tmp;
+
+    if (helpers_owner == false) {
+        return;
+    }
+
+    while (it != NULL) {
+        tmp = it->next;
+
+        ctx->free_func(it->range_id, ctx->alloc_pvt);
+        ctx->free_func(it, ctx->alloc_pvt);
+
+        it = tmp;
+    }
 }
 
 static void sss_idmap_free_domain(struct sss_idmap_ctx *ctx,
@@ -209,6 +240,9 @@ static void sss_idmap_free_domain(struct sss_idmap_ctx *ctx,
     }
 
     ctx->free_func(dom->range_params.range_id, ctx->alloc_pvt);
+
+    free_helpers(ctx, dom->helpers, dom->helpers_owner);
+
     ctx->free_func(dom->name, ctx->alloc_pvt);
     ctx->free_func(dom->sid, ctx->alloc_pvt);
     ctx->free_func(dom, ctx->alloc_pvt);
@@ -269,6 +303,22 @@ enum idmap_error_code sss_idmap_free_bin_sid(struct sss_idmap_ctx *ctx,
     return sss_idmap_free_ptr(ctx, bin_sid);
 }
 
+static bool check_overlap(struct idmap_range_params *range,
+                          id_t min, id_t max)
+{
+    return ((range->min_id <= min && range->max_id >= max)
+                || (range->min_id >= min && range->min_id <= max)
+                || (range->max_id >= min && range->max_id <= max));
+}
+
+static bool check_dom_overlap(struct idmap_range_params *prim_range,
+                              /* struct idmap_range_params *sec_ranges, */
+                              id_t min,
+                              id_t max)
+{
+    return check_overlap(prim_range, min, max);
+}
+
 enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
                                                 const char *dom_sid,
                                                 id_t *slice_num,
@@ -327,12 +377,9 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
         /* Verify that this slice is not already in use */
         do {
             for (dom = ctx->idmap_domain_info; dom != NULL; dom = dom->next) {
-                uint32_t dmin = dom->range_params.min_id;
-                uint32_t dmax = dom->range_params.max_id;
 
-                if ((dmin <= min && dmax >= max) ||
-                    (dmin >= min && dmin <= max) ||
-                    (dmax >= min && dmax <= max)) {
+                if (check_dom_overlap(&dom->range_params,
+                                      min, max)) {
                     /* This range overlaps one already registered
                      * We'll try the next available slot
                      */
@@ -487,6 +534,105 @@ idmap_error_code dom_check_collision(struct idmap_domain_info *dom_list,
     return IDMAP_SUCCESS;
 }
 
+static char*
+generate_sec_slice_name(struct sss_idmap_ctx *ctx,
+                        const char *domain_name, uint32_t rid)
+{
+    const char *SEC_SLICE_NAME_FMT = "%s-%"PRIu32;
+    char *slice_name;
+    int len, len2;
+
+    len = snprintf(NULL, 0, SEC_SLICE_NAME_FMT, domain_name, rid);
+    if (len <= 0) {
+        return NULL;
+    }
+
+    slice_name = ctx->alloc_func(len + 1, ctx->alloc_pvt);
+    if (slice_name == NULL) {
+        return NULL;
+    }
+
+    len2 = snprintf(slice_name, len + 1, SEC_SLICE_NAME_FMT, domain_name,
+                    rid);
+    if (len != len2) {
+        ctx->free_func(slice_name, ctx->alloc_pvt);
+        return NULL;
+    }
+
+    return slice_name;
+}
+
+static enum idmap_error_code
+generate_slice(struct sss_idmap_ctx *ctx, char *slice_name, uint32_t first_rid,
+               struct idmap_range_params **_slice)
+{
+    struct idmap_range_params *slice;
+    struct sss_idmap_range tmp_range;
+    enum idmap_error_code err;
+
+    slice = ctx->alloc_func(sizeof(struct idmap_range_params), ctx->alloc_pvt);
+    if (slice == NULL) {
+        return IDMAP_OUT_OF_MEMORY;
+    }
+
+    slice->next = NULL;
+
+    err = sss_idmap_calculate_range(ctx, slice_name, NULL, &tmp_range);
+    if (err != IDMAP_SUCCESS) {
+        ctx->free_func(slice, ctx->alloc_pvt);
+        return err;
+    }
+
+    slice->min_id = tmp_range.min;
+    slice->max_id = tmp_range.max;
+    slice->range_id = slice_name;
+    slice->first_rid = first_rid;
+
+    *_slice = slice;
+    return IDMAP_SUCCESS;
+}
+
+static enum idmap_error_code
+get_helpers(struct sss_idmap_ctx *ctx,
+            const char *domain_sid,
+            uint32_t first_rid,
+            struct idmap_range_params **_sec_slices)
+{
+    struct idmap_range_params *prev = NULL;
+    struct idmap_range_params *sec_slices = NULL;
+    static enum idmap_error_code err;
+    struct idmap_range_params *slice;
+    char *secondary_name;
+
+    for (int i = 0; i < ctx->idmap_opts.extra_slice_init; i++) {
+        secondary_name = generate_sec_slice_name(ctx, domain_sid, first_rid);
+        if (secondary_name == NULL) {
+            return IDMAP_OUT_OF_MEMORY;
+        }
+
+        err = generate_slice(ctx, secondary_name, first_rid, &slice);
+        if (err != IDMAP_SUCCESS) {
+            ctx->free_func(secondary_name, ctx->alloc_pvt);
+            return err;
+        }
+
+        first_rid += ctx->idmap_opts.rangesize;
+
+        if (prev != NULL) {
+            prev->next = slice;
+        }
+
+        if (sec_slices == NULL) {
+            sec_slices = slice;
+        }
+
+        prev = slice;
+    }
+
+    *_sec_slices = sec_slices;
+    return IDMAP_SUCCESS;
+}
+
 enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
                                               const char *domain_name,
                                               const char *domain_sid,
@@ -567,6 +713,67 @@ fail:
     return err;
 }
 
+enum idmap_error_code
+sss_idmap_add_auto_domain_ex(struct sss_idmap_ctx *ctx,
+                             const char *domain_name,
+                             const char *domain_sid,
+                             struct sss_idmap_range *range,
+                             const char *range_id,
+                             uint32_t rid,
+                             bool external_mapping,
+                             idmap_store_cb cb,
+                             void *pvt)
+{
+    enum idmap_error_code err;
+
+    err = sss_idmap_add_domain_ex(ctx, domain_name, domain_sid, range,
+                                  range_id, rid, external_mapping);
+    if (err != IDMAP_SUCCESS) {
+        return err;
+    }
+
+    if (external_mapping) {
+        /* There's no point in generating secondary ranges if external_mapping
+           is enabled. */
+        ctx->idmap_domain_info->auto_add_ranges = false;
+        return IDMAP_SUCCESS;
+    }
+
+    if ((range->max - range->min + 1) != ctx->idmap_opts.rangesize) {
+        /* Range of primary slice is not equal to the value of
+           ldap_idmap_range_size option. */
+        return IDMAP_ERROR;
+    }
+
+    /* No additional secondary ranges should be added if no sec ranges are
+       predeclared. */
+    if (ctx->idmap_opts.extra_slice_init == 0) {
+        ctx->idmap_domain_info->auto_add_ranges = false;
+        return IDMAP_SUCCESS;
+    }
+
+    /* Add size of primary slice for first_rid of secondary slices. */
+    rid += ctx->idmap_opts.rangesize;
+    err = get_helpers(ctx, domain_sid, rid,
+                      &ctx->idmap_domain_info->helpers);
+    if (err == IDMAP_SUCCESS) {
+        ctx->idmap_domain_info->auto_add_ranges = true;
+        ctx->idmap_domain_info->helpers_owner = true;
+    } else {
+        /* Running out of slices for secondary mapping is a non-fatal
+         * problem. */
+        if (err == IDMAP_OUT_OF_SLICES) {
+            err = IDMAP_SUCCESS;
+        }
+        ctx->idmap_domain_info->auto_add_ranges = false;
+    }
+
+    ctx->idmap_domain_info->cb = cb;
+    ctx->idmap_domain_info->pvt = pvt;
+
+    return err;
+}
+
 enum idmap_error_code sss_idmap_add_domain(struct sss_idmap_ctx *ctx,
                                            const char *domain_name,
                                            const char *domain_sid,
@@ -585,16 +792,198 @@ static bool sss_idmap_sid_is_builtin(const char *sid)
     return false;
 }
 
+static bool parse_rid(const char *sid, size_t dom_prefix_len, long long *_rid)
+{
+    long long rid;
+    char *endptr;
+
+    errno = 0;
+    /* Use suffix of sid - part after domain and following '-' */
+    rid = strtoull(sid + dom_prefix_len + 1, &endptr, 10);
+    if (errno != 0 || rid > UINT32_MAX || *endptr != '\0') {
+        return false;
+    }
+
+    *_rid = rid;
+    return true;
+}
+
+static bool is_sid_from_dom(const char *dom_sid, const char *sid,
+                            size_t *_dom_sid_len)
+{
+    size_t dom_sid_len;
+
+    if (dom_sid == NULL) {
+        return false;
+    }
+
+    dom_sid_len = strlen(dom_sid);
+    *_dom_sid_len = dom_sid_len;
+
+    if (strlen(sid) < dom_sid_len || sid[dom_sid_len] != '-') {
+        return false;
+    }
+
+    return strncmp(sid, dom_sid, dom_sid_len) == 0;
+}
+
+static bool comp_id(struct idmap_range_params *range_params, long long rid,
+                    uint32_t *_id)
+{
+    uint32_t id;
+
+    if (rid >= range_params->first_rid
+            && ((UINT32_MAX - range_params->min_id) >
+               (rid - range_params->first_rid))) {
+        id = range_params->min_id + (rid - range_params->first_rid);
+        if (id <= range_params->max_id) {
+            *_id = id;
+            return true;
+        }
+    }
+    return false;
+}
+
+static enum idmap_error_code
+get_range(struct sss_idmap_ctx *ctx,
+          const char *dom_sid,
+          long long rid,
+          struct idmap_range_params **_range)
+{
+    char *secondary_name;
+    enum idmap_error_code err;
+    int first_rid;
+    struct idmap_range_params *range;
+
+    first_rid = (rid / ctx->idmap_opts.rangesize) * ctx->idmap_opts.rangesize;
+
+    secondary_name = generate_sec_slice_name(ctx, dom_sid, first_rid);
+    if (secondary_name == NULL) {
+        return IDMAP_OUT_OF_MEMORY;
+    }
+
+    err = generate_slice(ctx, secondary_name, first_rid, &range);
+    if (err == IDMAP_OUT_OF_SLICES) {
+        ctx->free_func(secondary_name, ctx->alloc_pvt);
+        return err;
+    }
+
+    *_range = range;
+    return IDMAP_SUCCESS;
+}
+
+static enum idmap_error_code
+spawn_dom(struct sss_idmap_ctx *ctx,
+          struct idmap_domain_info *parent,
+          struct idmap_range_params *range)
+{
+    struct sss_idmap_range tmp;
+    static enum idmap_error_code err;
+    struct idmap_domain_info *it;
+
+    tmp.min = range->min_id;
+    tmp.max = range->max_id;
+
+    err = sss_idmap_add_domain_ex(ctx,
+                                  parent->name,
+                                  parent->sid,
+                                  &tmp, range->range_id,
+                                  range->first_rid, false);
+    if (err != IDMAP_SUCCESS) {
+        return err;
+    }
+
+    it = ctx->idmap_domain_info;
+    while (it != NULL) {
+        /* Find the newly added domain. */
+        if (it->range_params.first_rid == range->first_rid
+                && it->range_params.min_id == range->min_id
+                && it->range_params.max_id == range->max_id) {
+
+            /* Share helpers. */
+            it->helpers = parent->helpers;
+            it->auto_add_ranges = parent->auto_add_ranges;
+
+            /* Share call back for storing domains */
+            it->cb = parent->cb;
+            it->pvt = parent->pvt;
+            break;
+        }
+
+        it = it->next;
+    }
+
+    if (it == NULL) {
+        /* Failed to find just added domain. */
+        return IDMAP_ERROR;
+    }
+
+    /* Store mapping for newly created domain. */
+    if (it->cb != NULL) {
+        err = it->cb(it->name,
+                     it->sid,
+                     it->range_params.range_id,
+                     it->range_params.min_id,
+                     it->range_params.max_id,
+                     it->range_params.first_rid,
+                     it->pvt);
+        if (err != IDMAP_SUCCESS) {
+            return err;
+        }
+    }
+
+    return IDMAP_SUCCESS;
+}
+
+static enum idmap_error_code
+add_dom_for_sid(struct sss_idmap_ctx *ctx,
+                struct idmap_domain_info *matched_dom,
+                const char *sid,
+                uint32_t *_id)
+{
+    enum idmap_error_code err;
+    long long rid;
+    struct idmap_range_params *range = NULL;
+
+    if (parse_rid(sid, strlen(matched_dom->sid), &rid) == false) {
+        err = IDMAP_SID_INVALID;
+        goto done;
+    }
+
+    /* todo optimize */
+    err = get_range(ctx, matched_dom->sid, rid, &range);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    err = spawn_dom(ctx, matched_dom, range);
+    if (err != IDMAP_SUCCESS) {
+        goto done;
+    }
+
+    if (!comp_id(range, rid, _id)) {
+        err = IDMAP_ERROR;
+        goto done;
+    }
+
+    err =  IDMAP_SUCCESS;
+
+done:
+    if (range != NULL) {
+        ctx->free_func(range->range_id, ctx->alloc_pvt);
+    }
+    ctx->free_func(range, ctx->alloc_pvt);
+    return err;
+}
+
 enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
                                             const char *sid,
                                             uint32_t *_id)
 {
     struct idmap_domain_info *idmap_domain_info;
+    struct idmap_domain_info *matched_dom = NULL;
     size_t dom_len;
     long long rid;
-    char *endptr;
-    uint32_t id;
-    bool no_range = false;
 
     if (sid == NULL || _id == NULL) {
         return IDMAP_ERROR;
@@ -608,39 +997,34 @@ enum idmap_error_code sss_idmap_sid_to_unix(struct sss_idmap_ctx *ctx,
         return IDMAP_BUILTIN_SID;
     }
 
+    /* Try primary slices */
     while (idmap_domain_info != NULL) {
-        if (idmap_domain_info->sid != NULL) {
-            dom_len = strlen(idmap_domain_info->sid);
-            if (strlen(sid) > dom_len && sid[dom_len] == '-'
-                    && strncmp(sid, idmap_domain_info->sid, dom_len) == 0) {
 
-                if (idmap_domain_info->external_mapping == true) {
-                    return IDMAP_EXTERNAL;
-                }
+        if (is_sid_from_dom(idmap_domain_info->sid, sid, &dom_len)) {
 
-                errno = 0;
-                rid = strtoull(sid + dom_len + 1, &endptr, 10);
-                if (errno != 0 || rid > UINT32_MAX || *endptr != '\0') {
-                    return IDMAP_SID_INVALID;
-                }
-
-                if (rid >= idmap_domain_info->range_params.first_rid) {
-                    id = idmap_domain_info->range_params.min_id
-                            + (rid - idmap_domain_info->range_params.first_rid);
-                    if (id <= idmap_domain_info->range_params.max_id) {
-                        *_id = id;
-                        return IDMAP_SUCCESS;
-                    }
-                }
-
-                no_range = true;
+            if (idmap_domain_info->external_mapping == true) {
+                return IDMAP_EXTERNAL;
             }
+
+            if (parse_rid(sid, dom_len, &rid) == false) {
+                return IDMAP_SID_INVALID;
+            }
+
+            if (comp_id(&idmap_domain_info->range_params, rid, _id)) {
+                return IDMAP_SUCCESS;
+            }
+
+            matched_dom = idmap_domain_info;
         }
 
         idmap_domain_info = idmap_domain_info->next;
     }
 
-    return no_range ? IDMAP_NO_RANGE : IDMAP_NO_DOMAIN;
+    if (matched_dom != NULL && matched_dom->auto_add_ranges) {
+        return add_dom_for_sid(ctx, matched_dom, sid, _id);
+    }
+
+    return matched_dom ? IDMAP_NO_RANGE : IDMAP_NO_DOMAIN;
 }
 
 enum idmap_error_code sss_idmap_check_sid_unix(struct sss_idmap_ctx *ctx,
@@ -688,15 +1072,42 @@ enum idmap_error_code sss_idmap_check_sid_unix(struct sss_idmap_ctx *ctx,
     return no_range ? IDMAP_NO_RANGE : IDMAP_SID_UNKNOWN;
 }
 
+static enum idmap_error_code generate_sid(struct sss_idmap_ctx *ctx,
+                                          const char *dom_sid,
+                                          uint32_t rid,
+                                          char **_sid)
+{
+    char *sid;
+    int len;
+    int ret;
+
+    len = snprintf(NULL, 0, SID_FMT, dom_sid, rid);
+    if (len <= 0 || len > SID_STR_MAX_LEN) {
+        return IDMAP_ERROR;
+    }
+
+    sid = ctx->alloc_func(len + 1, ctx->alloc_pvt);
+    if (sid == NULL) {
+        return IDMAP_OUT_OF_MEMORY;
+    }
+
+    ret = snprintf(sid, len + 1, SID_FMT, dom_sid, rid);
+    if (ret != len) {
+        ctx->free_func(sid, ctx->alloc_pvt);
+        return IDMAP_ERROR;
+    }
+
+    *_sid = sid;
+    return IDMAP_SUCCESS;
+}
+
 enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
                                             uint32_t id,
                                             char **_sid)
 {
     struct idmap_domain_info *idmap_domain_info;
-    int len;
-    int ret;
     uint32_t rid;
-    char *sid = NULL;
+    enum idmap_error_code err;
 
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 
@@ -710,24 +1121,34 @@ enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
                 return IDMAP_EXTERNAL;
             }
 
-            len = snprintf(NULL, 0, SID_FMT, idmap_domain_info->sid, rid);
-            if (len <= 0 || len > SID_STR_MAX_LEN) {
-                return IDMAP_ERROR;
-            }
+            return generate_sid(ctx, idmap_domain_info->sid, rid, _sid);
+        }
 
-            sid = ctx->alloc_func(len + 1, ctx->alloc_pvt);
-            if (sid == NULL) {
-                return IDMAP_OUT_OF_MEMORY;
-            }
+        idmap_domain_info = idmap_domain_info->next;
+    }
 
-            ret = snprintf(sid, len + 1, SID_FMT, idmap_domain_info->sid, rid);
-            if (ret != len) {
-                ctx->free_func(sid, ctx->alloc_pvt);
-                return IDMAP_ERROR;
-            }
+    /* Check secondary ranges. */
+    idmap_domain_info = ctx->idmap_domain_info;
+    while (idmap_domain_info != NULL) {
 
-            *_sid = sid;
-            return IDMAP_SUCCESS;
+        for (struct idmap_range_params *it = idmap_domain_info->helpers;
+             it != NULL;
+             it = it->next) {
+
+            if (id_is_in_range(id, it, &rid)) {
+
+                if (idmap_domain_info->external_mapping == true
+                    || idmap_domain_info->sid == NULL) {
+                    return IDMAP_EXTERNAL;
+                }
+
+                err = spawn_dom(ctx, idmap_domain_info, it);
+                if (err != IDMAP_SUCCESS) {
+                    return err;
+                }
+
+                return generate_sid(ctx, idmap_domain_info->sid, rid, _sid);
+            }
         }
 
         idmap_domain_info = idmap_domain_info->next;
@@ -966,6 +1387,15 @@ sss_idmap_ctx_set_rangesize(struct sss_idmap_ctx *ctx, id_t rangesize)
 {
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
     ctx->idmap_opts.rangesize = rangesize;
+    return IDMAP_SUCCESS;
+}
+
+enum idmap_error_code
+sss_idmap_ctx_set_extra_slice_init(struct sss_idmap_ctx *ctx,
+                                  int extra_slice_init)
+{
+    CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
+    ctx->idmap_opts.extra_slice_init = extra_slice_init;
     return IDMAP_SUCCESS;
 }
 

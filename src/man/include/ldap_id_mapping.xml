@@ -243,6 +243,26 @@ ldap_schema = ad
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>ldap_idmap_helper_table_size (integer)</term>
+                    <listitem>
+                        <para>
+                          Maximal number of secondary slices that is tried when
+                          performing mapping from UNIX id to SID.
+                        </para>
+                        <para>
+                          Note: Additional secondary slices might be generated
+                          when SID is being mapped to UNIX id and RID part of
+                          SID is out of range for secondary slices generated so
+                          far. If value of ldap_idmap_helper_table_size is equal
+                          to 0 then no additional secondary slices are
+                          generated.
+                        </para>
+                        <para>
+                            Default: 10
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect3>
     </refsect2>

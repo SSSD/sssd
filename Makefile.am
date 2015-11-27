@@ -956,7 +956,7 @@ libsss_idmap_la_SOURCES = \
     src/util/murmurhash3.c
 libsss_idmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/lib/idmap/sss_idmap.exports \
-    -version-info 4:0:4
+    -version-info 5:0:5
 
 dist_noinst_DATA += src/lib/idmap/sss_idmap.exports
 

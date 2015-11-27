@@ -94,6 +94,17 @@ typedef void *(idmap_alloc_func)(size_t size, void *pvt);
 typedef void (idmap_free_func)(void *ptr, void *pvt);
 
 /**
+ * Typedef for storing mappings of dynamically created domains
+ */
+typedef enum idmap_error_code (*idmap_store_cb)(const char *dom_name,
+                                                const char *dom_sid,
+                                                const char *range_id,
+                                                uint32_t min_id,
+                                                uint32_t max_id,
+                                                uint32_t first_rid,
+                                                void *pvt);
+
+/**
  * Structure for id ranges
  * FIXME: this struct might change when it is clear how ranges are handled on
  * the server side
@@ -173,6 +184,17 @@ sss_idmap_ctx_set_upper(struct sss_idmap_ctx *ctx, id_t upper);
  */
 enum idmap_error_code
 sss_idmap_ctx_set_rangesize(struct sss_idmap_ctx *ctx, id_t rangesize);
+
+/**
+ * @brief Set the number of secondary slices available for domain
+ *
+ * @param[in] ctx                  idmap context
+ * @param[in] extra_slice_init     number of secondary slices to be generated
+ *                                 at startup
+ */
+enum idmap_error_code
+sss_idmap_ctx_set_extra_slice_init(struct sss_idmap_ctx *ctx,
+                                  int extra_slice_init);
 
 /**
  * @brief Check if autorid compatibility mode is set
@@ -289,6 +311,49 @@ enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
                                               const char *range_id,
                                               uint32_t rid,
                                               bool external_mapping);
+
+/**
+ * @brief Add a domain with the first mappable RID to the idmap context and
+ * generate automatically secondary slices
+ *
+ * @param[in] ctx         Idmap context
+ * @param[in] domain_name Zero-terminated string with the domain name
+ * @param[in] domain_sid  Zero-terminated string representation of the domain
+ *                        SID (S-1-15-.....)
+ * @param[in] range       TBD Some information about the id ranges of this
+ *                        domain
+ * @param[in] range_id    optional unique identifier of a range, it is needed
+ *                        to allow updates at runtime
+ * @param[in] rid         The RID that should be mapped to the first ID of the
+ *                        given range.
+ * @param[in] external_mapping  If set to true the ID will not be mapped
+ *                        algorithmically, but the *_to_unix and *_unix_to_*
+ *                        calls will return IDMAP_EXTERNAL to instruct the
+ *                        caller to check external sources. For a single
+ *                        domain all ranges must be of the same type. It is
+ *                        not possible to mix algorithmic and external
+ *                        mapping.
+ * @param[in] s_cv        The callback for storing mapping of dynamically
+ *                        created domains.
+ * @param[in] pvt         Private data for callback cb.
+ *
+ * @return
+ *  - #IDMAP_OUT_OF_MEMORY: Insufficient memory to store the data in the idmap
+ *                          context
+ *  - #IDMAP_SID_INVALID:   Invalid SID provided
+ *  - #IDMAP_NO_DOMAIN:     No domain domain name given
+ *  - #IDMAP_COLLISION:     New domain collides with existing one
+ */
+enum idmap_error_code
+sss_idmap_add_auto_domain_ex(struct sss_idmap_ctx *ctx,
+                             const char *domain_name,
+                             const char *domain_sid,
+                             struct sss_idmap_range *range,
+                             const char *range_id,
+                             uint32_t rid,
+                             bool external_mapping,
+                             idmap_store_cb cb,
+                             void *pvt);
 
 /**
  * @brief Check if a new range would collide with any existing one

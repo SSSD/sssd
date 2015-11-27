@@ -29,6 +29,7 @@
 #define SSS_IDMAP_DEFAULT_UPPER 2000200000
 #define SSS_IDMAP_DEFAULT_RANGESIZE 200000
 #define SSS_IDMAP_DEFAULT_AUTORID false
+#define SSS_IDMAP_DEFAULT_EXTRA_SLICE_INIT 10
 
 #define CHECK_IDMAP_CTX(ctx, ret) do { \
     if (ctx == NULL || ctx->alloc_func == NULL || ctx->free_func == NULL) { \
@@ -48,6 +49,9 @@ struct sss_idmap_opts {
 
     /* number of available UIDs (for single domain) */
     id_t rangesize;
+
+    /* maximal number of secondary slices */
+    int extra_slice_init;
 };
 
 struct sss_idmap_ctx {

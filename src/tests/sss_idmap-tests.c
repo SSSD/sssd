@@ -68,6 +68,20 @@ void idmap_ctx_setup(void)
     fail_unless(idmap_ctx != NULL, "sss_idmap_init returned NULL.");
 }
 
+void idmap_ctx_setup_additional_seconary_slices(void)
+{
+    enum idmap_error_code err;
+
+    err = sss_idmap_init(idmap_talloc, global_talloc_context, idmap_talloc_free,
+                         &idmap_ctx);
+
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_init failed.");
+    fail_unless(idmap_ctx != NULL, "sss_idmap_init returned NULL.");
+
+    idmap_ctx->idmap_opts.rangesize = 10;
+    idmap_ctx->idmap_opts.extra_slice_init = 5;
+}
+
 void idmap_ctx_teardown(void)
 {
     enum idmap_error_code err;
@@ -83,6 +97,86 @@ void idmap_add_domain_setup(void)
 
     err = sss_idmap_add_domain(idmap_ctx, "test.dom", "S-1-5-21-1-2-3", &range);
     fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_domain failed.");
+}
+
+void idmap_add_domain_with_sec_slices_setup(void)
+{
+    enum idmap_error_code err;
+    struct sss_idmap_range range = {
+        IDMAP_RANGE_MIN,
+        IDMAP_RANGE_MIN + idmap_ctx->idmap_opts.rangesize - 1,
+    };
+
+    err = sss_idmap_add_auto_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-3",
+                                       &range, NULL, 0, false, NULL, NULL);
+
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_auto_domain_ex failed.");
+}
+
+
+enum idmap_error_code cb(const char *dom_name,
+                         const char *dom_sid,
+                         const char *range_id,
+                         uint32_t min_id,
+                         uint32_t max_id,
+                         uint32_t first_rid,
+                         void *pvt)
+{
+    return IDMAP_ERROR;
+}
+
+void idmap_add_domain_with_sec_slices_setup_cb_fail(void)
+{
+    enum idmap_error_code err;
+    struct sss_idmap_range range = {
+        IDMAP_RANGE_MIN,
+        IDMAP_RANGE_MIN + idmap_ctx->idmap_opts.rangesize - 1,
+    };
+
+    err = sss_idmap_add_auto_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-3",
+                                       &range, NULL, 0, false, cb, NULL);
+
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_auto_domain_ex failed.");
+}
+
+
+#define MAX 1000
+char data[MAX];
+
+enum idmap_error_code cb2(const char *dom_name,
+                          const char *dom_sid,
+                          const char *range_id,
+                          uint32_t min_id,
+                          uint32_t max_id,
+                          uint32_t first_rid,
+                          void *pvt)
+{
+    char *p = (char*)pvt;
+    size_t len;
+
+    len = snprintf(p, MAX, "%s, %s %s, %"PRIu32", %"PRIu32", %" PRIu32,
+                   dom_name, dom_sid, range_id, min_id, max_id, first_rid);
+
+    if (len >= MAX) {
+        return IDMAP_OUT_OF_MEMORY;
+    }
+    return IDMAP_SUCCESS;
+}
+
+void idmap_add_domain_with_sec_slices_setup_cb_ok(void)
+{
+    enum idmap_error_code err;
+    struct sss_idmap_range range = {
+        IDMAP_RANGE_MIN,
+        IDMAP_RANGE_MIN + idmap_ctx->idmap_opts.rangesize - 1,
+    };
+
+    void *pvt = (void*) data;
+
+    err = sss_idmap_add_auto_domain_ex(idmap_ctx, "test.dom", "S-1-5-21-1-2-3",
+                                       &range, NULL, 0, false, cb2, pvt);
+
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_add_auto_domain_ex failed.");
 }
 
 START_TEST(idmap_test_is_domain_sid)
@@ -225,6 +319,145 @@ START_TEST(idmap_test_sid2uid)
 }
 END_TEST
 
+START_TEST(idmap_test_sid2uid_ss)
+{
+    enum idmap_error_code err;
+    uint32_t id;
+    const uint32_t exp_id = 351800000;
+    const uint32_t exp_id2 = 832610000;
+
+    err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3333-1000", &id);
+    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_sid_to_unix did not detect "
+                                        "unknown domain");
+
+    /* RID out of primary and secondary range */
+    err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-4000000", &id);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    fail_unless(id == exp_id,
+                "sss_idmap_sid_to_unix returned wrong id, "
+                "got [%d], expected [%d].", id, exp_id);
+
+    err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-1000", &id);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    fail_unless(id == (1000 + IDMAP_RANGE_MIN),
+                "sss_idmap_sid_to_unix returned wrong id, "
+                "got [%d], expected [%d].", id, 1000 + IDMAP_RANGE_MIN);
+
+    err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-210000", &id);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    fail_unless(id == exp_id2,
+                "sss_idmap_sid_to_unix returned wrong id, "
+                "got [%d], expected [%d].", id, exp_id2);
+}
+END_TEST
+
+START_TEST(idmap_test_sid2uid_ext_sec_slices)
+{
+    enum idmap_error_code err;
+    uint32_t id;
+    char *sid;
+    const uint32_t exp_id = 351800000;
+
+    err = sss_idmap_unix_to_sid(idmap_ctx, exp_id, &sid);
+    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
+                                        "id out of range");
+
+    /* RID out of primary and secondary range */
+    err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-4000000", &id);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    fail_unless(id == exp_id,
+                "sss_idmap_sid_to_unix returned wrong id, "
+                "got [%d], expected [%d].", id, exp_id);
+
+    /* Secondary ranges were expanded by sid_to_unix call */
+    err = sss_idmap_unix_to_sid(idmap_ctx, exp_id, &sid);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
+    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-4000000") == 0,
+                "sss_idmap_unix_to_sid returned wrong SID, "
+                "expected [%s], got [%s].", "S-1-5-21-1-2-3-4000000", sid);
+    sss_idmap_free_sid(idmap_ctx, sid);
+}
+END_TEST
+
+
+START_TEST(idmap_test_dyn_dom_store_cb_fail)
+{
+    enum idmap_error_code err;
+    uint32_t id;
+    char *sid;
+    const uint32_t exp_id = 351800000;
+
+    err = sss_idmap_unix_to_sid(idmap_ctx, exp_id, &sid);
+    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
+                                        "id out of range");
+
+    /* RID out of primary and secondary range */
+    err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-4000000", &id);
+    fail_unless(err == IDMAP_ERROR, "sss_idmap_sid_to_unix failed.");
+}
+END_TEST
+
+START_TEST(idmap_test_dyn_dom_store_cb_ok)
+{
+    enum idmap_error_code err;
+    uint32_t id;
+    char *sid;
+    const uint32_t exp_id = 351800000;
+    const char *exp_stored_data = "test.dom, S-1-5-21-1-2-3 S-1-5-21-1-2-3-4000000, 351800000, 351999999, 4000000";
+
+    err = sss_idmap_unix_to_sid(idmap_ctx, exp_id, &sid);
+    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
+                                        "id out of range");
+
+    /* RID out of primary and secondary range */
+    err = sss_idmap_sid_to_unix(idmap_ctx, "S-1-5-21-1-2-3-4000000", &id);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+
+    fail_unless(strcmp(data,
+                       exp_stored_data) == 0,
+                "Storing dynamic domains idmapping failed: "
+                "expected [%s] but got [%s].", exp_stored_data, data);
+}
+END_TEST
+
+
+START_TEST(idmap_test_sid2uid_additional_secondary_slices)
+{
+    enum idmap_error_code err;
+    struct TALLOC_CTX *tmp_ctx;
+    const char *dom_prefix = "S-1-5-21-1-2-3";
+    const int max_rid = 80;
+    const char *sids[max_rid];
+    unsigned int ids[max_rid];
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "Out of memory.");
+
+    for (unsigned int i = 0; i < max_rid + 1; i++) {
+        sids[i] = talloc_asprintf(tmp_ctx, "%s-%u", dom_prefix, i);
+
+        fail_unless(sids[i] != NULL, "Out of memory");
+
+        err = sss_idmap_sid_to_unix(idmap_ctx, sids[i], &ids[i]);
+        fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+    }
+
+    for (unsigned int i = 0; i < max_rid + 1; i++) {
+        char *sid;
+
+        err = sss_idmap_unix_to_sid(idmap_ctx, ids[i], &sid);
+        fail_unless(err == IDMAP_SUCCESS, "sss_idmap_sid_to_unix failed.");
+
+        fail_unless(strcmp(sid, sids[i]) == 0,
+                    "sss_idmap_unix_to_sid returned wrong sid, "
+                    "got [%s], expected [%s].", sid, sids[i]);
+        talloc_free(sid);
+    }
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
+
 START_TEST(idmap_test_bin_sid2uid)
 {
     enum idmap_error_code err;
@@ -279,6 +512,38 @@ START_TEST(idmap_test_uid2sid)
     fail_unless(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
                 "sss_idmap_unix_to_sid returned wrong SID, "
                 "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
+
+    sss_idmap_free_sid(idmap_ctx, sid);
+}
+END_TEST
+
+START_TEST(idmap_test_uid2sid_ss)
+{
+    enum idmap_error_code err;
+    char *sid;
+
+    err = sss_idmap_unix_to_sid(idmap_ctx,
+                                IDMAP_RANGE_MIN + idmap_ctx->idmap_opts.rangesize + 1,
+                                &sid);
+    fail_unless(err == IDMAP_NO_DOMAIN, "sss_idmap_unix_to_sid did not detect "
+                                        "id out of range");
+
+    err = sss_idmap_unix_to_sid(idmap_ctx, 2234, &sid);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
+    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-1000") == 0,
+                "sss_idmap_unix_to_sid returned wrong SID, "
+                "expected [%s], got [%s].", "S-1-5-21-1-2-3-1000", sid);
+
+    sss_idmap_free_sid(idmap_ctx, sid);
+
+    /* Secondary ranges */
+    err = sss_idmap_unix_to_sid(idmap_ctx,
+                                313800000,
+                                &sid);
+    fail_unless(err == IDMAP_SUCCESS, "sss_idmap_unix_to_sid failed.");
+    fail_unless(strcmp(sid, "S-1-5-21-1-2-3-400000") == 0,
+                "sss_idmap_unix_to_sid returned wrong SID, "
+                "expected [%s], got [%s].", "S-1-5-21-1-2-3-400000", sid);
 
     sss_idmap_free_sid(idmap_ctx, sid);
 }
@@ -617,6 +882,73 @@ Suite *idmap_test_suite (void)
     tcase_add_test(tc_map, idmap_test_uid2bin_sid);
 
     suite_add_tcase(s, tc_map);
+
+    /* Test secondary slices */
+    TCase *tc_map_ss = tcase_create("IDMAP mapping tests");
+    tcase_add_checked_fixture(tc_map_ss,
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
+    tcase_add_checked_fixture(tc_map_ss,
+                              idmap_ctx_setup,
+                              idmap_ctx_teardown);
+    tcase_add_checked_fixture(tc_map_ss,
+                              idmap_add_domain_with_sec_slices_setup,
+                              NULL);
+
+    tcase_add_test(tc_map_ss, idmap_test_sid2uid_ss);
+    tcase_add_test(tc_map_ss, idmap_test_uid2sid_ss);
+    tcase_add_test(tc_map_ss, idmap_test_sid2uid_ext_sec_slices);
+
+    suite_add_tcase(s, tc_map_ss);
+
+    /* Test secondary slices - callback to store failed. */
+    TCase *tc_map_cb_fail = tcase_create("IDMAP mapping tests - store fail");
+    tcase_add_checked_fixture(tc_map_cb_fail,
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
+    tcase_add_checked_fixture(tc_map_cb_fail,
+                              idmap_ctx_setup,
+                              idmap_ctx_teardown);
+    tcase_add_checked_fixture(tc_map_cb_fail,
+                              idmap_add_domain_with_sec_slices_setup_cb_fail,
+                              NULL);
+
+    tcase_add_test(tc_map_cb_fail, idmap_test_dyn_dom_store_cb_fail);
+    suite_add_tcase(s, tc_map_cb_fail);
+
+    /* Test secondary slices - callback to store passed. */
+    TCase *tc_map_cb_ok = tcase_create("IDMAP mapping tests");
+    tcase_add_checked_fixture(tc_map_cb_ok,
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
+    tcase_add_checked_fixture(tc_map_cb_ok,
+                              idmap_ctx_setup,
+                              idmap_ctx_teardown);
+    tcase_add_checked_fixture(tc_map_cb_ok,
+                              idmap_add_domain_with_sec_slices_setup_cb_ok,
+                              NULL);
+
+    tcase_add_test(tc_map_cb_ok, idmap_test_dyn_dom_store_cb_ok);
+    suite_add_tcase(s, tc_map_cb_ok);
+
+    /* Test additional secondary slices */
+    TCase *tc_map_additional_secondary_slices = \
+        tcase_create("IDMAP additional secondary slices");
+
+    tcase_add_checked_fixture(tc_map_additional_secondary_slices,
+                              ck_leak_check_setup,
+                              ck_leak_check_teardown);
+    tcase_add_checked_fixture(tc_map_additional_secondary_slices,
+                              idmap_ctx_setup_additional_seconary_slices,
+                              idmap_ctx_teardown);
+    tcase_add_checked_fixture(tc_map_additional_secondary_slices,
+                              idmap_add_domain_with_sec_slices_setup,
+                              NULL);
+
+    tcase_add_test(tc_map_additional_secondary_slices,
+                   idmap_test_sid2uid_additional_secondary_slices);
+
+    suite_add_tcase(s, tc_map_additional_secondary_slices);
 
     return s;
 }

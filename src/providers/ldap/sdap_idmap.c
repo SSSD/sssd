@@ -94,9 +94,10 @@ sdap_idmap_add_configured_external_range(struct sdap_idmap_ctx *idmap_ctx)
 
     id_ctx = idmap_ctx->id_ctx;
 
-    err = sss_idmap_add_domain_ex(idmap_ctx->map, id_ctx->be->domain->name,
-                                  id_ctx->be->domain->domain_id, &range,
-                                  NULL, 0, true);
+    err = sss_idmap_add_auto_domain_ex(idmap_ctx->map,
+                                       id_ctx->be->domain->name,
+                                       id_ctx->be->domain->domain_id, &range,
+                                       NULL, 0, true, NULL, NULL);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not add domain [%s] to the map: [%d]\n",
@@ -142,6 +143,7 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     id_t idmap_upper;
     id_t rangesize;
     bool autorid_mode;
+    int extra_slice_init;
     struct sdap_idmap_ctx *idmap_ctx = NULL;
 
     tmp_ctx = talloc_new(NULL);
@@ -163,6 +165,8 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
                                SDAP_IDMAP_RANGESIZE);
     autorid_mode = dp_opt_get_bool(idmap_ctx->id_ctx->opts->basic,
                                    SDAP_IDMAP_AUTORID_COMPAT);
+    extra_slice_init = dp_opt_get_int(idmap_ctx->id_ctx->opts->basic,
+                                     SDAP_IDMAP_EXTRA_SLICE_INIT);
 
     /* Validate that the values make sense */
     if (rangesize <= 0
@@ -203,6 +207,7 @@ sdap_idmap_init(TALLOC_CTX *mem_ctx,
     err |= sss_idmap_ctx_set_lower(idmap_ctx->map, idmap_lower);
     err |= sss_idmap_ctx_set_upper(idmap_ctx->map, idmap_upper);
     err |= sss_idmap_ctx_set_rangesize(idmap_ctx->map, rangesize);
+    err |= sss_idmap_ctx_set_extra_slice_init(idmap_ctx->map, extra_slice_init);
     if (err != IDMAP_SUCCESS) {
         /* This should never happen */
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_idmap_ctx corrupted\n");
@@ -377,8 +382,9 @@ sdap_idmap_add_domain(struct sdap_idmap_ctx *idmap_ctx,
     }
 
     /* Add this domain to the map */
-    err = sss_idmap_add_domain_ex(idmap_ctx->map, dom_name, dom_sid, &range,
-                                  NULL, 0, external_mapping);
+    err = sss_idmap_add_auto_domain_ex(idmap_ctx->map, dom_name, dom_sid,
+                                       &range, NULL, 0, external_mapping,
+                                       NULL, NULL);
     if (err != IDMAP_SUCCESS) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Could not add domain [%s] to the map: [%d]\n",
