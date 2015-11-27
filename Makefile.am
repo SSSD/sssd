@@ -241,6 +241,7 @@ if HAVE_CMOCKA
         pam-srv-tests \
         test_ipa_subdom_util \
         test_ipa_subdom_server \
+        test_tools_colondb \
         test_krb5_wait_queue \
         test_cert_utils \
         test_ldap_id_cleanup \
@@ -2574,6 +2575,22 @@ test_ipa_subdom_server_LDADD = \
     libsss_ad_tests.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
+    $(NULL)
+
+test_tools_colondb_SOURCES = \
+    src/tests/cmocka/test_tools_colondb.c \
+    src/tools/common/sss_colondb.c \
+    $(NULL)
+test_tools_colondb_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_tools_colondb_LDFLAGS = \
+    $(NULL)
+test_tools_colondb_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(POPT_LIBS) \
+    libsss_test_common.la \
     $(NULL)
 
 test_krb5_wait_queue_SOURCES = \
