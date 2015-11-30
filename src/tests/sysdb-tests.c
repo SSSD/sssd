@@ -5721,7 +5721,7 @@ START_TEST(test_sysdb_search_user_by_cert)
     val.data = sss_base64_decode(test_ctx, TEST_USER_CERT_DERB64, &val.length);
     fail_unless(val.data != NULL, "sss_base64_decode failed.");
 
-    ret = sysdb_attrs_add_val(data->attrs, SYSDB_USER_CERT, &val);
+    ret = sysdb_attrs_add_val(data->attrs, SYSDB_USER_MAPPED_CERT, &val);
     fail_unless(ret == EOK, "sysdb_attrs_add_val failed with [%d][%s].",
                 ret, strerror(ret));
 
@@ -5750,7 +5750,7 @@ START_TEST(test_sysdb_search_user_by_cert)
     data2 = test_data_new_user(test_ctx, 2345671);
     fail_if(data2 == NULL);
 
-    ret = sysdb_attrs_add_val(data2->attrs, SYSDB_USER_CERT, &val);
+    ret = sysdb_attrs_add_val(data2->attrs, SYSDB_USER_MAPPED_CERT, &val);
     fail_unless(ret == EOK, "sysdb_attrs_add_val failed with [%d][%s].",
                 ret, strerror(ret));
 

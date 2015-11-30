@@ -1598,7 +1598,7 @@ static int test_lookup_by_cert_cb(void *pvt)
         der = sss_base64_decode(pam_test_ctx, pvt, &der_size);
         assert_non_null(der);
 
-        ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+        ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
         talloc_free(der);
         assert_int_equal(ret, EOK);
 
@@ -1630,7 +1630,7 @@ static int test_lookup_by_cert_double_cb(void *pvt)
         der = sss_base64_decode(pam_test_ctx, pvt, &der_size);
         assert_non_null(der);
 
-        ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+        ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
         talloc_free(der);
         assert_int_equal(ret, EOK);
 
@@ -1658,7 +1658,7 @@ static int test_lookup_by_cert_wrong_user_cb(void *pvt)
         der = sss_base64_decode(pam_test_ctx, pvt, &der_size);
         assert_non_null(der);
 
-        ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+        ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
         talloc_free(der);
         assert_int_equal(ret, EOK);
 

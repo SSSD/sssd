@@ -4660,7 +4660,7 @@ errno_t sysdb_search_object_by_cert(TALLOC_CTX *mem_ctx,
     int ret;
     char *user_filter;
 
-    ret = sss_cert_derb64_to_ldap_filter(mem_ctx, cert, SYSDB_USER_CERT,
+    ret = sss_cert_derb64_to_ldap_filter(mem_ctx, cert, SYSDB_USER_MAPPED_CERT,
                                          &user_filter);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_cert_derb64_to_ldap_filter failed.\n");
@@ -4749,7 +4749,7 @@ errno_t sysdb_remove_mapped_data(struct sss_domain_info *domain,
 errno_t sysdb_remove_cert(struct sss_domain_info *domain,
                           const char *cert)
 {
-    struct ldb_message_element el = { 0, SYSDB_USER_CERT, 0, NULL };
+    struct ldb_message_element el = { 0, SYSDB_USER_MAPPED_CERT, 0, NULL };
     struct sysdb_attrs del_attrs = { 1, &el };
     const char *attrs[] = {SYSDB_NAME, NULL};
     struct ldb_result *res = NULL;
