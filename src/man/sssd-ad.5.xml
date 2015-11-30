@@ -42,9 +42,10 @@
             or later. Earlier versions may work, but are unsupported.
         </para>
         <para>
-            The AD provider is able to provide identity information and
-            authentication for entities from trusted domains as well. Currently
-            only trusted domains in the same forest are recognized.
+            The AD provider can be used to get user information
+            and authenticate users from trusted domains. Currently
+            only trusted domains in the same forest are recognized. In
+            addition servers from trusted domains are always auto-discovered.
         </para>
         <para>
             The AD provider accepts the same options used by the
@@ -121,9 +122,16 @@ ldap_id_mapping = False
                             connect in order of preference. For more
                             information on failover and server redundancy, see
                             the <quote>FAILOVER</quote> section.
+                        </para>
+                        <para>
                             This is optional if autodiscovery is enabled.
                             For more information on service discovery, refer
                             to the <quote>SERVICE DISCOVERY</quote> section.
+                        </para>
+                        <para>
+                            Note: Trusted domains will always auto-discover
+                            servers even if the primary server is explicitly
+                            defined in the ad_server option.
                         </para>
                     </listitem>
                 </varlistentry>
