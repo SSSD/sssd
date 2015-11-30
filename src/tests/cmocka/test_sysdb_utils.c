@@ -103,6 +103,41 @@ static void test_sysdb_handle_original_uuid(void **state)
     talloc_free(dest_attrs);
 }
 
+#define TEST_BASE64_ABC "YWJj"
+#define TEST_BASE64_123 "AQID"
+static void test_sysdb_attrs_add_base64_blob(void **state)
+{
+    struct sysdb_attrs *attrs;
+    struct ldb_message_element *el;
+    char zero[] = { '\1', '\2', '\3' };
+    int ret;
+
+    attrs = sysdb_new_attrs(NULL);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_base64_blob(attrs, "testAttrABC", TEST_BASE64_ABC);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_base64_blob(attrs, "testAttr000", TEST_BASE64_123);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_get_el(attrs, "testAttrABC", &el);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(el->num_values, 1);
+    assert_non_null(el->values);
+    assert_non_null(el->values[0].data);
+    assert_int_equal(el->values[0].length, 3);
+    assert_memory_equal(el->values[0].data, "abc", 3);
+
+    ret = sysdb_attrs_get_el(attrs, "testAttr000", &el);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(el->num_values, 1);
+    assert_non_null(el->values);
+    assert_non_null(el->values[0].data);
+    assert_int_equal(el->values[0].length, 3);
+    assert_memory_equal(el->values[0].data, zero, 3);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -116,6 +151,7 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_sysdb_handle_original_uuid),
+        cmocka_unit_test(test_sysdb_attrs_add_base64_blob),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
