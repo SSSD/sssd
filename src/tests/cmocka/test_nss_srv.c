@@ -3508,7 +3508,7 @@ static void test_nss_getnamebycert(void **state)
     der = sss_base64_decode(nss_test_ctx, TEST_TOKEN_CERT, &der_size);
     assert_non_null(der);
 
-    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_CERT, der, der_size);
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_USER_MAPPED_CERT, der, der_size);
     talloc_free(der);
     assert_int_equal(ret, EOK);
 

@@ -139,6 +139,7 @@
 
 #define SYSDB_AUTH_TYPE "authType"
 #define SYSDB_USER_CERT "userCertificate"
+#define SYSDB_USER_MAPPED_CERT "userMappedCertificate"
 #define SYSDB_USER_EMAIL "mail"
 
 #define SYSDB_SUBDOMAIN_REALM "realmName"

@@ -60,6 +60,7 @@ struct users_get_state {
     int dp_error;
     int sdap_ret;
     bool noexist_delete;
+    struct sysdb_attrs *extra_attrs;
 };
 
 static int users_get_retry(struct tevent_req *req);
@@ -99,6 +100,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     state->conn = conn;
     state->dp_error = DP_ERR_FATAL;
     state->noexist_delete = noexist_delete;
+    state->extra_attrs = NULL;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
@@ -251,6 +253,21 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                   "sss_cert_derb64_to_ldap_filter failed.\n");
             goto done;
         }
+
+        state->extra_attrs = sysdb_new_attrs(state);
+        if (state->extra_attrs == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_new_attrs failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_add_base64_blob(state->extra_attrs,
+                                          SYSDB_USER_MAPPED_CERT, filter_value);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_base64_blob failed.\n");
+            goto done;
+        }
+
         break;
     default:
         ret = EINVAL;
@@ -442,7 +459,7 @@ static void users_get_search(struct tevent_req *req)
                                  state->attrs, state->filter,
                                  dp_opt_get_int(state->ctx->opts->basic,
                                                 SDAP_SEARCH_TIMEOUT),
-                                 lookup_type, NULL);
+                                 lookup_type, state->extra_attrs);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
