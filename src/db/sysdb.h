@@ -322,6 +322,8 @@ int sysdb_attrs_add_lower_case_string(struct sysdb_attrs *attrs, bool safe,
                                       const char *name, const char *str);
 int sysdb_attrs_add_mem(struct sysdb_attrs *attrs, const char *name,
                         const void *mem, size_t size);
+int sysdb_attrs_add_base64_blob(struct sysdb_attrs *attrs, const char *name,
+                                const char *base64_str);
 int sysdb_attrs_add_bool(struct sysdb_attrs *attrs,
                          const char *name, bool value);
 int sysdb_attrs_add_long(struct sysdb_attrs *attrs,

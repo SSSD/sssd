@@ -23,6 +23,7 @@
 #include "util/util.h"
 #include "util/strtonum.h"
 #include "util/sss_utf8.h"
+#include "util/crypto/sss_crypto.h"
 #include "db/sysdb_private.h"
 #include "confdb/confdb.h"
 #include <time.h>
@@ -632,6 +633,27 @@ int sysdb_attrs_add_mem(struct sysdb_attrs *attrs, const char *name,
 	v.data   = discard_const(mem);
 	v.length = size;
 	return sysdb_attrs_add_val(attrs, name, &v);
+}
+
+int sysdb_attrs_add_base64_blob(struct sysdb_attrs *attrs, const char *name,
+                                const char *base64_str)
+{
+    struct ldb_val v;
+    int ret;
+
+    if (base64_str == NULL) {
+        return EINVAL;
+    }
+
+    v.data = sss_base64_decode(attrs, base64_str, &v.length);
+    if (v.data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_base64_decode failed.\n");
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_add_val(attrs, name, &v);
+    talloc_free(v.data);
+    return ret;
 }
 
 int sysdb_attrs_add_bool(struct sysdb_attrs *attrs,
