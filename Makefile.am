@@ -682,6 +682,7 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/test_utils.h \
     src/tools/common/sss_tools.h \
     src/tools/common/sss_colondb.h \
+    src/util/probes.h \
     $(NULL)
 
 
