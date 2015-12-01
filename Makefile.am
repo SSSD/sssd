@@ -628,6 +628,7 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_users.h \
     src/providers/ldap/sdap_dyndns.h \
     src/providers/ldap/sdap_async_enum.h \
+    src/providers/ldap/sdap_ops.h \
     src/providers/ipa/ipa_common.h \
     src/providers/ipa/ipa_config.h \
     src/providers/ipa/ipa_access.h \
@@ -2836,6 +2837,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_refresh.c \
     src/providers/ldap/sdap_utils.c \
     src/providers/ldap/sdap_domain.c \
+    src/providers/ldap/sdap_ops.c \
     src/providers/ldap/sdap.c \
     src/util/user_info_msg.c \
     src/util/sss_ldap.c \
