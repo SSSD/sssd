@@ -58,4 +58,6 @@ extern struct sdap_attr_map ipa_autofs_mobject_map[];
 
 extern struct sdap_attr_map ipa_autofs_entry_map[];
 
+extern struct sdap_attr_map ipa_sudorule_map[];
+
 #endif /* IPA_OPTS_H_ */
