@@ -254,7 +254,7 @@ static errno_t ipa_netgr_next_base(struct tevent_req *req)
     netgr_bases = state->ipa_opts->id->sdom->netgroup_search_bases;
 
     talloc_zfree(state->filter);
-    state->filter = sdap_get_id_specific_filter(
+    state->filter = sdap_combine_filters(
             state,
             state->base_filter,
             netgr_bases[state->netgr_base_iter]->filter);

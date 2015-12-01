@@ -268,9 +268,6 @@ char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
                            const char *base_filter,
                            const char *extra_filter);
 
-#define sdap_get_id_specific_filter(mem_ctx, base_filter, extra_filter) \
-    sdap_combine_filters((mem_ctx), (base_filter), (extra_filter))
-
 char *sdap_get_access_filter(TALLOC_CTX *mem_ctx,
                              const char *base_filter);
 

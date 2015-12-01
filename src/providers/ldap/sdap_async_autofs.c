@@ -311,8 +311,7 @@ automntmaps_process_members_next_base(struct tevent_req *req)
         tevent_req_data(req, struct automntmaps_process_members_state);
 
     talloc_zfree(state->filter);
-    state->filter = sdap_get_id_specific_filter(state,
-                        state->base_filter,
+    state->filter = sdap_combine_filters(state, state->base_filter,
                         state->search_bases[state->base_iter]->filter);
     if (!state->filter) {
         return ENOMEM;
@@ -491,8 +490,7 @@ sdap_get_automntmap_next_base(struct tevent_req *req)
     state = tevent_req_data(req, struct sdap_get_automntmap_state);
 
     talloc_zfree(state->filter);
-    state->filter = sdap_get_id_specific_filter(state,
-                        state->base_filter,
+    state->filter = sdap_combine_filters(state, state->base_filter,
                         state->search_bases[state->base_iter]->filter);
     if (!state->filter) {
         return ENOMEM;

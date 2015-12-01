@@ -154,8 +154,8 @@ static errno_t ipa_host_info_next(struct tevent_req *req,
     }
 
     talloc_zfree(state->cur_filter);
-    state->cur_filter = sdap_get_id_specific_filter(state, state->host_filter,
-                                                    base->filter);
+    state->cur_filter = sdap_combine_filters(state, state->host_filter,
+                                             base->filter);
     if (state->cur_filter == NULL) {
         return ENOMEM;
     }
@@ -292,8 +292,8 @@ static errno_t ipa_hostgroup_info_next(struct tevent_req *req,
     }
 
     talloc_zfree(state->cur_filter);
-    state->cur_filter = sdap_get_id_specific_filter(state, state->host_filter,
-                                                    base->filter);
+    state->cur_filter = sdap_combine_filters(state, state->host_filter,
+                                             base->filter);
     if (state->cur_filter == NULL) {
         return ENOMEM;
     }
