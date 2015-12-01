@@ -46,6 +46,26 @@
 #define SYSDB_SUDO_CACHE_AT_NOTAFTER   "sudoNotAfter"
 #define SYSDB_SUDO_CACHE_AT_ORDER      "sudoOrder"
 
+/* sysdb ipa attributes */
+#define SYSDB_IPA_SUDORULE_OC                 "ipasudorule"
+#define SYSDB_IPA_SUDORULE_ENABLED            "ipaEnabledFlag"
+#define SYSDB_IPA_SUDORULE_OPTION             "ipaSudoOpt"
+#define SYSDB_IPA_SUDORULE_RUNASUSER          "ipaSudoRunAs"
+#define SYSDB_IPA_SUDORULE_RUNASGROUP         "ipaSudoRunAsGroup"
+#define SYSDB_IPA_SUDORULE_ORIGCMD            "originalMemberCommand"
+#define SYSDB_IPA_SUDORULE_ALLOWCMD           "memberAllowCmd"
+#define SYSDB_IPA_SUDORULE_DENYCMD            "memberDenyCmd"
+#define SYSDB_IPA_SUDORULE_HOST               "memberHost"
+#define SYSDB_IPA_SUDORULE_USER               "memberUser"
+#define SYSDB_IPA_SUDORULE_NOTAFTER           "sudoNotAfter"
+#define SYSDB_IPA_SUDORULE_NOTBEFORE          "sudoNotBefore"
+#define SYSDB_IPA_SUDORULE_SUDOORDER          "sudoOrder"
+#define SYSDB_IPA_SUDORULE_CMDCATEGORY        "cmdCategory"
+#define SYSDB_IPA_SUDORULE_HOSTCATEGORY       "hostCategory"
+#define SYSDB_IPA_SUDORULE_USERCATEGORY       "userCategory"
+#define SYSDB_IPA_SUDORULE_RUNASUSERCATEGORY  "ipaSudoRunAsUserCategory"
+#define SYSDB_IPA_SUDORULE_RUNASGROUPCATEGORY "ipaSudoRunAsGroupCategory"
+
 /* When constructing a sysdb filter, OR these values to include..   */
 #define SYSDB_SUDO_FILTER_NONE           0x00       /* no additional filter */
 #define SYSDB_SUDO_FILTER_USERNAME       0x01       /* username             */

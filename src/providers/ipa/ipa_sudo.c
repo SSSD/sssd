@@ -20,6 +20,7 @@
 
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap_sudo.h"
+#include "db/sysdb_sudo.h"
 
 enum sudo_schema {
     SUDO_SCHEMA_IPA,
