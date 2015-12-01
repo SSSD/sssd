@@ -1589,8 +1589,7 @@ sdap_nested_group_lookup_user_send(TALLOC_CTX *mem_ctx,
     }
 
     /* use search base filter if needed */
-    filter = sdap_get_id_specific_filter(state, base_filter,
-                                         member->user_filter);
+    filter = sdap_combine_filters(state, base_filter, member->user_filter);
     if (filter == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -1733,8 +1732,7 @@ sdap_nested_group_lookup_group_send(TALLOC_CTX *mem_ctx,
      }
 
      /* use search base filter if needed */
-     filter = sdap_get_id_specific_filter(state, base_filter,
-                                          member->group_filter);
+     filter = sdap_combine_filters(state, base_filter, member->group_filter);
      if (filter == NULL) {
          ret = ENOMEM;
          goto immediately;

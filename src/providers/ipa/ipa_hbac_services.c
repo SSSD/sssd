@@ -137,9 +137,8 @@ static errno_t ipa_hbac_service_info_next(struct tevent_req *req,
     }
 
     talloc_zfree(state->cur_filter);
-    state->cur_filter = sdap_get_id_specific_filter(state,
-                                                    state->service_filter,
-                                                    base->filter);
+    state->cur_filter = sdap_combine_filters(state, state->service_filter,
+                                             base->filter);
     if (state->cur_filter == NULL) {
         return ENOMEM;
     }
@@ -251,9 +250,8 @@ ipa_hbac_servicegroup_info_next(struct tevent_req *req,
     }
 
     talloc_zfree(state->cur_filter);
-    state->cur_filter = sdap_get_id_specific_filter(state,
-                                                    state->service_filter,
-                                                    base->filter);
+    state->cur_filter = sdap_combine_filters(state, state->service_filter,
+                                             base->filter);
     if (state->cur_filter == NULL) {
         return ENOMEM;
     }

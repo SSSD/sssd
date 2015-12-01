@@ -493,9 +493,8 @@ static errno_t sdap_initgr_rfc2307_next_base(struct tevent_req *req)
 
     talloc_zfree(state->filter);
 
-    state->filter = sdap_get_id_specific_filter(
-            state, state->base_filter,
-            state->search_bases[state->base_iter]->filter);
+    state->filter = sdap_combine_filters( state, state->base_filter,
+                        state->search_bases[state->base_iter]->filter);
     if (!state->filter) {
         return ENOMEM;
     }
@@ -1667,10 +1666,8 @@ static errno_t sdap_initgr_rfc2307bis_next_base(struct tevent_req *req)
     state = tevent_req_data(req, struct sdap_initgr_rfc2307bis_state);
 
     talloc_zfree(state->filter);
-    state->filter = sdap_get_id_specific_filter(
-            state,
-            state->base_filter,
-            state->search_bases[state->base_iter]->filter);
+    state->filter = sdap_combine_filters(state, state->base_filter,
+                        state->search_bases[state->base_iter]->filter);
     if (!state->filter) {
         return ENOMEM;
     }
@@ -2430,9 +2427,8 @@ static errno_t rfc2307bis_nested_groups_next_base(struct tevent_req *req)
     state = tevent_req_data(req, struct sdap_rfc2307bis_nested_ctx);
 
     talloc_zfree(state->filter);
-    state->filter = sdap_get_id_specific_filter(
-            state, state->base_filter,
-            state->search_bases[state->base_iter]->filter);
+    state->filter = sdap_combine_filters(state, state->base_filter,
+                        state->search_bases[state->base_iter]->filter);
     if (!state->filter) {
         return ENOMEM;
     }
@@ -2798,10 +2794,8 @@ static errno_t sdap_get_initgr_next_base(struct tevent_req *req)
     state = tevent_req_data(req, struct sdap_get_initgr_state);
 
     talloc_zfree(state->filter);
-    state->filter = sdap_get_id_specific_filter(
-            state,
-            state->user_base_filter,
-            state->user_search_bases[state->user_base_iter]->filter);
+    state->filter = sdap_combine_filters(state, state->user_base_filter,
+                      state->user_search_bases[state->user_base_iter]->filter);
     if (!state->filter) {
         return ENOMEM;
     }

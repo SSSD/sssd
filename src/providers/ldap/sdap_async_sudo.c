@@ -125,7 +125,7 @@ static errno_t sdap_sudo_load_sudoers_next_base(struct tevent_req *req)
     }
 
     /* Combine lookup and search base filters. */
-    filter = sdap_get_id_specific_filter(state, state->filter, base->filter);
+    filter = sdap_combine_filters(state, state->filter, base->filter);
     if (filter == NULL) {
         return ENOMEM;
     }
@@ -467,7 +467,7 @@ static char *sdap_sudo_get_filter(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    filter = sdap_get_id_specific_filter(tmp_ctx, rule_filter, host_filter);
+    filter = sdap_combine_filters(tmp_ctx, rule_filter, host_filter);
     if (filter == NULL) {
         goto done;
     }

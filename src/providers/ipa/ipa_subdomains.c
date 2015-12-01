@@ -726,8 +726,8 @@ ipa_subdomains_handler_get(struct ipa_subdomains_req_ctx *ctx,
     }
 
     talloc_free(ctx->current_filter);
-    ctx->current_filter = sdap_get_id_specific_filter(ctx, params->filter,
-                                                            base->filter);
+    ctx->current_filter = sdap_combine_filters(ctx, params->filter,
+                                               base->filter);
     if (ctx->current_filter == NULL) {
         return ENOMEM;
     }

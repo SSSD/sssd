@@ -682,8 +682,7 @@ static errno_t sdap_search_user_next_base(struct tevent_req *req)
     state = tevent_req_data(req, struct sdap_search_user_state);
 
     talloc_zfree(state->filter);
-    state->filter = sdap_get_id_specific_filter(state,
-                        state->base_filter,
+    state->filter = sdap_combine_filters(state, state->base_filter,
                         state->search_bases[state->base_iter]->filter);
     if (state->filter == NULL) {
         return ENOMEM;
