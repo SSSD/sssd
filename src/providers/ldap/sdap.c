@@ -312,7 +312,7 @@ int sdap_get_map(TALLOC_CTX *memctx,
     char *name;
     int i, ret;
 
-    map = talloc_array(memctx, struct sdap_attr_map, num_entries);
+    map = talloc_zero_array(memctx, struct sdap_attr_map, num_entries + 1);
     if (!map) {
         return ENOMEM;
     }
