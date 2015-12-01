@@ -2180,6 +2180,9 @@ nestedgroups_tests_LDADD = \
     libsss_idmap.la \
     libsss_test_common.la \
     $(NULL)
+if BUILD_SYSTEMTAP
+nestedgroups_tests_LDADD += stap_generated_probes.lo
+endif
 
 test_sss_idmap_SOURCES = \
     src/tests/cmocka/test_sss_idmap.c
@@ -2999,6 +3002,9 @@ libsss_ldap_common_la_LIBADD = \
 libsss_ldap_common_la_LDFLAGS = \
     -avoid-version \
     $(NULL)
+if BUILD_SYSTEMTAP
+libsss_ldap_common_la_LIBADD += stap_generated_probes.lo
+endif
 
 if BUILD_SUDO
 libsss_ldap_common_la_SOURCES += \

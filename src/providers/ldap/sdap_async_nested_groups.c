@@ -30,6 +30,7 @@
 #include <time.h>
 
 #include "util/util.h"
+#include "util/probes.h"
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
@@ -479,7 +480,9 @@ sdap_nested_group_check_cache(struct sdap_options *opts,
     member_domain = sdap_domain == NULL ? domain : sdap_domain->dom;
 
     /* search in users */
+    PROBE(SDAP_NESTED_GROUP_SYSDB_SEARCH_USERS_PRE);
     ret = sdap_nested_group_sysdb_search_users(member_domain, filter);
+    PROBE(SDAP_NESTED_GROUP_SYSDB_SEARCH_USERS_POST);
     if (ret == EOK || ret == EAGAIN) {
         /* user found */
         *_type = SDAP_NESTED_GROUP_DN_USER;
@@ -490,7 +493,9 @@ sdap_nested_group_check_cache(struct sdap_options *opts,
     }
 
     /* search in groups */
+    PROBE(SDAP_NESTED_GROUP_SYSDB_SEARCH_GROUPS_PRE);
     ret = sdap_nested_group_sysdb_search_groups(member_domain, filter);
+    PROBE(SDAP_NESTED_GROUP_SYSDB_SEARCH_GROUPS_POST);
     if (ret == EOK || ret == EAGAIN) {
         /* group found */
         *_type = SDAP_NESTED_GROUP_DN_GROUP;
@@ -620,8 +625,10 @@ sdap_nested_group_split_members(TALLOC_CTX *mem_ctx,
         }
 
         /* check sysdb */
+        PROBE(SDAP_NESTED_GROUP_CHECK_CACHE_PRE);
         ret = sdap_nested_group_check_cache(group_ctx->opts, group_ctx->domain,
                                             dn, &type);
+        PROBE(SDAP_NESTED_GROUP_CHECK_CACHE_POST);
         if (ret == EOK) {
             /* found and valid */
             DEBUG(SSSDBG_TRACE_ALL, "[%s] found in cache, skipping\n", dn);
@@ -795,6 +802,8 @@ sdap_nested_group_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     int i;
 
+    PROBE(SDAP_NESTED_GROUP_SEND);
+
     req = tevent_req_create(mem_ctx, &state, struct sdap_nested_group_state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
@@ -935,6 +944,7 @@ errno_t sdap_nested_group_recv(TALLOC_CTX *mem_ctx,
 
     state = tevent_req_data(req, struct sdap_nested_group_state);
 
+    PROBE(SDAP_NESTED_GROUP_RECV);
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     ret = sdap_nested_group_extract_hash_table(state, state->group_ctx->users,
@@ -1035,6 +1045,7 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL, "About to process group [%s]\n", orig_dn);
+    PROBE(SDAP_NESTED_GROUP_PROCESS_SEND, state->group_dn);
 
     /* get member list, both direct and external */
     state->ext_members = sdap_nested_group_ext_members(state->group_ctx->opts,
@@ -1052,11 +1063,13 @@ sdap_nested_group_process_send(TALLOC_CTX *mem_ctx,
     }
 
     /* get members that need to be refreshed */
+    PROBE(SDAP_NESTED_GROUP_PROCESS_SPLIT_PRE);
     ret = sdap_nested_group_split_members(state, state->group_ctx,
                                           state->nesting_level, members,
                                           &state->missing,
                                           &state->num_missing_total,
                                           &state->num_missing_groups);
+    PROBE(SDAP_NESTED_GROUP_PROCESS_SPLIT_POST);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to split member list "
                                     "[%d]: %s\n", ret, sss_strerror(ret));
@@ -1178,6 +1191,13 @@ done:
 
 static errno_t sdap_nested_group_process_recv(struct tevent_req *req)
 {
+#ifdef HAVE_SYSTEMTAP
+    struct sdap_nested_group_process_state *state = NULL;
+    state = tevent_req_data(req, struct sdap_nested_group_process_state);
+
+    PROBE(SDAP_NESTED_GROUP_PROCESS_RECV, state->group_dn);
+#endif
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
@@ -1683,6 +1703,8 @@ sdap_nested_group_lookup_user_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    PROBE(SDAP_NESTED_GROUP_LOOKUP_USER_SEND);
+
     if (group_ctx->opts->schema_type == SDAP_SCHEMA_IPA_V1) {
         /* if the schema is IPA, then just shortcut and guess the name */
         ret = sdap_nested_group_get_ipa_user(state, member->dn,
@@ -1799,6 +1821,8 @@ static errno_t sdap_nested_group_lookup_user_recv(TALLOC_CTX *mem_ctx,
     struct sdap_nested_group_lookup_user_state *state = NULL;
     state = tevent_req_data(req, struct sdap_nested_group_lookup_user_state);
 
+    PROBE(SDAP_NESTED_GROUP_LOOKUP_USER_RECV);
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (_user != NULL) {
@@ -1829,6 +1853,8 @@ sdap_nested_group_lookup_group_send(TALLOC_CTX *mem_ctx,
      const char *filter = NULL;
      char *oc_list;
      errno_t ret;
+
+     PROBE(SDAP_NESTED_GROUP_LOOKUP_GROUP_SEND);
 
      req = tevent_req_create(mem_ctx, &state,
                              struct sdap_nested_group_lookup_group_state);
@@ -1941,6 +1967,8 @@ static errno_t sdap_nested_group_lookup_group_recv(TALLOC_CTX *mem_ctx,
      struct sdap_nested_group_lookup_group_state *state = NULL;
      state = tevent_req_data(req, struct sdap_nested_group_lookup_group_state);
 
+     PROBE(SDAP_NESTED_GROUP_LOOKUP_GROUP_RECV);
+
      TEVENT_REQ_RETURN_ON_ERROR(req);
 
      if (_group != NULL) {
@@ -1981,6 +2009,8 @@ sdap_nested_group_lookup_unknown_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
+
+    PROBE(SDAP_NESTED_GROUP_LOOKUP_UNKNOWN_SEND);
 
     state->ev = ev;
     state->group_ctx = group_ctx;
@@ -2109,6 +2139,8 @@ sdap_nested_group_lookup_unknown_recv(TALLOC_CTX *mem_ctx,
     struct sdap_nested_group_lookup_unknown_state *state = NULL;
     state = tevent_req_data(req, struct sdap_nested_group_lookup_unknown_state);
 
+    PROBE(SDAP_NESTED_GROUP_LOOKUP_UNKNOWN_RECV);
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (_entry != NULL) {
@@ -2160,6 +2192,8 @@ sdap_nested_group_deref_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
+
+    PROBE(SDAP_NESTED_GROUP_DEREF_SEND);
 
     state->ev = ev;
     state->group_ctx = group_ctx;
@@ -2262,6 +2296,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
         goto done;
     }
 
+    PROBE(SDAP_NESTED_GROUP_DEREF_PROCESS_PRE);
     for (i = 0; i < num_entries; i++) {
         ret = sysdb_attrs_get_string(entries[i]->attrs,
                                      SYSDB_ORIG_DN, &orig_dn);
@@ -2364,6 +2399,7 @@ sdap_nested_group_deref_direct_process(struct tevent_req *subreq)
             continue;
         }
     }
+    PROBE(SDAP_NESTED_GROUP_DEREF_PROCESS_POST);
 
     /* adjust size of nested groups array */
     if (state->num_groups > 0) {
@@ -2453,6 +2489,8 @@ static void sdap_nested_group_deref_done(struct tevent_req *subreq)
 
 static errno_t sdap_nested_group_deref_recv(struct tevent_req *req)
 {
+    PROBE(SDAP_NESTED_GROUP_DEREF_RECV);
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;

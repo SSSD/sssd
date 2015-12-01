@@ -22,6 +22,7 @@
 */
 
 #include "util/util.h"
+#include "util/probes.h"
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
@@ -840,6 +841,7 @@ struct sdap_get_users_state {
     struct sysdb_ctx *sysdb;
     struct sdap_options *opts;
     struct sss_domain_info *dom;
+    const char *filter;
 
     char *higher_usn;
     struct sysdb_attrs **users;
@@ -871,6 +873,9 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
     state->sysdb = sysdb;
     state->opts = opts;
     state->dom = dom;
+
+    state->filter = filter;
+    PROBE(SDAP_SEARCH_USER_SEND, state->filter);
 
     subreq = sdap_search_user_send(state, ev, dom, opts, search_bases,
                                    sh, attrs, filter, timeout, lookup_type);
@@ -907,10 +912,12 @@ static void sdap_get_users_done(struct tevent_req *subreq)
         return;
     }
 
+    PROBE(SDAP_SEARCH_USER_SAVE_BEGIN, state->filter);
     ret = sdap_save_users(state, state->sysdb,
                           state->dom, state->opts,
                           state->users, state->count,
                           &state->higher_usn);
+    PROBE(SDAP_SEARCH_USER_SAVE_END, state->filter);
     if (ret) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to store users [%d][%s].\n",
               ret, sss_strerror(ret));
@@ -929,6 +936,7 @@ int sdap_get_users_recv(struct tevent_req *req,
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
 
+    PROBE(SDAP_SEARCH_USER_RECV, state->filter);
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (usn_value) {

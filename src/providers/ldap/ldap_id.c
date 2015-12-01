@@ -27,6 +27,7 @@
 #include <sys/time.h>
 
 #include "util/util.h"
+#include "util/probes.h"
 #include "util/strtonum.h"
 #include "util/cert.h"
 #include "db/sysdb.h"
@@ -1509,6 +1510,11 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    PROBE(SDAP_ACCT_REQ_SEND,
+          state->ar->entry_type & BE_REQ_TYPE_MASK,
+          state->ar->filter_type, state->ar->filter_value,
+          PROBE_SAFE_STR(state->ar->extra_value));
+
     switch (ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
         subreq = users_get_send(state, be_ctx->ev, id_ctx,
@@ -1729,6 +1735,11 @@ sdap_handle_acct_req_recv(struct tevent_req *req,
     struct sdap_handle_acct_req_state *state;
 
     state = tevent_req_data(req, struct sdap_handle_acct_req_state);
+
+    PROBE(SDAP_ACCT_REQ_RECV,
+          state->ar->entry_type & BE_REQ_TYPE_MASK,
+          state->ar->filter_type, state->ar->filter_value,
+          PROBE_SAFE_STR(state->ar->extra_value));
 
     if (_dp_error) {
         *_dp_error = state->dp_error;

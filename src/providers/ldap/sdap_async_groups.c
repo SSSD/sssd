@@ -22,6 +22,7 @@
 */
 
 #include "util/util.h"
+#include "util/probes.h"
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
@@ -2371,16 +2372,20 @@ static void sdap_nested_done(struct tevent_req *subreq)
     }
     in_transaction = true;
 
+    PROBE(SDAP_NESTED_GROUP_POPULATE_PRE);
     ret = sdap_nested_group_populate_users(state, state->sysdb,
                                            state->dom, state->opts,
                                            users, user_count, &ghosts);
+    PROBE(SDAP_NESTED_GROUP_POPULATE_POST);
     if (ret != EOK) {
         goto fail;
     }
 
+    PROBE(SDAP_NESTED_GROUP_SAVE_PRE);
     ret = sdap_save_groups(state, state->sysdb, state->dom, state->opts,
                            groups, group_count, false, ghosts, true,
                            &state->higher_usn);
+    PROBE(SDAP_NESTED_GROUP_SAVE_POST);
     if (ret != EOK) {
         goto fail;
     }
@@ -2539,8 +2544,10 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
+        PROBE(SDAP_NESTED_GROUP_POPULATE_SEARCH_USERS_PRE);
         ret = sysdb_search_users(tmp_ctx, user_dom, filter,
                                  search_attrs, &count, &msgs);
+        PROBE(SDAP_NESTED_GROUP_POPULATE_SEARCH_USERS_POST);
         talloc_zfree(filter);
         talloc_zfree(clean_orig_dn);
         if (ret != EOK && ret != ENOENT) {

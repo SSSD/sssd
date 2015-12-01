@@ -23,6 +23,7 @@
 #include <ctype.h>
 #include "util/util.h"
 #include "util/strtonum.h"
+#include "util/probes.h"
 #include "providers/ldap/sdap_async_private.h"
 
 #define REPLY_REALLOC_INCREMENT 10
@@ -1295,6 +1296,9 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
     }
     state->serverctrls[i] = NULL;
 
+    PROBE(SDAP_GET_GENERIC_EXT_SEND, state->search_base,
+          state->scope, state->filter);
+
     ret = sdap_get_generic_ext_step(req);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -1631,6 +1635,9 @@ sdap_get_generic_ext_recv(struct tevent_req *req,
 {
     struct sdap_get_generic_ext_state *state =
             tevent_req_data(req, struct sdap_get_generic_ext_state);
+
+    PROBE(SDAP_GET_GENERIC_EXT_RECV, state->search_base,
+          state->scope, state->filter);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -2773,6 +2780,9 @@ enum sdap_deref_type {
 
 struct sdap_deref_search_state {
     struct sdap_handle *sh;
+    const char *base_dn;
+    const char *deref_attr;
+
     size_t reply_count;
     struct sdap_deref_attrs **reply;
     enum sdap_deref_type deref_type;
@@ -2868,6 +2878,10 @@ sdap_deref_search_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->reply_count = 0;
     state->reply = NULL;
+    state->base_dn = base_dn;
+    state->deref_attr = deref_attr;
+
+    PROBE(SDAP_DEREF_SEARCH_SEND, state->base_dn, state->deref_attr);
 
     if (sdap_is_control_supported(sh, LDAP_SERVER_ASQ_OID)) {
         DEBUG(SSSDBG_TRACE_INTERNAL, "Server supports ASQ\n");
@@ -2962,6 +2976,9 @@ int sdap_deref_search_recv(struct tevent_req *req,
 {
     struct sdap_deref_search_state *state = tevent_req_data(req,
                                             struct sdap_deref_search_state);
+
+    PROBE(SDAP_DEREF_SEARCH_RECV, state->base_dn, state->deref_attr);
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *reply_count = state->reply_count;
