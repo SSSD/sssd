@@ -158,6 +158,16 @@ enum ipa_sudorule_attrs {
     IPA_OPTS_SUDORULE
 };
 
+enum ipa_sudocmdgroup_attrs {
+    IPA_OC_SUDOCMDGROUP = 0,
+    IPA_AT_SUDOCMDGROUP_UUID,
+    IPA_AT_SUDOCMDGROUP_NAME,
+    IPA_AT_SUDOCMDGROUP_MEMBER,
+    IPA_AT_SUDOCMDGROUP_ENTRYUSN,
+
+    IPA_OPTS_SUDOCMDGROUP
+};
+
 struct ipa_auth_ctx {
     struct krb5_ctx *krb5_auth_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
