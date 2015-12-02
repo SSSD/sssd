@@ -68,6 +68,9 @@
 
 #define SYSDB_IPA_SUDOCMDGROUP_OC                 "ipasudocmdgrp"
 
+#define SYSDB_IPA_SUDOCMD_OC                 "ipasudocmd"
+#define SYSDB_IPA_SUDOCMD_SUDOCMD            "sudoCmd"
+
 /* When constructing a sysdb filter, OR these values to include..   */
 #define SYSDB_SUDO_FILTER_NONE           0x00       /* no additional filter */
 #define SYSDB_SUDO_FILTER_USERNAME       0x01       /* username             */
