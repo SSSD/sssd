@@ -1652,6 +1652,7 @@ ipa_ldap_opt_tests_SOURCES = \
     src/providers/ldap/sdap.c \
     src/providers/ldap/sdap_range.c \
     src/providers/ldap/sdap_domain.c \
+    src/providers/ldap/ldap_opts.c \
     src/util/sss_ldap.c \
     src/tests/ipa_ldap_opt-tests.c
 ipa_ldap_opt_tests_CFLAGS = \
@@ -1666,6 +1667,7 @@ ipa_ldap_opt_tests_LDADD = \
     libsss_test_common.la
 
 ad_ldap_opt_tests_SOURCES = \
+    src/providers/ldap/ldap_opts.c \
     src/tests/ad_ldap_opt-tests.c
 ad_ldap_opt_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1864,6 +1866,7 @@ TEST_MOCK_RESP_OBJ = \
 TEST_MOCK_PROVIDER_OBJ = \
      src/util/sss_ldap.c \
      src/providers/data_provider_opts.c \
+     src/providers/ldap/ldap_opts.c \
      src/providers/ldap/ldap_options.c \
      src/providers/ldap/sdap_domain.c \
      src/providers/ldap/sdap.c \
@@ -2244,6 +2247,7 @@ sdap_tests_SOURCES = \
     src/providers/ldap/sdap_domain.c \
     src/providers/ldap/sdap.c \
     src/providers/ldap/sdap_range.c \
+    src/providers/ldap/ldap_opts.c \
     src/util/sss_ldap.c \
     src/tests/cmocka/test_sdap.c \
     $(NULL)
@@ -2795,6 +2799,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/ldap_auth.c \
     src/providers/ldap/ldap_common.c \
     src/providers/ldap/ldap_options.c \
+    src/providers/ldap/ldap_opts.c \
     src/providers/ldap/sdap_access.c \
     src/providers/ldap/sdap_async.c \
     src/providers/ldap/sdap_async_users.c \
