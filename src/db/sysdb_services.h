@@ -23,6 +23,8 @@
 #ifndef SYSDB_SERVICES_H_
 #define SYSDB_SERVICES_H_
 
+#include "db/sysdb.h"
+
 #define SYSDB_SVC_CLASS "service"
 #define SYSDB_SVC_CONTAINER "cn=services"
 #define SYSDB_SC "objectclass="SYSDB_SVC_CLASS
