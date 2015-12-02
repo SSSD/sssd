@@ -1654,6 +1654,7 @@ ipa_ldap_opt_tests_SOURCES = \
     src/providers/ldap/sdap_domain.c \
     src/providers/ldap/ldap_opts.c \
     src/providers/ad/ad_opts.c \
+    src/providers/ipa/ipa_opts.c \
     src/util/sss_ldap.c \
     src/tests/ipa_ldap_opt-tests.c
 ipa_ldap_opt_tests_CFLAGS = \
@@ -2251,6 +2252,7 @@ sdap_tests_SOURCES = \
     src/providers/ldap/sdap.c \
     src/providers/ldap/sdap_range.c \
     src/providers/ldap/ldap_opts.c \
+    src/providers/ipa/ipa_opts.c \
     src/util/sss_ldap.c \
     src/tests/cmocka/test_sdap.c \
     $(NULL)
@@ -2539,6 +2541,7 @@ test_ipa_subdom_server_SOURCES = \
     src/tests/cmocka/test_ipa_subdomains_server.c \
     src/providers/ipa/ipa_subdomains_server.c \
     src/providers/ipa/ipa_subdomains_utils.c \
+    src/providers/ipa/ipa_opts.c \
     $(NULL)
 test_ipa_subdom_server_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2942,6 +2945,7 @@ libsss_krb5_la_LDFLAGS = \
 
 libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_init.c \
+    src/providers/ipa/ipa_opts.c \
     src/providers/ipa/ipa_common.c \
     src/providers/ipa/ipa_config.c \
     src/providers/ipa/ipa_id.c \
