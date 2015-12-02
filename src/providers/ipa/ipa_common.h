@@ -168,6 +168,15 @@ enum ipa_sudocmdgroup_attrs {
     IPA_OPTS_SUDOCMDGROUP
 };
 
+enum ipa_sudocmd_attrs {
+    IPA_OC_SUDOCMD = 0,
+    IPA_AT_SUDOCMD_UUID,
+    IPA_AT_SUDOCMD_CMD,
+    IPA_AT_SUDOCMD_MEMBEROF,
+
+    IPA_OPTS_SUDOCMD
+};
+
 struct ipa_auth_ctx {
     struct krb5_ctx *krb5_auth_ctx;
     struct sdap_id_ctx *sdap_id_ctx;

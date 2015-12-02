@@ -368,3 +368,11 @@ struct sdap_attr_map ipa_sudocmdgroup_map[] = {
     { "ipa_sudocmdgroup_entry_usn", "entryUSN", SYSDB_USN, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
+
+struct sdap_attr_map ipa_sudocmd_map[] = {
+    { "ipa_sudocmd_object_class", "ipasudocmd", SYSDB_IPA_SUDOCMD_OC, NULL },
+    { "ipa_sudocmd_uuid", "ipaUniqueID", SYSDB_UUID, NULL },
+    { "ipa_sudocmd_sudoCmd", "sudoCmd", SYSDB_IPA_SUDOCMD_SUDOCMD, NULL },
+    { "ipa_sudocmd_memberof", "memberOf", SYSDB_MEMBEROF, NULL },
+    SDAP_ATTR_MAP_TERMINATOR
+};
