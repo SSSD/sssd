@@ -1653,6 +1653,7 @@ ipa_ldap_opt_tests_SOURCES = \
     src/providers/ldap/sdap_range.c \
     src/providers/ldap/sdap_domain.c \
     src/providers/ldap/ldap_opts.c \
+    src/providers/ad/ad_opts.c \
     src/util/sss_ldap.c \
     src/tests/ipa_ldap_opt-tests.c
 ipa_ldap_opt_tests_CFLAGS = \
@@ -1668,6 +1669,7 @@ ipa_ldap_opt_tests_LDADD = \
 
 ad_ldap_opt_tests_SOURCES = \
     src/providers/ldap/ldap_opts.c \
+    src/providers/ad/ad_opts.c \
     src/tests/ad_ldap_opt-tests.c
 ad_ldap_opt_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2214,6 +2216,7 @@ ad_common_tests_SOURCES = \
     $(libsss_krb5_common_la_SOURCES) \
     src/tests/cmocka/common_mock_krb5.c \
     src/tests/cmocka/test_ad_common.c \
+    src/providers/ad/ad_opts.c \
     $(NULL)
 ad_common_tests_LDFLAGS = \
     -Wl,-wrap,sdap_set_sasl_options \
@@ -2966,6 +2969,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_selinux_maps.c \
     src/providers/ipa/ipa_srv.c \
     src/providers/ipa/ipa_idmap.c \
+    src/providers/ad/ad_opts.c \
     src/providers/ad/ad_common.c \
     src/providers/ad/ad_common.h \
     src/providers/ad/ad_dyndns.c \
@@ -3010,6 +3014,7 @@ endif
 
 
 libsss_ad_la_SOURCES = \
+    src/providers/ad/ad_opts.c \
     src/providers/ad/ad_common.c \
     src/providers/ad/ad_common.h \
     src/providers/ad/ad_init.c \
