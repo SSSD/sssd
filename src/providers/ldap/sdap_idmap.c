@@ -563,6 +563,12 @@ bool sdap_idmap_domain_has_algorithmic_mapping(struct sdap_idmap_ctx *ctx,
         return false;
     }
 
+    /* If there is no SID, e.g. IPA without enabled trust support, we cannot
+     * have algorithmic mapping */
+    if (dom_sid == NULL) {
+        return false;
+    }
+
     /* This is the first time we've seen this domain
      * Create a new domain for it. We'll use the dom-sid
      * as the domain name for now, since we don't have
