@@ -373,7 +373,7 @@ static void ipa_get_ad_override_connect_done(struct tevent_req *subreq)
                                  state->ipa_options->override_map,
                                  IPA_OPTS_OVERRIDE,
                                  dp_opt_get_int(state->sdap_id_ctx->opts->basic,
-                                                SDAP_ENUM_SEARCH_TIMEOUT),
+                                                SDAP_SEARCH_TIMEOUT),
                                  false);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
