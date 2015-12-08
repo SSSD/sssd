@@ -1197,14 +1197,15 @@ static errno_t sdap_process_group_create_dns(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
-                                           struct tevent_context *ev,
-                                           struct sss_domain_info *dom,
-                                           struct sysdb_ctx *sysdb,
-                                           struct sdap_options *opts,
-                                           struct sdap_handle *sh,
-                                           struct sysdb_attrs *group,
-                                           bool enumeration)
+static struct tevent_req *
+sdap_process_group_send(TALLOC_CTX *memctx,
+                        struct tevent_context *ev,
+                        struct sss_domain_info *dom,
+                        struct sysdb_ctx *sysdb,
+                        struct sdap_options *opts,
+                        struct sdap_handle *sh,
+                        struct sysdb_attrs *group,
+                        bool enumeration)
 {
     struct ldb_message_element *el;
     struct ldb_message_element *ghostel;
