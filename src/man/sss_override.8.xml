@@ -266,7 +266,7 @@
                     <option>--debug</option>
                     <replaceable>LEVEL</replaceable>
                 </term>
-                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels_tools.xml" />
             </varlistentry>
         </variablelist>
     </refsect1>
