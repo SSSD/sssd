@@ -783,10 +783,16 @@ fallback_homedir = /home/%u
                     <listitem>
                         <para>
                             Specifies time in seconds for which records
-                            in the in-memory cache will be valid
+                            in the in-memory cache will be valid.
                         </para>
                         <para>
                             Default: 300
+                        </para>
+                        <para>
+                            NOTE: If the environment variable
+                            SSS_NSS_USE_MEMCACHE is set to "NO", client
+                            applications will not use the fast in-memory
+                            cache.
                         </para>
                     </listitem>
                 </varlistentry>
