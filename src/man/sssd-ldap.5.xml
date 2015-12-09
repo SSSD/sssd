@@ -963,9 +963,11 @@
                         <para>
                           If ldap_group_nesting_level is set to 0 then no
                           nested groups are processed at all. However, when
-                          connected to Active-Directory Server 2008 and later
+                          connected to Active-Directory Server 2008
+                          and later using <quote>id_provider=ad</quote>
                           it is furthermore required to disable usage of
-                          Token-Groups by setting ldap_use_tokengroups to false.
+                          Token-Groups by setting ldap_use_tokengroups
+                          to false in order to restrict group nesting.
                         </para>
                         <para>
                             Default: 2
