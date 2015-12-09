@@ -193,6 +193,9 @@ static errno_t sss_send_pac(krb5_authdata **pac_authdata)
                                   ret, errnop);
         return EIO;
     }
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "PAC responder contacted. It might take a bit of time in case the "
+          "cache is not up to date.\n");
 
     return EOK;
 }
