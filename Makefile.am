@@ -245,6 +245,7 @@ if HAVE_CMOCKA
         test_cert_utils \
         test_ldap_id_cleanup \
         test_data_provider_be \
+        test_ipa_dn \
         $(NULL)
 
 if HAVE_LIBRESOLV
@@ -642,6 +643,7 @@ dist_noinst_HEADERS = \
     src/providers/ipa/ipa_hostid.h \
     src/providers/ipa/ipa_opts.h \
     src/providers/ipa/ipa_srv.h \
+    src/providers/ipa/ipa_dn.h \
     src/providers/ad/ad_srv.h \
     src/providers/proxy/proxy.h \
     src/tools/tools_util.h \
@@ -2627,6 +2629,25 @@ test_data_provider_be_LDADD = \
     libdlopen_test_providers.la \
     $(NULL)
 
+test_ipa_dn_SOURCES = \
+    src/providers/ipa/ipa_dn.c \
+    src/tests/cmocka/test_ipa_dn.c \
+    $(NULL)
+test_ipa_dn_CFLAGS = \
+    $(AM_CFLAGS) \
+    -DUNIT_TESTING \
+    $(NULL)
+test_ipa_dn_LDFLAGS = \
+    -Wl,-wrap,_tevent_add_timer \
+    $(NULL)
+test_ipa_dn_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(SSSD_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(LIBADD_DL) \
+    libsss_test_common.la \
+    $(NULL)
+
 endif # HAVE_CMOCKA
 
 noinst_PROGRAMS = pam_test_client
@@ -2980,6 +3001,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ipa/ipa_selinux_maps.c \
     src/providers/ipa/ipa_srv.c \
     src/providers/ipa/ipa_idmap.c \
+    src/providers/ipa/ipa_dn.c \
     src/providers/ad/ad_opts.c \
     src/providers/ad/ad_common.c \
     src/providers/ad/ad_common.h \
