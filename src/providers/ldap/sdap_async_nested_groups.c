@@ -35,6 +35,7 @@
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/sdap_idmap.h"
+#include "providers/ipa/ipa_dn.h"
 
 #define sdap_nested_group_sysdb_search_users(domain, filter) \
     sdap_nested_group_sysdb_search((domain), (filter), true)
@@ -1417,92 +1418,29 @@ static errno_t sdap_nested_group_single_recv(struct tevent_req *req)
     return EOK;
 }
 
-/* This should be a function pointer set from the IPA provider */
 static errno_t sdap_nested_group_get_ipa_user(TALLOC_CTX *mem_ctx,
                                               const char *user_dn,
                                               struct sysdb_ctx *sysdb,
                                               struct sysdb_attrs **_user)
 {
-    errno_t ret;
-    struct sysdb_attrs *user = NULL;
-    char *name;
-    struct ldb_dn *dn = NULL;
-    const char *rdn_name;
-    const char *users_comp_name;
-    const char *acct_comp_name;
-    const struct ldb_val *rdn_val;
-    const struct ldb_val *users_comp_val;
-    const struct ldb_val *acct_comp_val;
     TALLOC_CTX *tmp_ctx;
+    struct sysdb_attrs *user;
+    char *name;
+    errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
 
-    /* return username if dn is in form:
-     * uid=username,cn=users,cn=accounts,dc=example,dc=com */
-
-    dn = ldb_dn_new(tmp_ctx, sysdb_ctx_get_ldb(sysdb), user_dn);
-    if (dn == NULL) {
-        ret = ENOMEM;
+    ret = ipa_get_rdn(tmp_ctx, sysdb, user_dn, &name, "uid",
+                      "cn", "users", "cn", "accounts");
+    if (ret != EOK) {
         goto done;
     }
 
-    /* rdn, users, accounts and least one domain component */
-    if (ldb_dn_get_comp_num(dn) < 4) {
-        ret = ENOENT;
-        goto done;
-    }
-
-    rdn_name = ldb_dn_get_rdn_name(dn);
-    if (rdn_name == NULL) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    /* rdn must be 'uid' */
-    if (strcasecmp("uid", rdn_name) != 0) {
-        ret = ENOENT;
-        goto done;
-    }
-
-    /* second component must be 'cn=users' */
-    users_comp_name = ldb_dn_get_component_name(dn, 1);
-    if (strcasecmp("cn", users_comp_name) != 0) {
-        ret = ENOENT;
-        goto done;
-    }
-
-    users_comp_val = ldb_dn_get_component_val(dn, 1);
-    if (strncasecmp("users", (const char *) users_comp_val->data,
-                    users_comp_val->length) != 0) {
-        ret = ENOENT;
-        goto done;
-    }
-
-    /* third component must be 'cn=accounts' */
-    acct_comp_name = ldb_dn_get_component_name(dn, 2);
-    if (strcasecmp("cn", acct_comp_name) != 0) {
-        ret = ENOENT;
-        goto done;
-    }
-
-    acct_comp_val = ldb_dn_get_component_val(dn, 2);
-    if (strncasecmp("accounts", (const char *) acct_comp_val->data,
-                    acct_comp_val->length) != 0) {
-        ret = ENOENT;
-        goto done;
-    }
-
-    /* value of rdn is username */
     user = sysdb_new_attrs(tmp_ctx);
     if (user == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    rdn_val = ldb_dn_get_rdn_val(dn);
-    name = talloc_strndup(user, (const char *)rdn_val->data, rdn_val->length);
-    if (name == NULL) {
         ret = ENOMEM;
         goto done;
     }

@@ -2092,6 +2092,7 @@ nestedgroups_tests_SOURCES = \
     src/tests/cmocka/common_mock_be.c \
     src/providers/ldap/sdap_async_nested_groups.c \
     src/providers/ldap/sdap_ad_groups.c \
+    src/providers/ipa/ipa_dn.c \
     $(NULL)
 nestedgroups_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -2860,6 +2861,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_domain.c \
     src/providers/ldap/sdap_ops.c \
     src/providers/ldap/sdap.c \
+    src/providers/ipa/ipa_dn.c \
     src/util/user_info_msg.c \
     src/util/sss_ldap.c \
     $(NULL)
