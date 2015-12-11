@@ -754,7 +754,7 @@ static void reactivate_subdoms(struct sss_domain_info *head)
 {
     struct sss_domain_info *dom;
 
-    DEBUG(SSSDBG_TRACE_LIBS, "Resetting all subdomains");
+    DEBUG(SSSDBG_TRACE_LIBS, "Resetting all subdomains\n");
 
     for (dom = head; dom; dom = get_next_domain(dom, true)) {
         if (sss_domain_get_state(dom) == DOM_INACTIVE) {

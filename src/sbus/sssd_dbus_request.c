@@ -117,8 +117,8 @@ static int sbus_request_valist_check(va_list va, int first_arg_type)
                                   strlen(value->str));
              if (!ok) {
                    DEBUG(SSSDBG_MINOR_FAILURE,
-                         "sbus message argument [%s] contains invalid " \
-                         "non-UTF8 characters", value->str);
+                         "sbus message argument [%s] contains invalid "
+                         "non-UTF8 characters\n", value->str);
                  ret = EINVAL;
                  break;
              }

@@ -1469,7 +1469,7 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
         ret = sdap_get_generic_ext_add_references(state, refs);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "sdap_get_generic_ext_add_references failed: %s(%d)",
+                  "sdap_get_generic_ext_add_references failed: %s(%d)\n",
                   sss_strerror(ret), ret);
             ldap_memvfree((void **)refs);
             tevent_req_error(req, ret);
@@ -1537,7 +1537,7 @@ static void sdap_get_generic_op_finished(struct sdap_op *op,
             ret = sdap_get_generic_ext_add_references(state, refs);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
-                      "sdap_get_generic_ext_add_references failed: %s(%d)",
+                      "sdap_get_generic_ext_add_references failed: %s(%d)\n",
                       sss_strerror(ret), ret);
                 tevent_req_error(req, ret);
             }
