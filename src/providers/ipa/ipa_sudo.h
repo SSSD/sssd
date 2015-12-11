@@ -28,11 +28,86 @@ struct ipa_sudo_ctx {
     struct ipa_options *ipa_opts;
     struct sdap_options *sdap_opts;
 
+    bool full_refresh_done;
+    bool full_refresh_in_progress;
+
     /* sudo */
     struct sdap_attr_map *sudocmdgroup_map;
     struct sdap_attr_map *sudorule_map;
     struct sdap_attr_map *sudocmd_map;
     struct sdap_search_base **sudo_sb;
 };
+
+errno_t
+ipa_sudo_ptask_setup(struct be_ctx *be_ctx, struct ipa_sudo_ctx *sudo_ctx);
+
+struct tevent_req *
+ipa_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
+                           struct tevent_context *ev,
+                           struct ipa_sudo_ctx *sudo_ctx);
+
+int
+ipa_sudo_full_refresh_recv(struct tevent_req *req,
+                           int *dp_error);
+
+struct tevent_req *
+ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
+                      struct tevent_context *ev,
+                      struct ipa_sudo_ctx *sudo_ctx,
+                      const char *search_filter,
+                      const char *delete_filter);
+
+errno_t
+ipa_sudo_refresh_recv(struct tevent_req *req,
+                      int *dp_error,
+                      size_t *_num_rules);
+
+struct ipa_sudo_conv;
+
+struct ipa_sudo_conv *
+ipa_sudo_conv_init(TALLOC_CTX *mem_ctx,
+                   struct sysdb_ctx *sysdb,
+                   struct sdap_attr_map *map_rule,
+                   struct sdap_attr_map *map_cmdgroup,
+                   struct sdap_attr_map *map_cmd,
+                   struct sdap_attr_map *map_user,
+                   struct sdap_attr_map *map_group,
+                   struct sdap_attr_map *map_host,
+                   struct sdap_attr_map *map_hostgroup);
+
+errno_t
+ipa_sudo_conv_rules(struct ipa_sudo_conv *conv,
+                    struct sysdb_attrs **rules,
+                    size_t num_rules);
+
+errno_t
+ipa_sudo_conv_cmdgroups(struct ipa_sudo_conv *conv,
+                        struct sysdb_attrs **cmdgroups,
+                        size_t num_cmdgroups);
+
+errno_t
+ipa_sudo_conv_cmds(struct ipa_sudo_conv *conv,
+                   struct sysdb_attrs **cmds,
+                   size_t num_cmds);
+
+bool
+ipa_sudo_conv_has_cmdgroups(struct ipa_sudo_conv *conv);
+
+bool
+ipa_sudo_conv_has_cmds(struct ipa_sudo_conv *conv);
+
+char *
+ipa_sudo_conv_cmdgroup_filter(TALLOC_CTX *mem_ctx,
+                              struct ipa_sudo_conv *conv);
+
+char *
+ipa_sudo_conv_cmd_filter(TALLOC_CTX *mem_ctx,
+                         struct ipa_sudo_conv *conv);
+
+errno_t
+ipa_sudo_conv_result(TALLOC_CTX *mem_ctx,
+                     struct ipa_sudo_conv *conv,
+                     struct sysdb_attrs ***_rules,
+                     size_t *_num_rules);
 
 #endif /* _IPA_SUDO_H_ */
