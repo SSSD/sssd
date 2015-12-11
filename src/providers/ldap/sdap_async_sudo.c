@@ -155,7 +155,7 @@ static void sdap_sudo_load_sudoers_done(struct tevent_req *subreq)
     struct sysdb_attrs **attrs = NULL;
     size_t count;
     int ret;
-    int i;
+    size_t i;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_sudo_load_sudoers_state);
@@ -224,7 +224,7 @@ static int sdap_sudo_purge_sudoers(struct sss_domain_info *dom,
                                    struct sysdb_attrs **rules)
 {
     const char *name;
-    int i;
+    size_t i;
     errno_t ret;
 
     if (filter == NULL) {
