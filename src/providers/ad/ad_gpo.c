@@ -3593,7 +3593,7 @@ ad_gpo_get_gpo_attrs_done(struct tevent_req *subreq)
             const char *gpo_dn = state->candidate_gpos[state->gpo_index]->gpo_dn;
 
             DEBUG(SSSDBG_OP_FAILURE,
-                  "No attrs found for GPO [%s].", gpo_dn);
+                  "No attrs found for GPO [%s].\n", gpo_dn);
             ret = ENOENT;
             goto done;
         }
@@ -4385,7 +4385,7 @@ ad_gpo_get_sd_referral_search_done(struct tevent_req *subreq)
          * we will do it later if it ever becomes necessary.
          */
         DEBUG(SSSDBG_OP_FAILURE,
-              "No attrs found for referred GPO [%s].", state->gpo_dn);
+              "No attrs found for referred GPO [%s].\n", state->gpo_dn);
         ret = ENOENT;
         goto done;
 

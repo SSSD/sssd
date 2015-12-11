@@ -335,7 +335,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
         if (algtag == SEC_OID_UNKNOWN) {
             SECKEY_DestroyPrivateKey(priv_key);
             DEBUG(SSSDBG_OP_FAILURE,
-                  "SEC_GetSignatureAlgorithmOidTag failed [%d].",
+                  "SEC_GetSignatureAlgorithmOidTag failed [%d].\n",
                   PR_GetError());
             ret = EIO;
             goto done;
@@ -346,7 +346,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
                           priv_key, algtag);
         SECKEY_DestroyPrivateKey(priv_key);
         if (rv != SECSuccess) {
-            DEBUG(SSSDBG_OP_FAILURE, "SEC_SignData failed [%d].",
+            DEBUG(SSSDBG_OP_FAILURE, "SEC_SignData failed [%d].\n",
                                      PR_GetError());
             ret = EIO;
             goto done;
@@ -355,7 +355,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
         pub_key = CERT_ExtractPublicKey(found_cert);
         if (pub_key == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
-                  "CERT_ExtractPublicKey failed [%d].", PR_GetError());
+                  "CERT_ExtractPublicKey failed [%d].\n", PR_GetError());
             ret = EIO;
             goto done;
         }
@@ -365,7 +365,7 @@ int do_work(TALLOC_CTX *mem_ctx, const char *nss_db, const char *slot_name_in,
                             NULL);
         SECKEY_DestroyPublicKey(pub_key);
         if (rv != SECSuccess) {
-            DEBUG(SSSDBG_OP_FAILURE, "VFY_VerifyData failed [%d].",
+            DEBUG(SSSDBG_OP_FAILURE, "VFY_VerifyData failed [%d].\n",
                                      PR_GetError());
             ret = EACCES;
             goto done;

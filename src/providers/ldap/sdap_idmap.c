@@ -506,7 +506,7 @@ sdap_idmap_sid_to_unix(struct sdap_idmap_ctx *idmap_ctx,
         DEBUG(SSSDBG_IMPORTANT_INFO,
               "Object SID [%s] has a RID that is larger than the "
               "ldap_idmap_range_size. See the \"ID MAPPING\" section of "
-              "sssd-ad(5) for an explanation of how to resolve this issue.",
+              "sssd-ad(5) for an explanation of how to resolve this issue.\n",
               sid_str);
         /* Fall through intentionally */
     default:

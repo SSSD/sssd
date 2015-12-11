@@ -123,7 +123,7 @@ errno_t sss_colondb_readline(TALLOC_CTX *mem_ctx,
         /* Nothing was read. */
         if (errno != 0) {
             ret = errno;
-            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to read line [%d]: %s",
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to read line [%d]: %s\n",
                   ret, sss_strerror(ret));
             return ret;
         }
