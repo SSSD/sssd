@@ -147,6 +147,13 @@ ipa_sudo_init_ipa_schema(struct be_ctx *be_ctx,
         return ret;
     }
 
+    ret = ipa_sudo_ptask_setup(be_ctx, sudo_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup periodic tasks "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
     *ops = &ipa_sudo_ops;
     *pvt_data = sudo_ctx;
 
@@ -200,7 +207,73 @@ int ipa_sudo_init(struct be_ctx *be_ctx,
 }
 
 static void
+ipa_sudo_reply(struct tevent_req *req)
+{
+    struct be_sudo_req *sudo_req;
+    struct be_req *be_req;
+    int dp_error;
+    int ret;
+
+    be_req = tevent_req_callback_data(req, struct be_req);
+    sudo_req = talloc_get_type(be_req_get_data(be_req), struct be_sudo_req);
+
+    switch (sudo_req->type) {
+    case BE_REQ_SUDO_FULL:
+        ret = ipa_sudo_full_refresh_recv(req, &dp_error);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
+                                    sudo_req->type);
+        dp_error = DP_ERR_FATAL;
+        ret = ERR_INTERNAL;
+        break;
+    }
+
+    talloc_zfree(req);
+    sdap_handler_done(be_req, dp_error, ret, sss_strerror(ret));
+}
+
+static void
 ipa_sudo_handler(struct be_req *be_req)
 {
-    sdap_handler_done(be_req, DP_ERR_FATAL, ERR_INTERNAL, "Not implemented yet.");
+    struct be_ctx *be_ctx = be_req_get_be_ctx(be_req);
+    struct ipa_sudo_ctx *sudo_ctx;
+    struct be_sudo_req *sudo_req;
+    struct tevent_req *req;
+    int ret;
+
+    if (be_is_offline(be_ctx)) {
+        sdap_handler_done(be_req, DP_ERR_OFFLINE, EAGAIN, "Offline");
+        return;
+    }
+
+    sudo_ctx = talloc_get_type(be_ctx->bet_info[BET_SUDO].pvt_bet_data,
+                               struct ipa_sudo_ctx);
+
+    sudo_req = talloc_get_type(be_req_get_data(be_req), struct be_sudo_req);
+
+    switch (sudo_req->type) {
+    case BE_REQ_SUDO_FULL:
+        req = ipa_sudo_full_refresh_send(be_req, be_ctx->ev, sudo_ctx);
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
+                                    sudo_req->type);
+        ret = EINVAL;
+        goto fail;
+    }
+
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to send request: %d\n",
+                                    sudo_req->type);
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    tevent_req_set_callback(req, ipa_sudo_reply, be_req);
+
+    return;
+
+fail:
+    sdap_handler_done(be_req, DP_ERR_FATAL, ret, NULL);
 }

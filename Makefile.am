@@ -3041,7 +3041,10 @@ endif
 
 if BUILD_SUDO
 libsss_ipa_la_SOURCES += \
-    src/providers/ipa/ipa_sudo.c
+    src/providers/ipa/ipa_sudo.c \
+    src/providers/ipa/ipa_sudo_refresh.c \
+    src/providers/ipa/ipa_sudo_conversion.c \
+    src/providers/ipa/ipa_sudo_async.c
 endif
 
 if BUILD_SSH
