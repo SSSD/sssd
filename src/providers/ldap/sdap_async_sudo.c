@@ -524,7 +524,6 @@ struct tevent_req *sdap_sudo_refresh_send(TALLOC_CTX *mem_ctx,
 
     state->sudo_ctx = sudo_ctx;
     state->ev = id_ctx->be->ev;
-    state->srv_opts = id_ctx->srv_opts;
     state->opts = id_ctx->opts;
     state->domain = id_ctx->be->domain;
     state->sysdb = id_ctx->be->domain->sysdb;
@@ -608,6 +607,9 @@ static void sdap_sudo_refresh_connect_done(struct tevent_req *subreq)
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "SUDO LDAP connection successful\n");
+
+    /* Obtain srv_opts here in case of first connection. */
+    state->srv_opts = state->sudo_ctx->id_ctx->srv_opts;
 
     /* Renew host information if needed. */
     if (state->sudo_ctx->run_hostinfo) {
