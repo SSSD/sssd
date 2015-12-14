@@ -1518,6 +1518,7 @@ krb5_utils_tests_SOURCES = \
     src/providers/krb5/krb5_utils.c \
     src/providers/krb5/krb5_ccache.c \
     src/providers/krb5/krb5_common.c \
+    src/providers/krb5/krb5_opts.c \
     src/util/sss_krb5.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
@@ -1655,6 +1656,7 @@ ipa_ldap_opt_tests_SOURCES = \
     src/providers/ldap/ldap_opts.c \
     src/providers/ad/ad_opts.c \
     src/providers/ipa/ipa_opts.c \
+    src/providers/krb5/krb5_opts.c \
     src/util/sss_ldap.c \
     src/tests/ipa_ldap_opt-tests.c
 ipa_ldap_opt_tests_CFLAGS = \
@@ -1671,6 +1673,7 @@ ipa_ldap_opt_tests_LDADD = \
 ad_ldap_opt_tests_SOURCES = \
     src/providers/ldap/ldap_opts.c \
     src/providers/ad/ad_opts.c \
+    src/providers/krb5/krb5_opts.c \
     src/tests/ad_ldap_opt-tests.c
 ad_ldap_opt_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -1792,6 +1795,7 @@ krb5_child_test_SOURCES = \
     src/providers/krb5/krb5_ccache.c \
     src/providers/krb5/krb5_child_handler.c \
     src/providers/krb5/krb5_common.c \
+    src/providers/krb5/krb5_opts.c \
     src/util/sss_krb5.c \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
@@ -2869,6 +2873,7 @@ libsss_krb5_common_la_SOURCES = \
     src/providers/krb5/krb5_renew_tgt.c \
     src/providers/krb5/krb5_wait_queue.c \
     src/providers/krb5/krb5_common.c \
+    src/providers/krb5/krb5_opts.c \
     src/providers/krb5/krb5_auth.c \
     src/providers/krb5/krb5_access.c \
     src/providers/krb5/krb5_child_handler.c \
