@@ -2474,7 +2474,7 @@ static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto done;
         }
-        ret = sysdb_search_users(tmp_ctx, domain, filter,
+        ret = sysdb_search_users(tmp_ctx, user_dom, filter,
                                  search_attrs, &count, &msgs);
         talloc_zfree(filter);
         talloc_zfree(clean_orig_dn);
