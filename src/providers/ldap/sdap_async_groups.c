@@ -874,6 +874,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
     const char *group_name;
     char **userdns = NULL;
     size_t nuserdns = 0;
+    struct sss_domain_info *group_dom = NULL;
     int ret;
 
     if (dom->ignore_group_members) {
@@ -884,7 +885,34 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
         return EOK;
     }
 
-    ret = sdap_get_group_primary_name(memctx, opts, attrs, dom, &group_name);
+    ret = sysdb_attrs_get_string(attrs, SYSDB_SID_STR, &group_sid);
+    if (ret != EOK) {
+        /* Try harder. */
+        ret = sdap_attrs_get_sid_str(memctx, opts->idmap_ctx, attrs,
+                              opts->group_map[SDAP_AT_GROUP_OBJECTSID].sys_name,
+                              discard_const(&group_sid));
+        if (ret != EOK) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Failed to get group sid\n");
+            group_sid = NULL;
+        }
+    }
+
+    if (group_sid != NULL) {
+        group_dom = sss_get_domain_by_sid_ldap_fallback(get_domains_head(dom),
+                                                        group_sid);
+        if (group_dom == NULL) {
+            DEBUG(SSSDBG_TRACE_FUNC, "SID [%s] does not belong to any known "
+                                     "domain, using [%s].\n", group_sid,
+                                                              dom->name);
+        }
+    }
+
+    if (group_dom == NULL) {
+        group_dom = dom;
+    }
+
+    ret = sdap_get_group_primary_name(memctx, opts, attrs, group_dom,
+                                      &group_name);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get group name\n");
         goto fail;
@@ -895,7 +923,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
      * are reported with tokenGroups, too
      */
     if (opts->schema_type == SDAP_SCHEMA_AD) {
-        ret = sdap_dn_by_primary_gid(memctx, attrs, dom, opts,
+        ret = sdap_dn_by_primary_gid(memctx, attrs, group_dom, opts,
                                      &userdns, &nuserdns);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
@@ -910,15 +938,9 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
      * https://fedorahosted.org/sssd/ticket/2522
      */
     if (opts->schema_type == SDAP_SCHEMA_IPA_V1) {
-        ret = sysdb_attrs_get_string(attrs, SYSDB_SID_STR, &group_sid);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_TRACE_FUNC, "Failed to get group sid\n");
-            group_sid = NULL;
-        }
-
         if (group_sid != NULL) {
-            ret = retain_extern_members(memctx, dom, group_name, group_sid,
-                                        &userdns, &nuserdns);
+            ret = retain_extern_members(memctx, group_dom, group_name,
+                                        group_sid, &userdns, &nuserdns);
             if (ret != EOK) {
                 DEBUG(SSSDBG_TRACE_INTERNAL,
                       "retain_extern_members failed: %d:[%s].\n",
@@ -949,7 +971,7 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
             goto fail;
         }
 
-        ret = sdap_fill_memberships(opts, group_attrs, ctx, dom, ghosts,
+        ret = sdap_fill_memberships(opts, group_attrs, ctx, group_dom, ghosts,
                                     el->values, el->num_values,
                                     userdns, nuserdns);
         if (ret) {
@@ -960,8 +982,8 @@ static int sdap_save_grpmem(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sysdb_store_group(dom, group_name, 0, group_attrs,
-                            dom->group_timeout, now);
+    ret = sysdb_store_group(group_dom, group_name, 0, group_attrs,
+                            group_dom->group_timeout, now);
     if (ret) {
         DEBUG(SSSDBG_MINOR_FAILURE, "sysdb_store_group failed: [%d][%s].\n",
               ret, strerror(ret));
