@@ -2013,3 +2013,101 @@ errno_t sysdb_msg2attrs(TALLOC_CTX *mem_ctx, size_t count,
 
     return EOK;
 }
+
+int sysdb_compare_usn(const char *a, const char *b)
+{
+    size_t len_a;
+    size_t len_b;
+
+    if (a == NULL) {
+        return -1;
+    }
+
+    if (b == NULL) {
+        return 1;
+    }
+
+    len_a = strlen(a);
+    len_b = strlen(b);
+
+    /* trim leading zeros */
+    while (len_a > 0 && *a == '0') {
+        a++;
+        len_a--;
+    }
+
+    while (len_b > 0 && *b == '0') {
+        b++;
+        len_b--;
+    }
+
+    /* less digits means lower number */
+    if (len_a < len_b) {
+        return -1;
+    }
+
+    /* more digits means bigger number */
+    if (len_a > len_b) {
+        return 1;
+    }
+
+    /* now we can compare digits since alphabetical order is the same
+     * as numeric order */
+    return strcmp(a, b);
+}
+
+errno_t sysdb_get_highest_usn(TALLOC_CTX *mem_ctx,
+                              struct sysdb_attrs **attrs,
+                              size_t num_attrs,
+                              char **_usn)
+{
+    const char *highest = NULL;
+    const char *current = NULL;
+    char *usn;
+    errno_t ret;
+    size_t i;
+
+    if (num_attrs == 0 || attrs == NULL) {
+        goto done;
+    }
+
+    for (i = 0; i < num_attrs; i++) {
+        ret = sysdb_attrs_get_string(attrs[i], SYSDB_USN, &current);
+        if (ret == ENOENT) {
+            /* USN value is not present, assuming zero. */
+            current = "0";
+        } else if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to retrieve USN value "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+
+            return ret;
+        }
+
+        if (current == NULL) {
+            continue;
+        }
+
+        if (highest == NULL) {
+            highest = current;
+            continue;
+        }
+
+        if (sysdb_compare_usn(current, highest) > 0 ) {
+            highest = current;
+        }
+    }
+
+done:
+    if (highest == NULL) {
+        usn = talloc_strdup(mem_ctx, "0");
+    } else {
+        usn = talloc_strdup(mem_ctx, highest);
+    }
+
+    if (usn == NULL) {
+        return ENOMEM;
+    }
+
+    *_usn = usn;
+    return EOK;
+}

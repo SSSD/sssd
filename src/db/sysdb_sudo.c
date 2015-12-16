@@ -27,6 +27,8 @@
 #include "db/sysdb_private.h"
 #include "db/sysdb_sudo.h"
 
+#define SUDO_ALL_FILTER "(" SYSDB_OBJECTCLASS "=" SYSDB_SUDO_CACHE_OC ")"
+
 #define NULL_CHECK(val, rval, label) do { \
     if (!val) {                           \
         rval = ENOMEM;                    \
@@ -427,41 +429,6 @@ done:
     return ret;
 }
 
-errno_t
-sysdb_save_sudorule(struct sss_domain_info *domain,
-                    const char *rule_name,
-                    struct sysdb_attrs *attrs)
-{
-    errno_t ret;
-
-    DEBUG(SSSDBG_TRACE_FUNC, "Adding sudo rule %s\n", rule_name);
-
-    ret = sysdb_attrs_add_string(attrs, SYSDB_OBJECTCLASS,
-                                 SYSDB_SUDO_CACHE_OC);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not set rule object class [%d]: %s\n",
-              ret, strerror(ret));
-        return ret;
-    }
-
-    ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, rule_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not set name attribute [%d]: %s\n",
-              ret, strerror(ret));
-        return ret;
-    }
-
-    ret = sysdb_store_custom(domain, rule_name,
-                             SUDORULE_SUBDIR, attrs);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_custom failed [%d]: %s\n",
-              ret, strerror(ret));
-        return ret;
-    }
-
-    return EOK;
-}
-
 static errno_t sysdb_sudo_set_refresh_time(struct sss_domain_info *domain,
                                            const char *attr_name,
                                            time_t value)
@@ -615,6 +582,26 @@ errno_t sysdb_sudo_get_last_full_refresh(struct sss_domain_info *domain,
 
 /* ====================  Purge functions ==================== */
 
+static const char *
+sysdb_sudo_get_rule_name(struct sysdb_attrs *rule)
+{
+    const char *name;
+    errno_t ret;
+
+    ret = sysdb_attrs_get_string(rule, SYSDB_SUDO_CACHE_AT_CN, &name);
+    if (ret == ERANGE) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Warning: found rule that contains none "
+              "or multiple CN values. It will be skipped.\n");
+        return NULL;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to obtain rule name [%d]: %s\n",
+              ret, strerror(ret));
+        return NULL;
+    }
+
+    return name;
+}
+
 static errno_t sysdb_sudo_purge_all(struct sss_domain_info *domain)
 {
     struct ldb_dn *base_dn = NULL;
@@ -626,6 +613,8 @@ static errno_t sysdb_sudo_purge_all(struct sss_domain_info *domain)
 
     base_dn = sysdb_custom_subtree_dn(tmp_ctx, domain, SUDORULE_SUBDIR);
     NULL_CHECK(base_dn, ret, done);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Deleting all cached sudo rules\n");
 
     ret = sysdb_delete_recursive(domain->sysdb, base_dn, true);
     if (ret != EOK) {
@@ -639,42 +628,74 @@ done:
     return ret;
 }
 
-errno_t sysdb_sudo_purge_byname(struct sss_domain_info *domain,
-                                const char *name)
+static errno_t
+sysdb_sudo_purge_byname(struct sss_domain_info *domain,
+                        const char *name)
 {
     DEBUG(SSSDBG_TRACE_INTERNAL, "Deleting sudo rule %s\n", name);
     return sysdb_delete_custom(domain, name, SUDORULE_SUBDIR);
 }
 
-errno_t sysdb_sudo_purge_byfilter(struct sss_domain_info *domain,
-                                  const char *filter)
+static errno_t
+sysdb_sudo_purge_byrules(struct sss_domain_info *dom,
+                         struct sysdb_attrs **rules,
+                         size_t num_rules)
+{
+    const char *name;
+    errno_t ret;
+    size_t i;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "About to remove rules from sudo cache\n");
+
+    if (num_rules == 0 || rules == NULL) {
+        return EOK;
+    }
+
+    for (i = 0; i < num_rules; i++) {
+        name = sysdb_sudo_get_rule_name(rules[i]);
+        if (name == NULL) {
+            continue;
+        }
+
+        ret = sysdb_sudo_purge_byname(dom, name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to delete rule "
+                  "%s [%d]: %s\n", name, ret, sss_strerror(ret));
+            continue;
+        }
+    }
+
+    return EOK;
+}
+
+static errno_t
+sysdb_sudo_purge_byfilter(struct sss_domain_info *domain,
+                          const char *filter)
 {
     TALLOC_CTX *tmp_ctx;
-    size_t count;
+    struct sysdb_attrs **rules;
     struct ldb_message **msgs;
-    const char *name;
-    int i;
+    size_t count;
     errno_t ret;
-    errno_t sret;
-    bool in_transaction = false;
     const char *attrs[] = { SYSDB_OBJECTCLASS,
                             SYSDB_NAME,
                             SYSDB_SUDO_CACHE_AT_CN,
                             NULL };
 
-    /* just purge all if there's no filter */
-    if (!filter) {
+    if (filter == NULL || strcmp(filter, SUDO_ALL_FILTER) == 0) {
         return sysdb_sudo_purge_all(domain);
     }
 
     tmp_ctx = talloc_new(NULL);
-    NULL_CHECK(tmp_ctx, ret, done);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
-    /* match entries based on the filter and remove them one by one */
     ret = sysdb_search_custom(tmp_ctx, domain, filter,
                               SUDORULE_SUBDIR, attrs,
                               &count, &msgs);
-    if (ret == ENOENT) {
+    if (ret == ENOENT || count == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "No rules matched\n");
         ret = EOK;
         goto done;
@@ -683,24 +704,165 @@ errno_t sysdb_sudo_purge_byfilter(struct sss_domain_info *domain,
         goto done;
     }
 
+    ret = sysdb_msg2attrs(tmp_ctx, count, msgs, &rules);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to convert ldb message to "
+              "sysdb attrs [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sysdb_sudo_purge_byrules(domain, rules, count);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_sudo_purge(struct sss_domain_info *domain,
+                         const char *delete_filter,
+                         struct sysdb_attrs **rules,
+                         size_t num_rules)
+{
+    bool in_transaction = false;
+    errno_t sret;
+    errno_t ret;
+
     ret = sysdb_transaction_start(domain->sysdb);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
-        goto done;
+        return ret;
     }
     in_transaction = true;
 
-    for (i = 0; i < count; i++) {
-        name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
-        if (name == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "A rule without a name?\n");
-            /* skip this one but still delete other entries */
-            continue;
-        }
+    if (delete_filter) {
+        ret = sysdb_sudo_purge_byfilter(domain, delete_filter);
+    } else {
+        ret = sysdb_sudo_purge_byrules(domain, rules, num_rules);
+    }
 
-        ret = sysdb_sudo_purge_byname(domain, name);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE, "Could not delete rule %s\n", name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_transaction_commit(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to commit transaction\n");
+        goto done;
+    }
+    in_transaction = false;
+
+done:
+    if (in_transaction) {
+        sret = sysdb_transaction_cancel(domain->sysdb);
+        if (sret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Could not cancel transaction\n");
+        }
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to purge sudo cache [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+
+    return ret;
+}
+
+static errno_t
+sysdb_sudo_add_sss_attrs(struct sysdb_attrs *rule,
+                         const char *name,
+                         int cache_timeout,
+                         time_t now)
+{
+    time_t expire;
+    errno_t ret;
+
+    ret = sysdb_attrs_add_string(rule, SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to add %s attribute [%d]: %s\n",
+                SYSDB_OBJECTCLASS, ret, strerror(ret));
+        return ret;
+    }
+
+    ret = sysdb_attrs_add_string(rule, SYSDB_NAME, name);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to add %s attribute [%d]: %s\n",
+                SYSDB_OBJECTCLASS, ret, strerror(ret));
+        return ret;
+    }
+
+    expire = cache_timeout > 0 ? now + cache_timeout : 0;
+    ret = sysdb_attrs_add_time_t(rule, SYSDB_CACHE_EXPIRE, expire);
+    if (ret) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to add %s attribute [%d]: %s\n",
+              SYSDB_CACHE_EXPIRE, ret, strerror(ret));
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t
+sysdb_sudo_store_rule(struct sss_domain_info *domain,
+                      struct sysdb_attrs *rule,
+                      int cache_timeout,
+                      time_t now)
+{
+    const char *name;
+    errno_t ret;
+
+    name = sysdb_sudo_get_rule_name(rule);
+    if (name == NULL) {
+        return EINVAL;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Adding sudo rule %s\n", name);
+
+    ret = sysdb_sudo_add_sss_attrs(rule, name, cache_timeout, now);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sysdb_store_custom(domain, name, SUDORULE_SUBDIR, rule);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to store rule %s [%d]: %s\n",
+              name, ret, strerror(ret));
+        return ret;
+    }
+
+    return EOK;
+}
+
+errno_t
+sysdb_sudo_store(struct sss_domain_info *domain,
+                 struct sysdb_attrs **rules,
+                 size_t num_rules)
+{
+    bool in_transaction = false;
+    errno_t sret;
+    errno_t ret;
+    time_t now;
+    size_t i;
+
+    if (num_rules == 0 || rules == NULL) {
+        return EOK;
+    }
+
+    ret = sysdb_transaction_start(domain->sysdb);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
+        return ret;
+    }
+    in_transaction = true;
+
+    now = time(NULL);
+    for (i = 0; i < num_rules; i++) {
+        ret = sysdb_sudo_store_rule(domain, rules[i],
+                                    domain->sudo_timeout, now);
+        if (ret == EINVAL) {
+            /* Multiple CNs are error on server side, we can just ignore this
+             * rule and save the others. Loud debug message is in logs. */
+            continue;
+        } else if (ret != EOK) {
             goto done;
         }
     }
@@ -720,6 +882,10 @@ done:
         }
     }
 
-    talloc_free(tmp_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unable to store sudo rules [%d]: %s\n",
+              ret, sss_strerror(ret));
+    }
+
     return ret;
 }

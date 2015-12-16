@@ -78,20 +78,19 @@ sysdb_get_sudo_user_info(TALLOC_CTX *mem_ctx,
                          const char *username, uid_t *_uid,
                          char ***groupnames);
 
-errno_t
-sysdb_save_sudorule(struct sss_domain_info *domain,
-                    const char *rule_name,
-                    struct sysdb_attrs *attrs);
-
 errno_t sysdb_sudo_set_last_full_refresh(struct sss_domain_info *domain,
                                          time_t value);
 errno_t sysdb_sudo_get_last_full_refresh(struct sss_domain_info *domain,
                                          time_t *value);
 
-errno_t sysdb_sudo_purge_byname(struct sss_domain_info *domain,
-                                const char *name);
+errno_t sysdb_sudo_purge(struct sss_domain_info *domain,
+                         const char *delete_filter,
+                         struct sysdb_attrs **rules,
+                         size_t num_rules);
 
-errno_t sysdb_sudo_purge_byfilter(struct sss_domain_info *domain,
-                                  const char *filter);
+errno_t
+sysdb_sudo_store(struct sss_domain_info *domain,
+                 struct sysdb_attrs **rules,
+                 size_t num_rules);
 
 #endif /* _SYSDB_SUDO_H_ */
