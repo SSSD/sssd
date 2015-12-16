@@ -27,7 +27,6 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/ldap/sdap_sudo.h"
-#include "providers/ldap/sdap_sudo_cache.h"
 #include "db/sysdb_sudo.h"
 
 static void sdap_sudo_handler(struct be_req *breq);

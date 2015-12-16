@@ -386,6 +386,13 @@ errno_t sysdb_msg2attrs(TALLOC_CTX *mem_ctx, size_t count,
                         struct ldb_message **msgs,
                         struct sysdb_attrs ***attrs);
 
+int sysdb_compare_usn(const char *a, const char *b);
+
+errno_t sysdb_get_highest_usn(TALLOC_CTX *mem_ctx,
+                              struct sysdb_attrs **attrs,
+                              size_t num_attrs,
+                              char **_usn);
+
 /* convert an ldb error into an errno error */
 int sysdb_error_to_errno(int ldberr);
 
