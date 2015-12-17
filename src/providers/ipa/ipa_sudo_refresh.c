@@ -141,6 +141,161 @@ ipa_sudo_full_refresh_recv(struct tevent_req *req,
     return EOK;
 }
 
+struct ipa_sudo_rules_refresh_state {
+    size_t num_rules;
+    int dp_error;
+    bool deleted;
+};
+
+static void ipa_sudo_rules_refresh_done(struct tevent_req *subreq);
+
+struct tevent_req *
+ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct ipa_sudo_ctx *sudo_ctx,
+                            char **rules)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ipa_sudo_rules_refresh_state *state;
+    struct tevent_req *subreq;
+    struct tevent_req *req;
+    char *search_filter;
+    char *delete_filter;
+    char *safe_rule;
+    errno_t ret;
+    int i;
+
+    req = tevent_req_create(mem_ctx, &state, struct ipa_sudo_rules_refresh_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
+        return NULL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    if (rules == NULL || rules[0] == NULL) {
+        state->dp_error = DP_ERR_OK;
+        state->num_rules = 0;
+        state->deleted = false;
+        ret = EOK;
+        goto immediately;
+    }
+
+    search_filter = talloc_zero(tmp_ctx, char); /* assign to tmp_ctx */
+    delete_filter = talloc_zero(tmp_ctx, char); /* assign to tmp_ctx */
+
+    /* Download only selected rules from LDAP. */
+    /* Remove all selected rules from cache. */
+    for (i = 0; rules[i] != NULL; i++) {
+        ret = sss_filter_sanitize(tmp_ctx, rules[i], &safe_rule);
+        if (ret != EOK) {
+            ret = ENOMEM;
+            goto immediately;
+        }
+
+        search_filter = talloc_asprintf_append_buffer(search_filter, "(%s=%s)",
+                             sudo_ctx->sudorule_map[IPA_AT_SUDORULE_NAME].name,
+                             safe_rule);
+        if (search_filter == NULL) {
+            ret = ENOMEM;
+            goto immediately;
+        }
+
+        delete_filter = talloc_asprintf_append_buffer(delete_filter, "(%s=%s)",
+                                                      SYSDB_NAME, safe_rule);
+        if (delete_filter == NULL) {
+            ret = ENOMEM;
+            goto immediately;
+        }
+    }
+
+    state->num_rules = i;
+
+    search_filter = talloc_asprintf(tmp_ctx, "(|%s)", search_filter);
+    if (search_filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    delete_filter = talloc_asprintf(tmp_ctx, "(&(%s=%s)(|%s))",
+                                    SYSDB_OBJECTCLASS, SYSDB_SUDO_CACHE_OC,
+                                    delete_filter);
+    if (delete_filter == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    subreq = ipa_sudo_refresh_send(req, ev, sudo_ctx, search_filter,
+                                   delete_filter);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    tevent_req_set_callback(subreq, ipa_sudo_rules_refresh_done, req);
+
+    ret = EOK;
+
+immediately:
+    talloc_free(tmp_ctx);
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+
+    return req;
+}
+
+static void
+ipa_sudo_rules_refresh_done(struct tevent_req *subreq)
+{
+    struct ipa_sudo_rules_refresh_state *state;
+    struct tevent_req *req = NULL;
+    size_t downloaded_rules_num;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_sudo_rules_refresh_state);
+
+    ret = ipa_sudo_refresh_recv(subreq, &state->dp_error, &downloaded_rules_num);
+    talloc_zfree(subreq);
+    if (ret != EOK || state->dp_error != DP_ERR_OK) {
+        goto done;
+    }
+
+    state->deleted = downloaded_rules_num != state->num_rules ? true : false;
+
+done:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int
+ipa_sudo_rules_refresh_recv(struct tevent_req *req,
+                            int *dp_error,
+                            bool *deleted)
+{
+    struct ipa_sudo_rules_refresh_state *state;
+    state = tevent_req_data(req, struct ipa_sudo_rules_refresh_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *dp_error = state->dp_error;
+    *deleted = state->deleted;
+
+    return EOK;
+}
+
 static struct tevent_req *
 ipa_sudo_ptask_full_refresh_send(TALLOC_CTX *mem_ctx,
                                  struct tevent_context *ev,

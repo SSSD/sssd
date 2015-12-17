@@ -1124,7 +1124,7 @@ ipa_sudo_conv_result(TALLOC_CTX *mem_ctx,
     }
 
     if (ctx.ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to expand command grousp "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to expand command groups "
               "[%d]: %s\n", ctx.ret, sss_strerror(ctx.ret));
         return ctx.ret;
     }
