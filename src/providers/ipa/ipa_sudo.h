@@ -50,12 +50,23 @@ int
 ipa_sudo_full_refresh_recv(struct tevent_req *req,
                            int *dp_error);
 
+int
+ipa_sudo_rules_refresh_recv(struct tevent_req *req,
+                            int *dp_error,
+                            bool *deleted);
+
 struct tevent_req *
 ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct ipa_sudo_ctx *sudo_ctx,
                       const char *search_filter,
                       const char *delete_filter);
+
+struct tevent_req *
+ipa_sudo_rules_refresh_send(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct ipa_sudo_ctx *sudo_ctx,
+                            char **rules);
 
 errno_t
 ipa_sudo_refresh_recv(struct tevent_req *req,

@@ -140,6 +140,7 @@ struct ipa_sudo_fetch_state {
     struct sdap_options *sdap_opts;
     struct ipa_hostinfo *host;
     struct sdap_handle *sh;
+    const char *search_filter;
 
     struct sdap_attr_map *map_cmdgroup;
     struct sdap_attr_map *map_rule;
@@ -169,7 +170,8 @@ ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
                     struct sdap_attr_map *map_group,
                     struct sdap_attr_map *map_host,
                     struct sdap_attr_map *map_hostgroup,
-                    struct sdap_handle *sh)
+                    struct sdap_handle *sh,
+                    const char *search_filter)
 {
     struct ipa_sudo_fetch_state *state = NULL;
     struct tevent_req *req = NULL;
@@ -188,6 +190,7 @@ ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
     state->sdap_opts = sudo_ctx->sdap_opts;
     state->host = host;
     state->sh = sh;
+    state->search_filter = search_filter == NULL ? "" : search_filter;
 
     state->map_cmdgroup = sudo_ctx->sudocmdgroup_map;
     state->map_rule = sudo_ctx->sudorule_map;
@@ -241,10 +244,10 @@ ipa_sudo_fetch_rules(struct tevent_req *req)
         return ENOMEM;
     }
 
-    filter = talloc_asprintf(state, "(&(objectClass=%s)(%s=TRUE)%s)",
+    filter = talloc_asprintf(state, "(&(objectClass=%s)(%s=TRUE)%s%s)",
                              map[IPA_OC_SUDORULE].name,
                              map[IPA_AT_SUDORULE_ENABLED].name,
-                             host_filter);
+                             host_filter, state->search_filter);
     talloc_zfree(host_filter);
     if (filter == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build filter\n");
@@ -678,7 +681,8 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
                                  state->sdap_opts->user_map,
                                  state->sdap_opts->group_map,
                                  state->ipa_opts->host_map,
-                                 state->ipa_opts->hostgroup_map, state->sh);
+                                 state->ipa_opts->hostgroup_map, state->sh,
+                                 state->search_filter);
     if (subreq == NULL) {
         state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ENOMEM);

@@ -211,6 +211,7 @@ ipa_sudo_reply(struct tevent_req *req)
 {
     struct be_sudo_req *sudo_req;
     struct be_req *be_req;
+    bool deleted;
     int dp_error;
     int ret;
 
@@ -220,6 +221,12 @@ ipa_sudo_reply(struct tevent_req *req)
     switch (sudo_req->type) {
     case BE_REQ_SUDO_FULL:
         ret = ipa_sudo_full_refresh_recv(req, &dp_error);
+        break;
+    case BE_REQ_SUDO_RULES:
+        ret = ipa_sudo_rules_refresh_recv(req, &dp_error, &deleted);
+        if (ret == EOK && deleted == true) {
+            ret = ENOENT;
+        }
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
@@ -255,6 +262,10 @@ ipa_sudo_handler(struct be_req *be_req)
     switch (sudo_req->type) {
     case BE_REQ_SUDO_FULL:
         req = ipa_sudo_full_refresh_send(be_req, be_ctx->ev, sudo_ctx);
+        break;
+    case BE_REQ_SUDO_RULES:
+        req = ipa_sudo_rules_refresh_send(be_req, be_ctx->ev, sudo_ctx,
+                                          sudo_req->rules);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n",
