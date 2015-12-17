@@ -31,6 +31,7 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_ops.h"
 #include "providers/ldap/sdap_sudo.h"
+#include "providers/ldap/sdap_sudo_shared.h"
 #include "db/sysdb_sudo.h"
 
 struct sdap_sudo_load_sudoers_state {
@@ -133,36 +134,6 @@ static int sdap_sudo_load_sudoers_recv(struct tevent_req *req,
     *rules = talloc_steal(mem_ctx, state->rules);
 
     return EOK;
-}
-
-static void sdap_sudo_set_usn(struct sdap_server_opts *srv_opts, char *usn)
-{
-    unsigned int usn_number;
-    char *endptr = NULL;
-
-    if (srv_opts == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Bug: srv_opts is NULL\n");
-        return;
-    }
-
-    if (usn == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Bug: usn is NULL\n");
-        return;
-    }
-
-    if (sysdb_compare_usn(usn, srv_opts->max_sudo_value) > 0) {
-        talloc_zfree(srv_opts->max_sudo_value);
-        srv_opts->max_sudo_value = talloc_steal(srv_opts, usn);
-    }
-
-    usn_number = strtoul(usn, &endptr, 10);
-    if ((endptr == NULL || (*endptr == '\0' && endptr != usn))
-         && (usn_number > srv_opts->last_usn)) {
-         srv_opts->last_usn = usn_number;
-    }
-
-    DEBUG(SSSDBG_FUNC_DATA, "SUDO higher USN value: [%s]\n",
-                             srv_opts->max_sudo_value);
 }
 
 static char *sdap_sudo_build_host_filter(TALLOC_CTX *mem_ctx,
