@@ -88,14 +88,16 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
      * Disable when offline and run immediately when SSSD goes back online.
      * Since we have periodical online check we don't have to run this task
      * when offline. */
-    ret = be_ptask_create(be_ctx, be_ctx, full, delay, 0, 0, full,
-                          BE_PTASK_OFFLINE_DISABLE, 0,
-                          full_send_fn, full_recv_fn, pvt,
-                          "SUDO Full Refresh", NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup full refresh ptask "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
+    if (full > 0) {
+        ret = be_ptask_create(be_ctx, be_ctx, full, delay, 0, 0, full,
+                              BE_PTASK_OFFLINE_DISABLE, 0,
+                              full_send_fn, full_recv_fn, pvt,
+                              "SUDO Full Refresh", NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup full refresh ptask "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            return ret;
+        }
     }
 
     /* Smart refresh.
@@ -103,14 +105,16 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
      * Disable when offline and reschedule normally when SSSD goes back online.
      * Since we have periodical online check we don't have to run this task
      * when offline. */
-    ret = be_ptask_create(be_ctx, be_ctx, smart, delay + smart, smart, 0, smart,
-                          BE_PTASK_OFFLINE_DISABLE, 0,
-                          smart_send_fn, smart_recv_fn, pvt,
-                          "SUDO Smart Refresh", NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup smart refresh ptask "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
+    if (smart > 0) {
+        ret = be_ptask_create(be_ctx, be_ctx, smart, delay + smart, smart, 0,
+                              smart, BE_PTASK_OFFLINE_DISABLE, 0,
+                              smart_send_fn, smart_recv_fn, pvt,
+                              "SUDO Smart Refresh", NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup smart refresh ptask "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            return ret;
+        }
     }
 
     return EOK;
