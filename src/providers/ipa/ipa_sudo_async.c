@@ -23,6 +23,7 @@
 #include <dhash.h>
 
 #include "providers/ldap/sdap_ops.h"
+#include "providers/ldap/sdap_sudo_shared.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_sudo.h"
@@ -133,6 +134,32 @@ fail:
     return NULL;
 }
 
+static errno_t
+ipa_sudo_highest_usn(TALLOC_CTX *mem_ctx,
+                     struct sysdb_attrs **attrs,
+                     size_t num_attrs,
+                     char **current_usn)
+{
+    errno_t ret;
+    char *usn;
+
+    ret = sysdb_get_highest_usn(mem_ctx, attrs, num_attrs, &usn);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to get highest USN [%d]: %s\n",
+              ret, sss_strerror(ret));
+        return ret;
+    }
+
+    if (sysdb_compare_usn(usn, *current_usn) > 0) {
+        talloc_free(*current_usn);
+        *current_usn = usn;
+        return EOK;
+    }
+
+    talloc_free(usn);
+    return EOK;
+}
+
 struct ipa_sudo_fetch_state {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
@@ -150,6 +177,7 @@ struct ipa_sudo_fetch_state {
     struct ipa_sudo_conv *conv;
     struct sysdb_attrs **rules;
     size_t num_rules;
+    char *usn;
 };
 
 static errno_t ipa_sudo_fetch_rules(struct tevent_req *req);
@@ -292,6 +320,11 @@ ipa_sudo_fetch_rules_done(struct tevent_req *subreq)
         goto done;
     }
 
+    ret = ipa_sudo_highest_usn(state, attrs, num_attrs, &state->usn);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = ipa_sudo_fetch_cmdgroups(req);
 
 done:
@@ -363,6 +396,11 @@ ipa_sudo_fetch_cmdgroups_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed when converting command groups "
               "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = ipa_sudo_highest_usn(state, attrs, num_attrs, &state->usn);
+    if (ret != EOK) {
         goto done;
     }
 
@@ -482,7 +520,8 @@ static errno_t
 ipa_sudo_fetch_recv(TALLOC_CTX *mem_ctx,
                     struct tevent_req *req,
                     struct sysdb_attrs ***_rules,
-                    size_t *_num_rules)
+                    size_t *_num_rules,
+                    char **_usn)
 {
     struct ipa_sudo_fetch_state *state = NULL;
     state = tevent_req_data(req, struct ipa_sudo_fetch_state);
@@ -491,6 +530,7 @@ ipa_sudo_fetch_recv(TALLOC_CTX *mem_ctx,
 
     *_rules = talloc_steal(mem_ctx, state->rules);
     *_num_rules = state->num_rules;
+    *_usn = talloc_steal(mem_ctx, state->usn);
 
     return EOK;
 }
@@ -697,6 +737,7 @@ ipa_sudo_refresh_done(struct tevent_req *subreq)
 {
     struct ipa_sudo_refresh_state *state;
     struct tevent_req *req;
+    char *usn = NULL;
     bool in_transaction = false;
     errno_t sret;
     int ret;
@@ -704,7 +745,8 @@ ipa_sudo_refresh_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_sudo_refresh_state);
 
-    ret = ipa_sudo_fetch_recv(state, subreq, &state->rules, &state->num_rules);
+    ret = ipa_sudo_fetch_recv(state, subreq, &state->rules,
+                              &state->num_rules, &usn);
     talloc_zfree(subreq);
 
     ret = sdap_id_op_done(state->sdap_op, ret, &state->dp_error);
@@ -744,6 +786,10 @@ ipa_sudo_refresh_done(struct tevent_req *subreq)
         goto done;
     }
     in_transaction = false;
+
+    if (usn != NULL) {
+        sdap_sudo_set_usn(state->sudo_ctx->id_ctx->srv_opts, usn);
+    }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Sudo rules are successfully stored in cache\n");
 
