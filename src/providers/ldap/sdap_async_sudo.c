@@ -518,6 +518,9 @@ static void sdap_sudo_refresh_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
         }
         return;
+    } else if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Received %zu rules\n", rules_count);
