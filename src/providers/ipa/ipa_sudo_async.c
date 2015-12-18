@@ -160,14 +160,217 @@ ipa_sudo_highest_usn(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static errno_t
+ipa_sudo_assoc_rules_filter(TALLOC_CTX *mem_ctx,
+                            struct sysdb_attrs **cmdgroups,
+                            size_t num_cmdgroups,
+                            char **_filter)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *origdn;
+    char *sanitized;
+    char *filter;
+    errno_t ret;
+    size_t i;
+
+    if (num_cmdgroups == 0) {
+        return ENOENT;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    filter = talloc_strdup(tmp_ctx, "");
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < num_cmdgroups; i++) {
+        ret = sysdb_attrs_get_string(cmdgroups[i], SYSDB_ORIG_DN, &origdn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get original dn [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        ret = sss_filter_sanitize(tmp_ctx, origdn, &sanitized);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        filter = talloc_asprintf_append(filter, "(%s=%s)",
+                                        SYSDB_IPA_SUDORULE_ORIGCMD, sanitized);
+        if (filter == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(&(objectClass=%s)(|%s)))",
+                             SYSDB_SUDO_CACHE_OC, filter);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_filter = talloc_steal(mem_ctx, filter);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+ipa_sudo_assoc_rules(TALLOC_CTX *mem_ctx,
+                     struct sss_domain_info *domain,
+                     struct sysdb_attrs **cmdgroups,
+                     size_t num_cmdgroups,
+                     struct sysdb_attrs ***_rules,
+                     size_t *_num_rules)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *attrs[] = {SYSDB_NAME, NULL};
+    struct sysdb_attrs **rules;
+    struct ldb_message **msgs;
+    size_t num_rules;
+    char *filter;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = ipa_sudo_assoc_rules_filter(tmp_ctx, cmdgroups,
+                                      num_cmdgroups, &filter);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_search_custom(tmp_ctx, domain, filter,
+                              SUDORULE_SUBDIR, attrs,
+                              &num_rules, &msgs);
+    if (ret == ENOENT) {
+        *_rules = NULL;
+        *_num_rules = 0;
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Error looking up sudo rules [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sysdb_msg2attrs(tmp_ctx, num_rules, msgs, &rules);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Could not convert ldb message to "
+              "sysdb_attrs [%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    *_rules = talloc_steal(mem_ctx, rules);
+    *_num_rules = num_rules;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+ipa_sudo_filter_rules_bycmdgroups(TALLOC_CTX *mem_ctx,
+                                  struct sss_domain_info *domain,
+                                  struct sysdb_attrs **cmdgroups,
+                                  size_t num_cmdgroups,
+                                  struct sdap_attr_map *map_rule,
+                                  char **_filter)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_attrs **rules;
+    size_t num_rules;
+    const char *name;
+    char *sanitized;
+    char *filter;
+    errno_t ret;
+    size_t i;
+
+    if (num_cmdgroups == 0) {
+        *_filter = NULL;
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = ipa_sudo_assoc_rules(tmp_ctx, domain, cmdgroups, num_cmdgroups,
+                               &rules, &num_rules);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (num_rules == 0) {
+        *_filter = NULL;
+        ret = EOK;
+        goto done;
+    }
+
+    filter = talloc_strdup(tmp_ctx, "");
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (i = 0; i < num_rules; i++) {
+        ret = sysdb_attrs_get_string(rules[i], SYSDB_NAME, &name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get name [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+
+        ret = sss_filter_sanitize(tmp_ctx, name, &sanitized);
+        if (ret != EOK) {
+            goto done;
+        }
+
+        filter = talloc_asprintf_append(filter, "(%s=%s)",
+                    map_rule[IPA_AT_SUDORULE_NAME].name, sanitized);
+        if (filter == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(|%s)", filter);
+    if (filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_filter = talloc_steal(mem_ctx, filter);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 struct ipa_sudo_fetch_state {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     struct ipa_sudo_ctx *sudo_ctx;
     struct sdap_options *sdap_opts;
     struct ipa_hostinfo *host;
     struct sdap_handle *sh;
     const char *search_filter;
+    const char *cmdgroups_filter;
 
     struct sdap_attr_map *map_cmdgroup;
     struct sdap_attr_map *map_rule;
@@ -180,6 +383,8 @@ struct ipa_sudo_fetch_state {
     char *usn;
 };
 
+static errno_t ipa_sudo_fetch_addtl_cmdgroups(struct tevent_req *req);
+static void ipa_sudo_fetch_addtl_cmdgroups_done(struct tevent_req *subreq);
 static errno_t ipa_sudo_fetch_rules(struct tevent_req *req);
 static void ipa_sudo_fetch_rules_done(struct tevent_req *subreq);
 static errno_t ipa_sudo_fetch_cmdgroups(struct tevent_req *req);
@@ -191,6 +396,7 @@ static void ipa_sudo_fetch_done(struct tevent_req *req);
 static struct tevent_req *
 ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
+                    struct sss_domain_info *domain,
                     struct sysdb_ctx *sysdb,
                     struct ipa_sudo_ctx *sudo_ctx,
                     struct ipa_hostinfo *host,
@@ -199,6 +405,7 @@ ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
                     struct sdap_attr_map *map_host,
                     struct sdap_attr_map *map_hostgroup,
                     struct sdap_handle *sh,
+                    const char *cmdgroups_filter,
                     const char *search_filter)
 {
     struct ipa_sudo_fetch_state *state = NULL;
@@ -214,11 +421,13 @@ ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->sysdb = sysdb;
+    state->domain = domain;
     state->sudo_ctx = sudo_ctx;
     state->sdap_opts = sudo_ctx->sdap_opts;
     state->host = host;
     state->sh = sh;
     state->search_filter = search_filter == NULL ? "" : search_filter;
+    state->cmdgroups_filter = cmdgroups_filter;
 
     state->map_cmdgroup = sudo_ctx->sudocmdgroup_map;
     state->map_rule = sudo_ctx->sudorule_map;
@@ -234,7 +443,15 @@ ipa_sudo_fetch_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = ipa_sudo_fetch_rules(req);
+    if (state->cmdgroups_filter != NULL) {
+        /* We need to fetch additional cmdgroups that may not be revealed
+         * during normal search. Such as when using entryUSN filter in smart
+         * refresh, some command groups may have change but none rule was
+         * modified but we need to fetch associated rules anyway. */
+        ret = ipa_sudo_fetch_addtl_cmdgroups(req);
+    } else {
+        ret = ipa_sudo_fetch_rules(req);
+    }
     if (ret != EAGAIN) {
         goto immediately;
     }
@@ -250,6 +467,87 @@ immediately:
     tevent_req_post(req, state->ev);
 
     return req;
+}
+
+static errno_t
+ipa_sudo_fetch_addtl_cmdgroups(struct tevent_req *req)
+{
+    struct ipa_sudo_fetch_state *state;
+    struct tevent_req *subreq;
+    struct sdap_attr_map *map;
+    char *filter;
+
+    DEBUG(SSSDBG_TRACE_FUNC, "About to fetch additional command groups\n");
+
+    state = tevent_req_data(req, struct ipa_sudo_fetch_state);
+    map = state->map_cmdgroup;
+
+    filter = talloc_asprintf(state, "(&(objectClass=%s)%s)",
+                             map[IPA_OC_SUDOCMDGROUP].name,
+                             state->cmdgroups_filter);
+    if (filter == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to build filter\n");
+        return ENOMEM;
+    }
+
+    subreq = sdap_search_bases_send(state, state->ev, state->sdap_opts,
+                                    state->sh, state->sudo_sb, map, true, 0,
+                                    filter, NULL);
+    if (subreq == NULL) {
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(subreq, ipa_sudo_fetch_addtl_cmdgroups_done, req);
+    return EAGAIN;
+}
+
+static void
+ipa_sudo_fetch_addtl_cmdgroups_done(struct tevent_req *subreq)
+{
+    struct ipa_sudo_fetch_state *state = NULL;
+    struct tevent_req *req = NULL;
+    struct sysdb_attrs **attrs;
+    size_t num_attrs;
+    char *filter;
+    errno_t ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_sudo_fetch_state);
+
+    ret = sdap_search_bases_recv(subreq, state, &num_attrs, &attrs);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    DEBUG(SSSDBG_IMPORTANT_INFO, "Received %zu additional command groups\n",
+          num_attrs);
+
+    ret = ipa_sudo_filter_rules_bycmdgroups(state, state->domain, attrs,
+                                            num_attrs, state->map_rule,
+                                            &filter);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to construct rules filter "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    state->search_filter = sdap_or_filters(state, state->search_filter, filter);
+    if (state->search_filter == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ipa_sudo_fetch_rules(req);
+
+done:
+    if (ret == EOK) {
+        ipa_sudo_fetch_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    return;
 }
 
 static errno_t
@@ -543,6 +841,7 @@ struct ipa_sudo_refresh_state {
     struct ipa_sudo_ctx *sudo_ctx;
     struct ipa_options *ipa_opts;
     struct sdap_options *sdap_opts;
+    const char *cmdgroups_filter;
     const char *search_filter;
     const char *delete_filter;
 
@@ -563,6 +862,7 @@ struct tevent_req *
 ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                       struct tevent_context *ev,
                       struct ipa_sudo_ctx *sudo_ctx,
+                      const char *cmdgroups_filter,
                       const char *search_filter,
                       const char *delete_filter)
 {
@@ -588,6 +888,12 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
                                        sudo_ctx->id_ctx->conn->conn_cache);
     if (!state->sdap_op) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
+        ret = ENOMEM;
+        goto immediately;
+    }
+
+    state->cmdgroups_filter = talloc_strdup(state, cmdgroups_filter);
+    if (cmdgroups_filter != NULL && state->cmdgroups_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
@@ -716,13 +1022,13 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = ipa_sudo_fetch_send(state, state->ev, state->sysdb,
+    subreq = ipa_sudo_fetch_send(state, state->ev, state->domain, state->sysdb,
                                  state->sudo_ctx, host,
                                  state->sdap_opts->user_map,
                                  state->sdap_opts->group_map,
                                  state->ipa_opts->host_map,
                                  state->ipa_opts->hostgroup_map, state->sh,
-                                 state->search_filter);
+                                 state->cmdgroups_filter, state->search_filter);
     if (subreq == NULL) {
         state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ENOMEM);
