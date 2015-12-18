@@ -155,8 +155,10 @@ char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
 {
     char *filter = NULL;
 
-    if (!extra_filter) {
+    if (extra_filter == NULL || extra_filter[0] == '\0') {
         return talloc_strdup(mem_ctx, base_filter);
+    } else if (base_filter == NULL || base_filter[0] == '\0') {
+        return talloc_strdup(mem_ctx, extra_filter);
     }
 
     if (extra_filter[0] == '(') {
@@ -166,5 +168,6 @@ char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
         filter = talloc_asprintf(mem_ctx, "(&%s(%s))",
                                  base_filter, extra_filter);
     }
+
     return filter; /* NULL or not */
 }
