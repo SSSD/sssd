@@ -157,7 +157,7 @@ static int get_user_from_mc(char *name, size_t len, uid_t uid)
             goto done;
         }
         buf = p;
-        rc = sss_nss_mc_getpwuid(uid, &pwd, buf, BUF_LEN);
+        rc = sss_nss_mc_getpwuid(uid, &pwd, buf, buflen);
     } while (rc == ERANGE);
 
     if (rc == 0) {
@@ -198,7 +198,7 @@ static int get_group_from_mc(char *name, size_t len, id_t gid)
             goto done;
         }
         buf = p;
-        rc = sss_nss_mc_getgrgid(gid, &grp, buf, BUF_LEN);
+        rc = sss_nss_mc_getgrgid(gid, &grp, buf, buflen);
     } while (rc == ERANGE);
 
     if (rc == 0) {
