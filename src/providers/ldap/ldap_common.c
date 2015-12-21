@@ -780,7 +780,7 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
     /* Allocate the maximum possible values for missing_attrs, to
      * be on the safe side
      */
-    missing = talloc_array(tmp_ctx, char *, attr_count);
+    missing = talloc_array(tmp_ctx, char *, attr_count + 2);
     if (!missing) {
         ret = ENOMEM;
         goto done;
@@ -831,6 +831,12 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
             /* Attribute could not be found. Add to the missing list */
             missing[k] = talloc_steal(missing, sysdb_name);
             k++;
+
+            /* Remove originalMemberOf as well if MemberOf is missing */
+            if (strcmp(sysdb_name, SYSDB_MEMBEROF) == 0) {
+                missing[k] = talloc_strdup(missing, SYSDB_ORIG_MEMBEROF);
+                k++;
+            }
         }
     }
 
