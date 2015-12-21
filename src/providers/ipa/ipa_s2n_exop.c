@@ -1764,6 +1764,8 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
     struct sysdb_attrs *gid_override_attrs = NULL;
     char ** exop_grouplist;
     struct ldb_message *msg;
+    struct ldb_message_element *el = NULL;
+    const char *missing[] = {NULL, NULL};
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1993,6 +1995,12 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                 }
             }
 
+            ret = sysdb_attrs_get_el_ext(attrs->sysdb_attrs,
+                                         SYSDB_ORIG_MEMBEROF, false, &el);
+            if (ret == ENOENT) {
+                missing[0] = SYSDB_ORIG_MEMBEROF;
+            }
+
             ret = sysdb_transaction_start(dom->sysdb);
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Failed to start transaction\n");
@@ -2004,7 +2012,9 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                    attrs->a.user.pw_uid,
                                    gid, attrs->a.user.pw_gecos,
                                    attrs->a.user.pw_dir, attrs->a.user.pw_shell,
-                                   NULL, attrs->sysdb_attrs, NULL,
+                                   NULL, attrs->sysdb_attrs,
+                                   missing[0] == NULL ? NULL
+                                                      : discard_const(missing),
                                    dom->user_timeout, now);
             if (ret == EEXIST && dom->mpg == true) {
                 /* This handles the case where getgrgid() was called for
