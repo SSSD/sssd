@@ -149,9 +149,11 @@ errno_t deref_string_to_val(const char *str, int *val)
     return EOK;
 }
 
-char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
-                           const char *base_filter,
-                           const char *extra_filter)
+static char *
+sdap_combine_filters_ex(TALLOC_CTX *mem_ctx,
+                        char operator,
+                        const char *base_filter,
+                        const char *extra_filter)
 {
     char *filter = NULL;
 
@@ -162,12 +164,26 @@ char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
     }
 
     if (extra_filter[0] == '(') {
-        filter = talloc_asprintf(mem_ctx, "(&%s%s)",
-                                 base_filter, extra_filter);
+        filter = talloc_asprintf(mem_ctx, "(%c%s%s)",
+                                 operator, base_filter, extra_filter);
     } else {
-        filter = talloc_asprintf(mem_ctx, "(&%s(%s))",
-                                 base_filter, extra_filter);
+        filter = talloc_asprintf(mem_ctx, "(%c%s(%s))",
+                                 operator, base_filter, extra_filter);
     }
 
     return filter; /* NULL or not */
+}
+
+char *sdap_or_filters(TALLOC_CTX *mem_ctx,
+                      const char *base_filter,
+                      const char *extra_filter)
+{
+    return sdap_combine_filters_ex(mem_ctx, '|', base_filter, extra_filter);
+}
+
+char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
+                           const char *base_filter,
+                           const char *extra_filter)
+{
+    return sdap_combine_filters_ex(mem_ctx, '&', base_filter, extra_filter);
 }

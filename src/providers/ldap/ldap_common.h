@@ -264,6 +264,10 @@ errno_t list_missing_attrs(TALLOC_CTX *mem_ctx,
 
 bool sdap_is_secure_uri(const char *uri);
 
+char *sdap_or_filters(TALLOC_CTX *mem_ctx,
+                      const char *base_filter,
+                      const char *extra_filter);
+
 char *sdap_combine_filters(TALLOC_CTX *mem_ctx,
                            const char *base_filter,
                            const char *extra_filter);
