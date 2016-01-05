@@ -1743,7 +1743,6 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
 {
     int ret;
     time_t now;
-    uint64_t timeout = 10*60*60; /* FIXME: find a better timeout ! */
     struct sss_nss_homedir_ctx homedir_ctx;
     char *name = NULL;
     char *realm;
@@ -1947,7 +1946,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                  * SYSDB_INITGR_EXPIRE will be set.*/
                 ret = sysdb_attrs_add_time_t(attrs->sysdb_attrs,
                                              SYSDB_INITGR_EXPIRE,
-                                             time(NULL) + timeout);
+                                             time(NULL) + dom->user_timeout);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "sysdb_attrs_add_time_t failed.\n");
@@ -2006,7 +2005,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                    gid, attrs->a.user.pw_gecos,
                                    attrs->a.user.pw_dir, attrs->a.user.pw_shell,
                                    NULL, attrs->sysdb_attrs, NULL,
-                                   timeout, now);
+                                   dom->user_timeout, now);
             if (ret == EEXIST && dom->mpg == true) {
                 /* This handles the case where getgrgid() was called for
                  * this user, so a group was created in the cache
@@ -2034,7 +2033,7 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
                                        attrs->a.user.pw_dir,
                                        attrs->a.user.pw_shell,
                                        NULL, attrs->sysdb_attrs, NULL,
-                                       timeout, now);
+                                       dom->user_timeout, now);
                 if (ret != EOK) {
                     DEBUG(SSSDBG_OP_FAILURE,
                           "sysdb_store_user failed for MPG user [%d]: %s\n",
@@ -2174,7 +2173,8 @@ static errno_t ipa_s2n_save_objects(struct sss_domain_info *dom,
             }
 
             ret = sysdb_store_group(dom, name, attrs->a.group.gr_gid,
-                                    attrs->sysdb_attrs, timeout, now);
+                                    attrs->sysdb_attrs, dom->group_timeout,
+                                    now);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_store_group failed.\n");
                 goto done;
