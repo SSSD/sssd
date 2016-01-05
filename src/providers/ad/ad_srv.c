@@ -118,7 +118,8 @@ static void ad_get_dc_servers_done(struct tevent_req *subreq);
 static struct tevent_req *ad_get_dc_servers_send(TALLOC_CTX *mem_ctx,
                                                  struct tevent_context *ev,
                                                  struct resolv_ctx *resolv_ctx,
-                                                 const char *domain)
+                                                 const char *discovery_domain,
+                                                 const char *site)
 {
     struct ad_get_dc_servers_state *state = NULL;
     struct tevent_req *req = NULL;
@@ -133,20 +134,38 @@ static struct tevent_req *ad_get_dc_servers_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    domains = talloc_zero_array(state, const char *, 2);
+    domains = talloc_zero_array(state, const char *, 3);
     if (domains == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
 
-    domains[0] = talloc_strdup(domains, domain);
-    if (domains[0] == NULL) {
-        ret = ENOMEM;
-        goto immediately;
-    }
+    if (site == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Looking up domain controllers in domain "
+              "%s\n", discovery_domain);
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Looking up domain controllers in domain %s\n",
-                              domain);
+        domains[0] = talloc_strdup(domains, discovery_domain);
+        if (domains[0] == NULL) {
+            ret = ENOMEM;
+            goto immediately;
+        }
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC, "Looking up domain controllers in domain "
+              "%s and site %s\n", discovery_domain, site);
+
+        domains[0] = talloc_asprintf(state, AD_SITE_DOMAIN_FMT,
+                                     site, discovery_domain);
+        if (domains[0] == NULL) {
+            ret = ENOMEM;
+            goto immediately;
+        }
+
+        domains[1] = talloc_strdup(domains, discovery_domain);
+        if (domains[1] == NULL) {
+            ret = ENOMEM;
+            goto immediately;
+        }
+    }
 
     subreq = fo_discover_srv_send(state, ev, resolv_ctx,
                                   "ldap", FO_PROTO_TCP, domains);
@@ -692,7 +711,8 @@ struct tevent_req *ad_srv_plugin_send(TALLOC_CTX *mem_ctx,
     DEBUG(SSSDBG_TRACE_FUNC, "About to find domain controllers\n");
 
     subreq = ad_get_dc_servers_send(state, ev, ctx->be_res->resolv,
-                                    state->discovery_domain);
+                                    state->discovery_domain,
+                                    state->ctx->ad_site_override);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
