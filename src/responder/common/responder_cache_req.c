@@ -568,6 +568,47 @@ static bool cache_req_bypass_cache(struct cache_req_input *input)
     return false;
 }
 
+static errno_t cache_req_expiration_status(struct cache_req_input *input,
+                                           struct ldb_result *result,
+                                           time_t cache_refresh_percent)
+{
+    time_t expire;
+
+    if (result == NULL || result->count == 0 || cache_req_bypass_cache(input)) {
+        return ENOENT;
+    }
+
+    if (input->type == CACHE_REQ_INITGROUPS) {
+        expire = ldb_msg_find_attr_as_uint64(result->msgs[0],
+                                             SYSDB_INITGR_EXPIRE, 0);
+    } else {
+        expire = ldb_msg_find_attr_as_uint64(result->msgs[0],
+                                             SYSDB_CACHE_EXPIRE, 0);
+    }
+
+    return sss_cmd_check_cache(result->msgs[0], cache_refresh_percent, expire);
+}
+
+static void cache_req_dpreq_params(struct cache_req_input *input,
+                                   const char **_string,
+                                   uint32_t *_id,
+                                   const char **_flag)
+{
+    *_id = input->id;
+    *_string = input->dom_objname;
+
+    if (input->type == CACHE_REQ_USER_BY_CERT) {
+        *_string = input->cert;
+    }
+
+    *_flag = NULL;
+    if (DOM_HAS_VIEWS(input->domain)) {
+        *_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
+    } else if (cache_req_input_is_upn(input)) {
+        *_flag = EXTRA_NAME_IS_UPN;
+    }
+}
+
 struct cache_req_cache_state {
     /* input data */
     struct tevent_context *ev;
@@ -669,38 +710,16 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
     struct cache_req_cache_state *state = NULL;
     struct tevent_req *subreq = NULL;
     const char *extra_flag = NULL;
-    uint64_t cache_expire = 0;
-    errno_t ret;
     const char *search_str;
+    uint32_t search_id;
+    errno_t ret;
 
     state = tevent_req_data(req, struct cache_req_cache_state);
 
-    if (state->result == NULL || state->result->count == 0 ||
-            cache_req_bypass_cache(state->input) == true) {
-        ret = ENOENT;
-    } else {
-        if (state->input->type == CACHE_REQ_INITGROUPS) {
-            cache_expire = ldb_msg_find_attr_as_uint64(state->result->msgs[0],
-                                                       SYSDB_INITGR_EXPIRE, 0);
-        } else {
-            cache_expire = ldb_msg_find_attr_as_uint64(state->result->msgs[0],
-                                                       SYSDB_CACHE_EXPIRE, 0);
-        }
+    cache_req_dpreq_params(state->input, &search_str, &search_id, &extra_flag);
 
-        ret = sss_cmd_check_cache(state->result->msgs[0],
-                                  state->cache_refresh_percent, cache_expire);
-    }
-
-    search_str = state->input->dom_objname;
-    if (state->input->type == CACHE_REQ_USER_BY_CERT) {
-        search_str = state->input->cert;
-    }
-
-    if (DOM_HAS_VIEWS(state->input->domain)) {
-        extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
-    } else if (cache_req_input_is_upn(state->input)) {
-        extra_flag = EXTRA_NAME_IS_UPN;
-    }
+    ret = cache_req_expiration_status(state->input, state->result,
+                                      state->cache_refresh_percent);
 
     switch (ret) {
     case EOK:
@@ -715,8 +734,7 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
         subreq = sss_dp_get_account_send(state, state->rctx,
                                          state->input->domain, true,
                                          state->input->dp_type,
-                                         search_str,
-                                         state->input->id, extra_flag);
+                                         search_str, search_id, extra_flag);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory sending out-of-band "
                                        "data provider request\n");
@@ -733,8 +751,7 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
         subreq = sss_dp_get_account_send(state, state->rctx,
                                          state->input->domain, true,
                                          state->input->dp_type,
-                                         search_str,
-                                         state->input->id, extra_flag);
+                                         search_str, search_id, extra_flag);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Out of memory sending data provider request\n");
