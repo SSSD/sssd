@@ -44,6 +44,10 @@
 #include "sbus/sbus_client.h"
 #include "util/util_creds.h"
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 static errno_t set_close_on_exec(int fd)
 {
     int v;
@@ -758,9 +762,75 @@ static int set_unix_socket(struct resp_ctx *rctx,
     return EOK;
 
 failed:
-    close(rctx->lfd);
-    close(rctx->priv_lfd);
+    if (rctx->lfd >= 0) close(rctx->lfd);
+    if (rctx->priv_lfd >= 0) close(rctx->priv_lfd);
     return EIO;
+}
+
+int activate_unix_sockets(struct resp_ctx *rctx,
+                          connection_setup_t conn_setup)
+{
+    int ret;
+
+    /* by default we want to open sockets ourselves */
+    rctx->lfd = -1;
+    rctx->priv_lfd = -1;
+
+#ifdef HAVE_SYSTEMD
+    int numfds = (rctx->sock_name ? 1 : 0)
+                + (rctx->priv_sock_name ? 1 : 0);
+    /* but if systemd support is available, check if the sockets
+     * have been opened for us, via socket activation */
+    ret = sd_listen_fds(1);
+    if (ret < 0) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Unexpected error probing for active sockets. "
+              "Will proceed with no sockets. [Error %d (%s)]\n",
+              -ret, sss_strerror(-ret));
+    } else if (ret > numfds) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Too many activated sockets have been found, "
+              "expected %d, found %d\n", numfds, ret);
+        ret = E2BIG;
+        goto done;
+    }
+
+    if (ret == numfds) {
+        rctx->lfd = SD_LISTEN_FDS_START;
+        ret = sd_is_socket_unix(rctx->lfd, SOCK_STREAM, 1, NULL, 0);
+        if (ret < 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Activated socket is not a UNIX listening socket\n");
+            ret = EIO;
+            goto done;
+        }
+
+        ret = sss_fd_nonblocking(rctx->lfd);
+        if (ret != EOK) goto done;
+        if (numfds == 2) {
+            rctx->priv_lfd = SD_LISTEN_FDS_START + 1;
+            ret = sd_is_socket_unix(rctx->priv_lfd, SOCK_STREAM, 1, NULL, 0);
+            if (ret < 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                    "Activated priv socket is not a UNIX listening socket\n");
+                ret = EIO;
+                goto done;
+            }
+
+            ret = sss_fd_nonblocking(rctx->priv_lfd);
+            if (ret != EOK) goto done;
+        }
+    }
+#endif
+
+    ret = set_unix_socket(rctx, conn_setup);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Fatal error initializing sockets\n");
+        goto done;
+    }
+
+done:
+    return ret;
 }
 
 int sss_connection_setup(struct cli_ctx *cctx)

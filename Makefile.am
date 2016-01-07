@@ -1230,6 +1230,7 @@ sssd_nss_LDADD = \
     $(SSSD_LIBS) \
     libsss_idmap.la \
     libsss_cert.la \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 
 sssd_pam_SOURCES = \
@@ -1245,6 +1246,7 @@ sssd_pam_LDADD = \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
     $(PAM_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(NULL)
 
@@ -1258,6 +1260,7 @@ sssd_sudo_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_sudo_LDADD = \
     $(SSSD_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 endif
 
@@ -1269,6 +1272,7 @@ sssd_autofs_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_autofs_LDADD = \
     $(SSSD_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS)
 endif
 
@@ -1282,6 +1286,7 @@ sssd_ssh_SOURCES = \
 sssd_ssh_LDADD = \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     libsss_cert.la \
     $(NULL)
 endif
@@ -1298,6 +1303,7 @@ sssd_pac_LDADD = \
     $(NDR_KRB5PAC_LIBS) \
     $(TDB_LIBS) \
     $(SSSD_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     libsss_idmap.la \
     $(SSSD_INTERNAL_LTLIBS)
 
@@ -1319,6 +1325,7 @@ sssd_ifp_CFLAGS = \
     $(AM_CFLAGS)
 sssd_ifp_LDADD = \
     $(SSSD_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_cert.la \
     $(NULL)
@@ -1961,6 +1968,7 @@ responder_socket_access_tests_LDADD = \
     $(CHECK_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la
 endif
 
@@ -2091,6 +2099,7 @@ nss_srv_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_cert.la \
     libsss_idmap.la
@@ -2124,6 +2133,7 @@ pam_srv_tests_LDADD = \
     $(PAM_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     libsss_idmap.la \
     $(NULL)
@@ -2143,6 +2153,7 @@ responder_get_domains_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la
 
 sbus_internal_tests_SOURCES = \
@@ -2205,6 +2216,7 @@ test_negcache_CFLAGS = \
 test_negcache_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     libsss_test_common.la \
     libsss_idmap.la
@@ -2502,6 +2514,7 @@ ifp_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la
 
 sss_sifp_tests_SOURCES = \
@@ -2701,6 +2714,7 @@ responder_cache_req_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     libsss_test_common.la \
     $(NULL)
 

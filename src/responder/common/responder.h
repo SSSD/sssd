@@ -194,6 +194,8 @@ errno_t responder_get_domain_by_id(struct resp_ctx *rctx, const char *id,
                                    struct sss_domain_info **_ret_dom);
 
 int create_pipe_fd(const char *sock_name, int *_fd, mode_t umaskval);
+int activate_unix_sockets(struct resp_ctx *rctx,
+                          connection_setup_t conn_setup);
 
 /* responder_cmd.c */
 int sss_cmd_empty_packet(struct sss_packet *packet);

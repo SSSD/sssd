@@ -145,6 +145,7 @@ responder_common_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_test_common.la \
@@ -162,6 +163,7 @@ negcache_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(SELINUX_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
     $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_test_common.la \
