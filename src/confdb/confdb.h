@@ -222,6 +222,10 @@
 #define CONFDB_PROXY_PAM_TARGET "proxy_pam_target"
 #define CONFDB_PROXY_FAST_ALIAS "proxy_fast_alias"
 
+/* Secrets Service */
+#define CONFDB_SEC_CONF_ENTRY "config/secrets"
+
+
 struct confdb_ctx;
 struct config_file_ctx;
 

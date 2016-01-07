@@ -743,6 +743,7 @@ done
 %{_libexecdir}/%{servicename}/sssd_nss
 %{_libexecdir}/%{servicename}/sssd_pam
 %{_libexecdir}/%{servicename}/sssd_autofs
+%{_libexecdir}/%{servicename}/sssd_secrets
 %{_libexecdir}/%{servicename}/sssd_ssh
 %{_libexecdir}/%{servicename}/sssd_sudo
 %{_libexecdir}/%{servicename}/p11_child

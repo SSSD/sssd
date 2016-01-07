@@ -347,8 +347,6 @@ static void client_recv(struct cli_ctx *cctx)
     return;
 }
 
-static errno_t reset_idle_timer(struct cli_ctx *cctx);
-
 static void client_fd_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
@@ -380,11 +378,6 @@ struct accept_fd_ctx {
     bool is_private;
     connection_setup_t connection_setup;
 };
-
-static void idle_handler(struct tevent_context *ev,
-                         struct tevent_timer *te,
-                         struct timeval current_time,
-                         void *data);
 
 static void accept_fd_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
@@ -521,7 +514,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     return;
 }
 
-static errno_t reset_idle_timer(struct cli_ctx *cctx)
+errno_t reset_idle_timer(struct cli_ctx *cctx)
 {
     struct timeval tv =
             tevent_timeval_current_ofs(cctx->rctx->client_idle_timeout, 0);
@@ -538,10 +531,10 @@ static errno_t reset_idle_timer(struct cli_ctx *cctx)
     return EOK;
 }
 
-static void idle_handler(struct tevent_context *ev,
-                         struct tevent_timer *te,
-                         struct timeval current_time,
-                         void *data)
+void idle_handler(struct tevent_context *ev,
+                  struct tevent_timer *te,
+                  struct timeval current_time,
+                  void *data)
 {
     /* This connection is idle. Terminate it */
     struct cli_ctx *cctx =

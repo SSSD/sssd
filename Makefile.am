@@ -62,6 +62,7 @@ sssdtapscriptdir = $(sssddatadir)/systemtap
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 dbusservicedir = $(datadir)/dbus-1/system-services
 sss_statedir = $(localstatedir)/lib/sss
+runstatedir = @runstatedir@
 localedir = @localedir@
 nsslibdir = @nsslibdir@
 pamlibdir = @pammoddir@
@@ -168,6 +169,9 @@ polkit_rulesdir = $(polkitdir)
 dist_polkit_rules_DATA = contrib/sssd-pcsc.rules
 endif
 endif
+endif
+if BUILD_SECRETS
+sssdlibexec_PROGRAMS += sssd_secrets
 endif
 
 if BUILD_PAC_RESPONDER
@@ -462,6 +466,7 @@ AM_CPPFLAGS = \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
     -DSSS_PAC_SOCKET_NAME=\"$(pipepath)/pac\" \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
+    -DSSS_SEC_SOCKET_NAME=\"$(runstatedir)/secrets.socket\" \
     -DSSS_SUDO_SOCKET_NAME=\"$(pipepath)/sudo\" \
     -DSSS_AUTOFS_SOCKET_NAME=\"$(pipepath)/autofs\" \
     -DSSS_SSH_SOCKET_NAME=\"$(pipepath)/ssh\" \
@@ -616,6 +621,7 @@ dist_noinst_HEADERS = \
     src/responder/ifp/ifp_users.h \
     src/responder/ifp/ifp_groups.h \
     src/responder/ifp/ifp_cache.h \
+    src/responder/secrets/secsrv.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
     src/sbus/sssd_dbus_meta.h \
@@ -1338,6 +1344,21 @@ if BUILD_CONFIG_LIB
 sssd_ifp_LDADD += libsss_config.la
 endif
 
+endif
+
+if BUILD_SECRETS
+sssd_secrets_SOURCES = \
+    src/responder/secrets/secsrv.c \
+    src/responder/secrets/secsrv_cmd.c \
+    $(SSSD_RESPONDER_OBJ) \
+    $(NULL)
+sssd_secrets_LDADD = \
+    $(HTTP_PARSER_LIBS) \
+    $(TDB_LIBS) \
+    $(SSSD_LIBS) \
+    $(SYSTEMD_DAEMON_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
 endif
 
 sssd_be_SOURCES = \
