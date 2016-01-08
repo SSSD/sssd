@@ -861,3 +861,45 @@ AC_DEFUN([ENABLE_POLKIT_RULES_PATH],
 
     AM_CONDITIONAL([HAVE_POLKIT_RULES_D], [test x$HAVE_POLKIT_RULES_D != x])
   ])
+
+dnl Backwards compat for older autoconf
+AC_DEFUN([SSSD_RUNSTATEDIR],
+  [
+    if test x"$runstatedir" = x; then
+        AC_SUBST([runstatedir],
+                 ["${localstatedir}/run"])
+    fi
+  ])
+
+AC_DEFUN([WITH_SECRETS],
+  [ AC_ARG_WITH([secrets],
+                [AC_HELP_STRING([--with-secrets],
+                                [Whether to build with secrets support [yes]]
+                               )
+                ],
+                [with_secrets=$withval],
+                with_secrets=yes
+               )
+
+    if test x"$with_secrets" = xyes; then
+        AC_DEFINE(BUILD_SECRETS, 1, [whether to build with SECRETS support])
+    fi
+    AM_CONDITIONAL([BUILD_SECRETS], [test x"$with_secrets" = xyes])
+  ])
+
+AC_DEFUN([WITH_SECRETS_DB_PATH],
+  [ AC_ARG_WITH([secrets-db-path],
+                [AC_HELP_STRING([--with-secrets-db-path=PATH],
+                                [Path to the SSSD databases [/var/lib/sss/secrets]]
+                               )
+                ]
+               )
+    config_secdbpath="\"SSS_STATEDIR\"/secrets"
+    secdbpath="${localstatedir}/lib/sss/secrets"
+    if test x"$with_secrets_db_path" != x; then
+        config_secdbpath=$with_secrets_db_path
+        secdbpath=$with_secrets_db_path
+    fi
+    AC_SUBST(secdbpath)
+    AC_DEFINE_UNQUOTED(SECRETS_DB_PATH, "$config_secdbpath", [Path to the SSSD Secrets databases])
+  ])
