@@ -585,6 +585,7 @@ static void pam_handle_cached_login(struct pam_auth_req *preq, int ret,
 static void pam_reply(struct pam_auth_req *preq)
 {
     struct cli_ctx *cctx;
+    struct cli_protocol *prctx;
     uint8_t *body;
     size_t blen;
     int ret;
@@ -606,6 +607,7 @@ static void pam_reply(struct pam_auth_req *preq)
     pd = preq->pd;
     cctx = preq->cctx;
     pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+    prctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
 
     ret = confdb_get_int(pctx->rctx->cdb, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_VERBOSITY, DEFAULT_PAM_VERBOSITY,
@@ -738,8 +740,8 @@ static void pam_reply(struct pam_auth_req *preq)
         return;
     }
 
-    ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(prctx->creq, 0, sss_packet_get_cmd(prctx->creq->in),
+                         &prctx->creq->out);
     if (ret != EOK) {
         goto done;
     }
@@ -805,7 +807,7 @@ static void pam_reply(struct pam_auth_req *preq)
         resp = resp->next;
     }
 
-    ret = sss_packet_grow(cctx->creq->out, sizeof(int32_t) +
+    ret = sss_packet_grow(prctx->creq->out, sizeof(int32_t) +
                                            sizeof(int32_t) +
                                            resp_c * 2* sizeof(int32_t) +
                                            resp_size);
@@ -813,7 +815,7 @@ static void pam_reply(struct pam_auth_req *preq)
         goto done;
     }
 
-    sss_packet_get_body(cctx->creq->out, &body, &blen);
+    sss_packet_get_body(prctx->creq->out, &body, &blen);
     DEBUG(SSSDBG_FUNC_DATA, "blen: %zu\n", blen);
     p = 0;
 
@@ -928,12 +930,15 @@ static int pam_check_user_done(struct pam_auth_req *preq, int ret);
 
 static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
 {
+    struct cli_protocol *prctx;
     uint8_t *body;
     size_t blen;
     errno_t ret;
     uint32_t terminator;
 
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
+    prctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+
+    sss_packet_get_body(prctx->creq->in, &body, &blen);
     if (blen >= sizeof(uint32_t)) {
         SAFEALIGN_COPY_UINT32(&terminator,
                               body + blen - sizeof(uint32_t),
@@ -945,7 +950,7 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
         }
     }
 
-    switch (cctx->cli_protocol_version->version) {
+    switch (prctx->cli_protocol_version->version) {
         case 1:
             ret = pam_parse_in_data(pd, body, blen);
             break;
@@ -957,7 +962,7 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Illegal protocol version [%d].\n",
-                      cctx->cli_protocol_version->version);
+                      prctx->cli_protocol_version->version);
             ret = EINVAL;
     }
     if (ret != EOK) {

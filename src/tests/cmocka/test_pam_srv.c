@@ -217,6 +217,7 @@ void test_pam_setup(struct sss_test_conf_param dom_params[],
                     struct sss_test_conf_param monitor_params[],
                     void **state)
 {
+    struct cli_protocol *prctx;
     errno_t ret;
 
     pam_test_ctx = talloc_zero(NULL, struct pam_test_ctx);
@@ -256,9 +257,12 @@ void test_pam_setup(struct sss_test_conf_param dom_params[],
     /* Create client context */
     pam_test_ctx->cctx = mock_cctx(pam_test_ctx, pam_test_ctx->rctx);
     assert_non_null(pam_test_ctx->cctx);
-
-    pam_test_ctx->cctx->cli_protocol_version = register_cli_protocol_version();
     pam_test_ctx->cctx->ev = pam_test_ctx->tctx->ev;
+
+    prctx = mock_prctx(pam_test_ctx->cctx);
+    assert_non_null(prctx);
+    pam_test_ctx->cctx->protocol_ctx = prctx;
+    prctx->cli_protocol_version = register_cli_protocol_version();
 }
 
 static void pam_test_setup_common(void)
@@ -418,11 +422,14 @@ void __real_sss_packet_get_body(struct sss_packet *packet,
 
 void __wrap_sss_cmd_done(struct cli_ctx *cctx, void *freectx)
 {
-    struct sss_packet *packet = cctx->creq->out;
+    struct cli_protocol *prctx;
+    struct sss_packet *packet;
     uint8_t *body;
     size_t blen;
     cmd_cb_fn_t check_cb;
 
+    prctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    packet = prctx->creq->out;
     assert_non_null(packet);
 
     check_cb = sss_mock_ptr_type(cmd_cb_fn_t);

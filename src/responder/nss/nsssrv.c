@@ -420,6 +420,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                            NSS_SBUS_SERVICE_VERSION,
                            &monitor_nss_methods,
                            "NSS", &nss_dp_methods.vtable,
+                           nss_connection_setup,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");

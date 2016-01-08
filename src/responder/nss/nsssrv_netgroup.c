@@ -94,6 +94,8 @@ static void nss_cmd_setnetgrent_done(struct tevent_req *req);
 int nss_cmd_setnetgrent(struct cli_ctx *client)
 {
     struct nss_cmd_ctx *cmdctx;
+    struct cli_protocol *pctx;
+    struct nss_state_ctx *state_ctx;
     struct tevent_req *req;
     const char *rawname;
     uint8_t *body;
@@ -101,7 +103,8 @@ int nss_cmd_setnetgrent(struct cli_ctx *client)
     errno_t ret = EOK;
 
     /* Reset the result cursor to zero */
-    client->netgrent_cur = 0;
+    state_ctx = talloc_get_type(client->state_ctx, struct nss_state_ctx);
+    state_ctx->netgrent_cur = 0;
 
     cmdctx = talloc_zero(client, struct nss_cmd_ctx);
     if (!cmdctx) {
@@ -109,8 +112,10 @@ int nss_cmd_setnetgrent(struct cli_ctx *client)
     }
     cmdctx->cctx = client;
 
+    pctx = talloc_get_type(client->protocol_ctx, struct cli_protocol);
+
     /* get netgroup name to query */
-    sss_packet_get_body(client->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     /* if not terminated fail */
     if (body[blen -1] != '\0') {
@@ -184,10 +189,12 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct setnetgrent_ctx *state;
     struct nss_dom_ctx *dctx;
-
     struct cli_ctx *client = cmdctx->cctx;
-    struct nss_ctx *nctx =
-            talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
+    struct nss_ctx *nctx;
+    struct nss_state_ctx *state_ctx;
+
+    nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type(client->state_ctx, struct nss_state_ctx);
 
     req = tevent_req_create(mem_ctx, &state, struct setnetgrent_ctx);
     if (!req) {
@@ -227,8 +234,8 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         }
 
         /* Save the netgroup name for getnetgrent */
-        client->netgr_name = talloc_strdup(client, state->netgr_shortname);
-        if (!client->netgr_name) {
+        state_ctx->netgr_name = talloc_strdup(client, state->netgr_shortname);
+        if (!state_ctx->netgr_name) {
             ret = ENOMEM;
             goto error;
         }
@@ -238,8 +245,8 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
         cmdctx->check_next = true;
 
         /* Save the netgroup name for getnetgrent */
-        client->netgr_name = talloc_strdup(client, rawname);
-        if (!client->netgr_name) {
+        state_ctx->netgr_name = talloc_strdup(client, rawname);
+        if (!state_ctx->netgr_name) {
             ret = ENOMEM;
             goto error;
         }
@@ -272,6 +279,7 @@ static errno_t setnetgrent_retry(struct tevent_req *req)
     struct setnetgrent_ctx *state;
     struct cli_ctx *client;
     struct nss_ctx *nctx;
+    struct nss_state_ctx *state_ctx;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
 
@@ -280,13 +288,14 @@ static errno_t setnetgrent_retry(struct tevent_req *req)
     cmdctx = state->cmdctx;
     client = cmdctx->cctx;
     nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type(client->state_ctx, struct nss_state_ctx);
 
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
     /* Is the result context already available?
      * Check for existing lookups for this netgroup
      */
-    ret = get_netgroup_entry(nctx, client->netgr_name, &state->netgr);
+    ret = get_netgroup_entry(nctx, state_ctx->netgr_name, &state->netgr);
     if (ret == EOK) {
         /* Another process already requested this netgroup
          * Check whether it's ready for processing.
@@ -328,7 +337,7 @@ static errno_t setnetgrent_retry(struct tevent_req *req)
          * so we can remove it in the destructor
          */
         state->netgr->name = talloc_strdup(state->netgr,
-                                           client->netgr_name);
+                                           state_ctx->netgr_name);
         if (!state->netgr->name) {
             talloc_free(state->netgr);
             ret = ENOMEM;
@@ -718,7 +727,7 @@ static void nss_cmd_setnetgrent_done(struct tevent_req *req)
     struct sss_packet *packet;
     uint8_t *body;
     size_t blen;
-
+    struct cli_protocol *pctx;
     struct nss_cmd_ctx *cmdctx =
             tevent_req_callback_data(req, struct nss_cmd_ctx);
 
@@ -730,16 +739,18 @@ static void nss_cmd_setnetgrent_done(struct tevent_req *req)
         return;
     }
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
     /* Either we succeeded or no domains were eligible */
-    ret = sss_packet_new(cmdctx->cctx->creq, 0,
-                         sss_packet_get_cmd(cmdctx->cctx->creq->in),
-                         &cmdctx->cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret == EOK) {
         if (reqret == ENOENT) {
             /* Notify the caller that this entry wasn't found */
-            sss_cmd_empty_packet(cmdctx->cctx->creq->out);
+            sss_cmd_empty_packet(pctx->creq->out);
         } else {
-            packet = cmdctx->cctx->creq->out;
+            packet = pctx->creq->out;
             ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Couldn't grow the packet\n");
@@ -769,6 +780,7 @@ int nss_cmd_getnetgrent(struct cli_ctx *client)
 {
     errno_t ret;
     struct nss_ctx *nctx;
+    struct nss_state_ctx *state_ctx;
     struct nss_cmd_ctx *cmdctx;
     struct getent_ctx *netgr;
     struct tevent_req *req;
@@ -782,8 +794,9 @@ int nss_cmd_getnetgrent(struct cli_ctx *client)
     cmdctx->cctx = client;
 
     nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type(client->state_ctx, struct nss_state_ctx);
 
-    if (!client->netgr_name) {
+    if (!state_ctx->netgr_name) {
         /* Tried to run getnetgrent without a preceding
          * setnetgrent. There is no way to determine which
          * netgroup is being requested.
@@ -792,13 +805,13 @@ int nss_cmd_getnetgrent(struct cli_ctx *client)
     }
 
     /* Look up the results from the hash */
-    ret = get_netgroup_entry(nctx, client->netgr_name, &netgr);
+    ret = get_netgroup_entry(nctx, state_ctx->netgr_name, &netgr);
     if (ret == ENOENT) {
         /* We need to invoke an implicit setnetgrent() to
          * wait for the result object to become available.
          */
 
-        req = setnetgrent_send(cmdctx, client->netgr_name, cmdctx);
+        req = setnetgrent_send(cmdctx, state_ctx->netgr_name, cmdctx);
         if (!req) {
             return nss_cmd_done(cmdctx, EIO);
         }
@@ -817,7 +830,7 @@ int nss_cmd_getnetgrent(struct cli_ctx *client)
         /* We need to invoke an implicit setnetgrent() to
          * wait for the result object to become available.
          */
-        req = setnetgrent_send(cmdctx, client->netgr_name, cmdctx);
+        req = setnetgrent_send(cmdctx, state_ctx->netgr_name, cmdctx);
         if (!req) {
             return nss_cmd_done(cmdctx, EIO);
         }
@@ -826,12 +839,12 @@ int nss_cmd_getnetgrent(struct cli_ctx *client)
         return EOK;
     } else if (!netgr->found) {
         DEBUG(SSSDBG_TRACE_FUNC,
-              "Results for [%s] not found.\n", client->netgr_name);
+              "Results for [%s] not found.\n", state_ctx->netgr_name);
         return ENOENT;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC,
-          "Returning results for [%s]\n", client->netgr_name);
+          "Returning results for [%s]\n", state_ctx->netgr_name);
 
     /* Read the result strings */
     ret = nss_cmd_getnetgrent_process(cmdctx, netgr);
@@ -847,8 +860,11 @@ static void setnetgrent_implicit_done(struct tevent_req *req)
     struct getent_ctx *netgr;
     struct nss_cmd_ctx *cmdctx =
             tevent_req_callback_data(req, struct nss_cmd_ctx);
-    struct nss_ctx *nctx =
-            talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct nss_ctx);
+    struct nss_ctx *nctx;
+    struct nss_state_ctx *state_ctx;
+
+    nctx = talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type(cmdctx->cctx->state_ctx, struct nss_state_ctx);
 
     ret = setnetgrent_recv(req);
     talloc_zfree(req);
@@ -871,7 +887,7 @@ static void setnetgrent_implicit_done(struct tevent_req *req)
     }
 
     /* Look up the results from the hash */
-    ret = get_netgroup_entry(nctx, cmdctx->cctx->netgr_name, &netgr);
+    ret = get_netgroup_entry(nctx, state_ctx->netgr_name, &netgr);
     if (ret == ENOENT) {
         /* Critical error. This should never happen */
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -908,23 +924,25 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
 static errno_t nss_cmd_getnetgrent_process(struct nss_cmd_ctx *cmdctx,
                                            struct getent_ctx *netgr)
 {
-    struct cli_ctx *client = cmdctx->cctx;
+    struct cli_protocol *pctx;
     uint8_t *body;
     size_t blen;
     uint32_t num;
     errno_t ret;
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
     /* get max num of entries to return in one call */
-    sss_packet_get_body(client->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
     SAFEALIGN_COPY_UINT32(&num, body, NULL);
 
     /* create response packet */
-    ret = sss_packet_new(client->creq, 0,
-                         sss_packet_get_cmd(client->creq->in),
-                         &client->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
@@ -932,18 +950,18 @@ static errno_t nss_cmd_getnetgrent_process(struct nss_cmd_ctx *cmdctx,
     if (!netgr->entries || netgr->entries[0] == NULL) {
         /* No entries */
         DEBUG(SSSDBG_FUNC_DATA, "No entries found\n");
-        ret = sss_cmd_empty_packet(client->creq->out);
+        ret = sss_cmd_empty_packet(pctx->creq->out);
         if (ret != EOK) {
             return nss_cmd_done(cmdctx, ret);
         }
         goto done;
     }
 
-    ret = nss_cmd_retnetgrent(client, netgr->entries, num);
+    ret = nss_cmd_retnetgrent(cmdctx->cctx, netgr->entries, num);
 
 done:
-    sss_packet_set_error(client->creq->out, ret);
-    sss_cmd_done(client, cmdctx);
+    sss_packet_set_error(pctx->creq->out, ret);
+    sss_cmd_done(cmdctx->cctx, cmdctx);
 
     return EOK;
 }
@@ -960,32 +978,37 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
     uint8_t *body;
     size_t blen, rp;
     errno_t ret;
-    struct sss_packet *packet = client->creq->out;
-    int num, start;
+    struct cli_protocol *pctx;
+    struct nss_state_ctx *state_ctx;
+    struct sss_packet *packet;
+    int num, start, cur;
+
+    state_ctx = talloc_get_type(client->state_ctx, struct nss_state_ctx);
+    pctx = talloc_get_type(client->protocol_ctx, struct cli_protocol);
+    packet = pctx->creq->out;
 
     /* first 2 fields (len and reserved), filled up later */
     rp = 2*sizeof(uint32_t);
     ret = sss_packet_grow(packet, rp);
     if (ret != EOK) return ret;
 
-    start = client->netgrent_cur;
+    start = cur = state_ctx->netgrent_cur;
     num = 0;
-    while (entries[client->netgrent_cur] &&
-           (client->netgrent_cur - start) < count) {
-        if (entries[client->netgrent_cur]->type == SYSDB_NETGROUP_TRIPLE_VAL) {
+    while (entries[cur] && (cur - start) < count) {
+        if (entries[cur]->type == SYSDB_NETGROUP_TRIPLE_VAL) {
             hostlen = 1;
-            if (entries[client->netgrent_cur]->value.triple.hostname) {
-                hostlen += strlen(entries[client->netgrent_cur]->value.triple.hostname);
+            if (entries[cur]->value.triple.hostname) {
+                hostlen += strlen(entries[cur]->value.triple.hostname);
             }
 
             userlen = 1;
-            if (entries[client->netgrent_cur]->value.triple.username) {
-                userlen += strlen(entries[client->netgrent_cur]->value.triple.username);
+            if (entries[cur]->value.triple.username) {
+                userlen += strlen(entries[cur]->value.triple.username);
             }
 
             domainlen = 1;
-            if (entries[client->netgrent_cur]->value.triple.domainname) {
-                domainlen += strlen(entries[client->netgrent_cur]->value.triple.domainname);
+            if (entries[cur]->value.triple.domainname) {
+                domainlen += strlen(entries[cur]->value.triple.domainname);
             }
 
             len = sizeof(uint32_t) + hostlen + userlen + domainlen;
@@ -1001,7 +1024,7 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
                 body[rp] = '\0';
             } else {
                 memcpy(&body[rp],
-                       entries[client->netgrent_cur]->value.triple.hostname,
+                       entries[cur]->value.triple.hostname,
                        hostlen);
             }
             rp += hostlen;
@@ -1010,7 +1033,7 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
                 body[rp] = '\0';
             } else {
                 memcpy(&body[rp],
-                       entries[client->netgrent_cur]->value.triple.username,
+                       entries[cur]->value.triple.username,
                        userlen);
             }
             rp += userlen;
@@ -1019,19 +1042,19 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
                 body[rp] = '\0';
             } else {
                 memcpy(&body[rp],
-                       entries[client->netgrent_cur]->value.triple.domainname,
+                       entries[cur]->value.triple.domainname,
                        domainlen);
             }
             rp += domainlen;
-        } else if (entries[client->netgrent_cur]->type == SYSDB_NETGROUP_GROUP_VAL) {
-            if (entries[client->netgrent_cur]->value.groupname == NULL ||
-                entries[client->netgrent_cur]->value.groupname[0] == '\0') {
+        } else if (entries[cur]->type == SYSDB_NETGROUP_GROUP_VAL) {
+            if (entries[cur]->value.groupname == NULL ||
+                entries[cur]->value.groupname[0] == '\0') {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Empty netgroup member. Please check your cache.\n");
                 continue;
             }
 
-            grouplen = 1 + strlen(entries[client->netgrent_cur]->value.groupname);
+            grouplen = 1 + strlen(entries[cur]->value.groupname);
 
             len = sizeof(uint32_t) + grouplen;
 
@@ -1045,7 +1068,7 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
             SAFEALIGN_SET_UINT32(&body[rp], SSS_NETGR_REP_GROUP, &rp);
 
             memcpy(&body[rp],
-                   entries[client->netgrent_cur]->value.groupname,
+                   entries[cur]->value.groupname,
                    grouplen);
             rp += grouplen;
         } else {
@@ -1056,7 +1079,8 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
         }
 
         num++;
-        client->netgrent_cur++;
+        cur++;
+        state_ctx->netgrent_cur = cur;
     }
 
     sss_packet_get_body(packet, &body, &blen);
@@ -1072,20 +1096,25 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
 
 int nss_cmd_endnetgrent(struct cli_ctx *client)
 {
+    struct cli_protocol *pctx;
+    struct nss_state_ctx *state_ctx;
     errno_t ret;
 
+    pctx = talloc_get_type(client->protocol_ctx, struct cli_protocol);
+    state_ctx = talloc_get_type(client->state_ctx, struct nss_state_ctx);
+
     /* create response packet */
-    ret = sss_packet_new(client->creq, 0,
-                         sss_packet_get_cmd(client->creq->in),
-                         &client->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
 
     if (ret != EOK) {
         return ret;
     }
 
     /* Reset the indices so that subsequent requests start at zero */
-    client->netgrent_cur = 0;
-    talloc_zfree(client->netgr_name);
+    state_ctx->netgrent_cur = 0;
+    talloc_zfree(state_ctx->netgr_name);
 
     sss_cmd_done(client, NULL);
     return EOK;

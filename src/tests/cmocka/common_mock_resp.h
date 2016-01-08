@@ -38,6 +38,9 @@ mock_rctx(TALLOC_CTX *mem_ctx,
 struct cli_ctx *
 mock_cctx(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx);
 
+struct cli_protocol *
+mock_prctx(TALLOC_CTX *mem_ctx);
+
 /* When mocking a module that calls sss_dp_get_account_{send,recv}
  * requests, your test, when linked against this module, will call
  * the mock functions instead. Then you can simulate results of the

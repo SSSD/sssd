@@ -202,6 +202,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            SSS_PAM_SBUS_SERVICE_VERSION,
                            &monitor_pam_methods,
                            "PAM", &pam_dp_methods.vtable,
+                           sss_connection_setup,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");

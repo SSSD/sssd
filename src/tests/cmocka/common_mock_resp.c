@@ -63,12 +63,23 @@ mock_cctx(TALLOC_CTX *mem_ctx, struct resp_ctx *rctx)
     cctx = talloc_zero(mem_ctx, struct cli_ctx);
     if (!cctx) return NULL;
 
-    cctx->creq = talloc_zero(cctx, struct cli_request);
-    if (cctx->creq == NULL) {
-        talloc_free(cctx);
+    cctx->rctx = rctx;
+    return cctx;
+}
+
+struct cli_protocol *
+mock_prctx(TALLOC_CTX *mem_ctx)
+{
+    struct cli_protocol *prctx;
+
+    prctx = talloc_zero(mem_ctx, struct cli_protocol);
+    if (!prctx) return NULL;
+
+    prctx->creq = talloc_zero(prctx, struct cli_request);
+    if (prctx->creq == NULL) {
+        talloc_free(prctx);
         return NULL;
     }
 
-    cctx->rctx = rctx;
-    return cctx;
+    return prctx;
 }

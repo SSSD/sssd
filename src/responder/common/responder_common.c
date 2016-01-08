@@ -241,12 +241,14 @@ done:
     return ret;
 }
 
-
 static void client_send(struct cli_ctx *cctx)
 {
+    struct cli_protocol *pctx;
     int ret;
 
-    ret = sss_packet_send(cctx->creq->out, cctx->cfd);
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+
+    ret = sss_packet_send(pctx->creq->out, cctx->cfd);
     if (ret == EAGAIN) {
         /* not all data was sent, loop again */
         return;
@@ -260,26 +262,30 @@ static void client_send(struct cli_ctx *cctx)
     /* ok all sent */
     TEVENT_FD_NOT_WRITEABLE(cctx->cfde);
     TEVENT_FD_READABLE(cctx->cfde);
-    talloc_free(cctx->creq);
-    cctx->creq = NULL;
+    talloc_zfree(pctx->creq);
     return;
 }
 
 static int client_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds)
 {
+    struct cli_protocol *pctx;
     enum sss_cli_command cmd;
 
-    cmd = sss_packet_get_cmd(cctx->creq->in);
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    cmd = sss_packet_get_cmd(pctx->creq->in);
     return sss_cmd_execute(cctx, cmd, sss_cmds);
 }
 
 static void client_recv(struct cli_ctx *cctx)
 {
+    struct cli_protocol *pctx;
     int ret;
 
-    if (!cctx->creq) {
-        cctx->creq = talloc_zero(cctx, struct cli_request);
-        if (!cctx->creq) {
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+
+    if (!pctx->creq) {
+        pctx->creq = talloc_zero(cctx, struct cli_request);
+        if (!pctx->creq) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Failed to alloc request, aborting client!\n");
             talloc_free(cctx);
@@ -287,9 +293,9 @@ static void client_recv(struct cli_ctx *cctx)
         }
     }
 
-    if (!cctx->creq->in) {
-        ret = sss_packet_new(cctx->creq, SSS_PACKET_MAX_RECV_SIZE,
-                             0, &cctx->creq->in);
+    if (!pctx->creq->in) {
+        ret = sss_packet_new(pctx->creq, SSS_PACKET_MAX_RECV_SIZE,
+                             0, &pctx->creq->in);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "Failed to alloc request, aborting client!\n");
@@ -298,7 +304,7 @@ static void client_recv(struct cli_ctx *cctx)
         }
     }
 
-    ret = sss_packet_recv(cctx->creq->in, cctx->cfd);
+    ret = sss_packet_recv(pctx->creq->in, cctx->cfd);
     switch (ret) {
     case EOK:
         /* do not read anymore */
@@ -368,6 +374,7 @@ static void client_fd_handler(struct tevent_context *ev,
 struct accept_fd_ctx {
     struct resp_ctx *rctx;
     bool is_private;
+    connection_setup_t connection_setup;
 };
 
 static void idle_handler(struct tevent_context *ev,
@@ -468,8 +475,19 @@ static void accept_fd_handler(struct tevent_context *ev,
         }
     }
 
+    ret = accept_ctx->connection_setup(cctx);
+    if (ret != EOK) {
+        close(cctx->cfd);
+        talloc_free(cctx);
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to setup client handler%s\n",
+               accept_ctx->is_private ? " on privileged pipe" : "");
+        return;
+    }
+
     cctx->cfde = tevent_add_fd(ev, cctx, cctx->cfd,
-                               TEVENT_FD_READ, client_fd_handler, cctx);
+                               TEVENT_FD_READ, cctx->cfd_handler,
+                               cctx);
     if (!cctx->cfde) {
         close(cctx->cfd);
         talloc_free(cctx);
@@ -644,10 +662,11 @@ done:
 }
 
 /* create a unix socket and listen to it */
-static int set_unix_socket(struct resp_ctx *rctx)
+static int set_unix_socket(struct resp_ctx *rctx,
+                           connection_setup_t conn_setup)
 {
     errno_t ret;
-    struct accept_fd_ctx *accept_ctx;
+    struct accept_fd_ctx *accept_ctx = NULL;
 
 /* for future use */
 #if 0
@@ -699,6 +718,7 @@ static int set_unix_socket(struct resp_ctx *rctx)
         if(!accept_ctx) goto failed;
         accept_ctx->rctx = rctx;
         accept_ctx->is_private = false;
+        accept_ctx->connection_setup = conn_setup;
 
         rctx->lfde = tevent_add_fd(rctx->ev, rctx, rctx->lfd,
                                    TEVENT_FD_READ, accept_fd_handler,
@@ -723,6 +743,7 @@ static int set_unix_socket(struct resp_ctx *rctx)
         if(!accept_ctx) goto failed;
         accept_ctx->rctx = rctx;
         accept_ctx->is_private = true;
+        accept_ctx->connection_setup = conn_setup;
 
         rctx->priv_lfde = tevent_add_fd(rctx->ev, rctx, rctx->priv_lfd,
                                    TEVENT_FD_READ, accept_fd_handler,
@@ -740,6 +761,18 @@ failed:
     close(rctx->lfd);
     close(rctx->priv_lfd);
     return EIO;
+}
+
+int sss_connection_setup(struct cli_ctx *cctx)
+{
+    cctx->protocol_ctx = talloc_zero(cctx, struct cli_protocol);
+    if (!cctx->protocol_ctx) {
+        return ENOMEM;
+    }
+
+    cctx->cfd_handler = client_fd_handler;
+
+    return EOK;
 }
 
 static int sss_responder_ctx_destructor(void *ptr)
@@ -829,6 +862,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct mon_cli_iface *monitor_intf,
                      const char *cli_name,
                      struct sbus_vtable *dp_intf,
+                     connection_setup_t conn_setup,
                      struct resp_ctx **responder_ctx)
 {
     struct resp_ctx *rctx;
@@ -959,7 +993,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* after all initializations we are ready to listen on our socket */
-    ret = set_unix_socket(rctx);
+    ret = set_unix_socket(rctx, conn_setup);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "fatal error initializing socket\n");
         goto fail;

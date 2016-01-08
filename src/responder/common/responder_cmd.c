@@ -24,20 +24,25 @@
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 
+
 int sss_cmd_send_error(struct cli_ctx *cctx, int err)
 {
+    struct cli_protocol *pctx;
     int ret;
 
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    if (!pctx) return EINVAL;
+
     /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Cannot create new packet: %d\n", ret);
         return ret;
     }
 
-    sss_packet_set_error(cctx->creq->out, err);
+    sss_packet_set_error(pctx->creq->out, err);
     return EOK;
 }
 
@@ -63,22 +68,26 @@ int sss_cmd_empty_packet(struct sss_packet *packet)
 
 int sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx)
 {
+    struct cli_protocol *pctx;
     int ret;
 
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    if (!pctx) return EINVAL;
+
     /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
 
-    ret = sss_cmd_empty_packet(cctx->creq->out);
+    ret = sss_cmd_empty_packet(pctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
 
-    sss_packet_set_error(cctx->creq->out, EOK);
+    sss_packet_set_error(pctx->creq->out, EOK);
     sss_cmd_done(cctx, freectx);
     return EOK;
 }
@@ -95,6 +104,7 @@ void sss_cmd_done(struct cli_ctx *cctx, void *freectx)
 
 int sss_cmd_get_version(struct cli_ctx *cctx)
 {
+    struct cli_protocol *pctx;
     uint8_t *req_body;
     size_t req_blen;
     uint8_t *body;
@@ -105,16 +115,19 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
     int i;
     static struct cli_protocol_version *cli_protocol_version = NULL;
 
-    cctx->cli_protocol_version = NULL;
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    if (!pctx) return EINVAL;
+
+    pctx->cli_protocol_version = NULL;
 
     if (cli_protocol_version == NULL) {
         cli_protocol_version = register_cli_protocol_version();
     }
 
     if (cli_protocol_version != NULL) {
-        cctx->cli_protocol_version = &cli_protocol_version[0];
+        pctx->cli_protocol_version = &cli_protocol_version[0];
 
-        sss_packet_get_body(cctx->creq->in, &req_body, &req_blen);
+        sss_packet_get_body(pctx->creq->in, &req_body, &req_blen);
         if (req_blen == sizeof(uint32_t)) {
             memcpy(&client_version, req_body, sizeof(uint32_t));
             DEBUG(SSSDBG_FUNC_DATA,
@@ -123,7 +136,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
             i=0;
             while(cli_protocol_version[i].version>0) {
                 if (cli_protocol_version[i].version == client_version) {
-                    cctx->cli_protocol_version = &cli_protocol_version[i];
+                    pctx->cli_protocol_version = &cli_protocol_version[i];
                     break;
                 }
                 i++;
@@ -132,16 +145,16 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
     }
 
     /* create response packet */
-    ret = sss_packet_new(cctx->creq, sizeof(uint32_t),
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, sizeof(uint32_t),
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
-    sss_packet_get_body(cctx->creq->out, &body, &blen);
+    sss_packet_get_body(pctx->creq->out, &body, &blen);
 
-    protocol_version = (cctx->cli_protocol_version != NULL)
-                       ? cctx->cli_protocol_version->version : 0;
+    protocol_version = (pctx->cli_protocol_version != NULL)
+                       ? pctx->cli_protocol_version->version : 0;
 
     SAFEALIGN_COPY_UINT32(body, &protocol_version, NULL);
     DEBUG(SSSDBG_FUNC_DATA, "Offered version [%d].\n", protocol_version);

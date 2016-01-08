@@ -240,6 +240,7 @@ static int
 sss_autofs_cmd_setautomntent(struct cli_ctx *client)
 {
     struct autofs_cmd_ctx *cmdctx;
+    struct cli_protocol *pctx;
     uint8_t *body;
     size_t blen;
     errno_t ret = EOK;
@@ -254,7 +255,9 @@ sss_autofs_cmd_setautomntent(struct cli_ctx *client)
     }
     cmdctx->cctx = client;
 
-    sss_packet_get_body(client->creq->in, &body, &blen);
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     /* if not terminated fail */
     if (body[blen -1] != '\0') {
@@ -290,9 +293,9 @@ static void sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
 {
     struct autofs_cmd_ctx *cmdctx =
         tevent_req_callback_data(req, struct autofs_cmd_ctx);
+    struct cli_protocol *pctx;
     errno_t ret;
     errno_t reqret;
-    struct sss_packet *packet;
     uint8_t *body;
     size_t blen;
 
@@ -306,26 +309,27 @@ static void sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
         return;
     }
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
     /* Either we succeeded or no domains were eligible */
-    ret = sss_packet_new(cmdctx->cctx->creq, 0,
-                         sss_packet_get_cmd(cmdctx->cctx->creq->in),
-                         &cmdctx->cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret == EOK) {
         if (reqret == ENOENT) {
             DEBUG(SSSDBG_TRACE_FUNC, "setautomntent did not find requested map\n");
             /* Notify the caller that this entry wasn't found */
-            sss_cmd_empty_packet(cmdctx->cctx->creq->out);
+            sss_cmd_empty_packet(pctx->creq->out);
         } else {
             DEBUG(SSSDBG_TRACE_FUNC, "setautomntent found data\n");
-            packet = cmdctx->cctx->creq->out;
-            ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
+            ret = sss_packet_grow(pctx->creq->out, 2*sizeof(uint32_t));
             if (ret != EOK) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Couldn't grow the packet\n");
                 talloc_free(cmdctx);
                 return;
             }
 
-            sss_packet_get_body(packet, &body, &blen);
+            sss_packet_get_body(pctx->creq->out, &body, &blen);
 
             /* Got some results */
             SAFEALIGN_SETMEM_UINT32(body, 1, NULL);
@@ -417,9 +421,12 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
     struct setautomntent_state *state;
     struct cli_ctx *client = cmdctx->cctx;
     struct autofs_dom_ctx *dctx;
-    struct autofs_ctx *actx =
-            talloc_get_type(client->rctx->pvt_ctx, struct autofs_ctx);
+    struct autofs_ctx *actx;
+    struct autofs_state_ctx *state_ctx;
     struct setautomntent_lookup_ctx *lookup_ctx;
+
+    actx = talloc_get_type(client->rctx->pvt_ctx, struct autofs_ctx);
+    state_ctx = talloc_get_type(client->state_ctx, struct autofs_state_ctx);
 
     req = tevent_req_create(mem_ctx, &state, struct setautomntent_state);
     if (!req) {
@@ -458,8 +465,8 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        client->automntmap_name = talloc_strdup(client, rawname);
-        if (!client->automntmap_name) {
+        state_ctx->automntmap_name = talloc_strdup(client, rawname);
+        if (!state_ctx->automntmap_name) {
             ret = ENOMEM;
             goto fail;
         }
@@ -468,8 +475,8 @@ setautomntent_send(TALLOC_CTX *mem_ctx,
         dctx->domain = client->rctx->domains;
         cmdctx->check_next = true;
 
-        client->automntmap_name = talloc_strdup(client, state->mapname);
-        if (!client->automntmap_name) {
+        state_ctx->automntmap_name = talloc_strdup(client, state->mapname);
+        if (!state_ctx->automntmap_name) {
             ret = ENOMEM;
             goto fail;
         }
@@ -909,6 +916,7 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
     struct autofs_cmd_ctx *cmdctx;
     struct autofs_map_ctx *map;
     struct autofs_ctx *actx;
+    struct cli_protocol *pctx;
     uint8_t *body;
     size_t blen;
     errno_t ret;
@@ -930,8 +938,10 @@ sss_autofs_cmd_getautomntent(struct cli_ctx *client)
         return EIO;
     }
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
     /* get autofs map name and index to query */
-    sss_packet_get_body(client->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     SAFEALIGN_COPY_UINT32_CHECK(&namelen, body+c, blen, &c);
 
@@ -1054,7 +1064,7 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
                       struct autofs_map_ctx *map,
                       uint32_t cursor, uint32_t max_entries)
 {
-    struct cli_ctx *client = cmdctx->cctx;
+    struct cli_protocol *pctx;
     errno_t ret;
     struct ldb_message *entry;
     size_t rp;
@@ -1062,10 +1072,12 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
     uint8_t *body;
     size_t blen;
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
     /* create response packet */
-    ret = sss_packet_new(client->creq, 0,
-                         sss_packet_get_cmd(client->creq->in),
-                         &client->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
@@ -1073,7 +1085,7 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
     if (!map->map || !map->entries || !map->entries[0] ||
         cursor >= map->entry_count) {
         DEBUG(SSSDBG_MINOR_FAILURE, "No entries found\n");
-        ret = sss_cmd_empty_packet(client->creq->out);
+        ret = sss_cmd_empty_packet(pctx->creq->out);
         if (ret != EOK) {
             return autofs_cmd_done(cmdctx, ret);
         }
@@ -1081,7 +1093,7 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
     }
 
     /* allocate memory for number of entries in the packet */
-    ret = sss_packet_grow(client->creq->out, sizeof(uint32_t));
+    ret = sss_packet_grow(pctx->creq->out, sizeof(uint32_t));
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot grow packet\n");
         goto done;
@@ -1097,7 +1109,7 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
         entry = map->entries[cursor];
         cursor++;
 
-        ret = fill_autofs_entry(entry, client->creq->out, &rp);
+        ret = fill_autofs_entry(entry, pctx->creq->out, &rp);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Cannot fill entry %d/%d, skipping\n", i, stop);
@@ -1108,15 +1120,15 @@ getautomntent_process(struct autofs_cmd_ctx *cmdctx,
 
     /* packet grows in fill_autofs_entry, body pointer may change,
      * thus we have to obtain it here */
-    sss_packet_get_body(client->creq->out, &body, &blen);
+    sss_packet_get_body(pctx->creq->out, &body, &blen);
 
     rp = 0;
     SAFEALIGN_SET_UINT32(&body[rp], nentries, &rp);
 
     ret = EOK;
 done:
-    sss_packet_set_error(client->creq->out, ret);
-    sss_cmd_done(client, cmdctx);
+    sss_packet_set_error(pctx->creq->out, ret);
+    sss_cmd_done(cmdctx->cctx, cmdctx);
 
     return EOK;
 }
@@ -1187,6 +1199,7 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
     struct autofs_cmd_ctx *cmdctx;
     struct autofs_map_ctx *map;
     struct autofs_ctx *actx;
+    struct cli_protocol *pctx;
     uint8_t *body;
     size_t blen;
     uint32_t namelen;
@@ -1208,8 +1221,10 @@ sss_autofs_cmd_getautomntbyname(struct cli_ctx *client)
         return EIO;
     }
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
     /* get autofs map name and index to query */
-    sss_packet_get_body(client->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     /* FIXME - split out a function to get string from <len><str>\0 */
     SAFEALIGN_COPY_UINT32_CHECK(&namelen, body+c, blen, &c);
@@ -1352,7 +1367,7 @@ getautomntbyname_process(struct autofs_cmd_ctx *cmdctx,
                          struct autofs_map_ctx *map,
                          const char *key)
 {
-    struct cli_ctx *client = cmdctx->cctx;
+    struct cli_protocol *pctx;
     errno_t ret;
     size_t i;
     const char *k;
@@ -1362,17 +1377,19 @@ getautomntbyname_process(struct autofs_cmd_ctx *cmdctx,
     uint8_t *body;
     size_t blen, rp;
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
     /* create response packet */
-    ret = sss_packet_new(client->creq, 0,
-                         sss_packet_get_cmd(client->creq->in),
-                         &client->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
 
     if (!map->map || !map->entries || !map->entries[0]) {
         DEBUG(SSSDBG_MINOR_FAILURE, "No entries found\n");
-        ret = sss_cmd_empty_packet(client->creq->out);
+        ret = sss_cmd_empty_packet(pctx->creq->out);
         if (ret != EOK) {
             return autofs_cmd_done(cmdctx, ret);
         }
@@ -1395,7 +1412,7 @@ getautomntbyname_process(struct autofs_cmd_ctx *cmdctx,
 
     if (i >= map->entry_count) {
         DEBUG(SSSDBG_MINOR_FAILURE, "No key named [%s] found\n", key);
-        ret = sss_cmd_empty_packet(client->creq->out);
+        ret = sss_cmd_empty_packet(pctx->creq->out);
         if (ret != EOK) {
             return autofs_cmd_done(cmdctx, ret);
         }
@@ -1408,12 +1425,12 @@ getautomntbyname_process(struct autofs_cmd_ctx *cmdctx,
     valuelen = 1 + strlen(value);
     len = sizeof(uint32_t) + sizeof(uint32_t) + valuelen;
 
-    ret = sss_packet_grow(client->creq->out, len);
+    ret = sss_packet_grow(pctx->creq->out, len);
     if (ret != EOK) {
         goto done;
     }
 
-    sss_packet_get_body(client->creq->out, &body, &blen);
+    sss_packet_get_body(pctx->creq->out, &body, &blen);
 
     rp = 0;
     SAFEALIGN_SET_UINT32(&body[rp], len, &rp);
@@ -1428,8 +1445,8 @@ getautomntbyname_process(struct autofs_cmd_ctx *cmdctx,
 
     ret = EOK;
 done:
-    sss_packet_set_error(client->creq->out, ret);
-    sss_cmd_done(client, cmdctx);
+    sss_packet_set_error(pctx->creq->out, ret);
+    sss_cmd_done(cmdctx->cctx, cmdctx);
 
     return EOK;
 }
@@ -1437,14 +1454,17 @@ done:
 static int
 sss_autofs_cmd_endautomntent(struct cli_ctx *client)
 {
+    struct cli_protocol *pctx;
     errno_t ret;
 
     DEBUG(SSSDBG_TRACE_FUNC, "endautomntent called\n");
 
+    pctx = talloc_get_type(client->protocol_ctx, struct cli_protocol);
+
     /* create response packet */
-    ret = sss_packet_new(client->creq, 0,
-                         sss_packet_get_cmd(client->creq->in),
-                         &client->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
 
     if (ret != EOK) {
         return ret;
@@ -1475,4 +1495,19 @@ struct sss_cmd_table *get_autofs_cmds(void)
     };
 
     return autofs_cmds;
+}
+
+int autofs_connection_setup(struct cli_ctx *cctx)
+{
+    int ret;
+
+    ret = sss_connection_setup(cctx);
+    if (ret != EOK) return ret;
+
+    cctx->state_ctx = talloc_zero(cctx, struct autofs_state_ctx);
+    if (!cctx->state_ctx) {
+        return ENOMEM;
+    }
+
+    return EOK;
 }

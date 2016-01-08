@@ -68,6 +68,11 @@ struct cli_protocol_version {
     const char *description;
 };
 
+struct cli_protocol {
+    struct cli_request *creq;
+    struct cli_protocol_version *cli_protocol_version;
+};
+
 struct resp_ctx;
 
 struct be_conn {
@@ -130,26 +135,14 @@ struct cli_ctx {
     struct resp_ctx *rctx;
     int cfd;
     struct tevent_fd *cfde;
+    tevent_fd_handler_t cfd_handler;
     struct sockaddr_un addr;
-    struct cli_request *creq;
-    struct cli_protocol_version *cli_protocol_version;
     int priv;
 
     struct cli_creds *creds;
 
-    int pwent_dom_idx;
-    int pwent_cur;
-
-    int grent_dom_idx;
-    int grent_cur;
-
-    int svc_dom_idx;
-    int svcent_cur;
-
-    char *netgr_name;
-    int netgrent_cur;
-
-    char *automntmap_name;
+    void *protocol_ctx;
+    void *state_ctx;
 
     struct tevent_timer *idle;
 };
@@ -165,6 +158,12 @@ struct mon_cli_iface;
 /*
  * responder_common.c
  *
+ */
+
+typedef int (*connection_setup_t)(struct cli_ctx *cctx);
+
+int sss_connection_setup(struct cli_ctx *cctx);
+/*
  * NOTE: We would like to use more strong typing for the @dp_vtable argument
  * but can't since it accepts either a struct data_provider_iface
  * or struct data_provider_rev_iface. So pass the base struct: sbus_vtable
@@ -183,6 +182,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct mon_cli_iface *monitor_intf,
                      const char *cli_name,
                      struct sbus_vtable *dp_intf,
+                     connection_setup_t conn_setup,
                      struct resp_ctx **responder_ctx);
 
 int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,

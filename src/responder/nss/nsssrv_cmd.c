@@ -547,28 +547,30 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct cli_protocol *pctx;
     struct nss_ctx *nctx;
     int ret;
     int i;
 
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return EFAULT;
     }
     i = dctx->res->count;
 
-    ret = fill_pwent(cctx->creq->out,
+    ret = fill_pwent(pctx->creq->out,
                      dctx->domain,
                      nctx, filter, true,
                      dctx->res->msgs, &i);
     if (ret) {
         return ret;
     }
-    sss_packet_set_error(cctx->creq->out, EOK);
+    sss_packet_set_error(pctx->creq->out, EOK);
     sss_cmd_done(cctx, cmdctx);
     return EOK;
 }
@@ -1403,7 +1405,7 @@ static int nss_check_name_of_well_known_sid(struct nss_cmd_ctx *cmdctx,
     struct sized_string sid;
     uint8_t *body;
     size_t blen;
-    struct cli_ctx *cctx;
+    struct cli_protocol *pctx;
     struct nss_ctx *nss_ctx;
     size_t pctr = 0;
 
@@ -1434,22 +1436,22 @@ static int nss_check_name_of_well_known_sid(struct nss_cmd_ctx *cmdctx,
 
     to_sized_string(&sid, wk_sid);
 
-    cctx = cmdctx->cctx;
-    ret = sss_packet_new(cctx->creq, sid.len + 3 * sizeof(uint32_t),
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+    ret = sss_packet_new(pctx->creq, sid.len + 3 * sizeof(uint32_t),
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return ENOMEM;
     }
 
-    sss_packet_get_body(cctx->creq->out, &body, &blen);
+    sss_packet_get_body(pctx->creq->out, &body, &blen);
     SAFEALIGN_SETMEM_UINT32(body, 1, &pctr);  /* num results */
     SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
     SAFEALIGN_SETMEM_UINT32(body + pctr, SSS_ID_TYPE_GID, &pctr);
     memcpy(&body[pctr], sid.str, sid.len);
 
-    sss_packet_set_error(cctx->creq->out, EOK);
-    sss_cmd_done(cctx, cmdctx);
+    sss_packet_set_error(pctx->creq->out, EOK);
+    sss_cmd_done(cmdctx->cctx, cmdctx);
     return EOK;
 }
 
@@ -1464,6 +1466,7 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
 {
 
     struct tevent_req *req;
+    struct cli_protocol *pctx;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     const char *rawname;
@@ -1499,8 +1502,10 @@ static int nss_cmd_getbynam(enum sss_cli_command cmd, struct cli_ctx *cctx)
     }
     dctx->cmdctx = cmdctx;
 
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+
     /* get user name to query */
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     /* if not terminated fail */
     if (body[blen -1] != '\0') {
@@ -1894,6 +1899,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 
 static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
 {
+    struct cli_protocol *pctx;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct nss_ctx *nctx;
@@ -1929,8 +1935,10 @@ static int nss_cmd_getbyid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     }
     dctx->cmdctx = cmdctx;
 
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+
     /* get id to query */
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     if (blen != sizeof(uint32_t)) {
         ret = EINVAL;
@@ -2151,6 +2159,7 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     struct nss_ctx *nctx;
+    struct nss_state_ctx *state_ctx;
     struct tevent_req *req;
     struct setent_ctx *state;
     struct sss_domain_info *dom;
@@ -2158,10 +2167,11 @@ struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Received setpwent request\n");
     nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type(client->state_ctx, struct nss_state_ctx);
 
     /* Reset the read pointers */
-    client->pwent_dom_idx = 0;
-    client->pwent_cur = 0;
+    state_ctx->pwent.dom_idx = 0;
+    state_ctx->pwent.cur = 0;
 
     req = tevent_req_create(mem_ctx, &state, struct setent_ctx);
     if (!req) {
@@ -2456,17 +2466,19 @@ static errno_t nss_cmd_setpwent_recv(struct tevent_req *req)
 
 static void nss_cmd_setpwent_done(struct tevent_req *req)
 {
+    struct cli_protocol *pctx;
     errno_t ret;
     struct nss_cmd_ctx *cmdctx =
             tevent_req_callback_data(req, struct nss_cmd_ctx);
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
     ret = nss_cmd_setpwent_recv(req);
     talloc_zfree(req);
     if (ret == EOK || ret == ENOENT) {
         /* Either we succeeded or no domains were eligible */
-        ret = sss_packet_new(cmdctx->cctx->creq, 0,
-                             sss_packet_get_cmd(cmdctx->cctx->creq->in),
-                             &cmdctx->cctx->creq->out);
+        ret = sss_packet_new(pctx->creq, 0,
+                             sss_packet_get_cmd(pctx->creq->in),
+                             &pctx->creq->out);
         if (ret == EOK) {
             sss_cmd_done(cmdctx->cctx, cmdctx);
             return;
@@ -2481,6 +2493,7 @@ static void nss_cmd_implicit_setpwent_done(struct tevent_req *req);
 static int nss_cmd_getpwent(struct cli_ctx *cctx)
 {
     struct nss_ctx *nctx;
+    struct nss_state_ctx *state_ctx;
     struct nss_cmd_ctx *cmdctx;
     struct tevent_req *req;
 
@@ -2491,14 +2504,15 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
         return ENOMEM;
     }
     cmdctx->cctx = cctx;
+    state_ctx = talloc_get_type(cctx->state_ctx, struct nss_state_ctx);
 
     /* Save the current index and cursor locations
      * If we end up calling setpwent implicitly, because the response object
      * expired and has to be recreated, we want to resume from the same
      * location.
      */
-    cmdctx->saved_dom_idx = cctx->pwent_dom_idx;
-    cmdctx->saved_cur = cctx->pwent_cur;
+    cmdctx->saved_dom_idx = state_ctx->pwent.dom_idx;
+    cmdctx->saved_cur = state_ctx->pwent.cur;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
     if(!nctx->pctx || !nctx->pctx->ready) {
@@ -2519,85 +2533,92 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
 static int nss_cmd_retpwent(struct cli_ctx *cctx, int num);
 static int nss_cmd_getpwent_immediate(struct nss_cmd_ctx *cmdctx)
 {
-    struct cli_ctx *cctx = cmdctx->cctx;
+    struct cli_protocol *pctx;
     uint8_t *body;
     size_t blen;
     uint32_t num;
     int ret;
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
     /* get max num of entries to return in one call */
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
     SAFEALIGN_COPY_UINT32(&num, body, NULL);
 
     /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
 
-    ret = nss_cmd_retpwent(cctx, num);
+    ret = nss_cmd_retpwent(cmdctx->cctx, num);
 
-    sss_packet_set_error(cctx->creq->out, ret);
-    sss_cmd_done(cctx, cmdctx);
+    sss_packet_set_error(pctx->creq->out, ret);
+    sss_cmd_done(cmdctx->cctx, cmdctx);
 
     return EOK;
 }
 
 static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
 {
+    struct cli_protocol *pctx;
+    struct nss_state_ctx *state_ctx;
     struct nss_ctx *nctx;
-    struct getent_ctx *pctx;
+    struct getent_ctx *gctx;
     struct ldb_message **msgs = NULL;
     struct dom_ctx *pdom = NULL;
     int n = 0;
     int ret = ENOENT;
 
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    state_ctx = talloc_get_type(cctx->state_ctx, struct nss_state_ctx);
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
     if (!nctx->pctx) goto none;
 
-    pctx = nctx->pctx;
+    gctx = nctx->pctx;
 
     while (ret == ENOENT) {
-        if (cctx->pwent_dom_idx >= pctx->num) break;
+        if (state_ctx->pwent.dom_idx >= gctx->num) break;
 
-        pdom = &pctx->doms[cctx->pwent_dom_idx];
+        pdom = &gctx->doms[state_ctx->pwent.dom_idx];
 
-        n = pdom->res->count - cctx->pwent_cur;
-        if (n <= 0 && (cctx->pwent_dom_idx+1 < pctx->num)) {
-            cctx->pwent_dom_idx++;
-            pdom = &pctx->doms[cctx->pwent_dom_idx];
+        n = pdom->res->count - state_ctx->pwent.cur;
+        if (n <= 0 && (state_ctx->pwent.dom_idx+1 < gctx->num)) {
+            state_ctx->pwent.dom_idx++;
+            pdom = &gctx->doms[state_ctx->pwent.dom_idx];
             n = pdom->res->count;
-            cctx->pwent_cur = 0;
+            state_ctx->pwent.cur = 0;
         }
 
         if (!n) break;
 
         if (n < 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "BUG: Negative difference"
-                  "[%d - %d = %d]\n", pdom->res->count, cctx->pwent_cur, n);
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "BUG: Negative difference[%d - %d = %d]\n",
+                  pdom->res->count, state_ctx->pwent.cur, n);
             DEBUG(SSSDBG_CRIT_FAILURE, "Domain: %d (total %d)\n",
-                                        cctx->pwent_dom_idx, pctx->num);
+                                        state_ctx->pwent.dom_idx, gctx->num);
             break;
         }
 
         if (n > num) n = num;
 
-        msgs = &(pdom->res->msgs[cctx->pwent_cur]);
+        msgs = &(pdom->res->msgs[state_ctx->pwent.cur]);
 
-        ret = fill_pwent(cctx->creq->out, pdom->domain, nctx,
+        ret = fill_pwent(pctx->creq->out, pdom->domain, nctx,
                          true, false, msgs, &n);
 
-        cctx->pwent_cur += n;
+        state_ctx->pwent.cur += n;
     }
 
 none:
     if (ret == ENOENT) {
-        ret = sss_cmd_empty_packet(cctx->creq->out);
+        ret = sss_cmd_empty_packet(pctx->creq->out);
     }
     return ret;
 }
@@ -2607,7 +2628,7 @@ static void nss_cmd_implicit_setpwent_done(struct tevent_req *req)
     errno_t ret;
     struct nss_cmd_ctx *cmdctx =
             tevent_req_callback_data(req, struct nss_cmd_ctx);
-
+    struct nss_state_ctx *state_ctx;
     ret = nss_cmd_setpwent_recv(req);
     talloc_zfree(req);
 
@@ -2623,8 +2644,9 @@ static void nss_cmd_implicit_setpwent_done(struct tevent_req *req)
     }
 
     /* Restore the saved index and cursor locations */
-    cmdctx->cctx->pwent_dom_idx = cmdctx->saved_dom_idx;
-    cmdctx->cctx->pwent_cur = cmdctx->saved_cur;
+    state_ctx = talloc_get_type(cmdctx->cctx->state_ctx, struct nss_state_ctx);
+    state_ctx->pwent.dom_idx = cmdctx->saved_dom_idx;
+    state_ctx->pwent.cur = cmdctx->saved_cur;
 
     ret = nss_cmd_getpwent_immediate(cmdctx);
     if (ret != EOK) {
@@ -2637,17 +2659,21 @@ static void nss_cmd_implicit_setpwent_done(struct tevent_req *req)
 
 static int nss_cmd_endpwent(struct cli_ctx *cctx)
 {
+    struct cli_protocol *pctx;
+    struct nss_state_ctx *state_ctx;
     struct nss_ctx *nctx;
     int ret;
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Terminating request info for all accounts\n");
 
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    state_ctx = talloc_get_type(cctx->state_ctx, struct nss_state_ctx);
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
 
     if (ret != EOK) {
         return ret;
@@ -2655,8 +2681,8 @@ static int nss_cmd_endpwent(struct cli_ctx *cctx)
     if (nctx->pctx == NULL) goto done;
 
     /* Reset the indices so that subsequent requests start at zero */
-    cctx->pwent_dom_idx = 0;
-    cctx->pwent_cur = 0;
+    state_ctx->pwent.dom_idx = 0;
+    state_ctx->pwent.cur = 0;
 
 done:
     sss_cmd_done(cctx, NULL);
@@ -3134,29 +3160,30 @@ done:
 static int nss_cmd_getgr_send_reply(struct nss_dom_ctx *dctx, bool filter)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
+    struct cli_protocol *pctx;
     struct nss_ctx *nctx;
     int ret;
     int i;
 
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+    nctx = talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct nss_ctx);
 
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return EFAULT;
     }
     i = dctx->res->count;
-    ret = fill_grent(cctx->creq->out,
+    ret = fill_grent(pctx->creq->out,
                      dctx->domain,
                      nctx, filter, true,
                      dctx->res->msgs, &i);
     if (ret) {
         return ret;
     }
-    sss_packet_set_error(cctx->creq->out, EOK);
-    sss_cmd_done(cctx, cmdctx);
+    sss_packet_set_error(pctx->creq->out, EOK);
+    sss_cmd_done(cmdctx->cctx, cmdctx);
     return EOK;
 }
 
@@ -3511,6 +3538,7 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
     struct nss_ctx *nctx;
+    struct nss_state_ctx *state_ctx;
     struct tevent_req *req;
     struct setent_ctx *state;
     struct sss_domain_info *dom;
@@ -3518,10 +3546,11 @@ struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Received setgrent request\n");
     nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
+    state_ctx = talloc_get_type(client->state_ctx, struct nss_state_ctx);
 
     /* Reset the read pointers */
-    client->grent_dom_idx = 0;
-    client->grent_cur = 0;
+    state_ctx->grent.dom_idx = 0;
+    state_ctx->grent.cur = 0;
 
     req = tevent_req_create(mem_ctx, &state, struct setent_ctx);
     if (!req) {
@@ -3820,14 +3849,16 @@ static void nss_cmd_setgrent_done(struct tevent_req *req)
     errno_t ret;
     struct nss_cmd_ctx *cmdctx =
             tevent_req_callback_data(req, struct nss_cmd_ctx);
+    struct cli_protocol *pctx;
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
     ret = nss_cmd_setgrent_recv(req);
     talloc_zfree(req);
     if (ret == EOK || ret == ENOENT) {
         /* Either we succeeded or no domains were eligible */
-        ret = sss_packet_new(cmdctx->cctx->creq, 0,
-                             sss_packet_get_cmd(cmdctx->cctx->creq->in),
-                             &cmdctx->cctx->creq->out);
+        ret = sss_packet_new(pctx->creq, 0,
+                             sss_packet_get_cmd(pctx->creq->in),
+                             &pctx->creq->out);
         if (ret == EOK) {
             sss_cmd_done(cmdctx->cctx, cmdctx);
             return;
@@ -3840,6 +3871,8 @@ static void nss_cmd_setgrent_done(struct tevent_req *req)
 
 static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
 {
+    struct cli_protocol *pctx;
+    struct nss_state_ctx *state_ctx;
     struct nss_ctx *nctx;
     struct getent_ctx *gctx;
     struct ldb_message **msgs = NULL;
@@ -3847,71 +3880,75 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
     int n = 0;
     int ret = ENOENT;
 
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    state_ctx = talloc_get_type(cctx->state_ctx, struct nss_state_ctx);
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
     if (!nctx->gctx) goto none;
 
     gctx = nctx->gctx;
 
     while (ret == ENOENT) {
-        if (cctx->grent_dom_idx >= gctx->num) break;
+        if (state_ctx->grent.dom_idx >= gctx->num) break;
 
-        gdom = &gctx->doms[cctx->grent_dom_idx];
+        gdom = &gctx->doms[state_ctx->grent.dom_idx];
 
-        n = gdom->res->count - cctx->grent_cur;
-        if (n <= 0 && (cctx->grent_dom_idx+1 < gctx->num)) {
-            cctx->grent_dom_idx++;
-            gdom = &gctx->doms[cctx->grent_dom_idx];
+        n = gdom->res->count - state_ctx->grent.cur;
+        if (n <= 0 && (state_ctx->grent.dom_idx+1 < gctx->num)) {
+            state_ctx->grent.dom_idx++;
+            gdom = &gctx->doms[state_ctx->grent.dom_idx];
             n = gdom->res->count;
-            cctx->grent_cur = 0;
+            state_ctx->grent.cur = 0;
         }
 
         if (!n) break;
 
         if (n > num) n = num;
 
-        msgs = &(gdom->res->msgs[cctx->grent_cur]);
+        msgs = &(gdom->res->msgs[state_ctx->grent.cur]);
 
-        ret = fill_grent(cctx->creq->out,
+        ret = fill_grent(pctx->creq->out,
                          gdom->domain,
                          nctx, true, false, msgs, &n);
 
-        cctx->grent_cur += n;
+        state_ctx->grent.cur += n;
     }
 
 none:
     if (ret == ENOENT) {
-        ret = sss_cmd_empty_packet(cctx->creq->out);
+        ret = sss_cmd_empty_packet(pctx->creq->out);
     }
     return ret;
 }
 
 static int nss_cmd_getgrent_immediate(struct nss_cmd_ctx *cmdctx)
 {
-    struct cli_ctx *cctx = cmdctx->cctx;
+    struct cli_protocol *pctx;
     uint8_t *body;
     size_t blen;
     uint32_t num;
     int ret;
 
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+
     /* get max num of entries to return in one call */
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
     SAFEALIGN_COPY_UINT32(&num, body, NULL);
 
     /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
 
-    ret = nss_cmd_retgrent(cctx, num);
+    ret = nss_cmd_retgrent(cmdctx->cctx, num);
 
-    sss_packet_set_error(cctx->creq->out, ret);
-    sss_cmd_done(cctx, cmdctx);
+    sss_packet_set_error(pctx->creq->out, ret);
+    sss_cmd_done(cmdctx->cctx, cmdctx);
 
     return EOK;
 }
@@ -3920,6 +3957,7 @@ static void nss_cmd_implicit_setgrent_done(struct tevent_req *req);
 static int nss_cmd_getgrent(struct cli_ctx *cctx)
 {
     struct nss_ctx *nctx;
+    struct nss_state_ctx *state_ctx;
     struct nss_cmd_ctx *cmdctx;
     struct tevent_req *req;
 
@@ -3936,8 +3974,9 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
      * expired and has to be recreated, we want to resume from the same
      * location.
      */
-    cmdctx->saved_dom_idx = cctx->grent_dom_idx;
-    cmdctx->saved_cur = cctx->grent_cur;
+    state_ctx = talloc_get_type(cctx->state_ctx, struct nss_state_ctx);
+    cmdctx->saved_dom_idx = state_ctx->grent.dom_idx;
+    cmdctx->saved_cur = state_ctx->grent.cur;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
     if(!nctx->gctx || !nctx->gctx->ready) {
@@ -3960,6 +3999,7 @@ static void nss_cmd_implicit_setgrent_done(struct tevent_req *req)
     errno_t ret;
     struct nss_cmd_ctx *cmdctx =
             tevent_req_callback_data(req, struct nss_cmd_ctx);
+    struct nss_state_ctx *state_ctx;
 
     ret = nss_cmd_setgrent_recv(req);
     talloc_zfree(req);
@@ -3976,8 +4016,9 @@ static void nss_cmd_implicit_setgrent_done(struct tevent_req *req)
     }
 
     /* Restore the saved index and cursor locations */
-    cmdctx->cctx->grent_dom_idx = cmdctx->saved_dom_idx;
-    cmdctx->cctx->grent_cur = cmdctx->saved_cur;
+    state_ctx = talloc_get_type(cmdctx->cctx->state_ctx, struct nss_state_ctx);
+    state_ctx->grent.dom_idx = cmdctx->saved_dom_idx;
+    state_ctx->grent.cur = cmdctx->saved_cur;
 
     ret = nss_cmd_getgrent_immediate(cmdctx);
     if (ret != EOK) {
@@ -3990,17 +4031,21 @@ static void nss_cmd_implicit_setgrent_done(struct tevent_req *req)
 
 static int nss_cmd_endgrent(struct cli_ctx *cctx)
 {
+    struct cli_protocol *pctx;
+    struct nss_state_ctx *state_ctx;
     struct nss_ctx *nctx;
     int ret;
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Terminating request info for all groups\n");
 
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    state_ctx = talloc_get_type(cctx->state_ctx, struct nss_state_ctx);
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
 
     if (ret != EOK) {
         return ret;
@@ -4008,8 +4053,8 @@ static int nss_cmd_endgrent(struct cli_ctx *cctx)
     if (nctx->gctx == NULL) goto done;
 
     /* Reset the indices so that subsequent requests start at zero */
-    cctx->grent_dom_idx = 0;
-    cctx->grent_cur = 0;
+    state_ctx->grent.dom_idx = 0;
+    state_ctx->grent.cur = 0;
 
 done:
     sss_cmd_done(cctx, NULL);
@@ -4255,26 +4300,27 @@ static int fill_initgr(struct sss_packet *packet,
 static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
+    struct cli_protocol *pctx;
     struct nss_ctx *nctx;
     int ret;
 
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
+    nctx = talloc_get_type(cmdctx->cctx->rctx->pvt_ctx, struct nss_ctx);
 
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return EFAULT;
     }
 
-    ret = fill_initgr(cctx->creq->out, dctx->domain, dctx->res, nctx,
+    ret = fill_initgr(pctx->creq->out, dctx->domain, dctx->res, nctx,
                       dctx->mc_name, cmdctx->normalized_name);
     if (ret) {
         return ret;
     }
-    sss_packet_set_error(cctx->creq->out, EOK);
-    sss_cmd_done(cctx, cmdctx);
+    sss_packet_set_error(pctx->creq->out, EOK);
+    sss_cmd_done(cmdctx->cctx, cmdctx);
     return EOK;
 }
 
@@ -5267,6 +5313,7 @@ static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct cli_protocol *pctx;
     int ret;
     enum sss_id_type id_type;
 
@@ -5276,9 +5323,11 @@ static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
         return ENOENT;
     }
 
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         return EFAULT;
     }
@@ -5291,21 +5340,21 @@ static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
 
     switch(cmdctx->cmd) {
     case SSS_NSS_GETNAMEBYSID:
-        ret = fill_name(cctx->creq->out,
+        ret = fill_name(pctx->creq->out,
                         dctx->domain,
                         id_type,
                         true,
                         dctx->res->msgs[0]);
         break;
     case SSS_NSS_GETIDBYSID:
-        ret = fill_id(cctx->creq->out, id_type, dctx->res->msgs[0]);
+        ret = fill_id(pctx->creq->out, id_type, dctx->res->msgs[0]);
         break;
     case SSS_NSS_GETSIDBYNAME:
     case SSS_NSS_GETSIDBYID:
-        ret = fill_sid(cctx->creq->out, id_type, dctx->res->msgs[0]);
+        ret = fill_sid(pctx->creq->out, id_type, dctx->res->msgs[0]);
         break;
     case SSS_NSS_GETORIGBYNAME:
-        ret = fill_orig(cctx->creq->out, cctx->rctx, id_type,
+        ret = fill_orig(pctx->creq->out, cctx->rctx, id_type,
                         dctx->res->msgs[0]);
         break;
     default:
@@ -5316,7 +5365,7 @@ static errno_t nss_cmd_getbysid_send_reply(struct nss_dom_ctx *dctx)
         return ret;
     }
 
-    sss_packet_set_error(cctx->creq->out, EOK);
+    sss_packet_set_error(pctx->creq->out, EOK);
     sss_cmd_done(cctx, cmdctx);
     return EOK;
 }
@@ -5330,9 +5379,11 @@ static int nss_check_well_known_sid(struct nss_cmd_ctx *cmdctx)
     struct sized_string name;
     uint8_t *body;
     size_t blen;
-    struct cli_ctx *cctx;
+    struct cli_protocol *pctx;
     struct nss_ctx *nss_ctx;
     size_t pctr = 0;
+
+    pctx = talloc_get_type(cmdctx->cctx->protocol_ctx, struct cli_protocol);
 
     ret = well_known_sid_to_name(cmdctx->secid, &wk_dom_name, &wk_name);
     if (ret != EOK) {
@@ -5360,23 +5411,22 @@ static int nss_check_well_known_sid(struct nss_cmd_ctx *cmdctx)
         to_sized_string(&name, wk_name);
     }
 
-    cctx = cmdctx->cctx;
-    ret = sss_packet_new(cctx->creq, name.len + 3 * sizeof(uint32_t),
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, name.len + 3 * sizeof(uint32_t),
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         talloc_free(fq_name);
         return ENOMEM;
     }
 
-    sss_packet_get_body(cctx->creq->out, &body, &blen);
+    sss_packet_get_body(pctx->creq->out, &body, &blen);
     SAFEALIGN_SETMEM_UINT32(body, 1, &pctr); /* num results */
     SAFEALIGN_SETMEM_UINT32(body + pctr, 0, &pctr); /* reserved */
     SAFEALIGN_SETMEM_UINT32(body + pctr, SSS_ID_TYPE_GID, &pctr);
     memcpy(&body[pctr], name.str, name.len);
 
-    sss_packet_set_error(cctx->creq->out, EOK);
-    sss_cmd_done(cctx, cmdctx);
+    sss_packet_set_error(pctx->creq->out, EOK);
+    sss_cmd_done(cmdctx->cctx, cmdctx);
     return EOK;
 }
 
@@ -5390,6 +5440,7 @@ static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int ret;
+    struct cli_protocol *pctx;
     struct nss_ctx *nctx;
     enum idmap_error_code err;
     uint8_t *bin_sid = NULL;
@@ -5400,6 +5451,8 @@ static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
               cmd, sss_cmd2str(cmd));
         return EINVAL;
     }
+
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
 
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
@@ -5416,7 +5469,7 @@ static int nss_cmd_getbysid(enum sss_cli_command cmd, struct cli_ctx *cctx)
     dctx->cmdctx = cmdctx;
 
     /* get SID to query */
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     /* if not terminated fail */
     if (body[blen -1] != '\0') {
@@ -5507,8 +5560,10 @@ static int nss_cmd_getbycert(enum sss_cli_command cmd, struct cli_ctx *cctx)
     char *pem_cert = NULL;
     size_t pem_size;
     struct nss_ctx *nctx;
+    struct cli_protocol *pctx;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
 
     if (cmd != SSS_NSS_GETNAMEBYCERT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid command type [%d][%s].\n",
@@ -5517,7 +5572,7 @@ static int nss_cmd_getbycert(enum sss_cli_command cmd, struct cli_ctx *cctx)
     }
 
     /* get certificate to query */
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     /* if not terminated fail */
     if (body[blen - 1] != '\0') {
@@ -5551,9 +5606,11 @@ static void users_find_by_cert_done(struct tevent_req *req)
     struct cli_ctx *cctx;
     struct sss_domain_info *domain;
     struct ldb_result *result;
+    struct cli_protocol *pctx;
     errno_t ret;
 
     cctx = tevent_req_callback_data(req, struct cli_ctx);
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
 
     ret = cache_req_user_by_cert_recv(cctx, req, &result, &domain, NULL);
     talloc_zfree(req);
@@ -5572,16 +5629,16 @@ static void users_find_by_cert_done(struct tevent_req *req)
         goto done;
     }
 
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_packet_new failed.\n");
         ret = EFAULT;
         goto done;
     }
 
-    ret = fill_name(cctx->creq->out, domain, SSS_ID_TYPE_UID, true,
+    ret = fill_name(pctx->creq->out, domain, SSS_ID_TYPE_UID, true,
                     result->msgs[0]);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "fill_name failed.\n");
@@ -5592,7 +5649,7 @@ static void users_find_by_cert_done(struct tevent_req *req)
 
 done:
     if (ret == EOK) {
-        sss_packet_set_error(cctx->creq->out, EOK);
+        sss_packet_set_error(pctx->creq->out, EOK);
         sss_cmd_done(cctx, NULL);
     } else if (ret == ENOENT) {
         sss_cmd_send_empty(cctx, NULL);
@@ -5675,4 +5732,19 @@ static struct sss_cmd_table nss_cmds[] = {
 
 struct sss_cmd_table *get_nss_cmds(void) {
     return nss_cmds;
+}
+
+int nss_connection_setup(struct cli_ctx *cctx)
+{
+    int ret;
+
+    ret = sss_connection_setup(cctx);
+    if (ret != EOK) return ret;
+
+    cctx->state_ctx = talloc_zero(cctx, struct nss_state_ctx);
+    if (!cctx->state_ctx) {
+        return ENOMEM;
+    }
+
+    return EOK;
 }

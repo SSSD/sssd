@@ -33,6 +33,10 @@ struct autofs_ctx {
     hash_table_t *maps;
 };
 
+struct autofs_state_ctx {
+    char *automntmap_name;
+};
+
 struct autofs_cmd_ctx {
     struct cli_ctx *cctx;
     char *mapname;
@@ -74,6 +78,7 @@ struct autofs_map_ctx {
 };
 
 struct sss_cmd_table *get_autofs_cmds(void);
+int autofs_connection_setup(struct cli_ctx *cctx);
 
 void autofs_map_hash_delete_cb(hash_entry_t *item,
                                hash_destroy_enum deltype, void *pvt);

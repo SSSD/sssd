@@ -38,14 +38,17 @@ static errno_t sudosrv_cmd_send_reply(struct sudo_cmd_ctx *cmd_ctx,
     uint8_t *packet_body = NULL;
     size_t packet_len = 0;
     struct cli_ctx *cli_ctx = cmd_ctx->cli_ctx;
+    struct cli_protocol *pctx;
     TALLOC_CTX *tmp_ctx;
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
-    ret = sss_packet_new(cli_ctx->creq, 0,
-                         sss_packet_get_cmd(cli_ctx->creq->in),
-                         &cli_ctx->creq->out);
+    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+
+    ret = sss_packet_new(pctx->creq, 0,
+                         sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to create a new packet [%d]; %s\n",
@@ -53,16 +56,16 @@ static errno_t sudosrv_cmd_send_reply(struct sudo_cmd_ctx *cmd_ctx,
         goto done;
     }
 
-    ret = sss_packet_grow(cli_ctx->creq->out, response_len);
+    ret = sss_packet_grow(pctx->creq->out, response_len);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to create response: %s\n", strerror(ret));
         goto done;
     }
-    sss_packet_get_body(cli_ctx->creq->out, &packet_body, &packet_len);
+    sss_packet_get_body(pctx->creq->out, &packet_body, &packet_len);
     memcpy(packet_body, response_body, response_len);
 
-    sss_packet_set_error(cli_ctx->creq->out, EOK);
+    sss_packet_set_error(pctx->creq->out, EOK);
     sss_cmd_done(cmd_ctx->cli_ctx, cmd_ctx);
 
     ret = EOK;
@@ -172,7 +175,8 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
     struct sudo_cmd_ctx *cmd_ctx = NULL;
     uint8_t *query_body = NULL;
     size_t query_len = 0;
-    uint32_t protocol = cli_ctx->cli_protocol_version->version;
+    struct cli_protocol *pctx;
+    uint32_t protocol;
     errno_t ret;
 
     /* create cmd_ctx */
@@ -191,6 +195,9 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
         DEBUG(SSSDBG_FATAL_FAILURE, "sudo_ctx not set, killing connection!\n");
         return EFAULT;
     }
+
+    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
+    protocol = pctx->cli_protocol_version->version;
 
     /* if protocol is invalid return */
     switch (protocol) {
@@ -212,7 +219,7 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
     }
 
     /* parse query */
-    sss_packet_get_body(cli_ctx->creq->in, &query_body, &query_len);
+    sss_packet_get_body(pctx->creq->in, &query_body, &query_len);
     if (query_len <= 0 || query_body == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Query is empty\n");
         ret = EINVAL;

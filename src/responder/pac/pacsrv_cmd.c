@@ -29,6 +29,7 @@
 
 static errno_t pac_cmd_done(struct cli_ctx *cctx, int cmd_ret)
 {
+    struct cli_protocol *pctx;
     int ret;
 
     if (cmd_ret == EAGAIN) {
@@ -36,15 +37,17 @@ static errno_t pac_cmd_done(struct cli_ctx *cctx, int cmd_ret)
         return EOK;
     }
 
-    ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+
+    ret = sss_packet_new(pctx->creq, 0, sss_packet_get_cmd(pctx->creq->in),
+                         &pctx->creq->out);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_packet_new failed [%d][%s].\n",
                                   ret, strerror(ret));
         return ret;
     }
 
-    sss_packet_set_error(cctx->creq->out, cmd_ret);
+    sss_packet_set_error(pctx->creq->out, cmd_ret);
 
     sss_cmd_done(cctx, NULL);
 
@@ -78,8 +81,11 @@ static errno_t pac_add_pac_user(struct cli_ctx *cctx)
     struct pac_req_ctx *pr_ctx;
     struct tevent_req *req;
     enum idmap_error_code err;
+    struct cli_protocol *pctx;
 
-    sss_packet_get_body(cctx->creq->in, &body, &blen);
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+
+    sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     pr_ctx = talloc_zero(cctx, struct pac_req_ctx);
     if (pr_ctx == NULL) {

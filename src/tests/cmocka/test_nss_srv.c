@@ -119,12 +119,16 @@ static void set_cmd_cb(cmd_cb_fn_t fn)
 
 void __wrap_sss_cmd_done(struct cli_ctx *cctx, void *freectx)
 {
-    struct sss_packet *packet = cctx->creq->out;
+    struct cli_protocol *pctx;
+    struct sss_packet *packet;
     uint8_t *body;
     size_t blen;
     cmd_cb_fn_t check_cb;
 
     check_cb = sss_mock_ptr_type(cmd_cb_fn_t);
+
+    pctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    packet = pctx->creq->out;
 
     __real_sss_packet_get_body(packet, &body, &blen);
 
@@ -1070,6 +1074,15 @@ void test_nss_setup(struct sss_test_conf_param params[],
     /* Create client context */
     nss_test_ctx->cctx = mock_cctx(nss_test_ctx, nss_test_ctx->rctx);
     assert_non_null(nss_test_ctx->cctx);
+
+    /* Add nss specific state_ctx */
+    nss_connection_setup(nss_test_ctx->cctx);
+    assert_non_null(nss_test_ctx->cctx->state_ctx);
+
+    /* do after previous setup as the former nulls procotol_ctx */
+    nss_test_ctx->cctx->protocol_ctx = mock_prctx(nss_test_ctx->cctx);
+    assert_non_null(nss_test_ctx->cctx->protocol_ctx);
+
 }
 
 static int test_nss_getgrnam_check(struct group *expected, struct group *gr, const int nmem)

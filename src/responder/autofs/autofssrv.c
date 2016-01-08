@@ -131,6 +131,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
                            &monitor_autofs_methods,
                            "autofs",
                            &autofs_dp_methods.vtable,
+                           autofs_connection_setup,
                            &rctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "sss_process_init() failed\n");

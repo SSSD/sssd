@@ -27,6 +27,19 @@
 
 #include <dhash.h>
 
+struct nss_state_ent {
+    int dom_idx;
+    int cur;
+};
+
+struct nss_state_ctx {
+    struct nss_state_ent pwent;
+    struct nss_state_ent grent;
+    struct nss_state_ent svcent;
+    char *netgr_name;
+    int netgrent_cur;
+};
+
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
     enum sss_cli_command cmd;
@@ -135,5 +148,7 @@ void nss_update_gr_memcache(struct nss_ctx *nctx);
 void nss_update_initgr_memcache(struct nss_ctx *nctx,
                                 const char *name, const char *domain,
                                 int gnum, uint32_t *groups);
+
+int nss_connection_setup(struct cli_ctx *cctx);
 
 #endif /* NSSSRV_PRIVATE_H_ */
