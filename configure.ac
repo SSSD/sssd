@@ -189,6 +189,11 @@ m4_include([src/external/libresolv.m4])
 m4_include([src/external/intgcheck.m4])
 m4_include([src/external/systemtap.m4])
 
+if test x$with_secrets = xyes; then
+    m4_include([src/external/libhttp_parser.m4])
+    m4_include([src/external/libjansson.m4])
+fi
+
 if test x$build_config_lib = xyes; then
     m4_include([src/external/libaugeas.m4])
 fi
