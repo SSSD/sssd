@@ -309,7 +309,7 @@ static bool ad_account_can_shortcut(struct be_ctx *be_ctx,
 
         req_dom = find_domain_by_sid(domain, csid);
         if (req_dom == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Invalid domain\n");
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid domain for SID:%s\n", csid);
             goto done;
         }
 
