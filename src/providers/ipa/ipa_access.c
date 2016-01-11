@@ -65,21 +65,10 @@ void hbac_debug_messages(const char *file, int line,
 
     if (DEBUG_IS_SET(loglevel)) {
         va_list ap;
-        char *message = NULL;
-        int ret;
 
         va_start(ap, fmt);
-        ret = vasprintf(&message, fmt, ap);
+        sss_vdebug_fn(file, line, "hbac", loglevel, fmt, ap);
         va_end(ap);
-        if (ret < 0) {
-            /* ENOMEM */
-            free(message);
-            return;
-        }
-
-        sss_debug_fn(__FILE__, __LINE__, "hbac", loglevel, "[%s:%i] %s",
-                     file, line, message);
-        free(message);
     }
 }
 
