@@ -206,13 +206,13 @@ journal_done:
 }
 #endif /* WiTH_JOURNALD */
 
-void sss_debug_fn(const char *file,
-                  long line,
-                  const char *function,
-                  int level,
-                  const char *format, ...)
+void sss_vdebug_fn(const char *file,
+                   long line,
+                   const char *function,
+                   int level,
+                   const char *format,
+                   va_list ap)
 {
-    va_list ap;
     struct timeval tv;
     struct tm *tm;
     char datetime[20];
@@ -230,10 +230,8 @@ void sss_debug_fn(const char *file,
          * can also provide extra structuring data to make it more easily
          * searchable.
          */
-        va_start(ap, format);
         va_copy(ap_fallback, ap);
         ret = journal_send(file, line, function, level, format, ap);
-        va_end(ap);
         if (ret != EOK) {
             /* Emergency fallback, send to STDERR */
             debug_vprintf(format, ap_fallback);
@@ -266,10 +264,21 @@ void sss_debug_fn(const char *file,
                      debug_prg_name, function, level);
     }
 
-    va_start(ap, format);
     debug_vprintf(format, ap);
-    va_end(ap);
     debug_fflush();
+}
+
+void sss_debug_fn(const char *file,
+                  long line,
+                  const char *function,
+                  int level,
+                  const char *format, ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    sss_vdebug_fn(file, line, function, level, format, ap);
+    va_end(ap);
 }
 
 void ldb_debug_messages(void *context, enum ldb_debug_level level,

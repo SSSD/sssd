@@ -77,6 +77,12 @@ extern int debug_microseconds;
 extern int debug_to_file;
 extern int debug_to_stderr;
 extern const char *debug_log_file;
+void sss_vdebug_fn(const char *file,
+                   long line,
+                   const char *function,
+                   int level,
+                   const char *format,
+                   va_list ap);
 void sss_debug_fn(const char *file,
                   long line,
                   const char *function,
