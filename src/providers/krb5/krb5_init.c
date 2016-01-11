@@ -169,6 +169,13 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     }
     talloc_set_destructor((TALLOC_CTX *) ctx, krb5_ctx_re_destructor);
 
+    ret = be_fo_set_dns_srv_lookup_plugin(bectx, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
+                                   "[%d]: %s\n", ret, sss_strerror(ret));
+        goto fail;
+    }
+
     *ops = &krb5_auth_ops;
     *pvt_auth_data = ctx;
     return EOK;
