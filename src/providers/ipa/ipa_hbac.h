@@ -50,13 +50,19 @@ enum hbac_debug_level {
     HBAC_DBG_TRACE      /** Verbose description of rules. */
 };
 
+#ifdef HAVE_FUNCTION_ATTRIBUTE_FORMAT
+#define HBAC_ATTRIBUTE_PRINTF(a1, a2) __attribute__((format(printf, a1, a2)))
+#else
+#define HABC_ATTRIBUTE_PRINTF(a1, a2)
+#endif
+
 /**
  * Function pointer to HBAC external debugging function.
  */
 typedef void (*hbac_debug_fn_t)(const char *file, int line,
                                 const char *function,
                                 enum hbac_debug_level, const char *format,
-                                ...);
+                                ...) HBAC_ATTRIBUTE_PRINTF(5, 6);
 
 /**
  *  HBAC uses external_debug_fn for logging messages.

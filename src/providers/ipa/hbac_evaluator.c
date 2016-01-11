@@ -23,6 +23,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h" /* for HAVE_FUNCTION_ATTRIBUTE_FORMAT in "ipa_hbac.h" */
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
