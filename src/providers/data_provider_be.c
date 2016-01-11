@@ -272,7 +272,9 @@ static errno_t be_sbus_reply(struct sbus_request *sbus_req,
     safe_err_msg = safe_be_req_err_msg(err_msg, err_maj);
 
     if (err_maj == DP_ERR_FATAL && err_min == ENODEV) {
-        DEBUG(SSSDBG_TRACE_LIBS, "Handler not configured\n");
+        DEBUG(SSSDBG_TRACE_LIBS,
+              "Cannot handle request: %s",
+              err_msg ? err_msg : "Handler not configured\n");
     } else {
         DEBUG(SSSDBG_TRACE_LIBS,
               "Request processed. Returned [%s]:%d,%d,%s\n",
