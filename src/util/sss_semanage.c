@@ -64,7 +64,7 @@ static void sss_semanage_error_callback(void *varg,
     }
 
     if (DEBUG_IS_SET(level))
-        debug_fn(__FILE__, __LINE__, "libsemanage", level, "%s\n", message);
+        sss_debug_fn(__FILE__, __LINE__, "libsemanage", level, "%s\n", message);
     free(message);
 }
 
