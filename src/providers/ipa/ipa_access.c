@@ -77,8 +77,8 @@ void hbac_debug_messages(const char *file, int line,
             return;
         }
 
-        debug_fn(__FILE__, __LINE__, "hbac", loglevel, "[%s:%i] %s",
-                 file, line, message);
+        sss_debug_fn(__FILE__, __LINE__, "hbac", loglevel, "[%s:%i] %s",
+                     file, line, message);
         free(message);
     }
 }

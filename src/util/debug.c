@@ -206,11 +206,11 @@ journal_done:
 }
 #endif /* WiTH_JOURNALD */
 
-void debug_fn(const char *file,
-              long line,
-              const char *function,
-              int level,
-              const char *format, ...)
+void sss_debug_fn(const char *file,
+                  long line,
+                  const char *function,
+                  int level,
+                  const char *format, ...)
 {
     va_list ap;
     struct timeval tv;
@@ -301,7 +301,7 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
     }
 
     if (DEBUG_IS_SET(loglevel))
-        debug_fn(__FILE__, __LINE__, "ldb", loglevel, "%s\n", message);
+        sss_debug_fn(__FILE__, __LINE__, "ldb", loglevel, "%s\n", message);
 
     free(message);
 }

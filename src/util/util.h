@@ -77,11 +77,11 @@ extern int debug_microseconds;
 extern int debug_to_file;
 extern int debug_to_stderr;
 extern const char *debug_log_file;
-void debug_fn(const char *file,
-              long line,
-              const char *function,
-              int level,
-              const char *format, ...) SSS_ATTRIBUTE_PRINTF(5,6);
+void sss_debug_fn(const char *file,
+                  long line,
+                  const char *function,
+                  int level,
+                  const char *format, ...) SSS_ATTRIBUTE_PRINTF(5, 6);
 int debug_convert_old_level(int old_level);
 errno_t set_debug_file_from_fd(const int fd);
 int get_fd_from_debug_file(void);
@@ -135,9 +135,9 @@ int get_fd_from_debug_file(void);
 #define DEBUG(level, format, ...) do { \
     int __debug_macro_level = level; \
     if (DEBUG_IS_SET(__debug_macro_level)) { \
-        debug_fn(__FILE__, __LINE__, __FUNCTION__, \
-                 __debug_macro_level, \
-                 format, ##__VA_ARGS__); \
+        sss_debug_fn(__FILE__, __LINE__, __FUNCTION__, \
+                     __debug_macro_level, \
+                     format, ##__VA_ARGS__); \
     } \
 } while (0)
 
