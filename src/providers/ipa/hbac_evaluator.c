@@ -43,7 +43,8 @@ typedef int errno_t;
 /* debug macro */
 #define HBAC_DEBUG(level, format, ...) do { \
     if (hbac_debug_fn != NULL) { \
-        hbac_debug_fn(__FILE__, __LINE__, level, format, ##__VA_ARGS__); \
+        hbac_debug_fn(__FILE__, __LINE__, __FUNCTION__, \
+                      level, format, ##__VA_ARGS__); \
     } \
 } while (0)
 

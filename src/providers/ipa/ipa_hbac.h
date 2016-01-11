@@ -54,6 +54,7 @@ enum hbac_debug_level {
  * Function pointer to HBAC external debugging function.
  */
 typedef void (*hbac_debug_fn_t)(const char *file, int line,
+                                const char *function,
                                 enum hbac_debug_level, const char *format,
                                 ...);
 

@@ -37,6 +37,7 @@
 
 /* External logging function for HBAC. */
 void hbac_debug_messages(const char *file, int line,
+                         const char *function,
                          enum hbac_debug_level level,
                          const char *fmt, ...)
 {
@@ -67,7 +68,7 @@ void hbac_debug_messages(const char *file, int line,
         va_list ap;
 
         va_start(ap, fmt);
-        sss_vdebug_fn(file, line, "hbac", loglevel, fmt, ap);
+        sss_vdebug_fn(file, line, function, loglevel, fmt, ap);
         va_end(ap);
     }
 }
