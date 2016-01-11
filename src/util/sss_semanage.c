@@ -39,8 +39,6 @@ static void sss_semanage_error_callback(void *varg,
                                         const char *fmt, ...)
 {
     int level = SSSDBG_INVALID;
-    int ret;
-    char * message = NULL;
     va_list ap;
 
     switch (semanage_msg_get_level(handle)) {
@@ -56,16 +54,10 @@ static void sss_semanage_error_callback(void *varg,
     }
 
     va_start(ap, fmt);
-    ret = vasprintf(&message, fmt, ap);
-    va_end(ap);
-    if (ret < 0) {
-        /* ENOMEM */
-        return;
+    if (DEBUG_IS_SET(level)) {
+        sss_vdebug_fn(__FILE__, __LINE__, "libsemanage", level, fmt, ap);
     }
-
-    if (DEBUG_IS_SET(level))
-        sss_debug_fn(__FILE__, __LINE__, "libsemanage", level, "%s\n", message);
-    free(message);
+    va_end(ap);
 }
 
 static void sss_semanage_close(semanage_handle_t *handle)

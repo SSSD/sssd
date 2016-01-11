@@ -285,8 +285,6 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap)
 {
     int loglevel = SSSDBG_UNRESOLVED;
-    int ret;
-    char * message = NULL;
 
     switch(level) {
     case LDB_DEBUG_FATAL:
@@ -303,16 +301,9 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
         break;
     }
 
-    ret = vasprintf(&message, fmt, ap);
-    if (ret < 0) {
-        /* ENOMEM */
-        return;
+    if (DEBUG_IS_SET(loglevel)) {
+        sss_vdebug_fn(__FILE__, __LINE__, "ldb", loglevel, fmt, ap);
     }
-
-    if (DEBUG_IS_SET(loglevel))
-        sss_debug_fn(__FILE__, __LINE__, "ldb", loglevel, "%s\n", message);
-
-    free(message);
 }
 
 /* In cases SSSD used to run as the root user, but runs as the SSSD user now,
