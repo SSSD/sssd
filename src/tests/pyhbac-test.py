@@ -38,6 +38,7 @@ if not hasattr(unittest.TestCase, "assertCountEqual"):
             "assertCountEqual",
             unittest.TestCase.assertItemsEqual)
 
+
 class PyHbacImport(unittest.TestCase):
     def setUp(self):
         " Make sure we load the in-tree module "
@@ -74,6 +75,7 @@ class PyHbacImport(unittest.TestCase):
             raise e
         self.assertEqual(pyhbac.__file__, MODPATH + "/pyhbac.so")
 
+
 class PyHbacRuleElementTest(unittest.TestCase):
     def testInstantiateEmpty(self):
         el = pyhbac.HbacRuleElement()
@@ -82,29 +84,29 @@ class PyHbacRuleElementTest(unittest.TestCase):
         self.assertCountEqual(el.category, set([pyhbac.HBAC_CATEGORY_NULL]))
 
     def testInit(self):
-        names = [ "foo", "bar" ]
+        names = ["foo", "bar"]
         el = pyhbac.HbacRuleElement(names=names)
         self.assertCountEqual(el.names, names)
 
-        groups = [ "abc", "def" ]
+        groups = ["abc", "def"]
         el = pyhbac.HbacRuleElement(groups=groups)
         self.assertCountEqual(el.groups, groups)
 
     def testGetSet(self):
-        names = [ "foo", "bar" ]
+        names = ["foo", "bar"]
         el = pyhbac.HbacRuleElement()
         self.assertCountEqual(el.names, [])
         el.names = names
         self.assertCountEqual(el.names, names)
 
-        groups = [ "abc", "def" ]
+        groups = ["abc", "def"]
         el = pyhbac.HbacRuleElement()
         self.assertCountEqual(el.groups, [])
         el.groups = groups
         self.assertCountEqual(el.groups, groups)
 
         # Test other iterables than list
-        groups = ( "abc", "def" )
+        groups = ("abc", "def")
         el = pyhbac.HbacRuleElement()
         self.assertCountEqual(el.groups, [])
         el.groups = groups
@@ -132,13 +134,13 @@ class PyHbacRuleElementTest(unittest.TestCase):
 
     def testRuleElementReference(self):
         def _get_rule():
-            users = [ "foo", "bar" ]
-            user_groups = [ "abc", "def" ]
+            users = ["foo", "bar"]
+            user_groups = ["abc", "def"]
             return pyhbac.HbacRuleElement(names=users, groups=user_groups)
 
         el = _get_rule()
-        self.assertCountEqual(el.names, [ "foo", "bar" ])
-        self.assertCountEqual(el.groups, [ "abc", "def" ])
+        self.assertCountEqual(el.names, ["foo", "bar"])
+        self.assertCountEqual(el.groups, ["abc", "def"])
 
     def testRepr(self):
         el = pyhbac.HbacRuleElement()
@@ -195,8 +197,8 @@ class PyHbacRuleTest(unittest.TestCase):
         self.assertRaises(ValueError, rule.__setattr__, "enabled", 5)
 
     def testRuleElementInRule(self):
-        users = [ "foo", "bar" ]
-        user_groups = [ "abc", "def" ]
+        users = ["foo", "bar"]
+        user_groups = ["abc", "def"]
 
         # rule should contain empty elements after instantiation
         rule = pyhbac.HbacRule("testRuleElement")
@@ -235,8 +237,8 @@ class PyHbacRuleTest(unittest.TestCase):
             return rule
 
         rule = _get_rule()
-        self.assertCountEqual(rule.users.names, [ "foo", "bar" ])
-        self.assertCountEqual(rule.users.groups, [ "abc", "def" ])
+        self.assertCountEqual(rule.users.names, ["foo", "bar"])
+        self.assertCountEqual(rule.users.groups, ["abc", "def"])
 
     def testRepr(self):
         r = pyhbac.HbacRule('foo')
@@ -268,24 +270,25 @@ class PyHbacRuleTest(unittest.TestCase):
 
         valid, missing = r.validate()
         self.assertEqual(valid, False)
-        self.assertCountEqual(missing, ( pyhbac.HBAC_RULE_ELEMENT_USERS,
-                                         pyhbac.HBAC_RULE_ELEMENT_SERVICES,
-                                         pyhbac.HBAC_RULE_ELEMENT_TARGETHOSTS,
-                                         pyhbac.HBAC_RULE_ELEMENT_SOURCEHOSTS ))
+        self.assertCountEqual(missing, (pyhbac.HBAC_RULE_ELEMENT_USERS,
+                                        pyhbac.HBAC_RULE_ELEMENT_SERVICES,
+                                        pyhbac.HBAC_RULE_ELEMENT_TARGETHOSTS,
+                                        pyhbac.HBAC_RULE_ELEMENT_SOURCEHOSTS))
 
-        r.users.names = [ "someuser" ]
-        r.services.names = [ "ssh" ]
+        r.users.names = ["someuser"]
+        r.services.names = ["ssh"]
 
         valid, missing = r.validate()
         self.assertEqual(valid, False)
-        self.assertCountEqual(missing, ( pyhbac.HBAC_RULE_ELEMENT_TARGETHOSTS,
-                                         pyhbac.HBAC_RULE_ELEMENT_SOURCEHOSTS ))
+        self.assertCountEqual(missing, (pyhbac.HBAC_RULE_ELEMENT_TARGETHOSTS,
+                                        pyhbac.HBAC_RULE_ELEMENT_SOURCEHOSTS))
 
-        r.srchosts.names = [ "host1" ]
-        r.targethosts.names = [ "host2" ]
+        r.srchosts.names = ["host1"]
+        r.targethosts.names = ["host2"]
 
         valid, missing = r.validate()
         self.assertEqual(valid, True)
+
 
 class PyHbacRequestElementTest(unittest.TestCase):
     def testInstantiateEmpty(self):
@@ -298,7 +301,7 @@ class PyHbacRequestElementTest(unittest.TestCase):
         el = pyhbac.HbacRequestElement(name=name)
         self.assertCountEqual(el.name, name)
 
-        groups = [ "abc", "def" ]
+        groups = ["abc", "def"]
         el = pyhbac.HbacRequestElement(groups=groups)
         self.assertCountEqual(el.groups, groups)
 
@@ -309,14 +312,14 @@ class PyHbacRequestElementTest(unittest.TestCase):
         el.name = name
         self.assertCountEqual(el.name, name)
 
-        groups = [ "abc", "def" ]
+        groups = ["abc", "def"]
         el = pyhbac.HbacRequestElement()
         self.assertCountEqual(el.groups, [])
         el.groups = groups
         self.assertCountEqual(el.groups, groups)
 
         # Test other iterables than list
-        groups = ( "abc", "def" )
+        groups = ("abc", "def")
         el = pyhbac.HbacRequestElement()
         self.assertCountEqual(el.groups, [])
         el.groups = groups
@@ -337,7 +340,7 @@ class PyHbacRequestElementTest(unittest.TestCase):
 class PyHbacRequestTest(unittest.TestCase):
     def testRequestElementHandling(self):
         name = "req_name"
-        groups = [ "g1", "g2" ]
+        groups = ["g1", "g2"]
 
         # The request should be empty after instantiation
         req = pyhbac.HbacRequest()
