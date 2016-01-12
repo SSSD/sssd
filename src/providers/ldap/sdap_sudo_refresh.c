@@ -55,8 +55,6 @@ struct tevent_req *sdap_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    sudo_ctx->full_refresh_in_progress = true;
-
     state->sudo_ctx = sudo_ctx;
     state->id_ctx = id_ctx;
     state->sysdb = id_ctx->be->domain->sysdb;
@@ -132,8 +130,6 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "Successful full refresh of sudo rules\n");
 
 done:
-    state->sudo_ctx->full_refresh_in_progress = false;
-
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
