@@ -34,7 +34,6 @@ struct sdap_sudo_ctx {
     bool use_host_filter;
 
     bool full_refresh_done;
-    bool full_refresh_in_progress;
 
     bool run_hostinfo;
 };

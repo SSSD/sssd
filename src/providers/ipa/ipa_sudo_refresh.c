@@ -54,8 +54,6 @@ ipa_sudo_full_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    sudo_ctx->full_refresh_in_progress = true;
-
     state->domain = sudo_ctx->id_ctx->be->domain;
     state->sudo_ctx = sudo_ctx;
 
@@ -118,8 +116,6 @@ ipa_sudo_full_refresh_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "Successful full refresh of sudo rules\n");
 
 done:
-    state->sudo_ctx->full_refresh_in_progress = false;
-
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
