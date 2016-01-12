@@ -719,6 +719,39 @@ ad_gpo_map_deny = +my_pam_service
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ad_maximum_machine_account_password_age (integer)</term>
+                    <listitem>
+                        <para>
+                            SSSD will check once a day if the machine account
+                            password is older than the given age in days and try
+                            to renew it. A value of 0 will disable the renewal
+                            attempt.
+                        </para>
+                        <para>
+                            Default: 30 days
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ad_machine_account_password_renewal_opts (string)</term>
+                    <listitem>
+                        <para>
+                            This option should only be used to test the machine
+                            account renewal task. The option expect 2 integers
+                            seperated by a colon (':'). The first integer
+                            defines the interval in seconds how often the task
+                            is run. The second specifies the inital timeout in
+                            seconds before the task is run for the first time
+                            after startup.
+                        </para>
+                        <para>
+                            Default: 86400:750 (24h and 15m)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>dyndns_update (boolean)</term>
                     <listitem>
                         <para>

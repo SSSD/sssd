@@ -308,6 +308,13 @@ sssm_ad_id_init(struct be_ctx *bectx,
               "will not work [%d]: %s\n", ret, strerror(ret));
     }
 
+    ret = ad_machine_account_password_renewal_init(bectx, ad_options);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Cannot setup task for machine account "
+                                   "password renewal.\n");
+        goto done;
+    }
+
     *ops = &ad_id_ops;
     *pvt_data = ad_ctx;
 

@@ -62,6 +62,8 @@ enum ad_basic_opt {
     AD_GPO_DEFAULT_RIGHT,
     AD_SITE,
     AD_KRB5_CONFD_PATH,
+    AD_MAXIMUM_MACHINE_ACCOUNT_PASSWORD_AGE,
+    AD_MACHINE_ACCOUNT_PASSWORD_RENEWAL_OPTS,
 
     AD_OPTS_BASIC /* opts counter */
 };
@@ -179,5 +181,8 @@ int ad_autofs_init(struct be_ctx *be_ctx,
                   struct ad_id_ctx *id_ctx,
                   struct bet_ops **ops,
                   void **pvt_data);
+
+errno_t ad_machine_account_password_renewal_init(struct be_ctx *be_ctx,
+                                                 struct ad_options *ad_opts);
 
 #endif /* AD_COMMON_H_ */
