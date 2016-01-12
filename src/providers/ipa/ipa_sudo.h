@@ -28,8 +28,6 @@ struct ipa_sudo_ctx {
     struct ipa_options *ipa_opts;
     struct sdap_options *sdap_opts;
 
-    bool full_refresh_done;
-
     /* sudo */
     struct sdap_attr_map *sudocmdgroup_map;
     struct sdap_attr_map *sudorule_map;
