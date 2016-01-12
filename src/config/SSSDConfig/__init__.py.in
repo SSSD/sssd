@@ -200,6 +200,8 @@ option_strings = {
     'ad_gpo_map_deny' : _('PAM service names for which GPO-based access is always denied'),
     'ad_gpo_default_right' : _('Default logon right (or permit/deny) to use for unmapped PAM service names'),
     'ad_site' : _('a particular site to be used by the client'),
+    'ad_maximum_machine_account_password_age' : _('Maximum age in days before the machine account password should be renewed'),
+    'ad_machine_account_password_renewal_opts' : _('Option for tuing the machine account renewal task'),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),

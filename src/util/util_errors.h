@@ -105,6 +105,7 @@ enum sssd_errors {
     ERR_SBUS_SENDER_BUS,
     ERR_SUBDOM_INACTIVE,
     ERR_ACCOUNT_LOCKED,
+    ERR_RENEWAL_CHILD,
     ERR_LAST            /* ALWAYS LAST */
 };
 

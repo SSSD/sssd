@@ -3058,6 +3058,7 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_common.h \
     src/providers/ad/ad_init.c \
     src/providers/ad/ad_dyndns.c \
+    src/providers/ad/ad_machine_pw_renewal.c \
     src/providers/ad/ad_id.c \
     src/providers/ad/ad_id.h \
     src/providers/ad/ad_access.c \
