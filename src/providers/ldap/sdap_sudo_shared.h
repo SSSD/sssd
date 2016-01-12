@@ -35,6 +35,6 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
 
 void
 sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
-                  char *usn);
+                  const char *usn);
 
 #endif /* _SDAP_SUDO_SHARED_H_ */

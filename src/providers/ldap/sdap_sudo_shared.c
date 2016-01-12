@@ -122,10 +122,11 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
 
 void
 sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
-                  char *usn)
+                  const char *usn)
 {
     unsigned int usn_number;
     char *endptr = NULL;
+    char *newusn;
 
     if (srv_opts == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "Bug: srv_opts is NULL\n");
@@ -138,8 +139,14 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
     }
 
     if (sysdb_compare_usn(usn, srv_opts->max_sudo_value) > 0) {
+        newusn = talloc_strdup(srv_opts, usn);
+        if (newusn == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
+            return;
+        }
+
         talloc_zfree(srv_opts->max_sudo_value);
-        srv_opts->max_sudo_value = talloc_steal(srv_opts, usn);
+        srv_opts->max_sudo_value = newusn;
     }
 
     usn_number = strtoul(usn, &endptr, 10);
