@@ -115,8 +115,6 @@ static void sdap_sudo_full_refresh_done(struct tevent_req *subreq)
         goto done;
     }
 
-    state->sudo_ctx->full_refresh_done = true;
-
     /* save the time in the sysdb */
     ret = sysdb_sudo_set_last_full_refresh(state->domain, time(NULL));
     if (ret != EOK) {
@@ -178,20 +176,17 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (!sudo_ctx->full_refresh_done
-            || srv_opts == NULL || srv_opts->max_sudo_value == NULL) {
-        /* Perform full refresh first */
-        DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, "
-                                 "waiting for full refresh!\n");
-        ret = EINVAL;
-        goto immediately;
-    }
-
     state->id_ctx = id_ctx;
     state->sysdb = id_ctx->be->domain->sysdb;
 
     /* Download all rules from LDAP that are newer than usn */
-    usn = srv_opts->max_sudo_value;
+    if (srv_opts == NULL || srv_opts->max_sudo_value == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, ssuming zero.\n");
+        usn = "0";
+    } else {
+        usn = srv_opts->max_sudo_value;
+    }
+
     search_filter = talloc_asprintf(state,
                                     "(&(objectclass=%s)(%s>=%s)(!(%s=%s)))",
                                     map[SDAP_OC_SUDORULE].name,
