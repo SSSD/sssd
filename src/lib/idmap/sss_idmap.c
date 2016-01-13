@@ -336,7 +336,7 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
         }
 
         min = (rangesize * new_slice) + idmap_lower;
-        max = min + rangesize;
+        max = min + rangesize - 1;
         /* Verify that this slice is not already in use */
         do {
             for (dom = ctx->idmap_domain_info; dom != NULL; dom = dom->next) {
@@ -353,7 +353,7 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
                     }
 
                     min = (rangesize * new_slice) + idmap_lower;
-                    max = min + rangesize;
+                    max = min + rangesize - 1;
                     break;
                 }
             }
@@ -371,7 +371,7 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
     }
 
     _range->min = (rangesize * new_slice) + idmap_lower;
-    _range->max = _range->min + rangesize;
+    _range->max = _range->min + rangesize - 1;
 
     if (slice_num) {
         *slice_num = new_slice;
