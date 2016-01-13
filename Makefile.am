@@ -923,6 +923,7 @@ libsss_util_la_SOURCES = \
     src/util/well_known_sids.c \
     src/util/string_utils.c \
     src/util/become_user.c \
+    src/util/util_watchdog.c \
     $(NULL)
 libsss_util_la_CFLAGS = \
     $(AM_CFLAGS) \

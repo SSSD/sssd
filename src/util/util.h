@@ -617,4 +617,8 @@ int sss_unique_file(TALLOC_CTX *owner,
  */
 int sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl);
 
+/* from util_watchdog.c */
+int setup_watchdog(struct tevent_context *ev, int interval);
+void teardown_watchdog(void);
+
 #endif /* __SSSD_UTIL_H__ */
