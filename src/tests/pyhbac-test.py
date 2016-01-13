@@ -5,11 +5,12 @@ import unittest
 import sys
 import os
 import copy
-import sys
-import errno
+import tempfile
 
-srcdir = os.getenv('builddir') or "."
-MODPATH = srcdir + "/.libs" #FIXME - is there a way to get this from libtool?
+BUILD_DIR = os.getenv('builddir') or "."
+TEST_DIR = os.getenv('SSS_TEST_DIR') or "."
+MODPATH = tempfile.mkdtemp(prefix="tp_pyhbac_", dir=TEST_DIR)
+
 
 if sys.version_info[0] > 2:
     unicode = str
@@ -40,22 +41,15 @@ class PyHbacImport(unittest.TestCase):
     def testImport(self):
         " Import the module and assert it comes from tree "
         try:
-            cwd_backup = os.getcwd()
+            dest_module_path = MODPATH + "/pyhbac.so"
 
-            try:
-                os.unlink(MODPATH + "/pyhbac.so")
-            except OSError as e:
-                if e.errno == errno.ENOENT:
-                    pass
-                else:
-                    raise e
-
-            os.chdir(MODPATH)
             if sys.version_info[0] > 2:
-                os.symlink("_py3hbac.so", "pyhbac.so")
+                src_module_path = BUILD_DIR + "/.libs/_py3hbac.so"
             else:
-                os.symlink("_py2hbac.so", "pyhbac.so")
-            os.chdir(cwd_backup)
+                src_module_path = BUILD_DIR + "/.libs/_py2hbac.so"
+
+            src_module_path = os.path.abspath(src_module_path)
+            os.symlink(src_module_path, dest_module_path)
 
             import pyhbac
         except ImportError as e:
@@ -456,6 +450,11 @@ class PyHbacRequestTest(unittest.TestCase):
         self.assertRaises(TypeError, req.evaluate, (allow_rule, None))
 
 class PyHbacModuleTest(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(MODPATH + "/pyhbac.so")
+        os.rmdir(MODPATH)
+
     def testHasResultTypes(self):
         assert hasattr(pyhbac, "HBAC_EVAL_ALLOW")
         assert hasattr(pyhbac, "HBAC_EVAL_DENY")
