@@ -199,6 +199,10 @@ int ldap_get_options(TALLOC_CTX *memctx,
               "LDAP referrals are not supported, because the LDAP library "
                   "is too old, see sssd-ldap(5) for details.\n");
         ret = dp_opt_set_bool(opts->basic, SDAP_REFERRALS, false);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed.\n");
+            goto done;
+        }
     }
 #endif
 
@@ -305,7 +309,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
         authtok_blob = dp_opt_get_blob(opts->basic, SDAP_DEFAULT_AUTHTOK);
         if (authtok_blob.data == NULL || authtok_blob.length == 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Missing obfuscated password string.\n");
-            return EINVAL;
+            ret = EINVAL;
+            goto done;
         }
 
         ret = sss_password_decrypt(memctx, (char *) authtok_blob.data,
@@ -313,7 +318,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Cannot convert the obfuscated "
                       "password back to cleartext\n");
-            return ret;
+            goto done;
         }
 
         authtok_blob.data = (uint8_t *) cleartext;
@@ -322,14 +327,14 @@ int ldap_get_options(TALLOC_CTX *memctx,
         talloc_free(cleartext);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed.\n");
-            return ret;
+            goto done;
         }
 
         ret = dp_opt_set_string(opts->basic, SDAP_DEFAULT_AUTHTOK_TYPE,
                                 "password");
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "dp_opt_set_string failed.\n");
-            return ret;
+            goto done;
         }
     }
 
