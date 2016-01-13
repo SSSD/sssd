@@ -459,6 +459,7 @@ int server_setup(const char *name, int flags,
     struct tevent_signal *tes;
     struct logrotate_ctx *lctx;
     char *locale;
+    int watchdog_interval;
 
     ret = chown_debug_file(NULL, uid, gid);
     if (ret != EOK) {
@@ -654,6 +655,21 @@ int server_setup(const char *name, int flags,
                                          "[%s]\n", ret, strerror(ret));
             return ret;
         }
+    }
+
+    /* Setup the internal watchdog */
+    ret = confdb_get_int(ctx->confdb_ctx, conf_entry,
+                         CONFDB_DOMAIN_TIMEOUT,
+                         0, &watchdog_interval);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Error reading from confdb (%d) [%s]\n",
+                                     ret, strerror(ret));
+        return ret;
+    }
+    ret = setup_watchdog(ctx->event_ctx, watchdog_interval);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Watchdog setup failed.\n");
+        return ret;
     }
 
     sss_log(SSS_LOG_INFO, "Starting up");
