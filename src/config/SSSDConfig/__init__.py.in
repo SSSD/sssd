@@ -45,7 +45,7 @@ option_strings = {
     'debug_timestamps' : _('Include timestamps in debug logs'),
     'debug_microseconds' : _('Include microseconds in timestamps in debug logs'),
     'debug_to_files' : _('Write debug messages to logfiles'),
-    'timeout' : _('Ping timeout before restarting service'),
+    'timeout' : _('Watchdog timeout before restarting service'),
     'force_timeout' : _('Timeout between three failed ping checks and forcibly killing the service'),
     'command' : _('Command to start service'),
     'reconnection_retries' : _('Number of times to attempt connection to Data Providers'),

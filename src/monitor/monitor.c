@@ -55,9 +55,6 @@
 #include <keyutils.h>
 #endif
 
-/* ping time cannot be less then once every few seconds or the
- * monitor will get crazy hammering children with messages */
-#define MONITOR_DEF_PING_TIME 10
 /* terminate the child after this interval by default if it
  * doesn't shutdown on receiving SIGTERM */
 #define MONITOR_DEF_FORCE_TIME 60
@@ -117,7 +114,6 @@ struct mt_svc {
     pid_t pid;
 
     char *diag_cmd;
-    int ping_time;
     int kill_time;
 
     struct tevent_timer *kill_timer;
@@ -126,12 +122,9 @@ struct mt_svc {
 
     int restarts;
     time_t last_restart;
-    int failed_pongs;
     DBusPendingCall *pending;
 
     int debug_level;
-
-    struct tevent_timer *ping_ev;
 
     struct sss_child_ctx *child_ctx;
 };
@@ -183,11 +176,8 @@ static int start_service(struct mt_svc *mt_svc);
 
 static int monitor_service_init(struct sbus_connection *conn, void *data);
 
-static int service_send_ping(struct mt_svc *svc);
 static int service_signal_reset_offline(struct mt_svc *svc);
-static void ping_check(DBusPendingCall *pending, void *data);
 
-static void set_tasks_checker(struct mt_svc *srv);
 static int monitor_kill_service (struct mt_svc *svc);
 
 static int get_service_config(struct mt_ctx *ctx, const char *name,
@@ -337,7 +327,7 @@ static int svc_destructor(void *mem)
         DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
     }
 
-    /* Cancel any pending pings */
+    /* Cancel any pending calls */
     if (svc->pending) {
         dbus_pending_call_cancel(svc->pending);
     }
@@ -698,67 +688,6 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     talloc_free(monitor_address);
 
     return ret;
-}
-
-static void tasks_check_handler(struct tevent_context *ev,
-                                struct tevent_timer *te,
-                                struct timeval t, void *ptr)
-{
-    struct mt_svc *svc = talloc_get_type(ptr, struct mt_svc);
-    int ret;
-
-    ret = service_send_ping(svc);
-    switch (ret) {
-    case EOK:
-        /* all fine */
-        break;
-
-    case ENXIO:
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Child (%s) not responding! (yet)\n", svc->name);
-        break;
-
-    default:
-        /* TODO: should we tear it down ? */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Sending a message to service (%s) failed!!\n", svc->name);
-        break;
-    }
-
-    if (svc->failed_pongs >= 3) {
-        /* too long since we last heard of this process */
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Killing service [%s], not responding to pings!\n",
-               svc->name);
-        sss_log(SSS_LOG_ERR,
-                "Killing service [%s], not responding to pings!\n",
-                svc->name);
-
-        /* Kill the service. The SIGCHLD handler will restart it */
-        monitor_kill_service(svc);
-        return;
-    }
-
-    /* all fine, set up the task checker again */
-    set_tasks_checker(svc);
-}
-
-static void set_tasks_checker(struct mt_svc *svc)
-{
-    struct tevent_timer *te = NULL;
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-    tv.tv_sec += svc->ping_time;
-    tv.tv_usec = 0;
-    te = tevent_add_timer(svc->mt_ctx->ev, svc, tv, tasks_check_handler, svc);
-    if (te == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "failed to add event, monitor offline for [%s]!\n",
-                  svc->name);
-        /* FIXME: shutdown ? */
-    }
-    svc->ping_ev = te;
 }
 
 static void monitor_restart_service(struct mt_svc *svc);
@@ -1214,28 +1143,10 @@ static int get_monitor_config(struct mt_ctx *ctx)
     return EOK;
 }
 
-static errno_t get_ping_config(struct mt_ctx *ctx, const char *path,
+static errno_t get_kill_config(struct mt_ctx *ctx, const char *path,
                                struct mt_svc *svc)
 {
     errno_t ret;
-
-    ret = confdb_get_int(ctx->cdb, path,
-                         CONFDB_DOMAIN_TIMEOUT,
-                         MONITOR_DEF_PING_TIME, &svc->ping_time);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-               "Failed to get ping timeout for '%s'\n", svc->name);
-        return ret;
-    }
-
-    /* 'timeout = 0' should be translated to the default */
-    if (svc->ping_time == 0) {
-        svc->ping_time = MONITOR_DEF_PING_TIME;
-    }
-
-    DEBUG(SSSDBG_CONF_SETTINGS,
-          "Time between service pings for [%s]: [%d]\n",
-           svc->name, svc->ping_time);
 
     ret = confdb_get_string(ctx->cdb, svc, path,
                             CONFDB_MONITOR_PRE_KILL_CMD,
@@ -1407,10 +1318,10 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         }
     }
 
-    ret = get_ping_config(ctx, path, svc);
+    ret = get_kill_config(ctx, path, svc);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to get ping timeouts for %s\n", svc->name);
+              "Failed to get kill timeouts for %s\n", svc->name);
         talloc_free(svc);
         return ret;
     }
@@ -1502,10 +1413,10 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         return ret;
     }
 
-    ret = get_ping_config(ctx, path, svc);
+    ret = get_kill_config(ctx, path, svc);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to get ping timeouts for %s\n", svc->name);
+              "Failed to get kill timeouts for %s\n", svc->name);
         talloc_free(svc);
         return ret;
     }
@@ -2658,134 +2569,6 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
                                     MON_SRV_PATH, mini);
 }
 
-/* service_send_ping
- * this function send a dbus ping to a service.
- * It returns EOK if all is fine or ENXIO if the connection is
- * not available (either not yet set up or teared down).
- * Returns e generic error in other cases.
- */
-static int service_send_ping(struct mt_svc *svc)
-{
-    DBusMessage *msg;
-    int ret;
-
-    if (!svc->conn) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Service not yet initialized\n");
-        return ENXIO;
-    }
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Pinging %s\n", svc->name);
-
-    /*
-     * Set up identity request
-     * This should be a well-known path and method
-     * for all services
-     */
-    msg = dbus_message_new_method_call(NULL,
-                                       MONITOR_PATH,
-                                       MON_CLI_IFACE,
-                                       MON_CLI_IFACE_PING);
-    if (!msg) {
-        DEBUG(SSSDBG_FATAL_FAILURE,"Out of memory?!\n");
-        talloc_zfree(svc->conn);
-        return ENOMEM;
-    }
-
-    ret = sbus_conn_send(svc->conn, msg,
-                         svc->ping_time * 1000, /* milliseconds */
-                         ping_check, svc, &svc->pending);
-    dbus_message_unref(msg);
-    return ret;
-}
-
-static void ping_check(DBusPendingCall *pending, void *data)
-{
-    struct mt_svc *svc;
-    DBusMessage *reply;
-    const char *dbus_error_name;
-    size_t len;
-    int type;
-
-    svc = talloc_get_type(data, struct mt_svc);
-    if (!svc) {
-        /* The connection probably went down before the callback fired.
-         * Not much we can do. */
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid service pointer.\n");
-        return;
-    }
-    svc->pending = NULL;
-
-    reply = dbus_pending_call_steal_reply(pending);
-    if (!reply) {
-        /* reply should never be null. This function shouldn't be called
-         * until reply is valid or timeout has occurred. If reply is NULL
-         * here, something is seriously wrong and we should bail out.
-         */
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "A reply callback was called but no reply was received"
-                  " and no timeout occurred\n");
-
-        /* Destroy this connection */
-        sbus_disconnect(svc->conn);
-        goto done;
-    }
-
-    type = dbus_message_get_type(reply);
-    switch (type) {
-    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-        /* ok peer replied,
-         * make sure we reset the failure counter in the service structure */
-
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Service %s replied to ping\n", svc->name);
-
-        svc->failed_pongs = 0;
-        break;
-
-    case DBUS_MESSAGE_TYPE_ERROR:
-
-        dbus_error_name = dbus_message_get_error_name(reply);
-        if (!dbus_error_name) {
-            dbus_error_name = "<UNKNOWN>";
-        }
-
-        len = strlen(DBUS_ERROR_NO_REPLY);
-
-        /* Increase failed pong count */
-        if (strnlen(dbus_error_name, len + 1) == len
-                && strncmp(dbus_error_name, DBUS_ERROR_NO_REPLY, len) == 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "A service PING timed out on [%s]. "
-                   "Attempt [%d]\n",
-                   svc->name, svc->failed_pongs);
-            svc->failed_pongs++;
-
-            if (debug_level & SSSDBG_TRACE_LIBS) {
-                svc_run_diag_cmd(svc);
-            }
-            break;
-        }
-
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "A service PING returned an error [%s], closing connection.\n",
-               dbus_error_name);
-        /* Falling through to default intentionally*/
-    default:
-        /*
-         * Timeout or other error occurred or something
-         * unexpected happened.
-         * It doesn't matter which, because either way we
-         * know that this connection isn't trustworthy.
-         * We'll destroy it now.
-         */
-        sbus_disconnect(svc->conn);
-    }
-
-done:
-    dbus_pending_call_unref(pending);
-    dbus_message_unref(reply);
-}
-
 static void service_startup_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval t, void *ptr);
@@ -2840,7 +2623,6 @@ static void service_startup_handler(struct tevent_context *ev,
 
         /* Parent */
         mt_svc->mt_ctx->check_children = true;
-        mt_svc->failed_pongs = 0;
 
         /* Handle process exit */
         ret = sss_child_register(mt_svc,
@@ -2858,7 +2640,6 @@ static void service_startup_handler(struct tevent_context *ev,
         }
 
         DLIST_ADD(mt_svc->mt_ctx->svc_list, mt_svc);
-        set_tasks_checker(mt_svc);
 
         return;
     }
