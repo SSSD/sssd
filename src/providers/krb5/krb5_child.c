@@ -1316,6 +1316,9 @@ static errno_t map_krb5_error(krb5_error_code kerr)
         return ERR_NETWORK_IO;
 
     case KRB5KDC_ERR_CLIENT_REVOKED:
+        return ERR_ACCOUNT_LOCKED;
+
+    case KRB5KDC_ERR_NAME_EXP:
         return ERR_ACCOUNT_EXPIRED;
 
     case KRB5KDC_ERR_KEY_EXP:
