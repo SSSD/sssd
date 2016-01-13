@@ -22,11 +22,12 @@ from __future__ import print_function
 import unittest
 import sys
 import os
-import copy
-import errno
+import tempfile
 
-srcdir = os.getenv('builddir') or "."
-MODPATH = srcdir + "/.libs" #FIXME - is there a way to get this from libtool?
+BUILD_DIR = os.getenv('builddir') or "."
+TEST_DIR = os.getenv('SSS_TEST_DIR') or "."
+MODPATH = tempfile.mkdtemp(prefix="tp_pysss_murmur_", dir=TEST_DIR)
+
 
 class PySssMurmurImport(unittest.TestCase):
     def setUp(self):
@@ -43,22 +44,15 @@ class PySssMurmurImport(unittest.TestCase):
     def testImport(self):
         " Import the module and assert it comes from tree "
         try:
-            cwd_backup = os.getcwd()
+            dest_module_path = MODPATH + "/pysss_murmur.so"
 
-            try:
-                os.unlink(MODPATH + "/pysss_murmur.so")
-            except OSError as e:
-                if e.errno == errno.ENOENT:
-                    pass
-                else:
-                    raise e
-
-            os.chdir(MODPATH)
             if sys.version_info[0] > 2:
-                os.symlink("_py3sss_murmur.so", "pysss_murmur.so")
+                src_module_path = BUILD_DIR + "/.libs/_py3sss_murmur.so"
             else:
-                os.symlink("_py2sss_murmur.so", "pysss_murmur.so")
-            os.chdir(cwd_backup)
+                src_module_path = BUILD_DIR + "/.libs/_py2sss_murmur.so"
+
+            src_module_path = os.path.abspath(src_module_path)
+            os.symlink(src_module_path, dest_module_path)
 
             import pysss_murmur
         except ImportError as e:
@@ -67,6 +61,11 @@ class PySssMurmurImport(unittest.TestCase):
         self.assertEqual(pysss_murmur.__file__, MODPATH + "/pysss_murmur.so")
 
 class PySssMurmurTest(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(MODPATH + "/pysss_murmur.so")
+        os.rmdir(MODPATH)
+
     def testExpectedHash(self):
         hash = pysss_murmur.murmurhash3("S-1-5-21-2153326666-2176343378-3404031434", 41, 0xdeadbeef)
         self.assertEqual(hash, 93103853)
