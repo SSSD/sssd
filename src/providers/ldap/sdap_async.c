@@ -1653,16 +1653,6 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
     }
 
     if (ref_count > 0) {
-        if (dp_opt_get_bool(opts->basic, SDAP_REFERRALS)) {
-            /* We got back referrals here, but they should have
-             * been processed internally by openldap libs.
-             * This should never happen.
-             */
-            talloc_free(refs);
-            tevent_req_error(req, EINVAL);
-            return;
-        }
-
         /* We will ignore referrals in the generic handler */
         DEBUG(SSSDBG_TRACE_ALL,
               "Request included referrals which were ignored.\n");
@@ -1674,6 +1664,7 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
         }
     }
 
+    talloc_free(refs);
     tevent_req_done(req);
 }
 
