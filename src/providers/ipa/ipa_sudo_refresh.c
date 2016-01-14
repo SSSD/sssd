@@ -168,21 +168,17 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero.\n");
         usn = 0;
     } else {
-        usn = srv_opts->max_sudo_value;
+        usn = srv_opts->max_sudo_value + 1;
     }
 
-    cmdgroups_filter = talloc_asprintf(state,
-            "(&(%s>=%lu)(!(%s=%lu)))",
-            sudo_ctx->sudocmdgroup_map[IPA_AT_SUDOCMDGROUP_ENTRYUSN].name, usn,
+    cmdgroups_filter = talloc_asprintf(state, "(%s>=%lu)",
             sudo_ctx->sudocmdgroup_map[IPA_AT_SUDOCMDGROUP_ENTRYUSN].name, usn);
     if (cmdgroups_filter == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
 
-    search_filter = talloc_asprintf(state,
-        "(&(%s>=%lu)(!(%s=%lu)))",
-        sudo_ctx->sudorule_map[IPA_AT_SUDORULE_ENTRYUSN].name, usn,
+    search_filter = talloc_asprintf(state, "(%s>=%lu)",
         sudo_ctx->sudorule_map[IPA_AT_SUDORULE_ENTRYUSN].name, usn);
     if (search_filter == NULL) {
         ret = ENOMEM;
