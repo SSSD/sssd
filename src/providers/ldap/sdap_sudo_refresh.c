@@ -167,7 +167,7 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     struct sdap_server_opts *srv_opts = id_ctx->srv_opts;
     struct sdap_sudo_smart_refresh_state *state = NULL;
     char *search_filter = NULL;
-    const char *usn;
+    unsigned long usn;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_sudo_smart_refresh_state);
@@ -180,15 +180,15 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     state->sysdb = id_ctx->be->domain->sysdb;
 
     /* Download all rules from LDAP that are newer than usn */
-    if (srv_opts == NULL || srv_opts->max_sudo_value == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, ssuming zero.\n");
-        usn = "0";
+    if (srv_opts == NULL || srv_opts->max_sudo_value == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero.\n");
+        usn = 0;
     } else {
         usn = srv_opts->max_sudo_value;
     }
 
     search_filter = talloc_asprintf(state,
-                                    "(&(objectclass=%s)(%s>=%s)(!(%s=%s)))",
+                                    "(&(objectclass=%s)(%s>=%lu)(!(%s=%lu)))",
                                     map[SDAP_OC_SUDORULE].name,
                                     map[SDAP_AT_SUDO_USN].name, usn,
                                     map[SDAP_AT_SUDO_USN].name, usn);
@@ -201,7 +201,7 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
      * sysdb_filter = NULL; */
 
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a smart refresh of sudo rules "
-                             "(USN > %s)\n", usn);
+                             "(USN > %lu)\n", usn);
 
     subreq = sdap_sudo_refresh_send(state, sudo_ctx, search_filter, NULL);
     if (subreq == NULL) {
