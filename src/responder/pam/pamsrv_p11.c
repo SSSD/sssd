@@ -322,7 +322,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     child_pid = fork();
     if (child_pid == 0) { /* child */
         ret = exec_child_ex(state, pipefd_to_child, pipefd_from_child,
-                            P11_CHILD_PATH, child_debug_fd, extra_args,
+                            P11_CHILD_PATH, child_debug_fd, extra_args, false,
                             STDIN_FILENO, STDOUT_FILENO);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec p11 child: [%d][%s].\n",

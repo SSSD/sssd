@@ -612,6 +612,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
                                   int child_debug_fd,
                                   const char *binary,
                                   const char *extra_argv[],
+                                  bool extra_args_only,
                                   char ***_argv)
 {
     /*
@@ -619,9 +620,13 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
      * debug_microseconds and NULL
      */
     uint_t argc = 5;
-    char ** argv;
+    char ** argv = NULL;
     errno_t ret = EINVAL;
     size_t i;
+
+    if (extra_args_only) {
+        argc = 2; /* program name and NULL */
+    }
 
     /* Save the current state in case an interrupt changes it */
     bool child_debug_to_file = debug_to_file;
@@ -629,8 +634,10 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     bool child_debug_microseconds = debug_microseconds;
     bool child_debug_stderr = debug_to_stderr;
 
-    if (child_debug_to_file) argc++;
-    if (child_debug_stderr) argc++;
+    if (!extra_args_only) {
+        if (child_debug_to_file) argc++;
+        if (child_debug_stderr) argc++;
+    }
 
     if (extra_argv) {
         for (i = 0; extra_argv[i]; i++) argc++;
@@ -659,42 +666,44 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
         }
     }
 
-    argv[--argc] = talloc_asprintf(argv, "--debug-level=%#.4x",
-                              debug_level);
-    if (argv[argc] == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    if (child_debug_stderr) {
-        argv[--argc] = talloc_strdup(argv, "--debug-to-stderr");
+    if (!extra_args_only) {
+        argv[--argc] = talloc_asprintf(argv, "--debug-level=%#.4x",
+                                  debug_level);
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
         }
-    }
 
-    if (child_debug_to_file) {
-        argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
-                                       child_debug_fd);
+        if (child_debug_stderr) {
+            argv[--argc] = talloc_strdup(argv, "--debug-to-stderr");
+            if (argv[argc] == NULL) {
+                ret = ENOMEM;
+                goto fail;
+            }
+        }
+
+        if (child_debug_to_file) {
+            argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
+                                           child_debug_fd);
+            if (argv[argc] == NULL) {
+                ret = ENOMEM;
+                goto fail;
+            }
+        }
+
+        argv[--argc] = talloc_asprintf(argv, "--debug-timestamps=%d",
+                                       child_debug_timestamps);
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;
         }
-    }
 
-    argv[--argc] = talloc_asprintf(argv, "--debug-timestamps=%d",
-                                   child_debug_timestamps);
-    if (argv[argc] == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    argv[--argc] = talloc_asprintf(argv, "--debug-microseconds=%d",
-                                       child_debug_microseconds);
-    if (argv[argc] == NULL) {
-        ret = ENOMEM;
-        goto fail;
+        argv[--argc] = talloc_asprintf(argv, "--debug-microseconds=%d",
+                                           child_debug_microseconds);
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
     }
 
     argv[--argc] = talloc_strdup(argv, binary);
@@ -720,7 +729,7 @@ fail:
 errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
                       int *pipefd_to_child, int *pipefd_from_child,
                       const char *binary, int debug_fd,
-                      const char *extra_argv[],
+                      const char *extra_argv[], bool extra_args_only,
                       int child_in_fd, int child_out_fd)
 {
     int ret;
@@ -746,7 +755,7 @@ errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
     }
 
     ret = prepare_child_argv(mem_ctx, debug_fd,
-                             binary, extra_argv,
+                             binary, extra_argv, extra_args_only,
                              &argv);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "prepare_child_argv.\n");
@@ -764,7 +773,7 @@ errno_t exec_child(TALLOC_CTX *mem_ctx,
                    const char *binary, int debug_fd)
 {
     return exec_child_ex(mem_ctx, pipefd_to_child, pipefd_from_child,
-                         binary, debug_fd, NULL,
+                         binary, debug_fd, NULL, false,
                          STDIN_FILENO, STDOUT_FILENO);
 }
 

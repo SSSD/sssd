@@ -104,7 +104,7 @@ void fd_nonblocking(int fd);
 errno_t exec_child_ex(TALLOC_CTX *mem_ctx,
                       int *pipefd_to_child, int *pipefd_from_child,
                       const char *binary, int debug_fd,
-                      const char *extra_argv[],
+                      const char *extra_argv[], bool extra_args_only,
                       int child_in_fd, int child_out_fd);
 
 /* Same as exec_child_ex() except child_in_fd is set to STDIN_FILENO and

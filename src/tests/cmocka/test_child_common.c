@@ -139,7 +139,7 @@ void test_exec_child_extra_args(void **state)
         ret = exec_child_ex(child_tctx,
                             child_tctx->pipefd_to_child,
                             child_tctx->pipefd_from_child,
-                            CHILD_DIR"/"TEST_BIN, 2, extra_args,
+                            CHILD_DIR"/"TEST_BIN, 2, extra_args, false,
                             STDIN_FILENO, STDOUT_FILENO);
         assert_int_equal(ret, EOK);
     } else {
@@ -287,7 +287,7 @@ void test_exec_child_echo(void **state)
         ret = exec_child_ex(child_tctx,
                             child_tctx->pipefd_to_child,
                             child_tctx->pipefd_from_child,
-                            CHILD_DIR"/"TEST_BIN, 2, NULL,
+                            CHILD_DIR"/"TEST_BIN, 2, NULL, false,
                             STDIN_FILENO, 3);
         assert_int_equal(ret, EOK);
     }
