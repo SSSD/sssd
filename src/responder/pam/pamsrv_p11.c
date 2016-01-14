@@ -45,7 +45,7 @@ bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd)
     size_t c;
     const char *sc_services[] = { "login", "su", "su-l", "gdm-smartcard",
                                   "gdm-password", "kdm", "sudo", "sudo-i",
-                                  NULL };
+                                  "gnome-screensaver", NULL };
     if (!pctx->cert_auth) {
         return false;
     }
