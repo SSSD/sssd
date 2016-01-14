@@ -153,7 +153,7 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     char *cmdgroups_filter;
     char *search_filter;
-    const char *usn;
+    unsigned long usn;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -164,15 +164,15 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     /* Download all rules from LDAP that are newer than usn */
-    if (srv_opts == NULL || srv_opts->max_sudo_value == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, ssuming zero.\n");
-        usn = "0";
+    if (srv_opts == NULL || srv_opts->max_sudo_value == 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero.\n");
+        usn = 0;
     } else {
         usn = srv_opts->max_sudo_value;
     }
 
     cmdgroups_filter = talloc_asprintf(state,
-            "(&(%s>=%s)(!(%s=%s)))",
+            "(&(%s>=%lu)(!(%s=%lu)))",
             sudo_ctx->sudocmdgroup_map[IPA_AT_SUDOCMDGROUP_ENTRYUSN].name, usn,
             sudo_ctx->sudocmdgroup_map[IPA_AT_SUDOCMDGROUP_ENTRYUSN].name, usn);
     if (cmdgroups_filter == NULL) {
@@ -181,7 +181,7 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     }
 
     search_filter = talloc_asprintf(state,
-        "(&(%s>=%s)(!(%s=%s)))",
+        "(&(%s>=%lu)(!(%s=%lu)))",
         sudo_ctx->sudorule_map[IPA_AT_SUDORULE_ENTRYUSN].name, usn,
         sudo_ctx->sudorule_map[IPA_AT_SUDORULE_ENTRYUSN].name, usn);
     if (search_filter == NULL) {
@@ -192,7 +192,7 @@ ipa_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
     /* Do not remove any rules that are already in the sysdb. */
 
     DEBUG(SSSDBG_TRACE_FUNC, "Issuing a smart refresh of sudo rules "
-                             "(USN > %s)\n", usn);
+                             "(USN > %lu)\n", usn);
 
     subreq = ipa_sudo_refresh_send(state, ev, sudo_ctx, cmdgroups_filter,
                                    search_filter, NULL);

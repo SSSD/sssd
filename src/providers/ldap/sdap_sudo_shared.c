@@ -126,7 +126,7 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
 {
     unsigned int usn_number;
     char *endptr = NULL;
-    char *newusn;
+    errno_t ret;
 
     if (srv_opts == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "Bug: srv_opts is NULL\n");
@@ -138,23 +138,26 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
         return;
     }
 
-    if (sysdb_compare_usn(usn, srv_opts->max_sudo_value) > 0) {
-        newusn = talloc_strdup(srv_opts, usn);
-        if (newusn == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup() failed\n");
-            return;
-        }
-
-        talloc_zfree(srv_opts->max_sudo_value);
-        srv_opts->max_sudo_value = newusn;
-    }
-
+    errno = 0;
     usn_number = strtoul(usn, &endptr, 10);
-    if ((endptr == NULL || (*endptr == '\0' && endptr != usn))
-         && (usn_number > srv_opts->last_usn)) {
-         srv_opts->last_usn = usn_number;
+    if (endptr != NULL && *endptr != '\0') {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s\n", usn);
+        return;
+    } else if (errno != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s [%d]: %s\n",
+              usn, ret, sss_strerror(ret));
+        return;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, "SUDO higher USN value: [%s]\n",
+    if (usn_number > srv_opts->max_sudo_value) {
+        srv_opts->max_sudo_value = usn_number;
+    }
+
+    if (usn_number > srv_opts->last_usn) {
+        srv_opts->last_usn = usn_number;
+    }
+
+    DEBUG(SSSDBG_FUNC_DATA, "SUDO higher USN value: [%lu]\n",
                              srv_opts->max_sudo_value);
 }
