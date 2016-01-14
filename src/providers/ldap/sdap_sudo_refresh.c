@@ -184,13 +184,11 @@ struct tevent_req *sdap_sudo_smart_refresh_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_FUNC, "USN value is unknown, assuming zero.\n");
         usn = 0;
     } else {
-        usn = srv_opts->max_sudo_value;
+        usn = srv_opts->max_sudo_value + 1;
     }
 
-    search_filter = talloc_asprintf(state,
-                                    "(&(objectclass=%s)(%s>=%lu)(!(%s=%lu)))",
+    search_filter = talloc_asprintf(state, "(&(objectclass=%s)(%s>=%lu))",
                                     map[SDAP_OC_SUDORULE].name,
-                                    map[SDAP_AT_SUDO_USN].name, usn,
                                     map[SDAP_AT_SUDO_USN].name, usn);
     if (search_filter == NULL) {
         ret = ENOMEM;
