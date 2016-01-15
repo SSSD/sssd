@@ -84,6 +84,25 @@ int main(int argc, const char *argv[])
                 DEBUG(SSSDBG_CRIT_FAILURE, "This band sounds weird\n");
                 _exit(1);
             }
+        } else if (strcasecmp(action, "check_only_extra_args") == 0) {
+            if (debug_timestamps == 1) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "debug_timestamp was passed when only extra args "
+                      "should have been\n");
+                _exit(1);
+            }
+
+            if (!(strcmp(guitar, "george") == 0 \
+                        && strcmp(drums, "ringo") == 0)) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "This band sounds weird\n");
+                _exit(1);
+            }
+        } else if (strcasecmp(action, "check_only_extra_args_neg") == 0) {
+            if (debug_timestamps != 1) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "debug_timestamp was not passed as expected\n");
+                _exit(1);
+            }
         } else if (strcasecmp(action, "echo") == 0) {
             errno = 0;
             len = sss_atomic_read_s(STDIN_FILENO, buf, IN_BUF_SIZE);
