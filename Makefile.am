@@ -458,9 +458,7 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_utils.c \
     src/responder/common/responder_cache_req.c \
     src/monitor/monitor_iface_generated.c \
-    src/monitor/monitor_iface_generated.h \
     src/providers/data_provider_iface_generated.c \
-    src/providers/data_provider_iface_generated.h \
     src/providers/data_provider_req.c
 
 SSSD_TOOLS_OBJ = \
@@ -559,6 +557,7 @@ dist_noinst_HEADERS = \
     src/util/util_sss_idmap.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
+    src/monitor/monitor_iface_generated.h \
     src/responder/common/responder.h \
     src/responder/common/responder_packet.h \
     src/responder/common/responder_sbus.h \
@@ -575,6 +574,7 @@ dist_noinst_HEADERS = \
     src/responder/sudo/sudosrv_private.h \
     src/responder/autofs/autofs_private.h \
     src/responder/ssh/sshsrv_private.h \
+    src/responder/ifp/ifp_iface_generated.h \
     src/responder/ifp/ifp_private.h \
     src/responder/ifp/ifp_domains.h \
     src/responder/ifp/ifp_components.h \
@@ -599,6 +599,7 @@ dist_noinst_HEADERS = \
     src/confdb/confdb_setup.h \
     src/providers/data_provider.h \
     src/providers/data_provider_req.h \
+    src/providers/data_provider_iface_generated.h \
     src/providers/dp_backend.h \
     src/providers/dp_dyndns.h \
     src/providers/dp_ptask_private.h \
@@ -659,6 +660,7 @@ dist_noinst_HEADERS = \
     src/tests/cmocka/common_mock_krb5.h \
     src/tests/cmocka/common_mock_be.h \
     src/tests/cmocka/test_expire_common.h \
+    src/tests/sbus_codegen_tests_generated.h \
     src/sss_client/pam_message.h \
     src/sss_client/ssh/sss_ssh_client.h \
     src/sss_client/sudo/sss_sudo.h \
@@ -1090,7 +1092,7 @@ sssd_SOURCES = \
     src/confdb/confdb_setup.c \
     src/util/nscd.c \
     src/monitor/monitor_iface_generated.c \
-    src/monitor/monitor_iface_generated.h
+    $(NULL)
 sssd_LDADD = \
     $(SSSD_LIBS) \
     $(INOTIFY_LIBS) \
@@ -1185,7 +1187,6 @@ sssd_ifp_SOURCES = \
     src/responder/ifp/ifpsrv.c \
     src/responder/ifp/ifpsrv_cmd.c \
     src/responder/ifp/ifp_iface_generated.c \
-    src/responder/ifp/ifp_iface_generated.h \
     src/responder/ifp/ifp_iface.c \
     src/responder/ifp/ifp_iface_nodes.c \
     src/responder/ifp/ifpsrv_util.c \
@@ -1223,9 +1224,7 @@ sssd_be_SOURCES = \
     src/providers/dp_ptask.c \
     src/providers/dp_refresh.c \
     src/monitor/monitor_iface_generated.c \
-    src/monitor/monitor_iface_generated.h \
     src/providers/data_provider_iface_generated.c \
-    src/providers/data_provider_iface_generated.h \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
     $(LIBADD_DL) \
@@ -1833,10 +1832,10 @@ sbus_tests_LDADD = \
     $(CHECK_LIBS)
 
 sbus_codegen_tests_SOURCES = \
-   src/tests/common_dbus.c \
-   src/tests/sbus_codegen_tests.c \
-   src/tests/sbus_codegen_tests_generated.c \
-   src/tests/sbus_codegen_tests_generated.h
+    src/tests/common_dbus.c \
+    src/tests/sbus_codegen_tests.c \
+    src/tests/sbus_codegen_tests_generated.c \
+    $(NULL)
 sbus_codegen_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 sbus_codegen_tests_LDADD = \
@@ -2941,7 +2940,7 @@ libsss_proxy_la_SOURCES = \
     src/providers/proxy/proxy_services.c \
     src/providers/proxy/proxy_auth.c \
     src/providers/data_provider_iface_generated.c \
-    src/providers/data_provider_iface_generated.h
+    $(NULL)
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_proxy_la_LIBADD = \
@@ -3206,7 +3205,7 @@ gpo_child_LDADD = \
 proxy_child_SOURCES = \
     src/providers/proxy/proxy_child.c \
     src/providers/data_provider_iface_generated.c \
-    src/providers/data_provider_iface_generated.h
+    $(NULL)
 proxy_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS)
