@@ -25,6 +25,7 @@
 #include "providers/data_provider.h"
 #include "providers/fail_over.h"
 #include "providers/be_refresh.h"
+#include "providers/data_provider/dp.h"
 #include "util/child_common.h"
 #include "db/sysdb.h"
 
@@ -148,6 +149,8 @@ struct be_ctx {
 
     /* List of ongoing requests */
     struct be_req *active_requests;
+
+    struct data_provider *provider;
 };
 
 struct bet_ops {

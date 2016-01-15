@@ -1,0 +1,162 @@
+/*
+    Authors:
+        Pavel Březina <pbrezina@redhat.com>
+
+    Copyright (C) 2016 Red Hat
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef _DP_H_
+#define _DP_H_
+
+#include <stdint.h>
+
+#include "sbus/sssd_dbus.h"
+#include "providers/backend.h"
+#include "providers/data_provider/dp_request.h"
+#include "providers/data_provider/dp_custom_data.h"
+#include "providers/data_provider/dp_flags.h"
+
+struct data_provider;
+struct dp_method;
+
+/**
+ * Module constructor.
+ *
+ * It is possible to create a module data that is passed into all
+ * target initialization functions.
+ */
+typedef errno_t (*dp_module_init_fn)(TALLOC_CTX *mem_ctx,
+                                     struct be_ctx *be_ctx,
+                                     struct data_provider *provider,
+                                     const char *module_name,
+                                     void **_module_data);
+
+/**
+ * Target initialization function.
+ *
+ * Pointer to dp_method is unique for all targets. Make sure that
+ * dp_set_method is called in all targets even if you are reusing
+ * some existing context or initialization function.
+ */
+typedef errno_t (*dp_target_init_fn)(TALLOC_CTX *mem_ctx,
+                                     struct be_ctx *be_ctx,
+                                     void *module_data,
+                                     struct dp_method *dp_methods);
+
+enum dp_targets {
+    DPT_ID,
+    DPT_AUTH,
+    DPT_ACCESS,
+    DPT_CHPASS,
+    DPT_SUDO,
+    DPT_AUTOFS,
+    DPT_SELINUX,
+    DPT_HOSTID,
+    DPT_SUBDOMAINS,
+
+    DP_TARGET_SENTINEL
+};
+
+enum dp_methods {
+    DPM_CHECK_ONLINE,
+    DPM_ACCOUNT_HANDLER,
+    DPM_AUTH_HANDLER,
+    DPM_ACCESS_HANDLER,
+    DPM_SELINUX_HANDLER,
+    DPM_SUDO_HANDLER,
+    DPM_AUTOFS_HANDLER,
+    DPM_HOSTID_HANDLER,
+    DPM_DOMAINS_HANDLER,
+
+    DP_METHOD_SENTINEL
+};
+
+/* Method handler. */
+
+struct dp_req_params {
+    struct tevent_context *ev;
+    struct be_ctx *be_ctx;
+    struct sss_domain_info *domain;
+    enum dp_targets target;
+    enum dp_methods method;
+};
+
+typedef struct tevent_req *
+(*dp_req_send_fn)(TALLOC_CTX *mem_ctx, void *method_data, void *request_data,
+                  struct dp_req_params *params);
+
+typedef errno_t
+(*dp_req_recv_fn)(TALLOC_CTX *mem_ctx, struct tevent_req *req, void *data);
+
+/* Data provider initialization. */
+
+errno_t dp_init(struct tevent_context *ev,
+                struct be_ctx *be_ctx,
+                uid_t uid,
+                gid_t gid);
+
+bool _dp_target_enabled(struct data_provider *provider,
+                        const char *module_name,
+                        ...);
+
+#define dp_target_enabled(provider, module_name, ...) \
+    _dp_target_enabled(provider, module_name, ##__VA_ARGS__, DP_TARGET_SENTINEL)
+
+struct dp_module *dp_target_module(struct data_provider *provider,
+                                   enum dp_targets target);
+
+void _dp_set_method(struct dp_method *methods,
+                    enum dp_methods method,
+                    dp_req_send_fn send_fn,
+                    dp_req_recv_fn recv_fn,
+                    void *method_data,
+                    const char *method_dtype,
+                    const char *request_dtype,
+                    const char *output_dtype,
+                    uint32_t output_size);
+
+/* We check function headers on compile time and data types on run time. This
+ * check requires that both method and request private data are talloc-created
+ * with talloc name set to data type name (which is done by talloc unless
+ * you use _size variations of talloc functions.
+ *
+ * This way we ensure that we always pass correct data and we can access them
+ * directly in request handler without the need to cast them explicitly
+ * from void pointer. */
+#define dp_set_method(methods, method, send_fn, recv_fn, method_data,         \
+                      method_dtype, req_dtype, output_dtype)                  \
+    do {                                                                      \
+        /* Check _send function parameter types. */                           \
+        struct tevent_req *(*__send_fn)(TALLOC_CTX *, method_dtype *,         \
+            req_dtype *, struct dp_req_params *params) = (send_fn);           \
+                                                                              \
+        /* Check _recv function parameter types. */                           \
+        errno_t (*__recv_fn)(TALLOC_CTX *, struct tevent_req *,               \
+            output_dtype *) = (recv_fn);                                      \
+        _dp_set_method(methods, method, (dp_req_send_fn)__send_fn,            \
+                       (dp_req_recv_fn)__recv_fn, method_data,                \
+                       #method_dtype, #req_dtype,                             \
+                       #output_dtype, sizeof(output_dtype));                  \
+    } while (0)
+
+bool dp_method_enabled(struct data_provider *provider,
+                       enum dp_targets target,
+                       enum dp_methods method);
+
+void dp_terminate_domain_requests(struct data_provider *provider,
+                                  const char *domain);
+
+#endif /* _DP_H_ */

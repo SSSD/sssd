@@ -614,6 +614,15 @@ dist_noinst_HEADERS = \
     src/providers/data_provider.h \
     src/providers/data_provider_req.h \
     src/providers/data_provider_iface_generated.h \
+    src/providers/data_provider/dp.h \
+    src/providers/data_provider/dp_flags.h \
+    src/providers/data_provider/dp_responder_iface.h \
+    src/providers/data_provider/dp_private.h \
+    src/providers/data_provider/dp_request.h \
+    src/providers/data_provider/dp_custom_data.h \
+    src/providers/data_provider/dp_builtin.h \
+    src/providers/data_provider/dp_iface_generated.h \
+    src/providers/data_provider/dp_iface.h \
     src/providers/backend.h \
     src/providers/be_dyndns.h \
     src/providers/be_ptask_private.h \
@@ -839,7 +848,7 @@ libsss_util_la_SOURCES = \
     src/monitor/monitor_sbus.c \
     src/providers/dp_auth_util.c \
     src/providers/dp_pam_data_util.c \
-    src/providers/dp_sbus.c \
+    src/providers/data_provider/dp_sbus.c \
     src/sbus/sbus_client.c \
     src/sbus/sssd_dbus_common.c \
     src/sbus/sssd_dbus_connection.c \
@@ -1130,6 +1139,7 @@ CODEGEN_XML = \
     $(srcdir)/src/tests/sbus_codegen_tests.xml \
     $(srcdir)/src/monitor/monitor_iface.xml \
     $(srcdir)/src/providers/data_provider_iface.xml \
+    $(srcdir)/src/providers/data_provider/dp_iface.xml \
     $(srcdir)/src/responder/ifp/ifp_iface.xml
 
 SBUS_CODEGEN = src/sbus/sbus_codegen
@@ -1297,6 +1307,17 @@ sssd_be_SOURCES = \
     src/providers/be_refresh.c \
     src/monitor/monitor_iface_generated.c \
     src/providers/data_provider_iface_generated.c \
+    src/providers/data_provider/dp.c \
+    src/providers/data_provider/dp_modules.c \
+    src/providers/data_provider/dp_targets.c \
+    src/providers/data_provider/dp_methods.c \
+    src/providers/data_provider/dp_builtin.c \
+    src/providers/data_provider/dp_iface.c \
+    src/providers/data_provider/dp_client.c \
+    src/providers/data_provider/dp_iface_generated.c \
+    src/providers/data_provider/dp_request.c \
+    src/providers/data_provider/dp_request_reply.c \
+    src/providers/data_provider/dp_request_table.c \
     $(SSSD_FAILOVER_OBJ)
 sssd_be_LDADD = \
     $(LIBADD_DL) \
