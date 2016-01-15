@@ -38,6 +38,8 @@ struct child_test_ctx {
     int pipefd_from_child[2];
 
     struct sss_test_ctx *test_ctx;
+
+    int save_debug_timestamps;
 };
 
 static int child_test_setup(void **state)
@@ -119,27 +121,58 @@ void test_exec_child(void **state)
     }
 }
 
-/* Make sure extra arguments are passed correctly */
-void test_exec_child_extra_args(void **state)
+static int only_extra_args_setup(void **state)
 {
+    struct child_test_ctx *child_tctx;
     errno_t ret;
-    pid_t child_pid;
-    int status;
+
+    ret = child_test_setup((void **) &child_tctx);
+    if (ret != 0) {
+        return ret;
+    }
+
+    child_tctx->save_debug_timestamps = debug_timestamps;
+    *state = child_tctx;
+
+    return 0;
+}
+
+static int only_extra_args_teardown(void **state)
+{
     struct child_test_ctx *child_tctx = talloc_get_type(*state,
                                                         struct child_test_ctx);
+    errno_t ret;
+
+    debug_timestamps = child_tctx->save_debug_timestamps;
+    ret = child_test_teardown((void **) &child_tctx);
+    if (ret != 0) {
+        return ret;
+    }
+
+    return 0;
+}
+
+static void extra_args_test(struct child_test_ctx *child_tctx,
+                            bool extra_args_only)
+{
+    pid_t child_pid;
+    errno_t ret;
+    int status;
+
     const char *extra_args[] = { "--guitar=george",
                                  "--drums=ringo",
                                  NULL };
 
-    setenv("TEST_CHILD_ACTION", "check_extra_args", 1);
-
     child_pid = fork();
     assert_int_not_equal(child_pid, -1);
     if (child_pid == 0) {
+        debug_timestamps = 1;
+
         ret = exec_child_ex(child_tctx,
                             child_tctx->pipefd_to_child,
                             child_tctx->pipefd_from_child,
-                            CHILD_DIR"/"TEST_BIN, 2, extra_args, false,
+                            CHILD_DIR"/"TEST_BIN, 2, extra_args,
+                            extra_args_only,
                             STDIN_FILENO, STDOUT_FILENO);
         assert_int_equal(ret, EOK);
     } else {
@@ -160,6 +193,32 @@ void test_exec_child_extra_args(void **state)
                 ret = EIO;
             }
     }
+}
+
+/* Make sure extra arguments are passed correctly */
+void test_exec_child_extra_args(void **state)
+{
+    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+                                                        struct child_test_ctx);
+    setenv("TEST_CHILD_ACTION", "check_extra_args", 1);
+    extra_args_test(child_tctx, false);
+}
+
+/* Make sure extra arguments are passed correctly */
+void test_exec_child_only_extra_args(void **state)
+{
+    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+                                                        struct child_test_ctx);
+    setenv("TEST_CHILD_ACTION", "check_only_extra_args", 1);
+    extra_args_test(child_tctx, true);
+}
+
+void test_exec_child_only_extra_args_neg(void **state)
+{
+    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+                                                        struct child_test_ctx);
+    setenv("TEST_CHILD_ACTION", "check_only_extra_args_neg", 1);
+    extra_args_test(child_tctx, false);
 }
 
 struct tevent_req *echo_child_write_send(TALLOC_CTX *mem_ctx,
@@ -478,6 +537,12 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_sss_child,
                                         child_test_setup,
                                         child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_only_extra_args,
+                                        only_extra_args_setup,
+                                        only_extra_args_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_only_extra_args_neg,
+                                        only_extra_args_setup,
+                                        only_extra_args_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
