@@ -141,12 +141,7 @@ struct iface_ifp_cache_object iface_ifp_cache_object_group = {
     .Remove = ifp_cache_object_remove_group
 };
 
-struct iface_map {
-    const char *path;
-    struct sbus_vtable *vtable;
-};
-
-static struct iface_map iface_map[] = {
+static struct sbus_iface_map iface_map[] = {
     { IFP_PATH, &iface_ifp.vtable },
     { IFP_PATH_DOMAINS_TREE, &iface_ifp_domains.vtable },
     { IFP_PATH_COMPONENTS_TREE, &iface_ifp_components.vtable },
@@ -163,16 +158,5 @@ static struct iface_map iface_map[] = {
 
 errno_t ifp_register_sbus_interface(struct sbus_connection *conn, void *pvt)
 {
-    errno_t ret;
-    int i;
-
-    for (i = 0; iface_map[i].path != NULL; i++) {
-        ret = sbus_conn_register_iface(conn, iface_map[i].vtable,
-                                       iface_map[i].path, pvt);
-        if (ret != EOK) {
-            return ret;
-        }
-    }
-
-    return EOK;
+    return sbus_conn_register_iface_map(conn, iface_map, pvt);
 }

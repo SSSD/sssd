@@ -970,6 +970,24 @@ sbus_conn_register_iface(struct sbus_connection *conn,
     return ret;
 }
 
+errno_t
+sbus_conn_register_iface_map(struct sbus_connection *conn,
+                             struct sbus_iface_map *map,
+                             void *pvt)
+{
+    errno_t ret;
+    int i;
+
+    for (i = 0; map[i].path != NULL; i++) {
+        ret = sbus_conn_register_iface(conn, map[i].vtable, map[i].path, pvt);
+        if (ret != EOK) {
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
 void
 sbus_conn_register_nodes(struct sbus_connection *conn,
                          const char *path,
