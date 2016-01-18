@@ -579,10 +579,9 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
     return EOK;
 }
 
-/* Currently only refreshing expired netgroups is supported. */
 static bool
 is_refreshed_on_bg(enum sss_dp_acct_type req_type,
-                   enum sss_dp_acct_type refresh_expired_interval)
+                   uint32_t refresh_expired_interval)
 {
     if (refresh_expired_interval == 0) {
         return false;
@@ -590,6 +589,8 @@ is_refreshed_on_bg(enum sss_dp_acct_type req_type,
 
     switch (req_type) {
     case SSS_DP_NETGR:
+    case SSS_DP_USER:
+    case SSS_DP_GROUP:
         return true;
     default:
         return false;
@@ -753,31 +754,29 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
     get_dp_name_and_id(dctx->cmdctx, dctx->domain, req_type, opt_name, opt_id,
                        &name, &id);
 
-    /* if we have any reply let's check cache validity, but ignore netgroups
-     * if refresh_expired_interval is set (which implies that another method
-     * is used to refresh netgroups)
-     */
+    /* if we have any reply let's check cache validity */
     if (res->count > 0) {
-        if (is_refreshed_on_bg(req_type,
-                               dctx->domain->refresh_expired_interval)) {
-            ret = EOK;
-        } else {
-            if (req_type == SSS_DP_INITGROUPS) {
-                cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                          SYSDB_INITGR_EXPIRE,
-                                                          0);
-            } else {
-                cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                          SYSDB_CACHE_EXPIRE,
-                                                          0);
-            }
+        bool refreshed_on_bg;
+        uint32_t bg_refresh_interval = dctx->domain->refresh_expired_interval;
 
-            /* if we have any reply let's check cache validity */
-            ret = sss_cmd_check_cache(res->msgs[0],
-                                      nctx->cache_refresh_percent,
-                                      cacheExpire);
+        if (req_type == SSS_DP_INITGROUPS) {
+            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                      SYSDB_INITGR_EXPIRE,
+                                                      0);
+        } else {
+            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                      SYSDB_CACHE_EXPIRE,
+                                                      0);
         }
-        if (ret == EOK) {
+
+        /* Check if background refresh is enabled for this entry */
+        refreshed_on_bg = is_refreshed_on_bg(req_type, bg_refresh_interval);
+
+        /* if we have any reply let's check cache validity */
+        ret = sss_cmd_check_cache(res->msgs[0],
+                                  nctx->cache_refresh_percent,
+                                  cacheExpire);
+        if (ret == EOK || (ret == EAGAIN && refreshed_on_bg))  {
             DEBUG(SSSDBG_TRACE_FUNC, "Cached entry is valid, returning..\n");
             return EOK;
         } else if (ret != EAGAIN && ret != ENOENT) {
