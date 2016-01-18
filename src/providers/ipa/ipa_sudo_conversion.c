@@ -757,6 +757,14 @@ convert_group(TALLOC_CTX *mem_ctx,
 }
 
 static const char *
+convert_runasextusergroup(TALLOC_CTX *mem_ctx,
+                          struct ipa_sudo_conv *conv,
+                          const char *value)
+{
+    return talloc_asprintf(mem_ctx, "%%%s", value);
+}
+
+static const char *
 convert_cat(TALLOC_CTX *mem_ctx,
             struct ipa_sudo_conv *conv,
             const char *value)
@@ -798,6 +806,9 @@ convert_attributes(struct ipa_sudo_conv *conv,
                  {SYSDB_IPA_SUDORULE_USERCATEGORY,       SYSDB_SUDO_CACHE_AT_USER       , convert_cat},
                  {SYSDB_IPA_SUDORULE_RUNASUSERCATEGORY,  SYSDB_SUDO_CACHE_AT_RUNASUSER  , convert_cat},
                  {SYSDB_IPA_SUDORULE_RUNASGROUPCATEGORY, SYSDB_SUDO_CACHE_AT_RUNASGROUP , convert_cat},
+                 {SYSDB_IPA_SUDORULE_RUNASEXTUSER,       SYSDB_SUDO_CACHE_AT_RUNASUSER  , NULL},
+                 {SYSDB_IPA_SUDORULE_RUNASEXTGROUP,      SYSDB_SUDO_CACHE_AT_RUNASGROUP , NULL},
+                 {SYSDB_IPA_SUDORULE_RUNASEXTUSERGROUP,  SYSDB_SUDO_CACHE_AT_RUNASUSER  , convert_runasextusergroup},
                  {SYSDB_IPA_SUDORULE_ALLOWCMD,           SYSDB_IPA_SUDORULE_ORIGCMD     , NULL},
                  {SYSDB_IPA_SUDORULE_DENYCMD,            SYSDB_IPA_SUDORULE_ORIGCMD     , NULL},
                  {NULL, NULL, NULL}};

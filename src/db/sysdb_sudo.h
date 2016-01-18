@@ -65,6 +65,9 @@
 #define SYSDB_IPA_SUDORULE_USERCATEGORY       "userCategory"
 #define SYSDB_IPA_SUDORULE_RUNASUSERCATEGORY  "ipaSudoRunAsUserCategory"
 #define SYSDB_IPA_SUDORULE_RUNASGROUPCATEGORY "ipaSudoRunAsGroupCategory"
+#define SYSDB_IPA_SUDORULE_RUNASEXTUSER       "ipaSudoRunAsExtUser"
+#define SYSDB_IPA_SUDORULE_RUNASEXTGROUP      "ipaSudoRunAsExtGroup"
+#define SYSDB_IPA_SUDORULE_RUNASEXTUSERGROUP  "ipaSudoRunAsExtUserGroup"
 
 #define SYSDB_IPA_SUDOCMDGROUP_OC                 "ipasudocmdgrp"
 
