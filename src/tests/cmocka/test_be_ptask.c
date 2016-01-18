@@ -33,6 +33,7 @@
 
 #define DELAY  2
 #define PERIOD 1
+#define TIMEOUT 123
 
 #define new_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, test_setup, test_teardown)
@@ -795,6 +796,26 @@ void test_be_ptask_get_period(void **state)
     assert_null(ptask);
 }
 
+void test_be_ptask_get_timeout(void **state)
+{
+    struct test_ctx *test_ctx = (struct test_ctx *)(*state);
+    struct be_ptask *ptask = NULL;
+    time_t out_timeout;
+    errno_t ret;
+
+    ret = be_ptask_create(test_ctx, test_ctx->be_ctx, PERIOD, 0, 0, 0, TIMEOUT,
+                          BE_PTASK_OFFLINE_SKIP, 0, test_be_ptask_send,
+                          test_be_ptask_recv, test_ctx, "Test ptask", &ptask);
+    assert_int_equal(ret, ERR_OK);
+    assert_non_null(ptask);
+
+    out_timeout = be_ptask_get_timeout(ptask);
+    assert_true(TIMEOUT == out_timeout);
+
+    be_ptask_destroy(&ptask);
+    assert_null(ptask);
+}
+
 void test_be_ptask_create_sync(void **state)
 {
     struct test_ctx *test_ctx = (struct test_ctx *)(*state);
@@ -970,6 +991,7 @@ int main(int argc, const char *argv[])
         new_test(be_ptask_reschedule_timeout),
         new_test(be_ptask_reschedule_backoff),
         new_test(be_ptask_get_period),
+        new_test(be_ptask_get_timeout),
         new_test(be_ptask_create_sync),
         new_test(be_ptask_sync_reschedule_ok),
         new_test(be_ptask_sync_reschedule_error),
