@@ -31,6 +31,7 @@
 #endif
 
 struct renewal_data {
+    struct be_ctx *be_ctx;
     char *prog_path;
     const char **extra_args;
 };
@@ -57,13 +58,16 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
         return ENOMEM;
     }
 
-    args = talloc_array(renewal_data, const char *, 7);
+    args = talloc_array(renewal_data, const char *, 8);
     if (args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
         return ENOMEM;
     }
 
     /* extra_args are added in revers order */
+    /* first add NULL as a placeholder for the server name which is determined
+     * at runtime */
+    args[c++] = NULL;
     args[c++] = talloc_asprintf(args, "--computer-password-lifetime=%zu",
                                 pw_lifetime_in_days);
     args[c++] = talloc_asprintf(args, "--host-fqdn=%s", ad_hostname);
@@ -84,7 +88,7 @@ static errno_t get_adcli_extra_args(const char *ad_domain,
             talloc_free(args);
             return ENOMEM;
         }
-    } while (c != 0);
+    } while (c != 1); /* is is expected that the first element is NULL */
 
     renewal_data->extra_args = args;
 
@@ -123,6 +127,8 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     int pipefd_to_child[2];
     int pipefd_from_child[2];
     int ret;
+    const char **extra_args;
+    const char *server_name;
 
     req = tevent_req_create(mem_ctx, &state, struct renewal_state);
     if (req == NULL) {
@@ -136,6 +142,20 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     state->child_status = EFAULT;
     state->read_from_child_fd = -1;
     state->write_to_child_fd = -1;
+
+    server_name = be_fo_get_active_server_name(be_ctx, AD_SERVICE_NAME);
+    talloc_zfree(renewal_data->extra_args[0]);
+    if (server_name != NULL) {
+        renewal_data->extra_args[0] = talloc_asprintf(renewal_data->extra_args,
+                                                      "--domain-controller=%s",
+                                                      server_name);
+        /* if talloc_asprintf() fails we let adcli try to find a server */
+    }
+
+    extra_args = renewal_data->extra_args;
+    if (extra_args[0] == NULL) {
+        extra_args = &renewal_data->extra_args[1];
+    }
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
@@ -156,7 +176,7 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     if (child_pid == 0) { /* child */
         ret = exec_child_ex(state, pipefd_to_child, pipefd_from_child,
                             renewal_data->prog_path, -1,
-                            renewal_data->extra_args, true,
+                            extra_args, true,
                             STDIN_FILENO, STDERR_FILENO);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Could not exec renewal child: [%d][%s].\n",
