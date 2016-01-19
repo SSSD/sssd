@@ -792,6 +792,9 @@ static errno_t ipa_get_view_name(struct ipa_subdomains_req_ctx *ctx)
         return EOK;
     }
 
+    /* We add SDAP_DEREF_FLG_SILENT because old IPA servers don't have
+     * the attribute we dereference, causing the deref call to fail
+     */
     req = sdap_deref_search_with_filter_send(ctx, ctx->sd_ctx->be_ctx->ev,
                         ctx->sd_ctx->sdap_id_ctx->opts,
                         sdap_id_op_handle(ctx->sdap_op),
@@ -799,7 +802,8 @@ static errno_t ipa_get_view_name(struct ipa_subdomains_req_ctx *ctx)
                         ctx->current_filter, IPA_ASSIGNED_ID_VIEW, attrs,
                         1, maps,
                         dp_opt_get_int(ctx->sd_ctx->sdap_id_ctx->opts->basic,
-                                       SDAP_SEARCH_TIMEOUT));
+                                       SDAP_SEARCH_TIMEOUT),
+                        SDAP_DEREF_FLG_SILENT);
 
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_get_generic_send failed.\n");
