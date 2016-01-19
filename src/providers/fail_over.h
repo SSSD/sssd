@@ -200,6 +200,8 @@ void fo_reset_services(struct fo_ctx *fo_ctx);
 
 void fo_reset_servers(struct fo_service *svc);
 
+struct fo_server *fo_get_active_server(struct fo_service *service);
+
 bool fo_svc_has_server(struct fo_service *service, struct fo_server *server);
 
 /*

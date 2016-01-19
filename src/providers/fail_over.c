@@ -1457,6 +1457,11 @@ fo_set_port_status(struct fo_server *server, enum port_status status)
     }
 }
 
+struct fo_server *fo_get_active_server(struct fo_service *service)
+{
+    return service->active_server;
+}
+
 void fo_try_next_server(struct fo_service *service)
 {
     struct fo_server *server;

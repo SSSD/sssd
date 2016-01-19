@@ -50,6 +50,7 @@ struct test_ctx {
 struct task {
     struct test_ctx *test_ctx;
     const char *location;
+    struct fo_service *service;
     int recv;
     int port;
     int new_server_status;
@@ -147,6 +148,7 @@ test_resolve_service_callback(struct tevent_req *req)
     int port;
     struct task *task;
     struct fo_server *server = NULL;
+    struct fo_server *active_server = NULL;
     struct resolv_hostent *he;
     int i;
 
@@ -181,6 +183,13 @@ test_resolve_service_callback(struct tevent_req *req)
         }
     }
 
+    if (task->new_port_status == PORT_WORKING
+            && task->new_server_status == SERVER_WORKING) {
+        active_server = fo_get_active_server(task->service);
+        fail_if(active_server == NULL, "Missing active server");
+        fail_if(server != active_server, "Current server is not active server");
+    }
+
 }
 
 #define get_request(a, b, c, d, e, f) \
@@ -203,6 +212,7 @@ _get_request(struct test_ctx *test_ctx, struct fo_service *service,
     task->new_port_status = new_port_status;
     task->new_server_status = new_server_status;
     task->location = location;
+    task->service = service;
     test_ctx->tasks++;
 
     req = fo_resolve_service_send(test_ctx, test_ctx->ev,
@@ -242,6 +252,7 @@ START_TEST(test_fo_resolve_service)
 
     /* Make requests. */
     get_request(ctx, service[0], EOK, 20, PORT_WORKING, -1);
+    get_request(ctx, service[0], EOK, 20, PORT_WORKING, SERVER_WORKING);
     get_request(ctx, service[0], EOK, 20, -1, SERVER_NOT_WORKING);
     get_request(ctx, service[0], EOK, 80, PORT_WORKING, -1);
     get_request(ctx, service[0], EOK, 80, PORT_NOT_WORKING, -1);
