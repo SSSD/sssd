@@ -726,6 +726,23 @@ void be_fo_try_next_server(struct be_ctx *ctx, const char *service_name)
     }
 }
 
+const char *be_fo_get_active_server_name(struct be_ctx *ctx,
+                                         const char *service_name)
+{
+    struct be_svc_data *svc;
+    struct fo_server *server;
+
+    svc = be_fo_find_svc_data(ctx, service_name);
+    if (svc != NULL) {
+        server = fo_get_active_server(svc->fo_service);
+        if (server != NULL) {
+            return fo_get_server_name(server);
+        }
+    }
+
+    return NULL;
+}
+
 int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
                                         const char *service_name)
 {
