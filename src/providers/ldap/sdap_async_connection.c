@@ -75,6 +75,12 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
     if (!req) return NULL;
 
+    if (uri == NULL || sockaddr == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid uri or sockaddr\n");
+        ret = EINVAL;
+        goto fail;
+    }
+
     state->reply = talloc(state, struct sdap_msg);
     if (!state->reply) {
         talloc_zfree(req);
