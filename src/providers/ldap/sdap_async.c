@@ -2763,6 +2763,7 @@ struct sdap_deref_search_state {
     size_t reply_count;
     struct sdap_deref_attrs **reply;
     enum sdap_deref_type deref_type;
+    unsigned flags;
 };
 
 static void sdap_deref_search_done(struct tevent_req *subreq);
@@ -2779,7 +2780,8 @@ sdap_deref_search_with_filter_send(TALLOC_CTX *memctx,
                                    const char **attrs,
                                    int num_maps,
                                    struct sdap_attr_map_info *maps,
-                                   int timeout)
+                                   int timeout,
+                                   unsigned flags)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
@@ -2791,6 +2793,7 @@ sdap_deref_search_with_filter_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->reply_count = 0;
     state->reply = NULL;
+    state->flags = flags;
 
     if (sdap_is_control_supported(sh, LDAP_CONTROL_X_DEREF)) {
         DEBUG(SSSDBG_TRACE_INTERNAL, "Server supports OpenLDAP deref\n");
@@ -2917,14 +2920,20 @@ static void sdap_deref_search_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE,
               "dereference processing failed [%d]: %s\n", ret, strerror(ret));
         if (ret == ENOTSUP) {
-            sss_log(SSS_LOG_WARNING,
-                "LDAP server claims to support deref, but deref search failed. "
-                "Disabling deref for further requests. You can permanently "
-                "disable deref by setting ldap_deref_threshold to 0 in domain "
-                "configuration.");
             state->sh->disable_deref = true;
-        } else {
-            sss_log(SSS_LOG_WARNING, "dereference processing failed : %s", strerror(ret));
+        }
+
+        if (!(state->flags & SDAP_DEREF_FLG_SILENT)) {
+            if (ret == ENOTSUP) {
+                sss_log(SSS_LOG_WARNING,
+                        "LDAP server claims to support deref, but deref search "
+                        "failed. Disabling deref for further requests. You can "
+                        "permanently disable deref by setting "
+                        "ldap_deref_threshold to 0 in domain configuration.");
+            } else {
+                sss_log(SSS_LOG_WARNING,
+                        "dereference processing failed : %s", strerror(ret));
+            }
         }
         tevent_req_error(req, ret);
         return;

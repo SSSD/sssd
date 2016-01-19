@@ -227,6 +227,10 @@ int sdap_get_generic_recv(struct tevent_req *req,
 
 bool sdap_has_deref_support(struct sdap_handle *sh, struct sdap_options *opts);
 
+enum sdap_deref_flags {
+    SDAP_DEREF_FLG_SILENT = 1 << 0,     /* Do not warn if dereference fails */
+};
+
 struct tevent_req *
 sdap_deref_search_with_filter_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
@@ -238,7 +242,8 @@ sdap_deref_search_with_filter_send(TALLOC_CTX *memctx,
                                    const char **attrs,
                                    int num_maps,
                                    struct sdap_attr_map_info *maps,
-                                   int timeout);
+                                   int timeout,
+                                   unsigned flags);
 int sdap_deref_search_with_filter_recv(struct tevent_req *req,
                                        TALLOC_CTX *mem_ctx,
                                        size_t *reply_count,
