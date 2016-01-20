@@ -985,14 +985,14 @@ static int pam_auth_req_destructor(struct pam_auth_req *preq)
     return 0;
 }
 
-static bool is_uid_trusted(uint32_t uid,
+static bool is_uid_trusted(struct cli_creds *creds,
                            size_t trusted_uids_count,
                            uid_t *trusted_uids)
 {
-    size_t i;
+    errno_t ret;
 
     /* root is always trusted */
-    if (uid == 0) {
+    if (client_euid(creds) == 0) {
         return true;
     }
 
@@ -1001,11 +1001,8 @@ static bool is_uid_trusted(uint32_t uid,
         return true;
     }
 
-    for(i = 0; i < trusted_uids_count; i++) {
-        if (trusted_uids[i] == uid) {
-            return true;
-        }
-    }
+    ret = check_allowed_uids(client_euid(creds), trusted_uids_count, trusted_uids);
+    if (ret == EOK) return true;
 
     return false;
 }
@@ -1094,13 +1091,13 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     }
     pd = preq->pd;
 
-    preq->is_uid_trusted = is_uid_trusted(cctx->client_euid,
+    preq->is_uid_trusted = is_uid_trusted(cctx->creds,
                                           pctx->trusted_uids_count,
                                           pctx->trusted_uids);
 
     if (!preq->is_uid_trusted) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "uid %"PRIu32" is not trusted.\n",
-              cctx->client_euid);
+        DEBUG(SSSDBG_MINOR_FAILURE, "uid %"SPRIuid" is not trusted.\n",
+              client_euid(cctx->creds));
     }
 
 
@@ -1779,8 +1776,8 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
             !is_domain_public(preq->pd->domain, pctx->public_domains,
                             pctx->public_domains_count)) {
         DEBUG(SSSDBG_MINOR_FAILURE,
-                "Untrusted user %"PRIu32" cannot access non-public domain %s.\n",
-                preq->cctx->client_euid, preq->pd->domain);
+              "Untrusted user %"SPRIuid" cannot access non-public domain %s.\n",
+              client_euid(preq->cctx->creds), preq->pd->domain);
         preq->pd->pam_status = PAM_PERM_DENIED;
         pam_reply(preq);
         return;

@@ -118,6 +118,8 @@ struct resp_ctx {
     bool shutting_down;
 };
 
+struct cli_creds;
+
 struct cli_ctx {
     struct tevent_context *ev;
     struct resp_ctx *rctx;
@@ -127,9 +129,8 @@ struct cli_ctx {
     struct cli_request *creq;
     struct cli_protocol_version *cli_protocol_version;
     int priv;
-    int32_t client_euid;
-    int32_t client_egid;
-    int32_t client_pid;
+
+    struct cli_creds *creds;
 
     int pwent_dom_idx;
     int pwent_cur;
@@ -329,6 +330,7 @@ errno_t csv_string_to_uid_array(TALLOC_CTX *mem_ctx, const char *csv_string,
                                 bool allow_sss_loop,
                                 size_t *_uid_count, uid_t **_uids);
 
+uid_t client_euid(struct cli_creds *creds);
 errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
                            uid_t *allowed_uids);
 

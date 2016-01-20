@@ -42,6 +42,7 @@
 #include "providers/data_provider.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
+#include "util/util_creds.h"
 
 static errno_t set_close_on_exec(int fd)
 {
@@ -84,16 +85,20 @@ static int client_destructor(struct cli_ctx *ctx)
 
 static errno_t get_client_cred(struct cli_ctx *cctx)
 {
-    cctx->client_euid = -1;
-    cctx->client_egid = -1;
-    cctx->client_pid = -1;
+    SEC_CTX secctx;
+    int ret;
+
+    cctx->creds = talloc(cctx, struct cli_creds);
+    if (!cctx->creds) return ENOMEM;
 
 #ifdef HAVE_UCRED
-    int ret;
-    struct ucred client_cred;
-    socklen_t client_cred_len = sizeof(client_cred);
+    socklen_t client_cred_len = sizeof(struct ucred);
 
-    ret = getsockopt(cctx->cfd, SOL_SOCKET, SO_PEERCRED, &client_cred,
+    cctx->creds->ucred.uid = -1;
+    cctx->creds->ucred.gid = -1;
+    cctx->creds->ucred.pid = -1;
+
+    ret = getsockopt(cctx->cfd, SOL_SOCKET, SO_PEERCRED, &cctx->creds->ucred,
                      &client_cred_len);
     if (ret != EOK) {
         ret = errno;
@@ -107,15 +112,30 @@ static errno_t get_client_cred(struct cli_ctx *cctx)
         return ENOMSG;
     }
 
-    cctx->client_euid = client_cred.uid;
-    cctx->client_egid = client_cred.gid;
-    cctx->client_pid = client_cred.pid;
-
-    DEBUG(SSSDBG_TRACE_ALL, "Client creds: euid[%d] egid[%d] pid[%d].\n",
-              cctx->client_euid, cctx->client_egid, cctx->client_pid);
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Client creds: euid[%d] egid[%d] pid[%d].\n",
+          cctx->creds->ucred.uid, cctx->creds->ucred.gid,
+          cctx->creds->ucred.pid);
 #endif
 
-    return EOK;
+    ret = SELINUX_getpeercon(cctx->cfd, &secctx);
+    if (ret != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "SELINUX_getpeercon failed [%d][%s].\n", ret, strerror(ret));
+        /* This is not fatal, as SELinux may simply be disabled */
+        ret = EOK;
+    } else {
+        cctx->creds->selinux_ctx = SELINUX_context_new(secctx);
+        SELINUX_freecon(secctx);
+    }
+
+    return ret;
+}
+
+uid_t client_euid(struct cli_creds *creds)
+{
+    if (!creds) return -1;
+    return cli_creds_get_uid(creds);
 }
 
 errno_t check_allowed_uids(uid_t uid, size_t allowed_uids_count,
@@ -418,7 +438,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     }
 
     if (rctx->allowed_uids_count != 0) {
-        if (cctx->client_euid == -1) {
+        if (client_euid(cctx->creds) == -1) {
             DEBUG(SSSDBG_CRIT_FAILURE, "allowed_uids configured, " \
                                         "but platform does not support " \
                                         "reading peer credential from the " \
@@ -428,12 +448,13 @@ static void accept_fd_handler(struct tevent_context *ev,
             return;
         }
 
-        ret = check_allowed_uids(cctx->client_euid, rctx->allowed_uids_count,
+        ret = check_allowed_uids(client_euid(cctx->creds), rctx->allowed_uids_count,
                                  rctx->allowed_uids);
         if (ret != EOK) {
             if (ret == EACCES) {
-                DEBUG(SSSDBG_CRIT_FAILURE, "Access denied for uid [%d].\n",
-                                            cctx->client_euid);
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Access denied for uid [%"SPRIuid"].\n",
+                      client_euid(cctx->creds));
             } else {
                 DEBUG(SSSDBG_OP_FAILURE, "check_allowed_uids failed.\n");
             }

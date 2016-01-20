@@ -495,6 +495,7 @@ SSSD_LIBS = \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
     $(OPENLDAP_LIBS) \
+    $(SELINUX_LIBS) \
     $(TDB_LIBS)
 
 PYTHON_BINDINGS_LIBS = \
@@ -555,6 +556,7 @@ dist_noinst_HEADERS = \
     src/util/authtok-utils.h \
     src/util/util_safealign.h \
     src/util/util_sss_idmap.h \
+    src/util/util_creds.h \
     src/monitor/monitor.h \
     src/monitor/monitor_interfaces.h \
     src/monitor/monitor_iface_generated.h \
