@@ -25,8 +25,8 @@
 
 #include "util/util.h"
 #include "providers/dp_backend.h"
-#include "providers/dp_ptask_private.h"
-#include "providers/dp_ptask.h"
+#include "providers/be_ptask_private.h"
+#include "providers/be_ptask.h"
 
 #define backoff_allowed(ptask) (ptask->max_backoff != 0)
 

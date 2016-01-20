@@ -44,7 +44,7 @@
 #include "providers/dp_backend.h"
 #include "providers/fail_over.h"
 #include "providers/dp_refresh.h"
-#include "providers/dp_ptask.h"
+#include "providers/be_ptask.h"
 #include "util/child_common.h"
 #include "resolv/async_resolv.h"
 #include "monitor/monitor_interfaces.h"

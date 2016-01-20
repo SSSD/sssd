@@ -616,8 +616,8 @@ dist_noinst_HEADERS = \
     src/providers/data_provider_iface_generated.h \
     src/providers/dp_backend.h \
     src/providers/dp_dyndns.h \
-    src/providers/dp_ptask_private.h \
-    src/providers/dp_ptask.h \
+    src/providers/be_ptask_private.h \
+    src/providers/be_ptask.h \
     src/providers/dp_refresh.h \
     src/providers/fail_over.h \
     src/providers/fail_over_srv.h \
@@ -1293,7 +1293,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
     src/providers/dp_dyndns.c \
-    src/providers/dp_ptask.c \
+    src/providers/be_ptask.c \
     src/providers/dp_refresh.c \
     src/monitor/monitor_iface_generated.c \
     src/providers/data_provider_iface_generated.c \
@@ -2494,7 +2494,7 @@ test_sysdb_utils_LDADD = \
 test_be_ptask_SOURCES = \
     src/tests/cmocka/common_mock_be.c \
     src/tests/cmocka/test_be_ptask.c \
-    src/providers/dp_ptask.c \
+    src/providers/be_ptask.c \
     $(NULL)
 test_be_ptask_CFLAGS = \
     $(AM_CFLAGS) \

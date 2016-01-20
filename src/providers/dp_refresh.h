@@ -24,7 +24,7 @@
 #include <tevent.h>
 #include <talloc.h>
 
-#include "providers/dp_ptask.h"
+#include "providers/be_ptask.h"
 
 /* solve circular dependency */
 struct be_ctx;

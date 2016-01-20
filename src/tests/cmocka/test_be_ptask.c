@@ -25,8 +25,8 @@
 #include <time.h>
 
 #include "providers/dp_backend.h"
-#include "providers/dp_ptask_private.h"
-#include "providers/dp_ptask.h"
+#include "providers/be_ptask_private.h"
+#include "providers/be_ptask.h"
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_be.h"
 #include "tests/common.h"
