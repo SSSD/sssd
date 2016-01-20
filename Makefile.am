@@ -618,7 +618,7 @@ dist_noinst_HEADERS = \
     src/providers/dp_dyndns.h \
     src/providers/be_ptask_private.h \
     src/providers/be_ptask.h \
-    src/providers/dp_refresh.h \
+    src/providers/be_refresh.h \
     src/providers/fail_over.h \
     src/providers/fail_over_srv.h \
     src/util/child_common.h \

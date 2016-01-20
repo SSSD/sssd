@@ -30,7 +30,7 @@
 #include "providers/ldap/sdap_autofs.h"
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/fail_over_srv.h"
-#include "providers/dp_refresh.h"
+#include "providers/be_refresh.h"
 
 static void sdap_shutdown(struct be_req *req);
 
