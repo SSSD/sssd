@@ -30,7 +30,7 @@
 #include <arpa/inet.h>
 
 /* In order to access opaque types */
-#include "providers/dp_dyndns.c"
+#include "providers/be_dyndns.c"
 
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_be.h"

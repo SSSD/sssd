@@ -1292,7 +1292,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider_fo.c \
     src/providers/data_provider_opts.c \
     src/providers/data_provider_callbacks.c \
-    src/providers/dp_dyndns.c \
+    src/providers/be_dyndns.c \
     src/providers/be_ptask.c \
     src/providers/be_refresh.c \
     src/monitor/monitor_iface_generated.c \
