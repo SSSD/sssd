@@ -1531,3 +1531,95 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+int confdb_get_sub_sections(TALLOC_CTX *mem_ctx,
+                            struct confdb_ctx *cdb,
+                            const char *section,
+                            char ***sections,
+                            int *num_sections)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *secdn;
+    struct ldb_dn *base = NULL;
+    struct ldb_result *res = NULL;
+    static const char *attrs[] = {"cn", NULL};
+    char **names;
+    int base_comp_num;
+    int num;
+    int i;
+    int ret;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = parse_section(tmp_ctx, section, &secdn, NULL);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    base = ldb_dn_new(tmp_ctx, cdb->ldb, secdn);
+    if (base == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    base_comp_num = ldb_dn_get_comp_num(base);
+
+    ret = ldb_search(cdb->ldb, tmp_ctx, &res, base, LDB_SCOPE_SUBTREE,
+                     attrs, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    names = talloc_zero_array(tmp_ctx, char *, res->count + 1);
+    if (names == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (num = 0, i = 0; i < res->count; i++) {
+        const struct ldb_val *val;
+        char *name;
+        int n;
+        int j;
+
+        n = ldb_dn_get_comp_num(res->msgs[i]->dn);
+        if (n == base_comp_num) continue;
+
+        name = NULL;
+        for (j = n - base_comp_num - 1; j >= 0; j--) {
+            val = ldb_dn_get_component_val(res->msgs[i]->dn, j);
+            if (name == NULL) {
+                name = talloc_strndup(names,
+                                      (const char *)val->data, val->length);
+            } else {
+                name = talloc_asprintf(names, "%s/%.*s", name,
+                                       (int)val->length,
+                                       (const char *)val->data);
+            }
+            if (name == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        names[num] = name;
+        if (names[num] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        num++;
+    }
+
+    *sections = talloc_steal(mem_ctx, names);
+    *num_sections = num;
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}

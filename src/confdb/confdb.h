@@ -564,6 +564,32 @@ int confdb_set_string(struct confdb_ctx *cdb,
 int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                               const char *section, const char *attribute,
                               char ***result);
+
+/**
+ * @brief Convenience function to retrieve a list of subsections given a
+ * configuration section name
+ *
+ * @param[in] memctx The parent memory context for the returned list
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] section The ConfDB section to look for.
+ *                    All sections should start with 'config/'.
+ *                    Subsections are separated by slashes.
+ * @param[out] sections Names of the subsections realtive to the section
+ *                      requested. If "a/b" is requested then "c/d" is
+ *                      returned for the section named [a/b/c/d]
+ * @param[out] num_sections Number of section names returned
+ *
+ * @return 0 - Successfully retrieved the entry (or used the default)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - The section could not be parsed.
+ * @return ENOENT - No section was found.
+ * @return EIO - An I/O error occurred while communicating with the ConfDB
+ */
+int confdb_get_sub_sections(TALLOC_CTX *mem_ctx,
+                            struct confdb_ctx *cdb,
+                            const char *section,
+                            char ***sections,
+                            int *num_sections);
 /**
  * @}
  */
