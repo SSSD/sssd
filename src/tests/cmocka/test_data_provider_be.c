@@ -21,7 +21,7 @@
 #include <popt.h>
 #include <time.h>
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_be.h"
 #include "tests/common.h"

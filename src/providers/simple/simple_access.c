@@ -23,7 +23,7 @@
 
 #include "providers/simple/simple_access.h"
 #include "util/sss_utf8.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "db/sysdb.h"
 
 #define CONFDB_SIMPLE_ALLOW_USERS "simple_allow_users"

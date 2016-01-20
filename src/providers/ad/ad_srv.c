@@ -27,7 +27,7 @@
 #include "util/util.h"
 #include "util/sss_ldap.h"
 #include "resolv/async_resolv.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ad/ad_srv.h"
 #include "providers/ad/ad_common.h"
 #include "providers/fail_over.h"

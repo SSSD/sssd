@@ -19,7 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/simple/simple_access.h"
 #include "util/sss_utf8.h"
 #include "db/sysdb.h"

@@ -26,7 +26,7 @@
 #include <sys/socket.h>
 #include <talloc.h>
 #include <tevent.h>
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_id_op.h"
 #include "providers/fail_over.h"

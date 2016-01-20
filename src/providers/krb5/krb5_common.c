@@ -28,7 +28,7 @@
 #include <arpa/inet.h>
 #include <ctype.h>
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/krb5/krb5_opts.h"
 #include "providers/krb5/krb5_utils.h"

@@ -39,7 +39,7 @@
 #include "providers/ldap/sdap_access.h"
 #include "providers/ldap/sdap_async.h"
 #include "providers/data_provider.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ldap/ldap_auth.h"
 
 #define PERMANENTLY_LOCKED_ACCOUNT "000001010000Z"

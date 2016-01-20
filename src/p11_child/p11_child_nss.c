@@ -41,7 +41,7 @@
 #include <ocsp.h>
 
 #include "util/child_common.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "util/crypto/sss_crypto.h"
 #include "util/cert.h"
 

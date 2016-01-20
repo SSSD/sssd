@@ -41,7 +41,7 @@
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
 #include "sbus/sssd_dbus.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/fail_over.h"
 #include "providers/be_refresh.h"
 #include "providers/be_ptask.h"

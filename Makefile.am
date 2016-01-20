@@ -614,7 +614,7 @@ dist_noinst_HEADERS = \
     src/providers/data_provider.h \
     src/providers/data_provider_req.h \
     src/providers/data_provider_iface_generated.h \
-    src/providers/dp_backend.h \
+    src/providers/backend.h \
     src/providers/be_dyndns.h \
     src/providers/be_ptask_private.h \
     src/providers/be_ptask.h \

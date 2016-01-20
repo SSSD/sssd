@@ -29,7 +29,7 @@
 #include "providers/ldap/sdap_autofs.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_async.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/data_provider.h"
 #include "db/sysdb_autofs.h"
 #include "util/util.h"

@@ -21,7 +21,7 @@
 #ifndef _SDAP_SUDO_H_
 #define _SDAP_SUDO_H_
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ldap/ldap_common.h"
 
 struct sdap_sudo_ctx {

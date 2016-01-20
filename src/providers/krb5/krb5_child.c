@@ -35,7 +35,7 @@
 #include "util/child_common.h"
 #include "util/find_uid.h"
 #include "src/util/util_errors.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 #include "sss_cli.h"

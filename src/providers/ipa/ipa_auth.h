@@ -25,7 +25,7 @@
 #ifndef _IPA_AUTH_H_
 #define _IPA_AUTH_H_
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 
 void ipa_auth(struct be_req *be_req);
 

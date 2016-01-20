@@ -32,7 +32,7 @@
 
 #include "util/util.h"
 #include "util/child_common.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ad/ad_gpo.h"
 #include "sss_cli.h"
 

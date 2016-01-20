@@ -22,7 +22,7 @@
 #ifndef _SDAP_H_
 #define _SDAP_H_
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include <ldap.h>
 #include "util/sss_ldap.h"
 

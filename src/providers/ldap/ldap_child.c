@@ -30,7 +30,7 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 #include "util/child_common.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/krb5/krb5_common.h"
 
 static krb5_context krb5_error_ctx;

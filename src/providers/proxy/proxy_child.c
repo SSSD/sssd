@@ -45,7 +45,7 @@
 #include "sbus/sssd_dbus.h"
 #include "providers/proxy/proxy.h"
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 
 static int pc_pam_handler(struct sbus_request *dbus_req, void *user_data);
 

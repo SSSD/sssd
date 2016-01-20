@@ -27,7 +27,7 @@
 
 #include "util/util_errors.h"
 #include "providers/ipa/ipa_common.h"
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 
 void ipa_dyndns_update(void *pvt);
 void ipa_dyndns_timer(void *pvt);

@@ -25,7 +25,7 @@
 #ifndef _AD_SUBDOMAINS_H_
 #define _AD_SUBDOMAINS_H_
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ad/ad_common.h"
 
 int ad_subdom_init(struct be_ctx *be_ctx,

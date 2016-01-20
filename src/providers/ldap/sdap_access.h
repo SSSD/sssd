@@ -25,7 +25,7 @@
 #ifndef SDAP_ACCESS_H_
 #define SDAP_ACCESS_H_
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ldap/ldap_common.h"
 
 /* Attributes in sysdb, used for caching last values of lockout or filter

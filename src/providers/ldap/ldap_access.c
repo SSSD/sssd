@@ -25,7 +25,7 @@
 #include <security/pam_modules.h>
 #include "src/util/util.h"
 #include "src/providers/data_provider.h"
-#include "src/providers/dp_backend.h"
+#include "src/providers/backend.h"
 #include "src/providers/ldap/sdap_access.h"
 #include "providers/ldap/ldap_common.h"
 

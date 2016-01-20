@@ -22,7 +22,7 @@
 #ifndef _LDAP_COMMON_H_
 #define _LDAP_COMMON_H_
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_id_op.h"
 #include "providers/fail_over.h"

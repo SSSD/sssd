@@ -22,7 +22,7 @@
 #include <string.h>
 #include <tevent.h>
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_async.h"

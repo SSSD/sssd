@@ -29,7 +29,7 @@
 #include "config.h"
 #include <stdbool.h>
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "util/util.h"
 #include "util/sss_krb5.h"
 

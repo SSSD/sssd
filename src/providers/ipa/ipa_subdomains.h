@@ -25,7 +25,7 @@
 #ifndef _IPA_SUBDOMAINS_H_
 #define _IPA_SUBDOMAINS_H_
 
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "providers/ipa/ipa_common.h"
 #include "config.h"
 

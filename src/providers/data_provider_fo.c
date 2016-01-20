@@ -21,7 +21,7 @@
 
 #include <netdb.h>
 #include <arpa/inet.h>
-#include "providers/dp_backend.h"
+#include "providers/backend.h"
 #include "resolv/async_resolv.h"
 
 struct be_svc_callback {
