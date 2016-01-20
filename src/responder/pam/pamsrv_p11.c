@@ -224,12 +224,148 @@ errno_t p11_child_init(struct pam_ctx *pctx)
     return child_debug_init(P11_CHILD_LOG_FILE, &pctx->p11_child_debug_fd);
 }
 
+static inline bool
+service_in_list(char **list, size_t nlist, const char *str)
+{
+    size_t i;
+
+    for (i = 0; i < nlist; i++) {
+        if (strcasecmp(list[i], str) == 0) {
+            break;
+        }
+    }
+
+    return (i < nlist) ? true : false;
+}
+
+static errno_t get_sc_services(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx,
+                               char ***_sc_list)
+{
+    TALLOC_CTX *tmp_ctx;
+    errno_t ret;
+    char *conf_str;
+    char **conf_list;
+    int conf_list_size;
+    char **add_list;
+    char **remove_list;
+    int ai = 0;
+    int ri = 0;
+    int j = 0;
+    char **sc_list;
+    int expected_sc_list_size;
+
+    const char *default_sc_services[] = {
+        "login", "su", "su-l", "gdm-smartcard", "gdm-password", "kdm", "sudo",
+        "sudo-i", "gnome-screensaver", NULL,
+    };
+    const int default_sc_services_size =
+        sizeof(default_sc_services) / sizeof(default_sc_services[0]);
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(pctx->rctx->cdb, tmp_ctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_P11_ALLOWED_SERVICES, NULL,
+                            &conf_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "confdb_get_string failed %d [%s]\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (conf_str != NULL) {
+        ret = split_on_separator(tmp_ctx, conf_str, ',', true, true,
+                                 &conf_list, &conf_list_size);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Cannot parse list of service names '%s': %d [%s]\n",
+                  conf_str, ret, sss_strerror(ret));
+            goto done;
+        }
+    } else {
+        conf_list = talloc_zero_array(tmp_ctx, char *, 1);
+        conf_list_size = 0;
+    }
+
+    add_list = talloc_zero_array(tmp_ctx, char *, conf_list_size + 1);
+    remove_list = talloc_zero_array(tmp_ctx, char *, conf_list_size + 1);
+
+    if (add_list == NULL || remove_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (int i = 0; conf_list[i] != NULL; ++i) {
+        switch (conf_list[i][0]) {
+        case '+':
+            add_list[ai] = conf_list[i] + 1;
+            ++ai;
+            break;
+        case '-':
+            remove_list[ri] = conf_list[i] + 1;
+            ++ri;
+            break;
+        default:
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "The option "CONFDB_PAM_P11_ALLOWED_SERVICES" must start"
+                  "with either '+' (for adding service) or '-' (for "
+                  "removing service) got '%s'\n", conf_list[i]);
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    expected_sc_list_size = default_sc_services_size + ai + 1;
+
+    sc_list = talloc_zero_array(tmp_ctx, char *, expected_sc_list_size);
+    if (sc_list == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (int i = 0; add_list[i] != NULL; ++i) {
+        if (service_in_list(remove_list, ri, add_list[i])) {
+            continue;
+        }
+
+        sc_list[j] = talloc_strdup(sc_list, add_list[i]);
+        if (sc_list[j] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ++j;
+    }
+
+    for (int i = 0; default_sc_services[i] != NULL; ++i) {
+        if (service_in_list(remove_list, ri, default_sc_services[i])) {
+            continue;
+        }
+
+        sc_list[j] = talloc_strdup(sc_list, default_sc_services[i]);
+        if (sc_list[j] == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ++j;
+    }
+
+    if (_sc_list != NULL) {
+        *_sc_list = talloc_steal(mem_ctx, sc_list);
+    }
+
+done:
+    talloc_zfree(tmp_ctx);
+
+    return ret;
+}
+
 bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd)
 {
     size_t c;
-    const char *sc_services[] = { "login", "su", "su-l", "gdm-smartcard",
-                                  "gdm-password", "kdm", "sudo", "sudo-i",
-                                  "gnome-screensaver", NULL };
+    errno_t ret;
+
     if (!pctx->cert_auth) {
         return false;
     }
@@ -244,16 +380,30 @@ bool may_do_cert_auth(struct pam_ctx *pctx, struct pam_data *pd)
         return false;
     }
 
-    /* TODO: make services configurable */
     if (pd->service == NULL || *pd->service == '\0') {
         return false;
     }
-    for (c = 0; sc_services[c] != NULL; c++) {
-        if (strcmp(pd->service, sc_services[c]) == 0) {
+
+    /* Initialize smartcard allowed services just once */
+    if (pctx->smartcard_services == NULL) {
+        ret = get_sc_services(pctx, pctx, &pctx->smartcard_services);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to get p11 allowed services %d[%s]",
+                  ret, sss_strerror(ret));
+            sss_log(SSS_LOG_ERR,
+                    "Failed to evaluate pam_p11_allowed_services option, "
+                    "please check for typos in the SSSD configuration");
+            return false;
+        }
+    }
+
+    for (c = 0; pctx->smartcard_services[c] != NULL; c++) {
+        if (strcmp(pd->service, pctx->smartcard_services[c]) == 0) {
             break;
         }
     }
-    if  (sc_services[c] == NULL) {
+    if (pctx->smartcard_services[c] == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Smartcard authentication for service [%s] not supported.\n",
               pd->service);

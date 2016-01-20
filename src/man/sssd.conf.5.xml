@@ -1389,7 +1389,81 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                     </listitem>
                 </varlistentry>
-
+                <varlistentry>
+                    <term>pam_p11_allowed_services (integer)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of PAM service names for
+                            which it will be allowed to use Smartcards.
+                        </para>
+                        <para>
+                            It is possible to add another PAM service name to
+                            the default set by using
+                            <quote>+service_name</quote> or to explicitly
+                            remove a PAM service name from the default set by
+                            using <quote>-service_name</quote>. For example,
+                            in order to replace a default PAM service name for
+                            authentication with Smartcards
+                            (e.g. <quote>login</quote>) with a custom PAM
+                            service name (e.g. <quote>my_pam_service</quote>),
+                            you would use the following configuration:
+                            <programlisting>
+pam_p11_allowed_services = +my_pam_service, -login
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: the default set of PAM service names
+                            includes:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        login
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        su
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        su-l
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        gdm-smartcard
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        gdm-password
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        kdm
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        sudo
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        sudo-i
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        gnome-screensaver
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

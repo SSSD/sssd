@@ -51,6 +51,7 @@ struct pam_ctx {
     int p11_child_debug_fd;
     char *nss_db;
     struct sss_certmap_ctx *sss_certmap_ctx;
+    char **smartcard_services;
 };
 
 struct pam_auth_dp_req {

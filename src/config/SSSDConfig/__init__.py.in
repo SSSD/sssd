@@ -103,6 +103,7 @@ option_strings = {
     'pam_cert_db_path' : _('Path to certificate database with PKCS#11 modules.'),
     'p11_child_timeout' : _('How many seconds will pam_sss wait for p11_child to finish'),
     'pam_app_services' : _('Which PAM services are permitted to contact application domains'),
+    'pam_p11_allowed_services' : _('Allowed services for using smartcards'),
 
     # [sudo]
     'sudo_timed' : _('Whether to evaluate the time-based attributes in sudo rules'),
