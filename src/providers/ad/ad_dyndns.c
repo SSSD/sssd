@@ -26,7 +26,7 @@
 #include "util/util.h"
 #include "providers/ldap/sdap_dyndns.h"
 #include "providers/data_provider.h"
-#include "providers/dp_dyndns.h"
+#include "providers/be_dyndns.h"
 #include "providers/ad/ad_common.h"
 
 void ad_dyndns_update(void *pvt);

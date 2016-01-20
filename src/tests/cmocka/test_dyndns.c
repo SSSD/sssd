@@ -34,7 +34,7 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "tests/cmocka/common_mock_be.h"
-#include "src/providers/dp_dyndns.h"
+#include "src/providers/be_dyndns.h"
 
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_dyndns_conf.ldb"

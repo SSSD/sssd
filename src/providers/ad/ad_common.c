@@ -23,7 +23,7 @@
 
 #include "providers/ad/ad_common.h"
 #include "providers/ad/ad_opts.h"
-#include "providers/dp_dyndns.h"
+#include "providers/be_dyndns.h"
 
 struct ad_server_data {
     bool gc;

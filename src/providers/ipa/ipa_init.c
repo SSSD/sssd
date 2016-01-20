@@ -41,7 +41,7 @@
 #include "providers/ldap/sdap_idmap.h"
 #include "providers/ipa/ipa_subdomains.h"
 #include "providers/ipa/ipa_srv.h"
-#include "providers/dp_dyndns.h"
+#include "providers/be_dyndns.h"
 
 struct ipa_options *ipa_options = NULL;
 

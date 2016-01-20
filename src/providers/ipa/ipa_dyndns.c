@@ -28,7 +28,7 @@
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/data_provider.h"
-#include "providers/dp_dyndns.h"
+#include "providers/be_dyndns.h"
 
 void ipa_dyndns_update(void *pvt);
 

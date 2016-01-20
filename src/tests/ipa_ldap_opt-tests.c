@@ -33,7 +33,7 @@
 #include "providers/krb5/krb5_opts.h"
 #include "providers/krb5/krb5_common.h"
 #include "providers/ad/ad_opts.h"
-#include "providers/dp_dyndns.h"
+#include "providers/be_dyndns.h"
 #include "tests/common.h"
 
 struct test_domain {

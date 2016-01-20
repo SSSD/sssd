@@ -38,7 +38,7 @@
 #include "providers/krb5/krb5_init_shared.h"
 #include "providers/ad/ad_id.h"
 #include "providers/ad/ad_srv.h"
-#include "providers/dp_dyndns.h"
+#include "providers/be_dyndns.h"
 #include "providers/ad/ad_subdomains.h"
 #include "providers/ad/ad_domain_info.h"
 

@@ -25,7 +25,7 @@
 #include "util/util.h"
 #include "resolv/async_resolv.h"
 #include "providers/dp_backend.h"
-#include "providers/dp_dyndns.h"
+#include "providers/be_dyndns.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/sdap_dyndns.h"
 #include "providers/ldap/sdap_id_op.h"

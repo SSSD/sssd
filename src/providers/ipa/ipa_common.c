@@ -30,7 +30,7 @@
 #include "providers/ipa/ipa_common.h"
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/ldap/sdap_async_private.h"
-#include "providers/dp_dyndns.h"
+#include "providers/be_dyndns.h"
 #include "util/sss_krb5.h"
 #include "db/sysdb_services.h"
 #include "db/sysdb_autofs.h"
