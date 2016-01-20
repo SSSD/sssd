@@ -1294,7 +1294,7 @@ sssd_be_SOURCES = \
     src/providers/data_provider_callbacks.c \
     src/providers/dp_dyndns.c \
     src/providers/be_ptask.c \
-    src/providers/dp_refresh.c \
+    src/providers/be_refresh.c \
     src/monitor/monitor_iface_generated.c \
     src/providers/data_provider_iface_generated.c \
     $(SSSD_FAILOVER_OBJ)
