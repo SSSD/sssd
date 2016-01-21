@@ -81,7 +81,6 @@ Requires: sssd-common = %{version}-%{release}
 Requires: sssd-ldap = %{version}-%{release}
 Requires: sssd-krb5 = %{version}-%{release}
 Requires: sssd-ipa = %{version}-%{release}
-Requires: sssd-common-pac = %{version}-%{release}
 Requires: sssd-ad = %{version}-%{release}
 Requires: sssd-proxy = %{version}-%{release}
 %if (0%{?with_python3} == 1)
@@ -177,8 +176,6 @@ the existing back ends.
 Summary: Common files for the SSSD
 Group: Applications/System
 License: GPLv3+
-Requires: libldb >= 0.9.3
-Requires: libtdb >= 1.1.3
 Requires: sssd-client%{?_isa} = %{version}-%{release}
 Requires: libsss_sudo = %{version}-%{release}
 Requires: libsss_autofs%{?_isa} = %{version}-%{release}
