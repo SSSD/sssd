@@ -43,6 +43,9 @@
 #define TEST_OFFSET 1000000
 #define TEST_OFFSET_STR "1000000"
 
+const int TEST_2922_MIN_ID = 1842600000;
+const int TEST_2922_MAX_ID = 1842799999;
+
 struct test_ctx {
     TALLOC_CTX *mem_idmap;
     struct sss_idmap_ctx *idmap_ctx;
@@ -128,7 +131,38 @@ static int setup_ranges(struct test_ctx *test_ctx, bool external_mapping,
     return 0;
 }
 
-static int test_sss_idmap_setup_with_domains(void **state) {
+static int setup_ranges_2922(struct test_ctx *test_ctx)
+{
+    const int TEST_2922_DFL_SLIDE = 9212;
+    struct sss_idmap_range range;
+    enum idmap_error_code err;
+    const char *name;
+    const char *sid;
+    /* Pick a new slice. */
+    id_t slice_num = -1;
+
+    assert_non_null(test_ctx);
+
+    name = TEST_DOM_NAME;
+    sid = TEST_DOM_SID;
+
+    err = sss_idmap_calculate_range(test_ctx->idmap_ctx, sid, &slice_num,
+                                    &range);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    /* Range computation should be deterministic. Lets validate that.  */
+    assert_int_equal(range.min, TEST_2922_MIN_ID);
+    assert_int_equal(range.max, TEST_2922_MAX_ID);
+    assert_int_equal(slice_num, TEST_2922_DFL_SLIDE);
+
+    err = sss_idmap_add_domain_ex(test_ctx->idmap_ctx, name, sid, &range,
+                                  NULL, 0, false /* No external mapping */);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    return 0;
+}
+
+static int test_sss_idmap_setup_with_domains(void **state)
+{
     struct test_ctx *test_ctx;
 
     test_sss_idmap_setup(state);
@@ -140,7 +174,21 @@ static int test_sss_idmap_setup_with_domains(void **state) {
     return 0;
 }
 
-static int test_sss_idmap_setup_with_domains_sec_slices(void **state) {
+static int test_sss_idmap_setup_with_domains_2922(void **state)
+{
+    struct test_ctx *test_ctx;
+
+    test_sss_idmap_setup(state);
+
+    test_ctx = talloc_get_type(*state, struct test_ctx);
+    assert_non_null(test_ctx);
+
+    setup_ranges_2922(test_ctx);
+    return 0;
+}
+
+static int test_sss_idmap_setup_with_domains_sec_slices(void **state)
+{
     struct test_ctx *test_ctx;
 
     test_sss_idmap_setup(state);
@@ -152,7 +200,8 @@ static int test_sss_idmap_setup_with_domains_sec_slices(void **state) {
     return 0;
 }
 
-static int test_sss_idmap_setup_with_external_mappings(void **state) {
+static int test_sss_idmap_setup_with_external_mappings(void **state)
+{
     struct test_ctx *test_ctx;
 
     test_sss_idmap_setup(state);
@@ -164,7 +213,8 @@ static int test_sss_idmap_setup_with_external_mappings(void **state) {
     return 0;
 }
 
-static int test_sss_idmap_setup_with_both(void **state) {
+static int test_sss_idmap_setup_with_both(void **state)
+{
     struct test_ctx *test_ctx;
 
     test_sss_idmap_setup(state);
@@ -296,6 +346,58 @@ void test_map_id(void **state)
     assert_int_equal(err, IDMAP_SUCCESS);
     assert_string_equal(sid, TEST_DOM_SID"-"TEST_OFFSET_STR);
     sss_idmap_free_sid(test_ctx->idmap_ctx, sid);
+}
+
+/* https://fedorahosted.org/sssd/ticket/2922 */
+/* ID mapping - bug in computing max id for slice range */
+void test_map_id_2922(void **state)
+{
+    const char* TEST_2922_FIRST_SID = TEST_DOM_SID"-0";
+    /* Last SID = first SID + (default) rangesize -1 */
+    const char* TEST_2922_LAST_SID = TEST_DOM_SID"-199999";
+    /* Last SID = first SID + rangesize */
+    const char* TEST_2922_LAST_SID_PLUS_ONE = TEST_DOM_SID"-200000";
+    struct test_ctx *test_ctx;
+    enum idmap_error_code err;
+    uint32_t id;
+    char *sid = NULL;
+
+    test_ctx = talloc_get_type(*state, struct test_ctx);
+
+    assert_non_null(test_ctx);
+
+    /* Min UNIX ID to SID */
+    err = sss_idmap_unix_to_sid(test_ctx->idmap_ctx, TEST_2922_MIN_ID, &sid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_string_equal(sid, TEST_2922_FIRST_SID);
+    sss_idmap_free_sid(test_ctx->idmap_ctx, sid);
+
+    /* First SID to UNIX ID */
+    err = sss_idmap_sid_to_unix(test_ctx->idmap_ctx, TEST_2922_FIRST_SID, &id);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(id, TEST_2922_MIN_ID);
+
+    /* Max UNIX ID to SID */
+    err = sss_idmap_unix_to_sid(test_ctx->idmap_ctx, TEST_2922_MAX_ID, &sid);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_string_equal(sid, TEST_2922_LAST_SID);
+    sss_idmap_free_sid(test_ctx->idmap_ctx, sid);
+
+    /* Last SID to UNIX ID */
+    err = sss_idmap_sid_to_unix(test_ctx->idmap_ctx, TEST_2922_LAST_SID, &id);
+    assert_int_equal(err, IDMAP_SUCCESS);
+    assert_int_equal(id, TEST_2922_MAX_ID);
+
+    /* Max UNIX ID + 1 to SID */
+    err = sss_idmap_unix_to_sid(test_ctx->idmap_ctx, TEST_2922_MAX_ID + 1,
+                                &sid);
+    assert_int_equal(err, IDMAP_NO_DOMAIN);
+
+    /* Last SID + 1 to UNIX ID */
+    err = sss_idmap_sid_to_unix(test_ctx->idmap_ctx,
+                                TEST_2922_LAST_SID_PLUS_ONE, &id);
+    /* Auto adding new ranges is disable in this test.  */
+    assert_int_equal(err, IDMAP_NO_RANGE);
 }
 
 void test_map_id_sec_slices(void **state)
@@ -588,6 +690,9 @@ int main(int argc, const char *argv[])
                                         test_sss_idmap_teardown),
         cmocka_unit_test_setup_teardown(test_map_id,
                                         test_sss_idmap_setup_with_domains,
+                                        test_sss_idmap_teardown),
+        cmocka_unit_test_setup_teardown(test_map_id_2922,
+                                        test_sss_idmap_setup_with_domains_2922,
                                         test_sss_idmap_teardown),
         cmocka_unit_test_setup_teardown(test_map_id_sec_slices,
                                         test_sss_idmap_setup_with_domains_sec_slices,
