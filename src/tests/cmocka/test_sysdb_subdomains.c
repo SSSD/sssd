@@ -509,6 +509,76 @@ static void test_sysdb_link_ad_multidom(void **state)
 
 }
 
+static void test_try_to_find_expected_dn(void **state)
+{
+    int ret;
+    struct sysdb_attrs *result;
+    struct sysdb_attrs *usr_attrs[10] = { NULL };
+    struct sss_domain_info *dom;
+    struct subdom_test_ctx *test_ctx =
+        talloc_get_type(*state, struct subdom_test_ctx);
+
+    dom = find_domain_by_name(test_ctx->tctx->dom,
+                              "child2.test_sysdb_subdomains_2", true);
+    assert_non_null(dom);
+
+    usr_attrs[0] = sysdb_new_attrs(test_ctx);
+    assert_non_null(usr_attrs[0]);
+
+    ret = sysdb_attrs_add_string(usr_attrs[0], SYSDB_ORIG_DN,
+                  "uid=user,cn=abc,dc=c2,dc=child2,dc=test_sysdb_subdomains_2");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_try_to_find_expected_dn(NULL, NULL, NULL, 0, NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ret = sysdb_try_to_find_expected_dn(dom, "dc", usr_attrs, 1, &result);
+    assert_int_equal(ret, ENOENT);
+
+    ret = sysdb_try_to_find_expected_dn(dom, "xy", usr_attrs, 1, &result);
+    assert_int_equal(ret, EOK);
+    assert_ptr_equal(result, usr_attrs[0]);
+
+    usr_attrs[1] = sysdb_new_attrs(test_ctx);
+    assert_non_null(usr_attrs[1]);
+
+    ret = sysdb_attrs_add_string(usr_attrs[1], SYSDB_ORIG_DN,
+                 "uid=user1,cn=abc,dc=child2,dc=test_sysdb_subdomains_2");
+    assert_int_equal(ret, EOK);
+
+    usr_attrs[2] = sysdb_new_attrs(test_ctx);
+    assert_non_null(usr_attrs[2]);
+
+    ret = sysdb_attrs_add_string(usr_attrs[2], SYSDB_ORIG_DN,
+                 "uid=user2,cn=abc,dc=c2,dc=child2,dc=test_sysdb_subdomains_2");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_try_to_find_expected_dn(dom, "dc", usr_attrs, 3, &result);
+    assert_int_equal(ret, EOK);
+    assert_ptr_equal(result, usr_attrs[1]);
+
+    ret = sysdb_try_to_find_expected_dn(dom, "xy", usr_attrs, 3, &result);
+    assert_int_equal(ret, EINVAL);
+
+    /* Make sure cn=users match is preferred */
+    talloc_free(usr_attrs[2]);
+    usr_attrs[2] = sysdb_new_attrs(test_ctx);
+    assert_non_null(usr_attrs[2]);
+
+    ret = sysdb_attrs_add_string(usr_attrs[2], SYSDB_ORIG_DN,
+                 "uid=user2,cn=abc,cn=users,dc=child2,dc=test_sysdb_subdomains_2");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_try_to_find_expected_dn(dom, "dc", usr_attrs, 3, &result);
+    assert_int_equal(ret, EOK);
+    assert_ptr_equal(result, usr_attrs[2]);
+
+
+    talloc_free(usr_attrs[0]);
+    talloc_free(usr_attrs[1]);
+    talloc_free(usr_attrs[2]);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -540,6 +610,9 @@ int main(int argc, const char *argv[])
                                         test_sysdb_subdom_setup,
                                         test_sysdb_subdom_teardown),
         cmocka_unit_test_setup_teardown(test_sysdb_link_ad_multidom,
+                                        test_sysdb_subdom_setup,
+                                        test_sysdb_subdom_teardown),
+        cmocka_unit_test_setup_teardown(test_try_to_find_expected_dn,
                                         test_sysdb_subdom_setup,
                                         test_sysdb_subdom_teardown),
     };
