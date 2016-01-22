@@ -607,13 +607,13 @@ get_helpers(struct sss_idmap_ctx *ctx,
     for (int i = 0; i < ctx->idmap_opts.extra_slice_init; i++) {
         secondary_name = generate_sec_slice_name(ctx, domain_sid, first_rid);
         if (secondary_name == NULL) {
-            return IDMAP_OUT_OF_MEMORY;
+            err = IDMAP_OUT_OF_MEMORY;
+            goto fail;
         }
 
         err = generate_slice(ctx, secondary_name, first_rid, &slice);
         if (err != IDMAP_SUCCESS) {
-            ctx->free_func(secondary_name, ctx->alloc_pvt);
-            return err;
+            goto fail;
         }
 
         first_rid += ctx->idmap_opts.rangesize;
@@ -631,6 +631,14 @@ get_helpers(struct sss_idmap_ctx *ctx,
 
     *_sec_slices = sec_slices;
     return IDMAP_SUCCESS;
+
+fail:
+    ctx->free_func(secondary_name, ctx->alloc_pvt);
+
+    /* Free already generated helpers. */
+    free_helpers(ctx, sec_slices, true);
+
+    return err;
 }
 
 enum idmap_error_code sss_idmap_add_domain_ex(struct sss_idmap_ctx *ctx,
