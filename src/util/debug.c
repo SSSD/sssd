@@ -331,6 +331,13 @@ int chown_debug_file(const char *filename,
     free(logpath);
     if (ret != 0) {
         ret = errno;
+        if (ret == ENOENT) {
+            /* Log does not exist. We might log to journald
+             * or starting for first time.
+             * It's not a failure. */
+            return EOK;
+        }
+
         DEBUG(SSSDBG_FATAL_FAILURE, "chown failed for [%s]: [%d]\n",
               log_file, ret);
         return ret;
