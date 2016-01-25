@@ -405,7 +405,10 @@ static int ipa_initgr_get_overrides_step(struct tevent_req *req)
         /* This should never happen, the search filter used to get the list
          * of groups includes "uuid=*"
          */
-        DEBUG(SSSDBG_OP_FAILURE, "A group with no UUID, error!\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "The group %s has no UUID attribute %s, error!\n",
+              ldb_dn_get_linearized(state->groups[state->group_idx]->dn),
+              state->groups_id_attr);
         return EINVAL;
     }
 

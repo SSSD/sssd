@@ -1230,6 +1230,7 @@ static errno_t ipa_get_ad_apply_override_step(struct tevent_req *req)
      * attributes set, i.e. where overrides might not have been applied. */
     ret = sysdb_asq_search(state, state->obj_dom, state->obj_msg->dn,
                           "(&("SYSDB_GC")("SYSDB_GIDNUM"=*)" \
+                            "("SYSDB_POSIX"=TRUE)" \
                             "(!("ORIGINALAD_PREFIX SYSDB_GIDNUM"=*))" \
                             "(!("ORIGINALAD_PREFIX SYSDB_NAME"=*)))",
                           SYSDB_INITGR_ATTR,

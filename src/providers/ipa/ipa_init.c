@@ -139,6 +139,24 @@ int common_ipa_init(struct be_ctx *bectx)
     return EOK;
 }
 
+static struct sdap_ext_member_ctx *
+ipa_create_ext_members_ctx(TALLOC_CTX *mem_ctx,
+                           struct ipa_id_ctx *id_ctx)
+{
+    struct sdap_ext_member_ctx *ext_ctx = NULL;
+
+    ext_ctx = talloc_zero(mem_ctx, struct sdap_ext_member_ctx);
+    if (ext_ctx == NULL) {
+        return NULL;
+    }
+
+    ext_ctx->pvt = id_ctx;
+    ext_ctx->ext_member_resolve_send = ipa_ext_group_member_send;
+    ext_ctx->ext_member_resolve_recv = ipa_ext_group_member_recv;
+
+    return ext_ctx;
+}
+
 int sssm_ipa_id_init(struct be_ctx *bectx,
                      struct bet_ops **ops,
                      void **pvt_data)
@@ -358,6 +376,16 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     if (ret != EOK && ret != EEXIST) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Periodical refresh "
               "will not work [%d]: %s\n", ret, strerror(ret));
+    }
+
+    ipa_ctx->sdap_id_ctx->opts->ext_ctx = ipa_create_ext_members_ctx(
+                                                    ipa_ctx->sdap_id_ctx->opts,
+                                                    ipa_ctx);
+    if (ipa_ctx->sdap_id_ctx->opts->ext_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to set SRV the extrernal group ctx\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     *ops = &ipa_id_ops;

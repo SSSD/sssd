@@ -923,3 +923,278 @@ static errno_t ipa_add_ad_memberships_recv(struct tevent_req *req,
 
     return EOK;
 }
+
+static errno_t
+search_user_or_group_by_sid_str(TALLOC_CTX *mem_ctx,
+                                struct sss_domain_info *domain,
+                                const char *sid_str,
+                                enum sysdb_member_type *_member_type,
+                                struct ldb_message **_msg)
+{
+    errno_t ret;
+    struct ldb_message *msg = NULL;
+    const char *attrs[] = { SYSDB_NAME,
+                            SYSDB_SID_STR,
+                            SYSDB_ORIG_DN,
+                            SYSDB_OBJECTCLASS,
+                            SYSDB_CACHE_EXPIRE,
+                            NULL };
+    TALLOC_CTX *tmp_ctx = NULL;
+    char *sanitized_sid = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    /* In theory SID shouldn't contain any special LDAP characters, but let's
+     * be paranoid
+     */
+    ret = sss_filter_sanitize(tmp_ctx, sid_str, &sanitized_sid);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sysdb_search_user_by_sid_str(tmp_ctx, domain,
+                                       sid_str, attrs, &msg);
+    if (ret == EOK) {
+        *_member_type = SYSDB_MEMBER_USER;
+    } else if (ret == ENOENT) {
+        ret = sysdb_search_group_by_sid_str(tmp_ctx, domain,
+                                            sid_str, attrs, &msg);
+        if (ret == EOK) {
+            *_member_type = SYSDB_MEMBER_GROUP;
+        }
+    }
+
+    switch (ret) {
+    case EOK:
+        DEBUG(SSSDBG_TRACE_FUNC, "Found %s in sysdb\n", sid_str);
+        *_msg = talloc_steal(mem_ctx, msg);
+        break;
+    case ENOENT:
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Could not find %s in sysdb", sid_str);
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Error looking for %s in sysdb [%d]: %s\n",
+              sid_str, ret, sss_strerror(ret));
+        break;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t
+ipa_ext_group_member_check(TALLOC_CTX *mem_ctx,
+                           struct ipa_id_ctx *ipa_ctx,
+                           struct sss_domain_info *member_dom,
+                           const char *ext_member,
+                           enum sysdb_member_type *_member_type,
+                           struct sysdb_attrs **_member)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    errno_t ret;
+    uint64_t expire;
+    time_t now = time(NULL);
+    struct ldb_message *msg;
+    struct sysdb_attrs **members;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
+        return ENOMEM;
+    }
+
+    ret = search_user_or_group_by_sid_str(tmp_ctx, member_dom, ext_member,
+                                          _member_type, &msg);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Error looking up sid %s: [%d]: %s\n",
+               ext_member, ret, sss_strerror(ret));
+        goto done;
+    }
+
+    ret = sysdb_msg2attrs(tmp_ctx, 1, &msg, &members);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not convert result to sysdb_attrs [%d]: %s\n",
+               ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Return the member both expired and valid */
+    *_member = talloc_steal(mem_ctx, members[0]);
+
+    expire = ldb_msg_find_attr_as_uint64(msg, SYSDB_CACHE_EXPIRE, 0);
+    if (expire != 0 && expire <= now) {
+        DEBUG(SSSDBG_TRACE_FUNC, "%s is expired", ext_member);
+        ret = EAGAIN;
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+/* For the IPA external member resolution, we expect a SID as the input.
+ * The _recv() function output is the member and a type (user/group)
+ * since nothing else can be a group member.
+ */
+struct ipa_ext_member_state {
+    const char *ext_member;
+    struct sss_domain_info *dom;
+
+    enum sysdb_member_type member_type;
+    struct sysdb_attrs *member;
+};
+
+static void ipa_ext_group_member_done(struct tevent_req *subreq);
+
+struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             const char *ext_member,
+                                             void *pvt)
+{
+    struct ipa_id_ctx *ipa_ctx;
+    struct ipa_ext_member_state *state;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct be_acct_req *ar;
+    errno_t ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct ipa_ext_member_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->ext_member = ext_member;
+
+    ipa_ctx = talloc_get_type(pvt, struct ipa_id_ctx);
+    if (ipa_ctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Wrong private context!\n");
+        ret = EINVAL;
+        goto immediate;
+    }
+
+    state->dom = find_domain_by_sid(ipa_ctx->sdap_id_ctx->be->domain,
+                                    ext_member);
+    if (state->dom == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot find domain of SID [%s]\n", ext_member);
+        ret = ENOENT;
+        goto immediate;
+    }
+
+    ret = ipa_ext_group_member_check(state, ipa_ctx, state->dom, ext_member,
+                                     &state->member_type, &state->member);
+    if (ret == EOK) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "external member %s already cached\n", ext_member);
+        goto immediate;
+    }
+
+    ret = get_be_acct_req_for_sid(state, ext_member, state->dom->name, &ar);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot create the account request for [%s]\n", ext_member);
+        goto immediate;
+    }
+
+    subreq = be_get_account_info_send(state, ev, NULL,
+                                      ipa_ctx->sdap_id_ctx->be, ar);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+    tevent_req_set_callback(subreq, ipa_ext_group_member_done, req);
+
+    return req;
+
+immediate:
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void ipa_ext_group_member_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_ext_member_state *state = tevent_req_data(req,
+                                                struct ipa_ext_member_state);
+    errno_t ret;
+    int err_maj;
+    int err_min;
+    const char *err_msg;
+    struct ldb_message *msg;
+    struct sysdb_attrs **members;
+
+    ret = be_get_account_info_recv(subreq, state,
+                                   &err_maj, &err_min, &err_msg);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "be request failed %d:%d: %s\n", err_maj, err_min, err_msg);
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = search_user_or_group_by_sid_str(state,
+                                          state->dom,
+                                          state->ext_member,
+                                          &state->member_type,
+                                          &msg);
+    if (ret != EOK) {
+        DEBUG(ret == ENOENT ? SSSDBG_TRACE_FUNC : SSSDBG_OP_FAILURE,
+              "Could not find %s in sysdb [%d]: %s\n",
+              state->ext_member, ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_msg2attrs(state, 1, &msg, &members);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not convert result to sysdb_attrs [%d]: %s\n",
+               ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->member = members[0];
+    tevent_req_done(req);
+}
+
+errno_t ipa_ext_group_member_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  enum sysdb_member_type *_member_type,
+                                  struct sss_domain_info **_dom,
+                                  struct sysdb_attrs **_member)
+{
+    struct ipa_ext_member_state *state = tevent_req_data(req,
+                                                struct ipa_ext_member_state);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    if (_member_type != NULL) {
+        *_member_type = state->member_type;
+    }
+
+    if (_dom) {
+        *_dom = state->dom;
+    }
+
+    if (_member != NULL) {
+        *_member = talloc_steal(mem_ctx, state->member);
+    }
+
+    return EOK;
+}
