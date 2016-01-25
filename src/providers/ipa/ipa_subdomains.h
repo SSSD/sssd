@@ -137,4 +137,15 @@ struct tevent_req *ipa_get_ad_memberships_send(TALLOC_CTX *mem_ctx,
                                         const char *domain);
 
 errno_t ipa_get_ad_memberships_recv(struct tevent_req *req, int *dp_error_out);
+
+struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             const char *ext_member,
+                                             void *pvt);
+errno_t ipa_ext_group_member_recv(TALLOC_CTX *mem_ctx,
+                                  struct tevent_req *req,
+                                  enum sysdb_member_type *_member_type,
+                                  struct sss_domain_info **_dom,
+                                  struct sysdb_attrs **_member);
+
 #endif /* _IPA_SUBDOMAINS_H_ */
