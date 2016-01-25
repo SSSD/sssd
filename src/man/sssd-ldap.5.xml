@@ -942,6 +942,22 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_group_external_member (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that references group
+                            members that are defined in an external
+                            domain. At the moment, only IPA's external
+                            members are supported.
+                        </para>
+                        <para>
+                            Default: ipaExternalMember in the IPA provider,
+                            otherwise unset.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_group_nesting_level (integer)</term>
                     <listitem>
                         <para>

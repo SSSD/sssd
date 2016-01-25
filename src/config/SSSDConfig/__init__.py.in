@@ -333,6 +333,7 @@ option_strings = {
     'ldap_group_objectsid' : _("objectSID attribute"),
     'ldap_group_modify_timestamp' : _('Modification time attribute for groups'),
     'ldap_group_type' : _('Type of the group and other flags'),
+    'ldap_group_external_member' : _('The LDAP group external member attribute'),
     #replaced by ldap_entry_usn# 'ldap_group_entry_usn' : _('entryUSN attribute'),
     'ldap_group_nesting_level' : _('Maximum nesting level SSSd will follow'),
 

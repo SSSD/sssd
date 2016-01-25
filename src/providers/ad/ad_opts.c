@@ -233,6 +233,7 @@ struct sdap_attr_map ad_2008r2_group_map[] = {
     { "ldap_group_modify_timestamp", "whenChanged", SYSDB_ORIG_MODSTAMP, NULL },
     { "ldap_group_entry_usn", SDAP_AD_USN, SYSDB_USN, NULL },
     { "ldap_group_type", "groupType", SYSDB_GROUP_TYPE, NULL },
+    { "ldap_group_external_member", NULL, SYSDB_EXTERNAL_MEMBER, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };
 
