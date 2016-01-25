@@ -130,8 +130,20 @@ errno_t sdap_nested_group_recv(TALLOC_CTX *mem_ctx,
                                unsigned long *_num_users,
                                struct sysdb_attrs ***_users,
                                unsigned long *_num_groups,
-                               struct sysdb_attrs ***_groups);
+                               struct sysdb_attrs ***_groups,
+                               hash_table_t **missing_external);
 
+struct tevent_req *
+sdap_nested_group_lookup_external_send(TALLOC_CTX *mem_ctx,
+                                       struct tevent_context *ev,
+                                       struct sss_domain_info *group_dom,
+                                       struct sdap_ext_member_ctx *ext_ctx,
+                                       hash_table_t *missing_external);
+errno_t
+sdap_nested_group_lookup_external_recv(TALLOC_CTX *mem_ctx,
+                                       struct tevent_req *req);
+
+/* from sdap_async_initgroups.c */
 errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                    struct sss_domain_info *domain,
                                    struct sdap_options *opts,
@@ -139,7 +151,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
                                    struct sysdb_attrs **ldap_groups,
                                    int ldap_groups_count);
 
-/* from sdap_async_nested_groups.c */
+/* from sdap_ad_groups.c */
 errno_t sdap_check_ad_group_type(struct sss_domain_info *dom,
                                  struct sdap_options *opts,
                                  struct sysdb_attrs *group_attrs,
