@@ -1758,6 +1758,7 @@ struct sdap_get_groups_state {
     struct sysdb_attrs **groups;
     size_t count;
     size_t check_count;
+    hash_table_t *missing_external;
 
     hash_table_t *user_hash;
     hash_table_t *group_hash;
@@ -2333,6 +2334,8 @@ int sdap_get_groups_recv(struct tevent_req *req,
     return EOK;
 }
 
+static void sdap_nested_ext_done(struct tevent_req *subreq);
+
 static void sdap_nested_done(struct tevent_req *subreq)
 {
     errno_t ret, tret;
@@ -2348,7 +2351,8 @@ static void sdap_nested_done(struct tevent_req *subreq)
                                             struct sdap_get_groups_state);
 
     ret = sdap_nested_group_recv(state, subreq, &user_count, &users,
-                                 &group_count, &groups);
+                                 &group_count, &groups,
+                                 &state->missing_external);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Nested group processing failed: [%d][%s]\n",
@@ -2387,8 +2391,25 @@ static void sdap_nested_done(struct tevent_req *subreq)
     }
     in_transaction = false;
 
-    /* Processing complete */
-    tevent_req_done(req);
+    if (hash_count(state->missing_external) == 0) {
+        /* No external members. Processing complete */
+        DEBUG(SSSDBG_TRACE_INTERNAL, "No external members, done");
+        tevent_req_done(req);
+        return;
+    }
+
+    /* At the moment, we need to save the direct groups & members in one
+     * transaction and then query the others in a separate requests
+     */
+    subreq = sdap_nested_group_lookup_external_send(state, state->ev,
+                                                    state->dom,
+                                                    state->opts->ext_ctx,
+                                                    state->missing_external);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sdap_nested_ext_done, req);
     return;
 
 fail:
@@ -2399,6 +2420,28 @@ fail:
         }
     }
     tevent_req_error(req, ret);
+}
+
+static void sdap_nested_ext_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_groups_state *state = tevent_req_data(req,
+                                            struct sdap_get_groups_state);
+
+    ret = sdap_nested_group_lookup_external_recv(state, subreq);
+    talloc_free(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot resolve external members [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
 }
 
 static errno_t sdap_nested_group_populate_users(TALLOC_CTX *mem_ctx,

@@ -57,6 +57,7 @@ struct nested_groups_test_ctx {
     struct sdap_domain *sdap_domain;
     struct sdap_idmap_ctx *idmap_ctx;
     struct sdap_id_ctx *sdap_id_ctx;
+    hash_table_t *missing_external;
 
     struct sysdb_attrs **users;
     struct sysdb_attrs **groups;
@@ -110,7 +111,8 @@ static void nested_groups_test_done(struct tevent_req *req)
 
     ctx->tctx->error = sdap_nested_group_recv(ctx, req,
                                               &ctx->num_users, &ctx->users,
-                                              &ctx->num_groups, &ctx->groups);
+                                              &ctx->num_groups, &ctx->groups,
+                                              &ctx->missing_external);
     talloc_zfree(req);
 
     ctx->tctx->done = true;
