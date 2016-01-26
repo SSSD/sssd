@@ -89,6 +89,49 @@ static char *idmap_strdup(struct sss_idmap_ctx *ctx, const char *str)
     return new;
 }
 
+static bool ranges_eq(const struct idmap_range_params *a,
+                      const struct idmap_range_params *b)
+{
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+
+    if (a->first_rid == b->first_rid
+            && a->min_id == b->min_id
+            && a->max_id == b->max_id) {
+        return true;
+    }
+
+    return false;
+}
+
+static enum idmap_error_code
+construct_range(struct sss_idmap_ctx *ctx,
+                const struct idmap_range_params *src,
+                char *id,
+                struct idmap_range_params **_dst)
+{
+    struct idmap_range_params *dst;
+
+    if (src == NULL || id == NULL || _dst == NULL) {
+        return IDMAP_ERROR;
+    }
+
+    dst = ctx->alloc_func(sizeof(struct idmap_range_params), ctx->alloc_pvt);
+    if (dst == NULL) {
+        return IDMAP_OUT_OF_MEMORY;
+    }
+
+    dst->min_id = src->min_id;
+    dst->max_id = src->max_id;
+    dst->first_rid = src->first_rid;
+    dst->next = NULL;
+    dst->range_id = id;
+
+    *_dst = dst;
+    return IDMAP_SUCCESS;
+}
+
 static bool id_is_in_range(uint32_t id,
                            struct idmap_range_params *rp,
                            uint32_t *rid)
@@ -230,6 +273,20 @@ static void free_helpers(struct sss_idmap_ctx *ctx,
 
         it = tmp;
     }
+}
+
+static struct idmap_range_params*
+get_helper_by_id(struct idmap_range_params *helpers, const char *id)
+{
+    struct idmap_range_params *it;
+
+    for (it = helpers; it != NULL; it = it->next) {
+        if (strcmp(it->range_id, id) == 0) {
+            return it;
+        }
+    }
+
+    return NULL;
 }
 
 static void sss_idmap_free_domain(struct sss_idmap_ctx *ctx,
@@ -854,30 +911,44 @@ static bool comp_id(struct idmap_range_params *range_params, long long rid,
 
 static enum idmap_error_code
 get_range(struct sss_idmap_ctx *ctx,
+          struct idmap_range_params *helpers,
           const char *dom_sid,
           long long rid,
           struct idmap_range_params **_range)
 {
-    char *secondary_name;
+    char *secondary_name = NULL;;
     enum idmap_error_code err;
     int first_rid;
     struct idmap_range_params *range;
+    struct idmap_range_params *helper;
 
     first_rid = (rid / ctx->idmap_opts.rangesize) * ctx->idmap_opts.rangesize;
 
     secondary_name = generate_sec_slice_name(ctx, dom_sid, first_rid);
     if (secondary_name == NULL) {
-        return IDMAP_OUT_OF_MEMORY;
+        err = IDMAP_OUT_OF_MEMORY;
+        goto error;
     }
 
-    err = generate_slice(ctx, secondary_name, first_rid, &range);
-    if (err == IDMAP_OUT_OF_SLICES) {
-        ctx->free_func(secondary_name, ctx->alloc_pvt);
-        return err;
+    helper = get_helper_by_id(helpers, secondary_name);
+    if (helper != NULL) {
+        /* Utilize helper's range. */
+        err = construct_range(ctx, helper, secondary_name, &range);
+    } else {
+        /* Have to generate a whole new range. */
+        err = generate_slice(ctx, secondary_name, first_rid, &range);
+    }
+
+    if (err != IDMAP_SUCCESS) {
+        goto error;
     }
 
     *_range = range;
     return IDMAP_SUCCESS;
+
+error:
+    ctx->free_func(secondary_name, ctx->alloc_pvt);
+    return err;
 }
 
 static enum idmap_error_code
@@ -904,9 +975,7 @@ spawn_dom(struct sss_idmap_ctx *ctx,
     it = ctx->idmap_domain_info;
     while (it != NULL) {
         /* Find the newly added domain. */
-        if (it->range_params.first_rid == range->first_rid
-                && it->range_params.min_id == range->min_id
-                && it->range_params.max_id == range->max_id) {
+        if (ranges_eq(&it->range_params, range)) {
 
             /* Share helpers. */
             it->helpers = parent->helpers;
@@ -958,8 +1027,7 @@ add_dom_for_sid(struct sss_idmap_ctx *ctx,
         goto done;
     }
 
-    /* todo optimize */
-    err = get_range(ctx, matched_dom->sid, rid, &range);
+    err = get_range(ctx, matched_dom->helpers, matched_dom->sid, rid, &range);
     if (err != IDMAP_SUCCESS) {
         goto done;
     }
@@ -1142,6 +1210,11 @@ enum idmap_error_code sss_idmap_unix_to_sid(struct sss_idmap_ctx *ctx,
         for (struct idmap_range_params *it = idmap_domain_info->helpers;
              it != NULL;
              it = it->next) {
+
+            if (idmap_domain_info->helpers_owner == false) {
+                /* Checking helpers on owner is sufficient. */
+                continue;
+            }
 
             if (id_is_in_range(id, it, &rid)) {
 
