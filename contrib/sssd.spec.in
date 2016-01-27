@@ -518,6 +518,19 @@ Requires: sssd-common = %{version}-%{release}
 Provides the D-Bus responder of the SSSD, called the InfoPipe, that allows
 the information from the SSSD to be transmitted over the system bus.
 
+%if (0%{?install_pcscd_polkit_rule} == 1)
+%package polkit-rules
+Summary: Rules for polkit integration for SSSD
+Group: Applications/System
+License: GPLv3+
+Requires: polkit >= 0.106
+Requires: sssd-common = %{version}-%{release}
+
+%description polkit-rules
+Provides rules for polkit integration with SSSD. This is required
+for smartcard support.
+%endif
+
 %package -n libsss_simpleifp
 Summary: The SSSD D-Bus responder helper library
 Group: Development/Libraries
@@ -706,12 +719,6 @@ done
 %{_libexecdir}/%{servicename}/sssd_sudo
 %{_libexecdir}/%{servicename}/p11_child
 
-%if (0%{?install_pcscd_polkit_rule} == 1)
-%dir %{_datadir}/polkit-1
-%dir %{_datadir}/polkit-1/rules.d
-%{_datadir}/polkit-1/rules.d/*
-%endif
-
 %dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_simple.so
 
@@ -769,6 +776,11 @@ done
 %{_mandir}/man5/sss_rpcidmapd.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_cache.8*
+
+%if (0%{?install_pcscd_polkit_rule} == 1)
+%files polkit-rules
+%{_datadir}/polkit-1/rules.d/*
+%endif
 
 %files ldap -f sssd_ldap.lang
 %defattr(-,root,root,-)
