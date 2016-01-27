@@ -9,6 +9,7 @@ import pysss
 import SSSDConfig
 import getpass
 
+
 def parse_options():
     parser = OptionParser()
     parser.set_description("sss_obfuscate converts a given password into \
@@ -26,11 +27,13 @@ def parse_options():
                       metavar="DOMNAME")
     parser.add_option("-f", "--file",
                       dest="filename", default=None,
-                      help="Set input file to FILE (default: Use system default, usually /etc/sssd/sssd.conf)",
+                      help="Set input file to FILE (default: Use system "
+                           "default, usually /etc/sssd/sssd.conf)",
                       metavar="FILE")
     (options, args) = parser.parse_args()
 
     return options, args
+
 
 def main():
     options, args = parse_options()
@@ -44,10 +47,11 @@ def main():
 
     if not options.stdin:
         try:
-            pprompt = lambda: (getpass.getpass("Enter password: "), getpass.getpass("Re-enter password: "))
+            pprompt = lambda: (getpass.getpass("Enter password: "),
+                               getpass.getpass("Re-enter password: "))
             p1, p2 = pprompt()
 
-            #Work around bug in Python 2.6
+            # Work around bug in Python 2.6
             if '\x03' in p1 or '\x03' in p2:
                 raise KeyboardInterrupt
 
@@ -55,7 +59,7 @@ def main():
                 print('Passwords do not match. Try again')
                 p1, p2 = pprompt()
 
-                #Work around bug in Python 2.6
+                # Work around bug in Python 2.6
                 if '\x03' in p1 or '\x03' in p2:
                     raise KeyboardInterrupt
             password = p1
@@ -102,7 +106,6 @@ def main():
         print("The domain %s does not seem to support the required options"
               % options.domain)
         return 1
-
 
     sssdconfig.save_domain(domain)
     try:
