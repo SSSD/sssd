@@ -316,7 +316,8 @@ int be_fo_add_srv_server(struct be_ctx *ctx,
                             proto_table[proto], user_data);
     if (ret && ret != EEXIST) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to add SRV lookup reference to failover service\n");
+              "Failed to add SRV lookup reference to failover service "
+              "[%d]: %s\n", ret, sss_strerror(ret));
         return ret;
     }
 
@@ -329,7 +330,8 @@ int be_fo_add_srv_server(struct be_ctx *ctx,
                                     proto_table[i], user_data);
             if (ret && ret != EEXIST) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Failed to add SRV lookup reference to failover service\n");
+                      "Failed to add SRV lookup reference to failover "
+                      "service [%d]: %s\n", ret, sss_strerror(ret));
                 return ret;
             }
 
@@ -368,7 +370,8 @@ int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
                         user_data, primary);
     if (ret && ret != EEXIST) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to add server to failover service\n");
+              "Failed to add server to failover service [%d]: %s\n",
+              ret, sss_strerror(ret));
         return ret;
     }
 
@@ -465,7 +468,9 @@ static void be_primary_server_done(struct tevent_req *subreq)
         ret = be_primary_server_timeout_activate(ctx->bctx, ctx->ev, ctx->bctx,
                                                  ctx->svc, ctx->timeout);
         if (ret != EOK) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Could not schedule primary server lookup\n");
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Could not schedule primary server lookup [%d]: %s\n",
+                  ret, sss_strerror(ret));
         }
     } else if (ret == EOK) {
         be_run_reconnect_cb(ctx->bctx);
@@ -593,7 +598,8 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     return;
 
 fail:
-    DEBUG(SSSDBG_TRACE_LIBS, "Server resolution failed: %d\n", ret);
+    DEBUG(SSSDBG_TRACE_LIBS,
+          "Server resolution failed: [%d]: %s\n", ret, sss_strerror(ret));
     state->svc->first_resolved = NULL;
     tevent_req_error(req, ret);
 }
@@ -625,8 +631,8 @@ errno_t be_resolve_server_process(struct tevent_req *subreq,
             return EFAULT;
         }
         DEBUG(SSSDBG_MINOR_FAILURE,
-              "Couldn't resolve server (%s), resolver returned (%d)\n",
-              fo_get_server_str_name(state->srv), ret);
+              "Couldn't resolve server (%s), resolver returned [%d]: %s\n",
+              fo_get_server_str_name(state->srv), ret, sss_strerror(ret));
 
         state->attempts++;
         if (state->attempts >= 10) {
