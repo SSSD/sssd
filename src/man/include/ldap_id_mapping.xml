@@ -178,7 +178,9 @@ ldap_schema = ad
                         <para>
                             For example, if your most recently-added Active Directory user has
                             objectSid=S-1-5-21-2153326666-2176343378-3404031434-1107,
-                            <quote>ldap_idmap_range_size</quote> must be at least 1107.
+                            <quote>ldap_idmap_range_size</quote> must be at least 1108 as
+                            range size is equal to maximal SID minus minimal SID plus one
+                            (e.g. 1108 = 1107 - 0 + 1).
                         </para>
                         <para>
                             It is important to plan ahead for future expansion, as changing this
