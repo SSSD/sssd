@@ -43,7 +43,7 @@
 #define TEST_SUBDOM_NAME "test.subdomain"
 #define TEST_ID_PROVIDER "ldap"
 
-#define NSS_DB_PATH "./sssd_test_nssdb"
+#define NSS_DB_PATH TESTS_PATH
 #define NSS_DB "sql:"NSS_DB_PATH
 
 #define TEST_TOKEN_NAME "SSSD Test Token"
