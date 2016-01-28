@@ -202,7 +202,7 @@ int main(int argc, const char *argv[])
     test_dom_suite_setup(TEST_DB_PATH);
 
     rv = cmocka_run_group_tests(tests, NULL, NULL);
-    if (rv != 0) {
+    if (rv == 0) {
         test_dom_suite_cleanup(TEST_DB_PATH, CONFDB_FILE, NULL);
     }
 
