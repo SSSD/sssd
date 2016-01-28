@@ -901,7 +901,8 @@ static void sdap_get_users_done(struct tevent_req *subreq)
     ret = sdap_search_user_recv(state, subreq, &state->higher_usn,
                                 &state->users, &state->count);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve users\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve users [%d][%s].\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -911,7 +912,8 @@ static void sdap_get_users_done(struct tevent_req *subreq)
                           state->users, state->count,
                           &state->higher_usn);
     if (ret) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to store users.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to store users [%d][%s].\n",
+              ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
     }
