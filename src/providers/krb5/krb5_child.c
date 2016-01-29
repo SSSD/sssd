@@ -2572,6 +2572,29 @@ static krb5_error_code privileged_krb5_setup(struct krb5_req *kr,
     return 0;
 }
 
+static void try_open_krb5_conf(void)
+{
+    int fd;
+    int ret;
+
+    fd = open("/etc/krb5.conf", O_RDONLY);
+    if (fd != -1) {
+        close(fd);
+    } else {
+        ret = errno;
+        if (ret == EACCES || ret == EPERM) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "User with uid:%"SPRIuid" gid:%"SPRIgid" cannot read "
+                  "/etc/krb5.conf. It might cause problems\n",
+                  geteuid(), getegid());
+        } else {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot open /etc/krb5.conf [%d]: %s\n",
+                  ret, strerror(ret));
+        }
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     struct krb5_req *kr = NULL;
@@ -2673,6 +2696,7 @@ int main(int argc, const char *argv[])
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Running as [%"SPRIuid"][%"SPRIgid"].\n", geteuid(), getegid());
+    try_open_krb5_conf();
 
     ret = k5c_setup(kr, offline);
     if (ret != EOK) {
