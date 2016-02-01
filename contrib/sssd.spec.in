@@ -594,7 +594,6 @@ make %{?_smp_mflags} check VERBOSE=yes
 unset CK_TIMEOUT_MULTIPLIER
 
 %install
-rm -rf $RPM_BUILD_ROOT
 
 %if (0%{?with_python3} == 1)
 sed -i -e 's:/usr/bin/python:/usr/bin/python3:' src/tools/sss_obfuscate
@@ -683,9 +682,6 @@ do
             ;;
     esac
 done
-
-%clean
-rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
