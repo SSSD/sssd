@@ -19,7 +19,7 @@ AM_PROG_CC_C_O
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_DISABLE_STATIC
 AC_PROG_INSTALL
-AC_PROG_LIBTOOL
+LT_INIT
 m4_ifdef([AC_PROG_MKDIR_P],
          [AC_PROG_MKDIR_P],
          [AC_SUBST([MKDIR_P], "mkdir -p")])
