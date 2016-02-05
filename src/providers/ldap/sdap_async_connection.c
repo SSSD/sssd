@@ -754,6 +754,12 @@ static void simple_bind_done(struct sdap_op *op,
 
     if (result == LDAP_SUCCESS) {
         ret = EOK;
+    } else if (result == LDAP_INVALID_CREDENTIALS
+                   && errmsg != NULL && strstr(errmsg, "data 775,") != NULL) {
+        /* Value 775 is described in
+         * https://msdn.microsoft.com/en-us/library/windows/desktop/ms681386%28v=vs.85%29.aspx
+         * for more details please see commit message. */
+        ret = ERR_ACCOUNT_LOCKED;
     } else {
         ret = ERR_AUTH_FAILED;
     }

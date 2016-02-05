@@ -182,6 +182,8 @@ struct pam_data {
     bool offline_auth;
     bool last_auth_saved;
     int priv;
+    int account_locked;
+
 #ifdef USE_KEYRING
     key_serial_t key_serial;
 #endif
