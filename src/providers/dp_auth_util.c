@@ -160,6 +160,14 @@ bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)
         return false;
     }
 
+    /* Append the lockout of account */
+    dbret = dbus_message_iter_append_basic(&iter,
+                                           DBUS_TYPE_UINT32,
+                                           &pd->account_locked);
+    if (!dbret) {
+        return false;
+    }
+
     /* Create an array of response structures */
     dbret = dbus_message_iter_open_container(&iter,
                                              DBUS_TYPE_ARRAY, "(uay)",
@@ -240,6 +248,17 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
         return false;
     }
     dbus_message_iter_get_basic(&iter, &(pd->pam_status));
+
+    if (!dbus_message_iter_next(&iter)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam response has too few arguments.\n");
+        return false;
+    }
+
+    if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "pam response format error.\n");
+        return false;
+    }
+    dbus_message_iter_get_basic(&iter, &(pd->account_locked));
 
     if (!dbus_message_iter_next(&iter)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "pam response has too few arguments.\n");

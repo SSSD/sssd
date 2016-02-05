@@ -117,6 +117,7 @@
 #define CONFDB_PAM_TRUSTED_USERS "pam_trusted_users"
 #define CONFDB_PAM_PUBLIC_DOMAINS "pam_public_domains"
 #define CONFDB_PAM_ACCOUNT_EXPIRED_MESSAGE "pam_account_expired_message"
+#define CONFDB_PAM_ACCOUNT_LOCKED_MESSAGE "pam_account_locked_message"
 #define CONFDB_PAM_CERT_AUTH "pam_cert_auth"
 #define CONFDB_PAM_CERT_DB_PATH "pam_cert_db_path"
 #define CONFDB_PAM_P11_CHILD_TIMEOUT "p11_child_timeout"
