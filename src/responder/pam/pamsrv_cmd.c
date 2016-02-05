@@ -53,10 +53,10 @@ pam_get_last_online_auth_with_curr_token(struct sss_domain_info *domain,
 
 static void pam_reply(struct pam_auth_req *preq);
 
-static errno_t pack_user_info_account_expired(TALLOC_CTX *mem_ctx,
-                                              const char *user_error_message,
-                                              size_t *resp_len,
-                                              uint8_t **_resp)
+static errno_t pack_user_info_msg(TALLOC_CTX *mem_ctx,
+                                  const char *user_error_message,
+                                  size_t *resp_len,
+                                  uint8_t **_resp)
 {
     uint32_t resp_type = SSS_PAM_USER_INFO_ACCOUNT_EXPIRED;
     size_t err_len;
@@ -83,14 +83,13 @@ static errno_t pack_user_info_account_expired(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void inform_account_expired(struct pam_data* pd,
-                                   const char *pam_message)
+static void inform_user(struct pam_data* pd, const char *pam_message)
 {
     size_t msg_len;
     uint8_t *msg;
     errno_t ret;
 
-    ret = pack_user_info_account_expired(pd, pam_message, &msg_len, &msg);
+    ret = pack_user_info_msg(pd, pam_message, &msg_len, &msg);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "pack_user_info_account_expired failed.\n");
@@ -601,6 +600,7 @@ static void pam_reply(struct pam_auth_req *preq)
     time_t exp_date = -1;
     time_t delay_until = -1;
     char* pam_account_expired_message;
+    char* pam_account_locked_message;
     int pam_verbosity;
 
     pd = preq->pd;
@@ -762,7 +762,22 @@ static void pam_reply(struct pam_auth_req *preq)
             goto done;
         }
 
-        inform_account_expired(pd, pam_account_expired_message);
+        inform_user(pd, pam_account_expired_message);
+    }
+
+    if (pd->account_locked) {
+
+        ret = confdb_get_string(pctx->rctx->cdb, pd, CONFDB_PAM_CONF_ENTRY,
+                                CONFDB_PAM_ACCOUNT_LOCKED_MESSAGE, "",
+                                &pam_account_locked_message);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to get expiration message: %d:[%s].\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+
+        inform_user(pd, pam_account_locked_message);
     }
 
     ret = filter_responses(pctx->rctx->cdb, pd->resp_list);

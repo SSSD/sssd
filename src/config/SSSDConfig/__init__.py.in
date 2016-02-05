@@ -91,6 +91,7 @@ option_strings = {
     'pam_trusted_users' : _('List of trusted uids or user\'s name'),
     'pam_public_domains' : _('List of domains accessible even for untrusted users.'),
     'pam_account_expired_message' : _('Message printed when user account is expired.'),
+    'pam_account_locked_message' : _('Message printed when user account is locked.'),
     'p11_child_timeout' : _('How many seconds will pam_sss wait for p11_child to finish'),
 
     # [sudo]
