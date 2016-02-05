@@ -1022,16 +1022,39 @@ fallback_homedir = /home/%u
                     <term>pam_account_expired_message (string)</term>
                     <listitem>
                         <para>
-                           If user is authenticating using SSH keys and
-                           account is expired then by default
-                           'Permission denied' is output. This output will
-                           be changed to content of this variable if it is
-                           set.
+                           Allows a custom expiration message to be set,
+                           replacing the default 'Permission denied'
+                           message.
+                        </para>
+                        <para>
+                            Note: Please be aware that message is only
+                            printed for the SSH service unless pam_verbostiy
+                            is set to 3 (show all messages and debug
+                            information).
                         </para>
                         <para>
                             example:
                             <programlisting>
-pam_account_expired_message = Account expired, please call help desk.
+pam_account_expired_message = Account expired, please contact help desk.
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>pam_account_locked_message (string)</term>
+                    <listitem>
+                        <para>
+                           Allows a custom lockout message to be set,
+                           replacing the default 'Permission denied'
+                           message.
+                        </para>
+                        <para>
+                            example:
+                            <programlisting>
+pam_account_locked_message = Account locked, please contact help desk.
                             </programlisting>
                         </para>
                         <para>
