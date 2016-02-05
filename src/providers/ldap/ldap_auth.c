@@ -1302,6 +1302,10 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     case ERR_PASSWORD_EXPIRED:
         state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
         break;
+    case ERR_ACCOUNT_LOCKED:
+        state->pd->account_locked = true;
+        state->pd->pam_status = PAM_PERM_DENIED;
+        break;
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;
         dp_err = DP_ERR_FATAL;
