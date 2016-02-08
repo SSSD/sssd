@@ -108,6 +108,7 @@ option_strings = {
 
     # [pac]
     'allowed_uids': _('List of UIDs or user names allowed to access the PAC responder'),
+    'pac_lifetime': _('How long the PAC data is considered valid'),
 
     # [ifp]
     'allowed_uids': _('List of UIDs or user names allowed to access the InfoPipe responder'),

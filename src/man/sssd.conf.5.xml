@@ -1199,6 +1199,19 @@ pam_account_locked_message = Account locked, please contact help desk.
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>pac_lifetime (integer)</term>
+                    <listitem>
+                        <para>
+                            Lifetime of the PAC entry in seconds. As long as the
+                            PAC is valid the PAC data can be used to determine
+                            the group memberships of a user.
+                        </para>
+                        <para>
+                            Default: 300
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 

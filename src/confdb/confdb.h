@@ -147,6 +147,7 @@
 
 /* PAC */
 #define CONFDB_PAC_CONF_ENTRY "config/pac"
+#define CONFDB_PAC_LIFETIME "pac_lifetime"
 
 /* InfoPipe */
 #define CONFDB_IFP_CONF_ENTRY "config/ifp"

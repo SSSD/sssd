@@ -117,6 +117,8 @@
 #define SYSDB_PRIMARY_GROUP "ADPrimaryGroupID"
 #define SYSDB_PRIMARY_GROUP_GIDNUM "origPrimaryGroupGidNumber"
 #define SYSDB_SID_STR "objectSIDString"
+#define SYSDB_PAC_BLOB "pacBlob"
+#define SYSDB_PAC_BLOB_EXPIRE "pacBlobExpireTimestamp"
 #define SYSDB_UPN "userPrincipalName"
 #define SYSDB_CANONICAL_UPN "canonicalUserPrincipalName"
 #define SYSDB_CCACHE_FILE "ccacheFile"
