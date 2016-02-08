@@ -30,26 +30,12 @@
 #include "responder/sudo/sudosrv_private.h"
 #include "providers/data_provider.h"
 
-static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx);
-
-errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx)
+errno_t sudosrv_get_sudorules(struct sudo_cmd_ctx *cmd_ctx)
 {
     errno_t ret;
 
-    dctx->check_provider = true;
-    ret = sudosrv_get_user(dctx);
-    if (ret == EAGAIN) {
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-              "Looking up the user info from Data Provider\n");
-        return EAGAIN;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Error looking up user information [%d]: %s\n", ret, strerror(ret));
-        return ret;
-    }
-
     /* OK, got the user from cache. Try to get the rules. */
-    ret = sudosrv_get_rules(dctx->cmd_ctx);
+    ret = sudosrv_get_rules(cmd_ctx);
     if (ret == EAGAIN) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "Looking up the sudo rules from Data Provider\n");
@@ -61,262 +47,6 @@ errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx)
     }
 
     return EOK;
-}
-
-static void sudosrv_dp_send_acct_req_done(struct tevent_req *req);
-static void sudosrv_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                           const char *err_msg, void *ptr);
-
-static errno_t sudosrv_get_user(struct sudo_dom_ctx *dctx)
-{
-    TALLOC_CTX *tmp_ctx = NULL;
-    struct sss_domain_info *dom = dctx->domain;
-    struct sudo_cmd_ctx *cmd_ctx = dctx->cmd_ctx;
-    struct cli_ctx *cli_ctx = dctx->cmd_ctx->cli_ctx;
-    struct ldb_result *user;
-    time_t cache_expire = 0;
-    struct tevent_req *dpreq;
-    struct dp_callback_ctx *cb_ctx;
-    const char *original_name = NULL;
-    const char *extra_flag = NULL;
-    const char *search_name = NULL;
-    char *name = NULL;
-    uid_t uid = 0;
-    errno_t ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed\n");
-        return ENOMEM;
-    }
-
-    while (dom) {
-       /* if it is a domainless search, skip domains that require fully
-        * qualified names instead */
-        while (dom && cmd_ctx->check_next && dom->fqnames) {
-            dom = get_next_domain(dom, 0);
-        }
-
-        if (!dom) break;
-
-        /* make sure to update the dctx if we changed domain */
-        dctx->domain = dom;
-
-        talloc_free(name);
-        name = sss_get_cased_name(tmp_ctx, cmd_ctx->username,
-                                  dom->case_sensitive);
-        if (name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        name = sss_reverse_replace_space(tmp_ctx, name,
-                                         cmd_ctx->sudo_ctx->rctx->override_space);
-        if (name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sss_reverse_replace_whitespaces failed\n");
-            return ENOMEM;
-        }
-
-        DEBUG(SSSDBG_FUNC_DATA, "Requesting info about [%s@%s]\n",
-              name, dom->name);
-
-        ret = sysdb_getpwnam_with_views(dctx, dctx->domain, name, &user);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to make request to our cache!\n");
-            ret = EIO;
-            goto done;
-        }
-
-        if (user->count > 1) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "getpwnam call returned more than one result !?!\n");
-            ret = EIO;
-            goto done;
-        }
-
-        if (user->count == 0 && !dctx->check_provider) {
-            /* if a multidomain search, try with next */
-            if (cmd_ctx->check_next) {
-                dctx->check_provider = true;
-                dom = get_next_domain(dom, 0);
-                if (dom) continue;
-            }
-
-            DEBUG(SSSDBG_MINOR_FAILURE, "No results for getpwnam call\n");
-            ret = ENOENT;
-            goto done;
-        }
-
-        /* One result found, check cache expiry */
-        if (user->count == 1) {
-            cache_expire = ldb_msg_find_attr_as_uint64(user->msgs[0],
-                                                       SYSDB_CACHE_EXPIRE, 0);
-        }
-
-        /* If cache miss and we haven't checked DP yet OR the entry is
-         * outdated, go to DP */
-        if ((user->count == 0 || cache_expire < time(NULL))
-            && dctx->check_provider) {
-
-            search_name = cmd_ctx->username;
-            if (is_local_view(dom->view_name)) {
-                /* Search with original name in case of local view. */
-                if (user->count != 0) {
-                    search_name = ldb_msg_find_attr_as_string(user->msgs[0],
-                                                              SYSDB_NAME, NULL);
-                }
-            } else if (DOM_HAS_VIEWS(dom) && (user->count == 0
-                || ldb_msg_find_attr_as_string(user->msgs[0],
-                                               OVERRIDE_PREFIX SYSDB_NAME,
-                                               NULL) != NULL)) {
-                extra_flag = EXTRA_INPUT_MAYBE_WITH_VIEW;
-            }
-
-            dpreq = sss_dp_get_account_send(cli_ctx, cli_ctx->rctx,
-                                            dom, false, SSS_DP_INITGROUPS,
-                                            search_name, 0, extra_flag);
-            if (!dpreq) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Out of memory sending data provider request\n");
-                ret = ENOMEM;
-                goto done;
-            }
-
-            cb_ctx = talloc_zero(cli_ctx, struct dp_callback_ctx);
-            if(!cb_ctx) {
-                talloc_zfree(dpreq);
-                ret = ENOMEM;
-                goto done;
-            }
-
-            cb_ctx->callback = sudosrv_check_user_dp_callback;
-            cb_ctx->ptr = dctx;
-            cb_ctx->cctx = cli_ctx;
-            cb_ctx->mem_ctx = cli_ctx;
-
-            tevent_req_set_callback(dpreq, sudosrv_dp_send_acct_req_done, cb_ctx);
-
-            /* tell caller we are in an async call */
-            ret = EAGAIN;
-            goto done;
-        }
-
-        /* check uid */
-        uid = sss_view_ldb_msg_find_attr_as_uint64(dom, user->msgs[0],
-                                                   SYSDB_UIDNUM, 0);
-        if (uid != cmd_ctx->uid) {
-            /* if a multidomain search, try with next */
-            if (cmd_ctx->check_next) {
-                dctx->check_provider = true;
-                dom = get_next_domain(dom, 0);
-                if (dom) continue;
-            }
-
-            DEBUG(SSSDBG_MINOR_FAILURE, "UID does not match\n");
-            ret = ENOENT;
-            goto done;
-        }
-
-        /* user is stored in cache, remember cased and original name */
-        original_name = ldb_msg_find_attr_as_string(user->msgs[0],
-                                                    SYSDB_NAME, NULL);
-        if (original_name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "A user with no name?\n");
-            ret = EFAULT;
-            goto done;
-        }
-
-        cmd_ctx->cased_username = talloc_move(cmd_ctx, &name);
-        cmd_ctx->orig_username = talloc_strdup(cmd_ctx, original_name);
-        if (cmd_ctx->orig_username == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
-            ret = ENOMEM;
-            goto done;
-        }
-
-        /* and set domain */
-        cmd_ctx->domain = dom;
-
-        DEBUG(SSSDBG_TRACE_FUNC, "Returning info for user [%s@%s]\n",
-              cmd_ctx->username, dctx->domain->name);
-        ret = EOK;
-        goto done;
-    }
-
-    ret = ENOENT;
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-static void sudosrv_dp_send_acct_req_done(struct tevent_req *req)
-{
-    struct dp_callback_ctx *cb_ctx =
-            tevent_req_callback_data(req, struct dp_callback_ctx);
-
-    errno_t ret;
-    dbus_uint16_t err_maj;
-    dbus_uint32_t err_min;
-    char *err_msg;
-
-    ret = sss_dp_get_account_recv(cb_ctx->mem_ctx, req,
-                                  &err_maj, &err_min,
-                                  &err_msg);
-    talloc_zfree(req);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Fatal error, killing connection!\n");
-        talloc_free(cb_ctx->cctx);
-        return;
-    }
-
-    cb_ctx->callback(err_maj, err_min, err_msg, cb_ctx->ptr);
-}
-
-static void sudosrv_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                           const char *err_msg, void *ptr)
-{
-    errno_t ret;
-    struct sudo_dom_ctx *dctx = talloc_get_type(ptr, struct sudo_dom_ctx);
-
-    if (err_maj) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-             "Unable to get information from Data Provider\n"
-              "Error: %u, %u, %s\n",
-              (unsigned int)err_maj, (unsigned int)err_min, err_msg);
-    }
-
-    DEBUG(SSSDBG_TRACE_INTERNAL,
-          "Data Provider returned, check the cache again\n");
-    dctx->check_provider = false;
-    ret = sudosrv_get_user(dctx);
-    if (ret == EAGAIN) {
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Could not look up the user [%d]: %s\n",
-              ret, strerror(ret));
-        sudosrv_cmd_done(dctx->cmd_ctx, ret);
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_INTERNAL, "Looking up sudo rules..\n");
-    ret = sudosrv_get_rules(dctx->cmd_ctx);
-    if (ret == EAGAIN) {
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Error getting sudo rules [%d]: %s\n",
-              ret, strerror(ret));
-        sudosrv_cmd_done(dctx->cmd_ctx, EIO);
-        return;
-    }
-
-done:
-    sudosrv_cmd_done(dctx->cmd_ctx, ret);
 }
 
 static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
@@ -367,12 +97,12 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
     switch (cmd_ctx->type) {
         case SSS_SUDO_DEFAULTS:
             DEBUG(SSSDBG_TRACE_FUNC, "Retrieving default options "
-                  "for [%s] from [%s]\n", cmd_ctx->orig_username,
+                  "for [%s] from [%s]\n", cmd_ctx->username,
                   cmd_ctx->domain->name);
             break;
         case SSS_SUDO_USER:
             DEBUG(SSSDBG_TRACE_FUNC, "Retrieving rules "
-                  "for [%s] from [%s]\n", cmd_ctx->orig_username,
+                  "for [%s] from [%s]\n", cmd_ctx->username,
                   cmd_ctx->domain->name);
             break;
     }
@@ -383,7 +113,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
      * provider call
      */
     ret = sysdb_get_sudo_user_info(tmp_ctx, cmd_ctx->domain,
-                                   cmd_ctx->orig_username, NULL, &groupnames);
+                                   cmd_ctx->username, NULL, &groupnames);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
              "Unable to retrieve user info [%d]: %s\n", ret, strerror(ret));
@@ -396,7 +126,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
             | SYSDB_SUDO_FILTER_USERINFO;
     ret = sudosrv_get_sudorules_query_cache(tmp_ctx,
                                             cmd_ctx->domain, attrs, flags,
-                                            cmd_ctx->orig_username,
+                                            cmd_ctx->username,
                                             cmd_ctx->uid, groupnames,
                                             cmd_ctx->sudo_ctx->inverse_order,
                                             &expired_rules, &expired_rules_num);
@@ -414,7 +144,7 @@ errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx)
         dpreq = sss_dp_get_sudoers_send(tmp_ctx, cmd_ctx->cli_ctx->rctx,
                                         cmd_ctx->domain, false,
                                         SSS_DP_SUDO_REFRESH_RULES,
-                                        cmd_ctx->orig_username,
+                                        cmd_ctx->username,
                                         expired_rules_num, expired_rules);
         if (dpreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -535,7 +265,7 @@ sudosrv_get_sudorules_dp_callback(uint16_t err_maj, uint32_t err_min,
                                         cmd_ctx->cli_ctx->rctx,
                                         cmd_ctx->domain, false,
                                         SSS_DP_SUDO_FULL_REFRESH,
-                                        cmd_ctx->orig_username,
+                                        cmd_ctx->username,
                                         0, NULL);
         if (dpreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -587,10 +317,10 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
 
     switch (cmd_ctx->type) {
     case SSS_SUDO_USER:
-        debug_name = cmd_ctx->cased_username;
+        debug_name = cmd_ctx->username;
         ret = sysdb_get_sudo_user_info(tmp_ctx,
                                        cmd_ctx->domain,
-                                       cmd_ctx->orig_username,
+                                       cmd_ctx->username,
                                        NULL, &groupnames);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -608,7 +338,7 @@ static errno_t sudosrv_get_sudorules_from_cache(TALLOC_CTX *mem_ctx,
 
     ret = sudosrv_get_sudorules_query_cache(tmp_ctx,
                                             cmd_ctx->domain, attrs, flags,
-                                            cmd_ctx->orig_username,
+                                            cmd_ctx->username,
                                             cmd_ctx->uid, groupnames,
                                             cmd_ctx->sudo_ctx->inverse_order,
                                             &rules, &num_rules);

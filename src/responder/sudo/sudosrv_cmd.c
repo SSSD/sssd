@@ -221,7 +221,7 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
         goto done;
     }
 
-    req = sudosrv_parse_query_send(cmd_ctx, cli_ctx->rctx,
+    req = sudosrv_parse_query_send(cmd_ctx, cmd_ctx->sudo_ctx,
                                    query_body, query_len);
     if (req == NULL) {
         ret = ENOMEM;
@@ -239,8 +239,6 @@ done:
 static void sudosrv_cmd_parse_query_done(struct tevent_req *req)
 {
     struct sudo_cmd_ctx *cmd_ctx = NULL;
-    struct sudo_dom_ctx *dom_ctx = NULL;
-    struct sudo_ctx *sudo_ctx = NULL;
     errno_t ret;
 
     cmd_ctx = tevent_req_callback_data(req, struct sudo_cmd_ctx);
@@ -253,8 +251,6 @@ static void sudosrv_cmd_parse_query_done(struct tevent_req *req)
                                     ret, strerror(ret));
         goto done;
     }
-
-    cmd_ctx->check_next = cmd_ctx->domain == NULL;
 
     switch (cmd_ctx->type) {
         case SSS_SUDO_DEFAULTS:
@@ -269,28 +265,7 @@ static void sudosrv_cmd_parse_query_done(struct tevent_req *req)
             break;
     }
 
-    /* create domain ctx */
-
-    dom_ctx = talloc_zero(cmd_ctx, struct sudo_dom_ctx);
-    if (dom_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    dom_ctx->cmd_ctx = cmd_ctx;
-    dom_ctx->domain = cmd_ctx->domain != NULL ? cmd_ctx->domain
-                                              : cmd_ctx->cli_ctx->rctx->domains;
-
-    sudo_ctx = talloc_get_type(cmd_ctx->cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
-    ret = sss_ncache_check_user(sudo_ctx->ncache, sudo_ctx->neg_timeout,
-                                dom_ctx->domain, cmd_ctx->username);
-    if (ret == EEXIST) {
-        DEBUG(SSSDBG_TRACE_FUNC, "User [%s@%s] filtered out (ncache)\n",
-              cmd_ctx->username, dom_ctx->domain->name);
-        ret = ENOENT;
-        goto done;
-    }
-
-    ret = sudosrv_get_sudorules(dom_ctx);
+    ret = sudosrv_get_sudorules(cmd_ctx);
 
 done:
     sudosrv_cmd_done(cmd_ctx, ret);

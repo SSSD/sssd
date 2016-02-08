@@ -25,6 +25,7 @@
 #include <tevent.h>
 
 #include "util/util.h"
+#include "responder/common/responder_cache_req.h"
 #include "responder/sudo/sudosrv_private.h"
 
 static int sudosrv_response_append_string(TALLOC_CTX *mem_ctx,
@@ -252,15 +253,15 @@ fail:
 }
 
 struct sudosrv_parse_query_state {
-    struct resp_ctx *rctx;
     uid_t uid;
-    char *rawname;
+    char *username;
+    struct sss_domain_info *domain;
 };
 
 static void sudosrv_parse_query_done(struct tevent_req *subreq);
 
 struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
-                                            struct resp_ctx *rctx,
+                                            struct sudo_ctx *sudo_ctx,
                                             uint8_t *query_body,
                                             size_t query_len)
 {
@@ -270,7 +271,6 @@ struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
     size_t offset = 0;
     size_t rawname_len = 0;
     char *rawname = NULL;
-    char *domainname = NULL;
     errno_t ret;
 
     /* create request */
@@ -281,14 +281,12 @@ struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->rctx = rctx;
-
     /* uid */
 
     if (query_len < sizeof(uid_t)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Query is too small\n");
         ret = EINVAL;
-        goto done;
+        goto immediately;
     }
     safealign_memcpy(&state->uid, query_body, sizeof(uid_t), &offset);
 
@@ -300,68 +298,59 @@ struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
     if (rawname[rawname_len - 1] != '\0') {
         DEBUG(SSSDBG_CRIT_FAILURE, "Username is not zero terminated\n");
         ret = EINVAL;
-        goto done;
+        goto immediately;
     }
 
     if (rawname_len < 2) { /* at least one character and zero */
         DEBUG(SSSDBG_CRIT_FAILURE, "Query does not contain username\n");
         ret = EINVAL;
-        goto done;
+        goto immediately;
     }
 
     if (!sss_utf8_check((uint8_t*)rawname, rawname_len - 1)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Supplied data is not valid UTF-8 string\n");
         ret = EINVAL;
-        goto done;
+        goto immediately;
     }
 
     /* parse username */
 
-    state->rawname = rawname;
-    ret = sss_parse_name_for_domains(state, rctx->domains,
-                                     rctx->default_domain, state->rawname,
-                                     &domainname, NULL);
-    if (ret == EAGAIN) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Domain [%s] not found, "
-              "sending subdomain request\n", domainname);
-
-        subreq = sss_dp_get_domains_send(state, rctx, true, domainname);
-        if (subreq == NULL) {
-            ret = ENOMEM;
-        } else {
-            tevent_req_set_callback(subreq, sudosrv_parse_query_done, req);
-            ret = EAGAIN;
-        }
-        goto done;
-    } else if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid name received [%s]\n", rawname);
-        goto done;
+    subreq = cache_req_initgr_by_name_send(state, sudo_ctx->rctx->ev,
+                                           sudo_ctx->rctx, sudo_ctx->ncache,
+                                           sudo_ctx->neg_timeout, 0,
+                                           NULL, rawname);
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto immediately;
     }
 
-    ret = EOK;
+    tevent_req_set_callback(subreq, sudosrv_parse_query_done, req);
 
-done:
-    if (ret != EAGAIN) {
-        if (ret == EOK) {
-            tevent_req_done(req);
-        } else {
-            tevent_req_error(req, ret);
-        }
-        tevent_req_post(req, rctx->ev);
+    return req;
+
+immediately:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
     }
+    tevent_req_post(req, sudo_ctx->rctx->ev);
 
     return req;
 }
 
 static void sudosrv_parse_query_done(struct tevent_req *subreq)
 {
-    struct tevent_req *req = NULL;
+    struct sudosrv_parse_query_state *state;
+    struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sudosrv_parse_query_state);
 
-    ret = sss_dp_get_domains_recv(subreq);
-    talloc_free(subreq);
+    ret = cache_req_initgr_by_name_recv(state, subreq, NULL,
+                                        &state->domain, &state->username);
+    talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -377,53 +366,14 @@ errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
                                  struct sss_domain_info **_domain)
 {
     struct sudosrv_parse_query_state *state = NULL;
-    struct sss_domain_info *domain = NULL;
-    char *username = NULL;
-    char *domainname = NULL;
-    errno_t ret;
 
     state = tevent_req_data(req, struct sudosrv_parse_query_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (state->rawname == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No query specified?!\n");
-        return EINVAL;
-    }
-
-    /* Try to parse username@domain again because if the first call
-     * returned EAGAIN, then username is unset. If we get EAGAIN again,
-     * we will not search for it again.
-     */
-    ret = sss_parse_name_for_domains(state, state->rctx->domains,
-                                     state->rctx->default_domain,
-                                     state->rawname,
-                                     &domainname, &username);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Unable to parse domain [%d]: %s\n",
-                                  ret, strerror(ret));
-        return ret;
-    }
-
-    if (username == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No username specified!\n");
-        return EINVAL;
-    }
-
-    if (domainname != NULL) {
-        /* mem_ctx because it duplicates only subdomains not domains
-         * so I cannot easily steal it */
-        domain = responder_get_domain(state->rctx, domainname);
-        if (domain == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Corresponding domain [%s] has not been "
-                                      "found\n", domainname);
-            return ENOENT;
-        }
-    }
-
     *_uid = state->uid;
-    *_username = talloc_steal(mem_ctx, username);
-    *_domain = domain; /* do not steal on mem_ctx */
+    *_username = talloc_steal(mem_ctx, state->username);
+    *_domain = state->domain; /* do not steal on mem_ctx */
 
     return EOK;
 }

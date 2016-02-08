@@ -61,10 +61,7 @@ struct sudo_cmd_ctx {
     /* input data */
     uid_t uid;
     char *username;
-    const char *orig_username;
-    const char *cased_username;
     struct sss_domain_info *domain;
-    bool check_next;
 
     uint32_t expired_rules_num;
 
@@ -73,22 +70,16 @@ struct sudo_cmd_ctx {
     uint32_t num_rules;
 };
 
-struct sudo_dom_ctx {
-    struct sudo_cmd_ctx *cmd_ctx;
-    struct sss_domain_info *domain;
-    bool check_provider;
-};
-
 struct sss_cmd_table *get_sudo_cmds(void);
 
 errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret);
 
-errno_t sudosrv_get_sudorules(struct sudo_dom_ctx *dctx);
+errno_t sudosrv_get_sudorules(struct sudo_cmd_ctx *cmd_ctx);
 
 errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx);
 
 struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
-                                            struct resp_ctx *rctx,
+                                            struct sudo_ctx *sudo_ctx,
                                             uint8_t *query_body,
                                             size_t query_len);
 
