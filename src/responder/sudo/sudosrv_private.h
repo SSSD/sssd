@@ -79,11 +79,6 @@ struct sudo_dom_ctx {
     bool check_provider;
 };
 
-struct sudo_dp_request {
-    struct cli_ctx *cctx;
-    struct sss_domain_info *domain;
-};
-
 struct sss_cmd_table *get_sudo_cmds(void);
 
 errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret);
