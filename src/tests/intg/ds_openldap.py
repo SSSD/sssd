@@ -63,8 +63,8 @@ class DSOpenLDAP(DS):
 
     def _setup_config(self):
         """Setup the instance initial configuration."""
-        dist_lib_dir = first_dir("/usr/lib/openldap",
-                                 "/usr/lib64/openldap",
+        dist_lib_dir = first_dir("/usr/lib64/openldap",
+                                 "/usr/lib/openldap",
                                  "/usr/lib/ldap")
         dist_conf_dir = first_dir("/etc/ldap",
                                   "/etc/openldap")
