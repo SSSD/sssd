@@ -25,7 +25,6 @@
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
-#include "responder/common/responder_cache_req.h"
 #include "responder/sudo/sudosrv_private.h"
 #include "db/sysdb_sudo.h"
 #include "sss_client/sss_cli.h"
@@ -96,7 +95,7 @@ static errno_t sudosrv_cmd_send_error(TALLOC_CTX *mem_ctx,
     return sudosrv_cmd_send_reply(cmd_ctx, response_body, response_len);
 }
 
-errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
+errno_t sudosrv_cmd_reply(struct sudo_cmd_ctx *cmd_ctx, int ret)
 {
     uint8_t *response_body = NULL;
     size_t response_len = 0;
@@ -165,7 +164,7 @@ errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
     return EOK;
 }
 
-static void sudosrv_cmd_initgr_done(struct tevent_req *req);
+static void sudosrv_cmd_done(struct tevent_req *req);
 
 static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
 {
@@ -185,7 +184,6 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
         return ENOMEM;
     }
 
-    cmd_ctx->domain = NULL;
     cmd_ctx->cli_ctx = cli_ctx;
     cmd_ctx->type = type;
     cmd_ctx->sudo_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sudo_ctx);
@@ -229,56 +227,40 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
         goto done;
     }
 
-    req = cache_req_initgr_by_name_send(cmd_ctx, cli_ctx->ev, cli_ctx->rctx,
-                                        cmd_ctx->sudo_ctx->ncache,
-                                        cmd_ctx->sudo_ctx->neg_timeout,
-                                        0, NULL, cmd_ctx->rawname);
+    req = sudosrv_get_rules_send(cmd_ctx, cli_ctx->ev, cmd_ctx->sudo_ctx,
+                                 cmd_ctx->type, cmd_ctx->uid,
+                                 cmd_ctx->rawname);
     if (req == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    tevent_req_set_callback(req, sudosrv_cmd_initgr_done, cmd_ctx);
+    tevent_req_set_callback(req, sudosrv_cmd_done, cmd_ctx);
 
     ret = EAGAIN;
 
 done:
-    return sudosrv_cmd_done(cmd_ctx, ret);
+    return sudosrv_cmd_reply(cmd_ctx, ret);
 }
 
-static void sudosrv_cmd_initgr_done(struct tevent_req *req)
+static void sudosrv_cmd_done(struct tevent_req *req)
 {
-    struct sudo_cmd_ctx *cmd_ctx = NULL;
+    struct sudo_cmd_ctx *cmd_ctx;
     errno_t ret;
 
     cmd_ctx = tevent_req_callback_data(req, struct sudo_cmd_ctx);
 
-    ret = cache_req_initgr_by_name_recv(cmd_ctx, req, NULL, &cmd_ctx->domain,
-                                        &cmd_ctx->username);
+    ret = sudosrv_get_rules_recv(cmd_ctx, req, &cmd_ctx->rules,
+                                 &cmd_ctx->num_rules);
     talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to perform initgroups [%d]: %s\n",
-              ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to obtain cached rules [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
-    switch (cmd_ctx->type) {
-        case SSS_SUDO_DEFAULTS:
-            DEBUG(SSSDBG_FUNC_DATA, "Requesting default options "
-                  "for [%s] from [%s]\n", cmd_ctx->username,
-                  cmd_ctx->domain ? cmd_ctx->domain->name : "<ALL>");
-            break;
-        case SSS_SUDO_USER:
-            DEBUG(SSSDBG_FUNC_DATA, "Requesting rules "
-                  "for [%s] from [%s]\n", cmd_ctx->username,
-                  cmd_ctx->domain ? cmd_ctx->domain->name : "<ALL>");
-            break;
-    }
-
-    ret = sudosrv_get_sudorules(cmd_ctx);
-
 done:
-    sudosrv_cmd_done(cmd_ctx, ret);
+    sudosrv_cmd_reply(cmd_ctx, ret);
 }
 
 static int sudosrv_cmd_get_sudorules(struct cli_ctx *cli_ctx)
