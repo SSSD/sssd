@@ -25,7 +25,6 @@
 #include <tevent.h>
 
 #include "util/util.h"
-#include "responder/common/responder_cache_req.h"
 #include "responder/sudo/sudosrv_private.h"
 
 static int sudosrv_response_append_string(TALLOC_CTX *mem_ctx,
@@ -252,128 +251,50 @@ fail:
     return ret;
 }
 
-struct sudosrv_parse_query_state {
-    uid_t uid;
-    char *username;
-    struct sss_domain_info *domain;
-};
-
-static void sudosrv_parse_query_done(struct tevent_req *subreq);
-
-struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
-                                            struct sudo_ctx *sudo_ctx,
-                                            uint8_t *query_body,
-                                            size_t query_len)
+errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
+                            uint8_t *query_body,
+                            size_t query_len,
+                            char **_rawname,
+                            uid_t *_uid)
 {
-    struct tevent_req *req = NULL;
-    struct tevent_req *subreq = NULL;
-    struct sudosrv_parse_query_state *state = NULL;
     size_t offset = 0;
-    size_t rawname_len = 0;
-    char *rawname = NULL;
-    errno_t ret;
-
-    /* create request */
-    req = tevent_req_create(mem_ctx, &state,
-                            struct sudosrv_parse_query_state);
-    if (req == NULL) {
-        DEBUG(SSSDBG_FATAL_FAILURE, "tevent_req_create() failed\n");
-        return NULL;
-    }
+    size_t rawname_len;
+    char *rawname;
+    uid_t uid;
 
     /* uid */
-
     if (query_len < sizeof(uid_t)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Query is too small\n");
-        ret = EINVAL;
-        goto immediately;
+        return EINVAL;
     }
-    safealign_memcpy(&state->uid, query_body, sizeof(uid_t), &offset);
+    safealign_memcpy(&uid, query_body, sizeof(uid_t), &offset);
 
     /* username[@domain] */
-
     rawname = (char*)(query_body + offset);
     rawname_len = query_len - offset; /* strlen + zero */
 
     if (rawname[rawname_len - 1] != '\0') {
         DEBUG(SSSDBG_CRIT_FAILURE, "Username is not zero terminated\n");
-        ret = EINVAL;
-        goto immediately;
+        return EINVAL;
     }
 
     if (rawname_len < 2) { /* at least one character and zero */
         DEBUG(SSSDBG_CRIT_FAILURE, "Query does not contain username\n");
-        ret = EINVAL;
-        goto immediately;
+        return EINVAL;
     }
 
     if (!sss_utf8_check((uint8_t*)rawname, rawname_len - 1)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Supplied data is not valid UTF-8 string\n");
-        ret = EINVAL;
-        goto immediately;
+        return EINVAL;
     }
 
-    /* parse username */
-
-    subreq = cache_req_initgr_by_name_send(state, sudo_ctx->rctx->ev,
-                                           sudo_ctx->rctx, sudo_ctx->ncache,
-                                           sudo_ctx->neg_timeout, 0,
-                                           NULL, rawname);
-    if (subreq == NULL) {
-        ret = ENOMEM;
-        goto immediately;
+    rawname = talloc_strdup(mem_ctx, rawname);
+    if (rawname == NULL) {
+        return ENOMEM;
     }
 
-    tevent_req_set_callback(subreq, sudosrv_parse_query_done, req);
-
-    return req;
-
-immediately:
-    if (ret == EOK) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, ret);
-    }
-    tevent_req_post(req, sudo_ctx->rctx->ev);
-
-    return req;
-}
-
-static void sudosrv_parse_query_done(struct tevent_req *subreq)
-{
-    struct sudosrv_parse_query_state *state;
-    struct tevent_req *req;
-    errno_t ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sudosrv_parse_query_state);
-
-    ret = cache_req_initgr_by_name_recv(state, subreq, NULL,
-                                        &state->domain, &state->username);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
-                                 struct tevent_req *req,
-                                 uid_t *_uid,
-                                 char **_username,
-                                 struct sss_domain_info **_domain)
-{
-    struct sudosrv_parse_query_state *state = NULL;
-
-    state = tevent_req_data(req, struct sudosrv_parse_query_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *_uid = state->uid;
-    *_username = talloc_steal(mem_ctx, state->username);
-    *_domain = state->domain; /* do not steal on mem_ctx */
+    *_uid = uid;
+    *_rawname = rawname;
 
     return EOK;
 }

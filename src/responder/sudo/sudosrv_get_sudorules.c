@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <talloc.h>
+#include <tevent.h>
 
 #include "util/util.h"
 #include "db/sysdb_sudo.h"
@@ -34,7 +35,6 @@ errno_t sudosrv_get_sudorules(struct sudo_cmd_ctx *cmd_ctx)
 {
     errno_t ret;
 
-    /* OK, got the user from cache. Try to get the rules. */
     ret = sudosrv_get_rules(cmd_ctx);
     if (ret == EAGAIN) {
         DEBUG(SSSDBG_TRACE_INTERNAL,

@@ -60,6 +60,7 @@ struct sudo_cmd_ctx {
 
     /* input data */
     uid_t uid;
+    char *rawname;
     char *username;
     struct sss_domain_info *domain;
 
@@ -78,16 +79,11 @@ errno_t sudosrv_get_sudorules(struct sudo_cmd_ctx *cmd_ctx);
 
 errno_t sudosrv_get_rules(struct sudo_cmd_ctx *cmd_ctx);
 
-struct tevent_req *sudosrv_parse_query_send(TALLOC_CTX *mem_ctx,
-                                            struct sudo_ctx *sudo_ctx,
-                                            uint8_t *query_body,
-                                            size_t query_len);
-
-errno_t sudosrv_parse_query_recv(TALLOC_CTX *mem_ctx,
-                                 struct tevent_req *req,
-                                 uid_t *_uid,
-                                 char **_username,
-                                 struct sss_domain_info **_domain);
+errno_t sudosrv_parse_query(TALLOC_CTX *mem_ctx,
+                            uint8_t *query_body,
+                            size_t query_len,
+                            char **_rawname,
+                            uid_t *_uid);
 
 errno_t sudosrv_build_response(TALLOC_CTX *mem_ctx,
                                uint32_t error,

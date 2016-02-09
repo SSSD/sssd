@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
+#include "responder/common/responder_cache_req.h"
 #include "responder/sudo/sudosrv_private.h"
 #include "db/sysdb_sudo.h"
 #include "sss_client/sss_cli.h"
@@ -164,7 +165,7 @@ errno_t sudosrv_cmd_done(struct sudo_cmd_ctx *cmd_ctx, int ret)
     return EOK;
 }
 
-static void sudosrv_cmd_parse_query_done(struct tevent_req *req);
+static void sudosrv_cmd_initgr_done(struct tevent_req *req);
 
 static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
 {
@@ -213,7 +214,6 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
     }
 
     /* parse query */
-
     sss_packet_get_body(cli_ctx->creq->in, &query_body, &query_len);
     if (query_len <= 0 || query_body == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Query is empty\n");
@@ -221,14 +221,24 @@ static int sudosrv_cmd(enum sss_sudo_type type, struct cli_ctx *cli_ctx)
         goto done;
     }
 
-    req = sudosrv_parse_query_send(cmd_ctx, cmd_ctx->sudo_ctx,
-                                   query_body, query_len);
+    ret = sudosrv_parse_query(cmd_ctx, query_body, query_len,
+                              &cmd_ctx->rawname, &cmd_ctx->uid);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse sudo query [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    req = cache_req_initgr_by_name_send(cmd_ctx, cli_ctx->ev, cli_ctx->rctx,
+                                        cmd_ctx->sudo_ctx->ncache,
+                                        cmd_ctx->sudo_ctx->neg_timeout,
+                                        0, NULL, cmd_ctx->rawname);
     if (req == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    tevent_req_set_callback(req, sudosrv_cmd_parse_query_done, cmd_ctx);
+    tevent_req_set_callback(req, sudosrv_cmd_initgr_done, cmd_ctx);
 
     ret = EAGAIN;
 
@@ -236,19 +246,19 @@ done:
     return sudosrv_cmd_done(cmd_ctx, ret);
 }
 
-static void sudosrv_cmd_parse_query_done(struct tevent_req *req)
+static void sudosrv_cmd_initgr_done(struct tevent_req *req)
 {
     struct sudo_cmd_ctx *cmd_ctx = NULL;
     errno_t ret;
 
     cmd_ctx = tevent_req_callback_data(req, struct sudo_cmd_ctx);
 
-    ret = sudosrv_parse_query_recv(cmd_ctx, req, &cmd_ctx->uid,
-                                   &cmd_ctx->username, &cmd_ctx->domain);
+    ret = cache_req_initgr_by_name_recv(cmd_ctx, req, NULL, &cmd_ctx->domain,
+                                        &cmd_ctx->username);
     talloc_zfree(req);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid query [%d]: %s\n",
-                                    ret, strerror(ret));
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to perform initgroups [%d]: %s\n",
+              ret, strerror(ret));
         goto done;
     }
 
