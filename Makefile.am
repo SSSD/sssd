@@ -2243,6 +2243,13 @@ ad_common_tests_SOURCES = \
     src/tests/cmocka/common_mock_krb5.c \
     src/tests/cmocka/test_ad_common.c \
     src/providers/ad/ad_opts.c \
+    src/providers/ad/ad_pac.c \
+    src/providers/ad/ad_pac_common.c \
+    src/providers/ldap/sdap_async_initgroups_ad.c \
+    $(NULL)
+ad_common_tests_CFLAGS = \
+    $(NDR_NBT_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
     $(NULL)
 ad_common_tests_LDFLAGS = \
     -Wl,-wrap,sdap_set_sasl_options \
@@ -2252,8 +2259,11 @@ ad_common_tests_LDADD = \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
     $(KEYUTILS_LIBS) \
+    $(NDR_NBT_LIBS) \
+    $(NDR_KRB5PAC_LIBS) \
     $(KRB5_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
+    libsss_idmap.la \
     libsss_ldap_common.la \
     libsss_test_common.la \
     libdlopen_test_providers.la \
@@ -3044,6 +3054,9 @@ libsss_ipa_la_SOURCES = \
     src/providers/ad/ad_common.h \
     src/providers/ad/ad_dyndns.c \
     src/providers/ad/ad_id.c \
+    src/providers/ad/ad_pac.c \
+    src/providers/ad/ad_pac_common.c \
+    src/providers/ad/ad_pac.h \
     src/providers/ad/ad_srv.c \
     src/providers/ad/ad_domain_info.c
 libsss_ipa_la_CFLAGS = \
@@ -3051,11 +3064,13 @@ libsss_ipa_la_CFLAGS = \
     $(OPENLDAP_CFLAGS) \
     $(DHASH_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ipa_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(NDR_NBT_LIBS) \
+    $(NDR_KRB5PAC_LIBS) \
     $(KRB5_LIBS) \
     $(SELINUX_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
@@ -3094,6 +3109,9 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_dyndns.c \
     src/providers/ad/ad_machine_pw_renewal.c \
     src/providers/ad/ad_id.c \
+    src/providers/ad/ad_pac.c \
+    src/providers/ad/ad_pac_common.c \
+    src/providers/ad/ad_pac.h \
     src/providers/ad/ad_id.h \
     src/providers/ad/ad_access.c \
     src/providers/ad/ad_access.h \
@@ -3124,6 +3142,7 @@ libsss_ad_la_CFLAGS = \
     $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS) \
     $(NDR_NBT_CFLAGS) \
+    $(NDR_KRB5PAC_CFLAGS) \
     $(SMBCLIENT_CFLAGS)
 libsss_ad_la_LIBADD = \
     $(OPENLDAP_LIBS) \
@@ -3131,6 +3150,7 @@ libsss_ad_la_LIBADD = \
     $(DHASH_LIBS) \
     $(KRB5_LIBS) \
     $(NDR_NBT_LIBS) \
+    $(NDR_KRB5PAC_LIBS) \
     $(SSSD_INTERNAL_LTLIBS) \
     $(SMBCLIENT_LIBS) \
     libsss_ldap_common.la \

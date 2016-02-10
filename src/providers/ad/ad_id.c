@@ -24,6 +24,7 @@
 #include "providers/ad/ad_common.h"
 #include "providers/ad/ad_id.h"
 #include "providers/ad/ad_domain_info.h"
+#include "providers/ad/ad_pac.h"
 #include "providers/ldap/sdap_async_enum.h"
 #include "providers/ldap/sdap_idmap.h"
 
@@ -57,6 +58,7 @@ struct ad_handle_acct_info_state {
     struct sdap_domain *sdom;
     size_t cindex;
     struct ad_options *ad_options;
+    bool using_pac;
 
     int dp_error;
     const char *err;
@@ -117,10 +119,12 @@ immediate:
 static errno_t
 ad_handle_acct_info_step(struct tevent_req *req)
 {
-    struct tevent_req *subreq;
+    struct tevent_req *subreq = NULL;
     struct ad_handle_acct_info_state *state = tevent_req_data(req,
                                             struct ad_handle_acct_info_state);
     bool noexist_delete = false;
+    struct ldb_message *msg;
+    int ret;
 
     if (state->conn[state->cindex] == NULL) {
         return EOK;
@@ -130,14 +134,42 @@ ad_handle_acct_info_step(struct tevent_req *req)
         noexist_delete = true;
     }
 
-    subreq = sdap_handle_acct_req_send(state, state->ctx->be,
-                                       state->ar, state->ctx,
-                                       state->sdom,
-                                       state->conn[state->cindex],
-                                       noexist_delete);
-    if (subreq == NULL) {
-        return ENOMEM;
+
+    state->using_pac = false;
+    if ((state->ar->entry_type & BE_REQ_TYPE_MASK) == BE_REQ_INITGROUPS) {
+        ret = check_if_pac_is_available(state, state->sdom->dom,
+                                        state->ar, &msg);
+
+        if (ret == EOK) {
+            /* evaluate PAC */
+            state->using_pac = true;
+            subreq = ad_handle_pac_initgr_send(state, state->ctx->be,
+                                               state->ar, state->ctx,
+                                               state->sdom,
+                                               state->conn[state->cindex],
+                                               noexist_delete,
+                                               msg);
+            if (subreq == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "ad_handle_pac_initgr_send failed.\n");
+                return ENOMEM;
+            }
+
+        }
+
+        /* Fall through if there is no PAC or any other error */
     }
+
+    if (subreq == NULL) {
+        subreq = sdap_handle_acct_req_send(state, state->ctx->be,
+                                           state->ar, state->ctx,
+                                           state->sdom,
+                                           state->conn[state->cindex],
+                                           noexist_delete);
+        if (subreq == NULL) {
+            return ENOMEM;
+        }
+    }
+
     tevent_req_set_callback(subreq, ad_handle_acct_info_done, req);
     return EAGAIN;
 }
@@ -154,7 +186,11 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     struct ad_handle_acct_info_state *state = tevent_req_data(req,
                                             struct ad_handle_acct_info_state);
 
-    ret = sdap_handle_acct_req_recv(subreq, &dp_error, &err, &sdap_err);
+    if (state->using_pac) {
+        ret = ad_handle_pac_initgr_recv(subreq, &dp_error, &err, &sdap_err);
+    } else {
+        ret = sdap_handle_acct_req_recv(subreq, &dp_error, &err, &sdap_err);
+    }
     if (dp_error == DP_ERR_OFFLINE
         && state->conn[state->cindex+1] != NULL
         && state->conn[state->cindex]->ignore_mark_offline) {

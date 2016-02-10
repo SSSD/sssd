@@ -29,6 +29,10 @@
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 
+#include "providers/ad/ad_pac.h"
+#include "util/crypto/sss_crypto.h"
+#include "util/util_sss_idmap.h"
+
 /* In order to access opaque types */
 #include "providers/ad/ad_common.c"
 
@@ -52,7 +56,325 @@
 #define ONEWAY_AUTHID            "host/"ONEWAY_HOST_NAME
 #define ONEWAY_TEST_PRINC        ONEWAY_AUTHID"@"ONEWAY_DOMNAME
 
+#define TESTS_PATH "tp_" BASE_FILE_STEM
+#define TEST_CONF_DB "test_ad_sysdb.ldb"
+#define TEST_ID_PROVIDER "ad"
+#define TEST_DOM1_NAME "test_sysdb_subdomains_1"
+#define TEST_DOM2_NAME "child2.test_sysdb_subdomains_2"
+#define TEST_USER "test_user"
+
 static bool call_real_sasl_options;
+
+const char *domains[] = { TEST_DOM1_NAME,
+                          TEST_DOM2_NAME,
+                          NULL };
+struct ad_sysdb_test_ctx {
+    struct sss_test_ctx *tctx;
+};
+
+static int test_ad_sysdb_setup(void **state)
+{
+    struct ad_sysdb_test_ctx *test_ctx;
+    struct sss_test_conf_param params[] = {
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context,
+                           struct ad_sysdb_test_ctx);
+    assert_non_null(test_ctx);
+
+    test_dom_suite_setup(TESTS_PATH);
+
+    test_ctx->tctx = create_multidom_test_ctx(test_ctx, TESTS_PATH,
+                                              TEST_CONF_DB, domains,
+                                              TEST_ID_PROVIDER, params);
+    assert_non_null(test_ctx->tctx);
+
+    *state = test_ctx;
+    return 0;
+}
+
+static int test_ad_sysdb_teardown(void **state)
+{
+    struct ad_sysdb_test_ctx *test_ctx =
+        talloc_get_type(*state, struct ad_sysdb_test_ctx);
+
+    test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);
+    talloc_free(test_ctx);
+    assert_true(leak_check_teardown());
+    return 0;
+}
+
+static void test_check_if_pac_is_available(void **state)
+{
+    int ret;
+    struct ad_sysdb_test_ctx *test_ctx =
+        talloc_get_type(*state, struct ad_sysdb_test_ctx);
+    struct be_acct_req *ar;
+    struct ldb_message *msg = NULL;
+    struct sysdb_attrs *attrs;
+
+    ret = check_if_pac_is_available(NULL, NULL, NULL, NULL);
+    assert_int_equal(ret, EINVAL);
+
+    ar = talloc_zero(test_ctx, struct be_acct_req);
+    assert_non_null(ar);
+
+    ret = check_if_pac_is_available(test_ctx, test_ctx->tctx->dom, ar, &msg);
+    assert_int_equal(ret, EINVAL);
+
+    ar->filter_type = BE_FILTER_NAME;
+    ar->filter_value = discard_const(TEST_USER);
+
+    ret = check_if_pac_is_available(test_ctx, test_ctx->tctx->dom, ar, &msg);
+    assert_int_equal(ret, ENOENT);
+
+    ret = sysdb_add_user(test_ctx->tctx->dom, TEST_USER, 123, 456, NULL, NULL,
+                         NULL, NULL, NULL, 0, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = check_if_pac_is_available(test_ctx, test_ctx->tctx->dom, ar, &msg);
+    assert_int_equal(ret, ENOENT);
+
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_PAC_BLOB, "pac");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(test_ctx->tctx->dom, TEST_USER, attrs,
+                              SYSDB_MOD_REP);
+
+    /* PAC available but too old */
+    ret = check_if_pac_is_available(test_ctx, test_ctx->tctx->dom, ar, &msg);
+    assert_int_equal(ret, ENOENT);
+
+    talloc_free(attrs);
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_PAC_BLOB_EXPIRE, 123);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(test_ctx->tctx->dom, TEST_USER, attrs,
+                              SYSDB_MOD_REP);
+
+    /* PAC available but still too old */
+    ret = check_if_pac_is_available(test_ctx, test_ctx->tctx->dom, ar, &msg);
+    assert_int_equal(ret, ENOENT);
+
+    talloc_free(attrs);
+    attrs = sysdb_new_attrs(test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_PAC_BLOB_EXPIRE, time(NULL) + 10);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_set_user_attr(test_ctx->tctx->dom, TEST_USER, attrs,
+                              SYSDB_MOD_REP);
+
+    /* PAC available but still too old */
+    ret = check_if_pac_is_available(test_ctx, test_ctx->tctx->dom, ar, &msg);
+    assert_int_equal(ret, EOK);
+    assert_non_null(msg);
+    assert_string_equal(ldb_msg_find_attr_as_string(msg, SYSDB_NAME, "x"),
+                        TEST_USER);
+
+    talloc_free(attrs);
+    talloc_free(ar);
+}
+
+#define TEST_PAC_BASE64 \
+    "BQAAAAAAAAABAAAA6AEAAFgAAAAAAAAACgAAABAAAABAAgAAAA" \
+    "AAAAwAAAA4AAAAUAIAAAAAAAAGAAAAFAAAAIgCAAAAAAAABwAA" \
+    "ABQAAACgAgAAAAAAAAEQCADMzMzM2AEAAAAAAAAAAAIA2hr35p" \
+    "Ji0QH/////////f/////////9/4veKrwAP0AHit/TZyQ/QAf//" \
+    "//////9/BgAGAAQAAgAGAAYACAACAAAAAAAMAAIAAAAAABAAAg" \
+    "AAAAAAFAACAAAAAAAYAAIATwAAAFAEAAABAgAABQAAABwAAgAg" \
+    "AAAAAAAAAAAAAAAAAAAAAAAAABIAFAAgAAIABAAGACQAAgAoAA" \
+    "IAAAAAAAAAAAAQAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" \
+    "AAAAAAEAAAAsAAIAAAAAAAAAAAAAAAAAAwAAAAAAAAADAAAAdA" \
+    "B1ADEAAAADAAAAAAAAAAMAAAB0ACAAdQAAAAAAAAAAAAAAAAAA" \
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" \
+    "UAAAD9ogAABwAAAAECAAAHAAAAXAQAAAcAAABWBAAABwAAAImm" \
+    "AAAHAAAACgAAAAAAAAAJAAAAQQBEAC0AUwBFAFIAVgBFAFIAAA" \
+    "ADAAAAAAAAAAIAAABBAEQABAAAAAEEAAAAAAAFFQAAAPgSE9xH" \
+    "8xx2Ry8u1wEAAAAwAAIABwAAAAUAAAABBQAAAAAABRUAAAApyU" \
+    "/ZwjzDeDZVh/hUBAAAgD5SqNxk0QEGAHQAdQAxABgAEAAQACgA" \
+    "AAAAAAAAAAB0AHUAMQBAAGEAZAAuAGQAZQB2AGUAbABBAEQALg" \
+    "BEAEUAVgBFAEwAdv///4yBQZ5ZQnp3qwj2lKGcd0UAAAAAdv//" \
+    "/39fn4UneD5l6YxP8w/U0coAAAAA"
+
+static void test_ad_get_data_from_pac(void **state)
+{
+    int ret;
+    struct PAC_LOGON_INFO *logon_info;
+    uint8_t *test_pac_blob;
+    size_t test_pac_blob_size;
+
+    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+                                                  struct ad_common_test_ctx);
+
+    test_pac_blob = sss_base64_decode(test_ctx, TEST_PAC_BASE64,
+                                      &test_pac_blob_size);
+    assert_non_null(test_pac_blob_size);
+
+    ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
+                               &logon_info);
+    assert_int_equal(ret, EOK);
+    assert_non_null(logon_info);
+    assert_string_equal(logon_info->info3.base.account_name.string, "tu1");
+    assert_string_equal(logon_info->info3.base.full_name.string, "t u");
+    assert_int_equal(logon_info->info3.base.rid, 1104);
+    assert_int_equal(logon_info->info3.base.primary_gid, 513);
+    assert_int_equal(logon_info->info3.base.groups.count, 5);
+    assert_string_equal(logon_info->info3.base.logon_domain.string, "AD");
+    assert_int_equal(logon_info->info3.sidcount, 1);
+
+    talloc_free(test_pac_blob);
+    talloc_free(logon_info);
+}
+
+static void test_ad_get_sids_from_pac(void **state)
+{
+    int ret;
+    struct PAC_LOGON_INFO *logon_info;
+    uint8_t *test_pac_blob;
+    size_t test_pac_blob_size;
+    char *user_sid;
+    char *primary_group_sid;
+    size_t num_sids;
+    char **sid_list;
+    struct sss_idmap_ctx *idmap_ctx;
+    enum idmap_error_code err;
+    size_t c;
+    size_t s;
+
+    const char *sid_check_list[] = { "S-1-5-21-3692237560-1981608775-3610128199-513",
+                                     "S-1-5-21-3692237560-1981608775-3610128199-1110",
+                                     "S-1-5-21-3692237560-1981608775-3610128199-1116",
+                                     "S-1-5-21-3692237560-1981608775-3610128199-41725",
+                                     "S-1-5-21-3692237560-1981608775-3610128199-42633",
+                                     "S-1-5-21-3645884713-2026060994-4169618742-1108",
+                                     NULL };
+
+    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+                                                  struct ad_common_test_ctx);
+
+    err = sss_idmap_init(sss_idmap_talloc, test_ctx, sss_idmap_talloc_free,
+                         &idmap_ctx);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    test_pac_blob = sss_base64_decode(test_ctx, TEST_PAC_BASE64,
+                                      &test_pac_blob_size);
+    assert_non_null(test_pac_blob_size);
+
+    ret = ad_get_data_from_pac(test_ctx, test_pac_blob, test_pac_blob_size,
+                               &logon_info);
+    assert_int_equal(ret, EOK);
+
+    ret = ad_get_sids_from_pac(test_ctx, idmap_ctx, logon_info, &user_sid,
+                               &primary_group_sid, &num_sids, &sid_list);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(user_sid,
+                        "S-1-5-21-3692237560-1981608775-3610128199-1104");
+    assert_string_equal(primary_group_sid,
+                        "S-1-5-21-3692237560-1981608775-3610128199-513");
+    assert_int_equal(num_sids, 6);
+
+    for (c = 0; sid_check_list[c] != NULL; c++) {
+        for (s = 0; s < num_sids; s++) {
+            if (strcmp(sid_check_list[c], sid_list[s]) == 0) {
+                break;
+            }
+        }
+        if (s == num_sids) {
+            fail_msg("SID [%s] not found in SID list.", sid_check_list[c]);
+        }
+    }
+
+    talloc_free(test_pac_blob);
+    talloc_free(logon_info);
+    talloc_free(user_sid);
+    talloc_free(primary_group_sid);
+    talloc_free(sid_list);
+    sss_idmap_free(idmap_ctx);
+}
+
+static void test_ad_get_pac_data_from_user_entry(void **state)
+{
+    int ret;
+    struct ldb_message *user_msg;
+    struct ldb_val val;
+    struct ad_common_test_ctx *test_ctx = talloc_get_type(*state,
+                                                  struct ad_common_test_ctx);
+    struct sss_idmap_ctx *idmap_ctx;
+    enum idmap_error_code err;
+    char *username;
+    char *user_sid;
+    char *primary_group_sid;
+    size_t num_sids;
+    char **sid_list;
+    size_t c;
+    size_t s;
+    const char *sid_check_list[] = { "S-1-5-21-3692237560-1981608775-3610128199-513",
+                                     "S-1-5-21-3692237560-1981608775-3610128199-1110",
+                                     "S-1-5-21-3692237560-1981608775-3610128199-1116",
+                                     "S-1-5-21-3692237560-1981608775-3610128199-41725",
+                                     "S-1-5-21-3692237560-1981608775-3610128199-42633",
+                                     "S-1-5-21-3645884713-2026060994-4169618742-1108",
+                                     NULL };
+
+    err = sss_idmap_init(sss_idmap_talloc, test_ctx, sss_idmap_talloc_free,
+                         &idmap_ctx);
+    assert_int_equal(err, IDMAP_SUCCESS);
+
+    user_msg = ldb_msg_new(test_ctx);
+    assert_non_null(user_msg);
+
+    ret = ldb_msg_add_string(user_msg, SYSDB_NAME, "username");
+    assert_int_equal(ret, EOK);
+    ret = ldb_msg_add_string(user_msg, SYSDB_OBJECTCLASS, "user");
+    assert_int_equal(ret, EOK);
+    ret = ldb_msg_add_string(user_msg, SYSDB_PAC_BLOB_EXPIRE, "12345");
+    assert_int_equal(ret, EOK);
+    val.data = sss_base64_decode(test_ctx, TEST_PAC_BASE64, &val.length);
+    ret = ldb_msg_add_value(user_msg, SYSDB_PAC_BLOB, &val, NULL);
+    assert_int_equal(ret, EOK);
+
+
+    ret = ad_get_pac_data_from_user_entry(test_ctx, user_msg, idmap_ctx,
+                                          &username, &user_sid,
+                                          &primary_group_sid, &num_sids,
+                                          &sid_list);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(username, "username");
+    assert_string_equal(user_sid,
+                        "S-1-5-21-3692237560-1981608775-3610128199-1104");
+    assert_string_equal(primary_group_sid,
+                        "S-1-5-21-3692237560-1981608775-3610128199-513");
+    assert_int_equal(num_sids, 6);
+    for (c = 0; sid_check_list[c] != NULL; c++) {
+        for (s = 0; s < num_sids; s++) {
+            if (strcmp(sid_check_list[c], sid_list[s]) == 0) {
+                break;
+            }
+        }
+        if (s == num_sids) {
+            fail_msg("SID [%s] not found in SID list.", sid_check_list[c]);
+        }
+    }
+
+    talloc_free(username);
+    talloc_free(user_sid);
+    talloc_free(primary_group_sid);
+    talloc_free(sid_list);
+    talloc_free(val.data);
+    talloc_free(user_msg);
+    sss_idmap_free(idmap_ctx);
+}
 
 krb5_error_code __wrap_krb5_kt_default(krb5_context context, krb5_keytab *id)
 {
@@ -81,6 +403,8 @@ static void test_ad_create_default_options(void **state)
     assert_null(s);
 
     assert_non_null(ad_options->id);
+
+    talloc_free(ad_options);
 }
 
 static int test_ad_common_setup(void **state)
@@ -477,6 +801,7 @@ int main(int argc, const char *argv[])
 {
     poptContext pc;
     int opt;
+    int ret;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_DEBUG_OPTS
@@ -503,6 +828,18 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_user_conn_list,
                                         test_ldap_conn_setup,
                                         test_ldap_conn_teardown),
+        cmocka_unit_test_setup_teardown(test_check_if_pac_is_available,
+                                        test_ad_sysdb_setup,
+                                        test_ad_sysdb_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_get_data_from_pac,
+                                        test_ad_common_setup,
+                                        test_ad_common_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_get_sids_from_pac,
+                                        test_ad_common_setup,
+                                        test_ad_common_teardown),
+        cmocka_unit_test_setup_teardown(test_ad_get_pac_data_from_user_entry,
+                                        test_ad_common_setup,
+                                        test_ad_common_teardown),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
@@ -524,5 +861,12 @@ int main(int argc, const char *argv[])
 
     tests_set_cwd();
 
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    ret = cmocka_run_group_tests(tests, NULL, NULL);
+
+#ifdef HAVE_NSS
+    /* Cleanup NSS and NSPR to make valgrind happy. */
+    nspr_nss_cleanup();
+#endif
+
+    return ret;
 }
