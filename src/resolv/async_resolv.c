@@ -694,8 +694,7 @@ resolv_gethostbyname_files_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct gethostbyname_files_state);
     if (req == NULL) {
-        tevent_req_error(req, ENOMEM);
-        goto done;
+        return NULL;
     }
 
     state->resolv_ctx = ctx;

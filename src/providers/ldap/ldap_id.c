@@ -1490,8 +1490,7 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_handle_acct_req_state);
     if (!req) {
-        ret = ENOMEM;
-        goto done;
+        return NULL;
     }
     state->ar = ar;
 

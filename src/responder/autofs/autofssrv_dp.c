@@ -56,8 +56,7 @@ sss_dp_get_autofs_send(TALLOC_CTX *mem_ctx,
 
     req = tevent_req_create(mem_ctx, &state, struct sss_dp_req_state);
     if (!req) {
-        ret = ENOMEM;
-        goto error;
+        return NULL;
     }
 
     if (!dom) {
