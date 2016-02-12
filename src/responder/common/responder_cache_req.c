@@ -94,24 +94,13 @@ struct cache_req_input {
     time_t req_start;
 };
 
-struct cache_req_input *
-cache_req_input_create(TALLOC_CTX *mem_ctx,
-                       enum cache_req_type type,
-                       const char *name,
-                       uint32_t id,
-                       const char *cert)
+static errno_t
+cache_req_input_set_data(struct cache_req_input *input,
+                         enum cache_req_type type,
+                         uint32_t id,
+                         const char *name,
+                         const char *cert)
 {
-    struct cache_req_input *input;
-
-    input = talloc_zero(mem_ctx, struct cache_req_input);
-    if (input == NULL) {
-        return NULL;
-    }
-
-    input->type = type;
-    input->req_start = time(NULL);
-
-    /* Check that input parameters match selected type. */
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
@@ -122,37 +111,42 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_INITGROUPS_BY_UPN:
         if (name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
-            goto fail;
+            return ERR_INTERNAL;
         }
 
         input->data.name.input = talloc_strdup(input, name);
         if (input->data.name.input == NULL) {
-            goto fail;
+            return ENOMEM;
         }
         break;
     case CACHE_REQ_USER_BY_CERT:
         if (cert == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: certificate cannot be NULL!\n");
-            goto fail;
+            return ERR_INTERNAL;
         }
 
         input->data.cert = talloc_strdup(input, cert);
         if (input->data.cert == NULL) {
-            goto fail;
+            return ENOMEM;
         }
         break;
     case CACHE_REQ_USER_BY_ID:
     case CACHE_REQ_GROUP_BY_ID:
         if (id == 0) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: id cannot be 0!\n");
-            goto fail;
+            return ERR_INTERNAL;
         }
 
         input->data.id = id;
         break;
     }
 
-    /* Resolve Data Provider request type. */
+    return EOK;
+}
+
+static void
+cache_req_input_set_dp(struct cache_req_input *input, enum cache_req_type type)
+{
     switch (type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
@@ -182,6 +176,35 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
         input->dp_type = SSS_DP_WILDCARD_GROUP;
         break;
     }
+
+    return;
+}
+
+struct cache_req_input *
+cache_req_input_create(TALLOC_CTX *mem_ctx,
+                       enum cache_req_type type,
+                       const char *name,
+                       uint32_t id,
+                       const char *cert)
+{
+    struct cache_req_input *input;
+    errno_t ret;
+
+    input = talloc_zero(mem_ctx, struct cache_req_input);
+    if (input == NULL) {
+        return NULL;
+    }
+
+    input->type = type;
+    input->req_start = time(NULL);
+
+    ret = cache_req_input_set_data(input, type, id, name, cert);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set input data!\n");
+        goto fail;
+    }
+
+    cache_req_input_set_dp(input, type);
 
     return input;
 
