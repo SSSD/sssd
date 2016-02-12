@@ -70,12 +70,15 @@ struct cache_req_input {
     enum cache_req_type type;
 
     /* Provided input. */
-    const char *orig_name;
-    uint32_t id;
-    const char *cert;
-
-    /* Parsed name or UPN. */
-    const char *name;
+    struct {
+        struct {
+            const char *input;  /* Original input. */
+            const char *name;   /* Parsed name or UPN. */
+            const char *lookup; /* Converted per domain rules. */
+        } name;
+        uint32_t id;
+        const char *cert;
+    } data;
 
     /* Data Provider request type resolved from @type.
      * FIXME: This is currently needed for data provider calls. We should
@@ -84,11 +87,6 @@ struct cache_req_input {
 
     /* Domain related informations. */
     struct sss_domain_info *domain;
-
-    /* Name sanitized according to domain rules such as case sensitivity and
-     * replacement of space character. This needs to be set up for each
-     * domain separately. */
-    const char *dom_objname;
 
     /* Fully qualified object name used in debug messages. */
     const char *debug_fqn;
@@ -127,8 +125,8 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        input->orig_name = talloc_strdup(input, name);
-        if (input->orig_name == NULL) {
+        input->data.name.input = talloc_strdup(input, name);
+        if (input->data.name.input == NULL) {
             goto fail;
         }
         break;
@@ -138,8 +136,8 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        input->cert = talloc_strdup(input, cert);
-        if (input->cert == NULL) {
+        input->data.cert = talloc_strdup(input, cert);
+        if (input->data.cert == NULL) {
             goto fail;
         }
         break;
@@ -150,7 +148,7 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
             goto fail;
         }
 
-        input->id = id;
+        input->data.id = id;
         break;
     }
 
@@ -203,8 +201,8 @@ cache_req_input_set_name(struct cache_req_input *input,
         return ENOMEM;
     }
 
-    talloc_zfree(input->name);
-    input->name = dup_name;
+    talloc_zfree(input->data.name.name);
+    input->data.name.name = dup_name;
 
     return EOK;
 }
@@ -224,7 +222,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
         return ENOMEM;
     }
 
-    talloc_zfree(input->dom_objname);
+    talloc_zfree(input->data.name.lookup);
     talloc_zfree(input->debug_fqn);
 
     switch (input->type) {
@@ -235,13 +233,14 @@ cache_req_input_set_domain(struct cache_req_input *input,
     case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
-        if (input->name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: input->name is NULL?\n");
+        if (input->data.name.name == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: parsed name is NULL?\n");
             ret = ERR_INTERNAL;
             goto done;
         }
 
-        name = sss_get_cased_name(tmp_ctx, input->name, domain->case_sensitive);
+        name = sss_get_cased_name(tmp_ctx, input->data.name.name,
+                                  domain->case_sensitive);
         if (name == NULL) {
             ret = ENOMEM;
             goto done;
@@ -262,7 +261,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
         break;
 
     case CACHE_REQ_USER_BY_ID:
-        debug_fqn = talloc_asprintf(tmp_ctx, "UID:%d@%s", input->id, domain->name);
+        debug_fqn = talloc_asprintf(tmp_ctx, "UID:%d@%s", input->data.id, domain->name);
         if (debug_fqn == NULL) {
             ret = ENOMEM;
             goto done;
@@ -270,7 +269,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
         break;
 
     case CACHE_REQ_GROUP_BY_ID:
-        debug_fqn = talloc_asprintf(tmp_ctx, "GID:%d@%s", input->id, domain->name);
+        debug_fqn = talloc_asprintf(tmp_ctx, "GID:%d@%s", input->data.id, domain->name);
         if (debug_fqn == NULL) {
             ret = ENOMEM;
             goto done;
@@ -280,7 +279,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
         /* certificates might be quite long, only use the last 10 charcters
          * for logging */
         debug_fqn = talloc_asprintf(tmp_ctx, "CERT:%s@%s",
-                                    get_last_x_chars(input->cert, 10),
+                                    get_last_x_chars(input->data.cert, 10),
                                     domain->name);
         if (debug_fqn == NULL) {
             ret = ENOMEM;
@@ -290,7 +289,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
     }
 
     input->domain = domain;
-    input->dom_objname = talloc_steal(input, name);
+    input->data.name.lookup = talloc_steal(input, name);
     input->debug_fqn = talloc_steal(input, debug_fqn);
 
     ret = EOK;
@@ -318,7 +317,8 @@ cache_req_input_assume_upn(struct cache_req_input *input)
     errno_t ret;
     bool bret;
 
-    if (input->orig_name == NULL || strchr(input->orig_name, '@') == NULL) {
+    if (input->data.name.input == NULL
+            || strchr(input->data.name.input, '@') == NULL) {
         return false;
     }
 
@@ -337,14 +337,14 @@ cache_req_input_assume_upn(struct cache_req_input *input)
     }
 
     if (bret == true) {
-        ret = cache_req_input_set_name(input, input->orig_name);
+        ret = cache_req_input_set_name(input, input->data.name.input);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "cache_req_input_set_orig_name() failed\n");
             return false;
         }
 
-        DEBUG(SSSDBG_TRACE_FUNC, "Assuming UPN %s\n", input->orig_name);
+        DEBUG(SSSDBG_TRACE_FUNC, "Assuming UPN %s\n", input->data.name.input);
     }
 
     return bret;
@@ -362,20 +362,20 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
         ret = sss_ncache_check_user(ncache, neg_timeout,
-                                    input->domain, input->dom_objname);
+                                    input->domain, input->data.name.lookup);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
         ret = sss_ncache_check_group(ncache, neg_timeout,
-                                     input->domain, input->dom_objname);
+                                     input->domain, input->data.name.lookup);
         break;
     case CACHE_REQ_USER_BY_ID:
-        ret = sss_ncache_check_uid(ncache, neg_timeout, NULL, input->id);
+        ret = sss_ncache_check_uid(ncache, neg_timeout, NULL, input->data.id);
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        ret = sss_ncache_check_gid(ncache, neg_timeout, NULL, input->id);
+        ret = sss_ncache_check_gid(ncache, neg_timeout, NULL, input->data.id);
         break;
     case CACHE_REQ_USER_BY_CERT:
-        ret = sss_ncache_check_cert(ncache, neg_timeout, input->cert);
+        ret = sss_ncache_check_cert(ncache, neg_timeout, input->data.cert);
         break;
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
@@ -402,11 +402,11 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
         ret = sss_ncache_set_user(ncache, false, input->domain,
-                                  input->dom_objname);
+                                  input->data.name.lookup);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
         ret = sss_ncache_set_group(ncache, false, input->domain,
-                                   input->dom_objname);
+                                   input->data.name.lookup);
         break;
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
@@ -452,13 +452,13 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
         ret = EOK;
         break;
     case CACHE_REQ_USER_BY_ID:
-        ret = sss_ncache_set_uid(ncache, false, NULL, input->id);
+        ret = sss_ncache_set_uid(ncache, false, NULL, input->data.id);
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        ret = sss_ncache_set_gid(ncache, false, NULL, input->id);
+        ret = sss_ncache_set_gid(ncache, false, NULL, input->data.id);
         break;
     case CACHE_REQ_USER_BY_CERT:
-        ret = sss_ncache_set_cert(ncache, false, input->cert);
+        ret = sss_ncache_set_cert(ncache, false, input->data.cert);
         break;
     }
 
@@ -486,53 +486,53 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_USER_BY_NAME:
         one_item_only = true;
         ret = sysdb_getpwnam_with_views(mem_ctx, input->domain,
-                                        input->dom_objname, &result);
+                                        input->data.name.lookup, &result);
         break;
     case CACHE_REQ_USER_BY_UPN:
         one_item_only = true;
         ret = sysdb_getpwupn(mem_ctx, input->domain,
-                             input->dom_objname, &result);
+                             input->data.name.lookup, &result);
         break;
     case CACHE_REQ_USER_BY_ID:
         one_item_only = true;
         ret = sysdb_getpwuid_with_views(mem_ctx, input->domain,
-                                        input->id, &result);
+                                        input->data.id, &result);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
         one_item_only = true;
         ret = sysdb_getgrnam_with_views(mem_ctx, input->domain,
-                                        input->dom_objname, &result);
+                                        input->data.name.lookup, &result);
         break;
     case CACHE_REQ_GROUP_BY_ID:
         one_item_only = true;
         ret = sysdb_getgrgid_with_views(mem_ctx, input->domain,
-                                        input->id, &result);
+                                        input->data.id, &result);
         break;
     case CACHE_REQ_INITGROUPS:
         one_item_only = false;
         ret = sysdb_initgroups_with_views(mem_ctx, input->domain,
-                                          input->dom_objname, &result);
+                                          input->data.name.lookup, &result);
         break;
     case CACHE_REQ_INITGROUPS_BY_UPN:
         one_item_only = false;
         ret = sysdb_initgroups_by_upn(mem_ctx, input->domain,
-                                      input->dom_objname, &result);
+                                      input->data.name.lookup, &result);
         break;
     case CACHE_REQ_USER_BY_CERT:
         one_item_only = true;
         ret = sysdb_search_user_by_cert(mem_ctx, input->domain,
-                                        input->cert, &result);
+                                        input->data.cert, &result);
         break;
     case CACHE_REQ_USER_BY_FILTER:
         one_item_only = false;
         ret = updated_users_by_filter(mem_ctx, input->domain,
-                                      input->dom_objname, input->req_start,
+                                      input->data.name.lookup, input->req_start,
                                       &result);
         break;
     case CACHE_REQ_GROUP_BY_FILTER:
         one_item_only = false;
         ret = updated_groups_by_filter(mem_ctx, input->domain,
-                                       input->dom_objname, input->req_start,
+                                       input->data.name.lookup, input->req_start,
                                        &result);
         break;
     }
@@ -601,8 +601,8 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
     uint32_t id = 0;
     errno_t ret;
 
-    *_id = input->id;
-    *_string = input->dom_objname;
+    *_id = input->data.id;
+    *_string = input->data.name.lookup;
     *_flag = NULL;
 
     if (cache_req_input_is_upn(input)) {
@@ -611,7 +611,7 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
     }
 
     if (input->type == CACHE_REQ_USER_BY_CERT) {
-        *_string = input->cert;
+        *_string = input->data.cert;
         return;
     }
 
@@ -652,7 +652,7 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
        break;
     case CACHE_REQ_INITGROUPS:
         ret = sysdb_getpwnam_with_views(NULL, input->domain,
-                                        input->dom_objname, &user);
+                                        input->data.name.lookup, &user);
         if (ret != EOK || user == NULL || user->count != 1) {
             /* Case where the user is not found has been already handled. If
              * this is not OK, it is an error. */
@@ -962,9 +962,9 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     state->cache_refresh_percent = cache_refresh_percent;
     state->input = input;
 
-    if (state->input->orig_name != NULL && domain == NULL) {
+    if (state->input->data.name.input != NULL && domain == NULL) {
         /* Parse input name first, since it may contain domain name. */
-        subreq = sss_parse_inp_send(state, rctx, input->orig_name);
+        subreq = sss_parse_inp_send(state, rctx, input->data.name.input);
         if (subreq == NULL) {
             ret = ENOMEM;
             goto immediately;
@@ -972,8 +972,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
 
         tevent_req_set_callback(subreq, cache_req_input_parsed, req);
     } else {
-        if (input->orig_name != NULL) {
-            ret = cache_req_input_set_name(input, input->orig_name);
+        if (input->data.name.input != NULL) {
+            ret = cache_req_input_set_name(input, input->data.name.input);
             if (ret != EOK) {
                 goto immediately;
             }
@@ -1175,10 +1175,10 @@ errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (_name != NULL) {
-        if (state->input->dom_objname == NULL) {
+        if (state->input->data.name.lookup == NULL) {
             *_name = NULL;
         } else {
-            name = talloc_strdup(mem_ctx, state->input->name);
+            name = talloc_strdup(mem_ctx, state->input->data.name.name);
             if (name == NULL) {
                 return ENOMEM;
             }
