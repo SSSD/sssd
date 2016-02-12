@@ -340,7 +340,7 @@ cache_req_input_assume_upn(struct cache_req_input *input)
         ret = cache_req_input_set_name(input, input->data.name.input);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "cache_req_input_set_orig_name() failed\n");
+                  "cache_req_input_set_name() failed\n");
             return false;
         }
 
