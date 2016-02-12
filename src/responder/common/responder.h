@@ -113,6 +113,8 @@ struct resp_ctx {
     char *default_domain;
     char override_space;
 
+    uint32_t cache_req_num;
+
     void *pvt_ctx;
 
     bool shutting_down;

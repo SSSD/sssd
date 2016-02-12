@@ -44,6 +44,7 @@ struct cache_req_input;
 
 struct cache_req_input *
 cache_req_input_create(TALLOC_CTX *mem_ctx,
+                       struct resp_ctx *rctx,
                        enum cache_req_type type,
                        const char *name,
                        uint32_t id,
