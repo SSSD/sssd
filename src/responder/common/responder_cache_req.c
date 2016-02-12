@@ -89,7 +89,7 @@ struct cache_req_input {
     struct sss_domain_info *domain;
 
     /* Fully qualified object name used in debug messages. */
-    const char *debug_fqn;
+    const char *debugobj;
     /* Time when the request started. Useful for by-filter lookups */
     time_t req_start;
 };
@@ -237,7 +237,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *name = NULL;
-    const char *debug_fqn = NULL;
+    const char *debugobj = NULL;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -246,7 +246,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
     }
 
     talloc_zfree(input->data.name.lookup);
-    talloc_zfree(input->debug_fqn);
+    talloc_zfree(input->debugobj);
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
@@ -275,8 +275,8 @@ cache_req_input_set_domain(struct cache_req_input *input,
             goto done;
         }
 
-        debug_fqn = talloc_asprintf(tmp_ctx, "%s@%s", name, domain->name);
-        if (debug_fqn == NULL) {
+        debugobj = talloc_asprintf(tmp_ctx, "%s@%s", name, domain->name);
+        if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -284,16 +284,18 @@ cache_req_input_set_domain(struct cache_req_input *input,
         break;
 
     case CACHE_REQ_USER_BY_ID:
-        debug_fqn = talloc_asprintf(tmp_ctx, "UID:%d@%s", input->data.id, domain->name);
-        if (debug_fqn == NULL) {
+        debugobj = talloc_asprintf(tmp_ctx, "UID:%d@%s",
+                                   input->data.id, domain->name);
+        if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
         }
         break;
 
     case CACHE_REQ_GROUP_BY_ID:
-        debug_fqn = talloc_asprintf(tmp_ctx, "GID:%d@%s", input->data.id, domain->name);
-        if (debug_fqn == NULL) {
+        debugobj = talloc_asprintf(tmp_ctx, "GID:%d@%s",
+                                   input->data.id, domain->name);
+        if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -301,10 +303,10 @@ cache_req_input_set_domain(struct cache_req_input *input,
     case CACHE_REQ_USER_BY_CERT:
         /* certificates might be quite long, only use the last 10 charcters
          * for logging */
-        debug_fqn = talloc_asprintf(tmp_ctx, "CERT:%s@%s",
-                                    get_last_x_chars(input->data.cert, 10),
-                                    domain->name);
-        if (debug_fqn == NULL) {
+        debugobj = talloc_asprintf(tmp_ctx, "CERT:%s@%s",
+                                   get_last_x_chars(input->data.cert, 10),
+                                   domain->name);
+        if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -313,7 +315,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
 
     input->domain = domain;
     input->data.name.lookup = talloc_steal(input, name);
-    input->debug_fqn = talloc_steal(input, debug_fqn);
+    input->debugobj = talloc_steal(input, debugobj);
 
     ret = EOK;
 
@@ -408,7 +410,7 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
 
     if (ret == EEXIST) {
         DEBUG(SSSDBG_TRACE_FUNC, "[%s] does not exist (negative cache)\n",
-              input->debug_fqn);
+              input->debugobj);
     }
 
     return ret;
@@ -447,7 +449,7 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
 
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for [%s] [%d]: %s\n",
-              input->debug_fqn, ret, sss_strerror(ret));
+              input->debugobj, ret, sss_strerror(ret));
 
         /* not fatal */
     }
@@ -487,7 +489,7 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
 
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE, "Cannot set negcache for [%s] [%d]: %s\n",
-              input->debug_fqn, ret, sss_strerror(ret));
+              input->debugobj, ret, sss_strerror(ret));
 
         /* not fatal */
     }
@@ -503,7 +505,7 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
     bool one_item_only = false;
     errno_t ret = ERR_INTERNAL;
 
-    DEBUG(SSSDBG_FUNC_DATA, "Requesting info for [%s]\n", input->debug_fqn);
+    DEBUG(SSSDBG_FUNC_DATA, "Requesting info for [%s]\n", input->debugobj);
 
     switch (input->type) {
     case CACHE_REQ_USER_BY_NAME:
@@ -801,7 +803,7 @@ static errno_t cache_req_cache_search(struct tevent_req *req)
 
     /* One result found */
     DEBUG(SSSDBG_TRACE_FUNC, "Returning info for [%s]\n",
-          state->input->debug_fqn);
+          state->input->debugobj);
     return EOK;
 }
 
@@ -913,7 +915,7 @@ static void cache_req_cache_done(struct tevent_req *subreq)
 
     /* One result found */
     DEBUG(SSSDBG_TRACE_FUNC, "Returning info for [%s]\n",
-          state->input->debug_fqn);
+          state->input->debugobj);
 
     tevent_req_done(req);
 }
