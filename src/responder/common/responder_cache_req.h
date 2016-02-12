@@ -37,7 +37,8 @@ enum cache_req_type {
     CACHE_REQ_INITGROUPS_BY_UPN,
     CACHE_REQ_USER_BY_CERT,
     CACHE_REQ_USER_BY_FILTER,
-    CACHE_REQ_GROUP_BY_FILTER
+    CACHE_REQ_GROUP_BY_FILTER,
+    CACHE_REQ_OBJECT_BY_SID
 };
 
 struct cache_req_input;
@@ -48,7 +49,9 @@ cache_req_input_create(TALLOC_CTX *mem_ctx,
                        enum cache_req_type type,
                        const char *name,
                        uint32_t id,
-                       const char *cert);
+                       const char *cert,
+                       const char *sid,
+                       const char **attrs);
 
 /**
  * Currently only SSS_DP_USER and SSS_DP_INITGROUPS are supported.
@@ -166,6 +169,20 @@ cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
                               const char *filter);
 
 #define cache_req_group_by_filter_recv(mem_ctx, req, _result, _domain) \
+    cache_req_recv(mem_ctx, req, _result, _domain, NULL)
+
+struct tevent_req *
+cache_req_object_by_sid_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct resp_ctx *rctx,
+                             struct sss_nc_ctx *ncache,
+                             int neg_timeout,
+                             int cache_refresh_percent,
+                             const char *domain,
+                             const char *sid,
+                             const char **attrs);
+
+#define cache_req_object_by_sid_recv(mem_ctx, req, _result, _domain) \
     cache_req_recv(mem_ctx, req, _result, _domain, NULL)
 
 #endif /* RESPONDER_CACHE_H_ */

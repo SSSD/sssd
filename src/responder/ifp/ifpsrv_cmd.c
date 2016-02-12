@@ -498,12 +498,12 @@ ifp_user_get_attr_lookup(struct tevent_req *subreq)
     case SSS_DP_USER:
         input = cache_req_input_create(state, state->rctx,
                                        CACHE_REQ_USER_BY_NAME,
-                                       state->name, 0, NULL);
+                                       state->name, 0, NULL, NULL, NULL);
         break;
     case SSS_DP_INITGROUPS:
         input = cache_req_input_create(state, state->rctx,
                                        CACHE_REQ_INITGROUPS,
-                                       state->name, 0, NULL);
+                                       state->name, 0, NULL, NULL, NULL);
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported search type [%d]!\n",
