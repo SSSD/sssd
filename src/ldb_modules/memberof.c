@@ -411,7 +411,7 @@ static int mbof_add_fill_ghop_ex(struct mbof_add_ctx *add_ctx,
         return LDB_SUCCESS;
 
     default:
-        /* an error occured, return */
+        /* an error occurred, return */
         return ret;
     }
 
@@ -911,7 +911,7 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
         break;
 
     default:
-        /* an error occured, return */
+        /* an error occurred, return */
         return ret;
     }
 
@@ -2133,7 +2133,7 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
         is_user = false;
         break;
     default:
-        /* an error occured, return */
+        /* an error occurred, return */
         return ret;
     }
 
@@ -2457,7 +2457,7 @@ static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
         return LDB_SUCCESS;
 
     default:
-        /* an error occured, return */
+        /* an error occurred, return */
         return ret;
     }
 
@@ -2520,7 +2520,7 @@ static int mbof_del_fill_ghop_ex(struct mbof_del_ctx *del_ctx,
         return LDB_SUCCESS;
 
     default:
-        /* an error occured, return */
+        /* an error occurred, return */
         return ret;
     }
 

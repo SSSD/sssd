@@ -139,7 +139,7 @@ errno_t sss_nscd_parse_conf(const char *conf_path)
 {
     FILE *fp;
     int ret = EOK;
-    unsigned int occured = 0;
+    unsigned int occurred = 0;
     char *line, *entry, *service, *enabled, *pad;
     size_t linelen = 0;
 
@@ -195,7 +195,7 @@ errno_t sss_nscd_parse_conf(const char *conf_path)
         if (!strcmp(entry, "enable-cache") &&
             !strcmp(enabled, "yes")) {
 
-            occured |= sss_nscd_check_service(service);
+            occurred |= sss_nscd_check_service(service);
         }
     };
 
@@ -209,7 +209,7 @@ errno_t sss_nscd_parse_conf(const char *conf_path)
     }
 
     ret = EOK;
-    if (occured != 0) {
+    if (occurred != 0) {
         ret = EEXIST;
         goto done;
     }

@@ -806,7 +806,7 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
 
             if (domainname && strcmp(domainname, dom->name)) {
                 DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Mismatch betwen domain name (%s) and name "
+                      "Mismatch between domain name (%s) and name "
                           "set in FQN  (%s), skipping group %s\n",
                           dom->name, domainname, name);
                 continue;

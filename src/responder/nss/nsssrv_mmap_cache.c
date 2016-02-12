@@ -1348,7 +1348,7 @@ errno_t sss_mmap_cache_reinit(TALLOC_CTX *mem_ctx, size_t n_elem,
 
     if (mc_ctx == NULL || (*mc_ctx) == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to re-init unitialized memory cache.\n");
+              "Unable to re-init uninitialized memory cache.\n");
         return EINVAL;
     }
 
