@@ -386,7 +386,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                     rerun = true;
                     continue;
                 } else if (strncmp(n , S_EXP_EUID, L_EXP_EUID) == 0) {
-                    /* SSSD does not distinguish betwen uid and euid,
+                    /* SSSD does not distinguish between uid and euid,
                      * so we treat both the same way */
                     action = 'U';
                     n += L_EXP_EUID - 1;

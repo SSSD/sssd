@@ -324,7 +324,7 @@ fini:
  * Check is path is owned by uid
  * returns  0 - owns
  *         -1 - does not own
- *         >0 - an error occured, error code
+ *         >0 - an error occurred, error code
  */
 static int is_owner(uid_t uid, const char *path)
 {

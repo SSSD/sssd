@@ -461,7 +461,7 @@ static PyObject *py_sss_usermod(PySssLocalObject *self,
 
     if (lock && lock != DO_LOCK && lock != DO_UNLOCK) {
         PyErr_SetString(PyExc_ValueError,
-                        "Unkown value for lock parameter");
+                        "Unknown value for lock parameter");
         goto fail;
     }
 

@@ -1284,7 +1284,7 @@ int sdap_get_server_opts_from_rootdse(TALLOC_CTX *memctx,
                     break;
                 default:
                     DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Unkown error (%d) checking rootdse!\n", ret);
+                          "Unknown error (%d) checking rootdse!\n", ret);
                 }
             } else {
                 if (!entry_usn_name) {

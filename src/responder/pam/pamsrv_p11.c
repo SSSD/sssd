@@ -144,7 +144,7 @@ static errno_t parse_p11_child_response(TALLOC_CTX *mem_ctx, uint8_t *buf,
 
     if (buf_len < 0) {
         DEBUG(SSSDBG_CRIT_FAILURE,
-              "Error occured while reading data from p11_child.\n");
+              "Error occurred while reading data from p11_child.\n");
         return EIO;
     }
 
