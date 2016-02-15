@@ -1582,6 +1582,7 @@ test_search_bases_CFLAGS = \
     $(AM_CFLAGS) \
     -DUNIT_TESTING
 test_search_bases_LDADD = \
+    $(LIBADD_DL) \
     $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(POPT_LIBS) \
@@ -1608,6 +1609,7 @@ ad_access_filter_tests_CFLAGS = \
     $(SYSTEMD_LOGIN_CFLAGS) \
     -DUNIT_TESTING
 ad_access_filter_tests_LDADD = \
+    $(LIBADD_DL) \
     $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
@@ -1634,6 +1636,7 @@ ad_common_tests_CFLAGS = \
 ad_common_tests_LDFLAGS = \
     -Wl,-wrap,sdap_set_sasl_options
 ad_common_tests_LDADD = \
+    $(LIBADD_DL) \
     $(PAM_LIBS) \
     $(CMOCKA_LIBS) \
     $(SSSD_LIBS) \
