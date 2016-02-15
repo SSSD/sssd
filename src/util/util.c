@@ -232,11 +232,11 @@ fail:
     return NULL;
 }
 
-char **dup_string_list(TALLOC_CTX *memctx, const char **str_list)
+const char **dup_string_list(TALLOC_CTX *memctx, const char **str_list)
 {
     int i = 0;
     int j = 0;
-    char **dup_list;
+    const char **dup_list;
 
     if (!str_list) {
         return NULL;
@@ -245,7 +245,7 @@ char **dup_string_list(TALLOC_CTX *memctx, const char **str_list)
     /* Find the size of the list */
     while (str_list[i]) i++;
 
-    dup_list = talloc_array(memctx, char *, i+1);
+    dup_list = talloc_array(memctx, const char *, i+1);
     if (!dup_list) {
         return NULL;
     }

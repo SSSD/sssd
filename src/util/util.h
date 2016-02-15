@@ -479,7 +479,7 @@ errno_t sss_fd_nonblocking(int fd);
 /* Copy a NULL-terminated string list
  * Returns NULL on out of memory error or invalid input
  */
-char **dup_string_list(TALLOC_CTX *memctx, const char **str_list);
+const char **dup_string_list(TALLOC_CTX *memctx, const char **str_list);
 
 /* Take two string lists (terminated on a NULL char*)
  * and return up to three arrays of strings based on
