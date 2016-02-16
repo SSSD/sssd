@@ -621,6 +621,7 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap.h \
     src/providers/ldap/sdap_access.h \
     src/providers/ldap/sdap_async.h \
+    src/providers/ldap/sdap_async_ad.h \
     src/providers/ldap/sdap_async_private.h \
     src/providers/ldap/sdap_sudo.h \
     src/providers/ldap/sdap_sudo_shared.h \

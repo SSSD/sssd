@@ -479,7 +479,7 @@ static errno_t sdap_get_ad_tokengroups_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static errno_t
+errno_t
 sdap_ad_tokengroups_update_members(const char *username,
                                    struct sysdb_ctx *sysdb,
                                    struct sss_domain_info *domain,
@@ -545,7 +545,7 @@ struct sdap_ad_resolve_sids_state {
 static errno_t sdap_ad_resolve_sids_step(struct tevent_req *req);
 static void sdap_ad_resolve_sids_done(struct tevent_req *subreq);
 
-static struct tevent_req *
+struct tevent_req *
 sdap_ad_resolve_sids_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           struct sdap_id_ctx *id_ctx,
@@ -682,7 +682,7 @@ done:
     tevent_req_done(req);
 }
 
-static errno_t sdap_ad_resolve_sids_recv(struct tevent_req *req)
+errno_t sdap_ad_resolve_sids_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -1141,15 +1141,15 @@ sdap_ad_tokengroups_initgr_posix_sids_connect_done(struct tevent_req *subreq)
     return;
 }
 
-static errno_t
+errno_t
 sdap_ad_tokengroups_get_posix_members(TALLOC_CTX *mem_ctx,
-                         struct sdap_ad_tokengroups_initgr_posix_state *state,
-                         size_t num_sids,
-                         char **sids,
-                         size_t *_num_missing,
-                         char ***_missing,
-                         size_t *_num_valid,
-                         char ***_valid_groups)
+                                      struct sss_domain_info *user_domain,
+                                      size_t num_sids,
+                                      char **sids,
+                                      size_t *_num_missing,
+                                      char ***_missing,
+                                      size_t *_num_valid,
+                                      char ***_valid_groups)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct sss_domain_info *domain = NULL;
@@ -1192,7 +1192,7 @@ sdap_ad_tokengroups_get_posix_members(TALLOC_CTX *mem_ctx,
         sid = sids[i];
         DEBUG(SSSDBG_TRACE_LIBS, "Processing membership SID [%s]\n", sid);
 
-        domain = sss_get_domain_by_sid_ldap_fallback(state->domain, sid);
+        domain = sss_get_domain_by_sid_ldap_fallback(user_domain, sid);
         if (domain == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE, "Domain not found for SID %s\n", sid);
             continue;
@@ -1280,7 +1280,7 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sdap_ad_tokengroups_get_posix_members(state, state,
+    ret = sdap_ad_tokengroups_get_posix_members(state, state->domain,
                                                 num_sids, sids,
                                                 &state->num_missing_sids,
                                                 &state->missing_sids,
@@ -1338,7 +1338,7 @@ sdap_ad_tokengroups_initgr_posix_sids_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sdap_ad_tokengroups_get_posix_members(state, state,
+    ret = sdap_ad_tokengroups_get_posix_members(state, state->domain,
                                                 state->num_missing_sids,
                                                 state->missing_sids,
                                                 NULL, NULL,
