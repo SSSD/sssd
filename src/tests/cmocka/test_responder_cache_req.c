@@ -44,11 +44,6 @@
 #define TEST_GROUP_NAME2 "test_group2"
 #define TEST_GROUP_ID2 1001
 
-#define TEST_USER_ID3 1002
-#define TEST_USER_NAME3 "test_user3"
-#define TEST_GROUP_NAME3 "test_group3"
-#define TEST_GROUP_ID3 1002
-
 #define TEST_USER_PREFIX "test*"
 
 #define new_single_domain_test(test) \
@@ -1339,12 +1334,6 @@ void test_users_by_recent_filter_valid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
     test_ctx->create_user1 = true;
     test_ctx->create_user2 = true;
-
-    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME3,
-                           "pwd", 1002, 1002, NULL, NULL, NULL,
-                           "cn="TEST_USER_NAME3",dc=test",
-                           NULL, NULL, 1000, time(NULL)-1);
-    assert_int_equal(ret, EOK);
 
     req_mem_ctx = talloc_new(test_ctx->tctx);
     check_leaks_push(req_mem_ctx);
