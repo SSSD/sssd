@@ -82,6 +82,7 @@ struct err_string error_to_str[] = {
     { "Address family not supported" }, /* ERR_ADDR_FAMILY_NOT_SUPPORTED */
     { "Message sender is the bus" }, /* ERR_SBUS_SENDER_BUS */
     { "Subdomain is inactive" }, /* ERR_SUBDOM_INACTIVE */
+    { "Account is locked" }, /* ERR_ACCOUNT_LOCKED */
     { "AD renewal child failed" }, /* ERR_RENEWAL_CHILD */
     { "ERR_LAST" } /* ERR_LAST */
 };
