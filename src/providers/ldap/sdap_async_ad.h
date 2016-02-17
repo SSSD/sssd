@@ -24,6 +24,12 @@
 #ifndef SDAP_ASYNC_AD_H_
 #define SDAP_ASYNC_AD_H_
 
+errno_t sdap_ad_save_group_membership_with_idmapping(const char *username,
+                                               struct sss_domain_info *user_dom,
+                                               struct sdap_idmap_ctx *idmap_ctx,
+                                               size_t num_sids,
+                                               char **sids);
+
 errno_t
 sdap_ad_tokengroups_get_posix_members(TALLOC_CTX *mem_ctx,
                                       struct sss_domain_info *user_domain,
