@@ -734,6 +734,22 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
     }
 
     ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
+        /* try reopen socket */
+        ret = sss_cli_check_socket(errnop, SSS_NSS_SOCKET_NAME);
+        if (ret != SSS_STATUS_SUCCESS) {
+#ifdef NONSTANDARD_SSS_NSS_BEHAVIOUR
+            *errnop = 0;
+            errno = 0;
+            return NSS_STATUS_NOTFOUND;
+#else
+            return NSS_STATUS_UNAVAIL;
+#endif
+        }
+
+        /* and make request one more time */
+        ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    }
     switch (ret) {
     case SSS_STATUS_TRYAGAIN:
         return NSS_STATUS_TRYAGAIN;
@@ -784,6 +800,16 @@ int sss_pac_make_request(enum sss_cli_command cmd,
     }
 
     ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
+        /* try reopen socket */
+        ret = sss_cli_check_socket(errnop, SSS_PAC_SOCKET_NAME);
+        if (ret != SSS_STATUS_SUCCESS) {
+            return NSS_STATUS_UNAVAIL;
+        }
+
+        /* and make request one more time */
+        ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    }
     switch (ret) {
     case SSS_STATUS_TRYAGAIN:
         return NSS_STATUS_TRYAGAIN;
@@ -888,6 +914,18 @@ int sss_pam_make_request(enum sss_cli_command cmd,
     }
 
     status = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    if (status == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
+        /* try reopen socket */
+        status = sss_cli_check_socket(errnop, socket_name);
+        if (status != SSS_STATUS_SUCCESS) {
+            ret = PAM_SERVICE_ERR;
+            goto out;
+        }
+
+        /* and make request one more time */
+        status = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    }
+
     if (status == SSS_STATUS_SUCCESS) {
         ret = PAM_SUCCESS;
     } else {
@@ -926,6 +964,16 @@ sss_cli_make_request_with_checks(enum sss_cli_command cmd,
     }
 
     ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    if (ret == SSS_STATUS_UNAVAIL && *errnop == EPIPE) {
+        /* try reopen socket */
+        ret = sss_cli_check_socket(errnop, socket_name);
+        if (ret != SSS_STATUS_SUCCESS) {
+            return SSS_STATUS_UNAVAIL;
+        }
+
+        /* and make request one more time */
+        ret = sss_cli_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+    }
 
     return ret;
 }
