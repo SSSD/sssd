@@ -427,8 +427,8 @@ START_TEST(idmap_test_sid2uid_additional_secondary_slices)
     struct TALLOC_CTX *tmp_ctx;
     const char *dom_prefix = "S-1-5-21-1-2-3";
     const int max_rid = 80;
-    const char *sids[max_rid];
-    unsigned int ids[max_rid];
+    const char *sids[max_rid + 1];
+    unsigned int ids[max_rid + 1];
 
     tmp_ctx = talloc_new(NULL);
     fail_unless(tmp_ctx != NULL, "Out of memory.");
