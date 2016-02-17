@@ -530,6 +530,10 @@
                             ldap_user_principal
                         </para>
                         <para>
+                            ldap_krb5_keytab (the value of krb5_keytab will be
+                            used if ldap_krb5_keytab is not set explicitly)
+                        </para>
+                        <para>
                             Example:
                             <programlisting>
 subdomain_inherit = ldap_purge_cache_timeout

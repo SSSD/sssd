@@ -250,6 +250,7 @@ static void sdap_inherit_basic_options(char **inherit_opt_list,
     int inherit_options[] = {
         SDAP_PURGE_CACHE_TIMEOUT,
         SDAP_AD_USE_TOKENGROUPS,
+        SDAP_KRB5_KEYTAB,
         SDAP_OPTS_BASIC     /* sentinel */
     };
     int i;
