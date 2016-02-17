@@ -543,6 +543,10 @@ errno_t guid_blob_to_string_buf(const uint8_t *blob, char *str_buf,
 
 const char *get_last_x_chars(const char *str, size_t x);
 
+char **concatenate_string_array(TALLOC_CTX *mem_ctx,
+                                char **arr1, size_t len1,
+                                char **arr2, size_t len2);
+
 /* from become_user.c */
 errno_t become_user(uid_t uid, gid_t gid);
 struct sss_creds;

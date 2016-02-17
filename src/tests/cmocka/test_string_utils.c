@@ -220,3 +220,52 @@ void test_get_last_x_chars(void **state)
     assert_non_null(s);
     assert_string_equal(s, "abc");
 }
+
+void test_concatenate_string_array(void **state)
+{
+    TALLOC_CTX *mem_ctx;
+    char **a1;
+    size_t a1_len = 2;
+    char **a2;
+    size_t a2_len = 3;
+    char **res;
+    size_t c;
+
+    mem_ctx = talloc_new(NULL);
+    assert_non_null(mem_ctx);
+    check_leaks_push(mem_ctx);
+
+    res = concatenate_string_array(mem_ctx, NULL, 0, NULL, 0);
+    assert_non_null(res);
+    assert_null(res[0]);
+    talloc_free(res);
+
+    a1 = talloc_array(mem_ctx, char *, a1_len);
+    assert_non_null(a1);
+    for (c = 0; c < a1_len; c++) {
+        a1[c] = talloc_asprintf(a1, "%zu", c);
+        assert_non_null(a1[c]);
+    }
+
+    a2 = talloc_array(mem_ctx, char *, a2_len);
+    assert_non_null(a2);
+    for (c = 0; c < a2_len; c++) {
+        a2[c] = talloc_asprintf(a2, "%zu", c + a1_len);
+        assert_non_null(a2[c]);
+    }
+
+    res = concatenate_string_array(mem_ctx, a1, a1_len, a2, a2_len);
+    assert_non_null(res);
+    assert_null(res[a1_len + a2_len]);
+    for (c = 0; c < (a1_len + a2_len); c++) {
+        assert_string_equal(res[c], talloc_asprintf(res, "%zu", c));
+    }
+
+    talloc_free(res);
+    /* Since concatenate_string_array() uses talloc_realloc on a1 it should
+     * not be needed to free a1 explicitly. */
+    talloc_free(a2);
+
+    assert_true(check_leaks_pop(mem_ctx) == true);
+    talloc_free(mem_ctx);
+}
