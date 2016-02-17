@@ -188,6 +188,8 @@ static void prepare_concrete_user(TALLOC_CTX *mem_ctx,
                            "cn=test-user,dc=test", attrs, NULL,
                            timeout, transaction_time);
     assert_int_equal(ret, EOK);
+
+    talloc_free(attrs);
 }
 
 static void prepare_user(TALLOC_CTX *mem_ctx,
@@ -359,9 +361,11 @@ static int test_single_domain_setup(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     errno_t ret;
 
+    assert_true(leak_check_setup());
+
     test_dom_suite_setup(TESTS_PATH);
 
-    test_ctx = talloc_zero(NULL, struct cache_req_test_ctx);
+    test_ctx = talloc_zero(global_talloc_context, struct cache_req_test_ctx);
     assert_non_null(test_ctx);
     *state = test_ctx;
 
@@ -375,13 +379,25 @@ static int test_single_domain_setup(void **state)
 
     ret = sss_ncache_init(test_ctx, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
+
+    check_leaks_push(test_ctx);
+
     return 0;
 }
 
 static int test_single_domain_teardown(void **state)
 {
-    talloc_zfree(*state);
+    struct cache_req_test_ctx *test_ctx;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    talloc_zfree(test_ctx->result);
+    talloc_zfree(test_ctx->name);
+
+    assert_true(check_leaks_pop(test_ctx));
+    talloc_zfree(test_ctx);
     test_dom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, TEST_DOM_NAME);
+    assert_true(leak_check_teardown());
     return 0;
 }
 
@@ -390,9 +406,11 @@ static int test_multi_domain_setup(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     errno_t ret;
 
+    assert_true(leak_check_setup());
+
     test_dom_suite_setup(TESTS_PATH);
 
-    test_ctx = talloc_zero(NULL, struct cache_req_test_ctx);
+    test_ctx = talloc_zero(global_talloc_context, struct cache_req_test_ctx);
     assert_non_null(test_ctx);
     *state = test_ctx;
 
@@ -407,13 +425,25 @@ static int test_multi_domain_setup(void **state)
 
     ret = sss_ncache_init(test_ctx, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
+
+    check_leaks_push(test_ctx);
+
     return 0;
 }
 
 static int test_multi_domain_teardown(void **state)
 {
-    talloc_zfree(*state);
+    struct cache_req_test_ctx *test_ctx;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    talloc_zfree(test_ctx->result);
+    talloc_zfree(test_ctx->name);
+
+    assert_true(check_leaks_pop(test_ctx));
+    talloc_zfree(test_ctx);
     test_multidom_suite_cleanup(TESTS_PATH, TEST_CONF_DB, domains);
+    assert_true(leak_check_teardown());
     return 0;
 }
 
@@ -516,6 +546,8 @@ void test_user_by_name_multiple_domains_parse(void **state)
 
     assert_non_null(test_ctx->name);
     assert_string_equal(name, test_ctx->name);
+
+    talloc_free(fqn);
 }
 
 void test_user_by_name_cache_valid(void **state)
@@ -1014,6 +1046,8 @@ void test_group_by_name_multiple_domains_parse(void **state)
 
     assert_non_null(test_ctx->name);
     assert_string_equal(name, test_ctx->name);
+
+    talloc_free(fqn);
 }
 
 void test_group_by_name_cache_valid(void **state)
@@ -1326,9 +1360,9 @@ void test_users_by_recent_filter_valid(void **state)
     struct cache_req_test_ctx *test_ctx = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char **user_names = NULL;
-    const char **ldb_results = NULL;
-    const char *ldbname = NULL;
+    size_t num_users = 2;
+    const char *user_names[num_users];
+    const char *ldb_results[num_users];
     errno_t ret;
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
@@ -1358,23 +1392,19 @@ void test_users_by_recent_filter_valid(void **state)
     assert_non_null(test_ctx->result);
     assert_int_equal(test_ctx->result->count, 2);
 
-    user_names = talloc_array(test_ctx, const char *, 2);
-    assert_non_null(user_names);
     user_names[0] = TEST_USER_NAME;
     user_names[1] = TEST_USER_NAME2;
 
-    ldb_results = talloc_array(test_ctx, const char *, 2);
-    assert_non_null(ldb_results);
-    for (int i = 0; i < 2; ++i) {
-        ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[i],
-                                              SYSDB_NAME, NULL);
-        assert_non_null(ldbname);
-        ldb_results[i] = ldbname;
+    for (int i = 0; i < num_users; ++i) {
+        ldb_results[i] = ldb_msg_find_attr_as_string(test_ctx->result->msgs[i],
+                                                     SYSDB_NAME, NULL);
+        assert_non_null(ldb_results[i]);
     }
 
     assert_string_not_equal(ldb_results[0], ldb_results[1]);
 
-    assert_true(tc_are_values_in_array(user_names, ldb_results));
+    assert_true(are_values_in_array(user_names, num_users,
+                                    ldb_results, num_users));
 }
 
 void test_users_by_filter_filter_old(void **state)
