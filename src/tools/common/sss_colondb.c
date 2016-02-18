@@ -121,6 +121,10 @@ errno_t sss_colondb_readline(TALLOC_CTX *mem_ctx,
     readchars = getline(&line, &linelen, db->file);
     if (readchars == -1) {
         /* Nothing was read. */
+
+        free(line);
+        line = NULL;
+
         if (errno != 0) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to read line [%d]: %s\n",
