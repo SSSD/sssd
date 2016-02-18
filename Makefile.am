@@ -1429,7 +1429,9 @@ libsss_test_common_la_SOURCES = \
     src/tests/common.c
 libsss_test_common_la_LIBADD = \
     $(TALLOC_LIBS) \
-    $(TEVENT_LIBS)
+    $(TEVENT_LIBS) \
+    $(LDB_LIBS) \
+    $(NULL)
 
 if HAVE_CHECK
 libsss_test_common_la_SOURCES += \

@@ -22,6 +22,7 @@
 
 #include <talloc.h>
 #include <errno.h>
+#include <ldb_module.h>
 
 #include "tests/common.h"
 
@@ -187,6 +188,9 @@ mock_domain(TALLOC_CTX *mem_ctx,
               "[%d]: %s\n", name, ret, sss_strerror(ret));
         goto done;
     }
+
+    /* reset ldb error if any */
+    ldb_reset_err_string(sysdb_ctx_get_ldb(domain->sysdb));
 
     /* init with an AD-style regex to be able to test flat name */
     ret = sss_names_init_from_args(domain,
