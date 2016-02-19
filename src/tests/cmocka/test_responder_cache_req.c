@@ -33,18 +33,21 @@
 #define TEST_DOM_NAME "responder_cache_req_test"
 #define TEST_ID_PROVIDER "ldap"
 
-#define TEST_USER_NAME "test-user"
-#define TEST_UPN "upn@upndomain.com"
-#define TEST_USER_ID 1000
-#define TEST_GROUP_NAME "test-group"
-#define TEST_GROUP_ID 1000
-
-#define TEST_USER_ID2 1001
-#define TEST_USER_NAME2 "test_user2"
-#define TEST_GROUP_NAME2 "test_group2"
-#define TEST_GROUP_ID2 1001
-
 #define TEST_USER_PREFIX "test*"
+
+struct test_user {
+    const char *name;
+    const char *upn;
+    uid_t uid;
+    gid_t gid;
+} users[] = {{"test-user1", "upn1@upndomain.com", 1001, 1001},
+             {"test-user2", "upn2@upndomain.com", 1002, 1002}};
+
+struct test_group {
+    const char *name;
+    gid_t gid;
+} groups[] = {{"test-group1", 2001},
+              {"test-group2", 2002}};
 
 #define new_single_domain_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
@@ -166,39 +169,27 @@ static void cache_req_group_by_id_test_done(struct tevent_req *req)
     ctx->tctx->done = true;
 }
 
-static void prepare_concrete_user(TALLOC_CTX *mem_ctx,
-                                  struct sss_domain_info *domain,
-                                  const char* user_name,
-                                  int user_id,
-                                  int group_id,
-                                  uint64_t timeout,
-                                  time_t transaction_time)
+static void prepare_user(struct sss_domain_info *domain,
+                         struct test_user *user,
+                         uint64_t timeout,
+                         time_t transaction_time)
 {
     struct sysdb_attrs *attrs;
     errno_t ret;
 
-    attrs = sysdb_new_attrs(mem_ctx);
+    attrs = sysdb_new_attrs(NULL);
     assert_non_null(attrs);
 
-    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, TEST_UPN);
+    ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, user->upn);
     assert_int_equal(ret, EOK);
 
-    ret = sysdb_store_user(domain, user_name, "pwd",
-                           user_id, group_id, NULL, NULL, NULL,
-                           "cn=test-user,dc=test", attrs, NULL,
+    ret = sysdb_store_user(domain, user->name, "pwd",
+                           user->uid, user->gid, NULL, NULL, NULL,
+                           "cn=origdn,dc=test", attrs, NULL,
                            timeout, transaction_time);
     assert_int_equal(ret, EOK);
 
     talloc_free(attrs);
-}
-
-static void prepare_user(TALLOC_CTX *mem_ctx,
-                         struct sss_domain_info *domain,
-                         uint64_t timeout,
-                         time_t transaction_time)
-{
-    prepare_concrete_user(mem_ctx, domain, TEST_USER_NAME, TEST_USER_ID,
-                          TEST_GROUP_ID, timeout, transaction_time);
 }
 
 static void run_user_by_name(struct cache_req_test_ctx *test_ctx,
@@ -208,7 +199,7 @@ static void run_user_by_name(struct cache_req_test_ctx *test_ctx,
 {
     run_cache_req(test_ctx, cache_req_user_by_name_send,
                   cache_req_user_by_name_test_done, domain,
-                  cache_refresh_percent, TEST_USER_NAME, exp_ret);
+                  cache_refresh_percent, users[0].name, exp_ret);
 }
 
 static void run_user_by_upn(struct cache_req_test_ctx *test_ctx,
@@ -218,7 +209,7 @@ static void run_user_by_upn(struct cache_req_test_ctx *test_ctx,
 {
     run_cache_req(test_ctx, cache_req_user_by_name_send,
                   cache_req_user_by_name_test_done, domain,
-                  cache_refresh_percent, TEST_UPN, exp_ret);
+                  cache_refresh_percent, users[0].upn, exp_ret);
 }
 
 static void run_user_by_id(struct cache_req_test_ctx *test_ctx,
@@ -228,10 +219,11 @@ static void run_user_by_id(struct cache_req_test_ctx *test_ctx,
 {
     run_cache_req(test_ctx, cache_req_user_by_id_send,
                   cache_req_user_by_id_test_done, domain,
-                  cache_refresh_percent, TEST_USER_ID, exp_ret);
+                  cache_refresh_percent, users[0].uid, exp_ret);
 }
 
 static void check_user(struct cache_req_test_ctx *test_ctx,
+                       struct test_user *user,
                        struct sss_domain_info *exp_dom)
 {
     const char *ldbname;
@@ -246,29 +238,29 @@ static void check_user(struct cache_req_test_ctx *test_ctx,
     ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
                                           SYSDB_NAME, NULL);
     assert_non_null(ldbname);
-    assert_string_equal(ldbname, TEST_USER_NAME);
+    assert_string_equal(ldbname, user->name);
 
     ldbupn = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
                                          SYSDB_UPN, NULL);
     assert_non_null(ldbupn);
-    assert_string_equal(ldbupn, TEST_UPN);
+    assert_string_equal(ldbupn, user->upn);
 
     ldbuid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
                                        SYSDB_UIDNUM, 0);
-    assert_int_equal(ldbuid, TEST_USER_ID);
+    assert_int_equal(ldbuid, user->uid);
 
     assert_non_null(test_ctx->domain);
     assert_string_equal(exp_dom->name, test_ctx->domain->name);
 }
 
-static void prepare_group(TALLOC_CTX *mem_ctx,
-                         struct sss_domain_info *domain,
-                         uint64_t timeout,
-                         time_t transaction_time)
+static void prepare_group(struct sss_domain_info *domain,
+                          struct test_group *group,
+                          uint64_t timeout,
+                          time_t transaction_time)
 {
     errno_t ret;
 
-    ret = sysdb_store_group(domain, TEST_GROUP_NAME, TEST_GROUP_ID, NULL,
+    ret = sysdb_store_group(domain, group->name, group->gid, NULL,
                             timeout, transaction_time);
     assert_int_equal(ret, EOK);
 }
@@ -280,7 +272,7 @@ static void run_group_by_name(struct cache_req_test_ctx *test_ctx,
 {
     run_cache_req(test_ctx, cache_req_group_by_name_send,
                   cache_req_group_by_name_test_done, domain,
-                  cache_refresh_percent, TEST_GROUP_NAME, exp_ret);
+                  cache_refresh_percent, groups[0].name, exp_ret);
 }
 
 static void run_group_by_id(struct cache_req_test_ctx *test_ctx,
@@ -290,10 +282,11 @@ static void run_group_by_id(struct cache_req_test_ctx *test_ctx,
 {
     run_cache_req(test_ctx, cache_req_group_by_id_send,
                   cache_req_group_by_id_test_done, domain,
-                  cache_refresh_percent, TEST_GROUP_ID, exp_ret);
+                  cache_refresh_percent, groups[0].gid, exp_ret);
 }
 
 static void check_group(struct cache_req_test_ctx *test_ctx,
+                        struct test_group *group,
                         struct sss_domain_info *exp_dom)
 {
     const char *ldbname;
@@ -307,11 +300,11 @@ static void check_group(struct cache_req_test_ctx *test_ctx,
     ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
                                           SYSDB_NAME, NULL);
     assert_non_null(ldbname);
-    assert_string_equal(ldbname, TEST_GROUP_NAME);
+    assert_string_equal(ldbname, group->name);
 
     ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
                                        SYSDB_GIDNUM, 0);
-    assert_int_equal(ldbgid, TEST_USER_ID);
+    assert_int_equal(ldbgid, group->gid);
 
     assert_non_null(test_ctx->domain);
     assert_string_equal(exp_dom->name, test_ctx->domain->name);
@@ -328,30 +321,25 @@ __wrap_sss_dp_get_account_send(TALLOC_CTX *mem_ctx,
                                const char *extra)
 {
     struct cache_req_test_ctx *ctx = NULL;
-    errno_t ret;
 
     ctx = sss_mock_ptr_type(struct cache_req_test_ctx*);
     ctx->dp_called = true;
 
     if (ctx->create_user1) {
-        prepare_user(ctx, ctx->tctx->dom, 1000, time(NULL));
+        prepare_user(ctx->tctx->dom, &users[0], 1000, time(NULL));
     }
+
     if (ctx->create_user2) {
-        prepare_concrete_user(mem_ctx, ctx->tctx->dom, TEST_USER_NAME2,
-                              TEST_USER_ID2, TEST_GROUP_ID2, 1000, time(NULL));
+        prepare_user(ctx->tctx->dom, &users[1], 1000, time(NULL));
     }
 
     if (ctx->create_group1) {
-        ret = sysdb_store_group(ctx->tctx->dom, TEST_GROUP_NAME,
-                                TEST_GROUP_ID, NULL, 1000, time(NULL));
-        assert_int_equal(ret, EOK);
-    }
-    if (ctx->create_group2) {
-        ret = sysdb_store_group(ctx->tctx->dom, TEST_GROUP_NAME2,
-                                TEST_GROUP_ID2, NULL, 1000, time(NULL));
-        assert_int_equal(ret, EOK);
+        prepare_group(ctx->tctx->dom, &groups[0], 1000, time(NULL));
     }
 
+    if (ctx->create_group2) {
+        prepare_group(ctx->tctx->dom, &groups[1], 1000, time(NULL));
+    }
 
     return test_req_succeed_send(mem_ctx, rctx->ev);
 }
@@ -459,17 +447,17 @@ void test_user_by_name_multiple_domains_found(void **state)
                                  "responder_cache_req_test_d", true);
     assert_non_null(domain);
 
-    prepare_user(test_ctx, domain, 1000, time(NULL));
+    prepare_user(domain, &users[0], 1000, time(NULL));
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
-    mock_parse_inp(TEST_USER_NAME, NULL, ERR_OK);
+    mock_parse_inp(users[0].name, NULL, ERR_OK);
 
     /* Test. */
     run_user_by_name(test_ctx, NULL, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, domain);
+    check_user(test_ctx, &users[0], domain);
 }
 
 void test_user_by_name_multiple_domains_notfound(void **state)
@@ -481,7 +469,7 @@ void test_user_by_name_multiple_domains_notfound(void **state)
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
-    mock_parse_inp(TEST_USER_NAME, NULL, ERR_OK);
+    mock_parse_inp(users[0].name, NULL, ERR_OK);
 
     /* Test. */
     run_user_by_name(test_ctx, NULL, 0, ENOENT);
@@ -494,8 +482,8 @@ void test_user_by_name_multiple_domains_parse(void **state)
     struct sss_domain_info *domain = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = TEST_USER_NAME;
-    const char *fqn = NULL;
+    const char *name = users[0].name;
+    char *fqn;
     errno_t ret;
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
@@ -516,7 +504,7 @@ void test_user_by_name_multiple_domains_parse(void **state)
                                  "responder_cache_req_test_d", true);
     assert_non_null(domain);
 
-    prepare_user(test_ctx, domain, 1000, time(NULL));
+    prepare_user(domain, &users[0], 1000, time(NULL));
 
     /* Append domain name to the username. */
     fqn = talloc_asprintf(test_ctx, "%s@%s", name,
@@ -542,7 +530,7 @@ void test_user_by_name_multiple_domains_parse(void **state)
     assert_true(check_leaks_pop(req_mem_ctx));
     assert_false(test_ctx->dp_called);
 
-    check_user(test_ctx, domain);
+    check_user(test_ctx, &users[0], domain);
 
     assert_non_null(test_ctx->name);
     assert_string_equal(name, test_ctx->name);
@@ -557,11 +545,11 @@ void test_user_by_name_cache_valid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    prepare_user(test_ctx, test_ctx->tctx->dom, 1000, time(NULL));
+    prepare_user(test_ctx->tctx->dom, &users[0], 1000, time(NULL));
 
     /* Test. */
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_name_cache_expired(void **state)
@@ -571,7 +559,7 @@ void test_user_by_name_cache_expired(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    prepare_user(test_ctx, test_ctx->tctx->dom, -1000, time(NULL));
+    prepare_user(test_ctx->tctx->dom, &users[0], -1000, time(NULL));
 
     /* Mock values. */
     /* DP should be contacted */
@@ -581,7 +569,7 @@ void test_user_by_name_cache_expired(void **state)
     /* Test. */
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_name_cache_midpoint(void **state)
@@ -591,7 +579,7 @@ void test_user_by_name_cache_midpoint(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    prepare_user(test_ctx, test_ctx->tctx->dom, 50, time(NULL) - 26);
+    prepare_user(test_ctx->tctx->dom, &users[0], 50, time(NULL) - 26);
 
     /* Mock values. */
     /* DP should be contacted without callback */
@@ -600,7 +588,7 @@ void test_user_by_name_cache_midpoint(void **state)
     /* Test. */
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 50, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_name_ncache(void **state)
@@ -612,7 +600,7 @@ void test_user_by_name_ncache(void **state)
 
     /* Setup user. */
     ret = sss_ncache_set_user(test_ctx->ncache, false,
-                              test_ctx->tctx->dom, TEST_USER_NAME);
+                              test_ctx->tctx->dom, users[0].name);
     assert_int_equal(ret, EOK);
 
     /* Test. */
@@ -636,7 +624,7 @@ void test_user_by_name_missing_found(void **state)
     /* Test. */
     run_user_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_name_missing_notfound(void **state)
@@ -666,7 +654,7 @@ void test_user_by_upn_multiple_domains_found(void **state)
                                  "responder_cache_req_test_d", true);
     assert_non_null(domain);
 
-    prepare_user(test_ctx, domain, 1000, time(NULL));
+    prepare_user(domain, &users[0], 1000, time(NULL));
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
@@ -676,7 +664,7 @@ void test_user_by_upn_multiple_domains_found(void **state)
     /* Test. */
     run_user_by_upn(test_ctx, NULL, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, domain);
+    check_user(test_ctx, &users[0], domain);
 }
 
 void test_user_by_upn_multiple_domains_notfound(void **state)
@@ -702,14 +690,14 @@ void test_user_by_upn_cache_valid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    prepare_user(test_ctx, test_ctx->tctx->dom, 1000, time(NULL));
+    prepare_user(test_ctx->tctx->dom, &users[0], 1000, time(NULL));
 
     /* Mock values. */
     mock_parse_inp(NULL, NULL, ERR_DOMAIN_NOT_FOUND);
 
     /* Test. */
     run_user_by_upn(test_ctx, NULL, 0, ERR_OK);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_upn_cache_expired(void **state)
@@ -719,7 +707,7 @@ void test_user_by_upn_cache_expired(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    prepare_user(test_ctx, test_ctx->tctx->dom, -1000, time(NULL));
+    prepare_user(test_ctx->tctx->dom, &users[0], -1000, time(NULL));
 
     /* Mock values. */
     /* DP should be contacted */
@@ -730,7 +718,7 @@ void test_user_by_upn_cache_expired(void **state)
     /* Test. */
     run_user_by_upn(test_ctx, NULL, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_upn_cache_midpoint(void **state)
@@ -740,7 +728,7 @@ void test_user_by_upn_cache_midpoint(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    prepare_user(test_ctx, test_ctx->tctx->dom, 50, time(NULL) - 26);
+    prepare_user(test_ctx->tctx->dom, &users[0], 50, time(NULL) - 26);
 
     /* Mock values. */
     /* DP should be contacted without callback */
@@ -750,7 +738,7 @@ void test_user_by_upn_cache_midpoint(void **state)
     /* Test. */
     run_user_by_upn(test_ctx, NULL, 50, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_upn_ncache(void **state)
@@ -762,7 +750,7 @@ void test_user_by_upn_ncache(void **state)
 
     /* Setup user. */
     ret = sss_ncache_set_user(test_ctx->ncache, false,
-                              test_ctx->tctx->dom, TEST_UPN);
+                              test_ctx->tctx->dom, users[0].upn);
     assert_int_equal(ret, EOK);
 
     /* Mock values. */
@@ -790,7 +778,7 @@ void test_user_by_upn_missing_found(void **state)
     /* Test. */
     run_user_by_upn(test_ctx, NULL, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_upn_missing_notfound(void **state)
@@ -821,7 +809,7 @@ void test_user_by_id_multiple_domains_found(void **state)
                                  "responder_cache_req_test_d", true);
     assert_non_null(domain);
 
-    prepare_user(test_ctx, domain, 1000, time(NULL));
+    prepare_user(domain, &users[0], 1000, time(NULL));
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
@@ -830,7 +818,7 @@ void test_user_by_id_multiple_domains_found(void **state)
     /* Test. */
     run_user_by_id(test_ctx, NULL, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, domain);
+    check_user(test_ctx, &users[0], domain);
 }
 
 void test_user_by_id_multiple_domains_notfound(void **state)
@@ -855,11 +843,11 @@ void test_user_by_id_cache_valid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    prepare_user(test_ctx, test_ctx->tctx->dom, 1000, time(NULL));
+    prepare_user(test_ctx->tctx->dom, &users[0], 1000, time(NULL));
 
     /* Test. */
     run_user_by_id(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_id_cache_expired(void **state)
@@ -869,7 +857,7 @@ void test_user_by_id_cache_expired(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    prepare_user(test_ctx, test_ctx->tctx->dom, -1000, time(NULL));
+    prepare_user(test_ctx->tctx->dom, &users[0], -1000, time(NULL));
 
     /* Mock values. */
     /* DP should be contacted. */
@@ -879,7 +867,7 @@ void test_user_by_id_cache_expired(void **state)
     /* Test. */
     run_user_by_id(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_id_cache_midpoint(void **state)
@@ -889,7 +877,7 @@ void test_user_by_id_cache_midpoint(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    prepare_user(test_ctx, test_ctx->tctx->dom, 50, time(NULL) - 26);
+    prepare_user(test_ctx->tctx->dom, &users[0], 50, time(NULL) - 26);
 
     /* Mock values. */
     /* DP should be contacted without callback */
@@ -898,7 +886,7 @@ void test_user_by_id_cache_midpoint(void **state)
     /* Test. */
     run_user_by_id(test_ctx, test_ctx->tctx->dom, 50, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_id_ncache(void **state)
@@ -909,7 +897,7 @@ void test_user_by_id_ncache(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup user. */
-    ret = sss_ncache_set_uid(test_ctx->ncache, false, NULL, TEST_USER_ID);
+    ret = sss_ncache_set_uid(test_ctx->ncache, false, NULL, users[0].uid);
     assert_int_equal(ret, EOK);
 
     /* Test. */
@@ -933,7 +921,7 @@ void test_user_by_id_missing_found(void **state)
     /* Test. */
     run_user_by_id(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_user(test_ctx, test_ctx->tctx->dom);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
 }
 
 void test_user_by_id_missing_notfound(void **state)
@@ -962,17 +950,17 @@ void test_group_by_name_multiple_domains_found(void **state)
     domain = find_domain_by_name(test_ctx->tctx->dom,
                                  "responder_cache_req_test_d", true);
     assert_non_null(domain);
-    prepare_group(test_ctx, domain, 1000, time(NULL));
+    prepare_group(domain, &groups[0], 1000, time(NULL));
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
-    mock_parse_inp(TEST_GROUP_NAME, NULL, ERR_OK);
+    mock_parse_inp(groups[0].name, NULL, ERR_OK);
 
     /* Test. */
     run_group_by_name(test_ctx, NULL, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_group(test_ctx, domain);
+    check_group(test_ctx, &groups[0], domain);
 }
 
 void test_group_by_name_multiple_domains_notfound(void **state)
@@ -984,7 +972,7 @@ void test_group_by_name_multiple_domains_notfound(void **state)
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
     will_return_always(sss_dp_get_account_recv, 0);
-    mock_parse_inp(TEST_GROUP_NAME, NULL, ERR_OK);
+    mock_parse_inp(groups[0].name, NULL, ERR_OK);
 
     /* Test. */
     run_group_by_name(test_ctx, NULL, 0, ENOENT);
@@ -997,8 +985,8 @@ void test_group_by_name_multiple_domains_parse(void **state)
     struct sss_domain_info *domain = NULL;
     TALLOC_CTX *req_mem_ctx = NULL;
     struct tevent_req *req = NULL;
-    const char *name = TEST_GROUP_NAME;
-    const char *fqn = NULL;
+    const char *name = groups[0].name;
+    char *fqn;
     errno_t ret;
 
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
@@ -1018,7 +1006,7 @@ void test_group_by_name_multiple_domains_parse(void **state)
                                  "responder_cache_req_test_d", true);
     assert_non_null(domain);
 
-    prepare_group(test_ctx, domain, 1000, time(NULL));
+    prepare_group(domain, &groups[0], 1000, time(NULL));
 
     /* Append domain name to the username. */
     fqn = talloc_asprintf(test_ctx, "%s@%s", name,
@@ -1042,7 +1030,7 @@ void test_group_by_name_multiple_domains_parse(void **state)
     assert_true(check_leaks_pop(req_mem_ctx));
     assert_false(test_ctx->dp_called);
 
-    check_group(test_ctx, domain);
+    check_group(test_ctx, &groups[0], domain);
 
     assert_non_null(test_ctx->name);
     assert_string_equal(name, test_ctx->name);
@@ -1057,11 +1045,11 @@ void test_group_by_name_cache_valid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup group. */
-    prepare_group(test_ctx, test_ctx->tctx->dom, 1000, time(NULL));
+    prepare_group(test_ctx->tctx->dom, &groups[0], 1000, time(NULL));
 
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
-    check_group(test_ctx, test_ctx->tctx->dom);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
 }
 
 void test_group_by_name_cache_expired(void **state)
@@ -1071,7 +1059,7 @@ void test_group_by_name_cache_expired(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup group. */
-    prepare_group(test_ctx, test_ctx->tctx->dom, -1000, time(NULL));
+    prepare_group(test_ctx->tctx->dom, &groups[0], -1000, time(NULL));
 
     /* Mock values. */
     /* DP should be contacted */
@@ -1081,7 +1069,7 @@ void test_group_by_name_cache_expired(void **state)
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_group(test_ctx, test_ctx->tctx->dom);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
 }
 
 void test_group_by_name_cache_midpoint(void **state)
@@ -1091,7 +1079,7 @@ void test_group_by_name_cache_midpoint(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup group. */
-    prepare_group(test_ctx, test_ctx->tctx->dom, 50, time(NULL) - 26);
+    prepare_group(test_ctx->tctx->dom, &groups[0], 50, time(NULL) - 26);
 
     /* Mock values. */
     /* DP should be contacted without callback */
@@ -1100,7 +1088,7 @@ void test_group_by_name_cache_midpoint(void **state)
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 50, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_group(test_ctx, test_ctx->tctx->dom);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
 }
 
 void test_group_by_name_ncache(void **state)
@@ -1112,7 +1100,7 @@ void test_group_by_name_ncache(void **state)
 
     /* Setup group. */
     ret = sss_ncache_set_group(test_ctx->ncache, false,
-                               test_ctx->tctx->dom, TEST_GROUP_NAME);
+                               test_ctx->tctx->dom, groups[0].name);
     assert_int_equal(ret, EOK);
 
     /* Test. */
@@ -1136,7 +1124,7 @@ void test_group_by_name_missing_found(void **state)
     /* Test. */
     run_group_by_name(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_group(test_ctx, test_ctx->tctx->dom);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
 }
 
 void test_group_by_name_missing_notfound(void **state)
@@ -1165,7 +1153,7 @@ void test_group_by_id_multiple_domains_found(void **state)
     domain = find_domain_by_name(test_ctx->tctx->dom,
                                  "responder_cache_req_test_d", true);
     assert_non_null(domain);
-    prepare_group(test_ctx, domain, 1000, time(NULL));
+    prepare_group(domain, &groups[0], 1000, time(NULL));
 
     /* Mock values. */
     will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
@@ -1174,7 +1162,7 @@ void test_group_by_id_multiple_domains_found(void **state)
     /* Test. */
     run_group_by_id(test_ctx, NULL, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_group(test_ctx, domain);
+    check_group(test_ctx, &groups[0], domain);
 }
 
 void test_group_by_id_multiple_domains_notfound(void **state)
@@ -1199,11 +1187,11 @@ void test_group_by_id_cache_valid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup group. */
-    prepare_group(test_ctx, test_ctx->tctx->dom, 1000, time(NULL));
+    prepare_group(test_ctx->tctx->dom, &groups[0], 1000, time(NULL));
 
     /* Test. */
     run_group_by_id(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
-    check_group(test_ctx, test_ctx->tctx->dom);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
 }
 
 void test_group_by_id_cache_expired(void **state)
@@ -1213,7 +1201,7 @@ void test_group_by_id_cache_expired(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup group. */
-    prepare_group(test_ctx, test_ctx->tctx->dom, -1000, time(NULL));
+    prepare_group(test_ctx->tctx->dom, &groups[0], -1000, time(NULL));
 
     /* Mock values. */
     /* DP should be contacted */
@@ -1223,7 +1211,7 @@ void test_group_by_id_cache_expired(void **state)
     /* Test. */
     run_group_by_id(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_group(test_ctx, test_ctx->tctx->dom);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
 }
 
 void test_group_by_id_cache_midpoint(void **state)
@@ -1233,7 +1221,7 @@ void test_group_by_id_cache_midpoint(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup group. */
-    prepare_group(test_ctx, test_ctx->tctx->dom, 50, time(NULL) - 26);
+    prepare_group(test_ctx->tctx->dom, &groups[0], 50, time(NULL) - 26);
 
     /* Mock values. */
     /* DP should be contacted without callback */
@@ -1242,7 +1230,7 @@ void test_group_by_id_cache_midpoint(void **state)
     /* Test. */
     run_group_by_id(test_ctx, test_ctx->tctx->dom, 50, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_group(test_ctx, test_ctx->tctx->dom);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
 }
 
 void test_group_by_id_ncache(void **state)
@@ -1253,7 +1241,7 @@ void test_group_by_id_ncache(void **state)
     test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
 
     /* Setup group. */
-    ret = sss_ncache_set_gid(test_ctx->ncache, false, NULL, TEST_GROUP_ID);
+    ret = sss_ncache_set_gid(test_ctx->ncache, false, NULL, groups[0].gid);
     assert_int_equal(ret, EOK);
 
     /* Test. */
@@ -1277,7 +1265,7 @@ void test_group_by_id_missing_found(void **state)
     /* Test. */
     run_group_by_id(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
     assert_true(test_ctx->dp_called);
-    check_group(test_ctx, test_ctx->tctx->dom);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
 }
 
 void test_group_by_id_missing_notfound(void **state)
@@ -1320,11 +1308,7 @@ void test_user_by_recent_filter_valid(void **state)
     test_ctx->create_user1 = true;
     test_ctx->create_user2 = false;
 
-    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME2,
-                           "pwd", 1001, 1001, NULL, NULL, NULL,
-                           "cn="TEST_USER_NAME2",dc=test",
-                           NULL, NULL, 1000, time(NULL)-1);
-    assert_int_equal(ret, EOK);
+    prepare_user(test_ctx->tctx->dom, &users[1], 1000, time(NULL) - 1);
 
     req_mem_ctx = talloc_new(test_ctx->tctx);
     check_leaks_push(req_mem_ctx);
@@ -1352,7 +1336,7 @@ void test_user_by_recent_filter_valid(void **state)
     ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
                                           SYSDB_NAME, NULL);
     assert_non_null(ldbname);
-    assert_string_equal(ldbname, TEST_USER_NAME);
+    assert_string_equal(ldbname, users[0].name);
 }
 
 void test_users_by_recent_filter_valid(void **state)
@@ -1392,8 +1376,8 @@ void test_users_by_recent_filter_valid(void **state)
     assert_non_null(test_ctx->result);
     assert_int_equal(test_ctx->result->count, 2);
 
-    user_names[0] = TEST_USER_NAME;
-    user_names[1] = TEST_USER_NAME2;
+    user_names[0] = users[0].name;
+    user_names[1] = users[1].name;
 
     for (int i = 0; i < num_users; ++i) {
         ldb_results[i] = ldb_msg_find_attr_as_string(test_ctx->result->msgs[i],
@@ -1421,10 +1405,7 @@ void test_users_by_filter_filter_old(void **state)
 
     /* This user was updated in distant past, so it wont't be reported by
      * the filter search */
-    ret = sysdb_store_user(test_ctx->tctx->dom, TEST_USER_NAME2, "pwd", 1001, 1001,
-                           NULL, NULL, NULL, "cn="TEST_USER_NAME2",dc=test", NULL,
-                           NULL, 1000, 1);
-    assert_int_equal(ret, EOK);
+    prepare_user(test_ctx->tctx->dom, &users[1], 1000, 1);
 
     req_mem_ctx = talloc_new(global_talloc_context);
     check_leaks_push(req_mem_ctx);
@@ -1450,7 +1431,7 @@ void test_users_by_filter_filter_old(void **state)
     ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
                                           SYSDB_NAME, NULL);
     assert_non_null(ldbname);
-    assert_string_equal(ldbname, TEST_USER_NAME);
+    assert_string_equal(ldbname, users[0].name);
 }
 
 void test_users_by_filter_notfound(void **state)
@@ -1539,9 +1520,7 @@ void test_group_by_recent_filter_valid(void **state)
     test_ctx->create_group1 = true;
     test_ctx->create_group2 = false;
 
-    ret = sysdb_store_group(test_ctx->tctx->dom, TEST_GROUP_NAME2,
-                            1001, NULL, 1001, time(NULL)-1);
-    assert_int_equal(ret, EOK);
+    prepare_group(test_ctx->tctx->dom, &groups[1], 1001, time(NULL) - 1);
 
     req_mem_ctx = talloc_new(global_talloc_context);
     check_leaks_push(req_mem_ctx);
@@ -1568,7 +1547,7 @@ void test_group_by_recent_filter_valid(void **state)
     ldbname = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
                                           SYSDB_NAME, NULL);
     assert_non_null(ldbname);
-    assert_string_equal(ldbname, TEST_GROUP_NAME);
+    assert_string_equal(ldbname, groups[0].name);
 }
 
 void test_groups_by_recent_filter_valid(void **state)
@@ -1586,9 +1565,7 @@ void test_groups_by_recent_filter_valid(void **state)
     test_ctx->create_group1 = true;
     test_ctx->create_group2 = true;
 
-    ret = sysdb_store_group(test_ctx->tctx->dom, TEST_GROUP_NAME2,
-                            1001, NULL, 1001, time(NULL)-1);
-    assert_int_equal(ret, EOK);
+    prepare_group(test_ctx->tctx->dom, &groups[1], 1001, time(NULL) - 1);
 
     req_mem_ctx = talloc_new(global_talloc_context);
     check_leaks_push(req_mem_ctx);
@@ -1617,8 +1594,8 @@ void test_groups_by_recent_filter_valid(void **state)
 
     group_names = talloc_array(tmp_ctx, const char *, 2);
     assert_non_null(group_names);
-    group_names[0] = TEST_GROUP_NAME;
-    group_names[1] = TEST_GROUP_NAME2;
+    group_names[0] = groups[0].name;
+    group_names[1] = groups[1].name;
 
     ldb_results = talloc_array(tmp_ctx, const char *, 2);
     assert_non_null(ldb_results);
@@ -1764,7 +1741,6 @@ int main(int argc, const char *argv[])
         new_multi_domain_test(users_by_filter_multiple_domains_notfound),
         new_single_domain_test(groups_by_filter_notfound),
         new_multi_domain_test(groups_by_filter_multiple_domains_notfound),
-
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
