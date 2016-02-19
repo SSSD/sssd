@@ -38,16 +38,20 @@
 struct test_user {
     const char *name;
     const char *upn;
+    const char *sid;
     uid_t uid;
     gid_t gid;
-} users[] = {{"test-user1", "upn1@upndomain.com", 1001, 1001},
-             {"test-user2", "upn2@upndomain.com", 1002, 1002}};
+} users[] = {{"test-user1", "upn1@upndomain.com",
+              "S-1-5-21-3623811015-3361044348-30300820-1001", 1001, 1001},
+             {"test-user2", "upn2@upndomain.com",
+              "S-1-5-21-3623811015-3361044348-30300820-1002", 1002, 1002}};
 
 struct test_group {
     const char *name;
+    const char *sid;
     gid_t gid;
-} groups[] = {{"test-group1", 2001},
-              {"test-group2", 2002}};
+} groups[] = {{"test-group1", "S-1-5-21-3623811015-3361044348-30300820-2001",  2001},
+              {"test-group2", "S-1-5-21-3623811015-3361044348-30300820-2002", 2002}};
 
 #define new_single_domain_test(test) \
     cmocka_unit_test_setup_teardown(test_ ## test, \
@@ -169,6 +173,20 @@ static void cache_req_group_by_id_test_done(struct tevent_req *req)
     ctx->tctx->done = true;
 }
 
+static void cache_req_object_by_sid_test_done(struct tevent_req *req)
+{
+    struct cache_req_test_ctx *ctx = NULL;
+
+    ctx = tevent_req_callback_data(req, struct cache_req_test_ctx);
+
+    ctx->tctx->error = cache_req_object_by_sid_recv(ctx, req,
+                                                    &ctx->result,
+                                                    &ctx->domain);
+    talloc_zfree(req);
+
+    ctx->tctx->done = true;
+}
+
 static void prepare_user(struct sss_domain_info *domain,
                          struct test_user *user,
                          uint64_t timeout,
@@ -181,6 +199,9 @@ static void prepare_user(struct sss_domain_info *domain,
     assert_non_null(attrs);
 
     ret = sysdb_attrs_add_string(attrs, SYSDB_UPN, user->upn);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, user->sid);
     assert_int_equal(ret, EOK);
 
     ret = sysdb_store_user(domain, user->name, "pwd",
@@ -228,6 +249,7 @@ static void check_user(struct cache_req_test_ctx *test_ctx,
 {
     const char *ldbname;
     const char *ldbupn;
+    const char *ldbsid;
     uid_t ldbuid;
 
     assert_non_null(test_ctx->result);
@@ -245,6 +267,11 @@ static void check_user(struct cache_req_test_ctx *test_ctx,
     assert_non_null(ldbupn);
     assert_string_equal(ldbupn, user->upn);
 
+    ldbsid = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                         SYSDB_SID_STR, NULL);
+    assert_non_null(ldbsid);
+    assert_string_equal(ldbsid, user->sid);
+
     ldbuid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
                                        SYSDB_UIDNUM, 0);
     assert_int_equal(ldbuid, user->uid);
@@ -258,11 +285,20 @@ static void prepare_group(struct sss_domain_info *domain,
                           uint64_t timeout,
                           time_t transaction_time)
 {
+    struct sysdb_attrs *attrs;
     errno_t ret;
 
-    ret = sysdb_store_group(domain, group->name, group->gid, NULL,
+    attrs = sysdb_new_attrs(NULL);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, group->sid);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_group(domain, group->name, group->gid, attrs,
                             timeout, transaction_time);
     assert_int_equal(ret, EOK);
+
+    talloc_free(attrs);
 }
 
 static void run_group_by_name(struct cache_req_test_ctx *test_ctx,
@@ -290,6 +326,7 @@ static void check_group(struct cache_req_test_ctx *test_ctx,
                         struct sss_domain_info *exp_dom)
 {
     const char *ldbname;
+    const char *ldbsid;
     gid_t ldbgid;
 
     assert_non_null(test_ctx->result);
@@ -302,12 +339,44 @@ static void check_group(struct cache_req_test_ctx *test_ctx,
     assert_non_null(ldbname);
     assert_string_equal(ldbname, group->name);
 
+    ldbsid = ldb_msg_find_attr_as_string(test_ctx->result->msgs[0],
+                                         SYSDB_SID_STR, NULL);
+    assert_non_null(ldbsid);
+    assert_string_equal(ldbsid, group->sid);
+
     ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
                                        SYSDB_GIDNUM, 0);
     assert_int_equal(ldbgid, group->gid);
 
     assert_non_null(test_ctx->domain);
     assert_string_equal(exp_dom->name, test_ctx->domain->name);
+}
+
+static void run_object_by_sid(struct cache_req_test_ctx *test_ctx,
+                              struct sss_domain_info *domain,
+                              const char *sid,
+                              const char **attrs,
+                              int cache_refresh_percent,
+                              errno_t exp_ret)
+{
+    TALLOC_CTX *req_mem_ctx;
+    struct tevent_req *req;
+    errno_t ret;
+
+    req_mem_ctx = talloc_new(global_talloc_context);
+    check_leaks_push(req_mem_ctx);
+
+    req = cache_req_object_by_sid_send(req_mem_ctx, test_ctx->tctx->ev,
+            test_ctx->rctx, test_ctx->ncache, 10, cache_refresh_percent,
+            (domain == NULL ? NULL : domain->name), sid, attrs);
+    assert_non_null(req);
+    tevent_req_set_callback(req, cache_req_object_by_sid_test_done, test_ctx);
+
+    ret = test_ev_loop(test_ctx->tctx);
+    assert_int_equal(ret, exp_ret);
+    assert_true(check_leaks_pop(req_mem_ctx));
+
+    talloc_free(req_mem_ctx);
 }
 
 struct tevent_req *
@@ -1673,6 +1742,318 @@ void test_groups_by_filter_multiple_domains_notfound(void **state)
     assert_true(check_leaks_pop(req_mem_ctx));
 }
 
+void test_object_by_sid_user_cache_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    prepare_user(test_ctx->tctx->dom, &users[0], 1000, time(NULL));
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      users[0].sid, attrs, 0, ERR_OK);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
+}
+
+void test_object_by_sid_user_cache_expired(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    prepare_user(test_ctx->tctx->dom, &users[0], -1000, time(NULL));
+
+    /* Mock values. */
+    /* DP should be contacted */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      users[0].sid, attrs, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
+}
+
+void test_object_by_sid_user_cache_midpoint(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    prepare_user(test_ctx->tctx->dom, &users[0], 50, time(NULL) - 26);
+
+    /* Mock values. */
+    /* DP should be contacted without callback */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      users[0].sid, attrs, 50, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
+}
+
+void test_object_by_sid_user_ncache(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    ret = sss_ncache_set_sid(test_ctx->ncache, false, users[0].sid);
+    assert_int_equal(ret, EOK);
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      users[0].sid, attrs, 0, ENOENT);
+    assert_false(test_ctx->dp_called);
+}
+
+void test_object_by_sid_user_missing_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    test_ctx->create_user1 = true;
+    test_ctx->create_user2 = false;
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      users[0].sid, attrs, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
+}
+
+void test_object_by_sid_user_missing_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      users[0].sid, attrs, 0, ENOENT);
+    assert_true(test_ctx->dp_called);
+}
+
+void test_object_by_sid_user_multiple_domains_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    prepare_user(domain, &users[0], 1000, time(NULL));
+
+    /* Mock values. */
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+
+    /* Test. */
+    run_object_by_sid(test_ctx, NULL, users[0].sid, attrs, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_user(test_ctx, &users[0], domain);
+}
+
+void test_object_by_sid_user_multiple_domains_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_PW_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+
+    /* Test. */
+    run_object_by_sid(test_ctx, NULL, users[0].sid, attrs, 0, ENOENT);
+    assert_true(test_ctx->dp_called);
+}
+
+void test_object_by_sid_group_cache_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    prepare_group(test_ctx->tctx->dom, &groups[0], 1000, time(NULL));
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      groups[0].sid, attrs, 0, ERR_OK);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
+}
+
+void test_object_by_sid_group_cache_expired(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    prepare_group(test_ctx->tctx->dom, &groups[0], -1000, time(NULL));
+
+    /* Mock values. */
+    /* DP should be contacted */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      groups[0].sid, attrs, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
+}
+
+void test_object_by_sid_group_cache_midpoint(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    prepare_group(test_ctx->tctx->dom, &groups[0], 50, time(NULL) - 26);
+
+    /* Mock values. */
+    /* DP should be contacted without callback */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      groups[0].sid, attrs, 50, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
+}
+
+void test_object_by_sid_group_ncache(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    ret = sss_ncache_set_sid(test_ctx->ncache, false, groups[0].sid);
+    assert_int_equal(ret, EOK);
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      groups[0].sid, attrs, 0, ENOENT);
+    assert_false(test_ctx->dp_called);
+}
+
+void test_object_by_sid_group_missing_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    test_ctx->create_group1 = true;
+    test_ctx->create_group2 = false;
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      groups[0].sid, attrs, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_group(test_ctx, &groups[0], test_ctx->tctx->dom);
+}
+
+void test_object_by_sid_group_missing_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* Test. */
+    run_object_by_sid(test_ctx, test_ctx->tctx->dom,
+                      groups[0].sid, attrs, 0, ENOENT);
+    assert_true(test_ctx->dp_called);
+}
+
+void test_object_by_sid_group_multiple_domains_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    prepare_group(domain, &groups[0], 1000, time(NULL));
+
+    /* Mock values. */
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+
+    /* Test. */
+    run_object_by_sid(test_ctx, NULL, groups[0].sid, attrs, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_group(test_ctx, &groups[0], domain);
+}
+
+void test_object_by_sid_group_multiple_domains_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_always(sss_dp_get_account_recv, 0);
+
+    /* Test. */
+    run_object_by_sid(test_ctx, NULL, groups[0].sid, attrs, 0, ENOENT);
+    assert_true(test_ctx->dp_called);
+}
+
 int main(int argc, const char *argv[])
 {
     poptContext pc;
@@ -1741,6 +2122,24 @@ int main(int argc, const char *argv[])
         new_multi_domain_test(users_by_filter_multiple_domains_notfound),
         new_single_domain_test(groups_by_filter_notfound),
         new_multi_domain_test(groups_by_filter_multiple_domains_notfound),
+
+        new_single_domain_test(object_by_sid_user_cache_valid),
+        new_single_domain_test(object_by_sid_user_cache_expired),
+        new_single_domain_test(object_by_sid_user_cache_midpoint),
+        new_single_domain_test(object_by_sid_user_ncache),
+        new_single_domain_test(object_by_sid_user_missing_found),
+        new_single_domain_test(object_by_sid_user_missing_notfound),
+        new_multi_domain_test(object_by_sid_user_multiple_domains_found),
+        new_multi_domain_test(object_by_sid_user_multiple_domains_notfound),
+
+        new_single_domain_test(object_by_sid_group_cache_valid),
+        new_single_domain_test(object_by_sid_group_cache_expired),
+        new_single_domain_test(object_by_sid_group_cache_midpoint),
+        new_single_domain_test(object_by_sid_group_ncache),
+        new_single_domain_test(object_by_sid_group_missing_found),
+        new_single_domain_test(object_by_sid_group_missing_notfound),
+        new_multi_domain_test(object_by_sid_group_multiple_domains_found),
+        new_multi_domain_test(object_by_sid_group_multiple_domains_notfound),
     };
 
     /* Set debug level to invalid value so we can deside if -d 0 was used. */
