@@ -2145,7 +2145,7 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
         if (!el || !el->num_values) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
-        diff = talloc_array(del_ctx->muops, struct ldb_dn *,
+        diff = talloc_array(del_ctx, struct ldb_dn *,
                             el->num_values + 1);
         if (!diff) {
             return LDB_ERR_OPERATIONS_ERROR;
@@ -2241,6 +2241,7 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
             if (ret != LDB_SUCCESS) {
                 return ret;
             }
+            talloc_steal(del_ctx->muops, diff[i]);
         }
     }
 
