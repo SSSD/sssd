@@ -198,6 +198,13 @@ errno_t sss_colondb_writeline(struct sss_colondb *db,
         return ENOMEM;
     }
 
+    line = talloc_strdup(tmp_ctx, "");
+    if (line == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new() failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     for (i = 0; table[i].type != SSS_COLONDB_SENTINEL; i++) {
         switch (table[i].type) {
         case SSS_COLONDB_UINT32:
