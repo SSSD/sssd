@@ -146,6 +146,8 @@ enum hbac_eval_result hbac_evaluate(struct hbac_rule **rules,
                                     struct hbac_eval_req *hbac_req,
                                     struct hbac_info **info)
 {
+    uint32_t i;
+
     enum hbac_error_code ret;
     enum hbac_eval_result result = HBAC_EVAL_DENY;
     enum hbac_eval_result_int intermediate_result;
@@ -163,7 +165,7 @@ enum hbac_eval_result hbac_evaluate(struct hbac_rule **rules,
         (*info)->rule_name = NULL;
     }
 
-    for (uint32_t i = 0; rules[i]; i++) {
+    for (i = 0; rules[i]; i++) {
         hbac_rule_debug_print(rules[i]);
         intermediate_result = hbac_evaluate_rule(rules[i], hbac_req, &ret);
         if (intermediate_result == HBAC_EVAL_UNMATCHED) {
@@ -381,6 +383,8 @@ const char *hbac_error_string(enum hbac_error_code code)
 static void hbac_request_element_debug_print(struct hbac_request_element *el,
                                              const char *label)
 {
+    int i;
+
     if (el) {
         if (el->name) {
             HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s [%s]\n", label, el->name);
@@ -389,7 +393,7 @@ static void hbac_request_element_debug_print(struct hbac_request_element *el,
         if (el->groups) {
             if (el->groups[0]) {
                 HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s_group:\n", label);
-                for (int i = 0; el->groups[i]; i++) {
+                for (i = 0; el->groups[i]; i++) {
                     HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t\t[%s]\n", el->groups[i]);
                 }
             } else {
@@ -434,6 +438,8 @@ static void hbac_req_debug_print(struct hbac_eval_req *req)
 static void hbac_rule_element_debug_print(struct hbac_rule_element *el,
                                           const char *label)
 {
+    int i;
+
     if (el) {
         HBAC_DEBUG(HBAC_DBG_TRACE, "\t\tcategory [%#x] [%s]\n", el->category,
                    (el->category == HBAC_CATEGORY_ALL) ? "ALL" : "NONE");
@@ -441,7 +447,7 @@ static void hbac_rule_element_debug_print(struct hbac_rule_element *el,
         if (el->names) {
             if (el->names[0]) {
                 HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s_names:\n", label);
-                for (int i = 0; el->names[i]; i++) {
+                for (i = 0; el->names[i]; i++) {
                     HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t\t[%s]\n", el->names[i]);
                 }
             } else {
@@ -452,7 +458,7 @@ static void hbac_rule_element_debug_print(struct hbac_rule_element *el,
         if (el->groups) {
             if (el->groups[0]) {
                 HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t%s_groups:\n", label);
-                for (int i = 0; el->groups[i]; i++) {
+                for (i = 0; el->groups[i]; i++) {
                     HBAC_DEBUG(HBAC_DBG_TRACE, "\t\t\t[%s]\n", el->groups[i]);
                 }
             } else {
