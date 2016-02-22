@@ -80,8 +80,7 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
         if (ret == ENOENT) {
             /* no external members, try next external group. */
             continue;
-        }
-        if (ret != EOK) {
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sysdb_attrs_get_string_array failed.\n");
             goto done;
@@ -92,8 +91,7 @@ static errno_t process_ext_groups(TALLOC_CTX *mem_ctx, size_t reply_count,
         if (ret == ENOENT) {
             /* no IPA groups, try next external group. */
             continue;
-        }
-        if (ret != EOK) {
+        } else if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sysdb_attrs_get_string_array failed.\n");
             goto done;
