@@ -898,9 +898,19 @@ static void ipa_get_view_name_done(struct tevent_req *req)
     } else {
         if (ctx->sd_ctx->id_ctx->view_name == NULL
             || strcmp(ctx->sd_ctx->id_ctx->view_name, view_name) != 0) {
-            /* View name changed */
+            /* View name changed. If there was a non-default non-local view
+             * was used the tree in cache containing the override values is
+             * removed. In all cases sysdb_invalidate_overrides() is called to
+             * remove the override attribute from the cached user objects.
+             *
+             * Typically ctx->sd_ctx->id_ctx->view_name == NULL means that the
+             * cache was empty but there was a bug in with caused that the
+             * view name was not written to the cache at all. In this case the
+             * cache must be invalidated if the new view is not the
+             * default-view as well. */
 
-            if (ctx->sd_ctx->id_ctx->view_name != NULL) {
+            if (ctx->sd_ctx->id_ctx->view_name != NULL
+                    || !is_default_view(view_name)) {
                 ret = sysdb_transaction_start(
                                             ctx->sd_ctx->be_ctx->domain->sysdb);
                 if (ret != EOK) {
