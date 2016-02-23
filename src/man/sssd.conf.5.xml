@@ -508,46 +508,6 @@
                         </para>
                     </listitem>
                 </varlistentry>
-                <varlistentry>
-                    <term>subdomain_inherit (string)</term>
-                    <listitem>
-                        <para>
-                            Specifies a list of configuration parameters that
-                            should be inherited by a subdomain. Please note
-                            that only selected parameters can be inherited.
-                            Currently the following options can be inherited:
-                        </para>
-                        <para>
-                            ignore_group_members
-                        </para>
-                        <para>
-                            ldap_purge_cache_timeout
-                        </para>
-                        <para>
-                            ldap_use_tokengroups
-                        </para>
-                        <para>
-                            ldap_user_principal
-                        </para>
-                        <para>
-                            ldap_krb5_keytab (the value of krb5_keytab will be
-                            used if ldap_krb5_keytab is not set explicitly)
-                        </para>
-                        <para>
-                            Example:
-                            <programlisting>
-subdomain_inherit = ldap_purge_cache_timeout
-                            </programlisting>
-                        </para>
-                        <para>
-                            Default: none
-                        </para>
-                        <para>
-                            Note: This option only works with the IPA and
-                            AD provider.
-                        </para>
-                    </listitem>
-                </varlistentry>
             </variablelist>
         </refsect2>
 
@@ -2263,6 +2223,47 @@ pam_account_locked_message = Account locked, please call help desk.
                         </para>
                         <para>
                             Default: True (False for AD provider)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>subdomain_inherit (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies a list of configuration parameters that
+                            should be inherited by a subdomain. Please note
+                            that only selected parameters can be inherited.
+                            Currently the following options can be inherited:
+                        </para>
+                        <para>
+                            ignore_group_members
+                        </para>
+                        <para>
+                            ldap_purge_cache_timeout
+                        </para>
+                        <para>
+                            ldap_use_tokengroups
+                        </para>
+                        <para>
+                            ldap_user_principal
+                        </para>
+                        <para>
+                            ldap_krb5_keytab (the value of krb5_keytab will be
+                            used if ldap_krb5_keytab is not set explicitly)
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+subdomain_inherit = ldap_purge_cache_timeout
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                        <para>
+                            Note: This option only works with the IPA and
+                            AD provider.
                         </para>
                     </listitem>
                 </varlistentry>
