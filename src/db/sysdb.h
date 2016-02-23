@@ -1155,7 +1155,8 @@ errno_t sysdb_search_user_by_cert(TALLOC_CTX *mem_ctx,
                                   const char *cert,
                                   struct ldb_result **res);
 
-
+errno_t sysdb_remove_cert(struct sss_domain_info *domain,
+                          const char *cert);
 
 /* === Functions related to GPOs === */
 

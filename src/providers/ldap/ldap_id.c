@@ -530,6 +530,16 @@ static void users_get_done(struct tevent_req *subreq)
              */
             break;
 
+        case BE_FILTER_CERT:
+            ret = sysdb_remove_cert(state->domain, state->name);
+            if (ret != EOK) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Unable to remove user certificate"
+                      "[%d]: %s\n", ret, sss_strerror(ret));
+                tevent_req_error(req, ret);
+                return;
+            }
+            break;
+
         default:
             tevent_req_error(req, EINVAL);
             return;
