@@ -3764,6 +3764,51 @@ errno_t sysdb_search_user_by_cert(TALLOC_CTX *mem_ctx,
     return sysdb_search_object_by_cert(mem_ctx, domain, cert, user_attrs, res);
 }
 
+errno_t sysdb_remove_cert(struct sss_domain_info *domain,
+                          const char *cert)
+{
+    struct ldb_message_element el = { 0, SYSDB_USER_CERT, 0, NULL };
+    struct sysdb_attrs del_attrs = { 1, &el };
+    const char *attrs[] = {SYSDB_NAME, NULL};
+    struct ldb_result *res = NULL;
+    unsigned int i;
+    errno_t ret;
+
+    ret = sysdb_search_object_by_cert(NULL, domain, cert, attrs, &res);
+    if (ret == ENOENT || res == NULL) {
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to lookup object by cert "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    /* Certificate may be found on more objects, remove it from all.
+     * If object contains more then one certificate, we still remove the
+     * whole attribute since it will be downloaded again. */
+    for (i = 0; i < res->count; i++) {
+        ret = sysdb_set_entry_attr(domain->sysdb, res->msgs[0]->dn,
+                                   &del_attrs, SYSDB_MOD_DEL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to remove certificate "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            goto done;
+        }
+
+        ret = sysdb_mark_entry_as_expired_ldb_dn(domain, res->msgs[0]->dn);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Unable to expire object "
+                  "[%d]: %s\n", ret, sss_strerror(ret));
+            continue;
+        }
+    }
+
+done:
+    talloc_free(res);
+    return ret;
+}
+
 errno_t sysdb_get_sids_of_members(TALLOC_CTX *mem_ctx,
                                   struct sss_domain_info *dom,
                                   const char *group_name,
