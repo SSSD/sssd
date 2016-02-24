@@ -122,4 +122,18 @@ sysdb_sudo_store(struct sss_domain_info *domain,
                  struct sysdb_attrs **rules,
                  size_t num_rules);
 
+errno_t
+sysdb_search_sudo_rules(TALLOC_CTX *mem_ctx,
+                        struct sss_domain_info *domain,
+                        const char *sub_filter,
+                        const char **attrs,
+                        size_t *_msgs_count,
+                        struct ldb_message ***_msgs);
+
+errno_t
+sysdb_set_sudo_rule_attr(struct sss_domain_info *domain,
+                         const char *name,
+                         struct sysdb_attrs *attrs,
+                         int mod_op);
+
 #endif /* _SYSDB_SUDO_H_ */

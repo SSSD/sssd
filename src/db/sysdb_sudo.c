@@ -889,3 +889,100 @@ done:
 
     return ret;
 }
+
+errno_t sysdb_search_sudo_rules(TALLOC_CTX *mem_ctx,
+                                struct sss_domain_info *domain,
+                                const char *sub_filter,
+                                const char **attrs,
+                                size_t *_msgs_count,
+                                struct ldb_message ***_msgs)
+{
+    TALLOC_CTX *tmp_ctx;
+    size_t msgs_count;
+    struct ldb_message **msgs;
+    struct ldb_dn *dn;
+    char *filter;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    NULL_CHECK(tmp_ctx, ret, done);
+
+    dn = ldb_dn_new_fmt(tmp_ctx, domain->sysdb->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+                        SUDORULE_SUBDIR, domain->name);
+    if (dn == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build base dn\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (sub_filter == NULL) {
+        filter = talloc_asprintf(tmp_ctx, "(%s)", SUDO_ALL_FILTER);
+    } else {
+        filter = talloc_asprintf(tmp_ctx, "(&%s%s)",
+                                 SUDO_ALL_FILTER, sub_filter);
+    }
+    if (filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to build filter\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_INTERNAL,
+          "Search sudo rules with filter: %s\n", filter);
+
+    ret = sysdb_search_entry(tmp_ctx, domain->sysdb, dn,
+                             LDB_SCOPE_SUBTREE, filter, attrs,
+                             &msgs_count, &msgs);
+
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_INTERNAL, "No such entry\n");
+        *_msgs = NULL;
+        *_msgs_count = 0;
+        goto done;
+    } else if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Error: %d (%s)\n", ret, sss_strerror(ret));
+        goto done;
+    }
+
+    *_msgs_count = msgs_count;
+    *_msgs = talloc_steal(mem_ctx, msgs);
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+static struct ldb_dn *
+sysdb_sudo_rule_dn(TALLOC_CTX *mem_ctx,
+                   struct sss_domain_info *domain,
+                   const char *name)
+{
+    return sysdb_custom_dn(mem_ctx, domain, name, SUDORULE_SUBDIR);
+}
+
+errno_t
+sysdb_set_sudo_rule_attr(struct sss_domain_info *domain,
+                         const char *name,
+                         struct sysdb_attrs *attrs,
+                         int mod_op)
+{
+    errno_t ret;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    dn = sysdb_sudo_rule_dn(tmp_ctx, domain, name);
+    NULL_CHECK(dn, ret, done);
+
+    ret = sysdb_set_entry_attr(domain->sysdb, dn, attrs, mod_op);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
