@@ -64,11 +64,6 @@ cache_req_data_sid(TALLOC_CTX *mem_ctx,
                    const char *sid,
                    const char **attrs);
 
-/**
- * Currently only SSS_DP_USER and SSS_DP_INITGROUPS are supported.
- *
- * @todo support other request types
- */
 struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev,
                                   struct resp_ctx *rctx,
