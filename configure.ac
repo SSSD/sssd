@@ -76,6 +76,9 @@ AC_CHECK_FUNCS([ utimensat \
 #Check for endian headers
 AC_CHECK_HEADERS([endian.h sys/endian.h byteswap.h])
 
+AC_C_BIGENDIAN([AC_DEFINE(HAVE_BIG_ENDIAN, [1], [whether platform is big endian])],
+               [AC_DEFINE(HAVE_LITTLE_ENDIAN, [1], [whether platform is little endian])])
+
 #Set the NSS library install path
 AC_ARG_ENABLE([nsslibdir], [AS_HELP_STRING([--enable-nsslibdir],
                                         [Where to install nss libraries ($libdir)])],
