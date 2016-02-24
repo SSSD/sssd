@@ -70,21 +70,167 @@ static errno_t updated_groups_by_filter(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
-struct cache_req_input {
+struct cache_req_data {
     enum cache_req_type type;
-
-    /* Provided input. */
     struct {
-        struct {
-            const char *input;  /* Original input. */
-            const char *name;   /* Parsed name or UPN. */
-            const char *lookup; /* Converted per domain rules. */
-        } name;
-        uint32_t id;
-        const char *cert;
-        const char *sid;
-        const char **attrs;
-    } data;
+        const char *input;  /* Original input. */
+        const char *name;   /* Parsed name or UPN. */
+        const char *lookup; /* Converted per domain rules. */
+    } name;
+    uint32_t id;
+    const char *cert;
+    const char *sid;
+    const char **attrs;
+};
+
+static struct cache_req_data *
+cache_req_data_create(TALLOC_CTX *mem_ctx,
+                      enum cache_req_type type,
+                      struct cache_req_data *input)
+{
+    struct cache_req_data *data;
+    errno_t ret;
+
+    data = talloc_zero(mem_ctx, struct cache_req_data);
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed\n");
+        return NULL;
+    }
+
+    data->type = type;
+
+    switch (type) {
+    case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_UPN:
+    case CACHE_REQ_GROUP_BY_NAME:
+    case CACHE_REQ_USER_BY_FILTER:
+    case CACHE_REQ_GROUP_BY_FILTER:
+    case CACHE_REQ_INITGROUPS:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
+        if (input->name.input == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        data->name.input = talloc_strdup(data, input->name.input);
+        if (data->name.input == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        break;
+    case CACHE_REQ_USER_BY_CERT:
+        if (input->cert == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: certificate cannot be NULL!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        data->cert = talloc_strdup(data, input->cert);
+        if (data->cert == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        break;
+    case CACHE_REQ_USER_BY_ID:
+    case CACHE_REQ_GROUP_BY_ID:
+        if (input->id == 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: id cannot be 0!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        data->id = input->id;
+        break;
+    case CACHE_REQ_OBJECT_BY_SID:
+        if (input->sid == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: SID cannot be NULL!\n");
+            ret = ERR_INTERNAL;
+            goto done;
+        }
+
+        data->sid = talloc_strdup(data, input->sid);
+        if (data->sid == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        break;
+    }
+
+    if (input->attrs != NULL) {
+        data->attrs = dup_string_list(data, input->attrs);
+        if (data->attrs == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_zfree(data);
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create cache_req data "
+              "[%d]: %s\n", ret, sss_strerror(ret));
+        return NULL;
+    }
+
+    return data;
+}
+
+struct cache_req_data *
+cache_req_data_name(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    const char *name)
+{
+    struct cache_req_data input = {0};
+
+    input.name.input = name;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_id(TALLOC_CTX *mem_ctx,
+                  enum cache_req_type type,
+                  uint32_t id)
+{
+    struct cache_req_data input = {0};
+
+    input.id = id;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_cert(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    const char *cert)
+{
+    struct cache_req_data input = {0};
+
+    input.cert = cert;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_data *
+cache_req_data_sid(TALLOC_CTX *mem_ctx,
+                   enum cache_req_type type,
+                   const char *sid,
+                   const char **attrs)
+{
+    struct cache_req_data input = {0};
+
+    input.sid = sid;
+    input.attrs = attrs;
+
+    return cache_req_data_create(mem_ctx, type, &input);
+}
+
+struct cache_req_input {
+    /* Provided input. */
+    struct cache_req_data *data;
 
     /* Data Provider request type resolved from @type.
      * FIXME: This is currently needed for data provider calls. We should
@@ -102,76 +248,6 @@ struct cache_req_input {
     /* Time when the request started. Useful for by-filter lookups */
     time_t req_start;
 };
-
-static errno_t
-cache_req_input_set_data(struct cache_req_input *input,
-                         enum cache_req_type type,
-                         uint32_t id,
-                         const char *name,
-                         const char *cert,
-                         const char *sid,
-                         const char **attrs)
-{
-    switch (input->type) {
-    case CACHE_REQ_USER_BY_NAME:
-    case CACHE_REQ_USER_BY_UPN:
-    case CACHE_REQ_GROUP_BY_NAME:
-    case CACHE_REQ_USER_BY_FILTER:
-    case CACHE_REQ_GROUP_BY_FILTER:
-    case CACHE_REQ_INITGROUPS:
-    case CACHE_REQ_INITGROUPS_BY_UPN:
-        if (name == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: name cannot be NULL!\n");
-            return ERR_INTERNAL;
-        }
-
-        input->data.name.input = talloc_strdup(input, name);
-        if (input->data.name.input == NULL) {
-            return ENOMEM;
-        }
-        break;
-    case CACHE_REQ_USER_BY_CERT:
-        if (cert == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: certificate cannot be NULL!\n");
-            return ERR_INTERNAL;
-        }
-
-        input->data.cert = talloc_strdup(input, cert);
-        if (input->data.cert == NULL) {
-            return ENOMEM;
-        }
-        break;
-    case CACHE_REQ_USER_BY_ID:
-    case CACHE_REQ_GROUP_BY_ID:
-        if (id == 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: id cannot be 0!\n");
-            return ERR_INTERNAL;
-        }
-
-        input->data.id = id;
-        break;
-    case CACHE_REQ_OBJECT_BY_SID:
-        if (sid == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "Bug: SID cannot be NULL!\n");
-            return ERR_INTERNAL;
-        }
-
-        input->data.sid = talloc_strdup(input, sid);
-        if (input->data.sid == NULL) {
-            return ENOMEM;
-        }
-        break;
-    }
-
-    if (attrs != NULL) {
-        input->data.attrs = dup_string_list(input, attrs);
-        if (input->data.attrs == NULL) {
-            return ENOMEM;
-        }
-    }
-
-    return EOK;
-}
 
 static void
 cache_req_input_set_dp(struct cache_req_input *input, enum cache_req_type type)
@@ -256,44 +332,28 @@ cache_req_input_set_reqname(struct cache_req_input *input,
     return;
 }
 
-struct cache_req_input *
+static struct cache_req_input *
 cache_req_input_create(TALLOC_CTX *mem_ctx,
                        struct resp_ctx *rctx,
-                       enum cache_req_type type,
-                       const char *name,
-                       uint32_t id,
-                       const char *cert,
-                       const char *sid,
-                       const char **attrs)
+                       struct cache_req_data *data)
 {
     struct cache_req_input *input;
-    errno_t ret;
 
     input = talloc_zero(mem_ctx, struct cache_req_input);
     if (input == NULL) {
         return NULL;
     }
 
-    input->type = type;
+    input->data = data;
     input->req_start = time(NULL);
 
     /* It is perfectly fine to just overflow here. */
     input->reqid = rctx->cache_req_num++;
 
-    ret = cache_req_input_set_data(input, type, id, name, cert, sid, attrs);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set input data!\n");
-        goto fail;
-    }
-
-    cache_req_input_set_reqname(input, type);
-    cache_req_input_set_dp(input, type);
+    cache_req_input_set_reqname(input, data->type);
+    cache_req_input_set_dp(input, data->type);
 
     return input;
-
-fail:
-    talloc_free(input);
-    return NULL;
 }
 
 static errno_t
@@ -309,8 +369,8 @@ cache_req_input_set_name(struct cache_req_input *input,
         return ENOMEM;
     }
 
-    talloc_zfree(input->data.name.name);
-    input->data.name.name = dup_name;
+    talloc_zfree(input->data->name.name);
+    input->data->name.name = dup_name;
 
     return EOK;
 }
@@ -333,10 +393,10 @@ cache_req_input_set_domain(struct cache_req_input *input,
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input,
                     "Using domain [%s]\n", domain->name);
 
-    talloc_zfree(input->data.name.lookup);
+    talloc_zfree(input->data->name.lookup);
     talloc_zfree(input->debugobj);
 
-    switch (input->type) {
+    switch (input->data->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_GROUP_BY_NAME:
@@ -344,13 +404,13 @@ cache_req_input_set_domain(struct cache_req_input *input,
     case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
-        if (input->data.name.name == NULL) {
+        if (input->data->name.name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: parsed name is NULL?\n");
             ret = ERR_INTERNAL;
             goto done;
         }
 
-        name = sss_get_cased_name(tmp_ctx, input->data.name.name,
+        name = sss_get_cased_name(tmp_ctx, input->data->name.name,
                                   domain->case_sensitive);
         if (name == NULL) {
             ret = ENOMEM;
@@ -373,7 +433,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
 
     case CACHE_REQ_USER_BY_ID:
         debugobj = talloc_asprintf(tmp_ctx, "UID:%d@%s",
-                                   input->data.id, domain->name);
+                                   input->data->id, domain->name);
         if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
@@ -382,7 +442,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
 
     case CACHE_REQ_GROUP_BY_ID:
         debugobj = talloc_asprintf(tmp_ctx, "GID:%d@%s",
-                                   input->data.id, domain->name);
+                                   input->data->id, domain->name);
         if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
@@ -392,7 +452,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
         /* certificates might be quite long, only use the last 10 charcters
          * for logging */
         debugobj = talloc_asprintf(tmp_ctx, "CERT:%s@%s",
-                                   get_last_x_chars(input->data.cert, 10),
+                                   get_last_x_chars(input->data->cert, 10),
                                    domain->name);
         if (debugobj == NULL) {
             ret = ENOMEM;
@@ -401,7 +461,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
         break;
     case CACHE_REQ_OBJECT_BY_SID:
         debugobj = talloc_asprintf(tmp_ctx, "SID:%s@%s",
-                                   input->data.sid, domain->name);
+                                   input->data->sid, domain->name);
         if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
@@ -410,7 +470,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
     }
 
     input->domain = domain;
-    input->data.name.lookup = talloc_steal(input, name);
+    input->data->name.lookup = talloc_steal(input, name);
     input->debugobj = talloc_steal(input, debugobj);
 
     ret = EOK;
@@ -423,7 +483,7 @@ done:
 static bool
 cache_req_input_is_upn(struct cache_req_input *input)
 {
-    switch (input->type) {
+    switch (input->data->type) {
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_INITGROUPS_BY_UPN:
         return true;
@@ -438,18 +498,18 @@ cache_req_input_assume_upn(struct cache_req_input *input)
     errno_t ret;
     bool bret;
 
-    if (input->data.name.input == NULL
-            || strchr(input->data.name.input, '@') == NULL) {
+    if (input->data->name.input == NULL
+            || strchr(input->data->name.input, '@') == NULL) {
         return false;
     }
 
-    switch (input->type) {
+    switch (input->data->type) {
     case CACHE_REQ_USER_BY_NAME:
-        input->type = CACHE_REQ_USER_BY_UPN;
+        input->data->type = CACHE_REQ_USER_BY_UPN;
         bret = true;
         break;
     case CACHE_REQ_INITGROUPS:
-        input->type = CACHE_REQ_INITGROUPS_BY_UPN;
+        input->data->type = CACHE_REQ_INITGROUPS_BY_UPN;
         bret = true;
         break;
     default:
@@ -458,7 +518,7 @@ cache_req_input_assume_upn(struct cache_req_input *input)
     }
 
     if (bret == true) {
-        ret = cache_req_input_set_name(input, input->data.name.input);
+        ret = cache_req_input_set_name(input, input->data->name.input);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "cache_req_input_set_name() failed\n");
@@ -466,7 +526,7 @@ cache_req_input_assume_upn(struct cache_req_input *input)
         }
 
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Assuming UPN [%s]\n",
-                        input->data.name.input);
+                        input->data->name.input);
     }
 
     return bret;
@@ -481,33 +541,33 @@ static errno_t cache_req_check_ncache(struct cache_req_input *input,
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Checking negative cache "
                     "for [%s]\n", input->debugobj);
 
-    switch (input->type) {
+    switch (input->data->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
         ret = sss_ncache_check_user(ncache, neg_timeout,
-                                    input->domain, input->data.name.lookup);
+                                    input->domain, input->data->name.lookup);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
         ret = sss_ncache_check_group(ncache, neg_timeout,
-                                     input->domain, input->data.name.lookup);
+                                     input->domain, input->data->name.lookup);
         break;
     case CACHE_REQ_USER_BY_ID:
-        ret = sss_ncache_check_uid(ncache, neg_timeout, NULL, input->data.id);
+        ret = sss_ncache_check_uid(ncache, neg_timeout, NULL, input->data->id);
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        ret = sss_ncache_check_gid(ncache, neg_timeout, NULL, input->data.id);
+        ret = sss_ncache_check_gid(ncache, neg_timeout, NULL, input->data->id);
         break;
     case CACHE_REQ_USER_BY_CERT:
-        ret = sss_ncache_check_cert(ncache, neg_timeout, input->data.cert);
+        ret = sss_ncache_check_cert(ncache, neg_timeout, input->data->cert);
         break;
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
         ret = EOK;
         break;
     case CACHE_REQ_OBJECT_BY_SID:
-        ret = sss_ncache_check_sid(ncache, neg_timeout, input->data.sid);
+        ret = sss_ncache_check_sid(ncache, neg_timeout, input->data->sid);
         break;
     }
 
@@ -527,17 +587,17 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Adding [%s] to "
                     "negative cache\n", input->debugobj);
 
-    switch (input->type) {
+    switch (input->data->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
         ret = sss_ncache_set_user(ncache, false, input->domain,
-                                  input->data.name.lookup);
+                                  input->data->name.lookup);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
         ret = sss_ncache_set_group(ncache, false, input->domain,
-                                   input->data.name.lookup);
+                                   input->data->name.lookup);
         break;
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
@@ -573,7 +633,7 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
     CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Adding [%s] to global "
                     "negative cache\n", input->debugobj);
 
-    switch (input->type) {
+    switch (input->data->type) {
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
         /* Nothing to do, adding a wildcard request to ncache doesn't
@@ -588,16 +648,16 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
         ret = EOK;
         break;
     case CACHE_REQ_USER_BY_ID:
-        ret = sss_ncache_set_uid(ncache, false, NULL, input->data.id);
+        ret = sss_ncache_set_uid(ncache, false, NULL, input->data->id);
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        ret = sss_ncache_set_gid(ncache, false, NULL, input->data.id);
+        ret = sss_ncache_set_gid(ncache, false, NULL, input->data->id);
         break;
     case CACHE_REQ_USER_BY_CERT:
-        ret = sss_ncache_set_cert(ncache, false, input->data.cert);
+        ret = sss_ncache_set_cert(ncache, false, input->data->cert);
         break;
     case CACHE_REQ_OBJECT_BY_SID:
-        ret = sss_ncache_set_sid(ncache, false, input->data.sid);
+        ret = sss_ncache_set_sid(ncache, false, input->data->sid);
         break;
     }
 
@@ -623,63 +683,63 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
     CACHE_REQ_DEBUG(SSSDBG_FUNC_DATA, input, "Requesting info for [%s]\n",
                     input->debugobj);
 
-    switch (input->type) {
+    switch (input->data->type) {
     case CACHE_REQ_USER_BY_NAME:
         one_item_only = true;
         ret = sysdb_getpwnam_with_views(mem_ctx, input->domain,
-                                        input->data.name.lookup, &result);
+                                        input->data->name.lookup, &result);
         break;
     case CACHE_REQ_USER_BY_UPN:
         one_item_only = true;
         ret = sysdb_getpwupn(mem_ctx, input->domain,
-                             input->data.name.lookup, &result);
+                             input->data->name.lookup, &result);
         break;
     case CACHE_REQ_USER_BY_ID:
         one_item_only = true;
         ret = sysdb_getpwuid_with_views(mem_ctx, input->domain,
-                                        input->data.id, &result);
+                                        input->data->id, &result);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
         one_item_only = true;
         ret = sysdb_getgrnam_with_views(mem_ctx, input->domain,
-                                        input->data.name.lookup, &result);
+                                        input->data->name.lookup, &result);
         break;
     case CACHE_REQ_GROUP_BY_ID:
         one_item_only = true;
         ret = sysdb_getgrgid_with_views(mem_ctx, input->domain,
-                                        input->data.id, &result);
+                                        input->data->id, &result);
         break;
     case CACHE_REQ_INITGROUPS:
         one_item_only = false;
         ret = sysdb_initgroups_with_views(mem_ctx, input->domain,
-                                          input->data.name.lookup, &result);
+                                          input->data->name.lookup, &result);
         break;
     case CACHE_REQ_INITGROUPS_BY_UPN:
         one_item_only = false;
         ret = sysdb_initgroups_by_upn(mem_ctx, input->domain,
-                                      input->data.name.lookup, &result);
+                                      input->data->name.lookup, &result);
         break;
     case CACHE_REQ_USER_BY_CERT:
         one_item_only = true;
         ret = sysdb_search_user_by_cert(mem_ctx, input->domain,
-                                        input->data.cert, &result);
+                                        input->data->cert, &result);
         break;
     case CACHE_REQ_USER_BY_FILTER:
         one_item_only = false;
         ret = updated_users_by_filter(mem_ctx, input->domain,
-                                      input->data.name.lookup, input->req_start,
+                                      input->data->name.lookup, input->req_start,
                                       &result);
         break;
     case CACHE_REQ_GROUP_BY_FILTER:
         one_item_only = false;
         ret = updated_groups_by_filter(mem_ctx, input->domain,
-                                       input->data.name.lookup, input->req_start,
+                                       input->data->name.lookup, input->req_start,
                                        &result);
         break;
     case CACHE_REQ_OBJECT_BY_SID:
         one_item_only = true;
         ret = sysdb_search_object_by_sid(mem_ctx, input->domain,
-                                         input->data.sid, input->data.attrs,
+                                         input->data->sid, input->data->attrs,
                                          &result);
         break;
     }
@@ -708,8 +768,8 @@ done:
  */
 static bool cache_req_bypass_cache(struct cache_req_input *input)
 {
-    if (input->type == CACHE_REQ_USER_BY_FILTER ||
-            input->type == CACHE_REQ_GROUP_BY_FILTER) {
+    if (input->data->type == CACHE_REQ_USER_BY_FILTER ||
+            input->data->type == CACHE_REQ_GROUP_BY_FILTER) {
         return true;
     }
 
@@ -726,7 +786,7 @@ static errno_t cache_req_expiration_status(struct cache_req_input *input,
         return ENOENT;
     }
 
-    if (input->type == CACHE_REQ_INITGROUPS) {
+    if (input->data->type == CACHE_REQ_INITGROUPS) {
         expire = ldb_msg_find_attr_as_uint64(result->msgs[0],
                                              SYSDB_INITGR_EXPIRE, 0);
     } else {
@@ -749,8 +809,8 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
     uint32_t id = 0;
     errno_t ret;
 
-    *_id = input->data.id;
-    *_string = input->data.name.lookup;
+    *_id = input->data->id;
+    *_string = input->data->name.lookup;
     *_flag = NULL;
 
     if (cache_req_input_is_upn(input)) {
@@ -758,11 +818,11 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
         return;
     }
 
-    if (input->type == CACHE_REQ_USER_BY_CERT) {
-        *_string = input->data.cert;
+    if (input->data->type == CACHE_REQ_USER_BY_CERT) {
+        *_string = input->data->cert;
         return;
-    } else if (input->type == CACHE_REQ_OBJECT_BY_SID) {
-        *_string = input->data.sid;
+    } else if (input->data->type == CACHE_REQ_OBJECT_BY_SID) {
+        *_string = input->data->sid;
         return;
     }
 
@@ -781,7 +841,7 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
      * it up otherwise. But it is also a shortcut for non-local views where
      * we will not fail over to the overridden value. */
 
-    switch (input->type) {
+    switch (input->data->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_GROUP_BY_NAME:
        name = ldb_msg_find_attr_as_string(result->msgs[0], SYSDB_NAME, NULL);
@@ -803,7 +863,7 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
        break;
     case CACHE_REQ_INITGROUPS:
         ret = sysdb_getpwnam_with_views(NULL, input->domain,
-                                        input->data.name.lookup, &user);
+                                        input->data->name.lookup, &user);
         if (ret != EOK || user == NULL || user->count != 1) {
             /* Case where the user is not found has been already handled. If
              * this is not OK, it is an error. */
@@ -1101,9 +1161,10 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   int neg_timeout,
                                   int cache_refresh_percent,
                                   const char *domain,
-                                  struct cache_req_input *input)
+                                  struct cache_req_data *data)
 {
     struct cache_req_state *state = NULL;
+    struct cache_req_input *input = NULL;
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     errno_t ret;
@@ -1114,21 +1175,25 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "New request\n");
-
     state->ev = ev;
     state->rctx = rctx;
     state->ncache = ncache;
     state->neg_timeout = neg_timeout;
     state->cache_refresh_percent = cache_refresh_percent;
-    state->input = input;
+    state->input = input = cache_req_input_create(state, rctx, data);
+    if (state->input == NULL) {
+        ret = ENOMEM;
+        goto immediately;
+    }
 
-    if (state->input->data.name.input != NULL && domain == NULL) {
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "New request\n");
+
+    if (input->data->name.input != NULL && domain == NULL) {
         /* Parse input name first, since it may contain domain name. */
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Parsing input name [%s]\n",
-                        input->data.name.input);
+                        input->data->name.input);
 
-        subreq = sss_parse_inp_send(state, rctx, input->data.name.input);
+        subreq = sss_parse_inp_send(state, rctx, input->data->name.input);
         if (subreq == NULL) {
             ret = ENOMEM;
             goto immediately;
@@ -1136,8 +1201,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
 
         tevent_req_set_callback(subreq, cache_req_input_parsed, req);
     } else {
-        if (input->data.name.input != NULL) {
-            ret = cache_req_input_set_name(input, input->data.name.input);
+        if (state->input->data->name.input != NULL) {
+            ret = cache_req_input_set_name(input, input->data->name.input);
             if (ret != EOK) {
                 goto immediately;
             }
@@ -1245,7 +1310,7 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
         * qualified names instead. */
         while (state->domain != NULL && state->check_next
                 && state->domain->fqnames
-                && state->input->type != CACHE_REQ_USER_BY_CERT
+                && state->input->data->type != CACHE_REQ_USER_BY_CERT
                 && !cache_req_input_is_upn(state->input)) {
             state->domain = get_next_domain(state->domain, 0);
         }
@@ -1275,7 +1340,7 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
         /* we will continue with the following domain the next time */
         if (state->check_next) {
             if (cache_req_input_is_upn(state->input)
-                    || state->input->type == CACHE_REQ_USER_BY_CERT ) {
+                    || state->input->data->type == CACHE_REQ_USER_BY_CERT ) {
                 state->domain = get_next_domain(state->domain, SSS_GND_DESCEND);
             } else {
                 state->domain = get_next_domain(state->domain, 0);
@@ -1349,10 +1414,10 @@ errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (_name != NULL) {
-        if (state->input->data.name.lookup == NULL) {
+        if (state->input->data->name.lookup == NULL) {
             *_name = NULL;
         } else {
-            name = talloc_strdup(mem_ctx, state->input->data.name.name);
+            name = talloc_strdup(mem_ctx, state->input->data->name.name);
             if (name == NULL) {
                 return ENOMEM;
             }
@@ -1373,24 +1438,25 @@ errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
 }
 
 static struct tevent_req *
-cache_req_steal_input_and_send(TALLOC_CTX *mem_ctx,
-                               struct tevent_context *ev,
-                               struct resp_ctx *rctx,
-                               struct sss_nc_ctx *ncache,
-                               int neg_timeout,
-                               int cache_refresh_percent,
-                               const char *domain,
-                               struct cache_req_input *input)
+cache_req_steal_data_and_send(TALLOC_CTX *mem_ctx,
+                              struct tevent_context *ev,
+                              struct resp_ctx *rctx,
+                              struct sss_nc_ctx *ncache,
+                              int neg_timeout,
+                              int cache_refresh_percent,
+                              const char *domain,
+                              struct cache_req_data *data)
 {
     struct tevent_req *req;
 
     req = cache_req_send(mem_ctx, ev, rctx, ncache, neg_timeout,
-                         cache_refresh_percent, domain, input);
+                         cache_refresh_percent, domain, data);
     if (req == NULL) {
-        talloc_zfree(input);
+        talloc_zfree(data);
+        return NULL;
     }
 
-    talloc_steal(req, input);
+    talloc_steal(req, data);
 
     return req;
 }
@@ -1405,17 +1471,16 @@ cache_req_user_by_name_send(TALLOC_CTX *mem_ctx,
                             const char *domain,
                             const char *name)
 {
-    struct cache_req_input *input;
+    struct cache_req_data *data;
 
-    input = cache_req_input_create(mem_ctx, rctx, CACHE_REQ_USER_BY_NAME,
-                                   name, 0, NULL, NULL, NULL);
-    if (input == NULL) {
+    data = cache_req_data_name(mem_ctx, CACHE_REQ_USER_BY_NAME, name);
+    if (data == NULL) {
         return NULL;
     }
 
-    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
-                                          neg_timeout, cache_refresh_percent,
-                                          domain, input);
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
+                                         neg_timeout, cache_refresh_percent,
+                                         domain, data);
 }
 
 struct tevent_req *
@@ -1428,17 +1493,16 @@ cache_req_user_by_id_send(TALLOC_CTX *mem_ctx,
                           const char *domain,
                           uid_t uid)
 {
-    struct cache_req_input *input;
+    struct cache_req_data *data;
 
-    input = cache_req_input_create(mem_ctx, rctx, CACHE_REQ_USER_BY_ID,
-                                   NULL, uid, NULL, NULL, NULL);
-    if (input == NULL) {
+    data = cache_req_data_id(mem_ctx, CACHE_REQ_USER_BY_ID, uid);
+    if (data == NULL) {
         return NULL;
     }
 
-    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
-                                          neg_timeout, cache_refresh_percent,
-                                          domain, input);
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
+                                         neg_timeout, cache_refresh_percent,
+                                         domain, data);
 }
 
 struct tevent_req *
@@ -1451,17 +1515,16 @@ cache_req_user_by_cert_send(TALLOC_CTX *mem_ctx,
                             const char *domain,
                             const char *pem_cert)
 {
-    struct cache_req_input *input;
+    struct cache_req_data *data;
 
-    input = cache_req_input_create(mem_ctx, rctx, CACHE_REQ_USER_BY_CERT,
-                                   NULL, 0, pem_cert, NULL, NULL);
-    if (input == NULL) {
+    data = cache_req_data_cert(mem_ctx, CACHE_REQ_USER_BY_CERT, pem_cert);
+    if (data == NULL) {
         return NULL;
     }
 
-    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
-                                          neg_timeout, cache_refresh_percent,
-                                          domain, input);
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
+                                         neg_timeout, cache_refresh_percent,
+                                         domain, data);
 }
 
 struct tevent_req *
@@ -1474,17 +1537,16 @@ cache_req_group_by_name_send(TALLOC_CTX *mem_ctx,
                              const char *domain,
                              const char *name)
 {
-    struct cache_req_input *input;
+    struct cache_req_data *data;
 
-    input = cache_req_input_create(mem_ctx, rctx, CACHE_REQ_GROUP_BY_NAME,
-                                   name, 0, NULL, NULL, NULL);
-    if (input == NULL) {
+    data = cache_req_data_name(mem_ctx, CACHE_REQ_GROUP_BY_NAME, name);
+    if (data == NULL) {
         return NULL;
     }
 
-    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
-                                          neg_timeout, cache_refresh_percent,
-                                          domain, input);
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
+                                         neg_timeout, cache_refresh_percent,
+                                         domain, data);
 }
 
 struct tevent_req *
@@ -1497,17 +1559,16 @@ cache_req_group_by_id_send(TALLOC_CTX *mem_ctx,
                            const char *domain,
                            gid_t gid)
 {
-    struct cache_req_input *input;
+    struct cache_req_data *data;
 
-    input = cache_req_input_create(mem_ctx, rctx, CACHE_REQ_GROUP_BY_ID,
-                                   NULL, gid, NULL, NULL, NULL);
-    if (input == NULL) {
+    data = cache_req_data_id(mem_ctx, CACHE_REQ_GROUP_BY_ID, gid);
+    if (data == NULL) {
         return NULL;
     }
 
-    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
-                                          neg_timeout, cache_refresh_percent,
-                                          domain, input);
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
+                                         neg_timeout, cache_refresh_percent,
+                                         domain, data);
 }
 
 struct tevent_req *
@@ -1520,17 +1581,16 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
                               const char *domain,
                               const char *name)
 {
-    struct cache_req_input *input;
+    struct cache_req_data *data;
 
-    input = cache_req_input_create(mem_ctx, rctx, CACHE_REQ_INITGROUPS,
-                                   name, 0, NULL, NULL, NULL);
-    if (input == NULL) {
+    data = cache_req_data_name(mem_ctx, CACHE_REQ_INITGROUPS, name);
+    if (data == NULL) {
         return NULL;
     }
 
-    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
-                                          neg_timeout, cache_refresh_percent,
-                                          domain, input);
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
+                                         neg_timeout, cache_refresh_percent,
+                                         domain, data);
 }
 
 struct tevent_req *
@@ -1540,16 +1600,15 @@ cache_req_user_by_filter_send(TALLOC_CTX *mem_ctx,
                               const char *domain,
                               const char *filter)
 {
-    struct cache_req_input *input;
+    struct cache_req_data *data;
 
-    input = cache_req_input_create(mem_ctx, rctx, CACHE_REQ_USER_BY_FILTER,
-                                   filter, 0, NULL, NULL, NULL);
-    if (input == NULL) {
+    data = cache_req_data_name(mem_ctx, CACHE_REQ_USER_BY_FILTER, filter);
+    if (data == NULL) {
         return NULL;
     }
 
-    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, NULL,
-                                          0, 0, domain, input);
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, NULL,
+                                         0, 0, domain, data);
 }
 
 struct tevent_req *
@@ -1559,16 +1618,15 @@ cache_req_group_by_filter_send(TALLOC_CTX *mem_ctx,
                                const char *domain,
                                const char *filter)
 {
-    struct cache_req_input *input;
+    struct cache_req_data *data;
 
-    input = cache_req_input_create(mem_ctx, rctx, CACHE_REQ_GROUP_BY_FILTER,
-                                   filter, 0, NULL, NULL, NULL);
-    if (input == NULL) {
+    data = cache_req_data_name(mem_ctx, CACHE_REQ_GROUP_BY_FILTER, filter);
+    if (data == NULL) {
         return NULL;
     }
 
-    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, NULL,
-                                          0, 0, domain, input);
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, NULL,
+                                         0, 0, domain, data);
 }
 
 struct tevent_req *
@@ -1582,15 +1640,14 @@ cache_req_object_by_sid_send(TALLOC_CTX *mem_ctx,
                              const char *sid,
                              const char **attrs)
 {
-    struct cache_req_input *input;
+    struct cache_req_data *data;
 
-    input = cache_req_input_create(mem_ctx, rctx, CACHE_REQ_OBJECT_BY_SID,
-                                   NULL, 0, NULL, sid, attrs);
-    if (input == NULL) {
+    data = cache_req_data_sid(mem_ctx, CACHE_REQ_OBJECT_BY_SID, sid, attrs);
+    if (data == NULL) {
         return NULL;
     }
 
-    return cache_req_steal_input_and_send(mem_ctx, ev, rctx, ncache,
-                                          neg_timeout, cache_refresh_percent,
-                                          domain, input);
+    return cache_req_steal_data_and_send(mem_ctx, ev, rctx, ncache,
+                                         neg_timeout, cache_refresh_percent,
+                                         domain, data);
 }

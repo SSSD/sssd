@@ -41,17 +41,28 @@ enum cache_req_type {
     CACHE_REQ_OBJECT_BY_SID
 };
 
-struct cache_req_input;
+struct cache_req_data;
 
-struct cache_req_input *
-cache_req_input_create(TALLOC_CTX *mem_ctx,
-                       struct resp_ctx *rctx,
-                       enum cache_req_type type,
-                       const char *name,
-                       uint32_t id,
-                       const char *cert,
-                       const char *sid,
-                       const char **attrs);
+struct cache_req_data *
+cache_req_data_name(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    const char *name);
+
+struct cache_req_data *
+cache_req_data_id(TALLOC_CTX *mem_ctx,
+                  enum cache_req_type type,
+                  uint32_t id);
+
+struct cache_req_data *
+cache_req_data_cert(TALLOC_CTX *mem_ctx,
+                    enum cache_req_type type,
+                    const char *cert);
+
+struct cache_req_data *
+cache_req_data_sid(TALLOC_CTX *mem_ctx,
+                   enum cache_req_type type,
+                   const char *sid,
+                   const char **attrs);
 
 /**
  * Currently only SSS_DP_USER and SSS_DP_INITGROUPS are supported.
@@ -65,7 +76,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   int neg_timeout,
                                   int cache_refresh_percent,
                                   const char *domain,
-                                  struct cache_req_input *input);
+                                  struct cache_req_data *data);
 
 errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
