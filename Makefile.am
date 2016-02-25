@@ -231,6 +231,7 @@ if HAVE_CMOCKA
         sdap-tests \
         test_sysdb_views \
         test_sysdb_subdomains \
+        test_sysdb_sudo \
         test_sysdb_utils \
         test_be_ptask \
         test_copy_ccache \
@@ -2377,6 +2378,21 @@ test_sysdb_subdomains_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 test_sysdb_subdomains_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(LDB_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
+test_sysdb_sudo_SOURCES = \
+    src/tests/cmocka/test_sysdb_sudo.c \
+    $(NULL)
+test_sysdb_sudo_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+test_sysdb_sudo_LDADD = \
     $(CMOCKA_LIBS) \
     $(LDB_LIBS) \
     $(POPT_LIBS) \
