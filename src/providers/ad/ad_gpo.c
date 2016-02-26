@@ -184,6 +184,10 @@ int ad_gpo_process_cse_recv(struct tevent_req *req);
 #define GPO_GDM_PASSWORD "gdm-password"
 #define GPO_GDM_SMARTCARD "gdm-smartcard"
 #define GPO_KDM "kdm"
+#define GPO_LIGHTDM "lightdm"
+#define GPO_LXDM "lxdm"
+#define GPO_SDDM "sddm"
+#define GPO_XDM "xdm"
 #define GPO_SSHD "sshd"
 #define GPO_FTP "ftp"
 #define GPO_SAMBA "samba"
@@ -203,7 +207,8 @@ struct gpo_map_option_entry {
 
 const char *gpo_map_interactive_defaults[] =
     {GPO_LOGIN, GPO_SU, GPO_SU_L,
-     GPO_GDM_FINGERPRINT, GPO_GDM_PASSWORD, GPO_GDM_SMARTCARD, GPO_KDM, NULL};
+     GPO_GDM_FINGERPRINT, GPO_GDM_PASSWORD, GPO_GDM_SMARTCARD, GPO_KDM,
+     GPO_LIGHTDM, GPO_LXDM, GPO_SDDM, GPO_XDM, NULL};
 const char *gpo_map_remote_interactive_defaults[] = {GPO_SSHD, GPO_COCKPIT,
                                                      NULL};
 const char *gpo_map_network_defaults[] = {GPO_FTP, GPO_SAMBA, NULL};

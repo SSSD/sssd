@@ -422,6 +422,26 @@ ad_gpo_map_interactive = +my_pam_service, -login
                                         kdm
                                     </para>
                                 </listitem>
+                                <listitem>
+                                    <para>
+                                        lightdm
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        lxdm
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        sddm
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        xdm
+                                    </para>
+                                </listitem>
                             </itemizedlist>
                         </para>
                     </listitem>
