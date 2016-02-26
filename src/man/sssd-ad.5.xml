@@ -463,6 +463,11 @@ ad_gpo_map_remote_interactive = +my_pam_service, -sshd
                                         sshd
                                     </para>
                                 </listitem>
+                                <listitem>
+                                    <para>
+                                        cockpit
+                                    </para>
+                                </listitem>
                             </itemizedlist>
                         </para>
                     </listitem>
