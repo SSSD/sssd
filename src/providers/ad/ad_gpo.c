@@ -191,6 +191,7 @@ int ad_gpo_process_cse_recv(struct tevent_req *req);
 #define GPO_SUDO "sudo"
 #define GPO_SUDO_I "sudo-i"
 #define GPO_SYSTEMD_USER "systemd-user"
+#define GPO_COCKPIT "cockpit"
 
 struct gpo_map_option_entry {
     enum gpo_map_type gpo_map_type;
@@ -203,7 +204,8 @@ struct gpo_map_option_entry {
 const char *gpo_map_interactive_defaults[] =
     {GPO_LOGIN, GPO_SU, GPO_SU_L,
      GPO_GDM_FINGERPRINT, GPO_GDM_PASSWORD, GPO_GDM_SMARTCARD, GPO_KDM, NULL};
-const char *gpo_map_remote_interactive_defaults[] = {GPO_SSHD, NULL};
+const char *gpo_map_remote_interactive_defaults[] = {GPO_SSHD, GPO_COCKPIT,
+                                                     NULL};
 const char *gpo_map_network_defaults[] = {GPO_FTP, GPO_SAMBA, NULL};
 const char *gpo_map_batch_defaults[] = {GPO_CROND, NULL};
 const char *gpo_map_service_defaults[] = {NULL};
