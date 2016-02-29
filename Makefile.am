@@ -55,6 +55,7 @@ endif
 sssdconfdir = $(sysconfdir)/sssd
 sssddatadir = $(datadir)/sssd
 sssdapiplugindir = $(sssddatadir)/sssd.api.d
+sssdtapscriptdir = $(sssddatadir)/systemtap
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 dbusservicedir = $(datadir)/dbus-1/system-services
 sss_statedir = $(localstatedir)/lib/sss
@@ -1087,6 +1088,10 @@ systemtap_tap_DATA = $(builddir)/src/systemtap/sssd.stp
 
 dist_systemtap_tap_DATA = \
     $(builddir)/src/systemtap/sssd_functions.stp \
+    $(NULL)
+
+dist_sssdtapscript_DATA = \
+    contrib/systemtap/id_perf.stp \
     $(NULL)
 
 stap_generated_probes.h: $(srcdir)/src/systemtap/sssd_probes.d
