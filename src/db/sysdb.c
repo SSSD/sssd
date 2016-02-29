@@ -26,6 +26,7 @@
 #include "util/crypto/sss_crypto.h"
 #include "db/sysdb_private.h"
 #include "confdb/confdb.h"
+#include "util/probes.h"
 #include <time.h>
 
 #define LDB_MODULES_PATH "LDB_MODULES_PATH"
@@ -918,6 +919,7 @@ int sysdb_transaction_start(struct sysdb_ctx *sysdb)
 
     ret = ldb_transaction_start(sysdb->ldb);
     if (ret == LDB_SUCCESS) {
+        PROBE(SYSDB_TRANSACTION_START, sysdb->transaction_nesting);
         sysdb->transaction_nesting++;
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
@@ -929,10 +931,15 @@ int sysdb_transaction_start(struct sysdb_ctx *sysdb)
 int sysdb_transaction_commit(struct sysdb_ctx *sysdb)
 {
     int ret;
+#ifdef HAVE_SYSTEMTAP
+    int commit_nesting = sysdb->transaction_nesting-1;
+#endif
 
+    PROBE(SYSDB_TRANSACTION_COMMIT_BEFORE, commit_nesting);
     ret = ldb_transaction_commit(sysdb->ldb);
     if (ret == LDB_SUCCESS) {
         sysdb->transaction_nesting--;
+        PROBE(SYSDB_TRANSACTION_COMMIT_AFTER, sysdb->transaction_nesting);
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to commit ldb transaction! (%d)\n", ret);
@@ -947,6 +954,7 @@ int sysdb_transaction_cancel(struct sysdb_ctx *sysdb)
     ret = ldb_transaction_cancel(sysdb->ldb);
     if (ret == LDB_SUCCESS) {
         sysdb->transaction_nesting--;
+        PROBE(SYSDB_TRANSACTION_CANCEL, sysdb->transaction_nesting);
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to cancel ldb transaction! (%d)\n", ret);

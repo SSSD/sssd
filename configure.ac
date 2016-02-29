@@ -457,5 +457,6 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/lib/sifp/sss_simpleifp.doxy
                  src/config/setup.py
                  src/responder/ifp/org.freedesktop.sssd.infopipe.service
+                 src/systemtap/sssd.stp
                  src/config/SSSDConfig/__init__.py])
 AC_OUTPUT

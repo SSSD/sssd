@@ -81,6 +81,7 @@ krb5rcachedir = @krb5rcachedir@
 sudolibdir = @sudolibpath@
 polkitdir = @polkitdir@
 pamconfdir = $(sysconfdir)/pam.d
+systemtap_tapdir = @tapset_dir@
 
 UNICODE_LIBS=@UNICODE_LIBS@
 
@@ -1082,6 +1083,8 @@ SYSTEMTAP_PROBES = \
     $(srcdir)/src/systemtap/sssd_probes.d \
     $(NULL)
 
+systemtap_tap_DATA = $(builddir)/src/systemtap/sssd.stp
+
 stap_generated_probes.h: $(srcdir)/src/systemtap/sssd_probes.d
 	$(AM_V_GEN)$(DTRACE) -C -h -s $< -o $@
 
@@ -1103,7 +1106,6 @@ CLEANFILES += stap_generated_probes.h \
 	      stap_generated_probes.o \
 	      stap_generated_probes.lo \
 	      $(NULL)
-
 endif
 
 ####################

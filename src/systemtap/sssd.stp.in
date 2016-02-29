@@ -1,0 +1,32 @@
+# Database transaction probes
+probe sssd_transaction_start = process("@libdir@/sssd/libsss_util.so").mark("sysdb_transaction_start")
+{
+    nesting = $arg1;
+    probestr = sprintf("-> %s(nesting=%d)",
+                       $$name,
+                       nesting);
+}
+
+probe sssd_transaction_commit_before = process("@libdir@/sssd/libsss_util.so").mark("sysdb_transaction_commit_before")
+{
+    nesting = $arg1;
+    probestr = sprintf("<- %s(pre)(nesting=%d)",
+                       $$name,
+                       nesting);
+}
+
+probe sssd_transaction_commit_after = process("@libdir@/sssd/libsss_util.so").mark("sysdb_transaction_commit_after")
+{
+    nesting = $arg1;
+    probestr = sprintf("<- %s(post)(nesting=%d)",
+                       $$name,
+                       nesting);
+}
+
+probe sssd_transaction_cancel = process("@libdir@/sssd/libsss_util.so").mark("sysdb_transaction_cancel")
+{
+    nesting = $arg1;
+    probestr = sprintf("<- %s(nesting=%d)",
+                       $$name,
+                       nesting);
+}
