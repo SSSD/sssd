@@ -183,6 +183,7 @@ m4_include([src/external/libnfsidmap.m4])
 m4_include([src/external/cwrap.m4])
 m4_include([src/external/libresolv.m4])
 m4_include([src/external/intgcheck.m4])
+m4_include([src/external/systemtap.m4])
 
 if test x$build_config_lib = xyes; then
     m4_include([src/external/libaugeas.m4])
@@ -423,6 +424,9 @@ AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
 AM_CHECK_CMOCKA
 AM_CHECK_UID_WRAPPER
 AM_CHECK_NSS_WRAPPER
+
+# Check if the user wants SSSD to be compiled with systemtap probes
+AM_CHECK_SYSTEMTAP
 
 SSS_ENABLE_INTGCHECK_REQS
 

@@ -88,6 +88,9 @@ server_tests_LDADD = \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_test_common.la \
     $(NULL)
+if BUILD_SYSTEMTAP
+server_tests_LDADD += $(abs_top_builddir)/stap_generated_probes.lo
+endif
 
 usertools_tests_SOURCES = \
     test_usertools.c \
@@ -103,6 +106,9 @@ usertools_tests_LDADD = \
     $(abs_top_builddir)/libsss_debug.la \
     $(abs_top_builddir)/libsss_test_common.la \
     $(NULL)
+if BUILD_SYSTEMTAP
+usertools_tests_LDADD += $(abs_top_builddir)/stap_generated_probes.lo
+endif
 
 responder_common_tests_SOURCES =\
     test_responder_common.c \

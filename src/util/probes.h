@@ -20,6 +20,8 @@
 
 #ifdef HAVE_SYSTEMTAP
 
+#include "stap_generated_probes.h"
+
 /* Probe expansion inspired by libvirt */
 #define PROBE_EXPAND(NAME, ...) NAME(__VA_ARGS__)
 
