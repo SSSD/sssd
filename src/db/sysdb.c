@@ -917,7 +917,9 @@ int sysdb_transaction_start(struct sysdb_ctx *sysdb)
     int ret;
 
     ret = ldb_transaction_start(sysdb->ldb);
-    if (ret != LDB_SUCCESS) {
+    if (ret == LDB_SUCCESS) {
+        sysdb->transaction_nesting++;
+    } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to start ldb transaction! (%d)\n", ret);
     }
@@ -929,7 +931,9 @@ int sysdb_transaction_commit(struct sysdb_ctx *sysdb)
     int ret;
 
     ret = ldb_transaction_commit(sysdb->ldb);
-    if (ret != LDB_SUCCESS) {
+    if (ret == LDB_SUCCESS) {
+        sysdb->transaction_nesting--;
+    } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to commit ldb transaction! (%d)\n", ret);
     }
@@ -941,7 +945,9 @@ int sysdb_transaction_cancel(struct sysdb_ctx *sysdb)
     int ret;
 
     ret = ldb_transaction_cancel(sysdb->ldb);
-    if (ret != LDB_SUCCESS) {
+    if (ret == LDB_SUCCESS) {
+        sysdb->transaction_nesting--;
+    } else {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Failed to cancel ldb transaction! (%d)\n", ret);
     }

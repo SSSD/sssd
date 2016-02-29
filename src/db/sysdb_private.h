@@ -89,6 +89,7 @@
 struct sysdb_ctx {
     struct ldb_context *ldb;
     char *ldb_file;
+    int transaction_nesting;
 };
 
 /* Internal utility functions */
