@@ -36,10 +36,15 @@ package and on Debian in `lsb-release`.
 The rest of the required packages CI will attempt to install itself, using
 the distribution's package manager invoked through sudo.
 
-A sudo rule can be employed to selectively avoid password prompts on Red Hat
+A sudo rule can be employed to selectively avoid password prompts on RHEL
 distros:
 
     <USER> ALL=(ALL:ALL) NOPASSWD: /usr/bin/yum --assumeyes install -- *
+
+on Fedora distros:
+
+    # We need to use yum-deprecated on Fedora because of BZ1215208.
+    <USER> ALL=(ALL:ALL) NOPASSWD: /usr/bin/yum-deprecated --assumeyes install -- *
 
 and Debian-based distros:
 
