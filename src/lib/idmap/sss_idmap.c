@@ -377,7 +377,7 @@ static bool check_dom_overlap(struct idmap_range_params *prim_range,
 }
 
 enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
-                                                const char *dom_sid,
+                                                const char *range_id,
                                                 id_t *slice_num,
                                                 struct sss_idmap_range *_range)
 {
@@ -419,8 +419,8 @@ enum idmap_error_code sss_idmap_calculate_range(struct sss_idmap_ctx *ctx,
              */
             orig_slice = 0;
         } else {
-            /* Hash the domain sid string */
-            hash_val = murmurhash3(dom_sid, strlen(dom_sid), 0xdeadbeef);
+            /* Hash the range identifier string */
+            hash_val = murmurhash3(range_id, strlen(range_id), 0xdeadbeef);
 
             /* Now get take the modulus of the hash val and the max_slices
              * to determine its optimal position in the range.
@@ -593,13 +593,13 @@ idmap_error_code dom_check_collision(struct idmap_domain_info *dom_list,
 
 static char*
 generate_sec_slice_name(struct sss_idmap_ctx *ctx,
-                        const char *domain_name, uint32_t rid)
+                        const char *domain_sid, uint32_t rid)
 {
     const char *SEC_SLICE_NAME_FMT = "%s-%"PRIu32;
     char *slice_name;
     int len, len2;
 
-    len = snprintf(NULL, 0, SEC_SLICE_NAME_FMT, domain_name, rid);
+    len = snprintf(NULL, 0, SEC_SLICE_NAME_FMT, domain_sid, rid);
     if (len <= 0) {
         return NULL;
     }
@@ -609,7 +609,7 @@ generate_sec_slice_name(struct sss_idmap_ctx *ctx,
         return NULL;
     }
 
-    len2 = snprintf(slice_name, len + 1, SEC_SLICE_NAME_FMT, domain_name,
+    len2 = snprintf(slice_name, len + 1, SEC_SLICE_NAME_FMT, domain_sid,
                     rid);
     if (len != len2) {
         ctx->free_func(slice_name, ctx->alloc_pvt);
