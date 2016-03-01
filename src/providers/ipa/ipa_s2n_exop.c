@@ -21,6 +21,7 @@
 
 #include "util/util.h"
 #include "util/sss_nss.h"
+#include "util/strtonum.h"
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_common.h"
@@ -913,6 +914,7 @@ static struct tevent_req *ipa_s2n_get_list_send(TALLOC_CTX *mem_ctx,
                                                 int exop_timeout,
                                                 int entry_type,
                                                 enum request_types request_type,
+                                                enum req_input_type list_type,
                                                 char **list)
 {
     int ret;
@@ -924,13 +926,21 @@ static struct tevent_req *ipa_s2n_get_list_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    if ((entry_type == BE_REQ_BY_SECID && list_type != REQ_INP_SECID)
+           || (entry_type != BE_REQ_BY_SECID && list_type == REQ_INP_SECID)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid parameter combination [%d][%d].\n",
+                                 request_type, list_type);
+        ret = EINVAL;
+        goto done;
+    }
+
     state->ev = ev;
     state->ipa_ctx = ipa_ctx;
     state->dom = dom;
     state->sh = sh;
     state->list = list;
     state->list_idx = 0;
-    state->req_input.type = REQ_INP_NAME;
+    state->req_input.type = list_type;
     state->req_input.inp.name = NULL;
     state->exop_timeout = exop_timeout;
     state->entry_type = entry_type;
@@ -963,31 +973,67 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
     struct sss_domain_info *parent_domain;
     char *short_name = NULL;
     char *domain_name = NULL;
+    uint32_t id;
+    char *endptr;
+    bool need_v1 = false;
 
     parent_domain = get_domains_head(state->dom);
+    switch (state->req_input.type) {
+    case REQ_INP_NAME:
 
-    ret = sss_parse_name(state, parent_domain->names,
-                         state->list[state->list_idx],
-                         &domain_name, &short_name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
-                                    state->list[state->list_idx],
-                                    ret, sss_strerror(ret));
-        return ret;
-    }
-
-    if (domain_name) {
-        state->obj_domain = find_domain_by_name(parent_domain,
-                                                domain_name, true);
-        if (state->obj_domain == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
-            return ENOMEM;
+        ret = sss_parse_name(state, parent_domain->names,
+                             state->list[state->list_idx],
+                             &domain_name, &short_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
+                                        state->list[state->list_idx],
+                                        ret, sss_strerror(ret));
+            return ret;
         }
-    } else {
-        state->obj_domain = parent_domain;
-    }
 
-    state->req_input.inp.name = short_name;
+        if (domain_name) {
+            state->obj_domain = find_domain_by_name(parent_domain,
+                                                    domain_name, true);
+            if (state->obj_domain == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "find_domain_by_name failed.\n");
+                return ENOMEM;
+            }
+        } else {
+            state->obj_domain = parent_domain;
+        }
+
+        state->req_input.inp.name = short_name;
+
+        break;
+    case REQ_INP_ID:
+        errno = 0;
+        id = strtouint32(state->list[state->list_idx], &endptr, 10);
+        if (errno != 0 || *endptr != '\0'
+                || (state->list[state->list_idx] == endptr)) {
+            DEBUG(SSSDBG_OP_FAILURE, "strtouint32 failed.\n");
+            return EINVAL;
+        }
+        state->req_input.inp.id = id;
+        state->obj_domain = state->dom;
+
+        break;
+    case REQ_INP_SECID:
+        state->req_input.inp.secid = state->list[state->list_idx];
+        state->obj_domain = find_domain_by_sid(parent_domain,
+                                               state->req_input.inp.secid);
+        if (state->obj_domain == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "find_domain_by_sid failed for SID [%s].\n",
+                  state->req_input.inp.secid);
+            return EINVAL;
+        }
+
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Unexpected inoput type [%d].\n",
+                                 state->req_input.type);
+        return EINVAL;
+    }
 
     ret = s2n_encode_request(state, state->obj_domain->name, state->entry_type,
                              state->request_type,
@@ -997,7 +1043,11 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
         return ret;
     }
 
-    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, true,
+    if (state->request_type == REQ_FULL_WITH_MEMBERS) {
+        need_v1 = true;
+    }
+
+    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, need_v1,
                                state->exop_timeout, bv_req);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
@@ -1509,6 +1559,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                                                  state->sh, state->exop_timeout,
                                                  BE_REQ_GROUP,
                                                  REQ_FULL_WITH_MEMBERS,
+                                                 REQ_INP_NAME,
                                                  missing_list);
                 if (subreq == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE,
@@ -1536,6 +1587,7 @@ static void ipa_s2n_get_user_done(struct tevent_req *subreq)
                                                  state->sh, state->exop_timeout,
                                                  BE_REQ_USER,
                                                  REQ_FULL_WITH_MEMBERS,
+                                                 REQ_INP_NAME,
                                                  missing_list);
                 if (subreq == NULL) {
                     DEBUG(SSSDBG_OP_FAILURE,
