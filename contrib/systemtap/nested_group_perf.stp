@@ -1,0 +1,333 @@
+global time_in_populate
+global populate_start_time
+global populate_end_time
+
+global time_in_save
+global save_start_time
+global save_end_time
+
+global time_in_groupreq
+global groupreq_start
+global groupreq_end
+
+global user_req_index = 0
+global group_req_index = 1
+global unknown_req_index = 2
+global deref_req_index = 3
+global ldap_req_times
+
+global user_req_start
+global user_req_end
+
+global group_req_start
+global group_req_end
+
+global unknown_req_start
+global unknown_req_end
+
+global deref_req_start
+global deref_req_end
+
+global time_in_deref_nested
+global deref_req_nested_start
+global deref_req_nested_end
+
+global time_in_deref_process
+global deref_req_process_start
+global deref_req_process_end
+
+global time_in_transactions
+global trans_start_time
+global trans_end_time
+
+global time_in_ldb
+global ldb_start_time
+global ldb_end_time
+
+global time_in_nested_gr_req
+global nested_gr_req_start_time
+global nested_gr_req_end_time
+
+global time_in_nested_gr_process_req
+global nested_gr_process_req_start_time
+global nested_gr_process_req_end_time
+
+global time_in_split_members
+global split_members_start
+global split_members_end
+
+global time_in_check_cache
+global check_cache_start
+global check_cache_end
+
+global time_in_search_users
+global search_users_start
+global search_users_end
+
+global time_in_search_groups
+global search_groups_start
+global search_groups_end
+
+global time_in_populate_search_users
+global populate_search_users_start
+global populate_search_users_end
+
+function print_report()
+{
+    user_req_total = @sum(ldap_req_times[user_req_index])
+    group_req_total = @sum(ldap_req_times[group_req_index])
+    unknown_req_total = @sum(ldap_req_times[unknown_req_index])
+    deref_req_total = @sum(ldap_req_times[deref_req_index])
+    all_req_total = user_req_total + group_req_total + unknown_req_total + deref_req_total
+
+    # systemtap doesn't handle floating point numbers..
+    trans_rate = 10000 * time_in_transactions / time_in_groupreq
+    nested_rate = 10000 * time_in_nested_gr_req / time_in_groupreq
+
+    printf("Time spent in group sssd_be searches: %d\n", time_in_groupreq)
+    printf("Time spent in sdap_nested_group_send/recv: %d ms (ratio: %d.%02d%%)\n",
+            time_in_nested_gr_req, nested_rate/100, nested_rate%100)
+    printf("Time spent in zero-level sysdb transactions: %d ms (ratio: %d.%02d%%)\n",
+            time_in_transactions, trans_rate/100, trans_rate%100)
+    printf("\n")
+
+    printf("Breakdown of sdap_nested_group req (total: %d ms)\n", time_in_nested_gr_req);
+    printf("\tsdap_nested_group_process req: %d\n", time_in_nested_gr_process_req)
+    printf("\t\tsdap_nested_group_process_split req: %d\n", time_in_split_members)
+    printf("\t\t\tsdap_nested_group_check_cache: %d\n", time_in_check_cache)
+    printf("\t\t\t\tsdap_nested_group_sysdb_search_users: %d\n", time_in_search_users)
+    printf("\t\t\t\tsdap_nested_group_sysdb_search_groups: %d\n", time_in_search_groups)
+    printf("\t\tldap request breakdown of total %d\n", all_req_total)
+    printf("\t\t\tsdap_nested_group_deref req: %d\n", time_in_deref_nested)
+    printf("\t\t\t\tsdap_deref_search_send req %d\n", deref_req_total)
+    printf("\t\t\t\tprocessing deref results: %d\n", time_in_deref_process)
+    printf("\t\t\tsdap_nested_group_lookup_user req: %d\n", user_req_total)
+    printf("\t\t\tsdap_nested_group_lookup_group req: %d\n", group_req_total)
+    printf("\t\t\tTime spent refreshing unknown members: %d\n", unknown_req_total)
+    printf("\n")
+
+    printf("Breakdown of results processing (total %d)\n", time_in_transactions);
+    printf("\tTime spent populating nested members: %d\n", time_in_populate)
+    printf("\t\tTime spent searching ldb while populating nested members: %d\n", time_in_populate_search_users)
+    printf("\tTime spent saving nested members: %d\n", time_in_save)
+    printf("\tTime spent writing to the ldb: %d ms\n", time_in_ldb)
+    printf("\n")
+}
+
+probe sssd_transaction_start
+{
+    if (nesting == 0) {
+        num_transactions++
+        trans_start_time = gettimeofday_ms()
+    }
+}
+
+probe sssd_transaction_commit_before
+{
+    if (nesting == 0) {
+        ldb_start_time = gettimeofday_ms()
+    }
+}
+
+probe sssd_transaction_commit_after
+{
+    if (nesting == 0) {
+        trans_end_time = gettimeofday_ms()
+        time_in_transactions += (trans_end_time-trans_start_time)
+
+        ldb_end_time = gettimeofday_ms()
+        time_in_ldb += (ldb_end_time - ldb_start_time)
+    }
+}
+
+probe sdap_deref_send
+{
+    deref_req_start = gettimeofday_ms()
+}
+
+probe sdap_deref_recv
+{
+    deref_req_end = gettimeofday_ms()
+    ldap_req_times[deref_req_index] <<< (deref_req_end - deref_req_start)
+}
+
+probe sdap_nested_group_lookup_user_send
+{
+    user_req_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_lookup_user_recv
+{
+    user_req_end = gettimeofday_ms()
+    ldap_req_times[user_req_index] <<< (user_req_end - user_req_start)
+}
+
+probe sdap_nested_group_lookup_group_send
+{
+    group_req_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_lookup_group_recv
+{
+    group_req_end = gettimeofday_ms()
+    ldap_req_times[group_req_index] <<< (group_req_end - group_req_start)
+}
+
+probe sdap_nested_group_lookup_unknown_send
+{
+    unknown_req_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_lookup_unknown_recv
+{
+    unknown_req_end = gettimeofday_ms()
+    ldap_req_times[unknown_req_index] <<< (unknown_req_end - unknown_req_start)
+}
+
+probe sdap_nested_group_deref_send
+{
+    deref_req_nested_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_deref_recv
+{
+    deref_req_nested_end = gettimeofday_ms()
+    time_in_deref_nested += (deref_req_nested_end - deref_req_nested_start)
+}
+
+probe sdap_nested_group_deref_process_pre
+{
+    deref_req_process_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_deref_process_post
+{
+    deref_req_process_end = gettimeofday_ms()
+    time_in_deref_process += (deref_req_process_end - deref_req_process_start)
+}
+
+probe sdap_nested_group_populate_pre
+{
+    populate_start_time = gettimeofday_ms()
+}
+
+probe sdap_nested_group_populate_post
+{
+    populate_end_time = gettimeofday_ms()
+    time_in_populate += (populate_end_time - populate_start_time)
+}
+
+probe sdap_nested_group_save_pre
+{
+    save_start_time = gettimeofday_ms()
+}
+
+probe sdap_nested_group_save_post
+{
+    save_end_time = gettimeofday_ms()
+    time_in_save += (save_end_time - save_start_time)
+}
+
+probe sdap_nested_group_send
+{
+    nested_gr_req_start_time = gettimeofday_ms()
+}
+
+probe sdap_nested_group_recv
+{
+    nested_gr_req_end_time = gettimeofday_ms()
+    time_in_nested_gr_req += (nested_gr_req_end_time - nested_gr_req_start_time)
+}
+
+probe sdap_nested_group_process_send
+{
+    nested_gr_process_req_start_time = gettimeofday_ms()
+}
+
+probe sdap_nested_group_process_recv
+{
+    nested_gr_process_req_end_time = gettimeofday_ms()
+    time_in_nested_gr_process_req += (nested_gr_process_req_end_time - nested_gr_process_req_start_time)
+}
+
+probe sdap_nested_group_process_split_pre
+{
+    split_members_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_process_split_post
+{
+    split_members_end = gettimeofday_ms()
+    time_in_split_members += (split_members_end - split_members_start)
+}
+
+probe sdap_nested_group_check_cache_pre
+{
+    check_cache_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_check_cache_post
+{
+    check_cache_end = gettimeofday_ms()
+    time_in_check_cache += (check_cache_end - check_cache_start)
+}
+
+probe sdap_nested_group_sysdb_search_users_pre
+{
+    search_users_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_sysdb_search_users_post
+{
+    search_users_end = gettimeofday_ms()
+    time_in_search_users += (search_users_end - search_users_start)
+}
+
+probe sdap_nested_group_sysdb_search_groups_pre
+{
+    search_groups_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_sysdb_search_groups_post
+{
+    search_groups_end = gettimeofday_ms()
+    time_in_search_groups += (search_groups_end - search_groups_start)
+}
+
+probe sdap_nested_group_populate_search_users_pre
+{
+    populate_search_users_start = gettimeofday_ms()
+}
+
+probe sdap_nested_group_populate_search_users_post
+{
+    populate_search_users_end = gettimeofday_ms()
+    time_in_populate_search_users += (populate_search_users_end - populate_search_users_start)
+}
+
+probe sdap_acct_req_send
+{
+    if (entry_type == 0x0002) {
+        groupreq_start = gettimeofday_ms()
+    }
+}
+
+probe sdap_acct_req_recv
+{
+    if (entry_type == 0x0002) {
+        groupreq_end = gettimeofday_ms()
+        time_in_groupreq += (groupreq_end - groupreq_start)
+    }
+}
+
+probe begin
+{
+    time_in_populate = 0
+    time_in_save = 0
+    time_in_transactions = 0
+}
+
+probe end
+{
+    print_report()
+}

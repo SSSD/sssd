@@ -1092,6 +1092,7 @@ dist_systemtap_tap_DATA = \
 
 dist_sssdtapscript_DATA = \
     contrib/systemtap/id_perf.stp \
+    contrib/systemtap/nested_group_perf.stp \
     $(NULL)
 
 stap_generated_probes.h: $(srcdir)/src/systemtap/sssd_probes.d
