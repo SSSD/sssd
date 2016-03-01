@@ -361,6 +361,7 @@ struct sdap_attr_map ipa_sudorule_map[] = {
     { "ipa_sudorule_runasextuser", "ipaSudoRunAsExtUser", SYSDB_IPA_SUDORULE_RUNASEXTUSER, NULL },
     { "ipa_sudorule_runasextgroup", "ipaSudoRunAsExtGroup", SYSDB_IPA_SUDORULE_RUNASEXTGROUP, NULL },
     { "ipa_sudorule_runasextusergroup", "ipaSudoRunAsExtUserGroup", SYSDB_IPA_SUDORULE_RUNASEXTUSERGROUP, NULL },
+    { "ipa_sudorule_externaluser", "externalUser", SYSDB_IPA_SUDORULE_EXTUSER, NULL },
     { "ipa_sudorule_entry_usn", "entryUSN", SYSDB_USN, NULL },
     SDAP_ATTR_MAP_TERMINATOR
 };

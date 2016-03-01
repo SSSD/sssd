@@ -68,6 +68,7 @@
 #define SYSDB_IPA_SUDORULE_RUNASEXTUSER       "ipaSudoRunAsExtUser"
 #define SYSDB_IPA_SUDORULE_RUNASEXTGROUP      "ipaSudoRunAsExtGroup"
 #define SYSDB_IPA_SUDORULE_RUNASEXTUSERGROUP  "ipaSudoRunAsExtUserGroup"
+#define SYSDB_IPA_SUDORULE_EXTUSER            "externalUser"
 
 #define SYSDB_IPA_SUDOCMDGROUP_OC                 "ipasudocmdgrp"
 
