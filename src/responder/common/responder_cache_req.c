@@ -28,9 +28,9 @@
 #include "responder/common/responder_cache_req.h"
 #include "providers/data_provider.h"
 
-#define CACHE_REQ_DEBUG(level, input, fmt, ...) \
+#define CACHE_REQ_DEBUG(level, cr, fmt, ...) \
     DEBUG(level, "Cache Request [%s #%u]: " fmt, \
-          (input)->reqname, (input)->reqid, ##__VA_ARGS__)
+          (cr)->reqname, (cr)->reqid, ##__VA_ARGS__)
 
 static errno_t updated_users_by_filter(TALLOC_CTX *mem_ctx,
                                        struct sss_domain_info *domain,
@@ -228,7 +228,7 @@ cache_req_data_sid(TALLOC_CTX *mem_ctx,
     return cache_req_data_create(mem_ctx, type, &input);
 }
 
-struct cache_req_input {
+struct cache_req {
     /* Provided input. */
     struct cache_req_data *data;
 
@@ -250,39 +250,39 @@ struct cache_req_input {
 };
 
 static void
-cache_req_input_set_dp(struct cache_req_input *input, enum cache_req_type type)
+cache_req_set_dp(struct cache_req *cr, enum cache_req_type type)
 {
     switch (type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_USER_BY_ID:
-        input->dp_type = SSS_DP_USER;
+        cr->dp_type = SSS_DP_USER;
         break;
 
     case CACHE_REQ_GROUP_BY_NAME:
     case CACHE_REQ_GROUP_BY_ID:
-        input->dp_type = SSS_DP_GROUP;
+        cr->dp_type = SSS_DP_GROUP;
         break;
 
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
-        input->dp_type = SSS_DP_INITGROUPS;
+        cr->dp_type = SSS_DP_INITGROUPS;
         break;
 
     case CACHE_REQ_USER_BY_CERT:
-        input->dp_type = SSS_DP_CERT;
+        cr->dp_type = SSS_DP_CERT;
         break;
 
     case CACHE_REQ_USER_BY_FILTER:
-        input->dp_type = SSS_DP_WILDCARD_USER;
+        cr->dp_type = SSS_DP_WILDCARD_USER;
         break;
 
     case CACHE_REQ_GROUP_BY_FILTER:
-        input->dp_type = SSS_DP_WILDCARD_GROUP;
+        cr->dp_type = SSS_DP_WILDCARD_GROUP;
         break;
 
     case CACHE_REQ_OBJECT_BY_SID:
-        input->dp_type = SSS_DP_SECID;
+        cr->dp_type = SSS_DP_SECID;
         break;
     }
 
@@ -290,95 +290,93 @@ cache_req_input_set_dp(struct cache_req_input *input, enum cache_req_type type)
 }
 
 static void
-cache_req_input_set_reqname(struct cache_req_input *input,
-                            enum cache_req_type type)
+cache_req_set_reqname(struct cache_req *cr, enum cache_req_type type)
 {
     switch (type) {
     case CACHE_REQ_USER_BY_NAME:
-        input->reqname = "User by name";
+        cr->reqname = "User by name";
         break;
     case CACHE_REQ_USER_BY_UPN:
-        input->reqname = "User by UPN";
+        cr->reqname = "User by UPN";
         break;
     case CACHE_REQ_USER_BY_ID:
-        input->reqname = "User by ID";
+        cr->reqname = "User by ID";
         break;
     case CACHE_REQ_GROUP_BY_NAME:
-        input->reqname = "Group by name";
+        cr->reqname = "Group by name";
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        input->reqname = "Group by ID";
+        cr->reqname = "Group by ID";
         break;
     case CACHE_REQ_INITGROUPS:
-        input->reqname = "Initgroups by name";
+        cr->reqname = "Initgroups by name";
         break;
     case CACHE_REQ_INITGROUPS_BY_UPN:
-        input->reqname = "Initgroups by UPN";
+        cr->reqname = "Initgroups by UPN";
         break;
     case CACHE_REQ_USER_BY_CERT:
-        input->reqname = "User by certificate";
+        cr->reqname = "User by certificate";
         break;
     case CACHE_REQ_USER_BY_FILTER:
-        input->reqname = "User by filter";
+        cr->reqname = "User by filter";
         break;
     case CACHE_REQ_GROUP_BY_FILTER:
-        input->reqname = "Group by filter";
+        cr->reqname = "Group by filter";
         break;
     case CACHE_REQ_OBJECT_BY_SID:
-        input->reqname = "Object by SID";
+        cr->reqname = "Object by SID";
         break;
     }
 
     return;
 }
 
-static struct cache_req_input *
-cache_req_input_create(TALLOC_CTX *mem_ctx,
-                       struct resp_ctx *rctx,
-                       struct cache_req_data *data)
+static struct cache_req *
+cache_req_create(TALLOC_CTX *mem_ctx,
+                 struct resp_ctx *rctx,
+                 struct cache_req_data *data)
 {
-    struct cache_req_input *input;
+    struct cache_req *cr;
 
-    input = talloc_zero(mem_ctx, struct cache_req_input);
-    if (input == NULL) {
+    cr = talloc_zero(mem_ctx, struct cache_req);
+    if (cr == NULL) {
         return NULL;
     }
 
-    input->data = data;
-    input->req_start = time(NULL);
+    cr->data = data;
+    cr->req_start = time(NULL);
 
     /* It is perfectly fine to just overflow here. */
-    input->reqid = rctx->cache_req_num++;
+    cr->reqid = rctx->cache_req_num++;
 
-    cache_req_input_set_reqname(input, data->type);
-    cache_req_input_set_dp(input, data->type);
+    cache_req_set_reqname(cr, data->type);
+    cache_req_set_dp(cr, data->type);
 
-    return input;
+    return cr;
 }
 
 static errno_t
-cache_req_input_set_name(struct cache_req_input *input,
-                         const char *name)
+cache_req_set_name(struct cache_req *cr, const char *name)
 {
     const char *dup_name;
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Setting name [%s]\n", name);
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Setting name [%s]\n", name);
 
-    dup_name = talloc_strdup(input, name);
+    dup_name = talloc_strdup(cr->data, name);
     if (dup_name == NULL) {
         return ENOMEM;
     }
 
-    talloc_zfree(input->data->name.name);
-    input->data->name.name = dup_name;
+    talloc_zfree(cr->data->name.name);
+    cr->data->name.name = dup_name;
 
     return EOK;
 }
 
 static errno_t
-cache_req_input_set_domain(struct cache_req_input *input,
-                           struct sss_domain_info *domain,
-                           struct resp_ctx *rctx)
+cache_req_set_domain(struct cache_req *cr,
+                     struct sss_domain_info *domain,
+                     struct resp_ctx *rctx)
 {
     TALLOC_CTX *tmp_ctx = NULL;
     const char *name = NULL;
@@ -390,13 +388,12 @@ cache_req_input_set_domain(struct cache_req_input *input,
         return ENOMEM;
     }
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input,
-                    "Using domain [%s]\n", domain->name);
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Using domain [%s]\n", domain->name);
 
-    talloc_zfree(input->data->name.lookup);
-    talloc_zfree(input->debugobj);
+    talloc_zfree(cr->data->name.lookup);
+    talloc_zfree(cr->debugobj);
 
-    switch (input->data->type) {
+    switch (cr->data->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_GROUP_BY_NAME:
@@ -404,13 +401,13 @@ cache_req_input_set_domain(struct cache_req_input *input,
     case CACHE_REQ_GROUP_BY_FILTER:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
-        if (input->data->name.name == NULL) {
+        if (cr->data->name.name == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Bug: parsed name is NULL?\n");
             ret = ERR_INTERNAL;
             goto done;
         }
 
-        name = sss_get_cased_name(tmp_ctx, input->data->name.name,
+        name = sss_get_cased_name(tmp_ctx, cr->data->name.name,
                                   domain->case_sensitive);
         if (name == NULL) {
             ret = ENOMEM;
@@ -433,7 +430,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
 
     case CACHE_REQ_USER_BY_ID:
         debugobj = talloc_asprintf(tmp_ctx, "UID:%d@%s",
-                                   input->data->id, domain->name);
+                                   cr->data->id, domain->name);
         if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
@@ -442,7 +439,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
 
     case CACHE_REQ_GROUP_BY_ID:
         debugobj = talloc_asprintf(tmp_ctx, "GID:%d@%s",
-                                   input->data->id, domain->name);
+                                   cr->data->id, domain->name);
         if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
@@ -452,7 +449,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
         /* certificates might be quite long, only use the last 10 charcters
          * for logging */
         debugobj = talloc_asprintf(tmp_ctx, "CERT:%s@%s",
-                                   get_last_x_chars(input->data->cert, 10),
+                                   get_last_x_chars(cr->data->cert, 10),
                                    domain->name);
         if (debugobj == NULL) {
             ret = ENOMEM;
@@ -461,7 +458,7 @@ cache_req_input_set_domain(struct cache_req_input *input,
         break;
     case CACHE_REQ_OBJECT_BY_SID:
         debugobj = talloc_asprintf(tmp_ctx, "SID:%s@%s",
-                                   input->data->sid, domain->name);
+                                   cr->data->sid, domain->name);
         if (debugobj == NULL) {
             ret = ENOMEM;
             goto done;
@@ -469,9 +466,9 @@ cache_req_input_set_domain(struct cache_req_input *input,
         break;
     }
 
-    input->domain = domain;
-    input->data->name.lookup = talloc_steal(input, name);
-    input->debugobj = talloc_steal(input, debugobj);
+    cr->domain = domain;
+    cr->data->name.lookup = talloc_steal(cr->data, name);
+    cr->debugobj = talloc_steal(cr, debugobj);
 
     ret = EOK;
 
@@ -481,9 +478,9 @@ done:
 }
 
 static bool
-cache_req_input_is_upn(struct cache_req_input *input)
+cache_req_is_upn(struct cache_req *cr)
 {
-    switch (input->data->type) {
+    switch (cr->data->type) {
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_INITGROUPS_BY_UPN:
         return true;
@@ -493,23 +490,23 @@ cache_req_input_is_upn(struct cache_req_input *input)
 }
 
 static bool
-cache_req_input_assume_upn(struct cache_req_input *input)
+cache_req_assume_upn(struct cache_req *cr)
 {
     errno_t ret;
     bool bret;
 
-    if (input->data->name.input == NULL
-            || strchr(input->data->name.input, '@') == NULL) {
+    if (cr->data->name.input == NULL
+            || strchr(cr->data->name.input, '@') == NULL) {
         return false;
     }
 
-    switch (input->data->type) {
+    switch (cr->data->type) {
     case CACHE_REQ_USER_BY_NAME:
-        input->data->type = CACHE_REQ_USER_BY_UPN;
+        cr->data->type = CACHE_REQ_USER_BY_UPN;
         bret = true;
         break;
     case CACHE_REQ_INITGROUPS:
-        input->data->type = CACHE_REQ_INITGROUPS_BY_UPN;
+        cr->data->type = CACHE_REQ_INITGROUPS_BY_UPN;
         bret = true;
         break;
     default:
@@ -518,86 +515,85 @@ cache_req_input_assume_upn(struct cache_req_input *input)
     }
 
     if (bret == true) {
-        ret = cache_req_input_set_name(input, input->data->name.input);
+        ret = cache_req_set_name(cr, cr->data->name.input);
         if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "cache_req_input_set_name() failed\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_set_name() failed\n");
             return false;
         }
 
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Assuming UPN [%s]\n",
-                        input->data->name.input);
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Assuming UPN [%s]\n",
+                        cr->data->name.input);
     }
 
     return bret;
 }
 
-static errno_t cache_req_check_ncache(struct cache_req_input *input,
+static errno_t cache_req_check_ncache(struct cache_req *cr,
                                       struct sss_nc_ctx *ncache,
                                       int neg_timeout)
 {
     errno_t ret = ERR_INTERNAL;
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Checking negative cache "
-                    "for [%s]\n", input->debugobj);
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Checking negative cache "
+                    "for [%s]\n", cr->debugobj);
 
-    switch (input->data->type) {
+    switch (cr->data->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
         ret = sss_ncache_check_user(ncache, neg_timeout,
-                                    input->domain, input->data->name.lookup);
+                                    cr->domain, cr->data->name.lookup);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
         ret = sss_ncache_check_group(ncache, neg_timeout,
-                                     input->domain, input->data->name.lookup);
+                                     cr->domain, cr->data->name.lookup);
         break;
     case CACHE_REQ_USER_BY_ID:
-        ret = sss_ncache_check_uid(ncache, neg_timeout, NULL, input->data->id);
+        ret = sss_ncache_check_uid(ncache, neg_timeout, NULL, cr->data->id);
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        ret = sss_ncache_check_gid(ncache, neg_timeout, NULL, input->data->id);
+        ret = sss_ncache_check_gid(ncache, neg_timeout, NULL, cr->data->id);
         break;
     case CACHE_REQ_USER_BY_CERT:
-        ret = sss_ncache_check_cert(ncache, neg_timeout, input->data->cert);
+        ret = sss_ncache_check_cert(ncache, neg_timeout, cr->data->cert);
         break;
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
         ret = EOK;
         break;
     case CACHE_REQ_OBJECT_BY_SID:
-        ret = sss_ncache_check_sid(ncache, neg_timeout, input->data->sid);
+        ret = sss_ncache_check_sid(ncache, neg_timeout, cr->data->sid);
         break;
     }
 
     if (ret == EEXIST) {
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "[%s] does not exist "
-                        "(negative cache)\n", input->debugobj);
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "[%s] does not exist "
+                        "(negative cache)\n", cr->debugobj);
     }
 
     return ret;
 }
 
-static void cache_req_add_to_ncache(struct cache_req_input *input,
+static void cache_req_add_to_ncache(struct cache_req *cr,
                                     struct sss_nc_ctx *ncache)
 {
     errno_t ret = ERR_INTERNAL;
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Adding [%s] to "
-                    "negative cache\n", input->debugobj);
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Adding [%s] to negative cache\n",
+                    cr->debugobj);
 
-    switch (input->data->type) {
+    switch (cr->data->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_USER_BY_UPN:
     case CACHE_REQ_INITGROUPS:
     case CACHE_REQ_INITGROUPS_BY_UPN:
-        ret = sss_ncache_set_user(ncache, false, input->domain,
-                                  input->data->name.lookup);
+        ret = sss_ncache_set_user(ncache, false, cr->domain,
+                                  cr->data->name.lookup);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
-        ret = sss_ncache_set_group(ncache, false, input->domain,
-                                   input->data->name.lookup);
+        ret = sss_ncache_set_group(ncache, false, cr->domain,
+                                   cr->data->name.lookup);
         break;
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
@@ -615,9 +611,9 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
     }
 
     if (ret != EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_MINOR_FAILURE, input,
+        CACHE_REQ_DEBUG(SSSDBG_MINOR_FAILURE, cr,
                         "Cannot set negative cache for [%s] [%d]: %s\n",
-                        input->debugobj, ret, sss_strerror(ret));
+                        cr->debugobj, ret, sss_strerror(ret));
 
         /* not fatal */
     }
@@ -625,15 +621,15 @@ static void cache_req_add_to_ncache(struct cache_req_input *input,
     return;
 }
 
-static void cache_req_add_to_ncache_global(struct cache_req_input *input,
+static void cache_req_add_to_ncache_global(struct cache_req *cr,
                                            struct sss_nc_ctx *ncache)
 {
     errno_t ret = ERR_INTERNAL;
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Adding [%s] to global "
-                    "negative cache\n", input->debugobj);
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Adding [%s] to global "
+                    "negative cache\n", cr->debugobj);
 
-    switch (input->data->type) {
+    switch (cr->data->type) {
     case CACHE_REQ_USER_BY_FILTER:
     case CACHE_REQ_GROUP_BY_FILTER:
         /* Nothing to do, adding a wildcard request to ncache doesn't
@@ -648,22 +644,22 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
         ret = EOK;
         break;
     case CACHE_REQ_USER_BY_ID:
-        ret = sss_ncache_set_uid(ncache, false, NULL, input->data->id);
+        ret = sss_ncache_set_uid(ncache, false, NULL, cr->data->id);
         break;
     case CACHE_REQ_GROUP_BY_ID:
-        ret = sss_ncache_set_gid(ncache, false, NULL, input->data->id);
+        ret = sss_ncache_set_gid(ncache, false, NULL, cr->data->id);
         break;
     case CACHE_REQ_USER_BY_CERT:
-        ret = sss_ncache_set_cert(ncache, false, input->data->cert);
+        ret = sss_ncache_set_cert(ncache, false, cr->data->cert);
         break;
     case CACHE_REQ_OBJECT_BY_SID:
-        ret = sss_ncache_set_sid(ncache, false, input->data->sid);
+        ret = sss_ncache_set_sid(ncache, false, cr->data->sid);
         break;
     }
 
     if (ret != EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_MINOR_FAILURE, input, "Cannot set negcache for "
-                        "[%s] [%d]: %s\n", input->debugobj,
+        CACHE_REQ_DEBUG(SSSDBG_MINOR_FAILURE, cr, "Cannot set negcache for "
+                        "[%s] [%d]: %s\n", cr->debugobj,
                         ret, sss_strerror(ret));
 
         /* not fatal */
@@ -673,73 +669,73 @@ static void cache_req_add_to_ncache_global(struct cache_req_input *input,
 }
 
 static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
-                                    struct cache_req_input *input,
+                                    struct cache_req *cr,
                                     struct ldb_result **_result)
 {
     struct ldb_result *result = NULL;
     bool one_item_only = false;
     errno_t ret = ERR_INTERNAL;
 
-    CACHE_REQ_DEBUG(SSSDBG_FUNC_DATA, input, "Requesting info for [%s]\n",
-                    input->debugobj);
+    CACHE_REQ_DEBUG(SSSDBG_FUNC_DATA, cr, "Requesting info for [%s]\n",
+                    cr->debugobj);
 
-    switch (input->data->type) {
+    switch (cr->data->type) {
     case CACHE_REQ_USER_BY_NAME:
         one_item_only = true;
-        ret = sysdb_getpwnam_with_views(mem_ctx, input->domain,
-                                        input->data->name.lookup, &result);
+        ret = sysdb_getpwnam_with_views(mem_ctx, cr->domain,
+                                        cr->data->name.lookup, &result);
         break;
     case CACHE_REQ_USER_BY_UPN:
         one_item_only = true;
-        ret = sysdb_getpwupn(mem_ctx, input->domain,
-                             input->data->name.lookup, &result);
+        ret = sysdb_getpwupn(mem_ctx, cr->domain,
+                             cr->data->name.lookup, &result);
         break;
     case CACHE_REQ_USER_BY_ID:
         one_item_only = true;
-        ret = sysdb_getpwuid_with_views(mem_ctx, input->domain,
-                                        input->data->id, &result);
+        ret = sysdb_getpwuid_with_views(mem_ctx, cr->domain,
+                                        cr->data->id, &result);
         break;
     case CACHE_REQ_GROUP_BY_NAME:
         one_item_only = true;
-        ret = sysdb_getgrnam_with_views(mem_ctx, input->domain,
-                                        input->data->name.lookup, &result);
+        ret = sysdb_getgrnam_with_views(mem_ctx, cr->domain,
+                                        cr->data->name.lookup, &result);
         break;
     case CACHE_REQ_GROUP_BY_ID:
         one_item_only = true;
-        ret = sysdb_getgrgid_with_views(mem_ctx, input->domain,
-                                        input->data->id, &result);
+        ret = sysdb_getgrgid_with_views(mem_ctx, cr->domain,
+                                        cr->data->id, &result);
         break;
     case CACHE_REQ_INITGROUPS:
         one_item_only = false;
-        ret = sysdb_initgroups_with_views(mem_ctx, input->domain,
-                                          input->data->name.lookup, &result);
+        ret = sysdb_initgroups_with_views(mem_ctx, cr->domain,
+                                          cr->data->name.lookup, &result);
         break;
     case CACHE_REQ_INITGROUPS_BY_UPN:
         one_item_only = false;
-        ret = sysdb_initgroups_by_upn(mem_ctx, input->domain,
-                                      input->data->name.lookup, &result);
+        ret = sysdb_initgroups_by_upn(mem_ctx, cr->domain,
+                                      cr->data->name.lookup, &result);
         break;
     case CACHE_REQ_USER_BY_CERT:
         one_item_only = true;
-        ret = sysdb_search_user_by_cert(mem_ctx, input->domain,
-                                        input->data->cert, &result);
+        ret = sysdb_search_user_by_cert(mem_ctx, cr->domain,
+                                        cr->data->cert, &result);
         break;
     case CACHE_REQ_USER_BY_FILTER:
         one_item_only = false;
-        ret = updated_users_by_filter(mem_ctx, input->domain,
-                                      input->data->name.lookup, input->req_start,
+        ret = updated_users_by_filter(mem_ctx, cr->domain,
+                                      cr->data->name.lookup, cr->req_start,
                                       &result);
         break;
     case CACHE_REQ_GROUP_BY_FILTER:
         one_item_only = false;
-        ret = updated_groups_by_filter(mem_ctx, input->domain,
-                                       input->data->name.lookup, input->req_start,
+        ret = updated_groups_by_filter(mem_ctx, cr->domain,
+                                       cr->data->name.lookup, cr->req_start,
                                        &result);
         break;
     case CACHE_REQ_OBJECT_BY_SID:
         one_item_only = true;
-        ret = sysdb_search_object_by_sid(mem_ctx, input->domain,
-                                         input->data->sid, input->data->attrs,
+        ret = sysdb_search_object_by_sid(mem_ctx, cr->domain,
+                                         cr->data->sid, cr->data->attrs,
                                          &result);
         break;
     }
@@ -751,7 +747,7 @@ static errno_t cache_req_get_object(TALLOC_CTX *mem_ctx,
         goto done;
     } else if (one_item_only && result->count > 1) {
         ret = ERR_INTERNAL;
-        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, input,
+        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
                         "Multiple objects were found when "
                         "sysdb search expected only one!\n");
         goto done;
@@ -766,27 +762,27 @@ done:
 /* Return true if the request bypasses cache or false if the cache_req
  * code can leverage sysdb for this request.
  */
-static bool cache_req_bypass_cache(struct cache_req_input *input)
+static bool cache_req_bypass_cache(struct cache_req *cr)
 {
-    if (input->data->type == CACHE_REQ_USER_BY_FILTER ||
-            input->data->type == CACHE_REQ_GROUP_BY_FILTER) {
+    if (cr->data->type == CACHE_REQ_USER_BY_FILTER ||
+            cr->data->type == CACHE_REQ_GROUP_BY_FILTER) {
         return true;
     }
 
     return false;
 }
 
-static errno_t cache_req_expiration_status(struct cache_req_input *input,
+static errno_t cache_req_expiration_status(struct cache_req *cr,
                                            struct ldb_result *result,
                                            time_t cache_refresh_percent)
 {
     time_t expire;
 
-    if (result == NULL || result->count == 0 || cache_req_bypass_cache(input)) {
+    if (result == NULL || result->count == 0 || cache_req_bypass_cache(cr)) {
         return ENOENT;
     }
 
-    if (input->data->type == CACHE_REQ_INITGROUPS) {
+    if (cr->data->type == CACHE_REQ_INITGROUPS) {
         expire = ldb_msg_find_attr_as_uint64(result->msgs[0],
                                              SYSDB_INITGR_EXPIRE, 0);
     } else {
@@ -798,7 +794,7 @@ static errno_t cache_req_expiration_status(struct cache_req_input *input,
 }
 
 static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
-                                   struct cache_req_input *input,
+                                   struct cache_req *cr,
                                    struct ldb_result *result,
                                    const char **_string,
                                    uint32_t *_id,
@@ -809,24 +805,24 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
     uint32_t id = 0;
     errno_t ret;
 
-    *_id = input->data->id;
-    *_string = input->data->name.lookup;
+    *_id = cr->data->id;
+    *_string = cr->data->name.lookup;
     *_flag = NULL;
 
-    if (cache_req_input_is_upn(input)) {
+    if (cache_req_is_upn(cr)) {
         *_flag = EXTRA_NAME_IS_UPN;
         return;
     }
 
-    if (input->data->type == CACHE_REQ_USER_BY_CERT) {
-        *_string = input->data->cert;
+    if (cr->data->type == CACHE_REQ_USER_BY_CERT) {
+        *_string = cr->data->cert;
         return;
-    } else if (input->data->type == CACHE_REQ_OBJECT_BY_SID) {
-        *_string = input->data->sid;
+    } else if (cr->data->type == CACHE_REQ_OBJECT_BY_SID) {
+        *_string = cr->data->sid;
         return;
     }
 
-    if (!DOM_HAS_VIEWS(input->domain)) {
+    if (!DOM_HAS_VIEWS(cr->domain)) {
         return;
     }
 
@@ -841,7 +837,7 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
      * it up otherwise. But it is also a shortcut for non-local views where
      * we will not fail over to the overridden value. */
 
-    switch (input->data->type) {
+    switch (cr->data->type) {
     case CACHE_REQ_USER_BY_NAME:
     case CACHE_REQ_GROUP_BY_NAME:
        name = ldb_msg_find_attr_as_string(result->msgs[0], SYSDB_NAME, NULL);
@@ -862,12 +858,12 @@ static void cache_req_dpreq_params(TALLOC_CTX *mem_ctx,
        }
        break;
     case CACHE_REQ_INITGROUPS:
-        ret = sysdb_getpwnam_with_views(NULL, input->domain,
-                                        input->data->name.lookup, &user);
+        ret = sysdb_getpwnam_with_views(NULL, cr->domain,
+                                        cr->data->name.lookup, &user);
         if (ret != EOK || user == NULL || user->count != 1) {
             /* Case where the user is not found has been already handled. If
              * this is not OK, it is an error. */
-            CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, input,
+            CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, cr,
                             "Unable to match initgroups user [%d]: %s\n",
                             ret, sss_strerror(ret));
             break;
@@ -905,7 +901,7 @@ struct cache_req_cache_state {
     struct sss_nc_ctx *ncache;
     int neg_timeout;
     int cache_refresh_percent;
-    struct cache_req_input *input;
+    struct cache_req *cr;
 
     /* output data */
     struct ldb_result *result;
@@ -921,7 +917,7 @@ static struct tevent_req *cache_req_cache_send(TALLOC_CTX *mem_ctx,
                                                struct sss_nc_ctx *ncache,
                                                int neg_timeout,
                                                int cache_refresh_percent,
-                                               struct cache_req_input *input)
+                                               struct cache_req *cr)
 {
     struct cache_req_cache_state *state = NULL;
     struct tevent_req *req = NULL;
@@ -938,10 +934,10 @@ static struct tevent_req *cache_req_cache_send(TALLOC_CTX *mem_ctx,
     state->ncache = ncache;
     state->neg_timeout = neg_timeout;
     state->cache_refresh_percent = cache_refresh_percent;
-    state->input = input;
+    state->cr = cr;
 
     /* Check negative cache first. */
-    ret = cache_req_check_ncache(state->input, state->ncache,
+    ret = cache_req_check_ncache(state->cr, state->ncache,
                                  state->neg_timeout);
     if (ret == EEXIST) {
         ret = ENOENT;
@@ -975,9 +971,9 @@ static errno_t cache_req_cache_search(struct tevent_req *req)
 
     state = tevent_req_data(req, struct cache_req_cache_state);
 
-    ret = cache_req_get_object(state, state->input, &state->result);
+    ret = cache_req_get_object(state, state->cr, &state->result);
     if (ret != EOK && ret != ENOENT) {
-        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->input, "Failed to make "
+        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->cr, "Failed to make "
                         "request to our cache [%d]: %s\n",
                         ret, sss_strerror(ret));
         return ret;
@@ -990,8 +986,8 @@ static errno_t cache_req_cache_search(struct tevent_req *req)
     }
 
     /* One result found */
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
-                    "Returning info for [%s]\n", state->input->debugobj);
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
+                    "Returning info for [%s]\n", state->cr->debugobj);
     return EOK;
 }
 
@@ -1006,28 +1002,28 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
 
     state = tevent_req_data(req, struct cache_req_cache_state);
 
-    cache_req_dpreq_params(state, state->input, state->result,
+    cache_req_dpreq_params(state, state->cr, state->result,
                            &search_str, &search_id, &extra_flag);
 
-    ret = cache_req_expiration_status(state->input, state->result,
+    ret = cache_req_expiration_status(state->cr, state->result,
                                       state->cache_refresh_percent);
 
     switch (ret) {
     case EOK:
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
-                        "[%s] entry is valid\n", state->input->debugobj);
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
+                        "[%s] entry is valid\n", state->cr->debugobj);
         return EOK;
     case EAGAIN:
         /* Out of band update. The calling function will return the cached
          * entry immediately. No callback is required. */
 
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                         "Performing midpoint cache update of [%s]\n",
-                        state->input->debugobj);
+                        state->cr->debugobj);
 
         subreq = sss_dp_get_account_send(state, state->rctx,
-                                         state->input->domain, true,
-                                         state->input->dp_type,
+                                         state->cr->domain, true,
+                                         state->cr->dp_type,
                                          search_str, search_id, extra_flag);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory sending out-of-band "
@@ -1040,13 +1036,13 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
         /* Cache miss or the cache is expired. We need to get the updated
          * information before returning it. */
 
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                         "Looking up [%s] in data provider\n",
-                        state->input->debugobj);
+                        state->cr->debugobj);
 
         subreq = sss_dp_get_account_send(state, state->rctx,
-                                         state->input->domain, true,
-                                         state->input->dp_type,
+                                         state->cr->domain, true,
+                                         state->cr->dp_type,
                                          search_str, search_id, extra_flag);
         if (subreq == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1058,7 +1054,7 @@ static errno_t cache_req_cache_check(struct tevent_req *req)
         return EAGAIN;
     default:
         /* error */
-        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->input, "Error checking "
+        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->cr, "Error checking "
                         "cache [%d]: %s\n", ret, sss_strerror(ret));
         return ret;
     }
@@ -1079,24 +1075,24 @@ static void cache_req_cache_done(struct tevent_req *subreq)
     ret = sss_dp_get_account_recv(state, subreq, &err_maj, &err_min, &err_msg);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, state->input,
+        CACHE_REQ_DEBUG(SSSDBG_OP_FAILURE, state->cr,
                         "Could not get account info [%d]: %s\n",
                         ret, sss_strerror(ret));
     }
 
     if (err_maj) {
-        CACHE_REQ_DEBUG(SSSDBG_MINOR_FAILURE, state->input,
+        CACHE_REQ_DEBUG(SSSDBG_MINOR_FAILURE, state->cr,
               "Data Provider Error: %u, %u, %s (will return cached data)\n",
               (unsigned int)err_maj, (unsigned int)err_min, err_msg);
     }
 
     /* Get result from cache again. */
-    ret = cache_req_get_object(state, state->input, &state->result);
+    ret = cache_req_get_object(state, state->cr, &state->result);
     if (ret == ENOENT) {
-        cache_req_add_to_ncache(state->input, state->ncache);
+        cache_req_add_to_ncache(state->cr, state->ncache);
         ret = ENOENT;
     } else if (ret != EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->input,
+        CACHE_REQ_DEBUG(SSSDBG_CRIT_FAILURE, state->cr,
                         "Failed to make request to our cache [%d]: %s\n",
                         ret, sss_strerror(ret));
     }
@@ -1107,9 +1103,9 @@ static void cache_req_cache_done(struct tevent_req *subreq)
     }
 
     /* One result found */
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                     "Returning %u results for [%s]\n", state->result->count,
-                    state->input->debugobj);
+                    state->cr->debugobj);
 
     tevent_req_done(req);
 }
@@ -1136,7 +1132,7 @@ struct cache_req_state {
     struct sss_nc_ctx *ncache;
     int neg_timeout;
     int cache_refresh_percent;
-    struct cache_req_input *input;
+    struct cache_req *cr;
 
     /* work data */
     struct ldb_result *result;
@@ -1164,7 +1160,7 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
                                   struct cache_req_data *data)
 {
     struct cache_req_state *state = NULL;
-    struct cache_req_input *input = NULL;
+    struct cache_req *cr = NULL;
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     errno_t ret;
@@ -1180,20 +1176,20 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
     state->ncache = ncache;
     state->neg_timeout = neg_timeout;
     state->cache_refresh_percent = cache_refresh_percent;
-    state->input = input = cache_req_input_create(state, rctx, data);
-    if (state->input == NULL) {
+    state->cr = cr = cache_req_create(state, rctx, data);
+    if (state->cr == NULL) {
         ret = ENOMEM;
         goto immediately;
     }
 
-    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "New request\n");
+    CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "New request\n");
 
-    if (input->data->name.input != NULL && domain == NULL) {
+    if (cr->data->name.input != NULL && domain == NULL) {
         /* Parse input name first, since it may contain domain name. */
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, input, "Parsing input name [%s]\n",
-                        input->data->name.input);
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr, "Parsing input name [%s]\n",
+                        cr->data->name.input);
 
-        subreq = sss_parse_inp_send(state, rctx, input->data->name.input);
+        subreq = sss_parse_inp_send(state, rctx, cr->data->name.input);
         if (subreq == NULL) {
             ret = ENOMEM;
             goto immediately;
@@ -1201,8 +1197,8 @@ struct tevent_req *cache_req_send(TALLOC_CTX *mem_ctx,
 
         tevent_req_set_callback(subreq, cache_req_input_parsed, req);
     } else {
-        if (state->input->data->name.input != NULL) {
-            ret = cache_req_input_set_name(input, input->data->name.input);
+        if (state->cr->data->name.input != NULL) {
+            ret = cache_req_set_name(cr, cr->data->name.input);
             if (ret != EOK) {
                 goto immediately;
             }
@@ -1242,14 +1238,14 @@ static void cache_req_input_parsed(struct tevent_req *subreq)
     ret = sss_parse_inp_recv(subreq, state, &name, &domain);
     switch (ret) {
     case EOK:
-        ret = cache_req_input_set_name(state->input, name);
+        ret = cache_req_set_name(state->cr, name);
         if (ret != EOK) {
             tevent_req_error(req, ret);
             return;
         }
         break;
     case ERR_DOMAIN_NOT_FOUND:
-        maybe_upn = cache_req_input_assume_upn(state->input);
+        maybe_upn = cache_req_assume_upn(state->cr);
         if (!maybe_upn) {
             tevent_req_error(req, ret);
             return;
@@ -1277,7 +1273,7 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
     state = tevent_req_data(req, struct cache_req_state);
 
     if (domain != NULL) {
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                         "Performing a single domain search\n");
 
         state->domain = responder_get_domain(state->rctx, domain);
@@ -1287,7 +1283,7 @@ static errno_t cache_req_select_domains(struct tevent_req *req,
 
         state->check_next = false;
     } else {
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                         "Performing a multi-domain search\n");
 
         state->domain = state->rctx->domains;
@@ -1310,8 +1306,8 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
         * qualified names instead. */
         while (state->domain != NULL && state->check_next
                 && state->domain->fqnames
-                && state->input->data->type != CACHE_REQ_USER_BY_CERT
-                && !cache_req_input_is_upn(state->input)) {
+                && state->cr->data->type != CACHE_REQ_USER_BY_CERT
+                && !cache_req_is_upn(state->cr)) {
             state->domain = get_next_domain(state->domain, 0);
         }
 
@@ -1321,7 +1317,7 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
             break;
         }
 
-        ret = cache_req_input_set_domain(state->input, state->domain,
+        ret = cache_req_set_domain(state->cr, state->domain,
                                          state->rctx);
         if (ret != EOK) {
             return ret;
@@ -1330,7 +1326,7 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
         subreq = cache_req_cache_send(state, state->ev, state->rctx,
                                       state->ncache, state->neg_timeout,
                                       state->cache_refresh_percent,
-                                      state->input);
+                                      state->cr);
         if (subreq == NULL) {
             return ENOMEM;
         }
@@ -1339,8 +1335,8 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
 
         /* we will continue with the following domain the next time */
         if (state->check_next) {
-            if (cache_req_input_is_upn(state->input)
-                    || state->input->data->type == CACHE_REQ_USER_BY_CERT ) {
+            if (cache_req_is_upn(state->cr)
+                    || state->cr->data->type == CACHE_REQ_USER_BY_CERT ) {
                 state->domain = get_next_domain(state->domain, SSS_GND_DESCEND);
             } else {
                 state->domain = get_next_domain(state->domain, 0);
@@ -1354,7 +1350,7 @@ static errno_t cache_req_next_domain(struct tevent_req *req)
      * we have to add it into negative cache here when all domains have
      * been searched. */
 
-    cache_req_add_to_ncache_global(state->input, state->ncache);
+    cache_req_add_to_ncache_global(state->cr, state->ncache);
 
     return ENOENT;
 }
@@ -1371,28 +1367,26 @@ static void cache_req_done(struct tevent_req *subreq)
     ret = cache_req_cache_recv(state, subreq, &state->result);
     talloc_zfree(subreq);
     if (ret == EOK) {
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
-                        "Finished: Success\n");
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Success\n");
         tevent_req_done(req);
         return;
     }
 
     if (state->check_next == false) {
-        if (ret == ENOENT && cache_req_input_assume_upn(state->input)) {
+        if (ret == ENOENT && cache_req_assume_upn(state->cr)) {
             /* search by upn now */
             cache_req_select_domains(req, NULL);
             return;
         }
 
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
-                        "Finished: Not found\n");
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr, "Finished: Not found\n");
         tevent_req_error(req, ret);
         return;
     }
 
     ret = cache_req_next_domain(req);
     if (ret != EAGAIN) {
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->input,
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, state->cr,
                         "Finished: Error %d: %s\n", ret, sss_strerror(ret));
         tevent_req_error(req, ret);
     }
@@ -1414,10 +1408,10 @@ errno_t cache_req_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (_name != NULL) {
-        if (state->input->data->name.lookup == NULL) {
+        if (state->cr->data->name.lookup == NULL) {
             *_name = NULL;
         } else {
-            name = talloc_strdup(mem_ctx, state->input->data->name.name);
+            name = talloc_strdup(mem_ctx, state->cr->data->name.name);
             if (name == NULL) {
                 return ENOMEM;
             }
