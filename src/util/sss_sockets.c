@@ -142,8 +142,7 @@ struct tevent_req *sssd_async_connect_send(TALLOC_CTX *mem_ctx,
     switch (ret) {
     case EINPROGRESS:
     case EINTR:
-        state->fde = tevent_add_fd(ev, state, fd,
-                                   TEVENT_FD_READ | TEVENT_FD_WRITE,
+        state->fde = tevent_add_fd(ev, state, fd, TEVENT_FD_WRITE,
                                    sssd_async_connect_done, req);
         if (state->fde == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "tevent_add_fd failed.\n");
@@ -153,7 +152,6 @@ struct tevent_req *sssd_async_connect_send(TALLOC_CTX *mem_ctx,
 
         return req;
 
-        break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,
               "connect failed [%d][%s].\n", ret, strerror(ret));
@@ -182,13 +180,9 @@ static void sssd_async_connect_done(struct tevent_context *ev,
     errno = 0;
     ret = connect(state->fd, (struct sockaddr *) &state->addr,
                   state->addr_len);
-    if (ret != EOK) {
-        ret = errno;
-        if (ret == EINPROGRESS || ret == EINTR) {
-            return; /* Try again later */
-        }
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "connect failed [%d][%s].\n", ret, strerror(ret));
+    if ((ret != EOK) &&
+        (errno == EALREADY || errno == EINPROGRESS || errno == EINTR)) {
+        return; /* Try again later */
     }
 
     talloc_zfree(fde);
@@ -196,10 +190,10 @@ static void sssd_async_connect_done(struct tevent_context *ev,
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "connect failed [%d][%s].\n", ret, strerror(ret));
         tevent_req_error(req, ret);
     }
-
-    return;
 }
 
 int sssd_async_connect_recv(struct tevent_req *req)
