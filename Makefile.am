@@ -541,6 +541,7 @@ dist_noinst_HEADERS = \
     src/util/sss_python.h \
     src/util/sss_krb5.h \
     src/util/sss_selinux.h \
+    src/util/sss_sockets.h \
     src/util/sss_utf8.h \
     src/util/sss_ssh.h \
     src/util/sss_ini.h \
@@ -1663,6 +1664,7 @@ ipa_ldap_opt_tests_SOURCES = \
     src/providers/ad/ad_opts.c \
     src/providers/ipa/ipa_opts.c \
     src/providers/krb5/krb5_opts.c \
+    src/util/sss_sockets.c \
     src/util/sss_ldap.c \
     src/tests/ipa_ldap_opt-tests.c
 ipa_ldap_opt_tests_CFLAGS = \
@@ -1877,6 +1879,7 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/responder_cache_req.c
 
 TEST_MOCK_PROVIDER_OBJ = \
+     src/util/sss_sockets.c \
      src/util/sss_ldap.c \
      src/providers/data_provider_opts.c \
      src/providers/ldap/ldap_opts.c \
@@ -2264,6 +2267,7 @@ sdap_tests_SOURCES = \
     src/providers/ldap/sdap_range.c \
     src/providers/ldap/ldap_opts.c \
     src/providers/ipa/ipa_opts.c \
+    src/util/sss_sockets.c \
     src/util/sss_ldap.c \
     src/tests/cmocka/test_sdap.c \
     $(NULL)
@@ -2879,6 +2883,7 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap.c \
     src/providers/ipa/ipa_dn.c \
     src/util/user_info_msg.c \
+    src/util/sss_sockets.c \
     src/util/sss_ldap.c \
     $(NULL)
 libsss_ldap_common_la_CFLAGS = \
