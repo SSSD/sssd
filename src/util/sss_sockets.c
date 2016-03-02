@@ -32,27 +32,52 @@
 #include "util/util.h"
 
 
-static errno_t set_fd_flags_and_opts(int fd)
+static errno_t set_fcntl_flags(int fd, int fd_flags, int fl_flags)
 {
     int ret;
-    long flags;
-    int dummy = 1;
+    int cur_flags;
 
-    flags = fcntl(fd, F_GETFD, 0);
-    if (flags == -1) {
+    ret = fcntl(fd, F_GETFD, 0);
+    if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "fcntl F_GETFD failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
+    cur_flags = ret;
 
-    flags = fcntl(fd, F_SETFD, flags| FD_CLOEXEC);
-    if (flags == -1) {
+    ret = fcntl(fd, F_SETFD, cur_flags | fd_flags);
+    if (ret == -1) {
         ret = errno;
         DEBUG(SSSDBG_CRIT_FAILURE,
               "fcntl F_SETFD failed [%d][%s].\n", ret, strerror(ret));
         return ret;
     }
+
+    ret = fcntl(fd, F_GETFL, 0);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fcntl F_GETFD failed [%d][%s].\n", ret, strerror(ret));
+        return ret;
+    }
+    cur_flags = ret;
+
+    ret = fcntl(fd, F_SETFL, cur_flags | fl_flags);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "fcntl F_SETFD failed [%d][%s].\n", ret, strerror(ret));
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t set_fd_common_opts(int fd)
+{
+    int dummy = 1;
+    int ret;
 
     /* SO_KEEPALIVE and TCP_NODELAY are set by OpenLDAP client libraries but
      * failures are ignored.*/
@@ -77,7 +102,6 @@ static errno_t set_fd_flags_and_opts(int fd)
 
 
 struct sssd_async_connect_state {
-    long old_flags;
     struct tevent_fd *fde;
     int fd;
     socklen_t addr_len;
@@ -96,15 +120,7 @@ struct tevent_req *sssd_async_connect_send(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req;
     struct sssd_async_connect_state *state;
-    long flags;
     int ret;
-    int fret;
-
-    flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "fcntl F_GETFL failed.\n");
-        return NULL;
-    }
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sssd_async_connect_state);
@@ -113,16 +129,9 @@ struct tevent_req *sssd_async_connect_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->old_flags = flags;
     state->fd = fd;
     state->addr_len = addr_len;
     memcpy(&state->addr, addr, addr_len);
-
-    ret = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "fcntl F_SETFL failed.\n");
-        goto done;
-    }
 
     ret = connect(fd, addr, addr_len);
     if (ret == EOK) {
@@ -151,11 +160,6 @@ struct tevent_req *sssd_async_connect_send(TALLOC_CTX *mem_ctx,
     }
 
 done:
-    fret = fcntl(fd, F_SETFL, flags);
-    if (fret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "fcntl F_SETFL failed.\n");
-    }
-
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
@@ -174,7 +178,6 @@ static void sssd_async_connect_done(struct tevent_context *ev,
     struct sssd_async_connect_state *state =
                 tevent_req_data(req, struct sssd_async_connect_state);
     int ret;
-    int fret;
 
     errno = 0;
     ret = connect(state->fd, (struct sockaddr *) &state->addr,
@@ -189,11 +192,6 @@ static void sssd_async_connect_done(struct tevent_context *ev,
     }
 
     talloc_zfree(fde);
-
-    fret = fcntl(state->fd, F_SETFL, state->old_flags);
-    if (fret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "fcntl F_SETFL failed.\n");
-    }
 
     if (ret == EOK) {
         tevent_req_done(req);
@@ -261,14 +259,20 @@ struct tevent_req *sssd_async_socket_init_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = set_fd_flags_and_opts(state->sd);
+    ret = set_fd_common_opts(state->sd);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "set_fd_flags_and_opts failed.\n");
+        DEBUG(SSSDBG_CRIT_FAILURE, "set_fd_common_opts failed.\n");
+        goto fail;
+    }
+
+    ret = set_fcntl_flags(state->sd, FD_CLOEXEC, O_NONBLOCK);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "settting fd flags failed.\n");
         goto fail;
     }
 
     DEBUG(SSSDBG_TRACE_ALL,
-          "Using file descriptor [%d] for LDAP connection.\n", state->sd);
+          "Using file descriptor [%d] for the connection.\n", state->sd);
 
     subreq = sssd_async_connect_send(state, ev, state->sd,
                                      (struct sockaddr *) addr, addr_len);
