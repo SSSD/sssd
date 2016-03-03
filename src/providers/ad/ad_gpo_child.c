@@ -249,7 +249,7 @@ static errno_t prepare_gpo_cache(TALLOC_CTX *mem_ctx,
         }
         DEBUG(SSSDBG_TRACE_FUNC, "Storing GPOs in %s\n", current_dir);
 
-        if ((mkdir(current_dir, 0644)) < 0 && errno != EEXIST) {
+        if ((mkdir(current_dir, 0700)) < 0 && errno != EEXIST) {
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "mkdir(%s) failed: %d\n", current_dir, ret);
