@@ -208,6 +208,7 @@ static errno_t prepare_gpo_cache(TALLOC_CTX *mem_ctx,
     char *last = NULL;
     char *smb_path_with_suffix = NULL;
     errno_t ret;
+    mode_t old_umask;
 
     smb_path_with_suffix = talloc_strdup(mem_ctx, input_smb_path_with_suffix);
     if (smb_path_with_suffix == NULL) {
@@ -229,11 +230,13 @@ static errno_t prepare_gpo_cache(TALLOC_CTX *mem_ctx,
 
     ptr = smb_path_with_suffix + 1;
 
+    old_umask = umask(SSS_DFL_X_UMASK);
     for (i = 0; i < num_dirs; i++) {
         first = ptr;
         last = strchr(first, delim);
         if (last == NULL) {
-            return EINVAL;
+            ret = EINVAL;
+            goto done;
         }
         *last = '\0';
         last++;
@@ -241,7 +244,8 @@ static errno_t prepare_gpo_cache(TALLOC_CTX *mem_ctx,
         current_dir = talloc_asprintf(mem_ctx, "%s/%s", current_dir, first);
         if (current_dir == NULL) {
             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
         DEBUG(SSSDBG_TRACE_FUNC, "Storing GPOs in %s\n", current_dir);
 
@@ -249,14 +253,18 @@ static errno_t prepare_gpo_cache(TALLOC_CTX *mem_ctx,
             ret = errno;
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "mkdir(%s) failed: %d\n", current_dir, ret);
-            return ret;
+            goto done;
         }
 
         ptr = last;
     }
 
-    return EOK;
+    ret = EOK;
 
+done:
+    umask(old_umask);
+
+    return ret;
 }
 
 /*
