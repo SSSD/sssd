@@ -485,7 +485,7 @@ struct sdap_server_opts {
     char *max_user_value;
     char *max_group_value;
     char *max_service_value;
-    unsigned long max_sudo_value;
+    char *max_sudo_value;
     bool posix_checked;
 };
 

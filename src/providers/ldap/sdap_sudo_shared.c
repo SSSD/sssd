@@ -120,11 +120,38 @@ sdap_sudo_ptask_setup_generic(struct be_ctx *be_ctx,
     return EOK;
 }
 
+static char *
+sdap_sudo_new_usn(TALLOC_CTX *mem_ctx,
+                  unsigned long usn,
+                  const char *leftover)
+{
+    const char *str = leftover == NULL ? "" : leftover;
+    char *newusn;
+
+    /* We increment USN number so that we can later use simplify filter
+     * (just usn >= last+1 instaed of usn >= last && usn != last).
+     */
+    usn++;
+
+    /* Convert back to string appending non-converted values since it
+     * is an indicator that modifyTimestamp is used instead of entryUSN.
+     * modifyTimestamp contains also timezone specification, usually Z.
+     * We can't really handle any errors here so we just use what we got. */
+    newusn = talloc_asprintf(mem_ctx, "%lu%s", usn, str);
+    if (newusn == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to change USN value (OOM)!\n");
+        return NULL;
+    }
+
+    return newusn;
+}
+
 void
 sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
                   const char *usn)
 {
-    unsigned int usn_number;
+    unsigned long usn_number;
+    char *newusn;
     char *endptr = NULL;
     errno_t ret;
 
@@ -140,24 +167,29 @@ sdap_sudo_set_usn(struct sdap_server_opts *srv_opts,
 
     errno = 0;
     usn_number = strtoul(usn, &endptr, 10);
-    if (endptr != NULL && *endptr != '\0') {
-        DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s\n", usn);
-        return;
-    } else if (errno != 0) {
+    if (errno != 0) {
         ret = errno;
         DEBUG(SSSDBG_MINOR_FAILURE, "Unable to convert USN %s [%d]: %s\n",
               usn, ret, sss_strerror(ret));
         return;
     }
 
-    if (usn_number > srv_opts->max_sudo_value) {
-        srv_opts->max_sudo_value = usn_number;
+    newusn = sdap_sudo_new_usn(srv_opts, usn_number, endptr);
+    if (newusn == NULL) {
+        return;
+    }
+
+    if (sysdb_compare_usn(newusn, srv_opts->max_sudo_value) > 0) {
+        talloc_zfree(srv_opts->max_sudo_value);
+        srv_opts->max_sudo_value = newusn;
+    } else {
+        talloc_zfree(newusn);
     }
 
     if (usn_number > srv_opts->last_usn) {
         srv_opts->last_usn = usn_number;
     }
 
-    DEBUG(SSSDBG_FUNC_DATA, "SUDO higher USN value: [%lu]\n",
+    DEBUG(SSSDBG_FUNC_DATA, "SUDO higher USN value: [%s]\n",
                              srv_opts->max_sudo_value);
 }
