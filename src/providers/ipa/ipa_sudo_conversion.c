@@ -228,7 +228,7 @@ process_rulemember(TALLOC_CTX *mem_ctx,
             ret = store_rulemember(mem_ctx, &rulemember->cmds,
                                    conv->cmds, members[i]);
             if (ret == EOK) {
-                DEBUG(SSSDBG_TRACE_INTERNAL, "Found sudo command group %s\n",
+                DEBUG(SSSDBG_TRACE_INTERNAL, "Found sudo command %s\n",
                       members[i]);
             } else if (ret != EEXIST) {
                 goto done;
