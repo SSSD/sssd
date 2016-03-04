@@ -30,8 +30,10 @@
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
+#include "providers/ldap/sdap_async_ad.h"
 #include "providers/ipa/ipa_id.h"
 #include "providers/ad/ad_id.h"
+#include "providers/ad/ad_pac.h"
 #include "providers/ipa/ipa_subdomains.h"
 
 static struct tevent_req *
@@ -346,6 +348,8 @@ struct ipa_get_subdom_acct {
     int entry_type;
     const char *filter;
     int filter_type;
+    bool use_pac;
+    struct ldb_message *user_msg;
 
     int dp_error;
 };
@@ -372,6 +376,7 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     state->ctx = ipa_ctx->sdap_id_ctx;
     state->dp_error = DP_ERR_FATAL;
     state->override_attrs = override_attrs;
+    state->use_pac = false;
 
     state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
     if (!state->op) {
@@ -398,7 +403,15 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
         case BE_REQ_GROUP:
         case BE_REQ_BY_SECID:
         case BE_REQ_USER_AND_GROUP:
+            ret = EOK;
+            break;
         case BE_REQ_INITGROUPS:
+            ret = check_if_pac_is_available(state, state->domain, ar,
+                                            &state->user_msg);
+            if (ret == EOK) {
+                state->use_pac = true;
+            }
+
             ret = EOK;
             break;
         default:
@@ -447,6 +460,29 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
                                         EXOP_SID2NAME_V1_OID)) {
             state->entry_type = BE_REQ_USER;
         } else {
+            if (state->use_pac && state->user_msg != NULL) {
+                /* This means the user entry is already in the cache and has
+                 * the pac attached, we only have look up the missing groups
+                 * and add the user to all groups. */
+
+                subreq = ipa_get_subdom_acct_process_pac_send(state, state->ev,
+                                                   sdap_id_op_handle(state->op),
+                                                   state->ipa_ctx,
+                                                   state->domain,
+                                                   state->user_msg);
+                if (subreq == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "ipa_get_subdom_acct_process_pac failed.\n");
+                    tevent_req_error(req, ENOMEM);
+                    return;
+                }
+                tevent_req_set_callback(subreq, ipa_get_subdom_acct_done, req);
+
+                return;
+            }
+
+            /* Fall through if there is no PAC */
+
             DEBUG(SSSDBG_TRACE_FUNC, "Initgroups requests are not handled " \
                                       "by the IPA provider but are resolved " \
                                       "by the responder directly from the " \

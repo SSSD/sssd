@@ -120,4 +120,13 @@ ipa_initgr_get_overrides_send(TALLOC_CTX *memctx,
                              struct ldb_message **groups,
                              const char *groups_id_attr);
 int ipa_initgr_get_overrides_recv(struct tevent_req *req, int *dp_error);
+
+struct tevent_req *ipa_get_subdom_acct_process_pac_send(TALLOC_CTX *mem_ctx,
+                                                   struct tevent_context *ev,
+                                                   struct sdap_handle *sh,
+                                                   struct ipa_id_ctx *ipa_ctx,
+                                                   struct sss_domain_info *dom,
+                                                   struct ldb_message *user_msg);
+
+errno_t ipa_get_subdom_acct_process_pac_recv(struct tevent_req *req);
 #endif

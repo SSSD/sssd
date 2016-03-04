@@ -22,11 +22,14 @@
 #include "util/util.h"
 #include "util/sss_nss.h"
 #include "util/strtonum.h"
-#include "db/sysdb.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/ldap/sdap_async_ad.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_idmap.h"
 #include "providers/ipa/ipa_id.h"
 #include "providers/ipa/ipa_subdomains.h"
+#include "providers/ad/ad_pac.h"
+#include "db/sysdb.h"
 
 enum input_types {
     INP_SID = 1,
@@ -2396,6 +2399,182 @@ static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq)
 }
 
 int ipa_s2n_get_acct_info_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+struct ipa_get_subdom_acct_process_pac_state {
+    struct tevent_context *ev;
+    struct sdap_handle *sh;
+    struct sss_domain_info *dom;
+    char *username;
+
+    size_t num_missing_sids;
+    char **missing_sids;
+    size_t num_cached_groups;
+    char **cached_groups;
+};
+
+static void ipa_get_subdom_acct_process_pac_done(struct tevent_req *subreq);
+
+struct tevent_req *ipa_get_subdom_acct_process_pac_send(TALLOC_CTX *mem_ctx,
+                                                   struct tevent_context *ev,
+                                                   struct sdap_handle *sh,
+                                                   struct ipa_id_ctx *ipa_ctx,
+                                                   struct sss_domain_info *dom,
+                                                   struct ldb_message *user_msg)
+{
+    int ret;
+    struct ipa_get_subdom_acct_process_pac_state *state;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    char *user_sid;
+    char *primary_group_sid;
+    size_t num_sids;
+    char **group_sids;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct ipa_get_subdom_acct_process_pac_state);
+    if (req == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "tevent_req_create failed.\n");
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->sh = sh;
+    state->dom = dom;
+
+    ret = ad_get_pac_data_from_user_entry(state, user_msg,
+                                     ipa_ctx->sdap_id_ctx->opts->idmap_ctx->map,
+                                     &state->username,
+                                     &user_sid, &primary_group_sid,
+                                     &num_sids, &group_sids);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "ad_get_pac_data_from_user_entry failed.\n");
+        goto done;
+    }
+
+    ret = sdap_ad_tokengroups_get_posix_members(state, state->dom,
+                                                num_sids, group_sids,
+                                                &state->num_missing_sids,
+                                                &state->missing_sids,
+                                                &state->num_cached_groups,
+                                                &state->cached_groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sdap_ad_tokengroups_get_posix_members failed.\n");
+        goto done;
+    }
+
+
+    if (state->num_missing_sids == 0) {
+        ret = sdap_ad_tokengroups_update_members(state->username,
+                                                 state->dom->sysdb,
+                                                 state->dom,
+                                                 state->cached_groups);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Membership update failed [%d]: %s\n",
+                                         ret, strerror(ret));
+        }
+
+        goto done;
+    }
+
+
+    subreq = ipa_s2n_get_list_send(state, state->ev, ipa_ctx, state->dom,
+                               state->sh,
+                               dp_opt_get_int(ipa_ctx->sdap_id_ctx->opts->basic,
+                                              SDAP_SEARCH_TIMEOUT),
+                               BE_REQ_BY_SECID, REQ_FULL, REQ_INP_SECID,
+                               state->missing_sids);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_get_list_send failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(subreq, ipa_get_subdom_acct_process_pac_done, req);
+
+    return req;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+
+    return req;
+}
+
+static void ipa_get_subdom_acct_process_pac_done(struct tevent_req *subreq)
+{
+    int ret;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct ipa_get_subdom_acct_process_pac_state *state = tevent_req_data(req,
+                                  struct ipa_get_subdom_acct_process_pac_state);
+    char **cached_groups;
+    size_t num_cached_groups;
+
+    ret = ipa_s2n_get_list_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "s2n get_fqlist request failed.\n");
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* from ad_pac.c */
+    ret = sdap_ad_tokengroups_get_posix_members(state, state->dom,
+                                                state->num_missing_sids,
+                                                state->missing_sids,
+                                                NULL, NULL,
+                                                &num_cached_groups,
+                                                &cached_groups);
+    if (ret != EOK){
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sdap_ad_tokengroups_get_posix_members failed [%d]: %s\n",
+              ret, strerror(ret));
+        goto done;
+    }
+
+    state->cached_groups = concatenate_string_array(state,
+                                                    state->cached_groups,
+                                                    state->num_cached_groups,
+                                                    cached_groups,
+                                                    num_cached_groups);
+    if (state->cached_groups == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* update membership of existing groups */
+    ret = sdap_ad_tokengroups_update_members(state->username,
+                                             state->dom->sysdb,
+                                             state->dom,
+                                             state->cached_groups);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Membership update failed [%d]: %s\n",
+                                     ret, strerror(ret));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+
+    return;
+}
+
+errno_t ipa_get_subdom_acct_process_pac_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
