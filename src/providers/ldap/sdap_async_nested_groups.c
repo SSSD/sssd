@@ -56,7 +56,9 @@ struct sdap_nested_group_member {
     const char *group_filter;
 };
 
-const size_t external_members_chunk = 16;
+#ifndef EXTERNAL_MEMBERS_CHUNK
+#define EXTERNAL_MEMBERS_CHUNK  16
+#endif /* EXTERNAL_MEMBERS_CHUNK */
 
 struct sdap_external_missing_member {
     const char **parent_group_dns;
@@ -341,7 +343,7 @@ static errno_t sdap_nested_group_external_add(hash_table_t *table,
         }
         ext_mem->parent_group_dns = talloc_zero_array(ext_mem,
                                                       const char *,
-                                                      external_members_chunk);
+                                                      EXTERNAL_MEMBERS_CHUNK);
         if (ext_mem->parent_group_dns == NULL) {
             talloc_free(ext_mem);
             return ENOMEM;
@@ -363,7 +365,7 @@ static errno_t sdap_nested_group_external_add(hash_table_t *table,
                                                 ext_mem->parent_group_dns,
                                                 const char *,
                                                 ext_mem->parent_dn_idx + \
-                                                    external_members_chunk);
+                                                    EXTERNAL_MEMBERS_CHUNK);
             if (ext_mem->parent_group_dns == NULL) {
                 talloc_free(ext_mem);
                 return ENOMEM;
@@ -2608,7 +2610,7 @@ sdap_nested_group_lookup_external_done(struct tevent_req *subreq)
                                                   &member);
     talloc_free(subreq);
     if (ret == EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Refreshing member %lu\n", state->eniter);
+        DEBUG(SSSDBG_TRACE_FUNC, "Refreshed member %lu\n", state->eniter);
         state->ext_members[state->eniter].missing_mem = \
                                     state->entries[state->eniter].value.ptr;
         state->ext_members[state->eniter].dom = member_dom;
