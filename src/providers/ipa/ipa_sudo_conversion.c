@@ -38,8 +38,8 @@
 #define MATCHDN_CMDGROUPS MATCHDN(SUDO_DN_CMDGROUPS)
 #define MATCHDN_CMDS      MATCHDN(SUDO_DN_CMDS)
 
-#define MATCHRDN_CMDGROUPS(map) (map)[IPA_AT_SUDOCMDGROUP_NAME].name, MATCHDN_CMDGROUPS
-#define MATCHRDN_CMDS(map)      (map)[IPA_AT_SUDOCMD_UUID].name, MATCHDN_CMDS
+#define MATCHRDN_CMDGROUPS(map)  (map)[IPA_AT_SUDOCMDGROUP_NAME].name, MATCHDN_CMDGROUPS
+#define MATCHRDN_CMDS(attr, map) (map)[attr].name, MATCHDN_CMDS
 
 #define MATCHRDN_USER(map)      (map)[SDAP_AT_USER_NAME].name, "cn", "users", "cn", "accounts"
 #define MATCHRDN_GROUP(map)     (map)[SDAP_AT_GROUP_NAME].name, "cn", "groups", "cn", "accounts"
@@ -187,6 +187,32 @@ done:
     return ret;
 }
 
+static bool is_ipacmdgroup(struct ipa_sudo_conv *conv, const char *dn)
+{
+    if (ipa_check_rdn_bool(conv->sysdb, dn,
+            MATCHRDN_CMDGROUPS(conv->map_cmdgroup))) {
+        return true;
+    }
+
+    return false;
+}
+
+static bool is_ipacmd(struct ipa_sudo_conv *conv, const char *dn)
+{
+    if (ipa_check_rdn_bool(conv->sysdb, dn,
+            MATCHRDN_CMDS(IPA_AT_SUDOCMD_UUID, conv->map_cmd))) {
+        return true;
+    }
+
+    /* For older versions of FreeIPA than 3.1. */
+    if (ipa_check_rdn_bool(conv->sysdb, dn,
+            MATCHRDN_CMDS(IPA_AT_SUDOCMD_CMD, conv->map_cmd))) {
+        return true;
+    }
+
+    return false;
+}
+
 static errno_t
 process_rulemember(TALLOC_CTX *mem_ctx,
                    struct ipa_sudo_conv *conv,
@@ -213,8 +239,7 @@ process_rulemember(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; members[i] != NULL; i++) {
-        if (ipa_check_rdn_bool(conv->sysdb, members[i],
-                MATCHRDN_CMDGROUPS(conv->map_cmdgroup))) {
+        if (is_ipacmdgroup(conv, members[i])) {
             ret = store_rulemember(mem_ctx, &rulemember->cmdgroups,
                                    conv->cmdgroups, members[i]);
             if (ret == EOK) {
@@ -223,8 +248,7 @@ process_rulemember(TALLOC_CTX *mem_ctx,
             } else if (ret != EEXIST) {
                 goto done;
             }
-        } else if (ipa_check_rdn_bool(conv->sysdb, members[i],
-                MATCHRDN_CMDS(conv->map_cmd))) {
+        } else if (is_ipacmd(conv, members[i])) {
             ret = store_rulemember(mem_ctx, &rulemember->cmds,
                                    conv->cmds, members[i]);
             if (ret == EOK) {
@@ -552,13 +576,75 @@ ipa_sudo_conv_has_cmds(struct ipa_sudo_conv *conv)
     return hash_count(conv->cmds) == 0;
 }
 
+typedef errno_t (*ipa_sudo_conv_rdn_fn)(TALLOC_CTX *mem_ctx,
+                                      struct sdap_attr_map *map,
+                                      struct sysdb_ctx *sysdb,
+                                      const char *dn,
+                                      char **_rdn_val,
+                                      const char **_rdn_attr);
+
+static errno_t get_sudo_cmdgroup_rdn(TALLOC_CTX *mem_ctx,
+                                     struct sdap_attr_map *map,
+                                     struct sysdb_ctx *sysdb,
+                                     const char *dn,
+                                     char **_rdn_val,
+                                     const char **_rdn_attr)
+{
+    char *rdn_val;
+    errno_t ret;
+
+    ret = ipa_get_rdn(mem_ctx, sysdb, dn, &rdn_val,
+                      MATCHRDN_CMDGROUPS(map));
+    if (ret != EOK) {
+        return ret;
+    }
+
+    *_rdn_val = rdn_val;
+    *_rdn_attr = map[IPA_AT_SUDOCMDGROUP_NAME].name;
+
+    return EOK;
+}
+
+static errno_t get_sudo_cmd_rdn(TALLOC_CTX *mem_ctx,
+                                struct sdap_attr_map *map,
+                                struct sysdb_ctx *sysdb,
+                                const char *dn,
+                                char **_rdn_val,
+                                const char **_rdn_attr)
+{
+    char *rdn_val;
+    errno_t ret;
+
+    ret = ipa_get_rdn(mem_ctx, sysdb, dn, &rdn_val,
+                      MATCHRDN_CMDS(IPA_AT_SUDOCMD_UUID, map));
+    if (ret == EOK) {
+        *_rdn_val = rdn_val;
+        *_rdn_attr = map[IPA_AT_SUDOCMD_UUID].name;
+
+        return EOK;
+    } else if (ret != ENOENT) {
+        return ret;
+    }
+
+    /* For older versions of FreeIPA than 3.1. */
+    ret = ipa_get_rdn(mem_ctx, sysdb, dn, &rdn_val,
+                      MATCHRDN_CMDS(IPA_AT_SUDOCMD_CMD, map));
+    if (ret != EOK) {
+        return ret;
+    }
+
+    *_rdn_val = rdn_val;
+    *_rdn_attr = map[IPA_AT_SUDOCMD_CMD].name;;
+
+    return EOK;
+}
+
 static char *
 build_filter(TALLOC_CTX *mem_ctx,
              struct sysdb_ctx *sysdb,
              hash_table_t *table,
-             const char *class,
-             const char *rdn_attr,
-             const char *category)
+             struct sdap_attr_map *map,
+             ipa_sudo_conv_rdn_fn rdn_fn)
 {
     TALLOC_CTX *tmp_ctx;
     hash_key_t *keys;
@@ -566,6 +652,7 @@ build_filter(TALLOC_CTX *mem_ctx,
     unsigned long int i;
     char *filter;
     char *rdn_val;
+    const char *rdn_attr;
     char *safe_rdn;
     errno_t ret;
     int hret;
@@ -590,8 +677,7 @@ build_filter(TALLOC_CTX *mem_ctx,
     }
 
     for (i = 0; i < count; i++) {
-        ret = ipa_get_rdn(tmp_ctx, sysdb, keys[i].str, &rdn_val,
-                          rdn_attr, MATCHDN(category));
+        ret = rdn_fn(tmp_ctx, map, sysdb, keys[i].str, &rdn_val, &rdn_attr);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get member %s [%d]: %s\n",
                   keys[i].str, ret, sss_strerror(ret));
@@ -612,8 +698,9 @@ build_filter(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* objectClass is always first */
     filter = talloc_asprintf(filter, "(&(objectClass=%s)(|%s))",
-                                    class, filter);
+                             map[0].name, filter);
     if (filter == NULL) {
         ret = ENOMEM;
         goto done;
@@ -637,22 +724,16 @@ char *
 ipa_sudo_conv_cmdgroup_filter(TALLOC_CTX *mem_ctx,
                               struct ipa_sudo_conv *conv)
 {
-    const char *rdn_attr = conv->map_cmdgroup[IPA_AT_SUDOCMDGROUP_NAME].name;
-    const char *class = conv->map_cmdgroup[IPA_OC_SUDOCMDGROUP].name;
-
-    return build_filter(mem_ctx, conv->sysdb, conv->cmdgroups, class,
-                        rdn_attr, SUDO_DN_CMDGROUPS);
+    return build_filter(mem_ctx, conv->sysdb, conv->cmdgroups,
+                        conv->map_cmdgroup, get_sudo_cmdgroup_rdn);
 }
 
 char *
 ipa_sudo_conv_cmd_filter(TALLOC_CTX *mem_ctx,
                          struct ipa_sudo_conv *conv)
 {
-    const char *rdn_attr = conv->map_cmd[IPA_AT_SUDOCMD_UUID].name;
-    const char *class = conv->map_cmd[IPA_OC_SUDOCMD].name;
-
-    return build_filter(mem_ctx, conv->sysdb, conv->cmds, class,
-                        rdn_attr, SUDO_DN_CMDS);
+    return build_filter(mem_ctx, conv->sysdb, conv->cmds,
+                            conv->map_cmd, get_sudo_cmd_rdn);
 }
 
 struct ipa_sudo_conv_result_ctx {
