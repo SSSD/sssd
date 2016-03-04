@@ -2098,6 +2098,7 @@ nestedgroups_tests_SOURCES = \
     $(NULL)
 nestedgroups_tests_CFLAGS = \
     $(AM_CFLAGS) \
+    -DEXTERNAL_MEMBERS_CHUNK=1 \
     $(NULL)
 nestedgroups_tests_LDADD = \
     $(CMOCKA_LIBS) \
