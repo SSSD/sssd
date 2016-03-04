@@ -1884,9 +1884,10 @@ done:
             DEBUG(SSSDBG_MINOR_FAILURE,
                 "Cannot set negative cache for UID %"PRIu32"\n", cmdctx->id);
         }
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "No matching domain found for [%"PRIu32"]\n", cmdctx->id);
     }
 
-    DEBUG(SSSDBG_MINOR_FAILURE, "No matching domain found for [%"PRIu32"]\n", cmdctx->id);
     return ret;
 }
 
@@ -3468,9 +3469,10 @@ done:
             DEBUG(SSSDBG_MINOR_FAILURE,
                 "Cannot set negative cache for GID %"PRIu32"\n", cmdctx->id);
         }
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "No matching domain found for [%"PRIu32"]\n", cmdctx->id);
     }
 
-    DEBUG(SSSDBG_MINOR_FAILURE, "No matching domain found for [%"PRIu32"]\n", cmdctx->id);
     return ret;
 }
 
