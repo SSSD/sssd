@@ -43,12 +43,20 @@ do { \
 do { \
     if ((p) == (list)) { \
         (list) = (p)->next; \
-        if (list) (list)->prev = NULL; \
+        if (list) { \
+            (list)->prev = NULL; \
+        } \
     } else { \
-        if ((p)->prev) (p)->prev->next = (p)->next; \
-        if ((p)->next) (p)->next->prev = (p)->prev; \
+        if ((p)->prev) { \
+            (p)->prev->next = (p)->next; \
+        } \
+        if ((p)->next) { \
+            (p)->next->prev = (p)->prev; \
+        } \
     } \
-    if ((p) != (list)) (p)->next = (p)->prev = NULL; \
+    if ((p) != (list)) { \
+        (p)->next = (p)->prev = NULL; \
+    } \
 } while (0)
 
 /* promote an element to the top of the list */
@@ -85,7 +93,9 @@ do { \
         p->prev = el; \
         p->next = el->next; \
         el->next = p; \
-        if (p->next) p->next->prev = p; \
+        if (p->next) { \
+            p->next->prev = p; \
+        } \
     } \
 } while (0)
 
@@ -128,7 +138,9 @@ do { \
         (list2)->prev = (el); \
         tmp->next = (el)->next; \
         (el)->next = (list2); \
-        if (tmp->next != NULL) tmp->next->prev = tmp; \
+        if (tmp->next != NULL) { \
+            tmp->next->prev = tmp; \
+        } \
     } \
 } while (0);
 
