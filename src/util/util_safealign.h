@@ -103,19 +103,19 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
  * would excceed len. */
 #define SAFEALIGN_COPY_UINT32_CHECK(dest, src, len, pctr) do { \
     if ((*(pctr) + sizeof(uint32_t)) > (len) || \
-        SIZE_T_OVERFLOW(*(pctr), sizeof(uint32_t))) return EINVAL; \
+        SIZE_T_OVERFLOW(*(pctr), sizeof(uint32_t))) { return EINVAL; } \
     safealign_memcpy(dest, src, sizeof(uint32_t), pctr); \
 } while(0)
 
 #define SAFEALIGN_COPY_INT32_CHECK(dest, src, len, pctr) do { \
     if ((*(pctr) + sizeof(int32_t)) > (len) || \
-        SIZE_T_OVERFLOW(*(pctr), sizeof(int32_t))) return EINVAL; \
+        SIZE_T_OVERFLOW(*(pctr), sizeof(int32_t))) { return EINVAL; } \
     safealign_memcpy(dest, src, sizeof(int32_t), pctr); \
 } while(0)
 
 #define SAFEALIGN_COPY_UINT16_CHECK(dest, src, len, pctr) do { \
     if ((*(pctr) + sizeof(uint16_t)) > (len) || \
-        SIZE_T_OVERFLOW(*(pctr), sizeof(uint16_t))) return EINVAL; \
+        SIZE_T_OVERFLOW(*(pctr), sizeof(uint16_t))) { return EINVAL; } \
     safealign_memcpy(dest, src, sizeof(uint16_t), pctr); \
 } while(0)
 

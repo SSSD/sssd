@@ -31,8 +31,9 @@ sss_exception_with_doc(char *name, char *doc, PyObject *base, PyObject *dict);
 
 /* Convenience macros */
 #define TYPE_READY(module, type, name) do {         \
-    if (PyType_Ready(&type) < 0)                    \
-	MODINITERROR;                               \
+    if (PyType_Ready(&type) < 0) {                  \
+        MODINITERROR;                               \
+    }                                               \
     Py_INCREF(&type);                               \
     PyModule_AddObject(module,                      \
                        discard_const_p(char, name), \
