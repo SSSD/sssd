@@ -93,6 +93,7 @@ if HAVE_GCC
     AM_CFLAGS += -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith \
                  -Wcast-qual -Wcast-align -Wwrite-strings -Wundef \
                  -Werror-implicit-function-declaration -Winit-self \
+                 -Wmissing-include-dirs \
                  -fno-strict-aliasing \
                  -std=gnu99
 endif
@@ -407,12 +408,9 @@ dist_noinst_DATA = \
 
 AM_CPPFLAGS = \
     -Wall \
-    -Iinclude \
     -I.. \
-    -I$(srcdir)/include \
     -I$(srcdir)/src/sss_client \
     -I$(srcdir)/src \
-    -Iinclude \
     -I. \
     $(POPT_CFLAGS) \
     $(TALLOC_CFLAGS) \
