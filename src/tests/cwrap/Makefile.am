@@ -72,27 +72,6 @@ become_user_tests_LDADD = \
 server_tests_SOURCES = \
     test_server.c \
     ../../../src/util/server.c \
-    ../../../src/util/become_user.c \
-    ../../../src/util/backup_file.c \
-    ../../../src/util/domain_info_utils.c \
-    ../../../src/util/atomic_io.c \
-    ../../../src/util/signal.c \
-    ../../../src/util/util.c \
-    ../../../src/util/string_utils.c \
-    ../../../src/util/strtonum.c \
-    ../../../src/util/util_errors.c \
-    ../../../src/util/safe-format-string.c \
-    ../../../src/util/sss_tc_utf8.c \
-    ../../../src/util/sss_utf8.c \
-    ../../../src/util/usertools.c \
-    ../../../src/confdb/confdb.c \
-    ../../../src/db/sysdb.c \
-    ../../../src/db/sysdb_upgrade.c \
-    ../../../src/db/sysdb_ops.c \
-    ../../../src/db/sysdb_search.c \
-    ../../../src/db/sysdb_autofs.c \
-    ../../../src/db/sysdb_services.c \
-    ../../../src/db/sysdb_views.c \
     $(NULL)
 server_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -102,47 +81,27 @@ server_tests_CFLAGS = \
     $(NULL)
 server_tests_LDADD = \
     $(CMOCKA_LIBS) \
-    $(UNICODE_LIBS) \
-    $(SSSD_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_debug.la \
-    $(abs_top_builddir)/libsss_crypt.la \
     $(abs_top_builddir)/libsss_test_common.la \
-    $(abs_top_builddir)/libsss_cert.la \
     $(NULL)
 
 usertools_tests_SOURCES = \
     test_usertools.c \
-    ../../../src/util/domain_info_utils.c \
-    ../../../src/util/safe-format-string.c \
-    ../../../src/util/usertools.c \
-    ../../../src/util/string_utils.c \
-    ../../../src/util/strtonum.c \
-    ../../../src/util/backup_file.c \
-    ../../../src/util/atomic_io.c \
-    ../../../src/util/util.c \
-    ../../../src/util/util_errors.c \
-    ../../../src/util/sss_tc_utf8.c \
-    ../../../src/util/sss_utf8.c \
-    ../../../src/confdb/confdb.c \
-    ../../../src/db/sysdb.c \
-    ../../../src/db/sysdb_upgrade.c \
-    ../../../src/db/sysdb_autofs.c \
-    ../../../src/db/sysdb_search.c \
-    ../../../src/db/sysdb_services.c \
-    ../../../src/db/sysdb_ops.c \
-    ../../../src/db/sysdb_views.c \
     $(NULL)
 usertools_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(NULL)
 usertools_tests_LDADD = \
     $(CMOCKA_LIBS) \
-    $(UNICODE_LIBS) \
-    $(SSSD_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS) \
+    $(abs_top_builddir)/libsss_util.la \
     $(abs_top_builddir)/libsss_debug.la \
-    $(abs_top_builddir)/libsss_crypt.la \
     $(abs_top_builddir)/libsss_test_common.la \
-    $(abs_top_builddir)/libsss_cert.la \
     $(NULL)
 
 responder_common_tests_SOURCES =\
