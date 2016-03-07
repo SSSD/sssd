@@ -1260,8 +1260,7 @@ static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
     int ret;
     const struct pam_conv *conv;
     const struct pam_message *mesg[2] = { NULL, NULL };
-    struct pam_message *m1;
-    struct pam_message *m2;
+    struct pam_message m[2] = { {0}, {0} };
     struct pam_response *resp = NULL;
     size_t needed_size;
 
@@ -1270,29 +1269,22 @@ static int prompt_2fa(pam_handle_t *pamh, struct pam_items *pi,
         return ret;
     }
 
-    m1 = malloc(sizeof(struct pam_message));
-    if (m1 == NULL) {
-        D(("Malloc failed."));
-        return PAM_SYSTEM_ERR;
-    }
+    m[0].msg_style = PAM_PROMPT_ECHO_OFF;
+    m[0].msg = prompt_fa1;
+    m[1].msg_style = PAM_PROMPT_ECHO_OFF;
+    m[1].msg = prompt_fa2;
 
-    m2 = malloc(sizeof(struct pam_message));
-    if (m2 == NULL) {
-        D(("Malloc failed."));
-        free(m1);
-        return PAM_SYSTEM_ERR;
-    }
-    m1->msg_style = PAM_PROMPT_ECHO_OFF;
-    m1->msg = prompt_fa1;
-    m2->msg_style = PAM_PROMPT_ECHO_OFF;
-    m2->msg = prompt_fa2;
-
-    mesg[0] = (const struct pam_message *) m1;
-    mesg[1] = (const struct pam_message *) m2;
+    mesg[0] = (const struct pam_message *) m;
+    /* The following assignment might look a bit odd but is recommended in the
+     * pam_conv man page to make sure that the second argument of the PAM
+     * conversation function can be interpreted in two different ways.
+     * Basically it is important that both the actual struct pam_message and
+     * the pointers to the struct pam_message are arrays. Since the assignment
+     * makes clear that mesg[] and (*mesg)[] are arrays it should be kept this
+     * way and not be replaced by other equivalent assignments. */
+    mesg[1] = & (( *mesg )[1]);
 
     ret = conv->conv(2, mesg, &resp, conv->appdata_ptr);
-    free(m1);
-    free(m2);
     if (ret != PAM_SUCCESS) {
         D(("Conversation failure: %s.", pam_strerror(pamh, ret)));
         return ret;
